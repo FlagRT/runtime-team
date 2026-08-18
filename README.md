@@ -9,38 +9,89 @@
 ## 内容规划
 
 - `VERSIONS.md` —— 物资起始清单与版本事实源（新成员从这里起步）
-- `deploy/` —— 启动配置中心（各子方向启动方式聚集处，结构见下节）
-- `<子方向>/README.md` —— 各子方向目录入口（看板/任务/环境速查；细节各子方向自管，样式参照 `runtime-memory/README.md`）
+- `dev/` —— 开发配置中心（各子方向开发配置/看板聚集处，结构见下节）
+- `<子方向>/README.md` —— 各子方向目录入口（看板/任务/环境速查；细节各子方向自管，样式参照 `dev/memory/README.md`）
 
-## 启动配置中心（deploy/）
+## 开发配置中心（dev/）
 
-所有子方向的启动方式聚集于此：**各子方向成员维护自己的目录，其他成员 `git pull` 公共仓即可同步**，保证全组启动参数一致。
+所有子方向的开发配置聚集于此：**各子方向成员维护自己的目录，其他成员 `git pull` 公共仓即可同步**，保证全组启动参数一致。
 
 ```
-deploy/
+dev/
 ├── clone_all.sh              # 新成员一键 clone FlagRT 5 仓（团队公共）
 ├── compose.base.yml           # 公共资源配置：镜像/19 设备/网络/内存/驱动挂载/公共环境变量（所有子方向共享）
 └── <子方向>/                 # 如 memory/；未来 kv/ 等，对应成员维护
-    ├── docker-compose.yml    # 本子方向专属：include 公共配置 + 容器名/专属环境变量
-    └── .env.example          # 本子方向环境变量模板：cp 成 .env 后填个人路径
+    ├── README.md             # 本子方向看板入口（目标/任务/重要发现/环境速查）
+    ├── docker-compose.yml    # 本子方向专属：-f 合并公共配置 + 容器名/专属环境变量
+    ├── .env.example          # 本子方向环境变量模板：cp 成 .env 按需调整
 ```
 
 使用基准：
-- 日常启动：`cd deploy/<子方向> && cp .env.example .env && 编辑 .env（个人路径）→ docker compose up -d`
-- 公共配置变更（镜像 tag/设备/公共环境变量）：改 `deploy/compose.base.yml`，各子方向自动生效 → 同步 `VERSIONS.md`
-- 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example`
-- `.env` 不入仓；需要 docker compose v2.24+（include 语法）
+- 日常启动：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
+- 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，各子方向自动生效 → 同步 `VERSIONS.md`
+- 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
+- `.env` 不入仓；需要 docker compose v2（-f 多文件合并，后文件覆盖前文件）
+
+## 目录布局约定（嵌套布局）
+
+公共仓根 = 开发总目录：clone 公共仓后，5 个子库由 `clone_all.sh` 收拢进公共仓根目录内部，所有开发都在公共仓根目录内进行。
+
+```
+runtime-team/                  # 公共仓根 = 开发总目录（clone 到任意位置）
+├── README.md / VERSIONS.md / .gitignore
+├── dev/                       # 开发配置中心
+│   ├── clone_all.sh           # 一键对齐 5 子库（默认收拢到公共仓根）
+│   ├── compose.base.yml       # 公共资源配置（所有子方向共享）
+│   └── memory/                # memory 子方向（看板 + compose + .env.example + probes/）
+├── PyTorch-Plugin-FL/         # 5 个子库（独立 git 仓库，各自 fork 管理，不进本仓）
+├── FlagCX/
+├── FlagGems/
+├── vllm-plugin-FL/
+└── FlagTree/
+```
+
+路径原则：
+- **宿主侧零配置**：挂载点由 `compose.base.yml` 相对路径 `../` 自动解析为公共仓根（相对路径按首个 -f 文件所在目录解析）
+- **容器侧为固定约定**：公共仓根挂载为 `/workspace`，宿主 `<公共仓根>/PyTorch-Plugin-FL` ⇔ 容器 `/workspace/PyTorch-Plugin-FL`；`FLAGCX_PATH`、探针 `/workspace/dev/memory/probes/` 等均按此约定
+- 设备/驱动节点（`/dev/davinci*`、`/usr/local/Ascend/driver`）为机器固有路径，与代码布局无关
 
 ## 新成员起步
 
-1. 读 `VERSIONS.md`（物资清单：fork 基线 + 镜像 + venv 组合 + 环境变量）
-2. 按对应子方向 README + deploy/ 启动配置搭建（示例：memory 子方向 `runtime-memory/README.md`、`deploy/memory/`）
+**前置**：GitHub SSH key 已上传（Settings → SSH and GPG keys）、已是 FlagRT 组织成员（clone_all.sh 会自动预检认证，失败即退出）。
+
+**起步链路**：
+
+```bash
+# 1. clone 公共仓（任意位置；公共仓根 = 你的开发总目录）
+git clone git@github.com:FlagRT/runtime-team.git
+cd runtime-team
+
+# 2. 一键对齐 5 个子库（缺失 → clone，已存在 → 更新到最新；分支见 VERSIONS.md §1）
+bash ./dev/clone_all.sh
+
+# 3. 进入目标子方向，按该子方向 README 启动容器（如 memory → dev/memory/README.md「启动容器」）
+cd dev/<子方向>
+```
+
+**通用验证**（任意子方向容器内）：`ls /workspace` 应看到 5 个子库 + 公共仓内容（容器名/进入方式见各子方向 README）。
+
+**要点**：
+- 起容器前：`npu-smi` 确认卡空闲；DrvMng 并发容器上限 ≈3，容器名冲突时先 `docker stop` 旧容器
+- 日常开发：`cd <子库> && git checkout dev-1.0`（FlagTree 用 `triton_v3.2.x`）→ 建个人分支 → push 组织仓 → 同仓 PR
+- 公共配置变更（镜像/设备/环境变量）：改 `dev/compose.base.yml`，各子方向自动生效，并同步 `VERSIONS.md`；子方向专属变更改各自目录
+- 细节与踩坑：各子方向看板（如 `dev/memory/README.md`）＋ `VERSIONS.md`（物资清单/镜像/venv 组合）
 
 ## 协作纪律
 
 - 上游 flagos-ai 5 库（只读参照）→ **FlagRT 组织仓（共同开发主干，成员直接 clone，无需 fork）** → 本地分支 → push → 同仓 PR
 - 日常开发：`git checkout -b <名字>/<功能>` → push 组织仓同名分支 → PR → `dev-1.0`（当前公共开发分支，宽松）；集成测试无误、阶段验收后 PR 合入 `main`（1 人 review，squash）
 - 上游同步由组织仓 **Sync fork** 按钮统一负责，成员 `git pull` 即得最新
+
+## 红线
+
+- 不改宿主机器配置/驱动；所有安装与实验都在容器内进行
+- 多卡测试前 `npu-smi` 确认 16 卡空闲；DrvMng 并发容器上限 ≈3，超了先停旧容器
+- 公共仓内容逐项审查后才上传；个人调试记录默认收拢 `personal/` 不上传
 
 ## 分支模型（GitFlow develop 模式）
 

@@ -1,6 +1,6 @@
 # FlagOS 运行时组公共资源配置（所有子方向共享，变更需全员知会）
-# 子方向 compose 通过 include 合并本文件；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
-# 需要 docker compose v2.24+（2024-05 以后版本，支持 include）
+# 子方向 compose 通过 -f 多文件合并本文件（后文件覆盖前文件）；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
+# 需要 docker compose v2（2021-11 以后版本，-f 多文件合并）
 
 services:
   runtime-dev:
@@ -13,6 +13,10 @@ services:
       memlock: -1
     cap_add:
       - SYS_PTRACE
+    # 开发容器保持存活：无 tty 时 bash 作为 CMD 会立即退出（exit 0）
+    tty: true
+    stdin_open: true
+    # 昇腾设备节点：机器固有路径，与代码布局无关，勿改
     devices:
       - /dev/davinci0:/dev/davinci0
       - /dev/davinci1:/dev/davinci1
@@ -34,11 +38,12 @@ services:
       - /dev/devmm_svm:/dev/devmm_svm
       - /dev/hisi_hdc:/dev/hisi_hdc
     volumes:
-      # 代码库总目录（容器内固定 /workspace/<repo>，全组约定）；WORKSPACE_HOST 在 .env 里设置
-      - ${WORKSPACE_HOST:-/home/xliu969/workspace}:/workspace
-      # 历史路径兼容（torch_fl 编译脚本引用 /data_lib/PyTorch-Plugin-FL）
-      - ${WORKSPACE_HOST:-/home/xliu969/workspace}/PyTorch-Plugin-FL:/data_lib/PyTorch-Plugin-FL
-      # 昇腾驱动（只读）
+      # 代码库总目录：../ = 公共仓根（dev/ 的上级，嵌套布局总目录）
+      # 自动解析：compose 相对路径按首个 -f 文件所在目录解析
+      - ../:/workspace
+      # 历史路径兼容（torch_fl 编译脚本硬编码引用 /data_lib/PyTorch-Plugin-FL，勿删）
+      - ../PyTorch-Plugin-FL:/data_lib/PyTorch-Plugin-FL
+      # 昇腾驱动（只读）：机器固有路径，与代码布局无关
       - /usr/local/Ascend/driver:/usr/local/Ascend/driver
     environment:
       # 公共运行环境（阶段4 验证，全组通用）

@@ -13,7 +13,7 @@
 | 3 | 基础镜像 | 2 个（3 个 tag） | §2 |
 | 4 | venv311 运行组合（容器内） | 1 套 | §3 |
 | 5 | 运行环境变量 | 4 个 | §4 |
-| 6 | 容器启动参数（子方向专属） | 见 memory 子方向 `runtime-memory/README.md` | 子方向目录 |
+| 6 | 容器启动参数（子方向专属） | 见 memory 子方向 `dev/memory/README.md` | 子方向目录 |
 
 ## 1. 开源代码仓（5 个，fork 基线 2026-08-17 锁定）
 
@@ -55,11 +55,16 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 4. 运行必需环境变量
 
+> 均为容器内路径约定：`/workspace` = `compose.base.yml` 相对路径 `../` 自动挂载的公共仓根；前 3 个 + HCCL 端口由 `dev/compose.base.yml` 注入，`DO_NOT_TRACK=1` 需在容器内 export（待 compose 补注入）。
+
 - `GEMS_VENDOR=ascend`
 - `TRITON_ENABLE_TASKQUEUE=false`
 - `FLAGCX_PATH=/workspace/FlagCX/plugin/torch`
 - `DO_NOT_TRACK=1`
+- `HCCL_NPU_SOCKET_PORT_RANGE=16666,16676`（多进程 HCCL 必需，compose 已注入）
 
 ## 5. 变更记录
 
 - 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）；组织仓/文档链接改用 Torch-FL，本地目录与容器路径沿用 PyTorch-Plugin-FL
+- 2026-08-18：**WORKSPACE_HOST 机制删除**——`dev/compose.base.yml` 挂载改用相对路径 `../` 自动解析公共仓根（compose 相对路径按首个 -f 文件所在目录解析，已实测），`.env` 无需再填任何宿主路径
+- 2026-08-18：**include 改为 -f 多文件合并**——compose v2 实测 include 不允许同名 service 覆盖（报 conflicts）；子方向启动命令改为 `docker compose -f ../compose.base.yml -f docker-compose.yml up -d`（后文件覆盖前文件）
