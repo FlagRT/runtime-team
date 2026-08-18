@@ -1,0 +1,49 @@
+# FlagOS 运行时组公共资源配置（所有子方向共享，变更需全员知会）
+# 子方向 compose 通过 include 合并本文件；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
+# 需要 docker compose v2.24+（2024-05 以后版本，支持 include）
+
+services:
+  runtime-dev:
+    # 公共开发镜像（tag 见 VERSIONS.md §2；子方向如需不同镜像可在其 compose 中覆盖）
+    image: flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev-hostnet
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    devices:
+      - /dev/davinci0:/dev/davinci0
+      - /dev/davinci1:/dev/davinci1
+      - /dev/davinci2:/dev/davinci2
+      - /dev/davinci3:/dev/davinci3
+      - /dev/davinci4:/dev/davinci4
+      - /dev/davinci5:/dev/davinci5
+      - /dev/davinci6:/dev/davinci6
+      - /dev/davinci7:/dev/davinci7
+      - /dev/davinci8:/dev/davinci8
+      - /dev/davinci9:/dev/davinci9
+      - /dev/davinci10:/dev/davinci10
+      - /dev/davinci11:/dev/davinci11
+      - /dev/davinci12:/dev/davinci12
+      - /dev/davinci13:/dev/davinci13
+      - /dev/davinci14:/dev/davinci14
+      - /dev/davinci15:/dev/davinci15
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      # 代码库总目录（容器内固定 /workspace/<repo>，全组约定）；WORKSPACE_HOST 在 .env 里设置
+      - ${WORKSPACE_HOST:-/home/xliu969/workspace}:/workspace
+      # 历史路径兼容（torch_fl 编译脚本引用 /data_lib/PyTorch-Plugin-FL）
+      - ${WORKSPACE_HOST:-/home/xliu969/workspace}/PyTorch-Plugin-FL:/data_lib/PyTorch-Plugin-FL
+      # 昇腾驱动（只读）
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver
+    environment:
+      # 公共运行环境（阶段4 验证，全组通用）
+      - GEMS_VENDOR=ascend
+      - TRITON_ENABLE_TASKQUEUE=false
+      - FLAGCX_PATH=/workspace/FlagCX/plugin/torch
+      # HCCL 多进程必需
+      - HCCL_NPU_SOCKET_PORT_RANGE=16666,16676

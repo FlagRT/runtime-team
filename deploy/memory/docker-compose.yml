@@ -1,0 +1,17 @@
+# memory 子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
+# 用法：cd deploy/memory && cp .env.example .env（填个人路径）→ docker compose up -d
+# 注意：需要 docker compose v2.24+（include 语法）；DrvMng 并发容器上限≈3；
+#       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop flagos-fl-dev-910c
+
+include:
+  - path: ../compose.base.yml
+
+services:
+  runtime-dev:
+    container_name: flagos-fl-dev-910c
+    environment:
+      # memory 子方向专属：显存池开关（torch_fl CachingDeviceAllocator，默认开启）
+      - FLAGOS_USE_CACHING_ALLOCATOR=${FLAGOS_USE_CACHING_ALLOCATOR:-true}
+    restart: "no"
+    # 注意：容器内实验 venv /root/vllm-venv311 不在挂载盘上，容器重建会丢失；
+    # 重建步骤见 memory 子方向文档（runtime-memory/README.md）
