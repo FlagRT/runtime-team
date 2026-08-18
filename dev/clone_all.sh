@@ -66,6 +66,6 @@ echo
 echo "完成。下一步："
 echo "  1. 进入协作开发分支：各仓分支见 VERSIONS.md §1（FlagTree 用 triton_v3.2.x）"
 echo "  2. 起容器：cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d"
-echo "     （当前已有子方向：memory；各子方向容器配置见 dev/ 下对应目录）"
+echo "     （当前已有子方向：memory、communication；各子方向容器配置见 dev/ 下对应目录）"
 echo "  3. 容器内验证：ls /workspace 应看到 6 个 repo"
 echo "  4. 探针：见公共仓 dev/memory/README.md（probes/ 待入库）"
