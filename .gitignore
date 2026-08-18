@@ -1,0 +1,23 @@
+# 公共仓卫生规则（嵌套布局）：5 个子库独立 git 仓库，不进本仓；公共仓根 = 开发总目录
+# 布局约定详见 README.md「目录布局约定」
+
+# --- 5 个子库（独立 git 仓库，各归 FlagRT 组织仓管理） ---
+FlagCX/
+FlagGems/
+PyTorch-Plugin-FL/
+vllm-plugin-FL/
+FlagTree
+
+# --- 大文件 / 运行时产物 ---
+models/
+fl-logs/
+*logs/
+*.log
+__pycache__/
+*.pyc
+
+# --- 部署本地配置（每人自己的宿主路径等，.env 不入仓） ---
+.env
+
+# --- 个人区（收拢的个人调试记录/未审查内容，严格审查放行后才移出并跟踪） ---
+personal/
