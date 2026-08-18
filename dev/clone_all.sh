@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # 对齐 FlagRT 组织仓 5 个仓库到最新状态（团队新成员/日常同步用）
-# 说明：本脚本位于 runtime-team 公共仓 deploy/ 内；新成员已 clone 本仓，
+# 说明：本脚本位于 runtime-team 公共仓 dev/ 内；新成员已 clone 本仓，
 #       运行脚本把其余 5 个子库对齐：缺失 → clone，已存在 → 更新到最新。
 # 前置（认证在脚本外完成）：
 #   1) SSH key 已上传到 GitHub（Settings → SSH and GPG keys）
 #   2) 已是 FlagRT 组织成员（write 权限，见 README 协作纪律）
-# 用法：./clone_all.sh [目标目录，默认公共仓同级目录]
+# 用法：./clone_all.sh [目标目录，默认公共仓根目录（嵌套布局：子库收拢在公共仓内）]
 # 职责：仅预检认证 + 对齐子库；不接触任何凭据
 set -euo pipefail
 
-# 默认目标 = 公共仓根目录（脚本位于公共仓的 deploy/ 下，其上级即公共仓根）
+# 默认目标 = 公共仓根目录 = 开发总目录（脚本位于公共仓的 dev/ 下，其上级即公共仓根；嵌套布局）
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 TARGET=${1:-$(dirname "$SCRIPT_DIR")}
 mkdir -p "$TARGET"
@@ -62,7 +62,7 @@ done
 echo
 echo "完成。下一步："
 echo "  1. 进入协作开发分支：cd <repo> && git checkout dev-1.0（FlagTree 用 triton_v3.2.x）"
-echo "  2. 起容器：cd deploy/<子方向> && cp .env.example .env（填个人路径）→ docker compose up -d"
-echo "     （当前已有子方向：memory；各子方向容器配置见 deploy/ 下对应目录）"
+echo "  2. 起容器：cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d"
+echo "     （当前已有子方向：memory；各子方向容器配置见 dev/ 下对应目录）"
 echo "  3. 容器内验证：ls /workspace 应看到 5 个 repo"
-echo "  4. 跑探针：/root/vllm-venv311/bin/python /workspace/runtime-memory/probes/probe_allocator_profile.py"
+echo "  4. 探针：见公共仓 dev/memory/README.md（probes/ 待入库）"

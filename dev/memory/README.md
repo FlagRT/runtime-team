@@ -1,4 +1,4 @@
-# runtime-memory — 显存与缓存管理（2.4）项目
+# memory — 显存与缓存管理（2.4）项目
 
 > **状态：🟢 已定稿（2026-08-17），开发期启动** ｜ 权威方案：《docs/02-调研与方案/显存与缓存管理-2.4-调研与实施方案.md》（定稿版）
 > 本文档 = 任务看板入口，供运行时组全员维护。
@@ -14,14 +14,16 @@
 - KV Cache 块级管理由 vLLM 自带（已在推理闭环中工作）
 - **执行计划感知分配、分层缓存/可控溢出：未做**
 
-## 目录约定
+## 目录约定（本子方向，位于 dev/memory/ 下）
 
 ```
-runtime-memory/
-├── README.md          # 本文档（看板）
-├── docs/              # 调研笔记、方案摘录（结论性数据归档到 workspace/docs/03-）
-├── probes/            # 探针/画像脚本（只读，不改造）
-└── benchmarks/        # A/B 对比与负载脚本
+dev/memory/
+├── README.md           # 本文档（看板）
+├── docker-compose.yml  # 本子方向容器配置（-f ../compose.base.yml 合并公共配置）
+├── .env.example        # 环境变量模板（cp 成 .env 按需调整）
+├── docs/               # 调研笔记、方案摘录（结论性数据归档到 workspace/docs/03-）
+├── probes/             # 探针/画像脚本（只读，不改造，待入库）
+└── benchmarks/         # A/B 对比与负载脚本
 ```
 
 代码改造主战场不在本目录：**torch_fl `csrc/runtime/allocator/`**（已有多后端结构，加层不破坏）。
@@ -49,19 +51,31 @@ runtime-memory/
 - `docker exec` 被 kill 时 EngineCore 子进程会残留占卡 → 重跑前必须 `pkill -f "VLLM::EngineCore"`。
 - vLLM usage 上报线程在容器内解析 cpuinfo 报错 → 设 `DO_NOT_TRACK=1`。
 
+## 启动容器（宿主侧）
+
+```bash
+# 从公共仓根进入子方向
+cd dev/memory
+cp .env.example .env    # 按需调整专属开关（默认值即可直接启动）
+docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+docker ps | grep flagos-fl-dev-910c    # 确认 Up
+
+# 容器内验证挂载（应看到 5 个子库 + dev/ 等公共仓内容）
+docker exec -it flagos-fl-dev-910c bash -c "ls /workspace"
+```
+
 ## 常用命令（环境速查）
 
 ```bash
 # 进开发容器
 docker exec -it flagos-fl-dev-910c bash
 # venv311 里跑探针
-/root/vllm-venv311/bin/python /workspace/runtime-memory/probes/xxx.py
+/root/vllm-venv311/bin/python /workspace/dev/memory/probes/xxx.py
 # 推理负载参考（阶段4 已验证链路）
 #   见 docs/01-阶段执行记录/推理插件接入-阶段4执行记录.md §3
 ```
 
-## 红线
+## 工作原则
 
-- 不改宿主配置/驱动；实验都在容器内
 - 遵循"不预实现"原则：先有真实问题数据，再动手优化（8.5）
-- 多卡测试前 npu-smi 确认 16 卡空闲；DrvMng 容器上限 ≈3
+- 公共红线（不改宿主配置/驱动、多卡前 npu-smi 确认、DrvMng 上限≈3）见主 README「红线」节
