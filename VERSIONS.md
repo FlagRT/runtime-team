@@ -8,16 +8,16 @@
 
 | # | 物资 | 数量 | 明细见 |
 |---|---|---|---|
-| 1 | 组织主干仓（FlagRT 组织下，成员直接 clone） | 6 个（5 子库 + runtime-team） | §1.1 |
+| 1 | 组织主干仓（FlagRT 组织下，成员直接 clone） | 7 个（6 子库 + runtime-team） | §1.1 |
 | 2 | GitHub 账号（SSH key + 组织成员 write 权限） | 1 个 | §1.1 |
 | 3 | 基础镜像 | 2 个（3 个 tag） | §2 |
 | 4 | venv311 运行组合（容器内） | 1 套 | §3 |
 | 5 | 运行环境变量 | 4 个 | §4 |
 | 6 | 容器启动参数（子方向专属） | 见 memory 子方向 `dev/memory/README.md` | 子方向目录 |
 
-## 1. 开源代码仓（5 个，fork 基线 2026-08-17 锁定）
+## 1. 开源代码仓（6 个；原 5 个 fork 基线于 2026-08-17 锁定）
 
-> 基线 commit 与上游一致（见 §1 表格）；本地已验证修改随组织仓推送（成员直接 clone FlagRT 组织仓，无需 fork）。
+> 原 5 个仓的基线 commit 与上游一致（见 §1 表格）；FlagPerf 按 FlagRT fork 的 `main` 对齐。成员直接 clone FlagRT 组织仓，无需 fork。
 > **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（2026-08-18 确认，旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
 
 | 仓（fork 名） | 上游链接 | 基线 | 版本标识 | 角色 | 依赖（源码核实） |
@@ -27,6 +27,7 @@
 | FlagGems | github.com/flagos-ai/FlagGems | master@c22f8eb | flag_gems 0.0.0（editable） | 昇腾 triton 算子库 | packaging≥26.0、PyYAML==6.0.1、sqlalchemy==2.0.48、numpy；ascend 组合 torch==2.10.0+cpu（官方 extra 含 torch-npu，**本团队不用 torch-npu**，以 torch_fl 替代） |
 | vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | main@db9afd6 | vllm-plugin-fl 0.0.0（editable） | 推理插件（KV Cache 挂载点、Platform 层） | 运行时 pyyaml；配套 vllm==0.20.2；Python 3.10~3.13；构建需 torch≥2.7.1 |
 | FlagTree | github.com/flagos-ai/FlagTree | 分支 triton_v3.2.x | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311） |
+| FlagPerf | github.com/flagos-ai/FlagPerf | main（FlagRT fork） | FlagPerf | AI 硬件评测与基准测试 | 依赖以 FlagPerf 仓库自身 README/requirements 为准；不自动并入 venv311 核心组合 |
 
 ### 1.1 协同开发链接（FlagRT 组织主干）
 
@@ -39,6 +40,7 @@
 | FlagGems | github.com/flagos-ai/FlagGems | github.com/FlagRT/FlagGems | main + dev-1.0 |
 | vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | github.com/FlagRT/vllm-plugin-FL | main + dev-1.0 |
 | FlagTree | github.com/flagos-ai/FlagTree | github.com/FlagRT/FlagTree | triton_v3.2.x（与上游同步） |
+| FlagPerf | github.com/flagos-ai/FlagPerf | github.com/FlagRT/FlagPerf | main（clone 基线；协作分支按 fork 实际配置） |
 
 ## 2. 基础镜像（2 个，3 个 tag）
 
@@ -53,6 +55,8 @@
 python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 + flag_gems + torch_fl（安装 ACCELERATOR=ascend）+ flagcx + vllm-plugin-FL
 
+> `clone_all.sh` 会将 FlagPerf 源码收拢到 `/workspace/FlagPerf`；FlagPerf 的运行环境和依赖不自动安装到上述 venv311，使用时按其仓库说明单独准备。
+
 ## 4. 运行必需环境变量
 
 > 均为容器内路径约定：`/workspace` = `compose.base.yml` 相对路径 `../` 自动挂载的公共仓根；前 3 个 + HCCL 端口由 `dev/compose.base.yml` 注入，`DO_NOT_TRACK=1` 需在容器内 export（待 compose 补注入）。
@@ -65,6 +69,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 5. 变更记录
 
+- 2026-08-20：`clone_all.sh` 纳入 FlagPerf（FlagRT/FlagPerf，main）；同步更新仓库清单、目录约定、模板和 `.gitignore`
 - 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）；组织仓/文档链接改用 Torch-FL，本地目录与容器路径沿用 PyTorch-Plugin-FL
 - 2026-08-18：**WORKSPACE_HOST 机制删除**——`dev/compose.base.yml` 挂载改用相对路径 `../` 自动解析公共仓根（compose 相对路径按首个 -f 文件所在目录解析，已实测），`.env` 无需再填任何宿主路径
 - 2026-08-18：**include 改为 -f 多文件合并**——compose v2 实测 include 不允许同名 service 覆盖（报 conflicts）；子方向启动命令改为 `docker compose -f ../compose.base.yml -f docker-compose.yml up -d`（后文件覆盖前文件）

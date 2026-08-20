@@ -1,10 +1,11 @@
 # FlagOS 运行时组 · 团队协调仓（runtime-team）
 
-> 定位：FlagOS 运行时组协调仓，位于 **FlagRT 组织**（github.com/FlagRT/runtime-team）——文档、公共脚本、部署文件、项目骨架、版本事实源。**不含任何子库代码**（5 个子库在 FlagRT 组织下独立维护）。
+> 定位：FlagOS 运行时组协调仓，位于 **FlagRT 组织**（github.com/FlagRT/runtime-team）——文档、公共脚本、部署文件、项目骨架、版本事实源。**不含任何子库代码**（6 个子库在 FlagRT 组织下独立维护）。
 
 ## 当前状态
 
-- 组织 FlagRT 已建：5 个子库（fork 自 flagos-ai，共同开发主干）+ runtime-team 公共仓，6 仓就位
+- 组织 FlagRT 已建：6 个子库（fork 自 flagos-ai，共同开发主干）+ runtime-team 公共仓，7 仓就位
+- `FlagPerf` 是 AI 硬件评测/基准测试仓；由本仓统一 clone，但其运行依赖仍按 FlagPerf 自身文档管理，不默认并入 venv311 核心组合
 
 ## 内容规划
 
@@ -18,7 +19,7 @@
 
 ```
 dev/
-├── clone_all.sh              # 新成员一键 clone FlagRT 5 仓（团队公共）
+├── clone_all.sh              # 新成员一键 clone FlagRT 6 仓（团队公共）
 ├── compose.base.yml           # 公共资源配置：镜像/19 设备/网络/内存/驱动挂载/公共环境变量（所有子方向共享）
 └── <子方向>/                 # 如 memory/；未来 kv/ 等，对应成员维护
     ├── README.md             # 本子方向看板入口（目标/任务/重要发现/环境速查）
@@ -34,20 +35,21 @@ dev/
 
 ## 目录布局约定（嵌套布局）
 
-公共仓根 = 开发总目录：clone 公共仓后，5 个子库由 `clone_all.sh` 收拢进公共仓根目录内部，所有开发都在公共仓根目录内进行。
+公共仓根 = 开发总目录：clone 公共仓后，6 个子库由 `clone_all.sh` 收拢进公共仓根目录内部，所有开发都在公共仓根目录内进行。
 
 ```
 runtime-team/                  # 公共仓根 = 开发总目录（clone 到任意位置）
 ├── README.md / VERSIONS.md / .gitignore
 ├── dev/                       # 开发配置中心
-│   ├── clone_all.sh           # 一键对齐 5 子库（默认收拢到公共仓根）
+│   ├── clone_all.sh           # 一键对齐 6 子库（默认收拢到公共仓根）
 │   ├── compose.base.yml       # 公共资源配置（所有子方向共享）
 │   └── memory/                # memory 子方向（看板 + compose + .env.example + probes/）
-├── PyTorch-Plugin-FL/         # 5 个子库（独立 git 仓库，各自 fork 管理，不进本仓）
+├── PyTorch-Plugin-FL/         # 6 个子库（独立 git 仓库，各自 fork 管理，不进本仓）
 ├── FlagCX/
 ├── FlagGems/
 ├── vllm-plugin-FL/
-└── FlagTree/
+├── FlagTree/
+└── FlagPerf/
 ```
 
 路径原则：
@@ -66,25 +68,25 @@ runtime-team/                  # 公共仓根 = 开发总目录（clone 到任�
 git clone git@github.com:FlagRT/runtime-team.git
 cd runtime-team
 
-# 2. 一键对齐 5 个子库（缺失 → clone，已存在 → 更新到最新；分支见 VERSIONS.md §1）
+# 2. 一键对齐 6 个子库（缺失 → clone，已存在 → 更新到最新；分支见 VERSIONS.md §1）
 bash ./dev/clone_all.sh
 
 # 3. 进入目标子方向，按该子方向 README 启动容器（如 memory → dev/memory/README.md「启动容器」）
 cd dev/<子方向>
 ```
 
-**通用验证**（任意子方向容器内）：`ls /workspace` 应看到 5 个子库 + 公共仓内容（容器名/进入方式见各子方向 README）。
+**通用验证**（任意子方向容器内）：`ls /workspace` 应看到 6 个子库 + 公共仓内容（容器名/进入方式见各子方向 README）。
 
 **要点**：
 - 起容器前：`npu-smi` 确认卡空闲；DrvMng 并发容器上限 ≈3，容器名冲突时先 `docker stop` 旧容器
-- 日常开发：`cd <子库> && git checkout dev-1.0`（FlagTree 用 `triton_v3.2.x`）→ 建个人分支 → push 组织仓 → 同仓 PR
+- 日常开发：`cd <子库> && git checkout <协作分支>`（各仓分支见 `VERSIONS.md` §1；FlagTree 用 `triton_v3.2.x`）→ 建个人分支 → push 组织仓 → 同仓 PR
 - 公共配置变更（镜像/设备/环境变量）：改 `dev/compose.base.yml`，各子方向自动生效，并同步 `VERSIONS.md`；子方向专属变更改各自目录
 - 细节与踩坑：各子方向看板（如 `dev/memory/README.md`）＋ `VERSIONS.md`（物资清单/镜像/venv 组合）
 
 ## 协作纪律
 
-- 上游 flagos-ai 5 库（只读参照）→ **FlagRT 组织仓（共同开发主干，成员直接 clone，无需 fork）** → 本地分支 → push → 同仓 PR
-- 日常开发：`git checkout -b <名字>/<功能>` → push 组织仓同名分支 → PR → `dev-1.0`（当前公共开发分支，宽松）；集成测试无误、阶段验收后 PR 合入 `main`（1 人 review，squash）
+- 上游 flagos-ai 6 库（只读参照）→ **FlagRT 组织仓（共同开发主干，成员直接 clone，无需 fork）** → 本地分支 → push → 同仓 PR
+- 日常开发：从各仓 `VERSIONS.md` §1 指定的协作分支创建 `git checkout -b <名字>/<功能>` → push 组织仓同名分支 → PR；集成测试无误、阶段验收后 PR 合入对应稳定主线（通常为 `main`，1 人 review，squash）
 - 上游同步由组织仓 **Sync fork** 按钮统一负责，成员 `git pull` 即得最新
 
 ## 红线
