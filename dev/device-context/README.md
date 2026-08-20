@@ -82,25 +82,20 @@ docker exec -it flagos-device-context-dev-910c bash
 
 ## 重要发现（2026-08-19，容器验证过程中）
 
-### 🔴 P0：torch_fl Ascend 裸设备初始化 aclInit 失败（500000）
+### ✅ 已解决：aclInit 500000 根因 = DrvMng 容器客户端上限（非版本问题）
 
-**现象**：容器内 `torch_fl`（tf-venv-integration，torch 2.10.0+cpu）调用设备接口时
-`[flagos-ascend] aclInit failed: 500000`（ACL_ERROR_INTERNAL_ERROR），device_count=0。
-手动 ctypes 直调 `aclInit` 同样失败——非 torch_fl bug，是环境层问题。
+**现象**：容器内 aclInit 报 500000（ACL_ERROR_INTERNAL_ERROR），device_count=0。
 
-**对比实验**（决定性）：
-- 宿主直接 aclInit：✅ 成功（ret=0，识别 16 卡）→ 驱动/硬件正常
-- 容器内 aclInit（含 memory 组员 flagos-fl-dev-910c 容器，同一镜像）：❌ 均失败 500000
+**根因（2026-08-20 证实）**：DrvMng（驱动侧管理进程）对**同时挂载 davinci 设备的容器客户端数量有上限（实测 ≈3）**。槽位占满后，任何新容器/新进程调用 aclInit 都报 500000——与容器配置、torch_fl、CANN 版本均无关。
 
-**根因**（官方兼容矩阵核实；注意"宿主 toolkit 8.5.0 匹配正常"与"容器镜像 9.0.0 不匹配"是两层，勿混淆）：
-- 容器镜像 CANN 9.0.0 要求 Ascend HDK（驱动）≥ **25.5.1 / 25.5.2**
-- 910C 当前宿主驱动 **25.5.0**（低一个补丁版）→ 版本不匹配
+**验证过程**（决定性）：
+- 5 个挂设备容器时：所有容器 aclInit 均 500000（含 memory 组员容器）
+- 停掉 2 个闲置容器（剩余 3 个 = 上限）：同一容器 aclInit 立即恢复 `ret=0`、`device_count=16`
+- torch_fl 全链路验证：`is_available=True`、16 卡枚举、`flagos` 设备上真实矩阵乘计算 OK
 
-**影响**：所有基于 `manual-20260807-ascend-dev-hostnet`（CANN 9.0.0）镜像的容器，torch_fl 裸设备层（aclInit）均不可用 → 阻塞需求 1（设备 Runtime 封装）的设备初始化验证。
+**之前误判为"CANN 9.0.0 vs 驱动 25.5.0 版本不匹配"——已纠正**。官方兼容矩阵是"官方支持的最低驱动版本"而非"能否运行"；真正版本不兼容会报明确的版本校验错误，而非 500000 通用运行时错误；且 9.0.0+25.5.0 组合在 8-17 曾真实推理成功。
 
-**候选方案**（待组内决策）：
-- A. 升级宿主驱动 25.5.0 → 25.5.2+（涉及宿主，需 IT/管理员，触碰"不改宿主"红线边界）
-- B. 容器内降级 CANN 9.0.0 → 8.5.2（与 25.5.0 驱动匹配；容器内操作符合红线；需重建镜像或容器内安装）
-- C. 验证 vllm-ascend 对照镜像（quay.io/ascend/vllm-ascend）的 torch_npu 链路能否绕过（memory 组员 V1 画像疑似走此路径）
-
-**上报建议**：作为组级环境问题上报（参照 memory 组员 P0 上报模式），影响全组容器化验证。
+**协作提醒**：
+- 多卡测试前检查挂设备容器数：`docker ps` + 数一下 --device davinci 的容器
+- DrvMng 上限 ≈3：超过需先停闲置容器（停他人容器前在群里打招呼）
+- 无需升级宿主驱动（25.5.0 → 25.5.1/2 为主机级变更，按上述证据大概率白干，仅需进入官方支持矩阵时才考虑）
