@@ -82,6 +82,9 @@ dev/device-context/
 
 **影响**：双卡/多卡训练阻塞；单卡训练闭环已通（本页前述）。此任务列入需求 3（跨卡通信）开发。
 
+
+**重要补充**：FlagRT/Torch-FL 源码（main）已是新版——`_VendorProfile("ascend", ..., flagcx_native=True)` 且 `_resolve_view` 已实现 flagcx 原生消费（`return None`）。**镜像内置 torch_fl 0.1.0 是旧版**（无此逻辑）；本会话对 site-packages 的 view patch 是旧版临时适配。**长期方案：用源码仓库重装 torch_fl**（pip install /workspace/PyTorch-Plugin-FL），无需修改源码。双卡阻塞的 hccl adaptor commId 缺陷在 **flagcx 核心库**（flagcx/adaptor/ccl/hccl_adaptor.cc），列入需求 3 开发任务。
+
 ## 任务看板
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
