@@ -68,6 +68,20 @@ dev/device-context/
 - 多进程训练（torchrun N 进程 = N 客户端）需先确认名额
 - 容器异常退出后重启注册被拒 = 残留未释放，等超时或协调释放
 
+
+### ⏳ 双卡训练阻塞根因（2026-08-20）：flagcx 核心 hccl adaptor commId 格式缺陷
+
+**现象**：双卡 DDP（torchrun 2 进程）在 flagcxCommInitRank 阶段报 `flagcxInvalidArgument`（错误码 4），`flagcxComm is not fully initialized`。
+
+**根因**（flagcx 核心源码定位）：
+- `flagcxGetUniqueId` 生成 256B `flagcxUniqueId`（内容是 **bootstrap handle**，`bootstrapGetUniqueId`）
+- `hcclAdaptorCommInitRank`（flagcx/adaptor/ccl/hccl_adaptor.cc:98）直接强转 `HcclCommInitRootInfo(nranks, (HcclRootInfo*)commId, ...)`——**HCCL 期望的是 `hcclGetRootInfo` 生成的 RootInfo，收到的是 bootstrap handle → 格式不匹配 → InvalidArgument**
+- `hcclAdaptorCommInitRank` 的 bootstrap 参数被注释忽略（`/*bootstrap*/`），无 root info 生成/交换逻辑
+
+**结论**：flagcx 核心对 ascend HCCL 通信集成是"半成品"（第三个 FlagCX ascend 适配缺口，前两个：torch_npu 事件依赖、plugin 构建）。修复方向：hccl adaptor 在 rank0 用 `hcclGetRootInfo` 生成 RootInfo 并经 bootstrap 交换，再 `HcclCommInitRootInfo`。
+
+**影响**：双卡/多卡训练阻塞；单卡训练闭环已通（本页前述）。此任务列入需求 3（跨卡通信）开发。
+
 ## 任务看板
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
