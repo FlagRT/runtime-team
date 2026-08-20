@@ -19,6 +19,7 @@
 ```
 dev/memory/
 ├── README.md           # 本文档（看板）
+├── dev-prep.sh         # 开发前置一键准备（fetch 全部仓 + 切本地 <用户名>/dev 分支，--dry-run 先看计划）
 ├── docker-compose.yml  # 本子方向容器配置（-f ../compose.base.yml 合并公共配置）
 ├── .env.example        # 环境变量模板（cp 成 .env 按需调整）
 ├── docs/               # 调研笔记、方案摘录（结论性数据归档到 workspace/docs/03-）

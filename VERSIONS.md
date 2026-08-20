@@ -4,41 +4,28 @@
 
 ## 0. 物资起始清单（一屏）
 
-要准备的东西：
-
 | # | 物资 | 数量 | 明细见 |
 |---|---|---|---|
-| 1 | 组织主干仓（FlagRT 组织下，成员直接 clone） | 6 个（5 子库 + runtime-team） | §1.1 |
-| 2 | GitHub 账号（SSH key + 组织成员 write 权限） | 1 个 | §1.1 |
+| 1 | 组织主干仓（FlagRT 组织下，成员直接 clone） | 6 个（5 子库 + runtime-team） | §1 |
+| 2 | GitHub 账号（SSH key + 组织成员 write 权限） | 1 个 | §1 |
 | 3 | 基础镜像 | 2 个（3 个 tag） | §2 |
 | 4 | venv311 运行组合（容器内） | 1 套 | §3 |
 | 5 | 运行环境变量 | 4 个 | §4 |
 | 6 | 容器启动参数（子方向专属） | 见 memory 子方向 `dev/memory/README.md` | 子方向目录 |
 
-## 1. 开源代码仓（5 个，fork 基线 2026-08-17 锁定）
+## 1. 开源代码仓（5 个）
 
-> 基线 commit 与上游一致（见 §1 表格）；本地已验证修改随组织仓推送（成员直接 clone FlagRT 组织仓，无需 fork）。
-> **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（2026-08-18 确认，旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
+> 组织仓 = `github.com/FlagRT/<仓名>`，成员直接 clone，无需 fork；上游 flagos-ai 只读参照。
+> **基线 = fork 仓当前同步状态**（2026-08-20 标定；Sync fork 后需更新下表）。协作模式（main 只同步 / dev-1.0 公共开发 / 按需合上游）见主 README「分支模型（fork 三线）」。
+> **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
 
-| 仓（fork 名） | 上游链接 | 基线 | 版本标识 | 角色 | 依赖（源码核实） |
+| 仓（fork 名） | 上游（只读） | 基线分支@commit | 版本标识 | 角色 | 依赖（源码核实） |
 |---|---|---|---|---|---|
-| Torch-FL（本地目录 PyTorch-Plugin-FL） | github.com/flagos-ai/Torch-FL | main@caefaae | torch_fl 0.1.0 | 设备接入 + 显存池主战场（csrc/runtime/allocator/） | torch 2.10 固定（setup.py TORCH_PIN `>=2.10,<2.11`）；Python≥3.8；triton/flag_gems 由平台注入（不装 PyPI triton） |
-| FlagCX | github.com/flagos-ai/FlagCX | main@0a747f6 | flagcx 0.13.0 | 多卡通信 + KV 传输 | torch（构建期自动检测，`TORCH_DEVICE_BACKEND_AUTOLOAD=0`）；源码构建需 make + git submodule（plugin/torch 为 torch 插件） |
-| FlagGems | github.com/flagos-ai/FlagGems | master@c22f8eb | flag_gems 0.0.0（editable） | 昇腾 triton 算子库 | packaging≥26.0、PyYAML==6.0.1、sqlalchemy==2.0.48、numpy；ascend 组合 torch==2.10.0+cpu（官方 extra 含 torch-npu，**本团队不用 torch-npu**，以 torch_fl 替代） |
-| vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | main@db9afd6 | vllm-plugin-fl 0.0.0（editable） | 推理插件（KV Cache 挂载点、Platform 层） | 运行时 pyyaml；配套 vllm==0.20.2；Python 3.10~3.13；构建需 torch≥2.7.1 |
-| FlagTree | github.com/flagos-ai/FlagTree | 分支 triton_v3.2.x | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311） |
-
-### 1.1 协同开发链接（FlagRT 组织主干）
-
-> 协作模式（同仓分支 PR，GitHub Flow）：成员 clone FlagRT 组织仓（无需 fork）→ 本地分支（`<名字>/<功能>`）→ push 组织仓同名分支 → 同仓 PR；`dev-1.0` 为当前公共开发集成分支（宽松，日常合并），`main` 为稳定主线（唯一变更来源：fork sync + dev-1.0 验收 PR）；flagos-ai 上游由组织仓 Sync fork 统一同步，成员无需各自配置
-
-| 仓 | 上游（只读参照） | 组织仓（共同开发主干） | 主干分支 |
-|---|---|---|---|
-| Torch-FL（本地目录 PyTorch-Plugin-FL） | github.com/flagos-ai/Torch-FL | github.com/FlagRT/Torch-FL | main + dev-1.0 |
-| FlagCX | github.com/flagos-ai/FlagCX | github.com/FlagRT/FlagCX | main + dev-1.0 |
-| FlagGems | github.com/flagos-ai/FlagGems | github.com/FlagRT/FlagGems | main + dev-1.0 |
-| vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | github.com/FlagRT/vllm-plugin-FL | main + dev-1.0 |
-| FlagTree | github.com/flagos-ai/FlagTree | github.com/FlagRT/FlagTree | triton_v3.2.x（与上游同步） |
+| Torch-FL（本地目录 PyTorch-Plugin-FL） | github.com/flagos-ai/Torch-FL | main@af50297 | torch_fl 0.1.0 | 设备接入 + 显存池主战场（csrc/runtime/allocator/） | torch 2.10 固定（setup.py TORCH_PIN `>=2.10,<2.11`）；Python≥3.8；triton/flag_gems 由平台注入（不装 PyPI triton） |
+| FlagCX | github.com/flagos-ai/FlagCX | main@a46d0d8 | flagcx 0.13.0 | 多卡通信 + KV 传输 | torch（构建期自动检测，`TORCH_DEVICE_BACKEND_AUTOLOAD=0`）；源码构建需 make + git submodule（plugin/torch 为 torch 插件） |
+| FlagGems | github.com/flagos-ai/FlagGems | master@f7ae8e6（fork 默认分支非 main） | flag_gems 0.0.0（editable） | 昇腾 triton 算子库 | packaging≥26.0、PyYAML==6.0.1、sqlalchemy==2.0.48、numpy；ascend 组合 torch==2.10.0+cpu（官方 extra 含 torch-npu，**本团队不用 torch-npu**，以 torch_fl 替代） |
+| vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | main@885aaef | vllm-plugin-fl 0.0.0（editable） | 推理插件（KV Cache 挂载点、Platform 层） | 运行时 pyyaml；配套 vllm==0.20.2；Python 3.10~3.13；构建需 torch≥2.7.1 |
+| FlagTree | github.com/flagos-ai/FlagTree | **triton_v3.2.x**@343e4f1（例外：基准非 main） | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311） |
 
 ## 2. 基础镜像（2 个，3 个 tag）
 
@@ -55,7 +42,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 4. 运行必需环境变量
 
-> 均为容器内路径约定：`/workspace` = `compose.base.yml` 相对路径 `../` 自动挂载的公共仓根；前 3 个 + HCCL 端口由 `dev/compose.base.yml` 注入，`DO_NOT_TRACK=1` 需在容器内 export（待 compose 补注入）。
+> 均为容器内路径约定（`/workspace` = 公共仓根挂载点）；前 3 个 + HCCL 端口由 `dev/compose.base.yml` 注入，`DO_NOT_TRACK=1` 需容器内 export（待 compose 补注入）。
 
 - `GEMS_VENDOR=ascend`
 - `TRITON_ENABLE_TASKQUEUE=false`
@@ -65,6 +52,6 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 5. 变更记录
 
-- 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）；组织仓/文档链接改用 Torch-FL，本地目录与容器路径沿用 PyTorch-Plugin-FL
-- 2026-08-18：**WORKSPACE_HOST 机制删除**——`dev/compose.base.yml` 挂载改用相对路径 `../` 自动解析公共仓根（compose 相对路径按首个 -f 文件所在目录解析，已实测），`.env` 无需再填任何宿主路径
-- 2026-08-18：**include 改为 -f 多文件合并**——compose v2 实测 include 不允许同名 service 覆盖（报 conflicts）；子方向启动命令改为 `docker compose -f ../compose.base.yml -f docker-compose.yml up -d`（后文件覆盖前文件）
+- 2026-08-20：基线改为对齐 fork 仓 origin/main（原上游 commit 锁定作废；Sync fork 后更新 §1）
+- 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）
+- 2026-08-18：挂载/启动机制定稿——compose.base.yml 相对路径 `../` 解析公共仓根 + `-f` 多文件合并（WORKSPACE_HOST / include 机制废弃）
