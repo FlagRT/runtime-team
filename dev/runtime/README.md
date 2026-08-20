@@ -10,7 +10,11 @@
 ## 现状（2026-08-19 快照）
 
 - Torch-FL（本地目录 PyTorch-Plugin-FL）**已有设备接入基础**：`csrc/runtime/`（设备句柄、显存池 allocator、Stream/Event 抽象）
-- 910C 环境：CANN 8.5.0、16 chip（davinci0-15）、NPU 全空闲；仓库已 clone（5 子库对齐）
+- 910C 环境（**分层版本，注意区分**）：
+  - **宿主 CANN toolkit 8.5.0**（/usr/local/Ascend/ascend-toolkit/latest，与宿主驱动匹配，宿主直调 aclInit 正常）
+  - **宿主驱动 HDK 25.5.0**（npu-smi driver version）
+  - **容器镜像内置 CANN 9.0.0**（flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev-hostnet）
+  - 16 chip（davinci0-15）、NPU 全空闲；仓库已 clone（5 子库对齐）
 - **待验证**：容器内 torch_fl 设备注册 → 显存分配 → Stream/Event → 双卡 HCCL 跨卡 → 训练闭环
 
 ## 需求映射（科研任务 → 代码位置）
@@ -86,7 +90,7 @@ docker exec -it flagos-runtime-dev-910c bash
 - 宿主直接 aclInit：✅ 成功（ret=0，识别 16 卡）→ 驱动/硬件正常
 - 容器内 aclInit（含 memory 组员 flagos-fl-dev-910c 容器，同一镜像）：❌ 均失败 500000
 
-**根因**（官方兼容矩阵核实）：
+**根因**（官方兼容矩阵核实；注意"宿主 toolkit 8.5.0 匹配正常"与"容器镜像 9.0.0 不匹配"是两层，勿混淆）：
 - 容器镜像 CANN 9.0.0 要求 Ascend HDK（驱动）≥ **25.5.1 / 25.5.2**
 - 910C 当前宿主驱动 **25.5.0**（低一个补丁版）→ 版本不匹配
 
