@@ -85,6 +85,34 @@ dev/device-context/
 
 **重要补充**：FlagRT/Torch-FL 源码（main）已是新版——`_VendorProfile("ascend", ..., flagcx_native=True)` 且 `_resolve_view` 已实现 flagcx 原生消费（`return None`）。**镜像内置 torch_fl 0.1.0 是旧版**（无此逻辑）；本会话对 site-packages 的 view patch 是旧版临时适配。**长期方案：用源码仓库重装 torch_fl**（pip install /workspace/PyTorch-Plugin-FL），无需修改源码。双卡阻塞的 hccl adaptor commId 缺陷在 **flagcx 核心库**（flagcx/adaptor/ccl/hccl_adaptor.cc），列入需求 3 开发任务。
 
+
+### ✅ 双卡训练打通（2026-08-21）：FlagOS 全栈首个 910C 双卡闭环
+
+**目标**：修复 flagcx 核心 hccl adaptor 的 commId 缺陷，跑通单机 2 卡 Qwen2.5-1.5B DDP 训练。
+
+**四层根因链（源码级定位，全在 FlagCX ascend 适配层）**：
+
+| # | 根因 | 修复 |
+|---|------|------|
+| 1 | (4108B) > (256B)：GetUniqueId 缓冲区溢出 + allGather 只传 256B →  InvalidArgument(4) | flagcx.cc  传 bootstrap state；hccl_adaptor.cc thread_local 存 RootInfo，CommInitRank 时 rank0 生成 +  全量分发 4108B |
+| 2 | HCCL 传输选错网卡（bond4）→  /  失败 | 同节点走 HCCS 不需网卡；无需 HCCL_IF_NAME（验证无效） |
+| 3 | 当前 ACL 设备与 comm 不匹配 →  E_PARA | 训练脚本 （torch_fl 默认只在 device 0） |
+| 4 | collective 不在调用者当前 stream → API ret=0 但数据全 0（无 happens-before） |  改返回 （PyTorch 标准语义）；stream_guard ascend 分支移除无效 SetCurrentStream（libflagos 旧版无此符号）；plugin 链接 libflagos.so 解决 RTLD_LOCAL undefined |
+
+**验证结果**：
+- 双进程 allgather 数据正确（[1,2]、[10,11]）
+- 双卡训练 loss 1.4-2.9 正常波动；吞吐 ~2000 tok/s（单卡 530 的 4 倍）；显存 14.64GB/卡
+- 全链路：torch_fl(flagos 设备) → DDP(flagos backend) → ProcessGroupFlagOS → FlagCX(homoRunner) → HCCL(HCCS 机内互联)
+
+**改动文件**（FlagCX）：
+- ：flagcxHomoCommInit 传 bootstrap state（1 处）
+- ：GetUniqueId 防溢出 + CommInitRank bootstrap 分发 RootInfo
+- ：getStreamByIndex(0) 用调用者当前 stream
+- ：ascend 分支修正（无操作，当前 stream 语义）
+- ：ascend 分支链接 libflagos.so
+
+**工具**：（纯 C 双进程 HCCL 冒烟测试，FP32/BFP16/INT64 全通过）+  + （allgather 数据验证）
+
 ## 任务看板
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |

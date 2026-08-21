@@ -47,8 +47,12 @@ def main():
 
     # ---- 设备绑定（flagos 设备）----
     dev = torch.device(DEVICE, local_rank)
+    # 关键：每个进程显式绑定自己的 NPU（HCCL 集合操作要求当前 ACL 设备
+    # 与通信器设备匹配；torch_fl 默认只在 device 0，不绑定会导致
+    # HcclAllGather E_PARA / E_RUNTIME(107003 stream not in current ctx)）
+    torch.flagos.set_device(local_rank)
     if rank == 0:
-        print(f"[init] world_size={world_size}, local_rank={local_rank}, device={dev}", flush=True)
+        print(f"[init] world_size={world_size}, local_rank={local_rank}, device={dev}, cur={torch.flagos.current_device()}", flush=True)
         print(f"[init] torch={torch.__version__}, flagos_count={torch_fl.flagos.device_count()}", flush=True)
 
     # ---- 模型 ----
