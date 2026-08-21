@@ -101,7 +101,9 @@ dev/device-context/
 
 **验证结果**：
 - 双进程 allgather 数据正确（[1,2]、[10,11]）
-- 双卡训练 loss 1.4-2.9 正常波动；吞吐 ~2000 tok/s（单卡 530 的 4 倍）；显存 14.64GB/卡
+- **双卡训练 1 epoch 完整跑通**（2481 步，~18 分钟）：loss 2.6451 → 1.9458（训练有效）
+- 平均吞吐 **2324 tok/s**（单卡 530 的 ~4.4 倍）；显存 14.64GB/卡
+- 模型已保存：`/workspace/outputs/ckpt_final_flagos/`（2.9GB）
 - 全链路：torch_fl(flagos 设备) → DDP(flagos backend) → ProcessGroupFlagOS → FlagCX(homoRunner) → HCCL(HCCS 机内互联)
 
 **改动文件**（FlagCX）：
