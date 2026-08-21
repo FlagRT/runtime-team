@@ -94,10 +94,10 @@ dev/device-context/
 
 | # | 根因 | 修复 |
 |---|------|------|
-| 1 | (4108B) > (256B)：GetUniqueId 缓冲区溢出 + allGather 只传 256B →  InvalidArgument(4) | flagcx.cc  传 bootstrap state；hccl_adaptor.cc thread_local 存 RootInfo，CommInitRank 时 rank0 生成 +  全量分发 4108B |
-| 2 | HCCL 传输选错网卡（bond4）→  /  失败 | 同节点走 HCCS 不需网卡；无需 HCCL_IF_NAME（验证无效） |
-| 3 | 当前 ACL 设备与 comm 不匹配 →  E_PARA | 训练脚本 （torch_fl 默认只在 device 0） |
-| 4 | collective 不在调用者当前 stream → API ret=0 但数据全 0（无 happens-before） |  改返回 （PyTorch 标准语义）；stream_guard ascend 分支移除无效 SetCurrentStream（libflagos 旧版无此符号）；plugin 链接 libflagos.so 解决 RTLD_LOCAL undefined |
+| 1 | `HcclRootInfo`(4108B) > `flagcxUniqueId`(256B)：GetUniqueId 缓冲区溢出 + allGather 只传 256B → `HcclCommInitRootInfo` InvalidArgument(4) | flagcx.cc `flagcxHomoCommInit` 传 bootstrap state；hccl_adaptor.cc thread_local 存 RootInfo，CommInitRank 时 rank0 生成 + `bootstrapCollBroadcast` 全量分发 4108B |
+| 2 | HCCL 传输选错网卡（bond4）→ `Alloc transports failed` / `WaitP2PEnabled` 失败 | 同节点走 HCCS 不需网卡；无需 HCCL_IF_NAME（验证无效） |
+| 3 | 当前 ACL 设备与 comm 不匹配 → `HcclAllGather` E_PARA | 训练脚本 `torch.flagos.set_device(local_rank)`（torch_fl 默认只在 device 0） |
+| 4 | collective 不在调用者当前 stream → API ret=0 但数据全 0（无 happens-before） | `getStreamByIndex(0)` 改返回 `GetCurrentStream(deviceId_)`（PyTorch 标准语义）；stream_guard ascend 分支移除无效 SetCurrentStream（libflagos 旧版无此符号）；plugin 链接 libflagos.so 解决 RTLD_LOCAL undefined |
 
 **验证结果**：
 - 双进程 allgather 数据正确（[1,2]、[10,11]）
@@ -105,13 +105,13 @@ dev/device-context/
 - 全链路：torch_fl(flagos 设备) → DDP(flagos backend) → ProcessGroupFlagOS → FlagCX(homoRunner) → HCCL(HCCS 机内互联)
 
 **改动文件**（FlagCX）：
-- ：flagcxHomoCommInit 传 bootstrap state（1 处）
-- ：GetUniqueId 防溢出 + CommInitRank bootstrap 分发 RootInfo
-- ：getStreamByIndex(0) 用调用者当前 stream
-- ：ascend 分支修正（无操作，当前 stream 语义）
-- ：ascend 分支链接 libflagos.so
+- `flagcx/flagcx.cc`：flagcxHomoCommInit 传 bootstrap state（1 处）
+- `flagcx/adaptor/ccl/hccl_adaptor.cc`：GetUniqueId 防溢出 + CommInitRank bootstrap 分发 RootInfo
+- `plugin/torch/flagcx/src/backend_flagcx.cpp`：getStreamByIndex(0) 用调用者当前 stream
+- `plugin/torch/flagcx/include/stream_guard_flagcx.hpp`：ascend 分支修正（当前 stream 语义）
+- `plugin/torch/_build_config.py`：ascend 分支链接 libflagos.so
 
-**工具**：（纯 C 双进程 HCCL 冒烟测试，FP32/BFP16/INT64 全通过）+  + （allgather 数据验证）
+**工具**：`benchmarks/hccl_smoke.c`（纯 C 双进程 HCCL 冒烟测试，FP32/BFP16/INT64 全通过）+ `benchmarks/hccl_py_smoke.py` + `benchmarks/test_ag.py`（allgather 数据验证）
 
 ## 任务看板
 
