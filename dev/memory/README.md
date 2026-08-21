@@ -39,7 +39,7 @@ cp .env.example .env    # 按需调整专属开关（默认值即可直接启动
 docker compose -f ../compose.base.yml -f docker-compose.yml up -d
 docker ps | grep flagos-fl-dev-910c    # 确认 Up
 
-# 容器内验证挂载（应看到 5 个子库 + dev/ 等公共仓内容）
+# 容器内验证挂载（应看到 6 个子库 + dev/ 等公共仓内容）
 docker exec -it flagos-fl-dev-910c bash -c "ls /workspace"
 ```
 

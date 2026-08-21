@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 对齐 FlagRT 组织仓 5 个仓库到最新状态（团队新成员/日常同步用）
+# 对齐 FlagRT 组织仓 6 个仓库到最新状态（团队新成员/日常同步用）
 # 说明：本脚本位于 runtime-team 公共仓 dev/ 内；新成员已 clone 本仓，
-#       运行脚本把其余 5 个子库对齐：缺失 → clone，已存在 → 更新到最新。
+#       运行脚本把其余 6 个子库对齐：缺失 → clone，已存在 → 更新到最新。
 # 前置（认证在脚本外完成）：
 #   1) SSH key 已上传到 GitHub（Settings → SSH and GPG keys）
 #   2) 已是 FlagRT 组织成员（write 权限，见 README 协作纪律）
@@ -27,7 +27,9 @@ fi
 USER_NAME=$(echo "$AUTH_OUT" | sed -n 's/^Hi \([^!]*\)!.*/\1/p')
 echo "[auth] 已认证账号: ${USER_NAME:-未知}"
 
-# ---------- 对齐 5 仓（origin = FlagRT 组织仓） ----------
+# ---------- 对齐 6 仓（origin = FlagRT 组织仓） ----------
+# REPOS 是实际的 clone 候选集合；新增仓库需同时在 BRANCH 中声明基线分支。
+REPOS=(PyTorch-Plugin-FL FlagCX FlagGems vllm-plugin-FL FlagTree FlagPerf)
 # 基线分支（与 VERSIONS.md §1 保持一致）
 declare -A BRANCH=(
   [PyTorch-Plugin-FL]=main
@@ -35,13 +37,14 @@ declare -A BRANCH=(
   [FlagGems]=master
   [vllm-plugin-FL]=main
   [FlagTree]=triton_v3.2.x
+  [FlagPerf]=main
 )
 # 远程名映射：上游/组织已改名 Torch-FL；本地目录沿用 PyTorch-Plugin-FL（容器路径约定 /workspace/PyTorch-Plugin-FL）
 declare -A REMOTE=(
   [PyTorch-Plugin-FL]=Torch-FL
 )
 
-for name in PyTorch-Plugin-FL FlagCX FlagGems vllm-plugin-FL FlagTree; do
+for name in "${REPOS[@]}"; do
   dir="$TARGET/$name"
   remote_name="${REMOTE[$name]:-$name}"
   if [ -d "$dir/.git" ]; then
@@ -61,8 +64,8 @@ done
 
 echo
 echo "完成。下一步："
-echo "  1. 进入协作开发分支：cd <repo> && git checkout dev-1.0（FlagTree 用 triton_v3.2.x）"
+echo "  1. 进入协作开发分支：各仓分支见 VERSIONS.md §1（FlagTree 用 triton_v3.2.x）"
 echo "  2. 起容器：cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d"
 echo "     （当前已有子方向：memory；各子方向容器配置见 dev/ 下对应目录）"
-echo "  3. 容器内验证：ls /workspace 应看到 5 个 repo"
+echo "  3. 容器内验证：ls /workspace 应看到 6 个 repo"
 echo "  4. 探针：见公共仓 dev/memory/README.md（probes/ 待入库）"
