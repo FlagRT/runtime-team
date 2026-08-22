@@ -9,11 +9,10 @@
 | 优先级 | 事项 | 状态/依赖 |
 |---|---|---|
 | P0 | 目标模型清单确认（是否含混合注意力架构） | MoE 跨路线阻塞决定项，见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md) |
-| 高 | P800 A 线 V1 显存画像报告收尾 | 专项画像实验；[路线A-P800可用性实测-20260821](docs/路线A-P800可用性实测-20260821.md) 已有部分数据 |
-| 高 | 向智源/FlagOS 提交三项 issue（causal_conv1d / topk_softmax 签名 / vendor-mappings 文档滞后） | 附 file:line，清单见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md) |
+| 高 | 向智源/FlagOS 提交三项 issue（causal_conv1d / topk_softmax 签名 / vendor-mappings 文档滞后） | 附 file:line；topk_softmax 最新证据见 [新线镜像-MoE复测-静态预检-20260822](docs/新线镜像-MoE复测-静态预检-20260822.md)（v5.3.4 仍未补） |
+| 高 | 新线镜像（gems 5.0.0/vllm 0.20.2）纯 MoE 复测 | 静态预检已完成：5.x 全系未补 renormalize，**复测预计仍崩**；直接复测实证 + 临时包装探针（不进交付路径） |
+| 中 | V3 分层缓存原型（KV 按需释放 + Host 溢出） | **0.13 原生 `--kv-offloading-size`（native/lmcache）官方路径优先实测**，见 [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md)；可并行 |
 | 中 | A 线显存池定义与 V2 A/B 回归设计（vLLM 层） | 主战场改 vLLM 层，厂商 torch 分配器为底座（无 torch_fl 显存池） |
-| 中 | vllm 0.13 allocator/offload 机制调研 | 对照 [vllm-offload-调研笔记-20260817](docs/vllm-offload-调研笔记-20260817.md)（0.20.2）差异 |
-| 中 | V3 分层缓存原型（KV 按需释放 + Host 溢出，evict_blocks + flagcx_connector） | 可并行，短序列可验 |
 | 中 | 昇腾 A 线 venv 组合验证与 V1 画像 | 910c 机器补充（torch_npu + vllm 0.20.2） |
 | 低 | V4 SSD 层评估（NVMe 带宽实测） | 随时可做 |
 | 低 | 执行计划感知分配 | 等编译组接口答复，问题仍开放 |
@@ -24,6 +23,9 @@
 
 | 时间 | 事项 | 引用 |
 |---|---|---|
+| 08-22 | P800 A 线 V1 显存画像：7 阶段全绿，KV 556,352 tokens/76.40GiB（~89%），910c P0 不存在 | [路线A-P800显存画像报告-20260822](docs/路线A-P800显存画像报告-20260822.md)（A 线） |
+| 08-22 | vllm 0.13 allocator/offload 调研：原生 KV CPU 卸载（--kv-offloading-size）发现 | [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md)（A 线） |
+| 08-22 | 新线复测静态预检：gems 5.x 全系 kunlunxin topk_softmax 未补 renormalize（复测预计仍崩） | [新线镜像-MoE复测-静态预检-20260822](docs/新线镜像-MoE复测-静态预检-20260822.md)（A 线） |
 | 08-22 | 设备层路线变更 B→A 落地：旧案归档、A 线方案发布、三 issue 清单成形 | [FlagOS设备层路线变更指南](docs/FlagOS设备层路线变更指南.md) · [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)（A 线） |
 | 08-22 | 官方镜像 MoE 复测 + 纯 MoE 隔离：定位 causal_conv1d / topk_softmax 双阻塞 | [官方镜像复测-MoE-20260822](docs/官方镜像复测-MoE-20260822.md) · [纯MoE-昆仑芯-20260822](docs/纯MoE-昆仑芯-20260822.md)（A 线） |
 | 08-21 | 昆仑芯 P800 路线 A 可用性实测：官方栈端到端跑通 Qwen3-4B（96.5 tok/s），分层验证 + 阻塞项清单 | [路线A-P800可用性实测-20260821](docs/路线A-P800可用性实测-20260821.md)（A 线） |
