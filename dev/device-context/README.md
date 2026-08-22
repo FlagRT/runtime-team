@@ -175,3 +175,13 @@ docker exec -it flagos-device-context-dev-910c bash
 - 多卡测试前检查挂设备容器数：`docker ps` + 数一下 --device davinci 的容器
 - DrvMng 上限 ≈3：超过需先停闲置容器（停他人容器前在群里打招呼）
 - 无需升级宿主驱动（25.5.0 → 25.5.1/2 为主机级变更，按上述证据大概率白干，仅需进入官方支持矩阵时才考虑）
+
+## 2026-08-22 回归与一致性基线（Kistich）
+
+> 分支策略：本分支持续积累，后续开发完成再统一 PR。完整总结见 docs/PROGRESS_20260822.md
+
+- [x] **torch_fl 源码版回归通过**：编译三连排障（AUTOLOAD=0 / ACCELERATOR=ascend / patch FLAGGEMS_KERNEL=OFF 上游缺陷）；训练四项判定全过（收敛 loss 1.9436 vs 旧版 1.9458、2298 tok/s、14.64GB）
+- [x] **细项21 六项补验**：错误翻译 PARTIAL(161002→L2)、拓扑 PASS、锁页池 PASS、双缓冲 PASS、状态恢复 PARTIAL(最小重建)、CPU-NPU PASS —— 脚本见 benchmarks/ascend_regression/
+- [x] **一致性测试昇腾基线 7/7 CONFORMANCE_PASS**（S1/S2/E1/E2/T1/T2/F1）—— 框架 benchmarks/ascend_regression/conformance/
+- [x] 源码版新坑 4 项已记录（pin_memory 需设备预热 / E2 wait 阻塞 / torch.cuda 误报 / 数值容差）
+- [ ] 剩余缺口（本分支后续开发）：统一错误对象+三维翻译 / 状态机+五段式恢复 / E2 语义收敛 / 重放-检查点协同

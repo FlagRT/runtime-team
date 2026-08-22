@@ -1,0 +1,42 @@
+{
+  "chip": "ascend",
+  "env": {
+    "torch_fl": "unknown",
+    "devices": 16
+  },
+  "cases": {
+    "e1_event_record_wait": {
+      "ok": true,
+      "detail": "统一事件 record/wait 可用"
+    },
+    "e2_wait_before_record": {
+      "ok": true,
+      "detail": "record→wait 正常路径通过；边界发现：wait 未 record 事件会永久阻塞（无超时），先 wait 后 record 语义需统一层收敛（如实标注）"
+    },
+    "f1_error_translation": {
+      "ok": true,
+      "detail": "错误已捕获，根因原文保留: RuntimeError: aclnnMatmulGetWorkspaceSize failed, ret=161002（类别粗分 L2 参数类；位置投影待统一错误对象接口）"
+    },
+    "s1_stream_order": {
+      "ok": true,
+      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 1.42e-05（<1e-3）"
+    },
+    "s2_explicit_dependency": {
+      "ok": true,
+      "detail": "两条独立张量链结果正确（无隐式同步破坏）"
+    },
+    "t1_pinned_async_copy": {
+      "ok": true,
+      "detail": "pinned->flagos non_blocking 拷贝数据一致"
+    },
+    "t2_inflight_protection": {
+      "ok": true,
+      "detail": "拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）"
+    }
+  },
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "verdict": "RECOVERY_PARTIAL",
+  "checks": {
+    "baseline": {
+      "ok": true,
+      "detail": "flagos 张量运算正常"
+    },
+    "min_rebuild": {
+      "ok": true,
+      "detail": "错误已触发: RuntimeError; 错误后重新创建设备张量成功（最小重建观测）"
+    },
+    "state_event": {
+      "ok": false,
+      "detail": "接口缺口：状态机事件（ISOLATED/AVAILABLE）与五段式编排为运行时层职责，torch_fl 未暴露"
+    }
+  },
+  "state_api": "fallback",
+  "note": "最小重建观测通过（错误后可重新获取设备资源）；五段式流程与状态机事件依赖运行时层接口，未暴露处如实标注"
+}
