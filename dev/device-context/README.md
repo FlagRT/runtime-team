@@ -192,3 +192,11 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **统一错误对象 + 三维翻译落地**：torch_fl.flagos.errors（FlagosError 三投影 category/location/root_cause + ACL 错误码→L1-L4 映射 + translate_error）；实测 aclnn ret=161002 → L2_PARAM
 - [x] conformance 新增 E2-v2(超时逃生)/E3(未record查询) 用例，F1 改用统一错误对象 —— **9/9 CONFORMANCE_PASS**
 - [x] Torch-FL 仓库同步分支 kistich/device-context（commit 795ad70）
+
+## 2026-08-22 第三批：状态机四态 + 五段式恢复（Kistich）
+
+- [x] **状态机四态落地**：torch_fl.flagos.device_state（AVAILABLE/DEGRADED/ISOLATED/DESTROYED + 查询/订阅/转换事件/快照）
+- [x] **五段式恢复落地**：torch_fl.flagos.recovery（R1 handle_error 捕获编排 / R2 probe_device+evaluate_device 评估 / R3 ISOLATED 隔离 / R4 recover_device 重建 / R5 mark_inflight+replay_tasks 在途重放接口）
+- [x] 探针 test_recovery_min.py 五段式全流程 **RECOVERY_PASS**；conformance 新增 R1-R5 用例 → **10/10 CONFORMANCE_PASS**
+- [x] 诚实标注：重建为框架层最小近似（探针重试=重取设备资源验证）；真实上下文重建待设备生命周期接口
+- [x] Torch-FL 分支 kistich/device-context 同步（commit eea4739）

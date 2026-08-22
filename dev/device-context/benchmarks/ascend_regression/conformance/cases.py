@@ -123,6 +123,7 @@ CONTRACT_COVERAGE = {
     "E3": "case_e3_query_unrecorded",
     "T1": "case_t1_pinned_async_copy", "T2": "case_t2_inflight_protection",
     "F1": "case_f1_error_translation",
+    "R1-R5": "case_r_recovery",
 }
 
 
@@ -154,3 +155,32 @@ def case_e3_query_unrecorded(ctx):
         except Exception as e:
             return False, f"query 异常: {e}"
     return True, "接口缺口：无统一事件句柄"
+
+
+def case_r_recovery(ctx):
+    """R1-R5 状态恢复契约：状态机隔离/重建 + 探针评估 + 在途重放集合。"""
+    from torch_fl.flagos.device_state import (
+        DeviceState, query_device_state, set_device_state, subscribe_device_state,
+    )
+    from torch_fl.flagos.recovery import (
+        probe_device, evaluate_device, recover_device,
+        mark_inflight, finish_inflight, replay_tasks,
+    )
+    try:
+        events = []
+        subscribe_device_state(0, lambda ns, os_, r: events.append(ns.value))
+        # R2 评估 + R3 隔离
+        ev = evaluate_device(0)
+        set_device_state(0, DeviceState.ISOLATED, "conformance: L4 simulate")
+        ok1 = query_device_state(0) == DeviceState.ISOLATED
+        # R4 重建
+        rec = recover_device(0)
+        ok2 = rec and query_device_state(0) == DeviceState.AVAILABLE
+        # R5 在途重放集合
+        mark_inflight("op_r", 0, "stream:0/op:r")
+        rp = replay_tasks(0)
+        ok3 = any(t["op_id"] == "op_r" for t in rp)
+        finish_inflight("op_r")
+        return (ok1 and ok2 and ok3),             f"评估={ev.value} 隔离={ok1} 重建={ok2} 在途重放集合={ok3} 事件={events}"
+    except Exception as e:
+        return False, f"异常: {e}"

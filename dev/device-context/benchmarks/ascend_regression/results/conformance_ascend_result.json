@@ -25,9 +25,13 @@
       "ok": true,
       "detail": "统一错误对象: L2_PARAM(code=161002) 位置=stream:0/op:matmul 根因保留=RuntimeError: aclnnMatmulGetWorkspaceSize failed, ret=161002"
     },
+    "r_recovery": {
+      "ok": true,
+      "detail": "评估=available 隔离=True 重建=True 在途重放集合=True 事件=['isolated', 'available']"
+    },
     "s1_stream_order": {
       "ok": true,
-      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 3.25e-07（<1e-3）"
+      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 6.31e-06（<1e-3）"
     },
     "s2_explicit_dependency": {
       "ok": true,
@@ -43,8 +47,8 @@
     }
   },
   "summary": {
-    "passed": 9,
+    "passed": 10,
     "failed": 0,
-    "total": 9
+    "total": 10
   }
 }
