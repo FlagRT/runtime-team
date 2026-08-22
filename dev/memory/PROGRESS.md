@@ -9,8 +9,8 @@
 | 优先级 | 事项 | 状态/依赖 |
 |---|---|---|
 | P0 | 目标模型清单确认（是否含混合注意力架构） | MoE 跨路线阻塞决定项，见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md) |
-| 高 | 向智源/FlagOS 提交三项 issue（causal_conv1d / topk_softmax 签名 / vendor-mappings 文档滞后） | 附 file:line；topk_softmax 最新证据见 [新线镜像-MoE复测-静态预检-20260822](docs/新线镜像-MoE复测-静态预检-20260822.md)（v5.3.4 仍未补） |
-| 高 | 新线镜像（gems 5.0.0/vllm 0.20.2）纯 MoE 复测 | 静态预检已完成：5.x 全系未补 renormalize，**复测预计仍崩**；直接复测实证 + 临时包装探针（不进交付路径） |
+| 高 | 向智源/FlagOS 提交 issue（causal_conv1d / topk_softmax / moe_align_block_size / 文档滞后，共 5 项） | 附 file:line；清单见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)（含新线新增 #4/#5） |
+| 高 | 纯 MoE eager 生成质量定位（expert GEMM 内核正确性，issue #5） | 新线复测后新阻塞：隔离厂商内核精度/回退路径/输入格式；另含 graph capture 35min 问题 |
 | 中 | V3 分层缓存原型（KV 按需释放 + Host 溢出） | **0.13 原生 `--kv-offloading-size`（native/lmcache）官方路径优先实测**，见 [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md)；可并行 |
 | 中 | A 线显存池定义与 V2 A/B 回归设计（vLLM 层） | 主战场改 vLLM 层，厂商 torch 分配器为底座（无 torch_fl 显存池） |
 | 中 | 昇腾 A 线 venv 组合验证与 V1 画像 | 910c 机器补充（torch_npu + vllm 0.20.2） |
@@ -23,6 +23,7 @@
 
 | 时间 | 事项 | 引用 |
 |---|---|---|
+| 08-22 | 新线镜像纯 MoE 复测：topk_softmax 阻塞绕开（dispatch 降级 reference.torch），expert GEMM 首次触达；eager 可生成但质量退化，默认模式 graph capture 35min 不可用（部分解锁） | [新线镜像纯MoE复测-20260822](docs/新线镜像纯MoE复测-20260822.md)（A 线） |
 | 08-22 | P800 A 线 V1 显存画像：7 阶段全绿，KV 556,352 tokens/76.40GiB（~89%），910c P0 不存在 | [路线A-P800显存画像报告-20260822](docs/路线A-P800显存画像报告-20260822.md)（A 线） |
 | 08-22 | vllm 0.13 allocator/offload 调研：原生 KV CPU 卸载（--kv-offloading-size）发现 | [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md)（A 线） |
 | 08-22 | 新线复测静态预检：gems 5.x 全系 kunlunxin topk_softmax 未补 renormalize（复测预计仍崩） | [新线镜像-MoE复测-静态预检-20260822](docs/新线镜像-MoE复测-静态预检-20260822.md)（A 线） |
