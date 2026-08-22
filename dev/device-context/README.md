@@ -185,3 +185,10 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **一致性测试昇腾基线 7/7 CONFORMANCE_PASS**（S1/S2/E1/E2/T1/T2/F1）—— 框架 benchmarks/ascend_regression/conformance/
 - [x] 源码版新坑 4 项已记录（pin_memory 需设备预热 / E2 wait 阻塞 / torch.cuda 误报 / 数值容差）
 - [ ] 剩余缺口（本分支后续开发）：统一错误对象+三维翻译 / 状态机+五段式恢复 / E2 语义收敛 / 重放-检查点协同
+
+## 2026-08-22 第二批：统一事件契约 E2 + 统一错误对象（Kistich）
+
+- [x] **统一事件契约 E2 修订落地**：wait_host(timeout_ms) 主机有界等待（永不永久阻塞）；AclEvent 增加 recorded 跟踪（未 record 事件 query 返回未完成，修复 ACL 事件默认完成状态误报）；契约修订见 docs/event_semantics_contract.md
+- [x] **统一错误对象 + 三维翻译落地**：torch_fl.flagos.errors（FlagosError 三投影 category/location/root_cause + ACL 错误码→L1-L4 映射 + translate_error）；实测 aclnn ret=161002 → L2_PARAM
+- [x] conformance 新增 E2-v2(超时逃生)/E3(未record查询) 用例，F1 改用统一错误对象 —— **9/9 CONFORMANCE_PASS**
+- [x] Torch-FL 仓库同步分支 kistich/device-context（commit 795ad70）

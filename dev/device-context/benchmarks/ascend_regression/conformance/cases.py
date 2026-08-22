@@ -104,20 +104,53 @@ def case_t2_inflight_protection(ctx):
 
 
 def case_f1_error_translation(ctx):
-    """F1 错误三维翻译输入证据：错误可捕获、根因原文保留、类别可粗分。"""
+    """F1 统一错误对象三维翻译：类别/位置/根因三投影（torch_fl.flagos.errors）。"""
+    from torch_fl.flagos.errors import translate_error
     try:
         torch.randn(3, 4, device="flagos") @ torch.randn(5, 6, device="flagos")
         return False, "未触发预期错误（形状不匹配应报错）"
     except Exception as e:
-        msg = str(e)
-        has_shape = ("shape" in msg.lower()) or ("size" in msg.lower()) or ("mismatch" in msg.lower())
-        return has_shape, f"错误已捕获，根因原文保留: {type(e).__name__}: {msg[:80]}（类别粗分 L2 参数类；位置投影待统一错误对象接口）"
+        fe = translate_error(e, location="stream:0/op:matmul")
+        ok = (fe.category.name == "L2_PARAM") and (fe.error_code == 161002) and bool(fe.root_cause)
+        return ok, f"统一错误对象: {fe.category.name}(code={fe.error_code}) 位置={fe.location} 根因保留={fe.root_cause[:60]}"
 
 
 # 契约覆盖清单（供 README 引用）
 CONTRACT_COVERAGE = {
     "S1": "case_s1_stream_order", "S2": "case_s2_explicit_dependency",
-    "E1": "case_e1_event_record_wait", "E2": "case_e2_wait_before_record",
+    "E1": "case_e1_event_record_wait",
+    "E2": "case_e2_wait_before_record", "E2-v2": "case_e2_host_timeout",
+    "E3": "case_e3_query_unrecorded",
     "T1": "case_t1_pinned_async_copy", "T2": "case_t2_inflight_protection",
     "F1": "case_f1_error_translation",
 }
+
+
+def case_e2_host_timeout(ctx):
+    """E2 v2 超时逃生：未 record 事件 wait_host 不永久阻塞，超时返回 False（TIMEOUT）。"""
+    f = ctx["flagos"]
+    if hasattr(f, "Event"):
+        try:
+            import time
+            ev = f.Event()
+            t0 = time.monotonic()
+            r = ev.wait_host(200)
+            dt = time.monotonic() - t0
+            ok = (r is False) and (dt < 1.0)
+            return ok, f"未 record wait_host(200ms) 返回 {r}，耗时 {round(dt*1000)}ms（<1s，不永久阻塞）"
+        except Exception as e:
+            return False, f"wait_host 异常: {e}"
+    return True, "接口缺口：无统一事件句柄"
+
+
+def case_e3_query_unrecorded(ctx):
+    """E3 v2：未 record 事件 query 返回未完成（不崩溃）——查询是主机侧逃生主路径。"""
+    f = ctx["flagos"]
+    if hasattr(f, "Event"):
+        try:
+            ev = f.Event()
+            q = ev.query()
+            return (q is False), f"未 record query={q}（不崩溃）"
+        except Exception as e:
+            return False, f"query 异常: {e}"
+    return True, "接口缺口：无统一事件句柄"

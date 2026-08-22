@@ -9,17 +9,25 @@
       "ok": true,
       "detail": "统一事件 record/wait 可用"
     },
+    "e2_host_timeout": {
+      "ok": true,
+      "detail": "未 record wait_host(200ms) 返回 False，耗时 201ms（<1s，不永久阻塞）"
+    },
     "e2_wait_before_record": {
       "ok": true,
       "detail": "record→wait 正常路径通过；边界发现：wait 未 record 事件会永久阻塞（无超时），先 wait 后 record 语义需统一层收敛（如实标注）"
     },
+    "e3_query_unrecorded": {
+      "ok": true,
+      "detail": "未 record query=False（不崩溃）"
+    },
     "f1_error_translation": {
       "ok": true,
-      "detail": "错误已捕获，根因原文保留: RuntimeError: aclnnMatmulGetWorkspaceSize failed, ret=161002（类别粗分 L2 参数类；位置投影待统一错误对象接口）"
+      "detail": "统一错误对象: L2_PARAM(code=161002) 位置=stream:0/op:matmul 根因保留=RuntimeError: aclnnMatmulGetWorkspaceSize failed, ret=161002"
     },
     "s1_stream_order": {
       "ok": true,
-      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 1.42e-05（<1e-3）"
+      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 3.25e-07（<1e-3）"
     },
     "s2_explicit_dependency": {
       "ok": true,
@@ -35,8 +43,8 @@
     }
   },
   "summary": {
-    "passed": 7,
+    "passed": 9,
     "failed": 0,
-    "total": 7
+    "total": 9
   }
 }
