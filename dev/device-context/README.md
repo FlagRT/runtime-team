@@ -200,3 +200,14 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] 探针 test_recovery_min.py 五段式全流程 **RECOVERY_PASS**；conformance 新增 R1-R5 用例 → **10/10 CONFORMANCE_PASS**
 - [x] 诚实标注：重建为框架层最小近似（探针重试=重取设备资源验证）；真实上下文重建待设备生命周期接口
 - [x] Torch-FL 分支 kistich/device-context 同步（commit eea4739）
+
+## 2026-08-24 A 线批次：torch_npu + FlagCX(dev-1.0 基线) 两卡验证（Kistich）
+
+> **路线切换执行**：A 线（厂商插件 torch_npu + FlagGems + FlagCX）为主线；B 线（torch_fl）降级为预研支线——原 FlagCX 分支 kistich/ascend-flagcx-adapt 保留不删、不再承担交付，stream 语义等结论已吸收进新基线。
+
+- [x] **FlagCX 汇总到 dev-1.0 基线**：新分支 kistich/ascend-dev1.0（4 commit）——四层根因修复 rebase + 保留 xliu969 broadcast 字节数修复 + 移除 GetCurrentStream 硬依赖 + **A 线 stream 语义修复**（guardImpl+dlsym 取 torch_npu 当前流，null=ACL 默认流；详见 FlagCX docs/ascend_aline_validation_20260824.md）
+- [x] **A 线容器**：flagos-device-context-a-910c（官方镜像 flagrt/ascend-operator-runtime + torch_npu 2.10.0 移植 + transformers 5.15.1）
+- [x] **flagcx backend 通信验证**：双卡 allgather [1,2]/[10,11] 全对、allreduce 1000×200MB 压测中位 2.1ms、小模型 DDP 3000 iter 稳定
+- [x] **torch_npu + 原生 hccl 训练闭环**：两卡 DDP Qwen2.5-1.5B 全程 2481 步，loss 1.9472、**5428 tok/s（B 线 torch_fl 2324 的 2.3 倍）**，checkpoint 存 outputs/ckpt_final_npu
+- [ ] **遗留问题（flagcx backend）**：Qwen 大模型 DDP step~765 退化（0.1s→2.4s/步，loss 精确交替=参数停止更新表象）；原生 hccl 同脚本全程健康 → 问题在 flagcx 大模型 DDP 路径（疑点：DDP bucket 重建 stream 交互）。诊断资产 test_ag_npu.py / train_qwen_1_5b_npu.py（双后端可切换）
+- [x] **910C 环境修复**：DrvMng 容器授权失效根因=容器名额（全停后全新创建即恢复，aclInit=0/count=16）；全部 5 容器已恢复且互不影响；device-share=False 为出厂常态无需修改
