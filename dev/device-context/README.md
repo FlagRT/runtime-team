@@ -209,5 +209,22 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **A 线容器**：flagos-device-context-a-910c（官方镜像 flagrt/ascend-operator-runtime + torch_npu 2.10.0 移植 + transformers 5.15.1）
 - [x] **flagcx backend 通信验证**：双卡 allgather [1,2]/[10,11] 全对、allreduce 1000×200MB 压测中位 2.1ms、小模型 DDP 3000 iter 稳定
 - [x] **torch_npu + 原生 hccl 训练闭环**：两卡 DDP Qwen2.5-1.5B 全程 2481 步，loss 1.9472、**5428 tok/s（B 线 torch_fl 2324 的 2.3 倍）**，checkpoint 存 outputs/ckpt_final_npu
-- [ ] **遗留问题（flagcx backend）**：Qwen 大模型 DDP step~765 退化（0.1s→2.4s/步，loss 精确交替=参数停止更新表象）；原生 hccl 同脚本全程健康 → 问题在 flagcx 大模型 DDP 路径（疑点：DDP bucket 重建 stream 交互）。诊断资产 test_ag_npu.py / train_qwen_1_5b_npu.py（双后端可切换）
+- [x] **flagcx backend 大模型 DDP 已修复**（step~765 退化）：根因 flagcxCannEvent 泄漏 aclrtEvent（无析构，每步~120 个累积到 ACL 资源耗尽）；修复链含 event 析构 + work 完成语义（wait block 用 collective 流 / future 完成前 synchronize / work·fn·record 统一流）。复跑 Qwen2.5-1.5B DDP 2481 步全程稳定：loss 1.9501 / 4157 tok/s。FlagCX commit d296824
 - [x] **910C 环境修复**：DrvMng 容器授权失效根因=容器名额（全停后全新创建即恢复，aclInit=0/count=16）；全部 5 容器已恢复且互不影响；device-share=False 为出厂常态无需修改
+
+## 2026-08-26 FlagCX 核心库原生 allreduce 缺陷⑩ 三修复（Kistich）
+
+> 范围：FlagCX 原生 allreduce 路径（多后端 CUDA/昇腾），模型 Qwen2.5-1.5B
+> 完整修复过程与干净 diff：`docs/FLAGCX_CORE_DEFECT_FIXES_20260826.md`
+
+- [x] **缺陷⑩ 根因定位 = 两个独立 FlagCX 实现缺陷**（非驱动/环境问题，"实现缺失"假设成立）：
+  - **P2 死锁**：`flagcx/core/launch_kernel.cc` 的 `cpuAsyncKernel` 在 `cudaLaunchHostFunc` 回调内 `semaphore->wait()` 自旋 → 占住 CUDA driver 回调锁 → proxy 线程 `cudaMemcpyAsync` 永久阻塞 → 三方死锁（纯时序竞态，前两次侥幸过、第 3 collective 必卡）。修复：回调只 `signalStart()` 即返回，完成等待移至 `group.cc` 主线程 `flagcxGroupLaunch` 末尾。
+  - **P6 数据错乱**：`flagcx/adaptor/device/cann_adaptor.cc` 主路径 `aclrtLaunchCallback` **不等 stream 前置任务** → `signalStart` 抢跑 → proxy 的 D2H 在 NPU tensor 写入完成前拷贝 → 昇腾侧发出"慢一拍"旧数据。CUDA 侧 legacy-stream 天然保序幸免。修复：`aclrtLaunchCallback` 前 `aclrtSynchronizeStream(stream->base)`（NULL 分支防御性 `aclrtSynchronizeDevice`）。
+- [x] **修复后验证（集合级）**：AG/AG/AR 三 collective，**10/10 轮** `out=[1,2]`、`out2=[10,11]`、`sum=3.0` 全对，**0 死锁**；循环连跑 10 轮 `PASS=10 FAIL=0`。
+- [x] **真实训练验证发现第三个缺陷（P7 显存 OOM）并修复**：原生 allreduce 路径 step0 双 rank 成功（loss 与参考基线逐位一致），但 **step1 崩溃** `flagcxUnhandledDeviceError: Call to Device function failed`。根因：`flagcx/runner/uni_runner.cc` 的 `uniRunnerAllReduce` **每次调用分配 `bytes×nranks` 临时设备缓冲（3GB×2=6GB）**——step0 的 allreduce 在 `optimizer.step()` 之前（空闲显存足够），step0 结束后 AdamW fp32 状态（~12.4GB）建立，小显存卡（24GB）上 step1 的 6GB `cudaMallocAsync` OOM；`DEVCHECK` 静默返回错误（零日志），报错尾巴 "comm not fully initialized" 是 `flagcxGetLastError(NULL)` 固定字符串（红鲱鱼）。修复：**分片 allreduce**（`patches/patch_p7_sliced_allreduce.py`，默认 128MB/片，`FLAGCX_AR_SLICE_MB` 可调），临时缓冲降为 256MB。
+- [x] **P7 后真实训练冒烟通过（MAX_STEPS=5）**：rank0 `[s0] loss=2.8891`→`[done] total=249s sync_total=244s`（ckpt 已保存）；rank1 `[s0] loss=3.1656`→`[done] exited`；step1-4 全部存活，无死锁无数据异常。
+- [x] **性能（诚实口径）**：集合级小张量 ~0.01s/次；真实训练 3GB 梯度 **~49s/步**（网络数据面物理传输 ~25-30s + 工作树残留诊断打印每步 ~60MB 的开销）；剥离打点、切换 RDMA 数据面后可大幅提升。
+- [x] **50 步完整真实训练验证通过（2026-08-26，P2+P6+P7）**：rank0 loss 2.8891→2.1 区间（s20=2.1303），`[done] total=2394s sync_total=2374s`，ckpt 已保存；rank1 loss 3.1656→1.8-2.6 区间，`[done] exited`；两 rank 同步收敛，**全程零死锁零数据异常**；梯度同步 ~47.5s/步（网络数据面 3GB 梯度）。**缺陷⑩（P2+P6+P7）修复闭环。**
+- [ ] **上游收尾（暂不 merge）**：将干净 diff（P2+P6+P7）提交至 `FlagRT/FlagCX` 分支 `kistich/ascend-dev1.0`（FlagCX 工作树改动当前未 commit，提交前剥离 net.cc/proxy.cc 等处 P1-P4 诊断打点；待本轮 PR merge 后执行）。
+
+**状态图例**：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
