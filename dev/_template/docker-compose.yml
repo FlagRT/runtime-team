@@ -3,6 +3,9 @@
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
 
+# 每个子方向必须使用独立 project，避免公共 service 名 runtime-dev 发生跨方向重建。
+name: flagos-__NAME__
+
 services:
   runtime-dev:
     container_name: flagos-__NAME__-dev-910c

@@ -28,6 +28,8 @@ dev/communication/
 
 代码改造主战场不在本目录：**FlagCX**（核心通信库与 `plugin/torch/`）；KV 传输联调按需涉及 `vllm-plugin-FL`。
 
+本子方向通过 Compose 顶层 `name: flagos-communication` 使用独立 project；不得删除，否则公共 service 名 `runtime-dev` 会与其他子方向发生重建冲突。
+
 ## 任务看板
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |

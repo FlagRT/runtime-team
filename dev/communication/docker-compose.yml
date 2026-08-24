@@ -3,6 +3,9 @@
 # 公共镜像、16 张设备、驱动挂载、host 网络与 HCCL 端口见 ../compose.base.yml。
 # 多卡测试前用 npu-smi 确认卡空闲；DrvMng 并发容器上限约 3。
 
+# 子方向必须使用独立 Compose project，避免同名 runtime-dev 服务互相重建。
+name: flagos-communication
+
 services:
   runtime-dev:
     container_name: flagos-communication-dev-910c
