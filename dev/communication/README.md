@@ -32,7 +32,7 @@ dev/communication/
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
 |---|------|--------|------|------|----------|
-| 1 | 容器与代码挂载验证 | lianzhongyou | 🔄 | Docker 权限 | 容器 Up；`/workspace` 可见 5 个子库 |
+| 1 | 容器与代码挂载验证 | lianzhongyou | 🔄 | Docker 权限 | 容器 Up；`/workspace` 可见 6 个子库 |
 | 2 | FlagCX Ascend 构建基线 | lianzhongyou | ⬜ | #1 | `make USE_ASCEND=1` 成功，记录 commit、命令与耗时 |
 | 3 | 2 卡 AllReduce 正确性冒烟 | lianzhongyou | ⬜ | #2 | 结果正确、无残留进程，日志可追溯 |
 | 4 | 16 卡集合通信性能基线 | lianzhongyou | ⬜ | #3 | 覆盖 AllReduce/AllGather/ReduceScatter，归档带宽与时延 |
@@ -59,7 +59,7 @@ docker ps --filter name=flagos-communication-dev-910c
 ## 常用命令（环境速查）
 
 ```bash
-# 验证公共仓和 5 个子库挂载
+# 验证公共仓和 6 个子库挂载
 docker exec flagos-communication-dev-910c bash -lc 'ls /workspace'
 
 # 检查关键环境变量
