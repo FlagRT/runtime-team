@@ -12,7 +12,14 @@
 - `VERSIONS.md` 已锁定 FlagCX 0.13.0，运行组合中 `FLAGCX_PATH=/workspace/FlagCX/plugin/torch`。
 - 公共 Compose 已挂载 16 张 Ascend 910 卡，并注入 `HCCL_NPU_SOCKET_PORT_RANGE=16666,16676`。
 - FlagCX 官方提供 Ascend 构建入口 `make USE_ASCEND=1`、host API 性能测试及 Torch process-group 测试。
-- Compose 合并配置已通过静态校验；实际容器启动与多卡验证须在 Docker 权限就绪后执行。
+- Compose 合并配置与实际容器启动已通过验证；多卡 collective 测试尚未执行。
+
+## 环境验证记录（2026-08-24）
+
+- `flagos-communication-dev-910c` 已在共享服务器启动，Compose 标签为独立的 `project=flagos-communication`，重启计数为 0。
+- 容器可见 16 个 `/dev/davinci*` 设备及 Ascend driver 25.5.0；FlagCX、Torch-FL 与 communication 配置挂载正常。
+- `FLAGCX_PATH`、`FLAGCX_DEBUG`、`HCCL_NPU_SOCKET_PORT_RANGE`、`GEMS_VENDOR` 等关键环境变量已核对。
+- 服务器测试副本尚未同步 FlagPerf 工作树，`/workspace` 六仓完整性验证待补；不影响本轮 FlagCX communication 启动验证。
 
 ## 目录约定（本子方向，位于 `dev/communication/` 下）
 
