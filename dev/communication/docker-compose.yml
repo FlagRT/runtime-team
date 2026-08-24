@@ -1,0 +1,15 @@
+# 多卡通信（communication）子方向开发容器
+# 用法：cd dev/communication && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+# 公共镜像、16 张设备、驱动挂载、host 网络与 HCCL 端口见 ../compose.base.yml。
+# 多卡测试前用 npu-smi 确认卡空闲；DrvMng 并发容器上限约 3。
+
+services:
+  runtime-dev:
+    container_name: flagos-communication-dev-910c
+    environment:
+      # FlagCX 官方日志变量；性能测试保持 WARN，定位时在 .env 中按需提高。
+      - FLAGCX_DEBUG=${FLAGCX_DEBUG:-WARN}
+      - FLAGCX_DEBUG_SUBSYS=${FLAGCX_DEBUG_SUBSYS:-INIT,ENV}
+    restart: "no"
+    # 容器内实验 venv 不在挂载盘上，容器重建会丢失；
+    # 可复现的重建步骤和测试命令统一记录在本子方向 README/docs。

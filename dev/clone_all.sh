@@ -28,25 +28,30 @@ USER_NAME=$(echo "$AUTH_OUT" | sed -n 's/^Hi \([^!]*\)!.*/\1/p')
 echo "[auth] 已认证账号: ${USER_NAME:-未知}"
 
 # ---------- 对齐 6 仓（origin = FlagRT 组织仓） ----------
-# REPOS 是实际的 clone 候选集合；新增仓库需同时在 BRANCH 中声明基线分支。
+# 使用普通数组 + case，兼容 macOS 自带 Bash 3.2；新增仓库需同时在 branch_for 中声明基线分支。
 REPOS=(PyTorch-Plugin-FL FlagCX FlagGems vllm-plugin-FL FlagTree FlagPerf)
-# 基线分支（与 VERSIONS.md §1 保持一致）
-declare -A BRANCH=(
-  [PyTorch-Plugin-FL]=main
-  [FlagCX]=main
-  [FlagGems]=master
-  [vllm-plugin-FL]=main
-  [FlagTree]=triton_v3.2.x
-  [FlagPerf]=main
-)
-# 远程名映射：上游/组织已改名 Torch-FL；本地目录沿用 PyTorch-Plugin-FL（容器路径约定 /workspace/PyTorch-Plugin-FL）
-declare -A REMOTE=(
-  [PyTorch-Plugin-FL]=Torch-FL
-)
+
+branch_for() {
+  case "$1" in
+    PyTorch-Plugin-FL|FlagCX|vllm-plugin-FL|FlagPerf) echo main ;;
+    FlagGems) echo master ;;
+    FlagTree) echo triton_v3.2.x ;;
+    *) echo "❌ 未声明基线分支: $1" >&2; return 1 ;;
+  esac
+}
+
+# 上游/组织已改名 Torch-FL；本地目录沿用 PyTorch-Plugin-FL（容器路径约定 /workspace/PyTorch-Plugin-FL）。
+remote_for() {
+  case "$1" in
+    PyTorch-Plugin-FL) echo Torch-FL ;;
+    *) echo "$1" ;;
+  esac
+}
 
 for name in "${REPOS[@]}"; do
   dir="$TARGET/$name"
-  remote_name="${REMOTE[$name]:-$name}"
+  branch=$(branch_for "$name")
+  remote_name=$(remote_for "$name")
   if [ -d "$dir/.git" ]; then
     echo "[sync] $name 更新到最新（ff-only）..."
     if ! git -C "$dir" pull --ff-only; then
@@ -54,8 +59,8 @@ for name in "${REPOS[@]}"; do
     fi
     continue
   fi
-  echo "[clone] $name (分支 ${BRANCH[$name]}) ..."
-  if ! git clone -b "${BRANCH[$name]}" "git@github.com:FlagRT/${remote_name}.git" "$dir"; then
+  echo "[clone] $name (分支 $branch) ..."
+  if ! git clone -b "$branch" "git@github.com:FlagRT/${remote_name}.git" "$dir"; then
     echo "❌ 克隆 $name 失败：确认已是 FlagRT 组织成员（private 仓需成员权限）"
     exit 1
   fi
@@ -66,6 +71,6 @@ echo
 echo "完成。下一步："
 echo "  1. 进入协作开发分支：各仓分支见 VERSIONS.md §1（FlagTree 用 triton_v3.2.x）"
 echo "  2. 起容器：cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d"
-echo "     （当前已有子方向：memory；各子方向容器配置见 dev/ 下对应目录）"
+echo "     （当前已有子方向：memory、communication；各子方向容器配置见 dev/ 下对应目录）"
 echo "  3. 容器内验证：ls /workspace 应看到 6 个 repo"
 echo "  4. 探针：见公共仓 dev/memory/README.md（probes/ 待入库）"
