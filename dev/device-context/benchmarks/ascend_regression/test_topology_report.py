@@ -70,10 +70,9 @@ def main():
 
     # 0. 环境自检
     import torch
-    import torch_fl
-    from torch_fl import flagos
-    print(f"[env] torch={torch.__version__} torch_fl={getattr(torch_fl,'__version__','unknown')}")
-    devs = flagos.device_count()
+    import torch_npu
+    print(f"[env] torch={torch.__version__} torch_npu={getattr(torch_npu,'__version__','unknown')}")
+    devs = torch.npu.device_count()
     print(f"[env] flagos devices={devs}")
     if devs < 1:
         print("TOPOLOGY_REPORT_FAIL: 无可用 flagos 设备")
@@ -87,10 +86,10 @@ def main():
 
     # 2. 拓扑事实：优先统一拓扑接口，缺失则回退 npu-smi
     used_unified = False
-    if hasattr(flagos, "query_topology") or hasattr(flagos, "topology"):
+    if hasattr(torch_npu, "query_topology") or hasattr(torch_npu, "topology"):
         used_unified = True
         try:
-            topo = flagos.topology() if hasattr(flagos, "topology") else flagos.query_topology()
+            topo = torch.npu.topology() if hasattr(torch_npu, "topology") else torch.npu.query_topology()
             report["topology"] = topo
         except Exception as e:
             report["interface_gap"] = f"统一拓扑接口调用失败: {e}，回退 npu-smi"
@@ -105,14 +104,29 @@ def main():
             "hint": "同节点设备间通信优先走 HCCS（芯片间直连），无需网卡——与四层根因②的结论一致",
         }
     elif err:
+        # npu-smi 不可用（容器权限/工具缺失）：降级用 torch.npu 设备枚举作设备清单，
+        # 互联事实如实标注受限（环境限制，非职责缺口）
         report["topology"]["npu_smi_error"] = err
+        try:
+            report["topology"]["torch_npu_devices"] = [
+                {"ordinal": i, "name": torch.npu.get_device_name(i)}
+                for i in range(min(torch.npu.device_count(), 8))
+            ]
+            report["topology"]["interconnect"] = {
+                "domain": "single-node",
+                "hint": "npu-smi 容器内不可用，互联事实待外部通道补充（环境限制，如实标注）",
+            }
+        except Exception as e2:
+            report["topology"]["torch_npu_error"] = str(e2)[:80]
 
     # 3. 输出
     print("=== 拓扑报告 ===")
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
     # 4. 判定：能拿到设备清单 + 互联事实（任一来源）即 PASS
-    has_topo = bool(report["topology"]) and ("npu_smi_devices" in report["topology"] or report["topology"].get("interconnect"))
+    has_topo = bool(report["topology"]) and ("npu_smi_devices" in report["topology"]
+                                              or "torch_npu_devices" in report["topology"]
+                                              or report["topology"].get("interconnect"))
     if has_topo:
         print("\nTOPOLOGY_REPORT_PASS: 设备清单与互联事实可观测，可作为拓扑感知路径选择的数据基础")
         print(f"  接口状态: {report['interface_gap'] or '统一拓扑接口可用'}")

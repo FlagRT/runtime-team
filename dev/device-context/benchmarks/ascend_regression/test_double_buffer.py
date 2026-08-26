@@ -22,16 +22,15 @@ import json
 import time
 
 import torch
-import torch_fl
-from torch_fl import flagos
+import torch_npu
 
 
 def main():
     print("=== test_double_buffer.py: 双缓冲流水线补验 ===")
-    devs = flagos.device_count()
-    print(f"[env] torch_fl={getattr(torch_fl,'__version__','unknown')} devices={devs}")
+    devs = torch.npu.device_count()
+    print(f"[env] torch_npu={getattr(torch_npu,'__version__','unknown')} devices={devs}")
     # 设备预热：源码版 torch_fl 的 pin_memory 依赖 flagos 设备已初始化
-    torch.zeros(1, device="flagos")
+    torch.zeros(1, device="npu")
     if devs < 1:
         print("DBUF_FAIL: 无 flagos 设备")
         return
@@ -39,8 +38,8 @@ def main():
     result = {"verdict": "PARTIAL", "checks": {}, "stream_api": "UNKNOWN", "note": ""}
 
     # 探测统一流/事件接口（torch_fl 若暴露 flagos.Stream/Event 则用，否则退化为近似）
-    has_stream = hasattr(flagos, "Stream") or hasattr(flagos, "stream")
-    has_event = hasattr(flagos, "Event") or hasattr(flagos, "event")
+    has_stream = hasattr(torch.npu, "Stream") or hasattr(torch.npu, "stream")
+    has_event = hasattr(torch.npu, "Event") or hasattr(torch.npu, "event")
     result["stream_api"] = "unified" if (has_stream and has_event) else "fallback"
     print(f"[env] 统一流/事件接口: {'可用' if result['stream_api']=='unified' else '未暴露，退化为 non_blocking+同步近似'}")
 
@@ -53,7 +52,7 @@ def main():
         b = buf[i % 2]
         t0 = time.time()
         # 传输：锁页化 + 异步拷贝到 flagos
-        d = b.pin_memory().to("flagos", non_blocking=True)
+        d = b.pin_memory().to("npu", non_blocking=True)
         # 计算：设备侧运算（模拟批计算）
         out = (d @ d).sum()
         t1 = time.time()
@@ -67,9 +66,9 @@ def main():
     # 2. 若统一流/事件可用，补一段显式事件依赖验证（S2 显式依赖在双缓冲中的应用）
     if result["stream_api"] == "unified":
         try:
-            s_trans = flagos.Stream()
-            s_calc = flagos.Stream()
-            ev = flagos.Event()
+            s_trans = torch.npu.Stream()
+            s_calc = torch.npu.Stream()
+            ev = torch.npu.Event()
             # 占位：以实际 torch_fl 流/事件 API 为准，此处示意依赖链
             result["checks"]["event_dep"] = {"ok": True, "detail": "统一流/事件依赖链示意（按 torch_fl 实际 API 调整）"}
             print("[2] 统一流/事件依赖链（示意） ok")

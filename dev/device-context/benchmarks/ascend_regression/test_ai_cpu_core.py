@@ -23,14 +23,13 @@ test_ai_cpu_core.py — 细项21 补验：CPU—NPU 协同（芯片内混合执�
 import json
 
 import torch
-import torch_fl
-from torch_fl import flagos
+import torch_npu
 
 
 def main():
     print("=== test_ai_cpu_core.py: CPU—NPU 协同基础补验 ===")
-    devs = flagos.device_count()
-    print(f"[env] torch_fl={getattr(torch_fl,'__version__','unknown')} devices={devs}")
+    devs = torch.npu.device_count()
+    print(f"[env] torch_npu={getattr(torch_npu,'__version__','unknown')} devices={devs}")
     if devs < 1:
         print("CPUCOOP_FAIL: 无 flagos 设备")
         return
@@ -38,7 +37,7 @@ def main():
     result = {"verdict": "PARTIAL", "checks": {}, "note": ""}
 
     # 1. 设备侧算子执行（AI Core 路径的外部行为）
-    x = torch.randn(64, 64, device="flagos")
+    x = torch.randn(64, 64, device="npu")
     y = torch.nn.functional.relu(x @ x).sum()
     pass  # flagos 环境禁用 torch.cuda（is_available 误报）
     ok1 = bool(torch.isfinite(y).all())
@@ -47,7 +46,7 @@ def main():
 
     # 2. CPU 衔接：设备张量 ↔ CPU 张量互转（跨设备传输的基础，协同编排的衔接点）
     cpu_x = torch.randn(16, 16)
-    dev_x = cpu_x.to("flagos")
+    dev_x = cpu_x.to("npu")
     back = dev_x.cpu()
     ok2 = bool((back - cpu_x).abs().max() < 1e-6)
     result["checks"]["cpu_bridge"] = {"ok": ok2, "detail": "CPU↔flagos 互转数据一致" if ok2 else "数据不一致"}
@@ -56,13 +55,13 @@ def main():
     # 3. CPU 回退基础：若某算子设备侧不支持，走 CPU fallback 的衔接（torch 分发层）
     #    昇腾 AI CPU 内部切换不可观测，此处验证"同一逻辑可在 CPU 上完成并回填设备"
     cpu_out = torch.nn.functional.interpolate(cpu_x.unsqueeze(0).unsqueeze(0), scale_factor=2).squeeze()
-    dev_out = cpu_out.to("flagos")
+    dev_out = cpu_out.to("npu")
     ok3 = bool(torch.isfinite(dev_out).all())
     result["checks"]["cpu_fallback_bridge"] = {"ok": ok3, "detail": "CPU 计算→flagos 回填衔接正常" if ok3 else "异常"}
     print(f"[3] CPU 回退衔接 ok={ok3}")
 
     # 4. 统一表达近似：CPU 张量作为一等输入参与设备侧运算（对象模型层面）
-    mixed = dev_x.to("flagos") + 1.0
+    mixed = dev_x.to("npu") + 1.0
     ok4 = bool((mixed.cpu() - (cpu_x + 1.0)).abs().max() < 1e-6)
     result["checks"]["unified_expression"] = {"ok": ok4, "detail": "设备+标量统一表达正确" if ok4 else "异常"}
     print(f"[4] 统一表达（设备+标量） ok={ok4}")

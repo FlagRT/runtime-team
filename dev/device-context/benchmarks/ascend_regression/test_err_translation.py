@@ -28,7 +28,7 @@ test_err_translation.py — 细项21 补验：错误码三维翻译（类别/位
 import os
 import sys
 import json
-from torch_fl.flagos.errors import FlagosError, translate_error, ErrorCategory
+from errors import FlagosError, translate_error, ErrorCategory
 
 
 def probe(label, fn, location=None):
@@ -63,17 +63,16 @@ def main():
 
     # 0. 环境自检
     import torch
-    import torch_fl
-    from torch_fl import flagos
-    print(f"[env] torch={torch.__version__} torch_fl={getattr(torch_fl,'__version__','unknown')}")
-    devs = flagos.device_count()
+    import torch_npu
+    print(f"[env] torch={torch.__version__} torch_npu={getattr(torch_npu,'__version__','unknown')}")
+    devs = torch.npu.device_count()
     print(f"[env] flagos devices={devs}")
     if devs < 1:
         print("ERR_TRANSLATION_FAIL: 无可用 flagos 设备，先恢复环境")
         sys.exit(1)
 
     # 1. 正常基线：flagos 张量 + 合法运算（证明环境可用）
-    x = torch.randn(4, 4, device="flagos")
+    x = torch.randn(4, 4, device="npu")
     y = x @ x
     pass  # flagos 环境禁用 torch.cuda（is_available 误报）
     print(f"[baseline] flagos 张量运算 ok: {y.device}, 无异常\n")
@@ -82,20 +81,20 @@ def main():
     results = []
 
     # 2a. L2 参数类：形状不匹配的矩阵乘
-    results.append(probe("L2-形状不匹配", lambda: (torch.randn(3, 4, device="flagos") @ torch.randn(5, 6, device="flagos")), location="stream:0/op:matmul"))
+    results.append(probe("L2-形状不匹配", lambda: (torch.randn(3, 4, device="npu") @ torch.randn(5, 6, device="npu")), location="stream:0/op:matmul"))
 
     # 2b. L2 参数类：非法设备 ordinal（若 flagos 暴露设备枚举边界检查）
     def bad_ordinal():
         d = devs + 99
         # 若 torch_fl 暴露 set_device，尝试越界；否则构造 device 字符串
-        if hasattr(flagos, "set_device"):
-            flagos.set_device(d)
+        if hasattr(torch_npu, "set_device"):
+            torch.npu.set_device(d)
         else:
-            torch.zeros(1, device=f"flagos:{d}")
+            torch.zeros(1, device=f"npu:{d}")
     results.append(probe("L2-非法设备ordinal", bad_ordinal))
 
     # 2c. 执行类/资源类：尝试大分配（超显存）或非法操作
-    results.append(probe("L1/L3-大分配或执行类", lambda: torch.empty(2 ** 33, device="flagos") if devs else 0))
+    results.append(probe("L1/L3-大分配或执行类", lambda: torch.empty(2 ** 33, device="npu") if devs else 0))
 
     # 3. 汇总输出
     print("=== 三维投影探测结果 ===")

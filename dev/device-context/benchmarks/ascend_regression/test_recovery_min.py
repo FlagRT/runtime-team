@@ -24,13 +24,12 @@ test_recovery_min.py — 细项21 补验：设备状态恢复（状态机四态 
 import json
 
 import torch
-import torch_fl
-from torch_fl import flagos
-from torch_fl.flagos.device_state import (
+import torch_npu
+from device_state import (
     DeviceState, query_device_state, set_device_state,
     subscribe_device_state, device_states,
 )
-from torch_fl.flagos.recovery import (
+from recovery import (
     probe_device, evaluate_device, recover_device, handle_error,
     mark_inflight, finish_inflight, replay_tasks,
 )
@@ -38,11 +37,11 @@ from torch_fl.flagos.recovery import (
 
 def main():
     print("=== test_recovery_min.py: 状态机四态 + 五段式恢复补验 ===")
-    devs = flagos.device_count()
-    print(f"[env] torch_fl={getattr(torch_fl,'__version__','unknown')} devices={devs}")
+    devs = torch.npu.device_count()
+    print(f"[env] torch_npu={getattr(torch_npu,'__version__','unknown')} devices={devs}")
     # 设备预热（源码版 torch_fl：pin_memory/Event 依赖设备已初始化）
-    torch.zeros(1, device="flagos")
-    flagos.synchronize()
+    torch.zeros(1, device="npu")
+    torch.npu.synchronize()
     if devs < 1:
         print("RECOVERY_FAIL: 无 flagos 设备")
         return
@@ -104,7 +103,7 @@ def main():
 
     # ---- R1 捕获 + 五段式编排（handle_error）----
     try:
-        torch.randn(3, 4, device="flagos") @ torch.randn(5, 6, device="flagos")
+        torch.randn(3, 4, device="npu") @ torch.randn(5, 6, device="npu")
         result["checks"]["handle_error"] = {"ok": False, "detail": "未触发预期错误"}
     except Exception as e:
         fe = handle_error(e, ordinal=0, location="stream:0/op:matmul")

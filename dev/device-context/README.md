@@ -228,3 +228,12 @@ docker exec -it flagos-device-context-dev-910c bash
 - [ ] **上游收尾（暂不 merge）**：将干净 diff（P2+P6+P7）提交至 `FlagRT/FlagCX` 分支 `kistich/ascend-dev1.0`（FlagCX 工作树改动当前未 commit，提交前剥离 net.cc/proxy.cc 等处 P1-P4 诊断打点；待本轮 PR merge 后执行）。
 
 **状态图例**：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
+
+## 2026-08-26 第四批：A 线职责补验（设备上下文+Stream，同构）——conformance 设备无关化 + 新容器验收（Kistich）
+
+- [x] **conformance 设备无关化**：runner 加 `--backend {npu,flagos}`；errors/device_state/recovery 独立化（脱离 torch_fl）；新增 **npu_events.py 统一事件语义适配层**（补齐 torch_npu 原生 Event 缺口：未 record query 误报 → recorded 跟踪修正；无 wait_host → 轮询实现）
+- [x] **errors.py 扩展**：兼容 torch_npu 错误形态 `error code is 161002`（B 线 ret=161002）
+- [x] **昇腾 A 线 conformance 基线 10/10 CONFORMANCE_PASS**（新容器 flagos-hliu553-dev-910c 复现）
+- [x] **六探针 A 线 6/6 PASS**（错误翻译/拓扑/锁页/双缓冲/恢复/CPU-NPU，结果见 results_aline_20260826/）
+- [x] **同构 2 卡 flagcx 训练验收**：test_ag [1,2]/[10,11] ✓；训练 s240 吞吐 4239-4245 tok/s（与 8/24 基准 4157 一致）
+- [ ] 待办：flagcx vs hccl 吞吐差距分析（4157 vs 5428）；conformance 用例扩充（S3/S4/T3）

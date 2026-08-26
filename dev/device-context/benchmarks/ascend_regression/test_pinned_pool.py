@@ -19,16 +19,15 @@ test_pinned_pool.py — 细项21 补验：页锁定内存池与异步传输前�
 
 import json
 import torch
-import torch_fl
-from torch_fl import flagos
+import torch_npu
 
 
 def main():
     print("=== test_pinned_pool.py: 页锁定内存池补验 ===")
-    devs = flagos.device_count()
-    print(f"[env] torch_fl={getattr(torch_fl,'__version__','unknown')} devices={devs}")
+    devs = torch.npu.device_count()
+    print(f"[env] torch_npu={getattr(torch_npu,'__version__','unknown')} devices={devs}")
     # 设备预热：源码版 torch_fl 的 pin_memory 依赖 flagos 设备已初始化，否则段错误
-    torch.zeros(1, device="flagos")
+    torch.zeros(1, device="npu")
     if devs < 1:
         print("PINSMOKE_FAIL: 无 flagos 设备")
         return
@@ -42,7 +41,7 @@ def main():
     print(f"[1] 页锁定分配 ok: pinned={src_pinned.is_pinned()}")
 
     # 2. 锁页缓冲上的异步拷贝（non_blocking）→ flagos 设备
-    dst = src_pinned.to("flagos", non_blocking=True)
+    dst = src_pinned.to("npu", non_blocking=True)
     # 强制同步以确认拷贝完成（框架层无 stream 句柄时用此近似）
     ok_copy = bool((dst.cpu() - src_pinned).abs().max() < 1e-6)
     result["checks"]["async_copy_pinned"] = {"ok": ok_copy, "detail": "pinned->flagos non_blocking 数据一致" if ok_copy else "数据不一致"}
@@ -50,7 +49,7 @@ def main():
 
     # 3. 非锁页缓冲的异步拷贝（行为正确性；降级事件属运行时采集点，此处标注）
     src_pageable = torch.randn(8, 8)  # 普通分页内存
-    dst2 = src_pageable.to("flagos", non_blocking=True)
+    dst2 = src_pageable.to("npu", non_blocking=True)
     ok_copy2 = bool((dst2.cpu() - src_pageable).abs().max() < 1e-6)
     result["checks"]["async_copy_pageable"] = {"ok": ok_copy2, "detail": "行为正确" if ok_copy2 else "数据不一致"}
     print(f"[3] 非锁页异步拷贝（行为正确性） ok={ok_copy2}")
@@ -59,7 +58,7 @@ def main():
     ok_life = True
     for _ in range(3):
         b = torch.randn(4, 4).pin_memory()
-        b.to("flagos", non_blocking=True)
+        b.to("npu", non_blocking=True)
         del b
     result["checks"]["pinned_lifecycle"] = {"ok": ok_life, "detail": "分配/拷贝/释放循环无异常"}
     print("[4] 锁页生命周期循环 ok")
