@@ -32,11 +32,19 @@
     },
     "s1_stream_order": {
       "ok": true,
-      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 6.04e-08（<1e-3）"
+      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 0.00e+00（<1e-3）"
     },
     "s2_explicit_dependency": {
       "ok": true,
       "detail": "两条独立张量链结果正确（无隐式同步破坏）"
+    },
+    "s3_result_visibility": {
+      "ok": true,
+      "detail": "跨流显式依赖可见性: z 全 3 = True"
+    },
+    "s4_explicit_transfer": {
+      "ok": true,
+      "detail": "显式 wait_stream 传递: b 全 10 = True"
     },
     "t1_pinned_async_copy": {
       "ok": true,
@@ -45,11 +53,15 @@
     "t2_inflight_protection": {
       "ok": true,
       "detail": "拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）"
+    },
+    "t3_topology_path": {
+      "ok": true,
+      "detail": "跨设备直接传输数据一致=True；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）"
     }
   },
   "summary": {
-    "passed": 10,
+    "passed": 13,
     "failed": 0,
-    "total": 10
+    "total": 13
   }
 }

@@ -237,3 +237,9 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **六探针 A 线 6/6 PASS**（错误翻译/拓扑/锁页/双缓冲/恢复/CPU-NPU，结果见 results_aline_20260826/）
 - [x] **同构 2 卡 flagcx 训练验收**：test_ag [1,2]/[10,11] ✓；训练 s240 吞吐 4239-4245 tok/s（与 8/24 基准 4157 一致）
 - [ ] 待办：flagcx vs hccl 吞吐差距分析（4157 vs 5428）；conformance 用例扩充（S3/S4/T3）
+
+## 2026-08-26 第五批：插件安装沉淀 + conformance 扩充 S3/S4/T3（Kistich）
+
+- [x] **flagcx 插件安装方法沉淀**：docs/flagcx_plugin_setup.md + scripts/setup_flagcx_plugin.sh（.pth 注册 + LD_LIBRARY_PATH + 验证 + 坑；新容器实测幂等可用）
+- [x] **conformance 扩充 S3/S4/T3**：S3 跨流显式依赖可见性（事件建立后数据可见）/ S4 显式 wait_stream 传递 / T3 跨设备直接传输+拓扑接口如实标注 → **13/13 CONFORMANCE_PASS**（results_aline_20260826/ 更新）
+- [ ] 待办：flagcx vs hccl 吞吐差距分析（4157 vs 5428 tok/s）
