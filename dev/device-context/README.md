@@ -243,3 +243,12 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **flagcx 插件安装方法沉淀**：docs/flagcx_plugin_setup.md + scripts/setup_flagcx_plugin.sh（.pth 注册 + LD_LIBRARY_PATH + 验证 + 坑；新容器实测幂等可用）
 - [x] **conformance 扩充 S3/S4/T3**：S3 跨流显式依赖可见性（事件建立后数据可见）/ S4 显式 wait_stream 传递 / T3 跨设备直接传输+拓扑接口如实标注 → **13/13 CONFORMANCE_PASS**（results_aline_20260826/ 更新）
 - [ ] 待办：flagcx vs hccl 吞吐差距分析（4157 vs 5428 tok/s）
+
+## 2026-08-26 第六批：flagcx vs hccl 吞吐差距分析（Kistich）
+
+- [x] **差距分析完成**（ascend_regression/flagcx_vs_hccl_throughput_analysis.md，60 步 profiler 对照）：
+  - **主因 = per-collective CPU launch 开销**：flagcx 0.72ms/次 vs hccl 0.02ms/次（**36 倍**）；总通信 CPU 耗时 flagcx 615.8ms vs hccl 34.1ms（18 倍）→ 每步 CPU 通信开销 ~17ms，直接拖慢吞吐
+  - **排除 coalesced 不融合嫌疑**：flagcx 调用次数（850）反而少于 hccl（1700）
+  - 修复方向：FlagCX adaptor per-call 路径精简（事件/流管理热路径）——上游可贡献点
+- [x] 训练脚本参数化（BACKEND/MAX_STEPS/PROFILE）保留为验收资产
+- [ ] 待办：FlagCX per-call 开销优化（上游贡献，与通信方向协作评估）

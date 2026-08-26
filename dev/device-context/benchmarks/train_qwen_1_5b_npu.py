@@ -38,7 +38,8 @@ DEVICE = "npu"
 
 def main():
     # ---- 分布式初始化（A 线：FlagCX flagcx backend = HCCL adaptor）----
-    dist.init_process_group(backend="flagcx")
+    BACKEND = os.environ.get("BACKEND", "flagcx")
+    dist.init_process_group(backend=BACKEND)
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     rank = dist.get_rank()
     world_size = dist.get_world_size()
@@ -108,10 +109,21 @@ def main():
 
     # ---- 训练循环 ----
     t0 = time.time()
+    # ---- 可选 profiler（PROFILE=1 启用）：统计 allreduce 调用次数与耗时 ----
+    use_prof = os.environ.get("PROFILE") == "1"
+    prof = None
+    if use_prof:
+        from torch.profiler import profile, ProfilerActivity, schedule
+        prof = profile(activities=[ProfilerActivity.CPU],
+                       schedule=schedule(wait=10, warmup=5, active=20, repeat=0))
+        prof.start()
     for epoch in range(EPOCHS):
         sampler.set_epoch(epoch)
         model.train()
         for step, batch in enumerate(loader):
+            max_steps = int(os.environ.get("MAX_STEPS", "0"))
+            if max_steps and step >= max_steps:
+                break
             batch = {k: v.to(dev) for k, v in batch.items()}
             out = model(**batch)
             loss = out.loss
@@ -122,6 +134,23 @@ def main():
                 el = time.time() - t0
                 tps = (step + 1) * BATCH_SIZE * world_size * MAX_LEN / max(el, 1e-6)
                 print(f"[ep{epoch} s{step}] loss={loss.item():.4f} tok/s={tps:.0f}", flush=True)
+            if use_prof:
+                prof.step()
+
+    if use_prof:
+        prof.stop()
+        if rank == 0:
+            keys = prof.key_averages()
+            ars = [e for e in keys if "allreduce" in e.key.lower() or "all_reduce" in e.key.lower()]
+            n_ar = len(ars)
+            tot_ms = sum(e.self_cpu_time_total for e in ars) / 1000.0
+            n_all = sum(1 for e in keys if "allreduce" in e.key.lower())
+            n_calls = sum(e.count for e in ars)
+            avg_ms = tot_ms / n_calls if n_calls else 0.0
+            print(f"[profiler] backend={BACKEND} allreduce_events={n_ar} calls={n_calls} total_self_cpu_ms={tot_ms:.1f} avg_self_cpu_ms={avg_ms:.2f}", flush=True)
+            import os as _os
+            _os.makedirs("/workspace/logs", exist_ok=True)
+            prof.export_chrome_trace(f"/workspace/logs/trace_{BACKEND}.json")
 
     if rank == 0:
         os.makedirs(OUT_DIR, exist_ok=True)
