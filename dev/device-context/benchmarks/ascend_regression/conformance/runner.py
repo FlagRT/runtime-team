@@ -53,6 +53,9 @@ def _setup_backend(backend):
         device = "npu"
         sync = torch.npu.synchronize
         event_cls = NpuEventAdapter  # 统一语义适配层（补 wait_host + query recorded 修正）
+        stream_cls = torch.npu.Stream
+        stream_ctx = lambda s: torch.npu.stream(s)
+        current_stream = torch.npu.current_stream
         env = {"name": "torch_npu", "ver": getattr(torch_npu, "__version__", "unknown"),
                "count": lambda: torch.npu.device_count()}
     elif backend == "flagos":
@@ -61,11 +64,14 @@ def _setup_backend(backend):
         device = "flagos"
         sync = flagos.synchronize
         event_cls = flagos.Event
+        stream_cls = flagos.Stream
+        stream_ctx = flagos.stream
+        current_stream = flagos.current_stream
         env = {"name": "torch_fl", "ver": getattr(torch_fl, "__version__", "unknown"),
                "count": lambda: flagos.device_count()}
     else:
         raise SystemExit(f"未知后端: {backend}")
-    return device, sync, event_cls, env
+    return device, sync, event_cls, stream_cls, stream_ctx, current_stream, env
 
 
 def main():
@@ -77,7 +83,7 @@ def main():
     ap.add_argument("--cases", default="cases", help="用例模块名（默认 cases）")
     args = ap.parse_args()
 
-    device, sync, event_cls, env = _setup_backend(args.backend)
+    device, sync, event_cls, stream_cls, stream_ctx, current_stream, env = _setup_backend(args.backend)
     devs = env["count"]()
     if devs < 1:
         print(f"CONFORMANCE_ABORT: 无可用 {device} 设备，先恢复环境")
@@ -94,6 +100,9 @@ def main():
         "torch": torch,
         "sync": sync,
         "event": event_cls,
+        "stream": stream_cls,
+        "stream_ctx": stream_ctx,
+        "current_stream": current_stream,
     }
 
     mod = importlib.import_module(args.cases)

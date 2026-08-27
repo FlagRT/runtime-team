@@ -259,3 +259,10 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **FlagCX 缺陷修复记录整理**：`docs/FLAGCX_CORE_DEFECT_FIXES_20260826.md`（P2 死锁 + P6 数据错乱 + P7 显存 OOM：根因 + 干净 diff + 复现补丁 + 验证证据），补丁保留在 `patches/`
 - [x] **看板任务 #6 完成**：方案定稿 + PR 提交 dev-1.0（2026-08-27 发起，待 merge）
 - [ ] 待办（PR merge 后）：FlagCX 上游收尾（干净 diff 提交 `FlagRT/FlagCX` `kistich/ascend-dev1.0`）；吞吐优化移交通信方向；下一芯片适配评估（寒武纪/昆仑芯）
+
+## 2026-08-27 第八批：资产补齐核查（Kistich）
+
+- [x] **conformance 完整性修复**：cases.py 补 S3/S4/T3 用例定义（13 用例版）、runner.py 补 stream API（stream_cls/stream_ctx/current_stream）——此前结果 JSON 标注 13/13 但用例定义缺失，现已对齐 flagos-demos 最新版可复现
+- [x] **补齐测试脚本**：`benchmarks/test_work_sem.py`（flagcxWork 完成语义实测）、`benchmarks/test_ag_cuda.py` + `train_qwen_1_5b_cuda.py` + `patch_nvidia_current_stream.py`（NVIDIA 同构验证资产）
+- [x] **补齐文档**：`docs/flagcx_ascend_aline_validation_20260824.md`（A 线验证报告）、`docs/910C-env-issue-report.md`（aclInit 500000 根因详录）、`docs/4090_training_report.md`（NVIDIA 同构训练报告）
+- [x] **补齐环境脚本**：`benchmarks/setup_910c.sh`（910C 一键初始化）

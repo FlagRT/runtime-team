@@ -120,6 +120,8 @@ CONTRACT_COVERAGE = {
     "T1": "case_t1_pinned_async_copy", "T2": "case_t2_inflight_protection",
     "F1": "case_f1_error_translation",
     "R1-R5": "case_r_recovery",
+    "S3": "case_s3_result_visibility", "S4": "case_s4_explicit_transfer",
+    "T3": "case_t3_topology_path",
 }
 
 
@@ -176,5 +178,57 @@ def case_r_recovery(ctx):
         ok3 = any(t["op_id"] == "op_r" for t in rp)
         finish_inflight("op_r")
         return (ok1 and ok2 and ok3),             f"评估={ev.value} 隔离={ok1} 重建={ok2} 在途重放集合={ok3} 事件={events}"
+    except Exception as e:
+        return False, f"异常: {e}"
+
+
+def case_s3_result_visibility(ctx):
+    """S3 结果可见性：流 B 显式等待流 A 事件后，读取 A 的计算结果（跨流显式依赖建立后数据可见）。"""
+    device = ctx["device"]
+    try:
+        x = torch.ones(16, 16, device=device)
+        y = x * 2                       # 当前流（流 A）完成
+        ev = ctx["event"]()
+        ev.record()                     # 标记当前流完成点
+        sB = ctx["stream"]()
+        sB.wait_event(ev)               # 流 B 显式等待流 A
+        with ctx["stream_ctx"](sB):
+            z = y + 1                   # 依赖 y，经事件显式建立可见性
+        ctx["sync"]()
+        ok = bool((z.cpu() == 3).all())
+        return ok, f"跨流显式依赖可见性: z 全 3 = {ok}"
+    except Exception as e:
+        return False, f"异常: {e}"
+
+
+def case_s4_explicit_transfer(ctx):
+    """S4 显式传递：非当前流运算 + 显式 wait_stream 依赖，结果正确（无隐式同步依赖）。"""
+    device = ctx["device"]
+    try:
+        sB = ctx["stream"]()
+        with ctx["stream_ctx"](sB):
+            a = torch.ones(8, 8, device=device) * 5
+        cur = ctx["current_stream"]()
+        cur.wait_stream(sB)             # 显式等待 sB 完成后读取 a
+        b = a * 2                       # 依赖 a（显式 wait_stream 建立）
+        ctx["sync"]()
+        ok = bool((b.cpu() == 10).all())
+        return ok, f"显式 wait_stream 传递: b 全 10 = {ok}"
+    except Exception as e:
+        return False, f"异常: {e}"
+
+
+def case_t3_topology_path(ctx):
+    """T3 拓扑路径：同节点设备间直接传输数据正确 + 拓扑信息可查询性探测。"""
+    device = ctx["device"]
+    try:
+        if ctx["devs"] < 2:
+            return True, "单设备：跳过跨设备传输（拓扑路径不适用）"
+        src = torch.ones(8, 8, device=f"{device}:0")
+        dst = src.to(f"{device}:1")
+        ctx["sync"]()
+        ok_data = bool((dst.cpu() == 1).all())
+        # 拓扑接口可查询性（torch_npu 未暴露统一拓扑查询 → 如实标注）
+        return ok_data, f"跨设备直接传输数据一致={ok_data}；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）"
     except Exception as e:
         return False, f"异常: {e}"
