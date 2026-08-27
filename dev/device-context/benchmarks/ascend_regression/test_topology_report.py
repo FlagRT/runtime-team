@@ -130,7 +130,7 @@ def main():
     if has_topo:
         print("\nTOPOLOGY_REPORT_PASS: 设备清单与互联事实可观测，可作为拓扑感知路径选择的数据基础")
         print(f"  接口状态: {report['interface_gap'] or '统一拓扑接口可用'}")
-        print("  说明: 单机双卡场景下路径选择为'直连(HCCS)'；跨机/跨互联域场景由后续多机环境补验")
+        print("  说明: 单机双卡场景下路径选择为'直连(HCCS)'；跨互联域场景由后续多机环境补验")
     else:
         print("\nTOPOLOGY_REPORT_FAIL: 未获取到拓扑事实，检查 npu-smi 可用性与容器权限")
 

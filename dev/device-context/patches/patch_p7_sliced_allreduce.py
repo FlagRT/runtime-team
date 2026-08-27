@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """P7 FINAL FIX for defect #11 (FlagCX native allreduce OOM on small-VRAM cards).
 
-Root cause (proven by real training run, 4090-1, 2026-08-26):
+Root cause (proven by real training run, 2026-08-26):
   uniRunnerAllReduce allocated bytes*nranks of DEVICE memory on EVERY call
   (3GB flat grad buffer x 2 ranks = 6GB on a 24GB card). Step 0's allreduce
   runs before optimizer.step() -> ~13GB free -> 6GB cudaMallocAsync succeeds.

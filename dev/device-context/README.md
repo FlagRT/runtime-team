@@ -124,7 +124,7 @@ dev/device-context/
 | 3 | Stream/Event/异步传输验证（需求 2） | Kistich | ⬜ | #2 | 双流并发、Event 同步、页锁定传输实测通过 |
 | 4 | 单机 2 卡 Qwen2.5-1.5B 训练（需求 3+4 验证 1+2） | Kistich | ⬜ | #3 | 双卡 HCCL 跑通；loss 下降；记录全部踩坑 |
 | 5 | 错误码翻译与设备状态恢复验证（需求 2 延伸） | Kistich | ⬜ | #2 | 注入错误场景，统一错误码 + 恢复路径 OK |
-| 6 | 完整方案文档 + PR 提交 | Kistich | ⬜ | #4/#5 | docs/ 方案定稿；PR 合入 dev-1.0 |
+| 6 | 完整方案文档 + PR 提交 | Kistich | ✅ | #4/#5 | docs/ 方案定稿（DEVICE_CONTEXT_PLAN_20260827.md）；PR 合入 dev-1.0（2026-08-27 发起） |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 
@@ -251,4 +251,11 @@ docker exec -it flagos-device-context-dev-910c bash
   - **排除 coalesced 不融合嫌疑**：flagcx 调用次数（850）反而少于 hccl（1700）
   - 修复方向：FlagCX adaptor per-call 路径精简（事件/流管理热路径）——上游可贡献点
 - [x] 训练脚本参数化（BACKEND/MAX_STEPS/PROFILE）保留为验收资产
-- [ ] 待办：FlagCX per-call 开销优化（上游贡献，与通信方向协作评估）
+- [x] **挂账移交（2026-08-27）**：FlagCX per-call 开销优化（主因已定位：per-call CPU 36 倍）——修复方向明确（adaptor 热路径精简），**挂账移交通信方向协作评估**，不阻塞设备执行上下文转芯片；详见 `DEVICE_CONTEXT_PLAN_20260827.md` §4-5
+
+## 2026-08-27 第七批：收尾定稿 + PR 提交（Kistich）
+
+- [x] **方案文档定稿**：`docs/DEVICE_CONTEXT_PLAN_20260827.md`——设计（统一三大句柄 + E/F/R 系列契约）+ 昇腾 910C 完成度对照（conformance 13/13、六探针 6/6、训练闭环）+ 如实标注缺口（T2 引用计数 / T3 拓扑查询 / E2 未 record wait 边界 / 状态恢复最小近似）+ 下一芯片接入方法
+- [x] **FlagCX 缺陷修复记录整理**：`docs/FLAGCX_CORE_DEFECT_FIXES_20260826.md`（P2 死锁 + P6 数据错乱 + P7 显存 OOM：根因 + 干净 diff + 复现补丁 + 验证证据），补丁保留在 `patches/`
+- [x] **看板任务 #6 完成**：方案定稿 + PR 提交 dev-1.0（2026-08-27 发起，待 merge）
+- [ ] 待办（PR merge 后）：FlagCX 上游收尾（干净 diff 提交 `FlagRT/FlagCX` `kistich/ascend-dev1.0`）；吞吐优化移交通信方向；下一芯片适配评估（寒武纪/昆仑芯）
