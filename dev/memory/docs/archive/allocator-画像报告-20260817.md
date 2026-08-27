@@ -1,5 +1,9 @@
 # 验证报告：torch_fl caching allocator 现状画像（2.4 任务 #2）
 
+> ⚠️ **已归档（2026-08-22）**：本文件为设备层路线变更（B→A，见 [../FlagOS设备层路线变更指南.md](../FlagOS设备层路线变更指南.md)）前的 **B 线/旧案产物**，不进入 A 线交付路径。
+> 仍有效结论：探针方法论（分配器画像方式）可复用；torch_fl caching allocator 能力（块复用/合并/碎片 4.9%）作为 B 线资产记录。
+> 需 A 线重验：A 线无 torch_fl 显存池，需对厂商 torch 分配器（xpytorch/torch_npu）重新画像。
+
 > 日期：2026-08-17 ｜ 环境：flagos-fl-dev-910c / venv311（torch 2.10.0+cpu + torch_fl py311 ascend 编译）
 > 探针：runtime-memory/probes/probe_allocator_profile.py ｜ 结论：✅ **动态缓存池本体工作正常，第一层通过验证**
 

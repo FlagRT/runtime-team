@@ -1,5 +1,7 @@
 # 调研笔记：vLLM 0.20.2 分层/溢出机制（2.4 任务 #3）
 
+> 📌 状态更新（2026-08-22）：设备层路线变更（B→A，见 [FlagOS设备层路线变更指南.md](FlagOS设备层路线变更指南.md)）后仍保留。原因：vLLM 0.20.2 分层/溢出机制（offloader 双后端 + evict_blocks 挂载点）是 vLLM 特性，与设备层路线无关；注意 P800 用 vllm 0.13，需对照（vllm-0.13 调研待补）。
+
 > 日期：2026-08-17 ｜ 来源：容器 venv311 内 vllm 0.20.2 源码（/root/vllm-venv311/lib/python3.11/site-packages/vllm/）
 > 用途：子项 B「分层缓存与可控溢出」的可复用挂载点清单
 
