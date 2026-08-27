@@ -1,6 +1,6 @@
 # FlagOS 运行时组公共资源配置（所有子方向共享，变更需全员知会）
 # 子方向 compose 通过 -f 多文件合并本文件（后文件覆盖前文件）；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
-# 需要 docker compose v2（2021-11 以后版本，-f 多文件合并）
+# 需要 docker compose v2（-f 多文件合并，后文件覆盖前文件；序列字段如 devices 需整值替换时用 !override，需 ≥2.24，!reset 会清空）
 
 services:
   runtime-dev:
@@ -50,5 +50,7 @@ services:
       - GEMS_VENDOR=ascend
       - TRITON_ENABLE_TASKQUEUE=false
       - FLAGCX_PATH=/workspace/FlagCX/plugin/torch
+      # vLLM usage 上报线程在容器内解析 cpuinfo 报错（跑 vLLM 的方向必需）
+      - DO_NOT_TRACK=1
       # HCCL 多进程必需
       - HCCL_NPU_SOCKET_PORT_RANGE=16666,16676

@@ -60,7 +60,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 4. 运行必需环境变量
 
-> 均为容器内路径约定：`/workspace` = `compose.base.yml` 相对路径 `../` 自动挂载的公共仓根；前 3 个 + HCCL 端口由 `dev/compose.base.yml` 注入，`DO_NOT_TRACK=1` 需在容器内 export（待 compose 补注入）。
+> 均为容器内路径约定：`/workspace` = `compose.base.yml` 相对路径 `../` 自动挂载的公共仓根；全部由 `dev/compose.base.yml` 注入。
 
 - `GEMS_VENDOR=ascend`
 - `TRITON_ENABLE_TASKQUEUE=false`
@@ -70,6 +70,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 5. 变更记录
 
+- 2026-08-27：**公共配置对齐（组级）**——`DO_NOT_TRACK=1` 补注入 `compose.base.yml`（原"待补注入"）；子方向 compose 必须声明独立 `name:`（默认 project 取首个 -f 文件目录名 `dev`，会跨方向重建 `runtime-dev`）；`!override` 覆盖设备约束与昇腾 vLLM 通用坑写入根 README
 - 2026-08-22：**设备层路线变更（B→A 主线，B 降预研支线）**，权威依据 `dev/memory/docs/FlagOS设备层路线变更指南.md`；昆仑芯实测细节（镜像/venv/环境变量）归 memory 子方向文档
 - 2026-08-20：`clone_all.sh` 纳入 FlagPerf（FlagRT/FlagPerf，main）；同步更新仓库清单、目录约定、模板和 `.gitignore`
 - 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）；组织仓/文档链接改用 Torch-FL，本地目录与容器路径沿用 PyTorch-Plugin-FL
