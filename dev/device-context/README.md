@@ -266,3 +266,13 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **补齐测试脚本**：`benchmarks/test_work_sem.py`（flagcxWork 完成语义实测）、`benchmarks/test_ag_cuda.py` + `train_qwen_1_5b_cuda.py` + `patch_nvidia_current_stream.py`（NVIDIA 同构验证资产）
 - [x] **补齐文档**：`docs/flagcx_ascend_aline_validation_20260824.md`（A 线验证报告）、`docs/910C-env-issue-report.md`（aclInit 500000 根因详录）、`docs/4090_training_report.md`（NVIDIA 同构训练报告）
 - [x] **补齐环境脚本**：`benchmarks/setup_910c.sh`（910C 一键初始化）
+
+## 2026-08-27 第九批：P8 设备侧 reduce + CANN UVA 实测（Kistich）
+
+> 关联：`docs/P8_DEVICE_REDUCE_20260827.md`（完整文档）；P2/P6/P7 之后的性能/架构增强
+
+- [x] **CANN UVA 实测真通**：`aclrtMallocHost` + `aclrtHostRegisterV2(PINNED|MAPPED)` + `aclrtHostGetDevicePointer` 返回成功；**aclnnInplaceAdd 以 host 映射地址为输入算出 7.0（5.0+2.0）→ NPU 真实读 host 内存**。修正"昇腾无 UVA"结论——真缺口在 FlagCX cann adaptor 的 `hostGetDevicePointer` 字段留 NULL。坑：内核 5.10 下普通 malloc+RegisterV2 失败（507899），必须用 aclrtMallocHost（`benchmarks/uva_test.c`）
+- [x] **P8 设备侧 reduce 落地**：`patches/patch_device_reduce.py`——adaptor 加 `reduceSum`（CANN=aclnnInplaceAdd / NVIDIA=CUDA kernel `flagcx_device_reduce.cu`），`uniRunnerAllReduce` 对 Sum+fp32/fp16/bf16 走设备侧，消除 D2H+CPU reduce+H2D
+- [x] **关键发现：COMPILE_KERNEL_HOST 干扰 socket proxy**：10 轮稳定性间歇性 sum=1.0，分离实验证明是 `COMPILE_KERNEL=1` 同时定义 `-DCOMPILE_KERNEL_HOST` 启用 kernel proxy 线程干扰 proxy 调度（allgather Recv 数据偶发丢）。**已拆分 Makefile 控制**（`COMPILE_KERNEL=1` 只编 .cu，`COMPILE_KERNEL_HOST=1` 默认 0）
+- [x] **50 步训练验证**：无死锁、loss 与基线逐位一致（s0 2.8891/3.1656）、**sync ~32s/步 vs P7 的 47.5s（约 -33%）**、ckpt 保存退出
+- [ ] **遗留**：集合级 10 轮仍有 1/10 偶发数据错（上游 net.cc chunk 流水线竞态，P4 残余，与设备 reduce 无关；eventQuery 替代 streamQuery 反而更差已回退；50 步训练未触发）——建议独立任务移交
