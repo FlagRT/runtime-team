@@ -70,6 +70,26 @@ docker ps | grep flagos-fl-dev-p800    # 确认 Up
 #    结论性测试在官方发布镜像内做，本 dev 容器仅用于开发调试。
 ```
 
+## P800 A 线运行环境（实测口径 2026-08-21/22）
+
+**venv 组合**（官方发布镜像内）：python 3.10.18 + torch 2.9.0+cu129（xpytorch，CUDA 兼容 USE_CUDA=ON）+ vllm 0.13.0（昆仑芯版，插件强依赖做平台引导）+ vllm-plugin-fl 0.1.0 + flag_gems 4.2.1rc0（editable）+ flagcx 0.10.0（klx 适配器）+ flagtree 0.6.1+xpu3.6（dev，triton 3.6.0；官方发布镜像为 triton 3.0.0）+ xtorch_ops 0.1.2640 + torch_xray 2.0.4 + xmlir 1.0.0.1 + torch_plugin 0.1.0（仅 runtime 初始化，无 torch_fl 显存池）
+
+**运行环境变量**：
+
+```bash
+VLLM_PLUGINS=fl
+VLLM_FL_PLATFORM=kunlunxin
+VLLM_FL_PREFER=flagos|vendor    # 旧线 0.13 口径；新线 0.20.2 须单独 flagos，见问题清单 #5
+USE_FLAGGEMS=1
+GEMS_VENDOR=kunlunxin
+KLX_USE_AUTOTUNE=0
+CUDA_VISIBLE_DEVICES=<选卡>
+DO_NOT_TRACK=1
+FLAGCX_PATH=/workspace/FlagCX/plugin/torch
+```
+
+> 注：vllm 0.13 昆仑芯构建必须靠 vllm-plugin-FL 做平台引导——不带插件报 `Device string must not be empty`。
+
 ## 常用命令（环境速查）
 
 ```bash

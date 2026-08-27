@@ -1,10 +1,6 @@
 # FlagOS 运行时组公共资源配置（所有子方向共享，变更需全员知会）
 # 子方向 compose 通过 -f 多文件合并本文件（后文件覆盖前文件）；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
 # 需要 docker compose v2（2021-11 以后版本，-f 多文件合并）
-# 双线说明（2026-08-22 设备层路线变更，权威依据：dev/memory/docs/FlagOS设备层路线变更指南.md）：
-#   本文件为昇腾 910c 默认配置，属路线 A 生产主线（厂商 torch_npu 生态 + FlagGems + FlagCX + vllm-plugin-FL）
-#   路线 B（torch_fl 设备层）为预研支线，保留但不承担交付
-#   昆仑芯 P800 容器用 memory 子方向 docker-compose.p800.yml 覆盖（image/devices/env 不同）
 
 services:
   runtime-dev:
@@ -51,7 +47,6 @@ services:
       - /usr/local/Ascend/driver:/usr/local/Ascend/driver
     environment:
       # 公共运行环境（阶段4 验证，全组通用）
-      # GEMS_VENDOR=ascend：昇腾 A 线（厂商 torch_npu 生态 + FlagGems）
       - GEMS_VENDOR=ascend
       - TRITON_ENABLE_TASKQUEUE=false
       - FLAGCX_PATH=/workspace/FlagCX/plugin/torch

@@ -28,8 +28,6 @@ USER_NAME=$(echo "$AUTH_OUT" | sed -n 's/^Hi \([^!]*\)!.*/\1/p')
 echo "[auth] 已认证账号: ${USER_NAME:-未知}"
 
 # ---------- 对齐 6 仓（origin = FlagRT 组织仓） ----------
-# 双线说明：PyTorch-Plugin-FL（= Torch-FL，路线 B 设备层 torch_fl）现为预研角色，不承担交付；
-#           但 6 仓仍需全部 clone——B 线验证资产（昇腾 Qwen3-4B、16 卡 DDP 等）保留，双轨无冲突。
 # REPOS 是实际的 clone 候选集合；新增仓库需同时在 BRANCH 中声明基线分支。
 REPOS=(PyTorch-Plugin-FL FlagCX FlagGems vllm-plugin-FL FlagTree FlagPerf)
 # 基线分支（与 VERSIONS.md §1 保持一致）
@@ -41,7 +39,7 @@ declare -A BRANCH=(
   [FlagTree]=triton_v3.2.x
   [FlagPerf]=main
 )
-# 远程名映射：上游/组织已改名 Torch-FL；本地目录沿用 PyTorch-Plugin-FL（容器路径约定 /workspace/PyTorch-Plugin-FL，沿用不变量）
+# 远程名映射：上游/组织已改名 Torch-FL；本地目录沿用 PyTorch-Plugin-FL（容器路径约定 /workspace/PyTorch-Plugin-FL）
 declare -A REMOTE=(
   [PyTorch-Plugin-FL]=Torch-FL
 )

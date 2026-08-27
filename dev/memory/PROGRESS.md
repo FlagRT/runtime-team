@@ -26,12 +26,12 @@
 | 08-22 | 新线镜像纯 MoE 复测：topk_softmax 阻塞绕开（dispatch 降级 reference.torch），expert GEMM 首次触达；eager 可生成但质量退化，默认模式 graph capture 35min 不可用（部分解锁） | [新线镜像纯MoE复测-20260822](docs/新线镜像纯MoE复测-20260822.md)（A 线） |
 | 08-22 | P800 A 线 V1 显存画像：7 阶段全绿，KV 556,352 tokens/76.40GiB（~89%），910c P0 不存在 | [路线A-P800显存画像报告-20260822](docs/路线A-P800显存画像报告-20260822.md)（A 线） |
 | 08-22 | vllm 0.13 allocator/offload 调研：原生 KV CPU 卸载（--kv-offloading-size）发现 | [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md)（A 线） |
-| 08-22 | 新线复测静态预检：gems 5.x 全系 kunlunxin topk_softmax 未补 renormalize（复测预计仍崩） | [新线镜像-MoE复测-静态预检-20260822](docs/新线镜像-MoE复测-静态预检-20260822.md)（A 线） |
+| 08-22 | 新线复测静态预检：gems 5.x 全系 kunlunxin topk_softmax 未补 renormalize（复测预计仍崩） | [新线镜像-MoE复测-静态预检-20260822](docs/archive/新线镜像-MoE复测-静态预检-20260822.md)（A 线） |
 | 08-22 | 设备层路线变更 B→A 落地：旧案归档、A 线方案发布、三 issue 清单成形 | [FlagOS设备层路线变更指南](docs/FlagOS设备层路线变更指南.md) · [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)（A 线） |
-| 08-22 | 官方镜像 MoE 复测 + 纯 MoE 隔离：定位 causal_conv1d / topk_softmax 双阻塞 | [官方镜像复测-MoE-20260822](docs/官方镜像复测-MoE-20260822.md) · [纯MoE-昆仑芯-20260822](docs/纯MoE-昆仑芯-20260822.md)（A 线） |
+| 08-22 | 官方镜像 MoE 复测 + 纯 MoE 隔离：定位 causal_conv1d / topk_softmax 双阻塞 | [官方镜像复测-MoE-20260822](docs/archive/官方镜像复测-MoE-20260822.md) · [纯MoE-昆仑芯-20260822](docs/archive/纯MoE-昆仑芯-20260822.md)（A 线） |
 | 08-21 | 昆仑芯 P800 路线 A 可用性实测：官方栈端到端跑通 Qwen3-4B（96.5 tok/s），分层验证 + 阻塞项清单 | [路线A-P800可用性实测-20260821](docs/路线A-P800可用性实测-20260821.md)（A 线） |
-| 08-20 | 环境验收：DrvMng 名额定位、torch_fl._C 修复、模板复验全绿 | [P800适配-执行记录-20260820](docs/P800适配-执行记录-20260820.md)（A 线基线）；torch_fl._C 修复属 B 线，已归档 docs/archive/ |
-| 08-17 | vLLM offload 机制调研完成（双后端 + evict_blocks 挂载点） | [vllm-offload-调研笔记-20260817](docs/vllm-offload-调研笔记-20260817.md)（保留，A 线对照） |
+| 08-20 | 环境验收：DrvMng 名额定位、torch_fl._C 修复、模板复验全绿 | [P800适配-执行记录-20260820](docs/archive/P800适配-执行记录-20260820.md)（A 线基线）；torch_fl._C 修复属 B 线，已归档 docs/archive/ |
+| 08-17 | vLLM offload 机制调研完成（双后端 + evict_blocks 挂载点） | [vllm-offload-调研笔记-20260817](docs/archive/vllm-offload-调研笔记-20260817.md)（保留，A 线对照） |
 | 08-17 | 分配器画像：默认开启、接口齐全、碎片 4.9% | [allocator-画像报告-20260817](docs/archive/allocator-画像报告-20260817.md)（B 线，已归档 docs/archive/） |
 | 08-17 | V1 显存画像：加载 31.9G、KV 占 76%，发现长序列 P0 | [V1-显存画像报告-20260817](docs/archive/V1-显存画像报告-20260817.md)（B 线，已归档 docs/archive/；长序列 P0 为跨路线问题） |
 | 08-17 | 2.4 显存方案定稿，调研验证收尾，进入开发期 | [显存与缓存管理-2.4-调研与实施方案](docs/archive/显存与缓存管理-2.4-调研与实施方案.md)（B 线，已归档 docs/archive/） |
