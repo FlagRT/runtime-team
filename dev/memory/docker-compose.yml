@@ -7,6 +7,9 @@
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop flagos-fl-dev-910c
 
+# 独立 project（默认 project 取首个 -f 文件目录名 dev，会跨方向重建 runtime-dev；P800 用 flagos-memory-p800）
+name: flagos-memory
+
 services:
   runtime-dev:
     container_name: flagos-fl-dev-910c

@@ -7,6 +7,9 @@
 #    不一致，FlagGems GEMM 编译在 dev 容器会崩（官方发布镜像正常）。
 #    A 线结论性测试请在官方发布镜像内做；本 dev 容器仅用于开发调试。
 
+# 独立 project（P800 与 910c 分开，可同机共存；默认 project 取首个 -f 文件目录名 dev）
+name: flagos-memory-p800
+
 services:
   runtime-dev:
     # 覆盖 base 的昇腾公共镜像（tag 见 VERSIONS.md / docker images，勿编造）
@@ -40,7 +43,6 @@ services:
       - USE_FLAGGEMS=1
       - GEMS_VENDOR=kunlunxin
       - KLX_USE_AUTOTUNE=0
-      - DO_NOT_TRACK=1
       - FLAGCX_PATH=/workspace/FlagCX/plugin/torch
     restart: "no"
     # network_mode: host / ipc: host / shm_size 512g / tty / stdin_open / cap_add 均继承 base，无需重复；
