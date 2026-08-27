@@ -11,7 +11,7 @@
 |---|---|---|---|
 | 1 | 组织主干仓（FlagRT 组织下，成员直接 clone） | 7 个（6 子库 + runtime-team） | §1.1 |
 | 2 | GitHub 账号（SSH key + 组织成员 write 权限） | 1 个 | §1.1 |
-| 3 | 基础镜像 | 3 个（4 个 tag；含昆仑芯 A 线 1 个） | §2 |
+| 3 | 基础镜像 | 2 个（3 个 tag） | §2 |
 | 4 | venv311 运行组合（容器内） | 1 套 | §3 |
 | 5 | 运行环境变量 | 4 个 | §4 |
 | 6 | 容器启动参数（子方向专属） | 见 memory 子方向 `dev/memory/README.md` | 子方向目录 |
@@ -43,14 +43,13 @@
 | FlagTree | github.com/flagos-ai/FlagTree | github.com/FlagRT/FlagTree | triton_v3.2.x（与上游同步） |
 | FlagPerf | github.com/flagos-ai/FlagPerf | github.com/FlagRT/FlagPerf | main（clone 基线；协作分支按 fork 实际配置） |
 
-## 2. 基础镜像（昇腾 3 个 tag 保留；昆仑芯 A 线 1 个）
+## 2. 基础镜像（2 个，3 个 tag）
 
 | 用途 | 地址 | tag | 大小 | 获取方式 |
 |---|---|---|---|---|
 | 开发基础镜像（harbor 源） | harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev | 11.2GB | 私有 harbor，需 BAAI 账号 |
 | 开发基础镜像（本地重建，推荐） | flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev-hostnet | 13.7GB | 2026-08-13 快照重建（同 commit），CANN 9.0.0 + Python 3.12 + 昇腾工具链全套 |
 | 对照/工具镜像 | quay.io/ascend/vllm-ascend | v0.20.2rc1-a3 | 18GB | 公开可直接 pull；triton_ascend wheel 来源、torch_npu 生态参照、上线容器基础 |
-| 昆仑芯官方发布镜像（A 线测试环境） | harbor.baai.ac.cn/flagrelease-public/qwen3.6-35b-a3b-nomtp-kunlunxin-gems_4.2.1rc0-vllm_0.13-plugin_0.1-cx_0.10.0-python_3.10.18-x86_64-driver_515.58 | 2604161518 | 92.8GB | 私有 harbor（同 BAAI 账号）；A 线测试一律在此镜像内进行 |
 
 ## 3. venv311 运行组合（容器内，2026-08-17 实测验证）
 
@@ -71,7 +70,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 5. 变更记录
 
-- 2026-08-22：**设备层路线变更（B→A 主线，B 降预研支线）**，权威依据 `dev/memory/docs/FlagOS设备层路线变更指南.md`；本文件增补昆仑芯 A 线官方发布镜像（A 线测试环境约定）；昆仑芯 venv/环境变量等实测细节归 memory 子方向文档
+- 2026-08-22：**设备层路线变更（B→A 主线，B 降预研支线）**，权威依据 `dev/memory/docs/FlagOS设备层路线变更指南.md`；昆仑芯实测细节（镜像/venv/环境变量）归 memory 子方向文档
 - 2026-08-20：`clone_all.sh` 纳入 FlagPerf（FlagRT/FlagPerf，main）；同步更新仓库清单、目录约定、模板和 `.gitignore`
 - 2026-08-18：上游 PyTorch-Plugin-FL 改名 **Torch-FL**（旧名 301 重定向）；组织仓/文档链接改用 Torch-FL，本地目录与容器路径沿用 PyTorch-Plugin-FL
 - 2026-08-18：**WORKSPACE_HOST 机制删除**——`dev/compose.base.yml` 挂载改用相对路径 `../` 自动解析公共仓根（compose 相对路径按首个 -f 文件所在目录解析，已实测），`.env` 无需再填任何宿主路径
