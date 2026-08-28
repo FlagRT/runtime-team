@@ -287,3 +287,8 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **验证**：循环 **20/20（两轮）+ 10/10（recv 加入后）全过、0 死锁**（修复前 9/10，早期 7/10、8/10）
 - [x] **50 步训练无回归且略升**：无死锁、s0 loss=2.8891 与基线一致、s20=2.1327 vs gloo 终点 2.1312；**sync ~26.6s/步（sync_total=1331s）vs P8 的 ~32s/步（+17%）**
 - [ ] **上游待办**：P2/P6/P7/P8/P9 合并干净 diff 提交 `FlagRT/FlagCX` `kistich/ascend-dev1.0`（工作树未 commit；提交前剥离 P1-P4 诊断打点）
+
+## 阶段性总结主看板（2026-08-28）
+
+> 面向资深通信/LLM 训练工程师的**全进展汇报 + RoCE 下一阶段提案**：`docs/hetero_progress_and_roce_proposal.md`
+> 内容：P2/P6/P7/P9 四缺陷 + P8 增强 + CANN UVA 实测修正，50 步训练闭环（sync 26.6s/步、集合级 30/30）、瓶颈拆解、RoCE 收益量化 / 三件事 / 风险兜底 / 里程碑。
