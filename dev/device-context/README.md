@@ -276,3 +276,14 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **关键发现：COMPILE_KERNEL_HOST 干扰 socket proxy**：10 轮稳定性间歇性 sum=1.0，分离实验证明是 `COMPILE_KERNEL=1` 同时定义 `-DCOMPILE_KERNEL_HOST` 启用 kernel proxy 线程干扰 proxy 调度（allgather Recv 数据偶发丢）。**已拆分 Makefile 控制**（`COMPILE_KERNEL=1` 只编 .cu，`COMPILE_KERNEL_HOST=1` 默认 0）
 - [x] **50 步训练验证**：无死锁、loss 与基线逐位一致（s0 2.8891/3.1656）、**sync ~32s/步 vs P7 的 47.5s（约 -33%）**、ckpt 保存退出
 - [ ] **遗留**：集合级 10 轮仍有 1/10 偶发数据错（上游 net.cc chunk 流水线竞态，P4 残余，与设备 reduce 无关；eventQuery 替代 streamQuery 反而更差已回退；50 步训练未触发）——建议独立任务移交
+
+## 2026-08-28 第十批：P9 net.cc 完成判定 eventSynchronize —— 修复 1/10 偶发数据错（Kistich）
+
+> 关联：`docs/netcc_chunk_race_investigation.md`（源码级调研 + 实锤证据 + 分级方案）
+> 修复：`patches/patch_p9_eventsync_completion.py`（send/recv 两侧，净改动各 1 处）
+
+- [x] **根因实锤（历史日志自证）**：net.cc isend 前的 P4-SEND-DATA 打点就是探针——失败轮（round 6/8/9）910C 的 AR isend 前 buffer=**11（AG 旧数据残留）**，PASS 轮=2.0（正确）→ **rank1(910C, CANN) 的 D2H 未执行完成就 isend**：`aclrtStreamQuery` 返回 COMPLETE 早于 DMA 数据对 CPU 可见（aarch64 缓存窗口；官方文档只承诺"任务已完成"，未承诺 CPU 可见；CUDA 侧 cudaStreamQuery 语义严格故恒对）
+- [x] **修复**：`streamQuery(cpStream)` → `eventSynchronize(cpEvents[step])`（send 侧实锤点 + recv 侧防御），阻塞等到 D2H/H2D 事件真正完成；不受 event 环形复用影响（保守方向只会慢不会错；此前 eventQuery 非阻塞查询失败正是事件复用误判）
+- [x] **验证**：循环 **20/20（两轮）+ 10/10（recv 加入后）全过、0 死锁**（修复前 9/10，早期 7/10、8/10）
+- [x] **50 步训练无回归且略升**：无死锁、s0 loss=2.8891 与基线一致、s20=2.1327 vs gloo 终点 2.1312；**sync ~26.6s/步（sync_total=1331s）vs P8 的 ~32s/步（+17%）**
+- [ ] **上游待办**：P2/P6/P7/P8/P9 合并干净 diff 提交 `FlagRT/FlagCX` `kistich/ascend-dev1.0`（工作树未 commit；提交前剥离 P1-P4 诊断打点）
