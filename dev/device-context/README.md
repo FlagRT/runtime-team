@@ -292,3 +292,16 @@ docker exec -it flagos-device-context-dev-910c bash
 
 > 面向资深通信/LLM 训练工程师的**全进展汇报 + RoCE 下一阶段提案**：`docs/hetero_progress_and_roce_proposal.md`
 > 内容：P2/P6/P7/P9 四缺陷 + P8 增强 + CANN UVA 实测修正，50 步训练闭环（sync 26.6s/步、集合级 30/30）、瓶颈拆解、RoCE 收益量化 / 三件事 / 风险兜底 / 里程碑。
+
+## 开放问题与待办工作项（O1-O6）
+
+> 完整清单（逐项背景/依赖/风险/验证）：`docs/OPEN_ISSUES_HETERO_20260828.md`
+
+| ID | 工作项 | 优先级 | 状态 |
+|----|--------|--------|------|
+| O1 | P2+P6+P7+P8+P9 干净 diff 提交上游 `FlagRT/FlagCX` `kistich/ascend-dev1.0` | **P0** | ⬜ |
+| O2 | 昇腾 DAG 引擎解锁（补 `hostGetDevicePointer` + 设备侧 reduce 节点/aclnn 折中） | P2 | ⬜ |
+| O3 | `flagcxGetLastError` 存根完善（缺陷 4，错误诊断） | P2 | ⬜ |
+| O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | P3 | ⬜ |
+| O5 | 诊断打点剥离（net.cc/proxy.cc P1-P4，O1 前置） | P1 | ⬜ |
+| O6 | RoCE 组网推进（4090/910C RoCE 接入骨干，待 IT：UDP4791 + 无损 QoS） | P1 | ⬜ |
