@@ -31,7 +31,8 @@ dev/
 - 日常启动：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
 - 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，各子方向自动生效 → 同步 `VERSIONS.md`
 - 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
-- `.env` 不入仓；需要 docker compose v2（-f 多文件合并，后文件覆盖前文件）
+- 每个子方向 compose 必须声明独立 `name:`（如 `flagos-<方向>`）：默认 project 取首个 -f 文件目录名（`dev`），不声明会跨方向重建同名 `runtime-dev` 服务
+- `.env` 不入仓；需要 docker compose v2（-f 多文件合并，后文件覆盖前文件；序列字段如 `devices` 需整值替换时用 `!override`，compose ≥2.24，`!reset` 会清空）
 
 ## 目录布局约定（嵌套布局）
 
@@ -93,6 +94,7 @@ cd dev/<子方向>
 
 - 不改宿主机器配置/驱动；所有安装与实验都在容器内进行
 - 多卡测试前 `npu-smi` 确认 16 卡空闲；DrvMng 并发容器上限 ≈3，超了先停旧容器
+- 昇腾跑 vLLM 推理（设备层通用坑）：首次 attention 算子初始化极慢（10+ 分钟），基准前先短请求预热；`docker exec` 被 kill 会残留 EngineCore 子进程占卡，重跑前 `pkill -f "VLLM::EngineCore"`
 - 公共仓内容逐项审查后才上传；个人调试记录默认收拢 `personal/` 不上传
 
 ## 分支模型（fork 三线 · GitFlow develop 模式）

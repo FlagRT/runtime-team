@@ -1,13 +1,21 @@
-# memory 子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
+# memory 子方向开发容器：昇腾 910c（A 线昇腾 + B 线 torch_fl 预研共用）
+# 公共资源配置见 ../compose.base.yml，本文件只含子方向专属
 # 用法：cd dev/memory && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+# 双线说明（详见 docs/FlagOS设备层路线变更指南.md）：A 线 = 厂商设备插件生产主线，
+#   B 线 = torch_fl 预研支线。本文件为 A 线昇腾 + B 线 torch_fl 预研共用；
+#   昆仑芯 P800（A 线）容器用同目录 docker-compose.p800.yml，勿用本文件起 P800 容器
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop flagos-fl-dev-910c
+
+# 独立 project（默认 project 取首个 -f 文件目录名 dev，会跨方向重建 runtime-dev；P800 用 flagos-memory-p800）
+name: flagos-memory
 
 services:
   runtime-dev:
     container_name: flagos-fl-dev-910c
     environment:
-      # memory 子方向专属：显存池开关（torch_fl CachingDeviceAllocator，默认开启）
+      # ⚠️ B 线（torch_fl）开关：torch_fl CachingDeviceAllocator 显存池，默认开启（910c B 线预研用）
+      #    A 线不使用（昆仑芯 torch_plugin 0.1.0 无 torch_fl 显存池，该开关无意义）
       - FLAGOS_USE_CACHING_ALLOCATOR=${FLAGOS_USE_CACHING_ALLOCATOR:-true}
     restart: "no"
     # 注意：容器内实验 venv /root/vllm-venv311 不在挂载盘上，容器重建会丢失；

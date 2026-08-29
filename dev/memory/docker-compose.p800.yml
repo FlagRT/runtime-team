@@ -1,0 +1,51 @@
+# memory 子方向开发容器：昆仑芯 P800（A 线 = 厂商设备插件生产主线）
+# 用法：cd dev/memory && docker compose -f ../compose.base.yml -f docker-compose.p800.yml up -d
+# 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2（devices 用 !override，需 ≥2.24）
+# 参照实测容器 flagos-fl-dev-p800（docker inspect 2026-08-20 起，镜像 tag 以实际拉取为准）
+# 路线说明见 docs/FlagOS设备层路线变更指南.md；昇腾 910c 容器用同目录 docker-compose.yml
+# ⚠️ triton 版本偏差：dev 容器 triton 3.6.0（flagtree wheel 内置）与官方发布镜像 triton 3.0.0
+#    不一致，FlagGems GEMM 编译在 dev 容器会崩（官方发布镜像正常）。
+#    A 线结论性测试请在官方发布镜像内做；本 dev 容器仅用于开发调试。
+
+# 独立 project（P800 与 910c 分开，可同机共存；默认 project 取首个 -f 文件目录名 dev）
+name: flagos-memory-p800
+
+services:
+  runtime-dev:
+    # 覆盖 base 的昇腾公共镜像（tag 见 VERSIONS.md / docker images，勿编造）
+    image: flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+    container_name: flagos-fl-dev-p800
+    # ⚠️ devices 用 !override 整值替换 base 的昇腾 davinci 设备：compose 对 devices 是追加合并，
+    #    不替换则 P800 容器会带上本机不存在的 davinci 节点，启动即失败；
+    #    注意 !reset 对序列会重置成空列表（容器将拿不到任何设备），必须用 !override
+    devices: !override
+      - /dev/xpu0:/dev/xpu0
+      - /dev/xpu1:/dev/xpu1
+      - /dev/xpu2:/dev/xpu2
+      - /dev/xpu3:/dev/xpu3
+      - /dev/xpu4:/dev/xpu4
+      - /dev/xpu5:/dev/xpu5
+      - /dev/xpu6:/dev/xpu6
+      - /dev/xpu7:/dev/xpu7
+      - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+      # 补充只读模型挂载（实测容器如此）；../:/workspace 已在 base 中，无需重复
+      - /data1:/data1:ro
+      - /data:/data:ro
+      # 注：base 的 /usr/local/Ascend/driver 挂载会一并继承，本机无此路径，
+      #     compose up 时会自动创建空目录（无害留痕；如需彻底移除需用 !override 重写整个 volumes）
+    environment:
+      # A 线关键环境变量（覆盖 base 的 GEMS_VENDOR=ascend；FLAGCX_PATH 与 base 一致）
+      - VLLM_PLUGINS=fl
+      - VLLM_FL_PLATFORM=kunlunxin
+      # list 形式下值含 | 无需引号（引号会成为字面值）；若改 map 形式才需写 VLLM_FL_PREFER: "flagos|vendor"
+      - VLLM_FL_PREFER=flagos|vendor
+      - USE_FLAGGEMS=1
+      - GEMS_VENDOR=kunlunxin
+      - KLX_USE_AUTOTUNE=0
+      - FLAGCX_PATH=/workspace/FlagCX/plugin/torch
+    restart: "no"
+    # network_mode: host / ipc: host / shm_size 512g / tty / stdin_open / cap_add 均继承 base，无需重复；
+    # base 的 TRITON_ENABLE_TASKQUEUE=false、HCCL_NPU_SOCKET_PORT_RANGE 亦继承（P800 上无害）
+    # 容器内 conda 环境：python310_torch29_cuda
+    # （source /root/miniconda/bin/activate python310_torch29_cuda）
