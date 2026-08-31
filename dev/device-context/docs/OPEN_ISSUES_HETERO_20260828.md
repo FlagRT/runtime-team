@@ -10,7 +10,7 @@
 |----|--------|------|--------|------|
 | O1 | P2+P6+P7+P8+P9 干净 diff 提交上游 `FlagRT/FlagCX` `kistich/ascend-dev1.0` | 上游提交 | **P0** | ✅ 完成（`a1e7e0f`，2026-08-28） |
 | O2 | 昇腾 DAG 引擎解锁（CANN UVA 落地：补 `hostGetDevicePointer` + 设备侧 reduce 节点） | 架构优化 | P2 | ⬜ 未开始 |
-| O3 | `flagcxGetLastError` 存根完善（缺陷 4，错误诊断） | 错误诊断 | P2 | ⬜ 未开始 |
+| O3 | `flagcxGetLastError` 存根完善（缺陷 4，错误诊断） | 错误诊断 | P2 | ✅ 完成（`4bbbae5`，2026-08-31） |
 | O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | 协议加固 | P3 | ⬜ 未开始 |
 | O5 | 诊断打点剥离（net.cc/proxy.cc 的 P1-P4 残留） | 代码清理 | P1（O1 前置） | ✅ 完成（2026-08-28，日志 ~60MB→234B/轮） |
 | O6 | RoCE 组网推进（4090 RoCE ↔ 910C RoCE 接入 10.92.x 骨干） | 基础设施 | P1 | ⬜ 待 IT |
