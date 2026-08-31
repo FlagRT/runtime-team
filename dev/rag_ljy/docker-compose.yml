@@ -1,5 +1,5 @@
-# 分布式运行时（distribution_ljy）子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
-# 用法：cd dev/distribution_ljy && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+# RAG（rag_ljy）子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
+# 用法：cd dev/rag_ljy && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
 

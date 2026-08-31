@@ -1,4 +1,4 @@
-# Elasticsearch + Ascend NPU RAG（distribution_ljy）
+# Elasticsearch + Ascend NPU RAG（rag_ljy）
 
 > **状态：🔄 方案已确定，待实现** ｜ 本文档记录实现顺序和验收标准
 
@@ -114,7 +114,7 @@
 ## 目录约定
 
 ```text
-dev/distribution_ljy/
+dev/rag_ljy/
 ├── README.md           # 方案、任务看板和运行说明
 ├── docker-compose.yml  # NPU 开发容器和 Elasticsearch 服务
 ├── .env.example        # 环境变量模板
@@ -129,7 +129,7 @@ dev/distribution_ljy/
 `runtime-dev` 从 `../compose.base.yml` 继承公共 NPU 配置；本目录 Compose 增加模型目录挂载和 CPU-only Elasticsearch 服务。
 
 ```bash
-cd /home/jliu171/runtime-team/dev/distribution_ljy
+cd /home/jliu171/runtime-team/dev/rag_ljy
 cp .env.example .env
 # 编辑 .env，至少修改 ELASTIC_PASSWORD
 docker compose -f ../compose.base.yml -f docker-compose.yml up -d
