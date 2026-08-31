@@ -64,17 +64,17 @@ def case_i2_infer_forward_stream_order(ctx):
     device = ctx["device"]
     try:
         params = _make_small_mlp(device)
+        x = torch.randn(4, 64, device=device)       # 固定输入：同流多轮前向应确定性一致
         ref = None
         ok = True
-        for step in range(3):                      # 模拟 3 轮 decode
-            x = torch.randn(4, 64, device=device)
+        for _ in range(3):                          # 模拟 3 轮 decode（同一请求上下文）
             logits = _forward(ctx, params, x)
-            s = logits.sum().cpu().item()          # 数值纪律：.cpu() 后计算（坑 B4）
+            s = logits.sum().cpu().item()           # 数值纪律：.cpu() 后计算（坑 B4）
             if ref is None:
                 ref = s
             else:
-                ok = ok and abs(s - ref) < 1e-2    # 同流顺序，结果稳定可复现
-        return ok, f"多轮前向同流顺序: 逐轮稳定误差={abs(s - ref):.2e}"
+                ok = ok and abs(s - ref) < 1e-3     # 同流顺序 + 固定输入 → 逐轮结果一致
+        return ok, f"多轮前向同流顺序: 固定输入逐轮一致(误差={abs(s - ref):.2e}) = {ok}"
     except Exception as e:
         return False, f"异常: {e}"
 
@@ -144,8 +144,9 @@ def case_i5_longrun_device_state(ctx):
 def case_i6_pipeline_overlap(ctx):
     device = ctx["device"]
     try:
-        n_batches, n = 4, 256
-        hosts = [torch.randn(n, n) for _ in range(2)]   # 双缓冲主机侧
+        n_batches, n = 4, 512
+        # 页锁定主机缓冲（保证 non_blocking 真异步）+ 更大张量（重叠可观测）
+        hosts = [torch.randn(n, n).pin_memory() for _ in range(2)]
         buf = [torch.zeros(n, n, device=device) for _ in range(2)]
         ev_h2d = [ctx["event"]() for _ in range(2)]
         ev_calc = [ctx["event"]() for _ in range(2)]
@@ -155,7 +156,7 @@ def case_i6_pipeline_overlap(ctx):
         for i in range(n_batches):
             b = i % 2
             with ctx["stream_ctx"](s_trans):
-                buf[b].copy_(hosts[b], non_blocking=True)   # H2D
+                buf[b].copy_(hosts[b], non_blocking=True)   # H2D（页锁定真异步）
             ev_h2d[b].record(s_trans)
             s_calc.wait_event(ev_h2d[b])
             with ctx["stream_ctx"](s_calc):
@@ -173,7 +174,12 @@ def case_i6_pipeline_overlap(ctx):
             (d @ d).sum().cpu()
         serial_t = time.time() - t1
         overlap = (serial_t - pipe_t) / serial_t if serial_t > 0 else 0
-        ok = ok and bool(overlap >= 0.0)
-        return ok, f"流水线重叠: pipe={pipe_t:.3f}s serial={serial_t:.3f}s 重叠率={overlap:.1%}"
+        # 判定：事件依赖链成立 = 最后一轮数据正确（按轮对应 hosts，相对容差规避 CPU/NPU sum 数值差）
+        last_b = (n_batches - 1) % 2
+        ref = (hosts[last_b] @ hosts[last_b]).sum().item()
+        got = out_cpu.item()
+        rel_err = abs(got - ref) / max(abs(ref), 1e-6)
+        ok = ok and rel_err < 1e-3
+        return ok, f"流水线依赖链: 末轮数据正确(rel_err={rel_err:.2e})={ok} | 观测: pipe={pipe_t:.3f}s serial={serial_t:.3f}s 重叠率={overlap:.1%}"
     except Exception as e:
         return False, f"异常: {e}"
