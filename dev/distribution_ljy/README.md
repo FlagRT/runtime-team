@@ -39,7 +39,7 @@
 | 容器 | 设备 | 职责 |
 |---|---|---|
 | `rag-elasticsearch` | CPU | 保存 chunk；执行 BM25、向量检索和 RRF |
-| `flagos-distribution_ljy-dev-910c` | Ascend NPU | RAG API、embedding、rerank、prompt 构造和生成 |
+| `flagos-rag-ljy-dev-910c` | Ascend NPU | RAG API、embedding、rerank、prompt 构造和生成 |
 
 - Elasticsearch 不映射任何 `/dev/davinci*` 设备，也不占用 NPU/DrvMng 客户端名额。
 - NPU 容器中以 `torch_npu` 作为设备后端，代码使用 `device="npu"`。
@@ -65,7 +65,7 @@
 
 ## 实现顺序
 
-1. **部署 Elasticsearch**
+1. **部署 Elasticsearch**（🔄 Compose 已配置，待实际启动验证）
    - 在 `docker-compose.yml` 增加单节点、固定版本的 Elasticsearch 服务。
    - 仅绑定宿主机 `127.0.0.1:9200`，使用 named volume 持久化数据。
    - 增加健康检查；开发环境验证通过后再讨论生产集群和安全配置。
@@ -101,7 +101,7 @@
 
 | # | 任务 | 状态 | 依赖 | 出口标准 |
 |---|---|---|---|---|
-| 1 | Elasticsearch Compose 服务 | ⬜ | — | 健康检查通过，数据持久化 |
+| 1 | Elasticsearch Compose 服务 | 🔄 | — | 健康检查通过，数据持久化 |
 | 2 | Index mapping 和测试数据 | ⬜ | 1 | BM25 查询返回预期 chunk |
 | 3 | 文档切块与 NPU embedding | ⬜ | 2 | 批量入库并可向量检索 |
 | 4 | BM25 + vector + RRF coarse ranking（粗排） | ⬜ | 3 | 返回 Top 20~50 可解释候选 |
@@ -116,7 +116,7 @@
 ```text
 dev/distribution_ljy/
 ├── README.md           # 方案、任务看板和运行说明
-├── docker-compose.yml  # NPU 开发容器及后续 Elasticsearch 服务
+├── docker-compose.yml  # NPU 开发容器和 Elasticsearch 服务
 ├── .env.example        # 环境变量模板
 ├── docs/               # 设计、调研和验证记录
 ├── scripts/            # 建索引、导入数据等运维脚本
@@ -124,21 +124,31 @@ dev/distribution_ljy/
 └── benchmarks/         # 检索质量和端到端延迟测试
 ```
 
-## 当前开发容器启动方式
+## 当前容器启动方式
 
-当前 `docker-compose.yml` 只定义了 NPU 开发容器；Elasticsearch 服务将在任务 1 中加入。
+`runtime-dev` 从 `../compose.base.yml` 继承公共 NPU 配置；本目录 Compose 增加模型目录挂载和 CPU-only Elasticsearch 服务。
 
 ```bash
 cd /home/jliu171/runtime-team/dev/distribution_ljy
 cp .env.example .env
+# 编辑 .env，至少修改 ELASTIC_PASSWORD
 docker compose -f ../compose.base.yml -f docker-compose.yml up -d
-docker ps | grep flagos-distribution_ljy-dev-910c
+docker ps --filter name=flagos-rag
 ```
 
-进入开发容器：
+检查 Elasticsearch：
 
 ```bash
-docker exec -it flagos-distribution_ljy-dev-910c bash
+set -a
+source .env
+set +a
+curl -u "elastic:${ELASTIC_PASSWORD}" http://127.0.0.1:${ELASTICSEARCH_PORT}/_cluster/health
+```
+
+进入 NPU 开发容器：
+
+```bash
+docker exec -it flagos-rag-ljy-dev-910c bash
 ```
 
 ## 工作原则
