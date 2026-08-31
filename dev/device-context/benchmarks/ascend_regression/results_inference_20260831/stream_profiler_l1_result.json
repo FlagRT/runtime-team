@@ -1,0 +1,67 @@
+{
+  "trace_path": "/tmp/stream_trace_l1.json",
+  "trace_kb": 139,
+  "cat_distribution": {
+    "cpu_op": 150,
+    "dequeue": 50,
+    "enqueue": 50,
+    "?": 209
+  },
+  "nonstandard_events": 209,
+  "kernel_like_events": 209,
+  "kernel_overlap_pairs": 486,
+  "sample_nonstandard": [
+    {
+      "cat": null,
+      "name": "PROFILING_ENABLE",
+      "dur": 0.02
+    },
+    {
+      "cat": null,
+      "name": "aclnnInplaceZero_ZerosLikeAiCore_ZerosLike",
+      "dur": 10.79975
+    },
+    {
+      "cat": null,
+      "name": "aclnnInplaceZero_ZerosLikeAiCore_ZerosLike",
+      "dur": 7.42
+    },
+    {
+      "cat": null,
+      "name": "EVENT_RECORD",
+      "dur": 0.02
+    },
+    {
+      "cat": null,
+      "name": "EVENT_WAIT",
+      "dur": 0.02
+    },
+    {
+      "cat": null,
+      "name": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "dur": 220.5955
+    },
+    {
+      "cat": null,
+      "name": "EVENT_WAIT",
+      "dur": 105.55775
+    },
+    {
+      "cat": null,
+      "name": "aclnnReduceSum_ReduceSumOpAiCore_ReduceSum",
+      "dur": 26.0995
+    },
+    {
+      "cat": null,
+      "name": "EVENT_RECORD",
+      "dur": 0.02
+    },
+    {
+      "cat": null,
+      "name": "EVENT_WAIT",
+      "dur": 292.43425
+    }
+  ],
+  "verdict": "KERNEL_TIMELINE_CAPTURED",
+  "note": "已采集到 kernel 级设备事件，可判定多流并发"
+}

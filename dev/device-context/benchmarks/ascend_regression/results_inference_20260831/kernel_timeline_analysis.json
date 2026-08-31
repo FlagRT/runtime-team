@@ -1,0 +1,43 @@
+{
+  "verdict": "MULTI_STREAM_CONCURRENT",
+  "note": "kernel 时间线证实：H2D copy 与 matmul 存在 5 处时间重叠 → 昇腾多流（DMA 传输 ∥ AI Core 计算）**真并发成立**",
+  "n_events": 209,
+  "cats": {
+    "other": 130,
+    "zero": 6,
+    "event": 26,
+    "compute_matmul": 14,
+    "compute_reduce": 15,
+    "copy": 18
+  },
+  "copy_matmul_overlaps": 5,
+  "overlap_samples": [
+    {
+      "copy_dur": 348.37,
+      "matmul_dur": 10.85,
+      "overlap_us": 10.75
+    },
+    {
+      "copy_dur": 333.01,
+      "matmul_dur": 10.03,
+      "overlap_us": 10.0
+    },
+    {
+      "copy_dur": 344.15,
+      "matmul_dur": 9.98,
+      "overlap_us": 10.0
+    },
+    {
+      "copy_dur": 332.93,
+      "matmul_dur": 9.7,
+      "overlap_us": 9.75
+    },
+    {
+      "copy_dur": 343.93,
+      "matmul_dur": 9.4,
+      "overlap_us": 9.5
+    }
+  ],
+  "wait_total_us": 3365.31,
+  "wait_max_us": 391.59
+}

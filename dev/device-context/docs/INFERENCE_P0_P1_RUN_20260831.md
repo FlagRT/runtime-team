@@ -84,4 +84,49 @@
 - conformance_ascend_infer_result.json（6/6）
 - double_buffer_pipeline_result.json（DBUF2_PARTIAL）
 - double_buffer_breakdown_result.json（A4 分段定位：三排除 + 重叠微弱 + 首次算子 107 倍）
-- 脚本：conformance/infer_cases.py、ascend_regression/test_double_buffer_pipeline.py、ascend_regression/test_double_buffer_breakdown.py、inference/dense_infer_qwen_1_5b_npu.py_npu.py
+- kernel_timeline_analysis.json（**A4 决定性证据：多流真并发 + EVENT_WAIT 开销 3.37ms**）
+- stream_profiler_l1_result.json（Level1 kernel trace 元信息）
+- 脚本：conformance/infer_cases.py、ascend_regression/test_double_buffer_pipeline.py、
+  ascend_regression/test_double_buffer_breakdown.py、ascend_regression/test_stream_profiler_l1.py、
+  ascend_regression/analyze_l1_timeline.py、inference/dense_infer_qwen_1_5b_npu.py
+
+---
+
+## 三之三、A4 收尾：kernel 级时间线决定性证据（已拿到）
+
+### 采集方式（关键：必须用昇腾专用 profiler + Level1）
+
+| 尝试 | 结果 |
+|---|---|
+| `torch.profiler(PrivateUse1)` | ❌ 只有 `cpu_op`（126 个），无 device kernel |
+| `torch_npu.profiler` 默认 level | ⚠️ 只有 `cpu_op` + `enqueue/dequeue`（队列瞬间事件，非执行窗口） |
+| **`torch_npu.profiler` + `ProfilerLevel.Level1`** | ✅ **209 个 kernel 级事件**（`aclnnMatmul_MatMulCommon_MatMulV2` 等，带真实 dur） |
+
+> 注：torch_npu.profiler 无 `key_averages()`（API 与 torch.profiler 不同）；trace 导出为 list 格式（非 dict.traceEvents）。
+
+### 决定性数据
+
+| 指标 | 数值 |
+|---|---|
+| kernel 事件 | 209（copy 18 / matmul 14 / reduce 15 / zero 6 / event 26 / other 130） |
+| **copy ∩ matmul 重叠对** | **5 处**（例：copy 348.37us ∥ matmul 10.85us → **重叠 10.75us**） |
+| **EVENT_WAIT 同步开销** | **12 次累计 3365.31us（3.37ms），最大单次 391.59us** |
+| 时间线跨度 / kernel 累计 | 116.87ms / 16.11ms |
+
+### 最终结论（D8 双缓冲流水线）
+
+1. ✅ **昇腾多流真并发成立**——H2D（DMA）与 matmul（AI Core）在 kernel 时间线上有 5 处实重叠，matmul 完全落在 copy 的 DMA 窗口内执行
+2. ✅ **异步传输机制正常**——S1 入队占比 20.7%，非同步退化
+3. 🔥 **性能瓶颈 = 事件等待开销，不是并发能力**——12 次 `EVENT_WAIT` 累计 **3.37ms**、最大单次 **391.59us**；而单次 matmul 仅 ~10us → **一次事件等待 ≈ 39 个 matmul 的时间**
+4. **"流水线比串行慢"的真因**：每批 2 个事件同步点在 CANN 上成本高，小工作负载下同步成本远超并发收益
+
+### D8 职责验收结论（可入档）
+
+- **机制层面：通过**——异步传输、多流并发、事件依赖语义、数据一致性全部验证成立
+- **性能层面：需优化**——瓶颈在事件同步点开销，优化方向是**减少同步频率**（批量合并 / 每 N 批一次同步 / streamWaitEvent 替代跨流 event），**不是放弃多流**
+- **训练侧回补同理**：按"减少事件点 + 大粒度批量"策略实施
+
+### 通用纪律（本轮沉淀）
+1. **所有基准必须预热**：首次算子开销 107 倍（512² matmul 77.56ms vs 稳态 0.72ms）
+2. **profiler 必须用 Level1**：默认配置采集不到 kernel（只有入队/出队瞬间事件）
+3. **torch_npu.profiler ≠ torch.profiler**：无 key_averages，trace 为 list 格式
