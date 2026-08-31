@@ -39,11 +39,39 @@
 3. **事件 record/wait 的 CANN 开销**：每轮 2 次事件同步（~12ms/轮？），512² 计算本身 ~1ms，同步开销主导
 4. **CANN 低层行为**：aclrtMemcpyAsync 在 NPU 上的 H2D 是否真异步待确认（CUDA 的 pin_memory+DMA 在昇腾未必等价）
 
-### 下一步（P1 深挖探针）
-1. 分段计时：纯 6×copy_（non_blocking）耗时 / 纯 6×matmul / 事件链开销——分离传输/计算/同步成本
-2. 对比 aclrtMemcpyAsync（CANN 低层）vs torch copy_ 的异步性
-3. 大张量（2048²）重复实验：若计算时间 >> 同步开销时重叠出现，则证实"同步开销主导"而非"异步机制缺失"
-4. 结果如实入档（若 torch_npu 多流异步存在真实缺口 → 记为 A 线 Stream 语义缺口，可能关联 FlagCX/上游）
+## 三之二、A4 深挖：双缓冲重叠分段定位（test_double_buffer_breakdown.py，已执行）
+
+### 实测数据（910C，torch_npu 2.10.0）
+
+| 场景 | 结果 | 判读 |
+|---|---|---|
+| S1 H2D non_blocking（当前流） | 入队 0.19ms / 完成 0.92ms（**入队占比 20.7%**） | ✅ **异步正常**（非同步退化） |
+| S2 H2D 同步拷贝基线 | 1.46ms（> 异步完成 0.92ms） | ✅ 异步确实有效 |
+| S3 H2D 专用流 | 完成 0.47ms（与当前流相当） | ✅ 无显著流切换开销 |
+| S4 计算（当前流，首次） | **77.56ms** | ⚠️ **首次算子初始化开销** |
+| S5 计算（专用流，稳态） | 0.72ms | 稳态计算（S4/S5 差 107 倍） |
+| S6 事件链 6×(record+wait) | 0.85ms → **单次 0.142ms** | ✅ 开销小，非主导 |
+| S7 完整流水线 512² | 重叠率：**-66.0% / +17.7%**（两次运行） | ⚠️ 噪声主导，不可靠 |
+| S8 完整流水线 2048² | 重叠率 -1.8% | 接近打平 |
+| S9 完整流水线 4096²×10（预热后） | 重叠率 **+1.7%**（pipe 30.52ms / serial 31.03ms） | ⚠️ 重叠收益微弱 |
+
+### 结论（三排除 + 一待验证）
+
+1. ✅ **排除"copy_ non_blocking 退化同步"**——S1 入队占比仅 20.7%，S2 同步基线明显更慢，异步机制正常
+2. ✅ **排除"事件链开销主导"**——单次 record+wait 仅 0.142ms
+3. ✅ **排除"流切换开销"**——S3 与当前流无显著差异
+4. ⚠️ **真实情况：重叠收益微弱 + 小负载测量噪声大**——512² 两次运行 -66%~+17.7% 抖动；大负载 4096²×10 仅 +1.7%
+5. 🔍 **待验证推测**：CANN/昇腾多流并发能力可能受限（硬件队列或流调度），或每批 D2H 同步点阻断流水线 → 需 torch.profiler / ACL profiling 看**多流时间线**确认是否真并发
+
+### 附带硬发现（推理预热纪律的直接证据）
+
+**首次算子开销 107 倍**：S4 首次 512² matmul 77.56ms vs S5 稳态 0.72ms。
+这是历史坑 A1（"首次 attention 13+ 分钟"）在 matmul 层的实测印证——**所有推理基准必须先预热**，否则第一次测量完全被算子初始化污染。
+
+### 下一步（A4 收尾）
+1. torch.profiler 抓多流时间线（确认 CANN 是否真并发）——决定性证据
+2. 简化流水线：去掉每批 D2H（真实推理 D2H 只是小张量 logits，非 64MB 矩阵），减少同步点后复测
+3. 若确认昇腾多流重叠收益有限 → 改为"单流效率优化 + 批量合并"策略，结论入档（D8 职责结论）
 
 ## 四、环境缺口（P0 dense 推理前置）
 
@@ -55,4 +83,5 @@
 
 - conformance_ascend_infer_result.json（6/6）
 - double_buffer_pipeline_result.json（DBUF2_PARTIAL）
-- 脚本：conformance/infer_cases.py、ascend_regression/test_double_buffer_pipeline.py、inference/dense_infer_qwen_1_5b_npu.py
+- double_buffer_breakdown_result.json（A4 分段定位：三排除 + 重叠微弱 + 首次算子 107 倍）
+- 脚本：conformance/infer_cases.py、ascend_regression/test_double_buffer_pipeline.py、ascend_regression/test_double_buffer_breakdown.py、inference/dense_infer_qwen_1_5b_npu.py_npu.py
