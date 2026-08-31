@@ -302,7 +302,7 @@ docker exec -it flagos-device-context-dev-910c bash
 | O1 | P2+P6+P7+P8+P9 干净 diff 提交上游 `FlagRT/FlagCX` `kistich/ascend-dev1.0` | **P0** | ✅ `a1e7e0f` |
 | O2 | 昇腾 DAG 引擎解锁（补 `hostGetDevicePointer` + 设备侧 reduce 节点/aclnn 折中） | P2 | ⬜ |
 | O3 | `flagcxGetLastError` 存根完善（缺陷 4，错误诊断） | P2 | ✅ `4bbbae5` |
-| O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | P3 | ⬜ |
+| O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | P3 | ✅ `08535e1` |
 | O5 | 诊断打点剥离（net.cc/proxy.cc P1-P4，O1 前置） | P1 | ✅ |
 | O6 | RoCE 组网推进（4090/910C RoCE 接入骨干，待 IT：UDP4791 + 无损 QoS） | P1 | ⬜ |
 
