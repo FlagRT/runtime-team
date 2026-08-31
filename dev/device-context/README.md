@@ -305,3 +305,8 @@ docker exec -it flagos-device-context-dev-910c bash
 | O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | P3 | ⬜ |
 | O5 | 诊断打点剥离（net.cc/proxy.cc P1-P4，O1 前置） | P1 | ✅ |
 | O6 | RoCE 组网推进（4090/910C RoCE 接入骨干，待 IT：UDP4791 + 无损 QoS） | P1 | ⬜ |
+
+## 2026-08-31 第九批：910C 分布式推理方案（设备上下文 × Stream，A 线）（Kistich）
+
+- [x] **推理实现方案定稿**：`docs/DEVICE_CONTEXT_INFERENCE_PLAN_20260831.md`——四阶段（P0 dense 单卡 → P1 单卡职责+双缓冲真实现 → P2 TP=2/4 A 线重验 → P3 服务化），含历史探索 9 项坑清单（B 线 TP 验证 7 + A 线 dense 2）+ 环境复用配置 + 职责×推理验收对照表
+- [ ] 待执行（用户逐项验证）：P0 dense 单卡 → P1 conformance 推理版 + 双缓冲重叠 → P2 TP 推理重验 B1/B2 → P3 服务化
