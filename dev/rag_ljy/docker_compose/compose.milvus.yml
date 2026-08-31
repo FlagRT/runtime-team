@@ -1,0 +1,49 @@
+# Standalone CPU-only Milvus for RAG dense-vector search.
+# Run from dev/rag_ljy:
+# docker compose --env-file .env -f docker_compose/compose.milvus.yml up -d
+
+name: flagos-rag-ljy-milvus
+
+services:
+  milvus:
+    image: milvusdb/milvus:${MILVUS_VERSION:-v3.0.0}
+    container_name: rag-ljy-milvus
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
+      COMMON_STORAGETYPE: local
+      DEPLOY_MODE: STANDALONE
+    configs:
+      - source: milvus_embed_etcd
+        target: /milvus/configs/embedEtcd.yaml
+      - source: milvus_user
+        target: /milvus/configs/user.yaml
+    ports:
+      - 127.0.0.1:${MILVUS_PORT:-19530}:19530
+      - 127.0.0.1:${MILVUS_WEB_PORT:-9091}:9091
+    volumes:
+      - ${MILVUS_DATA_DIR:-/mnt/raid/jliu171/milvus-data}:/var/lib/milvus
+    mem_limit: ${MILVUS_MEMORY_LIMIT:-16g}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 90s
+    restart: "no"
+
+configs:
+  milvus_embed_etcd:
+    content: |
+      listen-client-urls: http://0.0.0.0:2379
+      advertise-client-urls: http://0.0.0.0:2379
+      quota-backend-bytes: 4294967296
+      auto-compaction-mode: revision
+      auto-compaction-retention: '1000'
+  milvus_user:
+    content: |
+      # Extra Milvus settings can be added here.

@@ -1,5 +1,5 @@
-# RAG（rag_ljy）子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
-# 用法：cd dev/rag_ljy && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+# RAG（rag_ljy）NPU 开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
+# 用法：cd dev/rag_ljy && docker compose --env-file .env -f ../compose.base.yml -f docker-compose.yml up -d runtime-dev
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
 
@@ -10,40 +10,17 @@ services:
   runtime-dev:
     container_name: flagos-rag-ljy-dev-910c
     environment:
+      - RETRIEVAL_BACKEND=${RETRIEVAL_BACKEND:-elasticsearch}
       - ELASTICSEARCH_URL=http://127.0.0.1:${ELASTICSEARCH_PORT:-9200}
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-rag-chunks-v1}
+      - MILVUS_URI=${MILVUS_URI:-http://127.0.0.1:19530}
+      - MILVUS_DATABASE=${MILVUS_DATABASE:-default}
+      - MILVUS_COLLECTION=${MILVUS_COLLECTION:-rag_chunks_v1}
+      - MILVUS_TOKEN=${MILVUS_TOKEN:-}
     volumes:
       # 模型保存在宿主机 RAID；同路径挂载便于宿主机和容器共用配置。
       - ${MODEL_DIR:-/mnt/raid/jliu171/models}:/mnt/raid/jliu171/models
     restart: "no"
     # 注意：容器内实验 venv 不在挂载盘上，容器重建会丢失；重建步骤记入本子方向 README
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-9.5.2}
-    container_name: flagos-rag-ljy-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.autoconfiguration.enabled=false
-      - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=false
-      - xpack.ml.enabled=false
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in .env}
-    ports:
-      # 仅宿主机和使用 host network 的 runtime-dev 可访问，不对外网暴露。
-      - 127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    mem_limit: ${ELASTICSEARCH_MEMORY_LIMIT:-4g}
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
-    restart: "no"
-
-volumes:
-  elasticsearch-data:
