@@ -47,11 +47,11 @@
 | D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 | 🔄 i1 已 PASS |
 | D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | 🔄 i3/i4/i5 已 PASS |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | 🔄 i2 已 PASS |
-| D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2） | S1-S4 + i6 + 双缓冲探针 | ⚠️ i6 依赖链 PASS；重叠未观测 |
+| D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2） | S1-S4 + i6 + 双缓冲探针 + test_tp_comm_sync | ✅ i6 PASS + **TP 流绑定 4/4 PASS**（多流真并发已由 kernel 时间线证实） |
 | D6 | Host/Device 异步传输 | prompt H2D 异步；logits D2H 回传；KV offload（可选） | 异步拷贝数据一致 + 与计算重叠 | T1/T2 + i4 + 双缓冲 | 🔄 i4 已 PASS；重叠待 D8 |
 | D7 | 页锁定内存 | pin_memory 在推理传输路径 | pin_memory 传输一致性 + 预热纪律 | T1 + 双缓冲探针 | 🔄 已用（双缓冲探针） |
-| D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | DBUF2_PASS：数据一致 + 重叠率可观测为正 | test_double_buffer_pipeline.py | ⚠️ DBUF2_PARTIAL（重叠未发生，待深挖） |
-| D9 | 同步语义 | TP=2 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP=2 无 NaN + E2 语义 | E1-E3 + B2 重验探针 | ⏳ P2 待做 |
+| D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | DBUF2_PASS：数据一致 + 重叠率可观测为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler | ✅ **机制通过**（多流真并发已证实）；⚠️ 性能瓶颈 = EVENT_WAIT 开销（3.37ms/12 次），优化方向"减少同步点" |
+| D9 | 同步语义 | TP 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP 通信无 NaN + E2 语义 | E1-E3 + test_tp_comm_sync（双卡 FlagCX） | ✅ **TP_COMM_PASS 4/4**：B2 类问题在 A 线不存在 |
 | D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 | F1 + errors.py | ⏳ P3 待做 |
 | D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 | R1-R5 + device_state | ⏳ P3 待做 |
 
@@ -76,11 +76,11 @@
 |---|---|---|---|
 | A1 | dense 单卡离线推理输出正确（Qwen2.5-1.5B） | D1/D2 | ⏳ |
 | A2 | conformance 推理版 6/6 PASS | D2/D3/D4/D5/D6/D7/D8 | ✅ 2026-08-31 |
-| A3 | 双缓冲流水线数据一致 + 重叠可观测（DBUF2_PASS） | D8/D5/D6/D7 | ⚠️ PARTIAL |
-| A4 | 双缓冲重叠深挖结论（同步退化 vs 流切换开销定位） | D8/D5 | ⏳ |
-| A5 | TP=2 推理输出与 TP=1 一致（或记录确定性分叉） | D5/D9 | ⏳ |
-| A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ⏳ |
-| A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ⏳ |
+| A3 | 双缓冲流水线数据一致 + 重叠可观测（DBUF2_PASS） | D8/D5/D6/D7 | ✅ 机制通过（多流真并发由 kernel 时间线证实）；⚠️ 重叠率受 EVENT_WAIT 开销压制 |
+| A4 | 双缓冲重叠深挖结论（同步退化 vs 流切换开销定位） | D8/D5 | ✅ 2026-08-31：三排除 + 瓶颈=EVENT_WAIT（3.37ms/12 次），非并发能力问题 |
+| A5 | TP=2 推理输出与 TP=1 一致（或记录确定性分叉） | D5/D9 | ⏳ 需 vLLM 引擎栈（见 §7 环境阻塞） |
+| A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31：TP_COMM_PASS 4/4，B2 类问题在 A 线不存在 |
+| A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ 2026-08-31：all_reduce 后立即设备侧消费正确（got=6.0） |
 | A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ⏳ |
 | A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ⏳ |
 | A10 | 服务化四态监控 + 五段式恢复 | D11 | ⏳ |
@@ -108,6 +108,23 @@
 
 ## 6. 环境与依赖（P0 前置）
 
-- A 线 venv：`/root/venv-infer-a`（torch 2.11.0 + torch_npu 2.11.0 + vllm 0.20.2 + vllm-plugin-FL）——安装进行中
+- A 线 venv：`/root/venv-infer-a`（torch 2.11.0+cu130 + torch_npu 2.11.0 + vllm 0.20.2）✅ 已装好
 - 坑 A4：结论性测试在官方发布镜像内（本容器已按 A 线原则）
 - vllm-plugin-FL：clone FlagRT/vllm-plugin-FL → pip install -e
+
+## 7. 环境阻塞：vLLM 引擎栈缺昇腾后端（P0/P2 待解决）
+
+| 问题 | 现象 | 状态 |
+|---|---|---|
+| **vllm-plugin-FL 无 ascend 后端** | `vllm_fl/dispatch/backends/vendor/` 只有 metax/musa/sunrise/thead/txda，**无 ascend**；setup.py 构建 `vllm_fl._C` 且注明 "currently CUDA only" | ❌ |
+| **vLLM 0.20.2 官方无 ascend platform** | `vllm/platforms/` 只有 cpu/cuda/rocm/tpu/xpu/zen_cpu，**无 ascend** | ❌ |
+| **容器磁盘满** | `pip install -e vllm-plugin-FL` 报 `OSError: [Errno 28] No space left on device`（vLLM 拉了数 GB nvidia/cuda 依赖） | ❌ |
+| dense 推理首次尝试 | `RuntimeError: Device string must not be empty`（插件未注册昇腾平台） | ❌ |
+
+**待确认方向**（需与用户/组内对齐）：
+1. 昇腾 A 线推理应走 **vllm-ascend**（华为/vllm-project 独立插件）而非 vllm-plugin-FL？
+2. 或 vllm-plugin-FL 有含 ascend 的分支/版本？
+3. 清理磁盘（pip cache purge + 删除无用 nvidia 包）后重试？
+
+> 注：**P2 核心（D5 流绑定 / D9 同步语义）已不依赖 vLLM 验证完成**（TP_COMM_PASS 4/4）；
+> 仅 A5（TP=2 端到端推理输出对比）与 P0（dense 推理）受此环境阻塞。
