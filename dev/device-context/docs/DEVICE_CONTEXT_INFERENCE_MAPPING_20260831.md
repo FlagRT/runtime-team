@@ -44,7 +44,7 @@
 | # | 职责子项 | 推理验证点 | 验收标准 | 复用资产 | 当前状态 |
 |---|---|---|---|---|---|
 | D1 | 封装 Runtime 接口 | vllm-ascend + torch_npu 在 910C 的设备接入 | P0 dense 推理输出正确（DENSE_INFER_PASS） | dense_infer 脚本 | ✅ 2026-09-01 PASS（19.5 tok/s）；⚠️ vllm-plugin-FL 不适用，见坑 A5 |
-| D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 | 🔄 i1 已 PASS |
+| D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 + probe_enginecore_device_ctx | ✅ i1 PASS + P0 加载 OK + **A8 子进程句柄 PASS**（spawn pid/ppid + `/dev/davinci_manager` fd + 124 处设备映射 + RSS 5952MB） |
 | D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | 🔄 i3/i4/i5 已 PASS |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | 🔄 i2 已 PASS |
 | D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2） | S1-S4 + i6 + 双缓冲探针 + test_tp_comm_sync | ✅ i6 PASS + **TP 流绑定 4/4 PASS**（多流真并发已由 kernel 时间线证实） |
@@ -52,8 +52,8 @@
 | D7 | 页锁定内存 | pin_memory 在推理传输路径 | pin_memory 传输一致性 + 预热纪律 | T1 + 双缓冲探针 | 🔄 已用（双缓冲探针） |
 | D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | DBUF2_PASS：数据一致 + 重叠率可观测为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler | ✅ **机制通过**（多流真并发已证实）；⚠️ 性能瓶颈 = EVENT_WAIT 开销（3.37ms/12 次），优化方向"减少同步点" |
 | D9 | 同步语义 | TP 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP 通信无 NaN + E2 语义 | E1-E3 + test_tp_comm_sync（双卡 FlagCX） | ✅ **TP_COMM_PASS 4/4**：B2 类问题在 A 线不存在 |
-| D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 | F1 + errors.py | ⏳ P3 待做 |
-| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 | R1-R5 + device_state | ⏳ P3 待做 |
+| D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 | F1 + errors.py + probe_acl_107015 | ✅ 2026-09-01 **ACL_107015_PASS**：真实错误注入 + A/B 单变量对照 + 翻译链路验证（详见 P3 执行记录）；⚠️ 分级待定：107015 现落 L3_EXECUTION，建议改 L2_PARAM |
+| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 | R1-R5 + device_state + recovery | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**：含 L4 完整 R1→R5（captured→isolated→recovered→replay_ready） |
 
 ---
 
@@ -81,10 +81,10 @@
 | A5 | TP=2 推理输出与 TP=1 一致（或记录确定性分叉） | D5/D9 | ✅ 2026-09-01：Qwen3-4B TP=1/2/4 **greedy 逐字一致 4/4**（TP_COMPARE_PASS），无 NaN；B1 bool×int / B2 异步无同步两类缺陷 A 线均不存在（详见 INFERENCE_QWEN3_TP_COMPARE_20260901.md） |
 | A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31：TP_COMM_PASS 4/4，B2 类问题在 A 线不存在 |
 | A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ 2026-08-31：all_reduce 后立即设备侧消费正确（got=6.0） |
-| A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ⏳ |
-| A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ⏳ |
-| A10 | 服务化四态监控 + 五段式恢复 | D11 | ⏳ |
-| A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | 🔄 P0/P1/P2 已归档（INFERENCE_P0_P1_RUN_20260831 + INFERENCE_QWEN3_TP_COMPARE_20260901）；P3 待补 |
+| A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ✅ 2026-09-01：`ENGINECORE_CTX_PASS` —— spawn 子进程 pid=8421(ppid=8402) 持有 `/dev/davinci_manager` fd、124 处设备内存映射、RSS 5952MB，功能请求 0.23s 正常 |
+| A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ✅ 2026-09-01：`ACL_107015_PASS` —— 真实错误 107015 注入成功，A/B 对照证实根因为"stream 未 subscribe 即 launch callback" |
+| A10 | 服务化四态监控 + 五段式恢复 | D11 | ✅ 2026-09-01：`DEVICE_STATE_RECOVERY_PASS 8/8` —— 四态可查、DEGRADED 转换、L4 完整 R1-R5、L3 不重建、ISOLATED→AVAILABLE、服务续跑 |
+| A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | ✅ P0/P1/P2/P3 全部归档（INFERENCE_P0_P1_RUN_20260831 + INFERENCE_QWEN3_TP_COMPARE_20260901 + INFERENCE_P3_SERVE_STATE_ERROR_20260901） |
 
 ---
 
