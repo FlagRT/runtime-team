@@ -43,7 +43,7 @@
 
 | # | 职责子项 | 推理验证点 | 验收标准 | 复用资产 | 当前状态 |
 |---|---|---|---|---|---|
-| D1 | 封装 Runtime 接口 | vllm-plugin-FL + torch_npu 在 910C 的设备接入 | P0 dense 推理输出正确（DENSE_INFER_PASS） | dense_infer 脚本 | ⏳ 待 vllm 环境 |
+| D1 | 封装 Runtime 接口 | vllm-ascend + torch_npu 在 910C 的设备接入 | P0 dense 推理输出正确（DENSE_INFER_PASS） | dense_infer 脚本 | ✅ 2026-09-01 PASS（19.5 tok/s）；⚠️ vllm-plugin-FL 不适用，见坑 A5 |
 | D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 | 🔄 i1 已 PASS |
 | D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | 🔄 i3/i4/i5 已 PASS |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | 🔄 i2 已 PASS |
@@ -78,13 +78,13 @@
 | A2 | conformance 推理版 6/6 PASS | D2/D3/D4/D5/D6/D7/D8 | ✅ 2026-08-31 |
 | A3 | 双缓冲流水线数据一致 + 重叠可观测（DBUF2_PASS） | D8/D5/D6/D7 | ✅ 机制通过（多流真并发由 kernel 时间线证实）；⚠️ 重叠率受 EVENT_WAIT 开销压制 |
 | A4 | 双缓冲重叠深挖结论（同步退化 vs 流切换开销定位） | D8/D5 | ✅ 2026-08-31：三排除 + 瓶颈=EVENT_WAIT（3.37ms/12 次），非并发能力问题 |
-| A5 | TP=2 推理输出与 TP=1 一致（或记录确定性分叉） | D5/D9 | ⏳ 环境已通（P0），待跑 |
+| A5 | TP=2 推理输出与 TP=1 一致（或记录确定性分叉） | D5/D9 | ✅ 2026-09-01：Qwen3-4B TP=1/2/4 **greedy 逐字一致 4/4**（TP_COMPARE_PASS），无 NaN；B1 bool×int / B2 异步无同步两类缺陷 A 线均不存在（详见 INFERENCE_QWEN3_TP_COMPARE_20260901.md） |
 | A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31：TP_COMM_PASS 4/4，B2 类问题在 A 线不存在 |
 | A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ 2026-08-31：all_reduce 后立即设备侧消费正确（got=6.0） |
 | A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ⏳ |
 | A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ⏳ |
 | A10 | 服务化四态监控 + 五段式恢复 | D11 | ⏳ |
-| A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | 🔄 |
+| A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | 🔄 P0/P1/P2 已归档（INFERENCE_P0_P1_RUN_20260831 + INFERENCE_QWEN3_TP_COMPARE_20260901）；P3 待补 |
 
 ---
 
@@ -112,19 +112,22 @@
 - 坑 A4：结论性测试在官方发布镜像内（本容器已按 A 线原则）
 - vllm-plugin-FL：clone FlagRT/vllm-plugin-FL → pip install -e
 
-## 7. 环境阻塞：vLLM 引擎栈缺昇腾后端（P0/P2 待解决）
+## 7. 环境结论（2026-09-01 实测更新）：A 线走 vllm-ascend 官方镜像
 
-| 问题 | 现象 | 状态 |
-|---|---|---|
-| **vllm-plugin-FL 无 ascend 后端** | `vllm_fl/dispatch/backends/vendor/` 只有 metax/musa/sunrise/thead/txda，**无 ascend**；setup.py 构建 `vllm_fl._C` 且注明 "currently CUDA only" | ❌ |
-| **vLLM 0.20.2 官方无 ascend platform** | `vllm/platforms/` 只有 cpu/cuda/rocm/tpu/xpu/zen_cpu，**无 ascend** | ❌ |
-| **容器磁盘满** | `pip install -e vllm-plugin-FL` 报 `OSError: [Errno 28] No space left on device`（vLLM 拉了数 GB nvidia/cuda 依赖） | ❌ |
-| dense 推理首次尝试 | `RuntimeError: Device string must not be empty`（插件未注册昇腾平台） | ❌ |
+**历史判断（8-31）**：vllm-plugin-FL 无 ascend 后端 + vLLM 官方无 ascend platform → 判定 P0/P2 被环境阻塞。
 
-**待确认方向**（需与用户/组内对齐）：
-1. 昇腾 A 线推理应走 **vllm-ascend**（华为/vllm-project 独立插件）而非 vllm-plugin-FL？
-2. 或 vllm-plugin-FL 有含 ascend 的分支/版本？
-3. 清理磁盘（pip cache purge + 删除无用 nvidia 包）后重试？
+**实测结论（9-01）：阻塞已解除**。改用华为官方 **vllm-ascend 镜像**后 P0 dense 与 A5（TP=1/2/4）全部跑通。**vllm-plugin-FL 路线在 A 线弃用**。
 
-> 注：**P2 核心（D5 流绑定 / D9 同步语义）已不依赖 vLLM 验证完成**（TP_COMM_PASS 4/4）；
-> 仅 A5（TP=2 端到端推理输出对比）与 P0（dense 推理）受此环境阻塞。
+| 项 | 结论 |
+|---|---|
+| 镜像 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（容器内 py3.11 自带环境，**不复用 raid venv**：ABI 不匹配） |
+| 容器 | `flagos-infer-910c`（host 网络 + 512G shm + 16 NPU + raid 挂载） |
+| 模型 | Qwen3-4B（对齐同事昇腾线基准，**P3 全程用它**）/ Qwen2.5-1.5B（P0 历史基线） |
+| 环境变量 | `DO_NOT_TRACK=1`；**禁设 `VLLM_PLUGINS=fl`**（坑 A5） |
+
+### 新增坑（9-01 实测，务必遵守）
+
+| # | 坑 | 现象 | 解法/纪律 |
+|---|---|---|---|
+| **A5** | **`VLLM_PLUGINS=fl` 破坏 A 线 platform 选择** | 设置后 `current_platform.device_type` 为空 → `RuntimeError: Device string must not be empty`（vllm-plugin-FL 是 torch_fl 原生栈插件，与 torch_npu 栈冲突）。**P0 跑通时该变量实为"未设置"** | A 线（torch_npu + vllm_ascend）**禁止设置 `VLLM_PLUGINS=fl`** |
+| **A6** | **随机采样下 TP 逐字对比必然发散** | 默认 SamplingParams（temperature=1.0）下 TP=1/2 输出前 7-14 个 token 后发散（0/4 一致，语义均正常）——TP=2 的 HCCL all_reduce 浮点累加顺序差异被随机采样放大 | **TP 数值等价对照必须用 greedy（temperature=0）**：argmax 对微扰鲁棒 → 4/4 一致。同事 B 线"TP=1/2 逐字一致"同理以 greedy 为前提 |

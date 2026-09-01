@@ -41,6 +41,8 @@
 | A2 | **EngineCore 是 spawn 子进程** | 主进程读不到子进程 stats；`docker exec` 被杀时子进程残留占卡 | 画像依赖设备级 HBM 采样（aclrtGetMemInfo/npu-smi）+ vLLM 日志；重跑前 `pkill -f "VLLM::EngineCore"` |
 | A3 | vLLM usage 上报报错 | 容器内解析 cpuinfo 失败 | 设 `DO_NOT_TRACK=1` |
 | A4 | **triton 版本偏差** | dev 容器 triton 3.6.0 ≠ 官方发布镜像 3.0.0 → FlagGems GEMM SIGABRT | **结论性测试一律在官方发布镜像内做** |
+| A5 | **`VLLM_PLUGINS=fl` 破坏 A 线 platform 选择**（9-01 实测） | 设置后 `current_platform.device_type` 为空 → `RuntimeError: Device string must not be empty`。vllm-plugin-FL 是 torch_fl 原生栈插件，与 torch_npu 栈冲突。**P0 跑通时该变量实为"未设置"** | A 线**禁止设置 `VLLM_PLUGINS=fl`**；昇腾平台由 vllm-ascend 镜像内置提供（见第 2 节环境修正） |
+| A6 | **随机采样下 TP 逐字对比必然发散**（9-01 实测） | 默认 SamplingParams（temperature=1.0）下 TP=1/2 输出前 7-14 个 token 后发散（0/4 一致，语义均正常）——TP=2 的 HCCL all_reduce 浮点累加顺序差异被随机采样放大 | **TP 数值等价对照必须用 greedy（temperature=0）**；同事 B 线"逐字一致"结论同理以 greedy 为前提 |
 
 ### 1.3 本方向已沉淀（直接复用）
 
@@ -59,15 +61,15 @@
 | 项 | 配置 | 来源/说明 |
 |---|---|---|
 | 设备 | 910C（10.120.72.27，2×Ascend 910 64G） | 同训练 |
-| 容器 | `flagos-device-context-dev-910c`（docker-compose 复用 dev/device-context/docker-compose.yml）或 A 线验收容器 | 同训练；DrvMng 名额：多卡测试前 `docker ps` 清点挂设备容器 |
-| 镜像 | 官方发布镜像 `flagrt/ascend-operator-runtime`（**不用 dev 容器做结论性测试**，坑 A4） | A 线原则 |
-| Python/框架 | venv（torch_npu 2.10.0 + transformers 5.15.1） | 同训练 |
-| vLLM | vLLM 0.20.2 + vllm-plugin-FL（`VLLM_PLUGINS=fl`） | memory 方向已实测 dense 可用 |
-| FlagCX | dev-1.0 基线（四层根因修复 + stream 语义修复已含） | 同训练 |
-| 通信 | HCCL（torch_npu 官方）/ FlagCX（插件，`FLAGCX_PATH=/workspace/FlagCX/plugin/torch`） | 双后端对照 |
-| 模型 | **Qwen2.5-1.5B**（延续训练基线，权重已在容器）+ 可选 Qwen3-4B（延续成员资产） | 训练已用 |
-| 数据 | 少量 prompt 集（复用训练 wikitext 或自定义 4-8 条） | 推理验证不需大数据 |
-| 环境变量 | `DO_NOT_TRACK=1`、首次请求预热、EngineCore 残留清理 | 坑 A1/A2/A3 |
+| 容器 | `flagos-infer-910c`（host 网络 + 512G shm + 16 NPU + raid 挂载，见 `scripts/start_infer_container.sh`） | 9-01 实测；DrvMng 名额：多卡测试前 `docker ps` 清点 |
+| 镜像 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（华为官方 vllm-ascend；**不用 dev 容器做结论性测试**，坑 A4） | 9-01 实测跑通；**vllm-plugin-FL 路线弃用**（坑 A5） |
+| Python/框架 | 容器内 py3.11 自带环境（**不复用 raid venv**：镜像 py3.11 vs raid venv py3.12，ABI 不匹配） | 9-01 实测 |
+| vLLM | vLLM 0.20.2 + vllm-ascend 内置昇腾后端；**禁设 `VLLM_PLUGINS=fl`** | 坑 A5 |
+| FlagCX | dev-1.0 基线（四层根因修复 + stream 语义修复已含） | 同训练；推理 A 线实际走 HCCL |
+| 通信 | HCCL（torch_npu 官方，TP=2/4 实测正常）/ FlagCX（插件，P2 对照用） | 双后端对照 |
+| 模型 | **Qwen3-4B**（对齐同事昇腾线基准，P2/**P3 全程用它**）/ Qwen2.5-1.5B（P0 历史基线） | 9-01 已下载至 `/mnt/raid/hliu553/models/Qwen3-4B` |
+| 数据 | 少量 prompt 集（4-8 条，greedy 对照） | 推理验证不需大数据 |
+| 环境变量 | `DO_NOT_TRACK=1`、首次请求预热、EngineCore 残留清理、**禁 `VLLM_PLUGINS=fl`** | 坑 A1/A2/A3/A5 |
 
 **统一约定**：
 - 所有脚本带 `BACKEND`（flagcx/hccl）与 `TP_SIZE` 参数化，复用训练脚本模式
