@@ -1,7 +1,11 @@
 # device-context（设备执行上下文）项目
 
-> **状态：🟡 开发期启动（2026-08-19）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
+> **状态：🟢 职责验收闭环（2026-09-01 更新）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
 > 对齐起点速览：Torch-FL 已有设备接入基础（csrc/runtime/）；本子方向聚焦 **设备执行上下文（Backend 插件 + 统一三大句柄 + Stream/异步/同步语义）**，以单机 2 卡 Qwen2.5-1.5B 训练作为功能验证。
+>
+> **当前进展（2026-09-01）**：同构 910C 环境下，**设备执行上下文 11 项职责（D1-D11）在训练与推理两个场景全部验证通过**。
+> 推理侧四阶段闭环：P0 dense 单卡 → P1 conformance 推理版 + 双缓冲 → P2 Qwen3-4B TP=1/2/4 数值等价 → P3 服务化（子进程句柄 / 错误码翻译 / 四态恢复）。
+> 错误码映射表覆盖率 0.8% → **64.8%（103/159）**。详见文末 2026-09-01 批次。
 
 ## 目标（一句话）
 
@@ -117,16 +121,18 @@ dev/device-context/
 
 ## 任务看板
 
-| # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
-|---|------|--------|------|------|----------|
-| 1 | 容器启动 + venv311 组合验证 | Kistich | ⬜ | docker 权限 + 镜像 | 容器 Up；/workspace 见 5 子库；venv311 各组件 import 通过 |
-| 2 | torch_fl 设备注册与基础算子验证（需求 1） | Kistich | ⬜ | #1 | torch_fl.flagos 设备可用；显存分配/释放/生命周期 OK |
-| 3 | Stream/Event/异步传输验证（需求 2） | Kistich | ⬜ | #2 | 双流并发、Event 同步、页锁定传输实测通过 |
-| 4 | 单机 2 卡 Qwen2.5-1.5B 训练（需求 3+4 验证 1+2） | Kistich | ⬜ | #3 | 双卡 HCCL 跑通；loss 下降；记录全部踩坑 |
-| 5 | 错误码翻译与设备状态恢复验证（需求 2 延伸） | Kistich | ⬜ | #2 | 注入错误场景，统一错误码 + 恢复路径 OK |
-| 6 | 完整方案文档 + PR 提交 | Kistich | ✅ | #4/#5 | docs/ 方案定稿（DEVICE_CONTEXT_PLAN_20260827.md）；PR 合入 dev-1.0（2026-08-27 发起） |
+| # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 | 完成证据 |
+|---|------|--------|------|------|----------|----------|
+| 1 | 容器启动 + venv311 组合验证 | Kistich | ✅ | docker 权限 + 镜像 | 容器 Up；/workspace 见 5 子库；venv311 各组件 import 通过 | 8-24 A 线容器 + 9-01 推理容器 `flagos-infer-910c`（vllm-ascend 官方镜像） |
+| 2 | 设备注册与基础算子验证（需求 1） | Kistich | ✅ | #1 | 设备句柄/显存分配/释放/生命周期 OK | conformance i1 + 训练/推理双场景加载验证 |
+| 3 | Stream/Event/异步传输验证（需求 2） | Kistich | ✅ | #2 | 双流并发、Event 同步、页锁定传输实测通过 | conformance 13/13（S1-S4/E1-E3/T1-T3）；多流真并发由 Level1 kernel 时间线证实 |
+| 4 | 单机 2 卡 Qwen2.5-1.5B 训练（需求 3+4 验证 1+2） | Kistich | ✅ | #3 | 双卡 HCCL 跑通；loss 下降；记录全部踩坑 | 2481 步 loss 1.9501 / 5428 tok/s（torch_npu+hccl） |
+| 5 | 错误码翻译与设备状态恢复验证（需求 2 延伸） | Kistich | ✅ | #2 | 注入错误场景，统一错误码 + 恢复路径 OK | ACL 107015 真实注入 + A/B 对照；A10 四态恢复 8/8（含 L4 完整 R1→R5） |
+| 6 | 完整方案文档 + PR 提交 | Kistich | ✅ | #4/#5 | docs/ 方案定稿（DEVICE_CONTEXT_PLAN_20260827.md）；PR 合入 dev-1.0（2026-08-27 发起） | 推理侧方案 + 验收文档 2026-09-01 定稿；PR 描述已备（`PR_DEV_1_0_20260901.md`），**暂不发起** |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
+>
+> 注：#1-#5 于 2026-08-24 ~ 09-01 陆续完成（此前表格未同步更新，本次一并校准）。
 
 ## 启动容器（宿主侧）
 
@@ -309,4 +315,82 @@ docker exec -it flagos-device-context-dev-910c bash
 ## 2026-08-31 第九批：910C 分布式推理方案（设备上下文 × Stream，A 线）（Kistich）
 
 - [x] **推理实现方案定稿**：`docs/DEVICE_CONTEXT_INFERENCE_PLAN_20260831.md`——四阶段（P0 dense 单卡 → P1 单卡职责+双缓冲真实现 → P2 TP=2/4 A 线重验 → P3 服务化），含历史探索 9 项坑清单（B 线 TP 验证 7 + A 线 dense 2）+ 环境复用配置 + 职责×推理验收对照表
-- [ ] 待执行（用户逐项验证）：P0 dense 单卡 → P1 conformance 推理版 + 双缓冲重叠 → P2 TP 推理重验 B1/B2 → P3 服务化
+- [x] 待执行项已全部完成（见下方 2026-09-01 批次）
+
+## 2026-09-01 第十批：同构 910C 推理四阶段闭环（P0-P3，D1-D11 全绿）（Kistich）
+
+> 关联：`docs/DEVICE_CONTEXT_INFERENCE_MAPPING_20260831.md`（验收清单 A1-A11）、
+> `docs/INFERENCE_P3_SERVE_STATE_ERROR_20260901.md`（P3 执行记录）、
+> `docs/INFERENCE_QWEN3_TP_COMPARE_20260901.md`（TP 数值等价对照）
+
+**模型对齐**：全程 **Qwen3-4B**（对齐同事昇腾线基准，落 `/mnt/raid/hliu553/models/Qwen3-4B`）
+
+| 阶段 | 内容 | 结果 |
+|---|---|---|
+| P0 | dense 单卡离线推理 | ✅ `DENSE_INFER_PASS`（Qwen2.5-1.5B 19.5 tok/s / Qwen3-4B serve 68.4 tok/s） |
+| P1 | conformance 推理版 + 双缓冲 | ✅ 6/6 PASS；多流**真并发**（Level1 kernel 时间线证实），瓶颈 = `EVENT_WAIT` 3.37ms/12 次 |
+| P2 | TP=1/2/4 数值等价 | ✅ **greedy 逐字一致 4/4**（TP=1 98.2 / TP=2 72.3 / TP=4 42.1 tok/s） |
+| P3 | 服务化（A8/A9/A10） | ✅ 8/8 + 错误码翻译链路验证 |
+
+**A1-A11 验收全绿**，D1-D11 十一项职责在训练与推理两个场景均有结论。
+
+**两条纪律级发现**：
+
+- **坑 A5**：`VLLM_PLUGINS=fl` 会破坏 A 线 platform 选择 → `RuntimeError: Device string must not be empty`。
+  A 线（torch_npu + vllm-ascend）**禁止设置**；昇腾平台由 vllm-ascend 官方镜像内置提供，vllm-plugin-FL 路线在同构 A 线不适用。
+- **坑 A6**：随机采样（temperature=1.0）下 TP 逐字对比**必然发散**（0/4 一致，但语义均正常）——TP=2 的 HCCL all_reduce
+  浮点累加顺序差异被随机采样放大。**数值等价对照必须用 greedy**（temperature=0，argmax 对微扰鲁棒 → 4/4 一致）。
+
+**ACL 107015 根因实锤**（stream callback 订阅问题）：
+
+```
+rt_error_codes.h:36  ACL_ERROR_RT_STREAM_NO_CB_REG  107015  // callback not register to stream
+```
+
+A/B 单变量对照（唯一变量 = 是否 `subscribe_report`）：
+
+| 组 | 操作序列 | 返回 |
+|---|---|---|
+| A | `create_stream` → 直接 `launch_callback` | **107015** |
+| B | `create_stream` → `subscribe_report` → `launch_callback` | **0（成功）** |
+
+→ 对未注册 callback 的 stream 投递 callback 即命中，**调用方契约违反，非设备缺陷**。
+pyACL 签名为四参数 `launch_callback(fn, userData, block, stream)`（三参数报 `args parse failed`）。
+
+## 2026-09-01 第十一批：D10 错误码映射表建设（覆盖率 0.8% → 64.8%）
+
+> 关联：`docs/ACL_ERROR_MAP_20260901.md`（专题文档）
+> 工具：`benchmarks/inference/gen_acl_error_map.py`（提取 + 自动分级）、`audit_error_map_coverage.py`（覆盖率与分级差异审计）
+
+| 阶段 | 覆盖 | 分级不一致 | 高置信误判 |
+|---|---|---|---|
+| 起点 | 1/159 = **0.8%** | 27.3% | 24 |
+| ① 高置信差异录入 | 15.2% | 6.8% | 0 |
+| ② 多域扩展 + 人工裁决 | 30.8% | 9.4% | 0 |
+| ③ 高置信固化（当前） | **103/159 = 64.8%** | 11.3%* | 0 |
+
+\* 含 3 条有意覆盖规则（`AICPU` / `VECTOR_CORE` / `FFTS_PLUS_EXCEPTION` 上提 L4 以对齐 `AICORE_EXCEPTION`），非误判。
+
+**关键认知：不需要"攒错误示例"** —— CANN 头文件即权威错误码全集，且**分散多域**：
+`acl/error_codes/rt_error_codes.h`（132 条，带 `//` 语义注释）+ `aclnn/opdev/op_errno.h`（26 条，**无注释**，从宏名推导语义）。
+
+**三层验证策略**（不依赖逐个真实触发）：L1 覆盖审计（头文件）→ L2 翻译链路（构造消息批量验证）→ L3 真实触发抽样（如 107015 A/B 对照）。
+
+**F5 分级可观测**（`errors.py`）：新增 `mapped` / `graded_by` / `is_grade_confident`，区分「确定分级」与「保守兜底」。
+**设计取向：可观测性优先于覆盖率**——宁可知道自己不知道，也不让兜底 L3 冒充确定结论导致 D11 跳过恢复评估。
+
+**规则陷阱（已修，勿回退）**：关键词子串匹配导致两处误判——`can not c**hang**e die mode` 含 `hang` 误判 L4；
+`aic trap read overflow` 含 `overflow` 误判 L2。修法：词边界匹配 + `trap/exception/abort` 规则前置。
+**教训：工具产出的数据写入共享资产前必查命中依据。**
+
+剩余 56 条为无依据 `default`，保持兜底 L3（与历史行为一致，且有 `mapped=False` 标注，风险可控）
+—— **64.8% 是"有依据可声明"的合理上限**。
+
+## 当前状态与下一步（2026-09-01）
+
+- [x] 推理四阶段（P0-P3）闭环，D1-D11 全绿
+- [x] 错误码映射表建设（64.8% 覆盖 + F5 可观测）
+- [x] 全量回归：conformance **13/13** + infer **6/6** PASS
+- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260901.md`），**暂不发起**（等通知）
+- [ ] D8 支线：双缓冲「减少同步点」优化（EVENT_WAIT 瓶颈，训练侧最后一块性能缺口）
+- [ ] 维护提醒：CANN 升级后错误码会变，应重跑 `gen_acl_error_map.py` + `audit_error_map_coverage.py` 复核差异
