@@ -30,9 +30,18 @@ class ErrorCategory(enum.IntEnum):
 
 
 # 昇腾 ACL 错误码 → 统一类别 映射（F1 类别投影的厂商侧依据）。
-# 码值与含义以 ACL 官方错误码文档为准；此处覆盖探针实测与常用参数/资源/执行类。
+#
+# 数据来源与维护方式（2026-09-01 起）：
+#   · 昇腾运行时段（107xxx/207xxx/507xxx）：由 benchmarks/inference/gen_acl_error_map.py
+#     从 CANN 头文件 rt_error_codes.h 提取（132 条，含宏名 + 官方语义注释），
+#     规则建议分级 → 人工审核后录入。覆盖率与分级差异可用
+#     benchmarks/inference/audit_error_map_coverage.py 复算。
+#   · ACL 基础段（161xxx）：沿用实测样本，尚未接入头文件提取（待补）。
+#   · 标注「实测裁决」的条目：规则置信度不足，但经真实触发实验定性。
+#
 # 实测样本：aclnnMatmulGetWorkspaceSize failed, ret=161002 → L2（参数非法）
 ACL_ERR_TO_CATEGORY = {
+    # ── ACL 基础段（161xxx，实测样本，待接入头文件提取）──
     161001: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_DEVICE 设备非法
     161002: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_PARAM 参数非法
     161003: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_DATATYPE 数据类型非法
@@ -40,7 +49,36 @@ ACL_ERR_TO_CATEGORY = {
     161005: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_OP_TYPE 算子类型非法
     161007: ErrorCategory.L1_RESOURCE, # 算子/内核缺失类（可重试资源类）
     161025: ErrorCategory.L3_EXECUTION,# 运行期执行参数类
-    507021: ErrorCategory.L1_RESOURCE, # 设备内存不足类（示例，以文档为准）
+
+    # ── 昇腾运行时段（来源：CANN rt_error_codes.h，2026-09-01 审核录入）──
+    # L4 致命：进入设备状态恢复流程（R2-R5 重建）
+    207004: ErrorCategory.L4_FATAL,    # ACL_ERROR_RT_NO_DEVICE            no device
+    # L1 资源：可重试（带退避）
+    207005: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_RESOURCE_ALLOC_FAIL  resource alloc fail
+    207009: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_NO_NOTIFY_RESOURCE   no notify resource
+    207010: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_NO_MODEL_RESOURCE    no model resource
+    207011: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_NO_CDQ_RESOURCE      no cdq resource
+    507021: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_PROFILING_ERROR      profiling error
+                                       #   （订正：旧注"设备内存不足类"系臆断，已按头文件订正）
+    # L2 参数/契约：上抛调用方，不重试、不重放（前置条件缺失，重放必然再失败）
+    107000: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_PARAM_INVALID        param invalid
+    107002: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_CONTEXT_NULL         current context null
+                                       #   （歧义待裁决：未 set_context = 契约违反 L2；若上下文已销毁应 L4）
+    107004: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_MODEL_CONTEXT        model not in current context
+    107008: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_ADDR_UNALIGNED       memory address unaligned
+    107016: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_INVALID_MEMORY_TYPE  invalid memory type
+    107017: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_INVALID_HANDLE       invalid handle
+    107018: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_INVALID_MALLOC_TYPE  invalid malloc type
+    107025: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_STREAM_UNJOINED      invalid capture model
+    207000: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_FEATURE_NOT_SUPPORT  feature not support
+    207019: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_FEATURE_NOT_SUPPORT_UPDATE_OP
+    507025: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_RINGBUFFER_NOT_INIT  ringbuffer not init
+    507031: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_LABEL_CONTEXT        label not in current context
+    507040: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_INVALID_DIEID        invalid die id
+    107015: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_STREAM_NO_CB_REG     callback not register to stream
+                                       #   【实测裁决】A/B 单变量对照证实：对未 subscribe_report 的 stream
+                                       #   投递 callback 即命中，属契约违反，L3 重放必然再失败。
+                                       #   规则因语义含 stream 判 low 置信，此处以实测为准。
 }
 
 # 消息关键词 → 类别（探针级粗分类，厂商错误码未命中时使用）

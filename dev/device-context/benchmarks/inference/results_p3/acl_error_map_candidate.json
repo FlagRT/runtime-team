@@ -3,22 +3,22 @@
   "stats": {
     "total": 132,
     "by_category": {
-      "L2_PARAM": 27,
-      "L3_EXECUTION": 95,
+      "L2_PARAM": 20,
+      "L3_EXECUTION": 103,
       "L1_RESOURCE": 7,
-      "L4_FATAL": 3
+      "L4_FATAL": 2
     },
     "by_confidence": {
-      "high": 63,
-      "low": 11,
-      "default": 58
+      "high": 62,
+      "low": 14,
+      "default": 56
     },
     "by_header": {
       "rt_error_codes.h": 132
     }
   },
   "need_manual_review": {
-    "count": 11,
+    "count": 14,
     "sample": [
       {
         "code": 107003,
@@ -61,29 +61,9 @@
         ]
       },
       {
-        "code": 107025,
-        "name": "ACL_ERROR_RT_STREAM_UNJOINED",
-        "meaning": "invalid capture model",
-        "suggested": "L2_PARAM",
-        "conflict": [
-          "L2_PARAM",
-          "L3_EXECUTION"
-        ]
-      },
-      {
         "code": 107030,
         "name": "ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT",
         "meaning": "stream is captured, not support current oper",
-        "suggested": "L2_PARAM",
-        "conflict": [
-          "L2_PARAM",
-          "L3_EXECUTION"
-        ]
-      },
-      {
-        "code": 107036,
-        "name": "ACL_ERROR_RT_STREAM_CAPTURE_UNMATCHED",
-        "meaning": "the capture was not initiated in this stream",
         "suggested": "L2_PARAM",
         "conflict": [
           "L2_PARAM",
@@ -121,13 +101,63 @@
         ]
       },
       {
-        "code": 507903,
-        "name": "ACL_ERROR_RT_STREAM_CAPTURE_INVALIDATED",
-        "meaning": "capture status is invalidated",
-        "suggested": "L2_PARAM",
+        "code": 507015,
+        "name": "ACL_ERROR_RT_AICORE_EXCEPTION",
+        "meaning": "aicore exception",
+        "suggested": "L4_FATAL",
         "conflict": [
-          "L2_PARAM",
+          "L4_FATAL",
           "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 507023,
+        "name": "ACL_ERROR_RT_MODEL_ABORT_NORMAL",
+        "meaning": "model abort normal",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 507042,
+        "name": "ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW",
+        "meaning": "aic trap read overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507043,
+        "name": "ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW",
+        "meaning": "aic trap write overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507044,
+        "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW",
+        "meaning": "aiv trap read overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507045,
+        "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW",
+        "meaning": "aiv trap write overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
         ]
       }
     ]
@@ -468,16 +498,9 @@
       "name": "ACL_ERROR_RT_SYSPARAMOPT_NOT_SET",
       "meaning": "not set sysparamopt",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "high",
-      "matched": [
-        {
-          "category": "L2_PARAM",
-          "hits": [
-            "param"
-          ]
-        }
-      ]
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
     },
     {
       "code": 107022,
@@ -490,8 +513,7 @@
         {
           "category": "L3_EXECUTION",
           "hits": [
-            "task",
-            "abort"
+            "task"
           ]
         }
       ]
@@ -507,8 +529,7 @@
         {
           "category": "L3_EXECUTION",
           "hits": [
-            "stream",
-            "abort"
+            "stream"
           ]
         }
       ]
@@ -528,18 +549,12 @@
       "meaning": "invalid capture model",
       "header": "rt_error_codes.h",
       "suggested_category": "L2_PARAM",
-      "confidence": "low",
+      "confidence": "high",
       "matched": [
         {
           "category": "L2_PARAM",
           "hits": [
             "invalid"
-          ]
-        },
-        {
-          "category": "L3_EXECUTION",
-          "hits": [
-            "stream"
           ]
         }
       ]
@@ -666,7 +681,6 @@
         {
           "category": "L3_EXECUTION",
           "hits": [
-            "stream",
             "task"
           ]
         }
@@ -683,7 +697,6 @@
         {
           "category": "L3_EXECUTION",
           "hits": [
-            "stream",
             "task"
           ]
         }
@@ -700,8 +713,7 @@
         {
           "category": "L3_EXECUTION",
           "hits": [
-            "task",
-            "abort"
+            "task"
           ]
         }
       ]
@@ -711,15 +723,9 @@
       "name": "ACL_ERROR_RT_STREAM_CAPTURE_UNMATCHED",
       "meaning": "the capture was not initiated in this stream",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "low",
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
       "matched": [
-        {
-          "category": "L2_PARAM",
-          "hits": [
-            "not init"
-          ]
-        },
         {
           "category": "L3_EXECUTION",
           "hits": [
@@ -743,15 +749,8 @@
       "meaning": "the thread of end capture and begin capture is not same",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "high",
-      "matched": [
-        {
-          "category": "L3_EXECUTION",
-          "hits": [
-            "stream"
-          ]
-        }
-      ]
+      "confidence": "default",
+      "matched": []
     },
     {
       "code": 207000,
@@ -780,8 +779,7 @@
         {
           "category": "L1_RESOURCE",
           "hits": [
-            "out of memory",
-            "memory alloc"
+            "out of memory"
           ]
         }
       ]
@@ -1228,12 +1226,18 @@
       "meaning": "aicore exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L4_FATAL",
-      "confidence": "high",
+      "confidence": "low",
       "matched": [
         {
           "category": "L4_FATAL",
           "hits": [
             "aicore exception"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
           ]
         }
       ]
@@ -1244,8 +1248,16 @@
       "meaning": "aicore trap exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507017,
@@ -1269,8 +1281,15 @@
       "meaning": "aicpu exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507019,
@@ -1314,8 +1333,14 @@
       "meaning": "model abort normal",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "high",
+      "confidence": "low",
       "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "abort"
+          ]
+        },
         {
           "category": "L3_EXECUTION",
           "hits": [
@@ -1471,8 +1496,15 @@
       "meaning": "vector core exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507036,
@@ -1480,8 +1512,16 @@
       "meaning": "vector core trap exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507037,
@@ -1497,16 +1537,9 @@
       "name": "ACL_ERROR_RT_DIE_MODE_CHANGE_ERROR",
       "meaning": "can not change die mode",
       "header": "rt_error_codes.h",
-      "suggested_category": "L4_FATAL",
-      "confidence": "high",
-      "matched": [
-        {
-          "category": "L4_FATAL",
-          "hits": [
-            "hang"
-          ]
-        }
-      ]
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
     },
     {
       "code": 507039,
@@ -1547,9 +1580,15 @@
       "name": "ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW",
       "meaning": "aic trap read overflow",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "high",
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
       "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
         {
           "category": "L2_PARAM",
           "hits": [
@@ -1563,9 +1602,15 @@
       "name": "ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW",
       "meaning": "aic trap write overflow",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "high",
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
       "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
         {
           "category": "L2_PARAM",
           "hits": [
@@ -1579,9 +1624,15 @@
       "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW",
       "meaning": "aiv trap read overflow",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "high",
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
       "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
         {
           "category": "L2_PARAM",
           "hits": [
@@ -1595,9 +1646,15 @@
       "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW",
       "meaning": "aiv trap write overflow",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "high",
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
       "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
         {
           "category": "L2_PARAM",
           "hits": [
@@ -1618,8 +1675,7 @@
           "category": "L3_EXECUTION",
           "hits": [
             "stream",
-            "sync",
-            "timeout"
+            "sync"
           ]
         }
       ]
@@ -1636,8 +1692,7 @@
           "category": "L3_EXECUTION",
           "hits": [
             "event",
-            "sync",
-            "timeout"
+            "sync"
           ]
         }
       ]
@@ -1664,8 +1719,15 @@
       "meaning": "ffts+ exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507050,
@@ -1673,8 +1735,16 @@
       "meaning": "ffts+ trap exception",
       "header": "rt_error_codes.h",
       "suggested_category": "L3_EXECUTION",
-      "confidence": "default",
-      "matched": []
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
     },
     {
       "code": 507051,
@@ -1794,22 +1864,9 @@
       "name": "ACL_ERROR_RT_STREAM_CAPTURE_INVALIDATED",
       "meaning": "capture status is invalidated",
       "header": "rt_error_codes.h",
-      "suggested_category": "L2_PARAM",
-      "confidence": "low",
-      "matched": [
-        {
-          "category": "L2_PARAM",
-          "hits": [
-            "invalid"
-          ]
-        },
-        {
-          "category": "L3_EXECUTION",
-          "hits": [
-            "stream"
-          ]
-        }
-      ]
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
     },
     {
       "code": 507904,
