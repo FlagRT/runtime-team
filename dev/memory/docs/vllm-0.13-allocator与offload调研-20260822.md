@@ -164,9 +164,15 @@ kv_offload 子系统（`$V/v1/kv_offload/`）：
 2. **若目标为昇腾（vllm 0.20.2 新线）**：沿用 0.20.2 笔记的 evict_blocks + flagcx_connector 模式；
    **0.20.2 是否同样内置 kv_offload 待补查**（笔记撰写时未覆盖，建议在昇腾侧 vllm 0.20.2 源码补一次
    `ls vllm/v1/kv_offload`，若存在则两线均可复用官方路径）。
-3. P800 待实测清单：① native KV offload 启用路径（num_cpu_blocks 接线）；② `is_pin_memory_available()`
-   在 xpytorch 下的值（决定权重 UVA offload 可用性）；③ swap_blocks 在 kunlunxin vendor attention
-   backend（KV shape (2, N, H, B, S)）上的兼容性。
+3. **P800 待实测清单（2026-09-01 全部实测关闭 ✅）**：
+   ① native KV offload 启用路径 —— `--kv-offloading-size` 写入的 num_cpu_blocks=0 会被
+   CPUOffloadingSpec 直接 raise（cpu.py:24-29），kv_bytes_per_rank 全树无消费点（config/vllm.py:495-500）；
+   **须构造 KVTransferConfig 显式传 kv_connector_extra_config.num_cpu_blocks**（探针
+   probes/routeA_s4_kv_host_offload.py / routeA_s4_kv_offload_xfer.py，已跑通）；
+   ② `is_pin_memory_available()` 在 xpytorch = **True**（CPU 张量 pinned）；
+   ③ swap_blocks 与 kunlunxin vendor attention backend（KV shape (2,N,H,B,S)）**兼容**：
+   gpu→cpu store 75 块、重复 prompt cpu→gpu load 命中（run2 仅算 1 新块）均实测通过，
+   生成质量无退化，吞吐代价 ~2.4%（72.5 vs 74.3 tok/s，910 CPU 块 ≈ 2GiB）。
 
 ---
 
