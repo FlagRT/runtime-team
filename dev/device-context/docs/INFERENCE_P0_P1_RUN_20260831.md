@@ -126,6 +126,44 @@
 - **性能层面：需优化**——瓶颈在事件同步点开销，优化方向是**减少同步频率**（批量合并 / 每 N 批一次同步 / streamWaitEvent 替代跨流 event），**不是放弃多流**
 - **训练侧回补同理**：按"减少事件点 + 大粒度批量"策略实施
 
+---
+
+## 四之二、P0 dense 推理跑通（2026-09-01，DENSE_INFER_PASS）
+
+### 结果
+
+| 项 | 值 |
+|---|---|
+| 模型 | Qwen2.5-1.5B（`/mnt/raid/hliu553/models/`，raid） |
+| 环境 | vllm-ascend 镜像自带：**Python 3.11 + torch 2.10.0+cpu + torch_npu 2.10.0 + vllm 0.20.2 + vllm_ascend** |
+| 加载 | 39.0s |
+| 推理 | 6.21s / 121 tokens / **19.5 tok/s** |
+| 判定 | **DENSE_INFER_PASS**（4 条 prompt 输出均正确、无 NaN/乱码） |
+
+输出样例：
+```
+"Hello, my name is"      → " Matthew Bais, currently a third year PhD student..."
+"The capital of France is"→ " one of the most popular destinations in Europe..."
+"2+2="                   → "____ (1)2×2=4 (2)2+2=4;;故答案为:4"
+"Python is a"            → " leading server-side and web-development language..."
+```
+
+### 跑通路径（关键，供复现）
+
+1. **用 vllm-ascend 官方镜像起容器**：`quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（脚本 `scripts/start_infer_container.sh`）
+2. **腾 DrvMng 名额**：起容器后 `devices 0` + `DrvMngGetConsoleLogLevel failed` → 停掉其他占 NPU 的容器（本轮停了 `flagos-hliu553-dev-910c`）后 `restart` 即恢复（**16 卡可见**）
+3. **数据全在 raid**：模型 `/mnt/raid/hliu553/models/`、脚本/结果在 `/mnt/raid/hliu553/runtime-team/...`、`TMPDIR=/mnt/raid/hliu553/tmp`
+4. 运行：`python3 dense_infer_qwen_1_5b_npu.py --model <raid路径> --preheat --max-tokens 32`
+
+### 踩坑记录（本轮新增）
+
+| 坑 | 现象 | 解法 |
+|---|---|---|
+| 官方 vLLM 无 ascend platform | `Device string must not be empty` | 用 vllm-ascend 镜像（不是 pip 装官方 vllm） |
+| 源码编译 vllm-ascend | 缺 `regex`（系统 python 也要装）→ 缺 `triton-ascend==3.2.1`（不在 PyPI）→ CANN ops prepare 失败（`/mc2/...` 路径缺失） | **放弃源码编译**，用官方镜像 |
+| Python ABI 不匹配 | 镜像 Python 3.11 vs 我们 raid venv 3.12 → 提取的 `vllm_ascend` .so 不可用 | 直接用镜像自带环境（3.11） |
+| DrvMng 名额 | 新容器 `devices 0` | 停掉一个占 NPU 的容器后 restart |
+
 ### 通用纪律（本轮沉淀）
 1. **所有基准必须预热**：首次算子开销 107 倍（512² matmul 77.56ms vs 稳态 0.72ms）
 2. **profiler 必须用 Level1**：默认配置采集不到 kernel（只有入队/出队瞬间事件）
