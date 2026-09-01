@@ -45,6 +45,8 @@ dev/memory/
 - **triton 版本偏差致 FlagGems GEMM 崩溃**：dev 容器 triton 3.6.0（flagtree 0.6.1+xpu3.6）≠ 官方发布镜像 3.0.0，FlagGems mm/bmm/addmm 在 dev 容器 SIGABRT（编译期 make_llir），官方发布镜像同 commit 全过 → **结论性测试在官方发布镜像内做**。
 - **MoE 双阻塞**：`xpudnn::causal_conv1d_update ret=1`（厂商算子库缺口，混合注意力模型昆仑芯不可用）；`flag_gems._kunlunxin.topk_softmax` 缺 `renormalize` 参（组件版本配对，纯 MoE 必崩）→ 见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)。
 - **KV 预分配 P800 69.22GiB / 504k tokens**（Qwen3-4B，gpu_mem_util 0.9，加载合计 84.5s、含 graph 71.5s）。
+- **新线栈 decode 生成退化根因**：厂商 `patch_decode_attention`（decode 无条件替换为 prefix-cache prefill_attention）→ 禁用后正常、解码提速近 2x → [新线栈decode生成退化-根因定位-20260901](docs/新线栈decode生成退化-根因定位-20260901.md)
+- **vllm 0.13 官方 KV CPU 卸载可用**：`--kv-offloading-size` 有 num_cpu_blocks=0 接线缺陷，须显式 KVTransferConfig；store/load 双向实测通过、吞吐代价 ~2.4% → [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md) §4
 
 ## 启动容器（宿主侧）
 
