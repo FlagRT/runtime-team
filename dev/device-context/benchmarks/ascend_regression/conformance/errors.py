@@ -7,6 +7,8 @@ torch_fl 统一错误对象与三维翻译（flagos/errors.py）
   - F2 分级处置：类别直接驱动处置策略（L1 重试 / L2 上抛 / L3 重放 / L4 恢复）
   - F4 根因保留：厂商原始错误码与描述原样保留
 
+  - F5 分级可观测：区分「确定分级」与「保守兜底」，避免上层把兜底当定论
+
 用法：
     from torch_fl.flagos.errors import FlagosError, translate_error, ErrorCategory
     try:
@@ -14,6 +16,19 @@ torch_fl 统一错误对象与三维翻译（flagos/errors.py）
     except Exception as e:
         fe = translate_error(e, location="stream:0/op:matmul")
         # fe.category / fe.location / fe.root_cause
+        # fe.mapped / fe.graded_by  —— 分级来源，见 F5
+
+F5 分级可观测（2026-09-01 新增）：
+    fe.mapped     True  = 错误码命中 ACL_ERR_TO_CATEGORY（确定分级）
+                  False = 靠消息关键词或兜底（**保守分级，不可当定论**）
+    fe.graded_by  "code_map"     = 厂商错误码映射表命中（最可信）
+                  "message_hint" = 消息关键词粗分类（次可信，依赖消息文本）
+                  "default"      = 无依据，兜底 L3_EXECUTION（最不可信）
+
+    为什么需要：映射表覆盖率有限（当前 22/159 ≈ 14%），未覆盖的错误码会静默
+    兜底为 L3_EXECUTION。若上层（尤其 D11 状态恢复决策）把兜底 L3 当作确定结论，
+    可能做出错误处置（如对致命错误不触发恢复）。F5 让"未覆盖"这件事可见，
+    上层可据此选择保守策略。**可观测性优先于覆盖率**——宁可知道自己不知道。
 """
 
 import enum
@@ -79,6 +94,49 @@ ACL_ERR_TO_CATEGORY = {
                                        #   【实测裁决】A/B 单变量对照证实：对未 subscribe_report 的 stream
                                        #   投递 callback 即命中，属契约违反，L3 重放必然再失败。
                                        #   规则因语义含 stream 判 low 置信，此处以实测为准。
+
+    # ── 人工裁决条目（2026-09-01）：规则判 low 置信 / 被消息关键词干扰，经语义分析定级 ──
+    # 裁决原则：按**责任方归属**定级
+    #   · 调用方用错（用法/契约违反）→ L2（重试与重放均无意义，应上抛）
+    #   · 环境资源可恢复（等待释放）  → L1（可重试）
+    #   · 执行期失败（算子内部/trap） → L3（留一次重放机会）
+    #   · 硬件致命（AI Core 异常）    → L4（由 R2 探针评估决定是否真需重建，不会盲目重建）
+    # 注：以下为语义裁决而非实测，若需更细粒度待实测验证。
+
+    # L4 硬件致命
+    507015: ErrorCategory.L4_FATAL,    # ACL_ERROR_RT_AICORE_EXCEPTION   aicore exception
+    # L1 资源（等待释放后可重试）
+    207007: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_NO_EVENT_RESOURCE  no event resource
+    207008: ErrorCategory.L1_RESOURCE, # ACL_ERROR_RT_NO_STREAM_RESOURCE no stream resource
+    # L2 调用方用法错误（stream/event/task 契约违反）
+    107003: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_STREAM_CONTEXT     stream not in current context
+    107005: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_STREAM_MODEL       stream not in model
+    107006: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID
+    107030: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT
+    507009: ErrorCategory.L2_PARAM,    # ACL_ERROR_RT_TASK_TYPE_NOT_SUPPORT
+    # L3 硬件执行期陷阱（kernel 越界访问类：重放可复现，但不需重建设备）
+    507042: ErrorCategory.L3_EXECUTION,# ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW
+    507043: ErrorCategory.L3_EXECUTION,# ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW
+    507044: ErrorCategory.L3_EXECUTION,# ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW
+    507045: ErrorCategory.L3_EXECUTION,# ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW
+    # L3 aclnn 算子内部错误：责任在算子包/部署配置，非调用方参数。
+    #   重试无效（配置错误是持久的）、重建设备无据，归执行类。
+    #   统一归 L3 还顺带修正 561001 —— 它曾被 _MESSAGE_HINTS 的 "shape" 关键词误判为 L2。
+    561001: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_INFERSHAPE_ERROR
+    561103: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_NULLPTR
+    561104: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_WRONG_ATTR_INFO_SIZE
+    561106: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_INVALID_IMPL_MODE
+    561107: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_OPP_PATH_NOT_FOUND
+    561109: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_JSON_VALUE_NOT_FOUND
+    561110: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_JSON_FORMAT_INVALID
+    561111: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_JSON_DTYPE_INVALID
+    561112: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_OPP_KERNEL_PKG_NOT_FOUND
+    561113: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_OP_FILE_INVALID
+    561114: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_ATTR_NUM_OUT_OF_BOUND
+    561115: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_ATTR_LEN_NOT_ENOUGH
+    561117: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_INPUT_JSON_IS_NULL
+    561118: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_STATIC_WORKSPACE_INVALID
+    561119: ErrorCategory.L3_EXECUTION,# ACLNN_ERR_INNER_STATIC_BLOCK_DIM_INVALID
 }
 
 # 消息关键词 → 类别（探针级粗分类，厂商错误码未命中时使用）
@@ -98,16 +156,21 @@ class FlagosError(Exception):
     location   : 错误归因到的流/事件/任务（框架层由调用方通过 location 参数提供；
                  运行时在途任务登记表就绪后由提交路径自动填充）
     root_cause : 厂商原始错误信息（异常类型 + 消息 + 错误码），原样保留（F4）
+    mapped     : True = 错误码命中映射表（确定分级）；False = 关键词/兜底（保守分级）
+    graded_by  : "code_map" | "message_hint" | "default"（F5 分级来源）
     """
 
     def __init__(self, category: ErrorCategory, root_cause: str,
-                 location: Optional[str] = None, error_code: Optional[int] = None):
+                 location: Optional[str] = None, error_code: Optional[int] = None,
+                 mapped: bool = False, graded_by: str = "default"):
         super().__init__(f"[{category.name}] {root_cause}"
                          + (f" (location: {location})" if location else ""))
         self.category = category
         self.location = location
         self.root_cause = root_cause
         self.error_code = error_code
+        self.mapped = mapped
+        self.graded_by = graded_by
 
     @property
     def is_retryable(self) -> bool:
@@ -119,13 +182,24 @@ class FlagosError(Exception):
         """F2：L4 致命类需状态恢复。"""
         return self.category == ErrorCategory.L4_FATAL
 
+    @property
+    def is_grade_confident(self) -> bool:
+        """F5：分级是否有确定依据（命中厂商错误码映射表）。
+
+        为 False 时上层应按保守策略处置——尤其 D11 状态恢复决策，
+        不应把兜底 L3 当作"确定不是致命错误"而跳过恢复评估。
+        """
+        return self.mapped
+
     def to_dict(self) -> dict:
-        """三维投影序列化（供可观测性事件流/监控诊断消费）。"""
+        """投影序列化（含 F5 分级来源，供可观测性事件流/监控诊断消费）。"""
         return {
             "category": self.category.name,
             "location": self.location,
             "root_cause": self.root_cause,
             "error_code": self.error_code,
+            "mapped": self.mapped,
+            "graded_by": self.graded_by,
         }
 
 
@@ -143,21 +217,29 @@ def _extract_acl_retcode(msg: str) -> Optional[int]:
 
 
 def translate_error(exc: BaseException, location: Optional[str] = None) -> FlagosError:
-    """把任意异常翻译为统一错误对象（F1 三维翻译）。
+    """把任意异常翻译为统一错误对象（F1 三维翻译 + F5 分级可观测）。
 
     优先级：厂商错误码（ret=XXXX → ACL_ERR_TO_CATEGORY）→ 消息关键词粗分类 → L3 默认。
     root_cause 原样保留异常类型与消息（F4）。
+
+    同时记录分级来源（F5）：
+      - 命中映射表 → mapped=True,  graded_by="code_map"
+      - 命中消息关键词 → mapped=False, graded_by="message_hint"
+      - 两者皆无 → mapped=False, graded_by="default"（兜底 L3，不可当定论）
     """
     msg = str(exc)
     retcode = _extract_acl_retcode(msg)
 
     if retcode is not None and retcode in ACL_ERR_TO_CATEGORY:
         category = ACL_ERR_TO_CATEGORY[retcode]
+        mapped, graded_by = True, "code_map"
     else:
         category = ErrorCategory.L3_EXECUTION
+        mapped, graded_by = False, "default"
         for pattern, cat in _MESSAGE_HINTS:
             if pattern.search(msg):
                 category = cat
+                graded_by = "message_hint"
                 break
 
     return FlagosError(
@@ -165,4 +247,6 @@ def translate_error(exc: BaseException, location: Optional[str] = None) -> Flago
         root_cause=f"{type(exc).__name__}: {msg}",
         location=location,
         error_code=retcode,
+        mapped=mapped,
+        graded_by=graded_by,
     )

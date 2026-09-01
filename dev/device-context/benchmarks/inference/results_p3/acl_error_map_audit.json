@@ -1,87 +1,23 @@
 {
-  "total_codes": 132,
-  "in_current_map": 20,
-  "coverage_pct": 15.2,
+  "total_codes": 159,
+  "in_current_map": 49,
+  "coverage_pct": 30.8,
   "current_distribution": {
-    "L2_PARAM": 15,
-    "L3_EXECUTION": 110,
-    "L1_RESOURCE": 6,
-    "L4_FATAL": 1
+    "L3_EXECUTION": 127,
+    "L2_PARAM": 22,
+    "L1_RESOURCE": 8,
+    "L4_FATAL": 2
   },
   "suggested_distribution": {
-    "L2_PARAM": 20,
-    "L3_EXECUTION": 103,
+    "L3_EXECUTION": 114,
+    "L2_PARAM": 36,
     "L1_RESOURCE": 7,
     "L4_FATAL": 2
   },
-  "diff_count": 9,
-  "diff_pct": 6.8,
+  "diff_count": 15,
+  "diff_pct": 9.4,
   "diffs_high_confidence": [],
   "diffs_sample": [
-    {
-      "code": 107003,
-      "name": "ACL_ERROR_RT_STREAM_CONTEXT",
-      "meaning": "stream not in current context",
-      "current": "L3_EXECUTION",
-      "suggested": "L2_PARAM",
-      "confidence": "low"
-    },
-    {
-      "code": 107005,
-      "name": "ACL_ERROR_RT_STREAM_MODEL",
-      "meaning": "stream not in model",
-      "current": "L3_EXECUTION",
-      "suggested": "L2_PARAM",
-      "confidence": "low"
-    },
-    {
-      "code": 107006,
-      "name": "ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID",
-      "meaning": "event timestamp invalid",
-      "current": "L3_EXECUTION",
-      "suggested": "L2_PARAM",
-      "confidence": "low"
-    },
-    {
-      "code": 107030,
-      "name": "ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT",
-      "meaning": "stream is captured, not support current oper",
-      "current": "L3_EXECUTION",
-      "suggested": "L2_PARAM",
-      "confidence": "low"
-    },
-    {
-      "code": 207007,
-      "name": "ACL_ERROR_RT_NO_EVENT_RESOURCE",
-      "meaning": "no event resource",
-      "current": "L3_EXECUTION",
-      "suggested": "L1_RESOURCE",
-      "confidence": "low"
-    },
-    {
-      "code": 207008,
-      "name": "ACL_ERROR_RT_NO_STREAM_RESOURCE",
-      "meaning": "no stream resource",
-      "current": "L3_EXECUTION",
-      "suggested": "L1_RESOURCE",
-      "confidence": "low"
-    },
-    {
-      "code": 507009,
-      "name": "ACL_ERROR_RT_TASK_TYPE_NOT_SUPPORT",
-      "meaning": "task type not support",
-      "current": "L3_EXECUTION",
-      "suggested": "L2_PARAM",
-      "confidence": "low"
-    },
-    {
-      "code": 507015,
-      "name": "ACL_ERROR_RT_AICORE_EXCEPTION",
-      "meaning": "aicore exception",
-      "current": "L3_EXECUTION",
-      "suggested": "L4_FATAL",
-      "confidence": "low"
-    },
     {
       "code": 507021,
       "name": "ACL_ERROR_RT_PROFILING_ERROR",
@@ -89,6 +25,118 @@
       "current": "L1_RESOURCE",
       "suggested": "L3_EXECUTION",
       "confidence": "default"
+    },
+    {
+      "code": 561103,
+      "name": "ACLNN_ERR_INNER_NULLPTR",
+      "meaning": "inner nullptr",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561104,
+      "name": "ACLNN_ERR_INNER_WRONG_ATTR_INFO_SIZE",
+      "meaning": "inner wrong attr info size",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561106,
+      "name": "ACLNN_ERR_INNER_INVALID_IMPL_MODE",
+      "meaning": "inner invalid impl mode",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561107,
+      "name": "ACLNN_ERR_INNER_OPP_PATH_NOT_FOUND",
+      "meaning": "inner opp path not found",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561109,
+      "name": "ACLNN_ERR_INNER_JSON_VALUE_NOT_FOUND",
+      "meaning": "inner json value not found",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561110,
+      "name": "ACLNN_ERR_INNER_JSON_FORMAT_INVALID",
+      "meaning": "inner json format invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561111,
+      "name": "ACLNN_ERR_INNER_JSON_DTYPE_INVALID",
+      "meaning": "inner json dtype invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561112,
+      "name": "ACLNN_ERR_INNER_OPP_KERNEL_PKG_NOT_FOUND",
+      "meaning": "inner opp kernel pkg not found",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561113,
+      "name": "ACLNN_ERR_INNER_OP_FILE_INVALID",
+      "meaning": "inner op file invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561114,
+      "name": "ACLNN_ERR_INNER_ATTR_NUM_OUT_OF_BOUND",
+      "meaning": "inner attr num out of bound",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561115,
+      "name": "ACLNN_ERR_INNER_ATTR_LEN_NOT_ENOUGH",
+      "meaning": "inner attr len not enough",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561117,
+      "name": "ACLNN_ERR_INNER_INPUT_JSON_IS_NULL",
+      "meaning": "inner input json is null",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561118,
+      "name": "ACLNN_ERR_INNER_STATIC_WORKSPACE_INVALID",
+      "meaning": "inner static workspace invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 561119,
+      "name": "ACLNN_ERR_INNER_STATIC_BLOCK_DIM_INVALID",
+      "meaning": "inner static block dim invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
     }
   ]
 }
