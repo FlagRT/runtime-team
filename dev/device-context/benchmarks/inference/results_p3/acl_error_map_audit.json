@@ -1,12 +1,12 @@
 {
   "total_codes": 159,
-  "in_current_map": 49,
-  "coverage_pct": 30.8,
+  "in_current_map": 103,
+  "coverage_pct": 64.8,
   "current_distribution": {
-    "L3_EXECUTION": 127,
+    "L3_EXECUTION": 124,
     "L2_PARAM": 22,
     "L1_RESOURCE": 8,
-    "L4_FATAL": 2
+    "L4_FATAL": 5
   },
   "suggested_distribution": {
     "L3_EXECUTION": 114,
@@ -14,10 +14,43 @@
     "L1_RESOURCE": 7,
     "L4_FATAL": 2
   },
-  "diff_count": 15,
-  "diff_pct": 9.4,
-  "diffs_high_confidence": [],
+  "diff_count": 18,
+  "diff_pct": 11.3,
+  "diffs_high_confidence": [
+    {
+      "code": 507018,
+      "name": "ACL_ERROR_RT_AICPU_EXCEPTION",
+      "meaning": "aicpu exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
+    },
+    {
+      "code": 507035,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_EXCEPTION",
+      "meaning": "vector core exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
+    },
+    {
+      "code": 507049,
+      "name": "ACL_ERROR_RT_FFTS_PLUS_EXCEPTION",
+      "meaning": "ffts+ exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
+    }
+  ],
   "diffs_sample": [
+    {
+      "code": 507018,
+      "name": "ACL_ERROR_RT_AICPU_EXCEPTION",
+      "meaning": "aicpu exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
+    },
     {
       "code": 507021,
       "name": "ACL_ERROR_RT_PROFILING_ERROR",
@@ -25,6 +58,22 @@
       "current": "L1_RESOURCE",
       "suggested": "L3_EXECUTION",
       "confidence": "default"
+    },
+    {
+      "code": 507035,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_EXCEPTION",
+      "meaning": "vector core exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
+    },
+    {
+      "code": 507049,
+      "name": "ACL_ERROR_RT_FFTS_PLUS_EXCEPTION",
+      "meaning": "ffts+ exception",
+      "current": "L4_FATAL",
+      "suggested": "L3_EXECUTION",
+      "confidence": "high"
     },
     {
       "code": 561103,
