@@ -1,0 +1,374 @@
+{
+  "total_codes": 132,
+  "in_current_map": 1,
+  "coverage_pct": 0.8,
+  "current_distribution": {
+    "L3_EXECUTION": 129,
+    "L2_PARAM": 1,
+    "L1_RESOURCE": 2
+  },
+  "suggested_distribution": {
+    "L2_PARAM": 27,
+    "L3_EXECUTION": 95,
+    "L1_RESOURCE": 7,
+    "L4_FATAL": 3
+  },
+  "diff_count": 36,
+  "diff_pct": 27.3,
+  "diffs_high_confidence": [
+    {
+      "code": 107000,
+      "name": "ACL_ERROR_RT_PARAM_INVALID",
+      "meaning": "param invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107002,
+      "name": "ACL_ERROR_RT_CONTEXT_NULL",
+      "meaning": "current context null",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107004,
+      "name": "ACL_ERROR_RT_MODEL_CONTEXT",
+      "meaning": "model not in current context",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107008,
+      "name": "ACL_ERROR_RT_ADDR_UNALIGNED",
+      "meaning": "memory address unaligned",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107016,
+      "name": "ACL_ERROR_RT_INVALID_MEMORY_TYPE",
+      "meaning": "invalid memory type",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107017,
+      "name": "ACL_ERROR_RT_INVALID_HANDLE",
+      "meaning": "invalid handle",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107018,
+      "name": "ACL_ERROR_RT_INVALID_MALLOC_TYPE",
+      "meaning": "invalid malloc type",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107021,
+      "name": "ACL_ERROR_RT_SYSPARAMOPT_NOT_SET",
+      "meaning": "not set sysparamopt",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 207000,
+      "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT",
+      "meaning": "feature not support",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 207004,
+      "name": "ACL_ERROR_RT_NO_DEVICE",
+      "meaning": "no device",
+      "current": "L3_EXECUTION",
+      "suggested": "L4_FATAL",
+      "confidence": "high"
+    },
+    {
+      "code": 207005,
+      "name": "ACL_ERROR_RT_RESOURCE_ALLOC_FAIL",
+      "meaning": "resource alloc fail",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "high"
+    },
+    {
+      "code": 207009,
+      "name": "ACL_ERROR_RT_NO_NOTIFY_RESOURCE",
+      "meaning": "no notify resource",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "high"
+    },
+    {
+      "code": 207010,
+      "name": "ACL_ERROR_RT_NO_MODEL_RESOURCE",
+      "meaning": "no model resource",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "high"
+    },
+    {
+      "code": 207011,
+      "name": "ACL_ERROR_RT_NO_CDQ_RESOURCE",
+      "meaning": "no cdq resource",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "high"
+    },
+    {
+      "code": 207019,
+      "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT_UPDATE_OP",
+      "meaning": "not support to update this op",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507015,
+      "name": "ACL_ERROR_RT_AICORE_EXCEPTION",
+      "meaning": "aicore exception",
+      "current": "L3_EXECUTION",
+      "suggested": "L4_FATAL",
+      "confidence": "high"
+    },
+    {
+      "code": 507025,
+      "name": "ACL_ERROR_RT_RINGBUFFER_NOT_INIT",
+      "meaning": "ringbuffer not init",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507031,
+      "name": "ACL_ERROR_RT_LABEL_CONTEXT",
+      "meaning": "label not in current context",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507038,
+      "name": "ACL_ERROR_RT_DIE_MODE_CHANGE_ERROR",
+      "meaning": "can not change die mode",
+      "current": "L3_EXECUTION",
+      "suggested": "L4_FATAL",
+      "confidence": "high"
+    },
+    {
+      "code": 507040,
+      "name": "ACL_ERROR_RT_INVALID_DIEID",
+      "meaning": "invalid die id",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507042,
+      "name": "ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW",
+      "meaning": "aic trap read overflow",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507043,
+      "name": "ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW",
+      "meaning": "aic trap write overflow",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507044,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW",
+      "meaning": "aiv trap read overflow",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 507045,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW",
+      "meaning": "aiv trap write overflow",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    }
+  ],
+  "diffs_sample": [
+    {
+      "code": 107000,
+      "name": "ACL_ERROR_RT_PARAM_INVALID",
+      "meaning": "param invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107002,
+      "name": "ACL_ERROR_RT_CONTEXT_NULL",
+      "meaning": "current context null",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107003,
+      "name": "ACL_ERROR_RT_STREAM_CONTEXT",
+      "meaning": "stream not in current context",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107004,
+      "name": "ACL_ERROR_RT_MODEL_CONTEXT",
+      "meaning": "model not in current context",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107005,
+      "name": "ACL_ERROR_RT_STREAM_MODEL",
+      "meaning": "stream not in model",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107006,
+      "name": "ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID",
+      "meaning": "event timestamp invalid",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107008,
+      "name": "ACL_ERROR_RT_ADDR_UNALIGNED",
+      "meaning": "memory address unaligned",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107015,
+      "name": "ACL_ERROR_RT_STREAM_NO_CB_REG",
+      "meaning": "callback not register to stream",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107016,
+      "name": "ACL_ERROR_RT_INVALID_MEMORY_TYPE",
+      "meaning": "invalid memory type",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107017,
+      "name": "ACL_ERROR_RT_INVALID_HANDLE",
+      "meaning": "invalid handle",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107018,
+      "name": "ACL_ERROR_RT_INVALID_MALLOC_TYPE",
+      "meaning": "invalid malloc type",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107021,
+      "name": "ACL_ERROR_RT_SYSPARAMOPT_NOT_SET",
+      "meaning": "not set sysparamopt",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 107025,
+      "name": "ACL_ERROR_RT_STREAM_UNJOINED",
+      "meaning": "invalid capture model",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107030,
+      "name": "ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT",
+      "meaning": "stream is captured, not support current oper",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 107036,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURE_UNMATCHED",
+      "meaning": "the capture was not initiated in this stream",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "low"
+    },
+    {
+      "code": 207000,
+      "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT",
+      "meaning": "feature not support",
+      "current": "L3_EXECUTION",
+      "suggested": "L2_PARAM",
+      "confidence": "high"
+    },
+    {
+      "code": 207004,
+      "name": "ACL_ERROR_RT_NO_DEVICE",
+      "meaning": "no device",
+      "current": "L3_EXECUTION",
+      "suggested": "L4_FATAL",
+      "confidence": "high"
+    },
+    {
+      "code": 207005,
+      "name": "ACL_ERROR_RT_RESOURCE_ALLOC_FAIL",
+      "meaning": "resource alloc fail",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "high"
+    },
+    {
+      "code": 207007,
+      "name": "ACL_ERROR_RT_NO_EVENT_RESOURCE",
+      "meaning": "no event resource",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "low"
+    },
+    {
+      "code": 207008,
+      "name": "ACL_ERROR_RT_NO_STREAM_RESOURCE",
+      "meaning": "no stream resource",
+      "current": "L3_EXECUTION",
+      "suggested": "L1_RESOURCE",
+      "confidence": "low"
+    }
+  ]
+}
