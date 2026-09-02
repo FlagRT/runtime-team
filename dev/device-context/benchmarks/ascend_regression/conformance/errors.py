@@ -208,6 +208,10 @@ ACL_ERR_TO_CATEGORY = {
 _MESSAGE_HINTS = [
     (re.compile(r"(shape|size mismatch|dimension|预期|形状)", re.I), ErrorCategory.L2_PARAM),
     (re.compile(r"(invalid (device|ordinal|data|op|param))", re.I), ErrorCategory.L2_PARAM),
+    # vLLM 层校验错误（2026-09-02 D10 集成时发现）：超长 prompt / 上下文长度超限 /
+    # 参数校验失败 —— 责任在调用方请求，重放无意义，应上抛（L2）而非执行类重放（L3）
+    (re.compile(r"(vllmvalidationerror|maximum context length|exceed(s|ed)? (the )?(length|limit|tokens|maximum)|prompt.*too long|too many tokens)", re.I),
+     ErrorCategory.L2_PARAM),
     (re.compile(r"(out of (memory|resource)|allocat|名额|memory (alloc|fault))", re.I), ErrorCategory.L1_RESOURCE),
     (re.compile(r"(kernel|stream|event|runtime|execute|aclnn|aclnn\w+ failed)", re.I), ErrorCategory.L3_EXECUTION),
     (re.compile(r"(fatal|context (corrupt|invalid|damaged)|device (reset|lost))", re.I), ErrorCategory.L4_FATAL),

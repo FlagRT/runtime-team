@@ -279,7 +279,8 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | **O2** | **D8 双缓冲求解实验** | 找到重叠率为正的条件与方案适用边界 | ✅ **已完成（2026-09-02）**：转折点 n≈1024；V4 小负载专用（同步开销 -84%）、V0/V1 大负载专用（+32~34%）、V1 综合最稳健且数值逐位等价；n≤512 建议不流水线。详见 **§5.2** |
 | **O2-b** | **A1 吞吐数字重测** | 修正被污染的 19.5 tok/s | ✅ 已完成：同口径（16×256 批量）Qwen2.5-1.5B = **283.0 tok/s**、Qwen3-4B = **285.2 tok/s**（见 §4.2） |
 | **O2-c** | **A5 分叉性质定性** | 明确 TP 分叉是固有特性还是缺陷 | ✅ 已完成：数值不等价但**语义等价**，分叉早晚与任务选择空间负相关，非缺陷（见 §4.3） |
-| **O4** | **补查 A6/A7、A8** | A6/A7 仅 4 场景且流绑定为单点验证；A8 的「124 处映射」含义与句柄泄漏未验 | ⬜ **待做** |
+| **O4** | **补查 A6/A7、A8** | A6/A7 仅 4 场景且流绑定为单点验证；A8 的「124 处映射」含义与句柄泄漏未验 | ✅ **已完成（2026-09-02）**：A6/A7 增强 8 场景全过（含流绑定排他证据）；A8 句柄明细修正 + 释放验证通过 |
+| **O2-d** | **D10/D11 集成到真实推理服务** | 从「模块验证」升级为「职责落地」 | ✅ **已完成（2026-09-02）**：错误码翻译挂接 vLLM 全部错误路径，实测 VLLMValidationError 正确翻译为 **L2_PARAM**（此前被误兜底 L3）；设备状态监控并行运行。集成暴露并修复 3 个真实 bug（见 §8.1） |
 | **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260901.md`） | ⏸ 暂不发起（用户决定） |
 
 ### O2 设计要点（待细化）
@@ -297,3 +298,24 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 
 **实验纪律**：最小变更 + 单变量隔离，先用 §5 的分段计时探针复现基线，再逐方案对比重叠率。
 训练侧（`DEVICE_CONTEXT_TRAINING_MAPPING_20260831.md` 10/11）回补可复用同一结论。
+
+
+### 8.1 D10/D11 集成发现与修复（2026-09-02）
+
+集成（`benchmarks/inference/inject_error_translation.py` + `device_state_monitor.py`）把
+已验证的职责模块挂到 vLLM 真实推理路径，暴露并修复 3 个仅集成才可见的 bug：
+
+| # | bug | 现象 | 修复 |
+|---|---|---|---|
+| 1 | **handler 必须是 async def** | 同步包装函数被 Starlette 异常中间件 await → `TypeError: 'coroutine' object is not callable` | `_wrapped` 改为 `async def` |
+| 2 | **外层 wrap 不能是 async** | `async def wrap()` 调用返回 **coroutine 而非函数** → 注册后运行时 `the first argument must be callable` | 外层改普通 `def` |
+| 3 | **pkill 自杀** | `pkill -f 'VLLM::EngineCore'` 匹配到执行命令的 bash 自身 → exit 143 | 变量拼接 `P=VLLM::Engin; pkill -f "${P}eCore"` |
+
+**集成暴露的真实分级缺陷（已修复）**：`VLLMValidationError`（超长 prompt）此前被
+`_MESSAGE_HINTS` 兜底判为 **L3_EXECUTION**（执行类，重放无意义）。新增规则
+（`vllmvalidationerror|maximum context length|exceed...` → **L2_PARAM**）后，
+实测超长请求返回 400 且翻译为 `[exception_handler][L2_PARAM]`。
+
+**结论**：集成前"模块验证全绿"掩盖了两类问题——① 框架错误类型（VLLMValidationError）
+不在 ACL 错误码映射体系内，分级靠关键词兜底可能失准；② 包装代码的异步语义错误。
+**验证 ≠ 集成，集成才暴露真实边界。**
