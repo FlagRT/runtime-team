@@ -28,7 +28,7 @@
 | FlagGems | github.com/flagos-ai/FlagGems | master@c22f8eb | flag_gems 0.0.0（editable） | 昇腾 triton 算子库 | packaging≥26.0、PyYAML==6.0.1、sqlalchemy==2.0.48、numpy；ascend 组合 torch==2.10.0+cpu（官方 extra 含 torch-npu，**本团队不用 torch-npu**，以 torch_fl 替代） |
 | vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | main@db9afd6 | vllm-plugin-fl 0.0.0（editable） | 推理插件（KV Cache 挂载点、Platform 层） | 运行时 pyyaml；配套 vllm==0.20.2；Python 3.10~3.13；构建需 torch≥2.7.1 |
 | FlagTree | github.com/flagos-ai/FlagTree | 分支 triton_v3.2.x | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311） |
-| FlagPerf | github.com/flagos-ai/FlagPerf | main（FlagRT fork） | FlagPerf | AI 硬件评测与基准测试 | 依赖以 FlagPerf 仓库自身 README/requirements 为准；不自动并入 venv311 核心组合 |
+| FlagPerf | github.com/flagos-ai/FlagPerf | main（FlagRT fork） | FlagPerf | AI 硬件评测与基准测试 | 依赖以 FlagPerf 仓库自身 README/requirements 为准；不自动并入 venv311 核心组合；性能评测的宿主入口、运行环境和验证边界见 `dev/performance/README.md` |
 
 ### 1.1 协同开发链接（FlagRT 组织主干）
 
@@ -70,6 +70,7 @@ python 3.11.15 + torch 2.10.0+cpu + vllm 0.20.2 + triton_ascend 3.2.1
 
 ## 5. 变更记录
 
+- 2026-09-02：新增 performance 性能评测协调入口；FlagPerf 正式代码仍由独立仓库维护，宿主入口、运行环境与验证边界见 `dev/performance/README.md`
 - 2026-08-27：**公共配置对齐（组级）**——`DO_NOT_TRACK=1` 补注入 `compose.base.yml`（原"待补注入"）；子方向 compose 必须声明独立 `name:`（默认 project 取首个 -f 文件目录名 `dev`，会跨方向重建 `runtime-dev`）；`!override` 覆盖设备约束与昇腾 vLLM 通用坑写入根 README
 - 2026-08-22：**设备层路线变更（B→A 主线，B 降预研支线）**，权威依据 `dev/memory/docs/FlagOS设备层路线变更指南.md`；昆仑芯实测细节（镜像/venv/环境变量）归 memory 子方向文档
 - 2026-08-20：`clone_all.sh` 纳入 FlagPerf（FlagRT/FlagPerf，main）；同步更新仓库清单、目录约定、模板和 `.gitignore`
