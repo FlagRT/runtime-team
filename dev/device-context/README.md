@@ -394,3 +394,61 @@ pyACL 签名为四参数 `launch_callback(fn, userData, block, stream)`（三参
 - [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260901.md`），**暂不发起**（等通知）
 - [ ] D8 支线：双缓冲「减少同步点」优化（EVENT_WAIT 瓶颈，训练侧最后一块性能缺口）
 - [ ] 维护提醒：CANN 升级后错误码会变，应重跑 `gen_acl_error_map.py` + `audit_error_map_coverage.py` 复核差异
+
+## 2026-09-02 第十二批：结论彻查修正 + P0/P1/P2 全部闭环（D8 落地、集成、四项补齐、真实触发）
+
+> 起因：用户两次质疑（"物理限制"归因、"证伪后要求解"）→ 全量彻查 → 修正 3 项错误结论 → 求解实验 → 逐项落地
+
+### 一、结论大修正（3 项错误结论撤回重做）
+
+| 项 | 原错误结论 | 修正后正确结论 | 证据 |
+|---|---|---|---|
+| D8/A3 重叠率 | n≤1024 为负系"物理限制" | **实现层同步开销**（V4 可压降 84%），非硬件不可逾越 | test_dbuf_variants_rigorous.py（每规模独立预热 + rounds=7） |
+| A5 TP 等价 | greedy 逐字一致 4/4 | **数值不等价（50.1% 一致）但语义等价**，分叉属固有特性非缺陷 | 16×256 token 严谨复测 + TP=1 自重复 100% 对照 |
+| A1 吞吐 | 19.5 tok/s | 同口径重测 **283.0 tok/s**（预热不足污染，差 14.5 倍） | 16×256 批量同口径对照 |
+
+### 二、P0 落地（职责从"模块验证"到"集成可用"）
+
+| 项 | 成果 |
+|---|---|
+| D10/D11 集成 | `inject_error_translation.py` 挂接 vLLM 全部异常 handler（不碰源码），实测 VLLMValidationError → **L2_PARAM**；`device_state_monitor.py` 并行监控。暴露并修复 3 个仅集成可见 bug（async 语义 ×2 + pkill 自杀） |
+| D8 落地 | `test_double_buffer_pipeline.py` **v2**：四模式（V0/V1/V4/V5）真实现 + 按负载自动选型，三档 `DBUF2_PASS`（n=512→V5 +38.1% / n=1024→V4 +28.8% / n=2048→V0 +40.1%）；训练脚本 pin_memory + non_blocking 回补，训练映射 **10/11 → 11/11 全绿** |
+
+### 三、P1 四项补齐
+
+| 项 | 成果 |
+|---|---|
+| graph capture | `GRAPH_CAPTURE_PASS 5/5`（capture/replay/输入更新/流内切换/显式流），torch.npu.graph 为 CUDA-graph 语义完整移植 |
+| D11 真实重建 | `recovery.py` 新增 `rebuild_mode=real/hybrid`（CANN 官方 aclrtResetDevice 序列），多进程联调 `MULTIPROC_REBUILD_PASS`（同卡服务进程隔离性成立） |
+| SIGKILL 释放 | `kill -9` 后进程残留 0、HBM 完全释放回落基线——**坑 A2 的"SIGKILL 残留占位"在当前环境未复现** |
+| 长驻显存 | serve 21 分钟窗口 HBM/RSS 零增长，无泄漏 |
+
+### 四、P2 两项收尾
+
+| 项 | 成果 |
+|---|---|
+| timeout 真实触发 | `TIMEOUT_REALTIME_PASS`：stream 同步超时真实返回 **507046** → 翻译 L3_EXECUTION 与映射表一致（三层验证 L3 层补齐） |
+| 训练 D8 完整复测 | MAX_STEPS=100 双卡 hccl：`TORCHRUN_EXIT=0` 无崩溃、loss 2.64→1.37、tok/s 5166、HBM 无泄漏、进程残留 0 |
+
+### 五、方法沉淀（本轮最有价值）
+
+1. 自身数据的**反证优先于假设**（V3 的反常早就在表上）
+2. **测量必须按被测规模预热**（跨规模复用 = 系统性偏差，+31% 假象根源）
+3. **样本量要匹配结论强度**（256 token 撑不起"数值等价"）
+4. **因果结论前先排除替代解释**（自重复/可逆性对照）
+5. **"物理限制"是最危险的归因**（不可证伪）
+6. **验证 ≠ 集成**（集成才暴露真实边界：框架错误类型、异步语义、进程管理）
+7. **证伪 ≠ 求解**（继续做实验直到拿到"什么是对的"）
+
+## 当前状态与下一步（2026-09-02 更新）
+
+- [x] 推理四阶段（P0-P3）闭环，D1-D11 全绿（经 09-02 彻查修正，结论有对照实验支撑）
+- [x] 错误码映射表建设（64.8% 覆盖 + F5 可观测 + timeout 真实触发）
+- [x] P0-② D10/D11 集成到真实 serve（VLLMValidationError → L2_PARAM 实测）
+- [x] P0-① D8 落地（四模式选型 DBUF2_PASS）+ 训练侧回补（完整复测 100 步无崩溃）
+- [x] P1 四项（graph capture / 真实重建 / SIGKILL / 长驻显存）
+- [x] P2 两项（timeout 真实触发 / 训练完整复测）
+- [x] 全量回归：conformance **13/13** + infer **6/6** PASS（多轮）
+- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260901.md`），**暂不发起**（等通知）
+- [ ] D11 real 重建模式：**需大模型多卡多进程压力测试调优**后再作生产默认（默认 probe 保底）
+- [ ] 维护提醒：CANN 升级后错误码会变，应重跑 `gen_acl_error_map.py` + `audit_error_map_coverage.py` 复核差异
