@@ -58,7 +58,7 @@
 | D7 | 页锁定内存 | pin_memory 在推理传输路径 | pin_memory 传输一致性 + 预热纪律 | T1 + 双缓冲探针 | ✅ 2026-08-31：T1 pinned→device non_blocking 拷贝数据一致 PASS；双缓冲探针全程使用 pin_memory（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | ① 功能：多流+Event 数据一致 ② 性能：重叠率为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler + test_dbuf_variants_rigorous | ✅ **已落地（2026-09-02 v2）**：① 功能 ✅ 四模式（V0/V1/V4/V5）D2H 数据与主机参考一致（rel_err<1e-3）② 性能 ✅ **按负载自动选型**：n≤512→V5 同流顺序（0.601ms，最快）；n≈1024→V4 压同步（+28.8%）；n≥2048→V0 批间流水（+40.1%）。实现层同步开销问题已解决（V4 压降 84%），详见 **§5.2/§5.3** 与工程指引表 |
 | D9 | 同步语义 | TP 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP 通信无 NaN + E2 语义 | E1-E3 + test_tp_comm_sync（双卡 FlagCX） | ✅ **TP_COMM_PASS 4/4**：B2 类问题在 A 线不存在 |
-| D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 + 分级来源可观测 | F1 + errors.py + probe_acl_107015 + gen/audit_error_map | ✅ 2026-09-01 **ACL_107015_PASS**：真实错误注入 + A/B 单变量对照（根因 = stream 未 subscribe 即 launch callback）。**107015 已定级 L2_PARAM**（实测裁决，非规则建议）。错误码映射覆盖率 **0.8% → 64.8%（103/159）**，新增 F5 可观测（`mapped`/`graded_by`）区分确定分级与保守兜底。详见 `docs/ACL_ERROR_MAP_20260901.md` |
+| D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 + 分级来源可观测 + 关键类真实触发 | F1 + errors.py + probe_acl_107015 + gen/audit_error_map + probe_timeout_realtime | ✅ 2026-09-01 **ACL_107015_PASS**（真实注入 + A/B 对照，107015 定级 L2_PARAM）+ **2026-09-02 TIMEOUT_REALTIME_PASS**：stream 同步超时真实触发返回 **507046**（STREAM_SYNC_TIMEOUT），翻译 **L3_EXECUTION**（mapped=True）与映射表一致——L1/L2/L3 三层验证策略补齐。覆盖率 0.8% → 64.8%（103/159），F5 可观测。详见 `docs/ACL_ERROR_MAP_20260901.md` |
 | D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 + 真实重建路径可行且已落地 | R1-R5 + device_state + recovery + probe_device_reset_rebuild + test_rebuild_multiprocess | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**（L4 完整 R1→R5）+ **2026-09-02 真实重建落地 MULTIPROC_REBUILD_PASS**：recovery.py 新增 `rebuild_mode=real/hybrid`（CANN 官方序列 aclrtResetDevice），多进程本地联调 2 次全过——S1 真实重建成功 / S2 同卡服务进程 30/30 轮零失败（隔离性成立）/ S3 重建后句柄与计算恢复；conformance 13/13 + infer 6/6 回归无破坏。⚠️ **上传仓库后需大模型多卡多进程压力测试调优**（默认 rebuild_mode=probe 保持进程内安全） |
 
 ---
@@ -313,6 +313,8 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | **P1-③** | **D11 真实重建调研** | 恢复从"探针重试近似"升级为真实重建 | ✅ **RESET_REBUILD_PASS**：CANN 官方序列在 pyACL 层全部可执行、reset 后设备可恢复；释放范围=当前进程默认上下文（probe_device_reset_rebuild.py）。落地到 recovery.py 待拍板 |
 | **P1-⑥** | **A8 SIGKILL 释放** | 坑 A2 称 SIGKILL 残留占位 | ✅ **未复现残留**：kill -9 后进程 0 残留、HBM 完全释放回落基线。坑 A2 在当前环境不成立 |
 | **P1-⑤** | **D3 长驻显存（serve 小时级）** | i5 仅 20 轮，serve 长驻未验 | ✅ **加载后零增长**（T1=T2：HBM 61129MB / RSS 5855MB）；12 请求后 +107MB HBM/+81MB RSS（vLLM KV cache 正常缓存）后回落。小时级持续观察中（serve 运行于 910C:8100） |
+| **P2-⑦** | **D10 timeout 真实触发** | TIMEOUT 类仅做过构造消息验证（L2 层），未真实触发 | ✅ **TIMEOUT_REALTIME_PASS**：stream 同步超时真实返回 **507046**（STREAM_SYNC_TIMEOUT），翻译 **L3_EXECUTION**（mapped=True）；三层验证 L3 层补齐（probe_timeout_realtime.py） |
+| **P2-⑧** | **训练 D8 完整复测** | 此前仅 MAX_STEPS=20 冒烟 | ✅ **完整复测通过（MAX_STEPS=100）**：双卡 hccl 全程 `TORCHRUN_EXIT=0` 无崩溃；loss 2.64→1.37（s50，历史基准 1.9 同量级）；tok/s 单调爬升至 **5166**；训练后 HBM 完全回落基线无泄漏、进程残留 0 |
 | **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260901.md`） | ⏸ 暂不发起（用户决定） |
 
 ### O2 设计要点（待细化）
