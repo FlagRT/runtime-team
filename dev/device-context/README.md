@@ -443,7 +443,7 @@ pyACL 签名为四参数 `launch_callback(fn, userData, block, stream)`（三参
 ## 当前状态与下一步（2026-09-02 更新）
 
 - [x] 推理四阶段（P0-P3）闭环，D1-D11 全绿（经 09-02 彻查修正，结论有对照实验支撑）
-- [x] 错误码映射表建设（64.8% 覆盖 + F5 可观测 + timeout 真实触发）
+- [x] 错误码映射表建设（**64.8% 覆盖（103/159，CANN 头文件 159 码全集口径；`errors.py` 实际 108 条含其他域）** + F5 可观测 + timeout 真实触发）
 - [x] P0-② D10/D11 集成到真实 serve（VLLMValidationError → L2_PARAM 实测）
 - [x] P0-① D8 落地（四模式选型 DBUF2_PASS）+ 训练侧回补（完整复测 100 步无崩溃）
 - [x] P1 四项（graph capture / 真实重建 / SIGKILL / 长驻显存）
