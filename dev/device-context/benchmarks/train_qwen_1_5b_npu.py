@@ -1,16 +1,14 @@
 """
-Qwen2.5-1.5B 双卡 DDP 训练 —— torch_fl / flagos 设备（910C，FlagOS 栈）
+Qwen2.5-1.5B 双卡 DDP 训练 —— torch_npu + FlagCX flagcx backend（910C，A 线）
 ==========================================================================
-目标：验证 FlagOS 设备执行上下文（需求 1+2）支撑双卡训练闭环（需求 3/4 验证）
+目标：验证官方 dev-1.0 HCCL 适配 + 四层根因修复在 torch_npu 环境下的
+      910C 两卡训练闭环（本机同构，不依赖 torch_fl）
 要点：
-  - import torch_fl 自动注册 flagos 设备后端（PrivateUse1）
-  - DDP 后端先用 gloo（FlagCX ProcessGroupFlagOS 在 Ascend 上未验证，先跑通）
-  - dtype fp16（910C 兼容性保守选择）
+  - import torch_npu 注册 npu 设备（PrivateUse1）
+  - dist backend="flagcx"（FlagCX torch 插件，HCCL adaptor）
+  - dtype bf16；模型 /data_lib/models/Qwen2.5-1.5B
 运行（宿主侧）：
-  docker exec flagos-device-context-dev-910c bash -c "
-  source /usr/local/Ascend/ascend-toolkit/set_env.sh
-  cd /workspace/dev/device-context/benchmarks
-  torchrun --nproc_per_node=2 --master_port=29501 train_qwen_1_5b_flagos.py"
+  docker exec flagos-device-context-a-910c bash -lc "cd /workspace/dev/device-context/benchmarks &&   torchrun --nproc_per_node=2 --master_port=29521 train_qwen_1_5b_npu.py"
 """
 
 import os
@@ -19,7 +17,7 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 
 import time
 import torch
-import torch_fl  # noqa: F401  # 注册 flagos 设备后端
+import torch_npu  # noqa: F401  # 注册 npu 设备后端
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -35,25 +33,23 @@ BATCH_SIZE = 1
 EPOCHS = 1
 LR = 5e-5
 LOG_EVERY = 5
-DEVICE = "flagos"
+DEVICE = "npu"
 
 
 def main():
-    # ---- 分布式初始化（必须用 flagos 后端 = ProcessGroupFlagOS/FlagCX；gloo 不支持 flagos 设备）----
-    dist.init_process_group(backend="flagos")
+    # ---- 分布式初始化（A 线：FlagCX flagcx backend = HCCL adaptor）----
+    BACKEND = os.environ.get("BACKEND", "flagcx")
+    dist.init_process_group(backend=BACKEND)
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     rank = dist.get_rank()
     world_size = dist.get_world_size()
 
-    # ---- 设备绑定（flagos 设备）----
+    # ---- 设备绑定（每个进程绑定自己的 NPU）----
     dev = torch.device(DEVICE, local_rank)
-    # 关键：每个进程显式绑定自己的 NPU（HCCL 集合操作要求当前 ACL 设备
-    # 与通信器设备匹配；torch_fl 默认只在 device 0，不绑定会导致
-    # HcclAllGather E_PARA / E_RUNTIME(107003 stream not in current ctx)）
-    torch.flagos.set_device(local_rank)
+    torch.npu.set_device(local_rank)
     if rank == 0:
-        print(f"[init] world_size={world_size}, local_rank={local_rank}, device={dev}, cur={torch.flagos.current_device()}", flush=True)
-        print(f"[init] torch={torch.__version__}, flagos_count={torch_fl.flagos.device_count()}", flush=True)
+        print(f"[init] world_size={world_size}, local_rank={local_rank}, device={dev}", flush=True)
+        print(f"[init] torch={torch.__version__}, npu_count={torch_npu.npu.device_count()}", flush=True)
 
     # ---- 模型 ----
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
@@ -62,12 +58,12 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_PATH, dtype=torch.bfloat16, trust_remote_code=True
     ).to(dev)
-    model = DDP(model, device_ids=[local_rank])  # 踩坑点：PrivateUse1 设备的 DDP
+    model = DDP(model, device_ids=[local_rank])
     if rank == 0:
         n = sum(p.numel() for p in model.parameters())
         print(f"[model] params={n/1e6:.1f}M dtype=bf16", flush=True)
 
-    # ---- 数据：wikitext-2-raw-v1，flatten 切块 ----
+    # ---- 数据：wikitext-2-raw-v1（缓存已就位），flatten 切块 ----
     ds = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train", cache_dir=DATA_CACHE)
 
     def tok(ex):
@@ -116,10 +112,21 @@ def main():
 
     # ---- 训练循环 ----
     t0 = time.time()
+    # ---- 可选 profiler（PROFILE=1 启用）：统计 allreduce 调用次数与耗时 ----
+    use_prof = os.environ.get("PROFILE") == "1"
+    prof = None
+    if use_prof:
+        from torch.profiler import profile, ProfilerActivity, schedule
+        prof = profile(activities=[ProfilerActivity.CPU],
+                       schedule=schedule(wait=10, warmup=5, active=20, repeat=0))
+        prof.start()
     for epoch in range(EPOCHS):
         sampler.set_epoch(epoch)
         model.train()
         for step, batch in enumerate(loader):
+            max_steps = int(os.environ.get("MAX_STEPS", "0"))
+            if max_steps and step >= max_steps:
+                break
             # D8 回补（2026-09-02）：non_blocking=True —— H2D 异步提交，与上一批计算重叠。
             # pin_memory=True 保证真异步；语义与 .to(dev) 等价，数值不变。
             batch = {k: v.to(dev, non_blocking=True) for k, v in batch.items()}
@@ -131,13 +138,28 @@ def main():
             if step % LOG_EVERY == 0 and rank == 0:
                 el = time.time() - t0
                 tps = (step + 1) * BATCH_SIZE * world_size * MAX_LEN / max(el, 1e-6)
-                print(f"[ep{epoch} s{step}] loss={loss.item():.4f} "
-                      f"mem={torch_fl.flagos.memory_allocated()/1e9:.2f}GB "
-                      f"tok/s={tps:.0f}", flush=True)
+                print(f"[ep{epoch} s{step}] loss={loss.item():.4f} tok/s={tps:.0f}", flush=True)
+            if use_prof:
+                prof.step()
+
+    if use_prof:
+        prof.stop()
+        if rank == 0:
+            keys = prof.key_averages()
+            ars = [e for e in keys if "allreduce" in e.key.lower() or "all_reduce" in e.key.lower()]
+            n_ar = len(ars)
+            tot_ms = sum(e.self_cpu_time_total for e in ars) / 1000.0
+            n_all = sum(1 for e in keys if "allreduce" in e.key.lower())
+            n_calls = sum(e.count for e in ars)
+            avg_ms = tot_ms / n_calls if n_calls else 0.0
+            print(f"[profiler] backend={BACKEND} allreduce_events={n_ar} calls={n_calls} total_self_cpu_ms={tot_ms:.1f} avg_self_cpu_ms={avg_ms:.2f}", flush=True)
+            import os as _os
+            _os.makedirs("/workspace/logs", exist_ok=True)
+            prof.export_chrome_trace(f"/workspace/logs/trace_{BACKEND}.json")
 
     if rank == 0:
         os.makedirs(OUT_DIR, exist_ok=True)
-        ckpt = os.path.join(OUT_DIR, "ckpt_final_flagos")
+        ckpt = os.path.join(OUT_DIR, "ckpt_final_npu")
         model.module.save_pretrained(ckpt)
         tokenizer.save_pretrained(ckpt)
         print(f"[done] saved to {ckpt}", flush=True)

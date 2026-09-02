@@ -1,0 +1,94 @@
+{
+  "verdict": "DEVICE_STATE_RECOVERY_PASS",
+  "ordinal": 0,
+  "phases": {
+    "initial_state": "available",
+    "stress": {
+      "concurrency": 6,
+      "wall_s": 0.84,
+      "latencies": [
+        0.83,
+        0.83,
+        0.83,
+        0.84,
+        0.84,
+        0.83
+      ],
+      "errors": [],
+      "state_after_degrade": "degraded",
+      "state_after_restore": "available",
+      "state_events": [
+        [
+          "degraded",
+          "available",
+          "并发压力注入演练"
+        ],
+        [
+          "available",
+          "degraded",
+          "压力解除"
+        ]
+      ]
+    },
+    "l4_branch": {
+      "category": "L1_RESOURCE",
+      "error_code": 507021,
+      "recovery_decision": {
+        "captured": true,
+        "steps": [
+          "captured",
+          "evaluated: L1_RESOURCE, no device recovery"
+        ],
+        "replayable": true
+      },
+      "state_after": "available"
+    },
+    "l4_full_r1_r5": {
+      "category": "L4_FATAL",
+      "recovery_decision": {
+        "captured": true,
+        "steps": [
+          "captured",
+          "evaluated: isolated",
+          "recovered: True",
+          "replay_ready"
+        ],
+        "replay_ready": true,
+        "replay_tasks": []
+      },
+      "state_after": "available",
+      "sync_calls": 3
+    },
+    "l3_branch": {
+      "category": "L3_EXECUTION",
+      "error_code": 107015,
+      "recovery_decision": {
+        "captured": true,
+        "steps": [
+          "captured",
+          "evaluated: L3_EXECUTION, no device recovery"
+        ],
+        "replayable": true
+      },
+      "state_after": "available"
+    },
+    "recovery_drill": {
+      "state_isolated": "isolated",
+      "recover_ok": true,
+      "state_final": "available",
+      "serve_after_recovery_ok": true,
+      "serve_text": " Paris. The capital of Germany is Berlin. The capital of Italy is Rome."
+    }
+  },
+  "checks": {
+    "four_state_queryable": true,
+    "degrade_transition": true,
+    "restore_transition": true,
+    "l4_evaluated": true,
+    "l4_full_r1_r5": true,
+    "l3_no_rebuild": true,
+    "isolated_to_available": true,
+    "serve_after_recovery": true
+  },
+  "note": ""
+}

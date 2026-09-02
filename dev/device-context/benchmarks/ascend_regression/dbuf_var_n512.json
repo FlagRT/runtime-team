@@ -1,0 +1,75 @@
+{
+  "config": {
+    "batches": 6,
+    "n": 512,
+    "rounds": 5,
+    "out": "dbuf_var_n512.json"
+  },
+  "variants": {
+    "V0_基线_2record2wait": {
+      "pipe_s": 0.0017,
+      "serial_s": 0.0012,
+      "overlap": -0.464,
+      "overlap_pct": "-46.4%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0017,
+        0.0019,
+        0.0017,
+        0.0016,
+        0.0017
+      ]
+    },
+    "V1_精简链_1record1wait": {
+      "pipe_s": 0.0013,
+      "serial_s": 0.0009,
+      "overlap": -0.4103,
+      "overlap_pct": "-41.0%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0013,
+        0.0013,
+        0.0013,
+        0.0013,
+        0.0013
+      ]
+    },
+    "V2_流依赖_wait_stream": {
+      "pipe_s": 0.0012,
+      "serial_s": 0.001,
+      "overlap": -0.1745,
+      "overlap_pct": "-17.4%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0012,
+        0.0009,
+        0.0013,
+        0.0013,
+        0.0009
+      ]
+    },
+    "V3_粗粒度_计算x8": {
+      "pipe_s": 0.0021,
+      "serial_s": 0.0013,
+      "overlap": -0.5519,
+      "overlap_pct": "-55.2%",
+      "n_calc_repeat": 8,
+      "data_ok": true,
+      "all_runs": [
+        0.0021,
+        0.0021,
+        0.0021,
+        0.0021,
+        0.0021
+      ]
+    }
+  },
+  "note": "最佳方案 V2_流依赖_wait_stream 重叠率 -17.4%，仍未达 5% 阈值；需继续减少同步点或放大计算粒度",
+  "best_by_overlap": {
+    "name": "V2_流依赖_wait_stream",
+    "overlap_pct": "-17.4%"
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "config": {
+    "batches": 6,
+    "n": 512,
+    "rounds": 3,
+    "out": "/mnt/raid/hliu553/runtime-team/dev/device-context/benchmarks/ascend_regression/dbuf_sync_variants_result.json"
+  },
+  "variants": {
+    "V0_基线_2record2wait": {
+      "pipe_s": 0.0018,
+      "serial_s": 0.0011,
+      "overlap": -0.6925,
+      "overlap_pct": "-69.2%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0018,
+        0.0018,
+        0.0017
+      ]
+    },
+    "V1_精简链_1record1wait": {
+      "pipe_s": 0.0013,
+      "serial_s": 0.0017,
+      "overlap": 0.2161,
+      "overlap_pct": "21.6%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0013,
+        0.0013,
+        0.0013
+      ]
+    },
+    "V2_流依赖_wait_stream": {
+      "pipe_s": 0.0017,
+      "serial_s": 0.0009,
+      "overlap": -0.9449,
+      "overlap_pct": "-94.5%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0019,
+        0.0015,
+        0.0017
+      ]
+    },
+    "V3_粗粒度_计算x8": {
+      "pipe_s": 0.0023,
+      "serial_s": 0.0014,
+      "overlap": -0.6484,
+      "overlap_pct": "-64.8%",
+      "n_calc_repeat": 8,
+      "data_ok": true,
+      "all_runs": [
+        0.0023,
+        0.0023,
+        0.0022
+      ]
+    }
+  },
+  "note": "方案 V1_精简链_1record1wait 达成重叠率 21.6%（> 5%），A3 性能项可闭环",
+  "best_by_overlap": {
+    "name": "V1_精简链_1record1wait",
+    "overlap_pct": "21.6%"
+  }
+}

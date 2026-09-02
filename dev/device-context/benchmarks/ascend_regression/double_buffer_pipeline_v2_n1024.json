@@ -1,0 +1,43 @@
+{
+  "verdict": "DBUF2_FAIL",
+  "checks": {
+    "double_buffer_correct": {
+      "ok": false,
+      "detail": "存在数据不一致"
+    },
+    "mode_selection": {
+      "ok": true,
+      "detail": "各档按负载选型合理（流水线重叠为正 或 小负载正确降级 V5）"
+    }
+  },
+  "sizes": {
+    "1024": {
+      "baseline_ms": 1.491,
+      "modes": {
+        "V0": {
+          "ms": 1.535,
+          "overlap": -3.0
+        },
+        "V1": {
+          "ms": 1.008,
+          "overlap": 32.4
+        },
+        "V4": {
+          "ms": 0.941,
+          "overlap": 36.9
+        },
+        "V5": {
+          "ms": 1.06,
+          "overlap": 28.9
+        }
+      },
+      "selected": "V4",
+      "rule_suggest": "V1",
+      "selection_reason": "四模式实测最快=V4（0.941ms）；§5.2 规则建议=V1（转折点附近，精简链或压同步次数）",
+      "data_correct": false,
+      "selection_ok": true,
+      "selection_note": "选中 V4 相对基准重叠率 +36.9%"
+    }
+  },
+  "note": "数据不一致，流水线错误"
+}

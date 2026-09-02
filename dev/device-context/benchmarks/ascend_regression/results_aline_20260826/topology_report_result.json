@@ -1,0 +1,101 @@
+{
+  "devices": [
+    {
+      "ordinal": 0
+    },
+    {
+      "ordinal": 1
+    },
+    {
+      "ordinal": 2
+    },
+    {
+      "ordinal": 3
+    },
+    {
+      "ordinal": 4
+    },
+    {
+      "ordinal": 5
+    },
+    {
+      "ordinal": 6
+    },
+    {
+      "ordinal": 7
+    },
+    {
+      "ordinal": 8
+    },
+    {
+      "ordinal": 9
+    },
+    {
+      "ordinal": 10
+    },
+    {
+      "ordinal": 11
+    },
+    {
+      "ordinal": 12
+    },
+    {
+      "ordinal": 13
+    },
+    {
+      "ordinal": 14
+    },
+    {
+      "ordinal": 15
+    }
+  ],
+  "topology": {
+    "npu_smi_devices": [
+      {
+        "dev_id": "0",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "1",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "2",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "3",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "4",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "5",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "6",
+        "chip": "Ascend910",
+        "health": "OK"
+      },
+      {
+        "dev_id": "7",
+        "chip": "Ascend910",
+        "health": "OK"
+      }
+    ],
+    "interconnect": {
+      "domain": "single-node",
+      "hint": "同节点设备间通信优先走 HCCS（芯片间直连），无需网卡——与四层根因②的结论一致"
+    }
+  },
+  "interface_gap": "torch_fl 未暴露统一拓扑查询接口，回退 npu-smi 读取互联事实"
+}

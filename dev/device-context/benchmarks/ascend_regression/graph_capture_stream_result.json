@@ -1,0 +1,26 @@
+{
+  "verdict": "GRAPH_CAPTURE_PASS",
+  "checks": {
+    "G1_capture_correct": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G2_replay_deterministic": {
+      "ok": true,
+      "detail": "两次 replay 差=0.00e+00"
+    },
+    "G3_input_update_replay": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G4_capture_stream_semantics": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G5_capture_explicit_stream": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    }
+  },
+  "note": "D5 graph capture 流语义验证：capture/replay/输入更新/流切换/显式流 5 项全部通过"
+}
