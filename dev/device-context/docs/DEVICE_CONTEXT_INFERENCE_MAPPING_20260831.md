@@ -85,9 +85,9 @@
 | A3 | 双缓冲流水线：① 数据一致 + 多流真并发 ② 重叠率为正 | D8/D5/D6/D7 | ⚠️ **条件达标**：① ✅ 数据一致（i6 rel_err 2.06e-07）+ 多流真并发（Level1 kernel 时间线证实）② **规模相关**：n≥1024 时 V1/V4 转正（+13~14%），n≥2048 时 V0/V1 达 +32~34%；**n≤512 时任何方案均为负，且同流顺序执行最快** —— 详见 §5.2 求解结论（原"物理限制"归因已撤回） |
 | A4 | 双缓冲重叠深挖结论（同步退化 vs 流切换开销定位） | D8/D5 | ✅ 2026-08-31：三排除 + 瓶颈=EVENT_WAIT（3.37ms/12 次），非并发能力问题 |
 | A5 | TP=2 与 TP=1 输出一致性 | D5/D9 | ⚠️ **结论修正（2026-09-02）**：原记"greedy 逐字一致 4/4"样本仅 4×64 token，不足。**16 prompt × 256 token 严谨复测：数值层面不等价**（仅 4/16 全长一致，一致 token 50.1%，一致前缀中位 ~80 token）；**但语义层面等价** —— 分叉后输出均合理完整（详见 §4.3）。属自回归生成固有特性，**非同步缺陷** |
-| A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31：TP_COMM_PASS 4/4，B2 类问题在 A 线不存在 |
-| A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ 2026-08-31：all_reduce 后立即设备侧消费正确（got=6.0） |
-| A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ✅ 2026-09-01：`ENGINECORE_CTX_PASS` —— spawn 子进程 pid=8421(ppid=8402) 持有 `/dev/davinci_manager` fd、124 处设备内存映射、RSS 5952MB，功能请求 0.23s 正常 |
+| A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31 TP_COMM_PASS 4/4 + **2026-09-02 增强验证**：64MB 大张量正确、**100 轮无 NaN**（原 20 轮），B2 类问题确认不存在 |
+| A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ **2026-09-02 补排他证据**：原 `got=6.0` 单点验证不具排他性（内部隐式同步也会通过）。新增 `test_tp_comm_sync_enhanced.py` 场景 F「跨流不阻塞」——流 S 发大 all_reduce 同时流 T 做独立计算，**重叠效率 54.5%~97.7%（两次运行一致）** → 证明 collective 只阻塞所在流。另 4 流并发 collective 结果全对 |
+| A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ✅ 2026-09-01 `ENGINECORE_CTX_PASS` + **2026-09-02 明细与释放验证**：⚠️ 修正原数字口径——实际持有 **7 个 davinci fd**（均指向 `/dev/davinci_manager`，原记"1"为去重路径数）；映射实为 **davinci 78 + CANN 库 524 + 文件 3010**（原记"124"为过滤子集）。**释放验证通过**：停止后 EngineCore/Worker 残留均为 0 |
 | A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ✅ 2026-09-01 `ACL_107015_PASS` + **2026-09-02 排他性验证 7/7 通过**（`test_107015_exclusivity.py`）：含**可逆性**（subscribe→unsubscribe→launch 回到 107015）、block 参数无关（E5/E6）、跨设备复现（E7）→ subscribe_report 是唯一变量 |
 | A10 | 服务化四态监控 + 五段式恢复 | D11 | ✅ 2026-09-01 `DEVICE_STATE_RECOVERY_PASS 8/8` + **2026-09-02 语义验证通过**（`test_recovery_semantics.py`）：瞬时故障可恢复且恢复后 512² matmul 成功；**持久故障保持 ISOLATED、不假恢复**。⚠️ 语义仍为**最小近似**（探针重试 + 状态标记，未调设备生命周期 API），但行为正确 |
 | A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | ✅ P0/P1/P2/P3 全部归档（`INFERENCE_P0_P1_RUN_20260831` + `INFERENCE_QWEN3_TP_COMPARE_20260901` + `INFERENCE_P3_SERVE_STATE_ERROR_20260901` + `ACL_ERROR_MAP_20260901`） |
