@@ -1,6 +1,6 @@
 # communication — 多卡通信项目
 
-> **状态：🟡 环境对齐中（2026-08-18）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
+> **状态：🟡 接口收敛与基线复验中（2026-09-02）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
 > 对齐起点速查：FlagCX 0.13.0；Ascend/HCCL；单机 16 卡；代码主战场 `/workspace/FlagCX`。
 
 ## 目标（一句话）
@@ -13,6 +13,13 @@
 - 公共 Compose 已挂载 16 张 Ascend 910 卡，并注入 `HCCL_NPU_SOCKET_PORT_RANGE=16666,16676`。
 - FlagCX 官方提供 Ascend 构建入口 `make USE_ASCEND=1`、host API 性能测试及 Torch process-group 测试。
 - Compose 合并配置与实际容器启动已通过验证；多卡 collective 测试尚未执行。
+
+## 2026.09 最小交付口径
+
+- 依据组内实施方案，9 月交付聚焦“基础通信适配原型、通信组与 Collective 基础测试”，不扩展独立通信系统。
+- 最小 Backend 契约覆盖通信组生命周期、AllReduce/AllGather/ReduceScatter/Broadcast、Send/Recv、异步完成语义和能力声明。
+- 接口、验收矩阵、跨方向复用资产及退出标准见 [`docs/MINIMUM_BACKEND_CONTRACT_202609.md`](docs/MINIMUM_BACKEND_CONTRACT_202609.md)。
+- `device-context` 已有 TP、Stream/Event 与异步完成语义验证资产，`memory` 已有双卡 FlagCX AllReduce 探针；本方向负责收口为统一通信基线，避免重复造轮子。
 
 ## 环境验证记录（2026-08-24）
 
@@ -47,6 +54,8 @@ dev/communication/
 | 4 | 16 卡集合通信性能基线 | lianzhongyou | ⬜ | #3 | 覆盖 AllReduce/AllGather/ReduceScatter，归档带宽与时延 |
 | 5 | Torch FlagCX process group 回归 | lianzhongyou | ⬜ | #2 | 关键 collective 用例通过 |
 | 6 | KV 传输链路与瓶颈画像 | TBD | ⬜ | #3 | 形成链路图、基准数据与优化清单 |
+| 7 | 2026.09 最小 Backend 契约与验收矩阵 | lianzhongyou | ✅ | 实施方案 | 接口边界、复用资产、退出标准入库 |
+| 8 | 跨方向通信探针收口 | lianzhongyou | 🔄 | #3、device-context、memory | 统一入口，双卡正确性与异步语义结果可追溯 |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 
