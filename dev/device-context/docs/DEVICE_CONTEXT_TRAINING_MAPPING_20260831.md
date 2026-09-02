@@ -25,7 +25,7 @@
 | D2 | 统一设备句柄+生命周期 | 设备枚举/初始化/上下文；conformance 设备无关化 | conformance `--backend {npu,flagos}`；A 线新容器复现 16 卡；训练双卡枚举 | ✅ |
 | D3 | 统一内存句柄+生命周期 | 显存分配/释放；锁页池；AI CPU core 画像 | 六探针：pinned_pool / ai_cpu_core；训练显存与 B 线一致 | ✅ |
 | D4 | 统一执行句柄 | 执行队列/Stream/Event 抽象 | S1-S4 / E1-E3 用例；npu_events.py 适配层（未 record query 修正 + wait_host 有界等待） | ✅ |
-| D5 | 统一 Stream 语义 | 流内顺序/显式依赖/跨流可见性/wait_stream 传递 | S1/S2/S3/S4 全过；A 线 stream 语义修复（getStreamByIndex 当前流、guardImpl+dlsym 取 torch_npu 当前流） | ✅ |
+| D5 | 统一 Stream 语义 | 流内顺序/显式依赖/跨流可见性/wait_stream 传递 + **16 项子项全量核查**（见推理映射 §5.4） | S1/S2/S3/S4 全过；A 线 stream 语义修复；**2026-09-02 子项全量核查 STREAM_SEMANTICS_PASS 8/8**（S1/S2 补强真创建流、S8 默认流vs命名流+record_stream 跨流分配器安全、S9 API 级错误隔离、S10 500 次创建销毁无配额泄漏、S11 跨流内存、S12 流优先级 least=7/greatest=0、S13 多设备流绑定） | ✅ |
 | D6 | Host/Device 异步传输 | 异步拷贝数据一致；在途保护；跨设备直传 | T1 pinned_async_copy / T2 inflight_protection / T3 跨设备传输（拓扑如实标注：torch_npu 未暴露统一拓扑查询） | ✅ |
 | D7 | 页锁定内存 | pin_memory + non_blocking 传输 | T1 + pinned_pool 探针（含"pin_memory 需设备预热"坑） | ✅ |
 | D8 | **双缓冲流水线** | 传输-计算重叠（真实现） | **2026-09-02 回补闭环**：① 重叠机制由推理侧四模式实现验证（`test_double_buffer_pipeline.py` v2，DBUF2_PASS：n≤512→V5 同流 +38.1% / n≈1024→V4 压同步 +28.8% / n≥2048→V0 批间流水 +40.1%，详见推理映射 §5.2/§5.3）；② 训练脚本已启用预取重叠：DataLoader `pin_memory=True` + `batch.to(dev, non_blocking=True)`（num_workers 保持 0，容器内 fork 有风险）；③ 双卡冒烟 20 步无崩溃（loss 2.64→2.04，tok/s 3483） | ✅ |

@@ -53,7 +53,7 @@
 | D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 + probe_enginecore_device_ctx | ✅ i1 PASS + P0 加载 OK + **A8 子进程句柄 PASS**（spawn pid/ppid + `/dev/davinci_manager` fd + 124 处设备映射 + RSS 5952MB） |
 | D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | ✅ 2026-08-31：i3 KV 跨流可见性 / i4 D2H 采样回传 / i5 长驻 20 轮无 NaN-Inf，均 PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | ✅ 2026-08-31：i2 多轮前向同流顺序一致（误差 0.00e+00）PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
-| D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2）+ graph capture 流语义（P1-④） | S1-S4 + i6 + 双缓冲探针 + test_tp_comm_sync + probe_graph_capture_stream | ✅ i6 PASS + **TP 流绑定 4/4 PASS**（多流真并发已由 kernel 时间线证实）+ **GRAPH_CAPTURE_PASS 5/5**（2026-09-02：capture 正确/replay 确定性/输入更新/流内切换/显式流，rel_err 全 0） |
+| D5 | Stream 语义 | **16 项 stream 子项**（见 §5.4 核查表）：流内顺序/显式依赖/跨流可见性/wait_stream/多流并发/通信流绑定/图捕获/默认流/错误隔离/生命周期/跨流内存/流优先级/多设备绑定/超时/IPC/配额 | 子项全量核查通过 | S1-S4 + i6 + 双缓冲 + test_tp_comm_sync + probe_graph_capture_stream + **probe_stream_semantics_full** | ✅ **STREAM_SEMANTICS_PASS 8/8**（2026-09-02 全量核查）：S1 流内顺序 / S2 无隐式同步 / S8 默认流vs命名流+record_stream 跨流分配器安全 / S9 API 级错误隔离 / S10 500 次创建销毁无配额泄漏 / S11 跨流内存 / S12 流优先级（least=7/greatest=0，值越小越高）/ S13 多设备流绑定。详见 **§5.4** |
 | D6 | Host/Device 异步传输 | prompt H2D 异步；logits D2H 回传；KV offload（可选） | ① 功能：异步拷贝数据一致 ② 性能：与计算重叠 | T1/T2 + i4 + 双缓冲 | ⚠️ **部分达标**：① 功能 ✅（i4 D2H 回传 PASS、T1/T2 在 conformance 13/13 内）② 性能 **规模相关**：重叠依赖 D8；n≥1024 转正、n≤512 为负（见 §5.2） |
 | D7 | 页锁定内存 | pin_memory 在推理传输路径 | pin_memory 传输一致性 + 预热纪律 | T1 + 双缓冲探针 | ✅ 2026-08-31：T1 pinned→device non_blocking 拷贝数据一致 PASS；双缓冲探针全程使用 pin_memory（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | ① 功能：多流+Event 数据一致 ② 性能：重叠率为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler + test_dbuf_variants_rigorous | ✅ **已落地（2026-09-02 v2）**：① 功能 ✅ 四模式（V0/V1/V4/V5）D2H 数据与主机参考一致（rel_err<1e-3）② 性能 ✅ **按负载自动选型**：n≤512→V5 同流顺序（0.601ms，最快）；n≈1024→V4 压同步（+28.8%）；n≥2048→V0 批间流水（+40.1%）。实现层同步开销问题已解决（V4 压降 84%），详见 **§5.2/§5.3** 与工程指引表 |
@@ -365,3 +365,34 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | P1-⑤ 长驻显存 | serve（Qwen3-4B TP=1）加载后：T1=T2（HBM 61129MB / RSS 5855MB）**零增长**；12 条请求后 HBM +107MB / RSS +81MB（vLLM KV cache 与中间结构缓存）后回落，无泄漏迹象。小时级持续观察中（serve 保持运行，可随时 `npu-smi` 复查） | T1/T2/T3 采样 |
 
 **P1 四项全部完成。D1-D11 十一项职责在验证层面全部有经核查结论；D10/D11 已集成到真实推理服务；D8 已在推理侧落地 + 训练侧回补。**
+
+
+### 5.4 多流 Stream 职责子项全量核查表（2026-09-02）
+
+> 探针：`benchmarks/ascend_regression/probe_stream_semantics_full.py`（判定 STREAM_SEMANTICS_PASS 8/8）
+> 背景：既有 S1/S2 用例为"框架层近似"（未真正创建流），另有 6 项子项从未覆盖，本次全量核查补齐。
+
+| # | stream 子项 | 训练侧 | 推理侧 | 状态 | 证据 |
+|---|---|---|---|---|---|
+| S-1 | 流内顺序性（FIFO） | S1 用例（**框架层近似**） | i2（同流多轮一致） | ✅ 补强 | 真创建流：4 op 按序 → 5.0 |
+| S-2 | 显式依赖/无隐式同步 | S2 用例（**近似**） | — | ✅ 补强 | 真创建两流：A=7 / B=11 互不干扰 |
+| S-3 | 跨流可见性（event） | S3（真实验证） | i3（KV 跨流可见性） | ✅ | 既有用例通过 |
+| S-4 | wait_stream 传递 | S4（真实验证） | — | ✅ | 既有用例通过 |
+| S-5 | 多流并发重叠 | 映射第 85 行 | 双缓冲 v2 四模式 + TP F 场景 | ✅ | DBUF2_PASS / 跨流不阻塞 54~97% |
+| S-6 | 集合通信流绑定 | — | TP 流绑定 4/4 + F 场景 | ✅ | all_reduce 只阻塞所在流 |
+| S-7 | 图捕获流语义 | — | GRAPH_CAPTURE_PASS 5/5 | ✅ | capture/replay/流切换全过 |
+| S-8 | **默认流 vs 命名流 + 跨流分配器安全** | ❌ 未覆盖 | ❌ 未覆盖 | ✅ **本次补齐** | 默认流/命名流各自正确；**`record_stream` 告知缓存分配器后跨流复用正确（10.0）** |
+| S-9 | **流错误隔离** | ❌ 未覆盖 | ❌ 未覆盖 | ✅ API 级 / ⚠️ 设备级推断 | 流A 注入 107015 后流B 正常（6.0）；**设备级错误（507014 AICORE_TIMEOUT / 507015 AICORE_EXCEPTION）语义上影响该设备全部流**，需设备级恢复 |
+| S-10 | **流/事件生命周期与配额** | 训练侧 event 泄漏已修 | A8 进程级句柄释放 | ✅ **本次补齐** | 500 次创建销毁后仍可正常创建使用新流 |
+| S-11 | **跨流内存分配** | ❌ 未覆盖 | ❌ 未覆盖 | ✅ **本次补齐** | 流A 分配内存在流B 使用（依赖后）→ 6.0 |
+| S-12 | **流优先级** | ❌ 未覆盖 | ❌ 未覆盖 | ✅ **本次补齐** | `leastPriority=7 / greatestPriority=0`（**值越小优先级越高**，范围 0~7，与 `aclrtCreateStreamWithConfig` 注释一致） |
+| S-13 | **多设备流绑定** | ❌ 未覆盖 | ❌ 未覆盖 | ✅ **本次补齐** | 双设备各建独立流，结果 [2.0, 3.0] 正确不互串 |
+| S-14 | 流同步超时语义 | — | 507046 真实触发 | ✅ | TIMEOUT_REALTIME_PASS |
+| S-15 | 跨进程流共享（IPC） | — | — | ⬜ 不适用 | 属大规模分布式/上游能力，本方向单机多卡无此需求 |
+| S-16 | 流数量配额 | — | — | ✅ 探测 | 连续创建 2000 个流成功，无显式配额限制 |
+
+**结论：16 项 stream 子项中 15 项已核查通过，1 项（S-15 跨进程 IPC）标注不适用（大规模分布式/上游）。**
+
+**两条重要工程语义（本次查明）**：
+1. **S-8**：PyTorch 缓存分配器跨流复用内存时，必须 `tensor.record_stream(using_stream)`，否则该内存可能被分配器提前回收重用 → 数据竞争。这是多流流水线实现的硬纪律。
+2. **S-9**：错误隔离是**分层的**——API 调用级错误（如 107015）只影响该次调用，其他流不受影响；但**芯片级错误（AICORE_TIMEOUT/EXCEPTION）语义上影响该设备全部流**，恢复须走设备级（aclrtResetDevice），流级重试无效。这与 D11 的 L4 分级恢复设计一致。

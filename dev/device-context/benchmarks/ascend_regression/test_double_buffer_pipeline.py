@@ -57,20 +57,29 @@ def _calc(buf):
 
 # ════════════════════════════ 四种执行模式（真实现）══════════════════════════
 def mode_v0(hosts, bufs, ev_h2d, ev_calc, s_t, s_c, s_d):
-    """V0 基线：每批 H2D→计算→D2H 完整 event 依赖链（2 record + 2 wait / 批）。"""
+    """V0 基线：每批 H2D→计算→D2H 完整 event 依赖链（2 record + 2 wait / 批）。
+
+    ⚠️ 跨流内存纪律（§5.4 S-8）：缓冲在命名流上被使用时须 record_stream 告知
+    PyTorch 缓存分配器，否则该内存可能在仍被其他流使用时被提前回收重用。
+    本实现中 bufs/outs 由 Python 列表长期持有引用（当前安全），但仍显式调用
+    record_stream —— 保证将来改为"批间释放"时不会引入数据竞争。
+    """
     outs = [None] * BATCHES
     for i in range(BATCHES):
         b = i % 2
         with torch.npu.stream(s_t):
             bufs[b].copy_(hosts[b], non_blocking=True)   # H2D（页锁定真异步）
+        bufs[b].record_stream(s_t)
         ev_h2d[b].record(s_t)
         s_c.wait_event(ev_h2d[b])
         with torch.npu.stream(s_c):
             outs[i] = _calc(bufs[b])
+        bufs[b].record_stream(s_c)
         ev_calc[b].record(s_c)
         s_d.wait_event(ev_calc[b])
         with torch.npu.stream(s_d):
             _ = outs[i].to("cpu", non_blocking=True)      # D2H
+        outs[i].record_stream(s_d)
     return outs
 
 
@@ -83,12 +92,14 @@ def mode_v1(hosts, bufs, ev, s_t, s_c, s_d):
             bufs[b].copy_(hosts[b], non_blocking=True)
         ev[b].record(s_t)
         s_c.wait_event(ev[b])
+        bufs[b].record_stream(s_c)
         with torch.npu.stream(s_c):
             outs[i] = _calc(bufs[b])
     # 计算流全部完成后统一回传：去掉「计算→D2H」每批过度同步
     s_d.wait_stream(s_c)
     with torch.npu.stream(s_d):
         for o in outs:
+            o.record_stream(s_d)
             _ = o.to("cpu", non_blocking=True)
     return outs
 
@@ -98,16 +109,19 @@ def mode_v4(hosts, bufs, ev, s_t, s_c, s_d):
     for i in range(BATCHES):
         with torch.npu.stream(s_t):
             bufs[i % 2].copy_(hosts[i % 2], non_blocking=True)
+        bufs[i % 2].record_stream(s_t)
     ev[0].record(s_t)
     s_c.wait_event(ev[0])
     outs = [None] * BATCHES
     with torch.npu.stream(s_c):
         for i in range(BATCHES):
+            bufs[i % 2].record_stream(s_c)
             outs[i] = _calc(bufs[i % 2])
     ev[1].record(s_c)
     s_d.wait_event(ev[1])
     with torch.npu.stream(s_d):
         for o in outs:
+            o.record_stream(s_d)
             _ = o.to("cpu", non_blocking=True)
     return outs
 
