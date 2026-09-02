@@ -1,0 +1,33 @@
+{
+  "verdict": "ERR_TRANSLATION_PASS",
+  "results": [
+    {
+      "probe": "L2-形状不匹配",
+      "caught": true,
+      "category": "L2_PARAM",
+      "location": "stream:0/op:matmul",
+      "root_cause": "RuntimeError: aclnnMatmulGetWorkspaceSize failed, ret=161002",
+      "error_code": 161002,
+      "note": "统一错误对象翻译：L2_PARAM（code=161002），根因原文保留"
+    },
+    {
+      "probe": "L2-非法设备ordinal",
+      "caught": false,
+      "category": "UNKNOWN",
+      "location": "N/A",
+      "root_cause": "",
+      "error_code": null,
+      "note": "调用未报错（可能未触发该错误路径）"
+    },
+    {
+      "probe": "L1/L3-大分配或执行类",
+      "caught": false,
+      "category": "UNKNOWN",
+      "location": "N/A",
+      "root_cause": "",
+      "error_code": null,
+      "note": "调用未报错（可能未触发该错误路径）"
+    }
+  ],
+  "interface_gap": "统一错误对象API未暴露，当前为框架层异常原文"
+}

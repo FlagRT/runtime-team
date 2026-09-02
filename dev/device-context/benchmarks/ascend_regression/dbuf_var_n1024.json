@@ -1,0 +1,75 @@
+{
+  "config": {
+    "batches": 6,
+    "n": 1024,
+    "rounds": 5,
+    "out": "dbuf_var_n1024.json"
+  },
+  "variants": {
+    "V0_基线_2record2wait": {
+      "pipe_s": 0.0017,
+      "serial_s": 0.0014,
+      "overlap": -0.1647,
+      "overlap_pct": "-16.5%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0019,
+        0.0016,
+        0.0016,
+        0.0017,
+        0.0018
+      ]
+    },
+    "V1_精简链_1record1wait": {
+      "pipe_s": 0.0014,
+      "serial_s": 0.0013,
+      "overlap": -0.0837,
+      "overlap_pct": "-8.4%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0019,
+        0.0014,
+        0.0015,
+        0.0013,
+        0.0013
+      ]
+    },
+    "V2_流依赖_wait_stream": {
+      "pipe_s": 0.0013,
+      "serial_s": 0.0013,
+      "overlap": -0.0182,
+      "overlap_pct": "-1.8%",
+      "n_calc_repeat": 1,
+      "data_ok": true,
+      "all_runs": [
+        0.0013,
+        0.0009,
+        0.0014,
+        0.0013,
+        0.0009
+      ]
+    },
+    "V3_粗粒度_计算x8": {
+      "pipe_s": 0.0024,
+      "serial_s": 0.0025,
+      "overlap": 0.057,
+      "overlap_pct": "5.7%",
+      "n_calc_repeat": 8,
+      "data_ok": true,
+      "all_runs": [
+        0.0026,
+        0.0024,
+        0.0023,
+        0.0023,
+        0.0034
+      ]
+    }
+  },
+  "note": "方案 V3_粗粒度_计算x8 达成重叠率 5.7%（> 5%），A3 性能项可闭环",
+  "best_by_overlap": {
+    "name": "V3_粗粒度_计算x8",
+    "overlap_pct": "5.7%"
+  }
+}

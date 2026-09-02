@@ -1,0 +1,97 @@
+{
+  "verdict": "DBUF2_PASS",
+  "checks": {
+    "double_buffer_correct": {
+      "ok": true,
+      "detail": "全部 3 档 × 4 模式 D2H 结果与主机参考一致"
+    },
+    "mode_selection": {
+      "ok": true,
+      "detail": "各档按负载选型合理（流水线重叠为正 或 小负载正确降级 V5）"
+    }
+  },
+  "sizes": {
+    "512": {
+      "baseline_ms": 0.97,
+      "modes": {
+        "V0": {
+          "ms": 1.218,
+          "overlap": -25.6
+        },
+        "V1": {
+          "ms": 1.007,
+          "overlap": -3.8
+        },
+        "V4": {
+          "ms": 0.767,
+          "overlap": 20.9
+        },
+        "V5": {
+          "ms": 0.601,
+          "overlap": 38.1
+        }
+      },
+      "selected": "V5",
+      "rule_suggest": "V5",
+      "selection_reason": "四模式实测最快=V5（0.601ms）；§5.2 规则建议=V5（每批计算<~1ms，不流水线最快）",
+      "data_correct": true,
+      "selection_ok": true,
+      "selection_note": "小负载（n=512）正确降级为同流顺序执行，避免流水线纯亏"
+    },
+    "1024": {
+      "baseline_ms": 1.335,
+      "modes": {
+        "V0": {
+          "ms": 1.201,
+          "overlap": 10.0
+        },
+        "V1": {
+          "ms": 0.985,
+          "overlap": 26.2
+        },
+        "V4": {
+          "ms": 0.95,
+          "overlap": 28.8
+        },
+        "V5": {
+          "ms": 1.066,
+          "overlap": 20.2
+        }
+      },
+      "selected": "V4",
+      "rule_suggest": "V1",
+      "selection_reason": "四模式实测最快=V4（0.950ms）；§5.2 规则建议=V1（转折点附近，精简链或压同步次数）",
+      "data_correct": true,
+      "selection_ok": true,
+      "selection_note": "选中 V4 相对基准重叠率 +28.8%"
+    },
+    "2048": {
+      "baseline_ms": 3.896,
+      "modes": {
+        "V0": {
+          "ms": 2.332,
+          "overlap": 40.1
+        },
+        "V1": {
+          "ms": 2.35,
+          "overlap": 39.7
+        },
+        "V4": {
+          "ms": 3.318,
+          "overlap": 14.8
+        },
+        "V5": {
+          "ms": 3.564,
+          "overlap": 8.5
+        }
+      },
+      "selected": "V0",
+      "rule_suggest": "V0",
+      "selection_reason": "四模式实测最快=V0（2.332ms）；§5.2 规则建议=V0（大负载，保留批间流水拿 +30%）",
+      "data_correct": true,
+      "selection_ok": true,
+      "selection_note": "选中 V0 相对基准重叠率 +40.1%"
+    }
+  },
+  "note": "v2 双缓冲落地：四模式实现 + 按负载选型。扫描档位: 512,1024,2048 数据一致且选型合理（详见各档 selection_note）"
+}

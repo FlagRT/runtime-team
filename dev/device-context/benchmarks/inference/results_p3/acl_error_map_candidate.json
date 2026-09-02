@@ -1,0 +1,2788 @@
+{
+  "scan_dirs": [
+    "/usr/local/Ascend/ascend-toolkit/latest/include/acl/error_codes",
+    "/usr/local/Ascend/ascend-toolkit/latest/include/aclnn/opdev"
+  ],
+  "stats": {
+    "total": 159,
+    "by_category": {
+      "L3_EXECUTION": 114,
+      "L2_PARAM": 36,
+      "L1_RESOURCE": 7,
+      "L4_FATAL": 2
+    },
+    "by_confidence": {
+      "default": 57,
+      "high": 75,
+      "low": 27
+    },
+    "by_source": {
+      "rt_error_codes.h": 132,
+      "op_errno.h": 26,
+      "op_log.h": 1
+    },
+    "with_comment": 132
+  },
+  "need_manual_review": {
+    "count": 27,
+    "items": [
+      {
+        "code": 107003,
+        "name": "ACL_ERROR_RT_STREAM_CONTEXT",
+        "meaning": "stream not in current context",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 107005,
+        "name": "ACL_ERROR_RT_STREAM_MODEL",
+        "meaning": "stream not in model",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 107006,
+        "name": "ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID",
+        "meaning": "event timestamp invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 107015,
+        "name": "ACL_ERROR_RT_STREAM_NO_CB_REG",
+        "meaning": "callback not register to stream",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 107030,
+        "name": "ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT",
+        "meaning": "stream is captured, not support current oper",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 207007,
+        "name": "ACL_ERROR_RT_NO_EVENT_RESOURCE",
+        "meaning": "no event resource",
+        "suggested": "L1_RESOURCE",
+        "conflict": [
+          "L1_RESOURCE",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 207008,
+        "name": "ACL_ERROR_RT_NO_STREAM_RESOURCE",
+        "meaning": "no stream resource",
+        "suggested": "L1_RESOURCE",
+        "conflict": [
+          "L1_RESOURCE",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 507009,
+        "name": "ACL_ERROR_RT_TASK_TYPE_NOT_SUPPORT",
+        "meaning": "task type not support",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 507015,
+        "name": "ACL_ERROR_RT_AICORE_EXCEPTION",
+        "meaning": "aicore exception",
+        "suggested": "L4_FATAL",
+        "conflict": [
+          "L4_FATAL",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 507042,
+        "name": "ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW",
+        "meaning": "aic trap read overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507043,
+        "name": "ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW",
+        "meaning": "aic trap write overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507044,
+        "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW",
+        "meaning": "aiv trap read overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 507045,
+        "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW",
+        "meaning": "aiv trap write overflow",
+        "suggested": "L3_EXECUTION",
+        "conflict": [
+          "L3_EXECUTION",
+          "L2_PARAM"
+        ]
+      },
+      {
+        "code": 561103,
+        "name": "ACLNN_ERR_INNER_NULLPTR",
+        "meaning": "inner nullptr",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561104,
+        "name": "ACLNN_ERR_INNER_WRONG_ATTR_INFO_SIZE",
+        "meaning": "inner wrong attr info size",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561106,
+        "name": "ACLNN_ERR_INNER_INVALID_IMPL_MODE",
+        "meaning": "inner invalid impl mode",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561107,
+        "name": "ACLNN_ERR_INNER_OPP_PATH_NOT_FOUND",
+        "meaning": "inner opp path not found",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561109,
+        "name": "ACLNN_ERR_INNER_JSON_VALUE_NOT_FOUND",
+        "meaning": "inner json value not found",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561110,
+        "name": "ACLNN_ERR_INNER_JSON_FORMAT_INVALID",
+        "meaning": "inner json format invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561111,
+        "name": "ACLNN_ERR_INNER_JSON_DTYPE_INVALID",
+        "meaning": "inner json dtype invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561112,
+        "name": "ACLNN_ERR_INNER_OPP_KERNEL_PKG_NOT_FOUND",
+        "meaning": "inner opp kernel pkg not found",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561113,
+        "name": "ACLNN_ERR_INNER_OP_FILE_INVALID",
+        "meaning": "inner op file invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561114,
+        "name": "ACLNN_ERR_INNER_ATTR_NUM_OUT_OF_BOUND",
+        "meaning": "inner attr num out of bound",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561115,
+        "name": "ACLNN_ERR_INNER_ATTR_LEN_NOT_ENOUGH",
+        "meaning": "inner attr len not enough",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561117,
+        "name": "ACLNN_ERR_INNER_INPUT_JSON_IS_NULL",
+        "meaning": "inner input json is null",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561118,
+        "name": "ACLNN_ERR_INNER_STATIC_WORKSPACE_INVALID",
+        "meaning": "inner static workspace invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      },
+      {
+        "code": 561119,
+        "name": "ACLNN_ERR_INNER_STATIC_BLOCK_DIM_INVALID",
+        "meaning": "inner static block dim invalid",
+        "suggested": "L2_PARAM",
+        "conflict": [
+          "L2_PARAM",
+          "L3_EXECUTION"
+        ]
+      }
+    ]
+  },
+  "entries": [
+    {
+      "code": 3,
+      "name": "OP_LOG_ERROR",
+      "meaning": "op log error",
+      "source": "op_log.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107000,
+      "name": "ACL_ERROR_RT_PARAM_INVALID",
+      "meaning": "param invalid",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid",
+            "param"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107001,
+      "name": "ACL_ERROR_RT_INVALID_DEVICEID",
+      "meaning": "invalid device id",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107002,
+      "name": "ACL_ERROR_RT_CONTEXT_NULL",
+      "meaning": "current context null",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "null"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107003,
+      "name": "ACL_ERROR_RT_STREAM_CONTEXT",
+      "meaning": "stream not in current context",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not in current"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107004,
+      "name": "ACL_ERROR_RT_MODEL_CONTEXT",
+      "meaning": "model not in current context",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not in current"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107005,
+      "name": "ACL_ERROR_RT_STREAM_MODEL",
+      "meaning": "stream not in model",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not in model"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107006,
+      "name": "ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID",
+      "meaning": "event timestamp invalid",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event",
+            "timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107007,
+      "name": "ACL_ERROR_RT_EVENT_TIMESTAMP_REVERSAL",
+      "meaning": "event timestamp reversal",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event",
+            "timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107008,
+      "name": "ACL_ERROR_RT_ADDR_UNALIGNED",
+      "meaning": "memory address unaligned",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "unaligned"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107009,
+      "name": "ACL_ERROR_RT_FILE_OPEN",
+      "meaning": "open file failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107010,
+      "name": "ACL_ERROR_RT_FILE_WRITE",
+      "meaning": "write file failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107011,
+      "name": "ACL_ERROR_RT_STREAM_SUBSCRIBE",
+      "meaning": "error subscribe stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107012,
+      "name": "ACL_ERROR_RT_THREAD_SUBSCRIBE",
+      "meaning": "error subscribe thread",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107013,
+      "name": "ACL_ERROR_RT_GROUP_NOT_SET",
+      "meaning": "group not set",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107014,
+      "name": "ACL_ERROR_RT_GROUP_NOT_CREATE",
+      "meaning": "group not create",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107015,
+      "name": "ACL_ERROR_RT_STREAM_NO_CB_REG",
+      "meaning": "callback not register to stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not register"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream",
+            "callback"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107016,
+      "name": "ACL_ERROR_RT_INVALID_MEMORY_TYPE",
+      "meaning": "invalid memory type",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107017,
+      "name": "ACL_ERROR_RT_INVALID_HANDLE",
+      "meaning": "invalid handle",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107018,
+      "name": "ACL_ERROR_RT_INVALID_MALLOC_TYPE",
+      "meaning": "invalid malloc type",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107019,
+      "name": "ACL_ERROR_RT_WAIT_TIMEOUT",
+      "meaning": "wait timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107020,
+      "name": "ACL_ERROR_RT_TASK_TIMEOUT",
+      "meaning": "task timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task",
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107021,
+      "name": "ACL_ERROR_RT_SYSPARAMOPT_NOT_SET",
+      "meaning": "not set sysparamopt",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107022,
+      "name": "ACL_ERROR_RT_DEVICE_TASK_ABORT",
+      "meaning": "device task aborting",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107023,
+      "name": "ACL_ERROR_RT_STREAM_ABORT",
+      "meaning": "stream aborting",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107024,
+      "name": "ACL_ERROR_RT_CAPTURE_DEPENDENCY",
+      "meaning": "capture dependency failure",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107025,
+      "name": "ACL_ERROR_RT_STREAM_UNJOINED",
+      "meaning": "invalid capture model",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107026,
+      "name": "ACL_ERROR_RT_MODEL_CAPTURED",
+      "meaning": "model is captured",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107027,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURED",
+      "meaning": "stream is captured",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107028,
+      "name": "ACL_ERROR_RT_EVENT_CAPTURED",
+      "meaning": "event is captured",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107029,
+      "name": "ACL_ERROR_RT_STREAM_NOT_CAPTURED",
+      "meaning": "stream is not in capture status",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107030,
+      "name": "ACL_ERROR_RT_CAPTURE_MODE_NOT_SUPPORT",
+      "meaning": "stream is captured, not support current oper",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not support"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107031,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURE_IMPLICIT",
+      "meaning": "a disallowed implicit dependency from defalut stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107032,
+      "name": "ACL_ERROR_STREAM_CAPTURE_CONFLICT",
+      "meaning": "interdependent stream cannot begin capture together",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107033,
+      "name": "ACL_ERROR_STREAM_TASK_GROUP_STATUS",
+      "meaning": "task group status error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107034,
+      "name": "ACL_ERROR_STREAM_TASK_GROUP_INTR",
+      "meaning": "task group interrupted",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107035,
+      "name": "ACL_ERROR_RT_TASK_ABORT_STOP",
+      "meaning": "device task aborting stop before post process",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107036,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURE_UNMATCHED",
+      "meaning": "the capture was not initiated in this stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 107037,
+      "name": "ACL_ERROR_RT_MODEL_RUNNING",
+      "meaning": "the model is still running",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 107038,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURE_WRONG_THREAD",
+      "meaning": "the thread of end capture and begin capture is not same",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 161001,
+      "name": "ACLNN_ERR_PARAM_NULLPTR",
+      "meaning": "param nullptr",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "param",
+            "nullptr"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 161002,
+      "name": "ACLNN_ERR_PARAM_INVALID",
+      "meaning": "param invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid",
+            "param"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207000,
+      "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT",
+      "meaning": "feature not support",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not support"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207001,
+      "name": "ACL_ERROR_RT_MEMORY_ALLOCATION",
+      "meaning": "memory allocation error, only used by out of memory",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "out of memory"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207002,
+      "name": "ACL_ERROR_RT_MEMORY_FREE",
+      "meaning": "memory free error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207003,
+      "name": "ACL_ERROR_RT_AICORE_OVER_FLOW",
+      "meaning": "aicore over flow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207004,
+      "name": "ACL_ERROR_RT_NO_DEVICE",
+      "meaning": "no device",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L4_FATAL",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L4_FATAL",
+          "hits": [
+            "no device"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207005,
+      "name": "ACL_ERROR_RT_RESOURCE_ALLOC_FAIL",
+      "meaning": "resource alloc fail",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207006,
+      "name": "ACL_ERROR_RT_NO_PERMISSION",
+      "meaning": "no permission",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207007,
+      "name": "ACL_ERROR_RT_NO_EVENT_RESOURCE",
+      "meaning": "no event resource",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207008,
+      "name": "ACL_ERROR_RT_NO_STREAM_RESOURCE",
+      "meaning": "no stream resource",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207009,
+      "name": "ACL_ERROR_RT_NO_NOTIFY_RESOURCE",
+      "meaning": "no notify resource",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207010,
+      "name": "ACL_ERROR_RT_NO_MODEL_RESOURCE",
+      "meaning": "no model resource",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207011,
+      "name": "ACL_ERROR_RT_NO_CDQ_RESOURCE",
+      "meaning": "no cdq resource",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L1_RESOURCE",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L1_RESOURCE",
+          "hits": [
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 207012,
+      "name": "ACL_ERROR_RT_OVER_LIMIT",
+      "meaning": "over limit",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207013,
+      "name": "ACL_ERROR_RT_QUEUE_EMPTY",
+      "meaning": "queue is empty",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207014,
+      "name": "ACL_ERROR_RT_QUEUE_FULL",
+      "meaning": "queue is full",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207015,
+      "name": "ACL_ERROR_RT_REPEATED_INIT",
+      "meaning": "repeated init",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207016,
+      "name": "ACL_ERROR_RT_AIVEC_OVER_FLOW",
+      "meaning": "aivec over flow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207017,
+      "name": "ACL_ERROR_RT_OVER_FLOW",
+      "meaning": "common over flow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207018,
+      "name": "ACL_ERROR_RT_DEVICE_OOM",
+      "meaning": "device oom",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 207019,
+      "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT_UPDATE_OP",
+      "meaning": "not support to update this op",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not support"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 361001,
+      "name": "ACLNN_ERR_RUNTIME_ERROR",
+      "meaning": "runtime error",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "runtime"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507000,
+      "name": "ACL_ERROR_RT_INTERNAL_ERROR",
+      "meaning": "runtime internal error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "internal error",
+            "runtime"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507001,
+      "name": "ACL_ERROR_RT_TS_ERROR",
+      "meaning": "ts internel error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507002,
+      "name": "ACL_ERROR_RT_STREAM_TASK_FULL",
+      "meaning": "task full in stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream",
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507003,
+      "name": "ACL_ERROR_RT_STREAM_TASK_EMPTY",
+      "meaning": "task empty in stream",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream",
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507004,
+      "name": "ACL_ERROR_RT_STREAM_NOT_COMPLETE",
+      "meaning": "stream not complete",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507005,
+      "name": "ACL_ERROR_RT_END_OF_SEQUENCE",
+      "meaning": "end of sequence",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507006,
+      "name": "ACL_ERROR_RT_EVENT_NOT_COMPLETE",
+      "meaning": "event not complete",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507007,
+      "name": "ACL_ERROR_RT_CONTEXT_RELEASE_ERROR",
+      "meaning": "context release error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507008,
+      "name": "ACL_ERROR_RT_SOC_VERSION",
+      "meaning": "soc version error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507009,
+      "name": "ACL_ERROR_RT_TASK_TYPE_NOT_SUPPORT",
+      "meaning": "task type not support",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not support"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "task"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507010,
+      "name": "ACL_ERROR_RT_LOST_HEARTBEAT",
+      "meaning": "ts lost heartbeat",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507011,
+      "name": "ACL_ERROR_RT_MODEL_EXECUTE",
+      "meaning": "model execute failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "execute"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507012,
+      "name": "ACL_ERROR_RT_REPORT_TIMEOUT",
+      "meaning": "report timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507013,
+      "name": "ACL_ERROR_RT_SYS_DMA",
+      "meaning": "sys dma error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507014,
+      "name": "ACL_ERROR_RT_AICORE_TIMEOUT",
+      "meaning": "aicore timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507015,
+      "name": "ACL_ERROR_RT_AICORE_EXCEPTION",
+      "meaning": "aicore exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L4_FATAL",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L4_FATAL",
+          "hits": [
+            "aicore exception"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507016,
+      "name": "ACL_ERROR_RT_AICORE_TRAP_EXCEPTION",
+      "meaning": "aicore trap exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507017,
+      "name": "ACL_ERROR_RT_AICPU_TIMEOUT",
+      "meaning": "aicpu timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507018,
+      "name": "ACL_ERROR_RT_AICPU_EXCEPTION",
+      "meaning": "aicpu exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507019,
+      "name": "ACL_ERROR_RT_AICPU_DATADUMP_RSP_ERR",
+      "meaning": "aicpu datadump response error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507020,
+      "name": "ACL_ERROR_RT_AICPU_MODEL_RSP_ERR",
+      "meaning": "aicpu model operate response error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507021,
+      "name": "ACL_ERROR_RT_PROFILING_ERROR",
+      "meaning": "profiling error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507022,
+      "name": "ACL_ERROR_RT_IPC_ERROR",
+      "meaning": "ipc error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507023,
+      "name": "ACL_ERROR_RT_MODEL_ABORT_NORMAL",
+      "meaning": "model abort normal",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "abort"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507024,
+      "name": "ACL_ERROR_RT_KERNEL_UNREGISTERING",
+      "meaning": "kernel unregistering",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "kernel"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507025,
+      "name": "ACL_ERROR_RT_RINGBUFFER_NOT_INIT",
+      "meaning": "ringbuffer not init",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not init"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507026,
+      "name": "ACL_ERROR_RT_RINGBUFFER_NO_DATA",
+      "meaning": "ringbuffer no data",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507027,
+      "name": "ACL_ERROR_RT_KERNEL_LOOKUP",
+      "meaning": "kernel lookup error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "kernel"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507028,
+      "name": "ACL_ERROR_RT_KERNEL_DUPLICATE",
+      "meaning": "kernel register duplicate",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "kernel"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507029,
+      "name": "ACL_ERROR_RT_DEBUG_REGISTER_FAIL",
+      "meaning": "debug register failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507030,
+      "name": "ACL_ERROR_RT_DEBUG_UNREGISTER_FAIL",
+      "meaning": "debug unregister failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507031,
+      "name": "ACL_ERROR_RT_LABEL_CONTEXT",
+      "meaning": "label not in current context",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not in current"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507032,
+      "name": "ACL_ERROR_RT_PROGRAM_USE_OUT",
+      "meaning": "program register num use out",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507033,
+      "name": "ACL_ERROR_RT_DEV_SETUP_ERROR",
+      "meaning": "device setup error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507034,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TIMEOUT",
+      "meaning": "vector core timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507035,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_EXCEPTION",
+      "meaning": "vector core exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507036,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_EXCEPTION",
+      "meaning": "vector core trap exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507037,
+      "name": "ACL_ERROR_RT_CDQ_BATCH_ABNORMAL",
+      "meaning": "cdq alloc batch abnormal",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507038,
+      "name": "ACL_ERROR_RT_DIE_MODE_CHANGE_ERROR",
+      "meaning": "can not change die mode",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507039,
+      "name": "ACL_ERROR_RT_DIE_SET_ERROR",
+      "meaning": "single die mode can not set die",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507040,
+      "name": "ACL_ERROR_RT_INVALID_DIEID",
+      "meaning": "invalid die id",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L2_PARAM",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507041,
+      "name": "ACL_ERROR_RT_DIE_MODE_NOT_SET",
+      "meaning": "die mode not set",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507042,
+      "name": "ACL_ERROR_RT_AICORE_TRAP_READ_OVERFLOW",
+      "meaning": "aic trap read overflow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "overflow"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507043,
+      "name": "ACL_ERROR_RT_AICORE_TRAP_WRITE_OVERFLOW",
+      "meaning": "aic trap write overflow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "overflow"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507044,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_READ_OVERFLOW",
+      "meaning": "aiv trap read overflow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "overflow"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507045,
+      "name": "ACL_ERROR_RT_VECTOR_CORE_TRAP_WRITE_OVERFLOW",
+      "meaning": "aiv trap write overflow",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap"
+          ]
+        },
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "overflow"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507046,
+      "name": "ACL_ERROR_RT_STREAM_SYNC_TIMEOUT",
+      "meaning": "stream sync time out",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "stream",
+            "sync"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507047,
+      "name": "ACL_ERROR_RT_EVENT_SYNC_TIMEOUT",
+      "meaning": "event sync time out",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "event",
+            "sync"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507048,
+      "name": "ACL_ERROR_RT_FFTS_PLUS_TIMEOUT",
+      "meaning": "ffts+ timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507049,
+      "name": "ACL_ERROR_RT_FFTS_PLUS_EXCEPTION",
+      "meaning": "ffts+ exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507050,
+      "name": "ACL_ERROR_RT_FFTS_PLUS_TRAP_EXCEPTION",
+      "meaning": "ffts+ trap exception",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "trap",
+            "exception"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507051,
+      "name": "ACL_ERROR_RT_SEND_MSG",
+      "meaning": "hdc send msg fail",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507052,
+      "name": "ACL_ERROR_RT_COPY_DATA",
+      "meaning": "copy data fail",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507053,
+      "name": "ACL_ERROR_RT_DEVICE_MEM_ERROR",
+      "meaning": "device MEM ERROR",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507054,
+      "name": "ACL_ERROR_RT_HBM_MULTI_BIT_ECC_ERROR",
+      "meaning": "hbm Multi-bit ECC error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507055,
+      "name": "ACL_ERROR_RT_SUSPECT_DEVICE_MEM_ERROR",
+      "meaning": "suspect device MEM ERROR",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507056,
+      "name": "ACL_ERROR_RT_LINK_ERROR",
+      "meaning": "link ERROR",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507057,
+      "name": "ACL_ERROR_RT_SUSPECT_REMOTE_ERROR",
+      "meaning": "suspect remote ERROR",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507899,
+      "name": "ACL_ERROR_RT_DRV_INTERNAL_ERROR",
+      "meaning": "drv internal error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "internal error"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507900,
+      "name": "ACL_ERROR_RT_AICPU_INTERNAL_ERROR",
+      "meaning": "aicpu internal error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "internal error"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507901,
+      "name": "ACL_ERROR_RT_SOCKET_CLOSE",
+      "meaning": "hdc disconnect",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507902,
+      "name": "ACL_ERROR_RT_AICPU_INFO_LOAD_RSP_ERR",
+      "meaning": "aicpu info load response error",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507903,
+      "name": "ACL_ERROR_RT_STREAM_CAPTURE_INVALIDATED",
+      "meaning": "capture status is invalidated",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507904,
+      "name": "ACL_ERROR_RT_COMM_OP_RETRY_FAIL",
+      "meaning": "hccl operation retry failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507905,
+      "name": "ACL_ERROR_SNAPSHOT_LOCK_TIMEOUT",
+      "meaning": "snapshot lock timeout",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "timeout"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507906,
+      "name": "ACL_ERROR_SNAPSHOT_LOCK_FAILED",
+      "meaning": "snapshot lock failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507907,
+      "name": "ACL_ERROR_SNAPSHOT_UNLOCK_FAILED",
+      "meaning": "snapshot unlock failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507908,
+      "name": "ACL_ERROR_SNAPSHOT_BACKUP_FAILED",
+      "meaning": "snapshot backup failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507909,
+      "name": "ACL_ERROR_SNAPSHOT_RESTORE_FAILED",
+      "meaning": "snapshot restore failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507910,
+      "name": "ACL_ERROR_HOST_MEMORY_ALREADY_REGISTERED",
+      "meaning": "host memory range already registered",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507911,
+      "name": "ACL_ERROR_HOST_MEMORY_NOT_REGISTERED",
+      "meaning": "host memory has not been registered",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "default",
+      "matched": []
+    },
+    {
+      "code": 507912,
+      "name": "ACL_ERROR_SNAPSHOT_CALLBACK_FAILED",
+      "meaning": "snapshot callback function execution failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "callback"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 507913,
+      "name": "ACL_ERROR_SNAPSHOT_REGISTER_CALLBACK_FAILED",
+      "meaning": "register snapshot callback function failed",
+      "source": "rt_error_codes.h",
+      "has_comment": true,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "callback"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561000,
+      "name": "ACLNN_ERR_INNER",
+      "meaning": "inner",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561001,
+      "name": "ACLNN_ERR_INNER_INFERSHAPE_ERROR",
+      "meaning": "inner infershape error",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561002,
+      "name": "ACLNN_ERR_INNER_TILING_ERROR",
+      "meaning": "inner tiling error",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "tiling",
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561003,
+      "name": "ACLNN_ERR_INNER_FIND_KERNEL_ERROR",
+      "meaning": "inner find kernel error",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "kernel",
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561101,
+      "name": "ACLNN_ERR_INNER_CREATE_EXECUTOR",
+      "meaning": "inner create executor",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561102,
+      "name": "ACLNN_ERR_INNER_NOT_TRANS_EXECUTOR",
+      "meaning": "inner not trans executor",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561103,
+      "name": "ACLNN_ERR_INNER_NULLPTR",
+      "meaning": "inner nullptr",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "nullptr"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561104,
+      "name": "ACLNN_ERR_INNER_WRONG_ATTR_INFO_SIZE",
+      "meaning": "inner wrong attr info size",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "attr"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561105,
+      "name": "ACLNN_ERR_INNER_KEY_CONFILICT",
+      "meaning": "inner key confilict",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561106,
+      "name": "ACLNN_ERR_INNER_INVALID_IMPL_MODE",
+      "meaning": "inner invalid impl mode",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561107,
+      "name": "ACLNN_ERR_INNER_OPP_PATH_NOT_FOUND",
+      "meaning": "inner opp path not found",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not found"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561108,
+      "name": "ACLNN_ERR_INNER_LOAD_JSON_FAILED",
+      "meaning": "inner load json failed",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561109,
+      "name": "ACLNN_ERR_INNER_JSON_VALUE_NOT_FOUND",
+      "meaning": "inner json value not found",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not found"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561110,
+      "name": "ACLNN_ERR_INNER_JSON_FORMAT_INVALID",
+      "meaning": "inner json format invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid",
+            "format"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561111,
+      "name": "ACLNN_ERR_INNER_JSON_DTYPE_INVALID",
+      "meaning": "inner json dtype invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561112,
+      "name": "ACLNN_ERR_INNER_OPP_KERNEL_PKG_NOT_FOUND",
+      "meaning": "inner opp kernel pkg not found",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "not found"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "kernel",
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561113,
+      "name": "ACLNN_ERR_INNER_OP_FILE_INVALID",
+      "meaning": "inner op file invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561114,
+      "name": "ACLNN_ERR_INNER_ATTR_NUM_OUT_OF_BOUND",
+      "meaning": "inner attr num out of bound",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "attr"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561115,
+      "name": "ACLNN_ERR_INNER_ATTR_LEN_NOT_ENOUGH",
+      "meaning": "inner attr len not enough",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "attr"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561116,
+      "name": "ACLNN_ERR_INNER_INPUT_NUM_IN_JSON_TOO_LARGE",
+      "meaning": "inner input num in json too large",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L3_EXECUTION",
+      "confidence": "high",
+      "matched": [
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561117,
+      "name": "ACLNN_ERR_INNER_INPUT_JSON_IS_NULL",
+      "meaning": "inner input json is null",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "null"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561118,
+      "name": "ACLNN_ERR_INNER_STATIC_WORKSPACE_INVALID",
+      "meaning": "inner static workspace invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    },
+    {
+      "code": 561119,
+      "name": "ACLNN_ERR_INNER_STATIC_BLOCK_DIM_INVALID",
+      "meaning": "inner static block dim invalid",
+      "source": "op_errno.h",
+      "has_comment": false,
+      "suggested_category": "L2_PARAM",
+      "confidence": "low",
+      "matched": [
+        {
+          "category": "L2_PARAM",
+          "hits": [
+            "invalid"
+          ]
+        },
+        {
+          "category": "L3_EXECUTION",
+          "hits": [
+            "inner"
+          ]
+        }
+      ]
+    }
+  ]
+}

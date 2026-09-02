@@ -1,0 +1,30 @@
+{
+  "checks": {
+    "s1_h2d_async": {
+      "ok": true,
+      "detail": "non_blocking 入队=0.19ms 完成=0.92ms 入队占比=20.7% → 异步正常"
+    }
+  },
+  "timing": {
+    "s1_h2d_async_issue_s": 0.000191,
+    "s1_h2d_async_total_s": 0.000925,
+    "s2_h2d_sync_s": 0.001462,
+    "s3_h2d_stream_issue_s": 0.000318,
+    "s3_h2d_stream_total_s": 0.000469,
+    "s4_calc_current_s": 0.077556,
+    "s5_calc_stream_s": 0.000722,
+    "s6_event_chain_s": 0.000854,
+    "s6_per_event_ms": 0.142,
+    "s7_pipe_512_s": 0.001763,
+    "s7_serial_512_s": 0.002143,
+    "s7_overlap_512": 0.1773,
+    "s8_pipe_2048_s": 0.004315,
+    "s8_serial_2048_s": 0.004237,
+    "s8_overlap_2048": -0.0185,
+    "s9_pipe_4096x10_s": 0.030521,
+    "s9_serial_4096x10_s": 0.031035,
+    "s9_overlap_4096": 0.0166
+  },
+  "note": "未明确定位：512²=17.7% 2048²=-1.8% 4096²=1.7%，需进一步细化",
+  "verdict": "BREAKDOWN_DONE"
+}

@@ -1,0 +1,44 @@
+{
+  "mode": "running",
+  "engine_core_procs": [
+    {
+      "pid": 14418,
+      "ppid": 14398,
+      "cmd": "VLLM::EngineCore"
+    }
+  ],
+  "worker_procs": [],
+  "detail": [
+    {
+      "pid": 14418,
+      "fd": {
+        "total": 92,
+        "by_type": {
+          "file": 27,
+          "other": 58,
+          "davinci": 7
+        },
+        "davinci_paths": [
+          "/dev/davinci_manager"
+        ]
+      },
+      "maps": {
+        "total": 3619,
+        "by_type": {
+          "davinci": 78,
+          "file": 3010,
+          "kernel_special": 4,
+          "npu_ascend": 524,
+          "anon": 3
+        },
+        "sample_path_per_type": {
+          "davinci": "/dev/davinci_manager",
+          "file": "/usr/local/python3.11.15/bin/python3.11",
+          "kernel_special": "[heap]",
+          "npu_ascend": "/usr/local/Ascend/cann-9.0.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_legacy.so",
+          "anon": "anon_inode:[io_uring]"
+        }
+      }
+    }
+  ]
+}

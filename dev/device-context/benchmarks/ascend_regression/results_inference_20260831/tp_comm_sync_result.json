@@ -1,0 +1,38 @@
+{
+  "rank": 0,
+  "world": 2,
+  "expect_base": 3,
+  "checks": {
+    "a_stream_binding": {
+      "ok": true,
+      "got": 6.0,
+      "expect": 6,
+      "detail": "all_reduce 后立即设备侧消费: got=6.0 expect=6"
+    },
+    "b_with_sync": {
+      "ok": true,
+      "got": 6.0,
+      "expect": 6,
+      "detail": "同步后消费: got=6.0 expect=6"
+    },
+    "c_async_work_wait": {
+      "ok": true,
+      "got": 6.0,
+      "expect": 6,
+      "detail": "async_op+work.wait() 后消费: got=6.0 expect=6"
+    },
+    "d_multiround": {
+      "ok": true,
+      "has_nan": false,
+      "first_val": 3.0,
+      "expect": 3,
+      "drift": 0.0,
+      "detail": "20 轮 all_reduce: NaN=False 首值=3.0 (expect=3)"
+    }
+  },
+  "summary": {
+    "passed": 4,
+    "total": 4
+  },
+  "verdict": "TP_COMM_PASS"
+}
