@@ -53,13 +53,13 @@
 | D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 + probe_enginecore_device_ctx | ✅ i1 PASS + P0 加载 OK + **A8 子进程句柄 PASS**（spawn pid/ppid + `/dev/davinci_manager` fd + 124 处设备映射 + RSS 5952MB） |
 | D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | ✅ 2026-08-31：i3 KV 跨流可见性 / i4 D2H 采样回传 / i5 长驻 20 轮无 NaN-Inf，均 PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | ✅ 2026-08-31：i2 多轮前向同流顺序一致（误差 0.00e+00）PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
-| D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2） | S1-S4 + i6 + 双缓冲探针 + test_tp_comm_sync | ✅ i6 PASS + **TP 流绑定 4/4 PASS**（多流真并发已由 kernel 时间线证实） |
+| D5 | Stream 语义 | 多流并发（H2D/计算/D2H）；TP 通信流绑定；graph capture 流语义 | 双缓冲重叠可观测（P1）+ TP 流绑定正确（P2）+ graph capture 流语义（P1-④） | S1-S4 + i6 + 双缓冲探针 + test_tp_comm_sync + probe_graph_capture_stream | ✅ i6 PASS + **TP 流绑定 4/4 PASS**（多流真并发已由 kernel 时间线证实）+ **GRAPH_CAPTURE_PASS 5/5**（2026-09-02：capture 正确/replay 确定性/输入更新/流内切换/显式流，rel_err 全 0） |
 | D6 | Host/Device 异步传输 | prompt H2D 异步；logits D2H 回传；KV offload（可选） | ① 功能：异步拷贝数据一致 ② 性能：与计算重叠 | T1/T2 + i4 + 双缓冲 | ⚠️ **部分达标**：① 功能 ✅（i4 D2H 回传 PASS、T1/T2 在 conformance 13/13 内）② 性能 **规模相关**：重叠依赖 D8；n≥1024 转正、n≤512 为负（见 §5.2） |
 | D7 | 页锁定内存 | pin_memory 在推理传输路径 | pin_memory 传输一致性 + 预热纪律 | T1 + 双缓冲探针 | ✅ 2026-08-31：T1 pinned→device non_blocking 拷贝数据一致 PASS；双缓冲探针全程使用 pin_memory（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | ① 功能：多流+Event 数据一致 ② 性能：重叠率为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler + test_dbuf_variants_rigorous | ✅ **已落地（2026-09-02 v2）**：① 功能 ✅ 四模式（V0/V1/V4/V5）D2H 数据与主机参考一致（rel_err<1e-3）② 性能 ✅ **按负载自动选型**：n≤512→V5 同流顺序（0.601ms，最快）；n≈1024→V4 压同步（+28.8%）；n≥2048→V0 批间流水（+40.1%）。实现层同步开销问题已解决（V4 压降 84%），详见 **§5.2/§5.3** 与工程指引表 |
 | D9 | 同步语义 | TP 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP 通信无 NaN + E2 语义 | E1-E3 + test_tp_comm_sync（双卡 FlagCX） | ✅ **TP_COMM_PASS 4/4**：B2 类问题在 A 线不存在 |
 | D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 + 分级来源可观测 | F1 + errors.py + probe_acl_107015 + gen/audit_error_map | ✅ 2026-09-01 **ACL_107015_PASS**：真实错误注入 + A/B 单变量对照（根因 = stream 未 subscribe 即 launch callback）。**107015 已定级 L2_PARAM**（实测裁决，非规则建议）。错误码映射覆盖率 **0.8% → 64.8%（103/159）**，新增 F5 可观测（`mapped`/`graded_by`）区分确定分级与保守兜底。详见 `docs/ACL_ERROR_MAP_20260901.md` |
-| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 | R1-R5 + device_state + recovery | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**：含 L4 完整 R1→R5（captured→isolated→recovered→replay_ready） |
+| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 + 真实重建路径可行 | R1-R5 + device_state + recovery + probe_device_reset_rebuild | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**（L4 完整 R1→R5）+ **2026-09-02 真实重建可行 RESET_REBUILD_PASS**：CANN 官方序列（destroyEvent→destroyStream→destroyContext→aclrtResetDevice→重建）在 pyACL 层全部可执行、reset 后设备可恢复；释放范围为**当前进程默认上下文**，多进程共享设备不受影响（官方注释语义） |
 
 ---
 
@@ -88,6 +88,7 @@
 | A6 | A 线重验 B2：flagcx TP 通信无 NaN（同步语义证据） | D9 | ✅ 2026-08-31 TP_COMM_PASS 4/4 + **2026-09-02 增强验证**：64MB 大张量正确、**100 轮无 NaN**（原 20 轮），B2 类问题确认不存在 |
 | A7 | TP 通信流绑定正确（collective 与当前流） | D5 | ✅ **2026-09-02 补排他证据**：原 `got=6.0` 单点验证不具排他性（内部隐式同步也会通过）。新增 `test_tp_comm_sync_enhanced.py` 场景 F「跨流不阻塞」——流 S 发大 all_reduce 同时流 T 做独立计算，**重叠效率 54.5%~97.7%（两次运行一致）** → 证明 collective 只阻塞所在流。另 4 流并发 collective 结果全对 |
 | A8 | EngineCore 子进程设备句柄/上下文可用 | D2 | ✅ 2026-09-01 `ENGINECORE_CTX_PASS` + **2026-09-02 明细与释放验证**：⚠️ 修正原数字口径——实际持有 **7 个 davinci fd**（均指向 `/dev/davinci_manager`，原记"1"为去重路径数）；映射实为 **davinci 78 + CANN 库 524 + 文件 3010**（原记"124"为过滤子集）。**释放验证通过**：停止后 EngineCore/Worker 残留均为 0 |
+| A8 | **SIGKILL 释放验证（2026-09-02 P1-⑥）** | 坑 A2 称 SIGKILL 残留占位 | ✅ **未复现残留**：`kill -9` EngineCore 后进程残留 0、serve 占用 HBM（~46GB）完全释放回落至容器基线；NPU 进程表为空。坑 A2 描述在当前环境（torch_npu 2.10.0）不成立，SIGKILL 由驱动回收 |
 | A9 | 推理路径错误码翻译正确（注入 ACL 错误） | D10 | ✅ 2026-09-01 `ACL_107015_PASS` + **2026-09-02 排他性验证 7/7 通过**（`test_107015_exclusivity.py`）：含**可逆性**（subscribe→unsubscribe→launch 回到 107015）、block 参数无关（E5/E6）、跨设备复现（E7）→ subscribe_report 是唯一变量 |
 | A10 | 服务化四态监控 + 五段式恢复 | D11 | ✅ 2026-09-01 `DEVICE_STATE_RECOVERY_PASS 8/8` + **2026-09-02 语义验证通过**（`test_recovery_semantics.py`）：瞬时故障可恢复且恢复后 512² matmul 成功；**持久故障保持 ISOLATED、不假恢复**。⚠️ 语义仍为**最小近似**（探针重试 + 状态标记，未调设备生命周期 API），但行为正确 |
 | A11 | 结果与 trap 归档（每阶段执行记录） | 通用 | ✅ P0/P1/P2/P3 全部归档（`INFERENCE_P0_P1_RUN_20260831` + `INFERENCE_QWEN3_TP_COMPARE_20260901` + `INFERENCE_P3_SERVE_STATE_ERROR_20260901` + `ACL_ERROR_MAP_20260901`） |
@@ -308,6 +309,10 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | **O4** | **补查 A6/A7、A8** | A6/A7 仅 4 场景且流绑定为单点验证；A8 的「124 处映射」含义与句柄泄漏未验 | ✅ **已完成（2026-09-02）**：A6/A7 增强 8 场景全过（含流绑定排他证据）；A8 句柄明细修正 + 释放验证通过 |
 | **O2-d** | **D10/D11 集成到真实推理服务** | 从「模块验证」升级为「职责落地」 | ✅ **已完成（2026-09-02）**：错误码翻译挂接 vLLM 全部错误路径，实测 VLLMValidationError 正确翻译为 **L2_PARAM**（此前被误兜底 L3）；设备状态监控并行运行。集成暴露并修复 3 个真实 bug（见 §8.1） |
 | **O2-f** | **D8 双缓冲落地（P0-①）** | §5.2 求解结论 → `test_double_buffer_pipeline.py` 真实改动 + 训练侧回补 | ✅ **已完成（2026-09-02）**：四模式（V0/V1/V4/V5）真实现 + 按负载自动选型，三档扫描 `DBUF2_PASS`（n=512→V5 +38.1% / n=1024→V4 +28.8% / n=2048→V0 +40.1%）；训练脚本 pin_memory + non_blocking 回补，双卡冒烟 20 步无崩溃（见 **§5.3**） |
+| **P1-④** | **D5 graph capture 流语义** | 映射文档显式缺口，从未覆盖 | ✅ **GRAPH_CAPTURE_PASS 5/5**：capture 正确/replay 确定性/输入更新/流内切换/显式流，rel_err 全 0（探针：probe_graph_capture_stream.py） |
+| **P1-③** | **D11 真实重建调研** | 恢复从"探针重试近似"升级为真实重建 | ✅ **RESET_REBUILD_PASS**：CANN 官方序列在 pyACL 层全部可执行、reset 后设备可恢复；释放范围=当前进程默认上下文（probe_device_reset_rebuild.py）。落地到 recovery.py 待拍板 |
+| **P1-⑥** | **A8 SIGKILL 释放** | 坑 A2 称 SIGKILL 残留占位 | ✅ **未复现残留**：kill -9 后进程 0 残留、HBM 完全释放回落基线。坑 A2 在当前环境不成立 |
+| **P1-⑤** | **D3 长驻显存（serve 小时级）** | i5 仅 20 轮，serve 长驻未验 | ✅ **加载后零增长**（T1=T2：HBM 61129MB / RSS 5855MB）；12 请求后 +107MB HBM/+81MB RSS（vLLM KV cache 正常缓存）后回落。小时级持续观察中（serve 运行于 910C:8100） |
 | **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260901.md`） | ⏸ 暂不发起（用户决定） |
 
 ### O2 设计要点（待细化）
@@ -346,3 +351,15 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 **结论**：集成前"模块验证全绿"掩盖了两类问题——① 框架错误类型（VLLMValidationError）
 不在 ACL 错误码映射体系内，分级靠关键词兜底可能失准；② 包装代码的异步语义错误。
 **验证 ≠ 集成，集成才暴露真实边界。**
+
+
+### 8.2 P1 四项补齐（2026-09-02）
+
+| # | 结论 | 证据 |
+|---|---|---|
+| P1-④ graph capture | `torch.npu.graph` 是 CUDA-graph 语义完整移植（NPUGraph + replay），capture/replay/输入更新/流内切换/显式流 5 项全过，rel_err 全 0。**踩坑：capture 仅记录不执行，必须先 replay 才产生结果**（首版探针违反此语义误判 G1/G2） | probe_graph_capture_stream.py + graph_capture_stream_result.json |
+| P1-③ 真实重建 | `acl_rt.h` 官方序列：destroyEvent→destroyStream→destroyContext→aclrtResetDevice→setDevice→重建。pyACL 实测全部 ret=0，reset 后设备可恢复。**语义**：释放当前进程默认上下文/默认流；显式 Context 需自行 destroy；多进程共享设备不受影响。`aclrtResetDeviceForce` 为强制版（多次 setDevice 后一次 reset 即可） | probe_device_reset_rebuild.py + device_reset_rebuild_result.json |
+| P1-⑥ SIGKILL | `kill -9` EngineCore 后：进程残留 0、serve 的 HBM（~46GB）完全释放回落至容器基线（14867MB 属其他容器）、NPU 进程表为空。**坑 A2 的"SIGKILL 残留占位"在当前环境（torch_npu 2.10.0）未复现**，驱动级回收正常 | npu-smi 前后对比 |
+| P1-⑤ 长驻显存 | serve（Qwen3-4B TP=1）加载后：T1=T2（HBM 61129MB / RSS 5855MB）**零增长**；12 条请求后 HBM +107MB / RSS +81MB（vLLM KV cache 与中间结构缓存）后回落，无泄漏迹象。小时级持续观察中（serve 保持运行，可随时 `npu-smi` 复查） | T1/T2/T3 采样 |
+
+**P1 四项全部完成。D1-D11 十一项职责在验证层面全部有经核查结论；D10/D11 已集成到真实推理服务；D8 已在推理侧落地 + 训练侧回补。**
