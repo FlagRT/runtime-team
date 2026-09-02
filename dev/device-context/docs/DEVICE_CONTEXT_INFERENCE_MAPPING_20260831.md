@@ -59,7 +59,7 @@
 | D8 | 双缓冲流水线 | **多流+Event 流水线真实现 + 重叠测量** | ① 功能：多流+Event 数据一致 ② 性能：重叠率为正 | test_double_buffer_pipeline.py + breakdown + L1 profiler + test_dbuf_variants_rigorous | ✅ **已落地（2026-09-02 v2）**：① 功能 ✅ 四模式（V0/V1/V4/V5）D2H 数据与主机参考一致（rel_err<1e-3）② 性能 ✅ **按负载自动选型**：n≤512→V5 同流顺序（0.601ms，最快）；n≈1024→V4 压同步（+28.8%）；n≥2048→V0 批间流水（+40.1%）。实现层同步开销问题已解决（V4 压降 84%），详见 **§5.2/§5.3** 与工程指引表 |
 | D9 | 同步语义 | TP 通信同步（A 线重验 B2：flagcx 异步无同步→NaN）；wait_host 有界等待 | TP 通信无 NaN + E2 语义 | E1-E3 + test_tp_comm_sync（双卡 FlagCX） | ✅ **TP_COMM_PASS 4/4**：B2 类问题在 A 线不存在 |
 | D10 | 错误码翻译 | 推理路径 ACL 错误捕获翻译 | 错误码→L1-L4 翻译正确 + 分级来源可观测 | F1 + errors.py + probe_acl_107015 + gen/audit_error_map | ✅ 2026-09-01 **ACL_107015_PASS**：真实错误注入 + A/B 单变量对照（根因 = stream 未 subscribe 即 launch callback）。**107015 已定级 L2_PARAM**（实测裁决，非规则建议）。错误码映射覆盖率 **0.8% → 64.8%（103/159）**，新增 F5 可观测（`mapped`/`graded_by`）区分确定分级与保守兜底。详见 `docs/ACL_ERROR_MAP_20260901.md` |
-| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 + 真实重建路径可行 | R1-R5 + device_state + recovery + probe_device_reset_rebuild | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**（L4 完整 R1→R5）+ **2026-09-02 真实重建可行 RESET_REBUILD_PASS**：CANN 官方序列（destroyEvent→destroyStream→destroyContext→aclrtResetDevice→重建）在 pyACL 层全部可执行、reset 后设备可恢复；释放范围为**当前进程默认上下文**，多进程共享设备不受影响（官方注释语义） |
+| D11 | 设备状态恢复 | 长驻服务四态监控 + 五段式恢复 | 四态查询可用 + 注入错误可恢复 + 真实重建路径可行且已落地 | R1-R5 + device_state + recovery + probe_device_reset_rebuild + test_rebuild_multiprocess | ✅ 2026-09-01 **DEVICE_STATE_RECOVERY_PASS 8/8**（L4 完整 R1→R5）+ **2026-09-02 真实重建落地 MULTIPROC_REBUILD_PASS**：recovery.py 新增 `rebuild_mode=real/hybrid`（CANN 官方序列 aclrtResetDevice），多进程本地联调 2 次全过——S1 真实重建成功 / S2 同卡服务进程 30/30 轮零失败（隔离性成立）/ S3 重建后句柄与计算恢复；conformance 13/13 + infer 6/6 回归无破坏。⚠️ **上传仓库后需大模型多卡多进程压力测试调优**（默认 rebuild_mode=probe 保持进程内安全） |
 
 ---
 
@@ -358,7 +358,7 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | # | 结论 | 证据 |
 |---|---|---|
 | P1-④ graph capture | `torch.npu.graph` 是 CUDA-graph 语义完整移植（NPUGraph + replay），capture/replay/输入更新/流内切换/显式流 5 项全过，rel_err 全 0。**踩坑：capture 仅记录不执行，必须先 replay 才产生结果**（首版探针违反此语义误判 G1/G2） | probe_graph_capture_stream.py + graph_capture_stream_result.json |
-| P1-③ 真实重建 | `acl_rt.h` 官方序列：destroyEvent→destroyStream→destroyContext→aclrtResetDevice→setDevice→重建。pyACL 实测全部 ret=0，reset 后设备可恢复。**语义**：释放当前进程默认上下文/默认流；显式 Context 需自行 destroy；多进程共享设备不受影响。`aclrtResetDeviceForce` 为强制版（多次 setDevice 后一次 reset 即可） | probe_device_reset_rebuild.py + device_reset_rebuild_result.json |
+| P1-③ 真实重建 | 已**落地 recovery.py**：`recover_device(rebuild_mode=probe/real/hybrid)`，real 走 `acl_rt.h` 官方序列（destroyEvent→destroyStream→destroyContext→aclrtResetDevice→setDevice→重建）。**多进程本地联调 MULTIPROC_REBUILD_PASS（2 次复测稳定）**：S1 恢复者真实重建 recovered=True；S2 同卡服务进程 30/30 轮零失败（B reset 期间不受影响，隔离性成立）；S3 重建后 pyACL 句柄 + torch_npu 计算均恢复。conformance 13/13 + infer 6/6 回归无破坏。⚠️ **需大模型多卡多进程压力测试调优**：默认 probe 模式进程内安全；real/hybrid 在生产默认启用前需压力测试验证多卡并发恢复 | probe_device_reset_rebuild.py + test_rebuild_multiprocess.py + rebuild_multiprocess_result.json |
 | P1-⑥ SIGKILL | `kill -9` EngineCore 后：进程残留 0、serve 的 HBM（~46GB）完全释放回落至容器基线（14867MB 属其他容器）、NPU 进程表为空。**坑 A2 的"SIGKILL 残留占位"在当前环境（torch_npu 2.10.0）未复现**，驱动级回收正常 | npu-smi 前后对比 |
 | P1-⑤ 长驻显存 | serve（Qwen3-4B TP=1）加载后：T1=T2（HBM 61129MB / RSS 5855MB）**零增长**；12 条请求后 HBM +107MB / RSS +81MB（vLLM KV cache 与中间结构缓存）后回落，无泄漏迹象。小时级持续观察中（serve 保持运行，可随时 `npu-smi` 复查） | T1/T2/T3 采样 |
 

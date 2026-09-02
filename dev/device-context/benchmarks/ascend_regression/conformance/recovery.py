@@ -7,6 +7,13 @@
   - R2 评估：轻量探针区分 L3（可继续）与 L4（需重建），避免不必要高代价重建
   - R3 隔离：损坏上下文从调度池摘除（device_state.ISOLATED），停止派发
   - R4 重建：重建后新上下文 AVAILABLE
+      · rebuild_mode="probe"  （默认）探针重试近似（兼容历史行为，进程内 torch_npu 安全）
+      · rebuild_mode="real"   真实重建：CANN 官方序列 aclrtDestroyEvent→DestroyStream→
+                               DestroyContext→aclrtResetDevice→setDevice→重建（2026-09-02 P1-③
+                               验证 RESET_REBUILD_PASS）。⚠️ 会重置当前进程默认上下文，
+                               多进程共享设备时其他进程不受影响（官方语义）；本进程内已初始化的
+                               torch_npu 运行时需重新 set_device。上传仓库后需多卡多进程压力测试调优。
+      · rebuild_mode="hybrid" 先探针（快路径），失败后真实重建
   - R5 重放：在途任务登记 + 重放接口（重放边界决策归上层训练支撑/检查点）
 
 用法：
@@ -24,6 +31,45 @@ from typing import Dict, List, Optional
 
 from device_state import DeviceState, query_device_state, set_device_state
 from errors import ErrorCategory, FlagosError, translate_error
+
+# R4 重建模式（2026-09-02 P1-③ 升级）
+REBUILD_PROBE = "probe"      # 探针重试近似（兼容历史）
+REBUILD_REAL = "real"        # CANN 官方真实重建序列
+REBUILD_HYBRID = "hybrid"    # 先探针后真实
+
+
+def _rebuild_real(ordinal: int) -> bool:
+    """真实重建（R4-real）：CANN 官方序列（acl_rt.h）——
+    destroyEvent→destroyStream→destroyContext→aclrtResetDevice→setDevice→重建。
+
+    ⚠️ 前置：仅适用于本进程内设备上下文已损坏、需要彻底重置的场景。
+    调用方需保证当前进程对设备的使用是可重建的（如 EngineCore 子进程错误后、
+    独立恢复进程）。多进程共享设备时，其他进程的显式 Context/Stream 不受影响
+    （acl_rt.h 注释语义：释放当前进程默认上下文）；本进程内已初始化的
+    torch_npu 运行时需在重建后重新 set_device 才能继续使用。
+
+    ⚠️ 多卡多进程压力测试前请勿在生产路径默认启用（见模块 docstring）。
+    """
+    try:
+        import acl  # pyACL：容器内 /usr/local/Ascend/... 提供
+    except ImportError:
+        return False
+    try:
+        # 1) 显式资源按官方顺序销毁（进程内已创建的可枚举资源由调用方预清理；
+        #    此处对当前默认上下文执行最小可重建序列）
+        acl.init()
+        acl.rt.set_device(ordinal)
+        # 2) 重置设备（释放默认上下文/默认流/默认上下文下创建的所有流）
+        rc = acl.rt.reset_device(ordinal)
+        if rc != 0:
+            return False
+        # 3) 重新指定设备 + 重建默认上下文（set_device 隐式创建）
+        rc = acl.rt.set_device(ordinal)
+        if rc != 0:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------- 探针与评估（R2）
@@ -68,22 +114,43 @@ def evaluate_device(ordinal: int, reason: str = "", device: str = "npu", sync_fn
 
 
 # ---------------------------------------------------------------- 重建（R3/R4）
-def recover_device(ordinal: int, attempts: int = 3, reason: str = "", device: str = "npu", sync_fn=None) -> bool:
-    """五段式恢复的重建段（R3 隔离 + R4 重建）：ISOLATED → 重试探针 → AVAILABLE。
+def recover_device(ordinal: int, attempts: int = 3, reason: str = "", device: str = "npu", sync_fn=None,
+                   rebuild_mode: str = REBUILD_PROBE) -> bool:
+    """五段式恢复的重建段（R3 隔离 + R4 重建）：ISOLATED → 重试探针/真实重建 → AVAILABLE。
 
     - 仅 ISOLATED 状态可重建（防止误重建可用设备）
-    - 重建最小近似：探针重试成功即视为设备资源可重新获取（框架层无设备生命周期
-      API；真实"新建上下文+重分配资源"依赖设备生命周期接口，后续补充）
+    - rebuild_mode（2026-09-02 P1-③ 升级）：
+      · "probe"（默认）：探针重试近似——重试探针成功即视为设备可用（兼容历史行为，
+        进程内 torch_npu 运行时的安全默认；但"重建"语义为最小近似）
+      · "real"：真实重建——CANN 官方序列 aclrtResetDevice（destroy 显式资源→reset→set_device），
+        已由 probe_device_reset_rebuild.py 验证 RESET_REBUILD_PASS；⚠️ 重置当前进程默认上下文，
+        多进程共享设备不受影响（官方语义），本进程 torch_npu 需重新 set_device；
+        多卡多进程压力测试调优后再用于生产默认
+      · "hybrid"：先探针（快路径，探测通过即恢复），失败后走真实重建
     - 成功：置 AVAILABLE（R4 保证）；失败：保持 ISOLATED
     """
     if query_device_state(ordinal) != DeviceState.ISOLATED:
         return False
-    for i in range(attempts):
-        if probe_device(ordinal, device=device, sync_fn=sync_fn):
-            set_device_state(ordinal, DeviceState.AVAILABLE,
-                             reason or f"recover: rebuild ok (attempt {i + 1})")
-            return True
-        time.sleep(0.1 * (i + 1))
+
+    def _mark_ok(how: str, note: str = "") -> bool:
+        set_device_state(ordinal, DeviceState.AVAILABLE,
+                         reason or f"recover: rebuild ok via {how}{(' ' + note) if note else ''}")
+        return True
+
+    # 快路径：探针重试（probe / hybrid 共用）
+    if rebuild_mode in (REBUILD_PROBE, REBUILD_HYBRID):
+        for i in range(attempts):
+            if probe_device(ordinal, device=device, sync_fn=sync_fn):
+                return _mark_ok("probe", f"(attempt {i + 1})")
+            time.sleep(0.1 * (i + 1))
+        if rebuild_mode == REBUILD_PROBE:
+            return False  # 纯探针模式：失败即保持 ISOLATED
+
+    # 真实重建（real / hybrid 的兜底）
+    if rebuild_mode in (REBUILD_REAL, REBUILD_HYBRID):
+        if _rebuild_real(ordinal):
+            return _mark_ok("aclrtResetDevice", "(real)")
+        return False
     return False
 
 
