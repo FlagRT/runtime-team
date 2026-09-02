@@ -315,7 +315,7 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | **P1-⑤** | **D3 长驻显存（serve 小时级）** | i5 仅 20 轮，serve 长驻未验 | ✅ **加载后零增长**（T1=T2：HBM 61129MB / RSS 5855MB）；12 请求后 +107MB HBM/+81MB RSS（vLLM KV cache 正常缓存）后回落。小时级持续观察中（serve 运行于 910C:8100） |
 | **P2-⑦** | **D10 timeout 真实触发** | TIMEOUT 类仅做过构造消息验证（L2 层），未真实触发 | ✅ **TIMEOUT_REALTIME_PASS**：stream 同步超时真实返回 **507046**（STREAM_SYNC_TIMEOUT），翻译 **L3_EXECUTION**（mapped=True）；三层验证 L3 层补齐（probe_timeout_realtime.py） |
 | **P2-⑧** | **训练 D8 完整复测** | 此前仅 MAX_STEPS=20 冒烟 | ✅ **完整复测通过（MAX_STEPS=100）**：双卡 hccl 全程 `TORCHRUN_EXIT=0` 无崩溃；loss 2.64→1.37（s50，历史基准 1.9 同量级）；tok/s 单调爬升至 **5166**；训练后 HBM 完全回落基线无泄漏、进程残留 0 |
-| **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260901.md`） | ⏸ 暂不发起（用户决定） |
+| **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260902.md`，**训练 ‖ 推理 双侧对称版**） | ⏸ 暂不发起（用户决定） |
 
 ### O2 设计要点（待细化）
 

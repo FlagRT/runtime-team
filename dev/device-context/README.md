@@ -128,7 +128,7 @@ dev/device-context/
 | 3 | Stream/Event/异步传输验证（需求 2） | Kistich | ✅ | #2 | 双流并发、Event 同步、页锁定传输实测通过 | conformance 13/13（S1-S4/E1-E3/T1-T3）；多流真并发由 Level1 kernel 时间线证实 |
 | 4 | 单机 2 卡 Qwen2.5-1.5B 训练（需求 3+4 验证 1+2） | Kistich | ✅ | #3 | 双卡 HCCL 跑通；loss 下降；记录全部踩坑 | 2481 步 loss 1.9501 / 5428 tok/s（torch_npu+hccl） |
 | 5 | 错误码翻译与设备状态恢复验证（需求 2 延伸） | Kistich | ✅ | #2 | 注入错误场景，统一错误码 + 恢复路径 OK | ACL 107015 真实注入 + A/B 对照；A10 四态恢复 8/8（含 L4 完整 R1→R5） |
-| 6 | 完整方案文档 + PR 提交 | Kistich | ✅ | #4/#5 | docs/ 方案定稿（DEVICE_CONTEXT_PLAN_20260827.md）；PR 合入 dev-1.0（2026-08-27 发起） | 推理侧方案 + 验收文档 2026-09-01 定稿；PR 描述已备（`PR_DEV_1_0_20260901.md`），**暂不发起** |
+| 6 | 完整方案文档 + PR 提交 | Kistich | ✅ | #4/#5 | docs/ 方案定稿（DEVICE_CONTEXT_PLAN_20260827.md）；PR 合入 dev-1.0（2026-08-27 发起） | 推理侧方案 + 验收文档 2026-09-01 定稿；PR 描述已备（`PR_DEV_1_0_20260902.md`（训练 ‖ 推理 双侧对称）），**暂不发起** |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 >
@@ -391,7 +391,7 @@ pyACL 签名为四参数 `launch_callback(fn, userData, block, stream)`（三参
 - [x] 推理四阶段（P0-P3）闭环，D1-D11 全绿
 - [x] 错误码映射表建设（64.8% 覆盖 + F5 可观测）
 - [x] 全量回归：conformance **13/13** + infer **6/6** PASS
-- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260901.md`），**暂不发起**（等通知）
+- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260902.md`（训练 ‖ 推理 双侧对称）），**暂不发起**（等通知）
 - [ ] D8 支线：双缓冲「减少同步点」优化（EVENT_WAIT 瓶颈，训练侧最后一块性能缺口）
 - [ ] 维护提醒：CANN 升级后错误码会变，应重跑 `gen_acl_error_map.py` + `audit_error_map_coverage.py` 复核差异
 
@@ -449,6 +449,6 @@ pyACL 签名为四参数 `launch_callback(fn, userData, block, stream)`（三参
 - [x] P1 四项（graph capture / 真实重建 / SIGKILL / 长驻显存）
 - [x] P2 两项（timeout 真实触发 / 训练完整复测）
 - [x] 全量回归：conformance **13/13** + infer **6/6** PASS（多轮）
-- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260901.md`），**暂不发起**（等通知）
+- [ ] **PR 到 dev-1.0**：描述已备（`docs/PR_DEV_1_0_20260902.md`（训练 ‖ 推理 双侧对称）），**暂不发起**（等通知）
 - [ ] D11 real 重建模式：**需大模型多卡多进程压力测试调优**后再作生产默认（默认 probe 保底）
 - [ ] 维护提醒：CANN 升级后错误码会变，应重跑 `gen_acl_error_map.py` + `audit_error_map_coverage.py` 复核差异
