@@ -1,0 +1,42 @@
+{
+  "scenarios": {
+    "S1_transient": {
+      "label": "S1 瞬时故障(前2次失败)",
+      "category": "L4_FATAL",
+      "graded_by": "message_hint",
+      "mapped": false,
+      "recovery_steps": [
+        "captured",
+        "evaluated: isolated",
+        "recovered: True",
+        "replay_ready"
+      ],
+      "state_after": "available",
+      "sync_calls": 3
+    },
+    "S2_persistent": {
+      "label": "S2 持久故障(一直失败)",
+      "category": "L4_FATAL",
+      "graded_by": "message_hint",
+      "mapped": false,
+      "recovery_steps": [
+        "captured",
+        "evaluated: isolated",
+        "recovered: False"
+      ],
+      "state_after": "isolated",
+      "sync_calls": 4
+    },
+    "S3_post_function": {
+      "ok": true,
+      "detail": "512² matmul 完成且结果有限"
+    }
+  },
+  "checks": {
+    "transient_recovers_and_usable": true,
+    "persistent_stays_isolated_no_fake_recovery": true
+  },
+  "recovery_is_rebuild": false,
+  "semantics_note": "recover_device 的实质是「探针重试确认设备可用后改状态标记」，未调用任何设备生命周期 API（aclrtResetDevice / context 销毁重建），属框架层最小近似——设备并未被真正重建，只是被重新判定为可用。",
+  "verdict": "RECOVERY_SEMANTICS_OK"
+}

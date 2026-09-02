@@ -1,0 +1,53 @@
+{
+  "verdict": "EXCLUSIVE",
+  "matrix": [
+    {
+      "id": "E1",
+      "desc": "另一个独立创建流 + 不 subscribe（复现性）",
+      "ret": 107015,
+      "expect": 107015
+    },
+    {
+      "id": "E2",
+      "desc": "创建流 + 不 subscribe（基线）",
+      "ret": 107015,
+      "expect": 107015
+    },
+    {
+      "id": "E3",
+      "desc": "创建流 + subscribe（基线）",
+      "ret": 0,
+      "expect": 0,
+      "subscribe_ret": 0
+    },
+    {
+      "id": "E4",
+      "desc": "subscribe → unsubscribe → launch（可逆性）",
+      "ret": 107015,
+      "expect": 107015,
+      "subscribe_ret": 0,
+      "unsubscribe_ret": 0
+    },
+    {
+      "id": "E5",
+      "desc": "创建流 + subscribe + block=1",
+      "ret": 0,
+      "expect": 0,
+      "subscribe_ret": 0
+    },
+    {
+      "id": "E6",
+      "desc": "创建流 + 不 subscribe + block=1（对照 E5）",
+      "ret": 107015,
+      "expect": 107015
+    },
+    {
+      "id": "E7",
+      "desc": "device=1 创建流 + 不 subscribe",
+      "ret": 107015,
+      "expect": 107015,
+      "device": 1
+    }
+  ],
+  "note": "subscribe_report 是否为 107015 的唯一变量（含可逆性与 block/device 无关性）"
+}
