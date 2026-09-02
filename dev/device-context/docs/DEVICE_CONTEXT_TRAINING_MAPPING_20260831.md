@@ -10,10 +10,10 @@
 
 | 项 | 结论 |
 |---|---|
-| **总体** | **10/11 项职责达标，1 项部分达标（D8 双缓冲流水线）** |
-| 已闭环 | D1 封装 Runtime / D2 设备句柄 / D3 内存句柄 / D4 执行句柄 / D5 Stream 语义 / D6 异步传输 / D7 页锁定 / D9 同步语义 / D10 错误码翻译 / D11 状态恢复 |
-| 部分 | **D8 双缓冲流水线**：训练侧仅验"数据正确性"（DBUF_PASS），**重叠未测 + 训练脚本未启用** |
-| 判定 | **分布式训练 × 设备上下文职责：验收通过（D8 为已知缺口，真实现在推理侧推进后回补）** |
+| **总体** | **11/11 项职责达标**（D8 已于 2026-09-02 经推理侧求解 + 训练侧回补闭环） |
+| 已闭环 | D1 封装 Runtime / D2 设备句柄 / D3 内存句柄 / D4 执行句柄 / D5 Stream 语义 / D6 异步传输 / D7 页锁定 / D8 双缓冲流水线 / D9 同步语义 / D10 错误码翻译 / D11 状态恢复 |
+| 部分 | 无（D8 原缺口已闭环：推理侧四模式选型 DBUF2_PASS + 训练侧 pin_memory/non_blocking 回补 + 冒烟 20 步无崩溃，详见推理映射 §5.3） |
+| 判定 | **分布式训练 × 设备上下文职责：验收通过（11/11）** |
 
 ---
 
@@ -28,7 +28,7 @@
 | D5 | 统一 Stream 语义 | 流内顺序/显式依赖/跨流可见性/wait_stream 传递 | S1/S2/S3/S4 全过；A 线 stream 语义修复（getStreamByIndex 当前流、guardImpl+dlsym 取 torch_npu 当前流） | ✅ |
 | D6 | Host/Device 异步传输 | 异步拷贝数据一致；在途保护；跨设备直传 | T1 pinned_async_copy / T2 inflight_protection / T3 跨设备传输（拓扑如实标注：torch_npu 未暴露统一拓扑查询） | ✅ |
 | D7 | 页锁定内存 | pin_memory + non_blocking 传输 | T1 + pinned_pool 探针（含"pin_memory 需设备预热"坑） | ✅ |
-| D8 | **双缓冲流水线** | 传输-计算重叠（真实现） | **仅数据正确性（test_double_buffer：4 批交替一致，DBUF_PASS）；`timeline.overlap` 自述"框架层无法直接观测重叠"**；训练脚本未启用（DataLoader 无 pin_memory/num_workers，batch.to(dev) 同步拷贝） | ⚠️ **部分** |
+| D8 | **双缓冲流水线** | 传输-计算重叠（真实现） | **2026-09-02 回补闭环**：① 重叠机制由推理侧四模式实现验证（`test_double_buffer_pipeline.py` v2，DBUF2_PASS：n≤512→V5 同流 +38.1% / n≈1024→V4 压同步 +28.8% / n≥2048→V0 批间流水 +40.1%，详见推理映射 §5.2/§5.3）；② 训练脚本已启用预取重叠：DataLoader `pin_memory=True` + `batch.to(dev, non_blocking=True)`（num_workers 保持 0，容器内 fork 有风险）；③ 双卡冒烟 20 步无崩溃（loss 2.64→2.04，tok/s 3483） | ✅ |
 | D9 | 同步语义 | 跨卡梯度同步；事件语义；错误不静默 | 2481 步 DDP 全程稳定（flagcx）；event 资源泄漏修复（每步 ~120 个 aclrtEvent 累积 → 析构 + work 完成语义）；E1/E2/E3 | ✅ |
 | D10 | 错误码翻译 | 错误码→L1-L4 三维投影 | F1：`aclnnMatmulGetWorkspaceSize ret=161002` → L2_PARAM；errors.py 兼容两形态（B 线 `ret=161002` / A 线 `error code is 161002`） | ✅ |
 | D11 | 设备状态恢复 | 四态 + 五段式恢复 | R1-R5 用例；device_state.py（AVAILABLE/DEGRADED/ISOLATED/DESTROYED）+ recovery.py（captured→evaluated→isolated→recovered→replay_ready）；**诚实标注：重建为框架层最小近似（探针重试），真实上下文重建待设备生命周期接口** | ✅（含标注） |
@@ -61,8 +61,8 @@
 | B6 | 异步传输（T 系列 3 项） | D6/D7 | ✅ |
 | B7 | 错误码翻译（F1） | D10 | ✅ |
 | B8 | 状态恢复（R1-R5） | D11 | ✅（最小近似标注） |
-| B9 | **双缓冲流水线重叠验证** | D8 | ❌ 未做（训练侧） |
-| B10 | 训练侧启用数据预取重叠（pin_memory/num_workers/non_blocking） | D6/D7/D8 | ❌ 未启用（小模型收益低，已判定非关键路径） |
+| B9 | **双缓冲流水线重叠验证** | D8 | ✅ 2026-09-02：推理侧四模式选型 DBUF2_PASS 后回补训练侧（见 §4 回补路径更新） |
+| B10 | 训练侧启用数据预取重叠（pin_memory/num_workers/non_blocking） | D6/D7/D8 | ✅ 2026-09-02：pin_memory + non_blocking 已启用（num_workers 保持 0，容器内 fork 有风险）；双卡冒烟 20 步无崩溃 |
 | B11 | 吞吐差距（flagcx vs hccl 36 倍）定位与挂账 | D5/D9 | ✅ 已定位挂账（移交通信方向） |
 
 ---
@@ -71,7 +71,7 @@
 
 | 缺口 | 说明 | 回补路径 |
 |---|---|---|
-| **D8 双缓冲流水线（训练侧）** | 训练未启用数据预取重叠；重叠机制未真实现 | 推理侧 P1 完成"多流+Event+重叠可测"真实现（test_double_buffer_pipeline.py）后，回补训练：DataLoader 加 pin_memory/num_workers + non_blocking，复测吞吐 |
+| ~~D8 双缓冲流水线（训练侧）~~ | ~~训练未启用数据预取重叠；重叠机制未真实现~~ | ✅ **已闭环（2026-09-02）**：推理侧四模式求解落地（test_double_buffer_pipeline.py v2）+ 训练脚本 pin_memory/non_blocking 回补 + 双卡冒烟 20 步无崩溃。num_workers 数据预取仍受容器 fork 限制未启用（非关键路径，小模型收益低） |
 | D11 重建真实性 | 状态恢复重建为探针重试近似 | 依赖 torch_fl/厂商设备生命周期接口（上游，非本方向阻塞） |
 | D6 拓扑查询 | torch_npu 未暴露统一拓扑（T3 如实标注） | 经 npu-smi/外部通道；新芯片需厂商 API 对齐 |
 

@@ -103,7 +103,10 @@ def main():
 
     train_ds = ChunkDS()
     sampler = DistributedSampler(train_ds, num_replicas=world_size, rank=rank, shuffle=True, drop_last=True)
-    loader = DataLoader(train_ds, batch_size=BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=True)
+    # D8 回补（2026-09-02）：pin_memory=True —— non_blocking H2D 异步化的前提（页锁定）。
+    # 注：num_workers 保持默认 0（容器内 fork 子进程有风险），CPU 侧预取收益对 1.5B 非关键路径。
+    loader = DataLoader(train_ds, batch_size=BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=True,
+                        pin_memory=True)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.01)
 
@@ -124,7 +127,9 @@ def main():
             max_steps = int(os.environ.get("MAX_STEPS", "0"))
             if max_steps and step >= max_steps:
                 break
-            batch = {k: v.to(dev) for k, v in batch.items()}
+            # D8 回补（2026-09-02）：non_blocking=True —— H2D 异步提交，与上一批计算重叠。
+            # pin_memory=True 保证真异步；语义与 .to(dev) 等价，数值不变。
+            batch = {k: v.to(dev, non_blocking=True) for k, v in batch.items()}
             out = model(**batch)
             loss = out.loss
             loss.backward()
