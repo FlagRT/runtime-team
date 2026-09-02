@@ -22,6 +22,7 @@
 
 | 时间 | 事项 | 引用 |
 |---|---|---|
+| 09-02 | 新机器复现（B 线昇腾）：环境重建（harbor 镜像 + py312 venv）+ 分配器画像 5/5 全绿；vLLM 链路组装完成（flagcx 双卡 allreduce 数值正确）；推理闭环待卡空闲 | [复现验证记录-新机器](docs/复现验证记录-新机器-20260902.md) |
 | 09-01 | **纯 MoE 生成质量退化根因定位（issue #5）**：实锤厂商 `patch_decode_attention`（decode 无条件替换为 prefix-cache prefill_attention）为退化源（非 expert GEMM，dense 同退化），禁用后正常、解码提速近 2x | [新线栈decode生成退化-根因定位-20260901](docs/新线栈decode生成退化-根因定位-20260901.md)（A 线） |
 | 09-01 | **V3 第一步：KV 卸载到 Host 跑通**（0.13 官方 OffloadingConnector）：store/load 双向实测、吞吐代价 ~2.4%；num_cpu_blocks=0 接线缺陷已绕过（显式 KVTransferConfig） | [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md) §4 + probes/routeA_s4_*（A 线） |
 | 08-22 | 新线镜像纯 MoE 复测：topk_softmax 阻塞绕开（dispatch 降级 reference.torch），expert GEMM 首次触达；eager 可生成但质量退化，默认模式 graph capture 35min 不可用（部分解锁） | [新线镜像纯MoE复测-20260822](docs/新线镜像纯MoE复测-20260822.md)（A 线） |
