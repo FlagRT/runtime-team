@@ -1,0 +1,23 @@
+# Batch（batch_yxy）子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
+# 用法：cd dev/batch_yxy && docker compose --env-file .env -f ../compose.base.yml -f docker-compose.yml up -d runtime-dev
+# 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
+#       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
+
+# 独立 project，避免公共 service 名 runtime-dev 与其他子方向冲突。
+name: flagos-batch-yxy
+
+services:
+  runtime-dev:
+    container_name: flagos-batch-yxy-dev-910c
+    # harbor 镜像 entrypoint 是 exec "$@"，无命令会立即退出（exit 0）；用 sleep 保活（等价 hostnet 重建镜像的 CMD 行为）
+    command: ["sleep", "infinity"]
+    environment:
+      # 子方向专属环境变量（与 .env.example 对应，.env 中可覆盖默认值）
+      # - BATCH_SWITCH=${BATCH_SWITCH:-true}
+    volumes:
+      # 容器内 git 复用宿主 SSH key（只读挂载；不挂 config/整目录——root 读 uid≠0 的 config 会报 Bad owner）
+      - ${HOME}/.ssh/id_rsa:/root/.ssh/id_rsa:ro
+      - ${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
+      - ${HOME}/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+    restart: "no"
+    # 注意：容器内实验 venv 不在挂载盘上，容器重建会丢失；重建步骤见 scripts/setup_env.sh
