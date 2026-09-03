@@ -1,0 +1,11 @@
+name: flagos-framework-adapter
+
+services:
+  runtime-dev:
+    container_name: flagos-framework-adapter-dev-910c
+    environment:
+      - VLLM_FL_PREFER=${VLLM_FL_PREFER:-flagos}
+      - VLLM_FL_STRICT=${VLLM_FL_STRICT:-0}
+      - VLLM_FL_DISPATCH_DEBUG=${VLLM_FL_DISPATCH_DEBUG:-1}
+    restart: "no"
+
