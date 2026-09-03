@@ -176,9 +176,26 @@ kv_offload 子系统（`$V/v1/kv_offload/`）：
 
 ---
 
+## 4b. 910C(vllm 0.20.2)移植结论(2026-09-03 实测)
+
+§4 建议 2「昇腾 0.20.2 是否内置 kv_offload」已现场核实:**内置存在**(`vllm/v1/kv_offload/` 齐全,
+`OffloadingConnector` 在 factory 注册),但 **native CPU 卸载在昇腾栈不可用**,硬阻塞两处:
+
+1. **平台门**:`v1/kv_offload/cpu/spec.py:84` `get_handlers()` —— `if not current_platform.is_cuda_alike(): raise Exception("CPU Offloading is currently only supported on CUDA-alike GPUs")`。
+   `PlatformFL`(device_name=npu)`is_cuda_alike()=False`;P800 的 `PlatformFL`(xpytorch,USE_CUDA=ON)为 True —— **这就是 P800 放行、昇腾拦下的根本差异**。
+2. **传输算子**:`vllm._C` 是 CUDA 构建,昇腾镜像无 `libcudart.so.13` → `torch.ops._C_cache_ops.swap_blocks_batch` 不存在(`AttributeError`);`cpu_gpu.py:315` 的 handler 必失败。
+
+**API 变更**(0.13 → 0.20.2):`kv_connector_extra_config` 的键从 `num_cpu_blocks`(块数)改为
+`cpu_bytes_to_use`(字节),块数由 `CPUOffloadingSpec` 内部按 `cpu_bytes_to_use // kv_bytes_per_offloaded_block` 自算。
+0.13 那个 `num_cpu_blocks=0` 接线缺陷在 0.20.2 已不存在(换了字段)。
+
+详见《[routeA-S4-KV卸载Host-910C尝试-20260903](routeA-S4-KV卸载Host-910C尝试-20260903.md)》。下一步:昇腾需 vllm-plugin-FL 侧补 CPU-offload handlers(ACL memcpy + stream/event)并放行平台门,或先敲定昇腾锁 0.13(0.13 同有 is_cuda_alike 门,未必放行)还是 0.20.2。
+
+---
+
 ## 5. 注意事项与未获取项
 
-- 0.20.2 侧全部引用自 [vllm-offload-调研笔记-20260817.md](vllm-offload-调研笔记-20260817.md)，其容器（venv311）已不在运行容器列表，未现场复核 0.20.2 源码；「0.20.2 是否含 v1/kv_offload」为待补查项。
+- ~~「0.20.2 是否含 v1/kv_offload」为待补查项~~ → **2026-09-03 已核实**:含,但 native CPU 卸载被 `is_cuda_alike()` 平台门 + `vllm._C` 缺 libcudart 双重阻塞(见 §4b)。
 - kv_offload 子系统标注 experimental（spec.py:14-16），API 可能变动。
 - 「kv_bytes_per_rank → num_cpu_blocks 换算点」未在 0.13 树内定位（grep kv_bytes/bytes_per_rank/num_cpu_blocks 全树），
   已如实记录为接线疑点，未编造换算逻辑。
