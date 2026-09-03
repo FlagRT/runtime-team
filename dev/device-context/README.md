@@ -273,44 +273,6 @@ docker exec -it flagos-device-context-dev-910c bash
 - [x] **补齐文档**：`docs/flagcx_ascend_aline_validation_20260824.md`（A 线验证报告）、`docs/910C-env-issue-report.md`（aclInit 500000 根因详录）、`docs/4090_training_report.md`（NVIDIA 同构训练报告）
 - [x] **补齐环境脚本**：`benchmarks/setup_910c.sh`（910C 一键初始化）
 
-## 2026-08-27 第九批：P8 设备侧 reduce + CANN UVA 实测（Kistich）
-
-> 关联：`docs/P8_DEVICE_REDUCE_20260827.md`（完整文档）；P2/P6/P7 之后的性能/架构增强
-
-- [x] **CANN UVA 实测真通**：`aclrtMallocHost` + `aclrtHostRegisterV2(PINNED|MAPPED)` + `aclrtHostGetDevicePointer` 返回成功；**aclnnInplaceAdd 以 host 映射地址为输入算出 7.0（5.0+2.0）→ NPU 真实读 host 内存**。修正"昇腾无 UVA"结论——真缺口在 FlagCX cann adaptor 的 `hostGetDevicePointer` 字段留 NULL。坑：内核 5.10 下普通 malloc+RegisterV2 失败（507899），必须用 aclrtMallocHost（`benchmarks/uva_test.c`）
-- [x] **P8 设备侧 reduce 落地**：`patches/patch_device_reduce.py`——adaptor 加 `reduceSum`（CANN=aclnnInplaceAdd / NVIDIA=CUDA kernel `flagcx_device_reduce.cu`），`uniRunnerAllReduce` 对 Sum+fp32/fp16/bf16 走设备侧，消除 D2H+CPU reduce+H2D
-- [x] **关键发现：COMPILE_KERNEL_HOST 干扰 socket proxy**：10 轮稳定性间歇性 sum=1.0，分离实验证明是 `COMPILE_KERNEL=1` 同时定义 `-DCOMPILE_KERNEL_HOST` 启用 kernel proxy 线程干扰 proxy 调度（allgather Recv 数据偶发丢）。**已拆分 Makefile 控制**（`COMPILE_KERNEL=1` 只编 .cu，`COMPILE_KERNEL_HOST=1` 默认 0）
-- [x] **50 步训练验证**：无死锁、loss 与基线逐位一致（s0 2.8891/3.1656）、**sync ~32s/步 vs P7 的 47.5s（约 -33%）**、ckpt 保存退出
-- [ ] **遗留**：集合级 10 轮仍有 1/10 偶发数据错（上游 net.cc chunk 流水线竞态，P4 残余，与设备 reduce 无关；eventQuery 替代 streamQuery 反而更差已回退；50 步训练未触发）——建议独立任务移交
-
-## 2026-08-28 第十批：P9 net.cc 完成判定 eventSynchronize —— 修复 1/10 偶发数据错（Kistich）
-
-> 关联：`docs/netcc_chunk_race_investigation.md`（源码级调研 + 实锤证据 + 分级方案）
-> 修复：`patches/patch_p9_eventsync_completion.py`（send/recv 两侧，净改动各 1 处）
-
-- [x] **根因实锤（历史日志自证）**：net.cc isend 前的 P4-SEND-DATA 打点就是探针——失败轮（round 6/8/9）910C 的 AR isend 前 buffer=**11（AG 旧数据残留）**，PASS 轮=2.0（正确）→ **rank1(910C, CANN) 的 D2H 未执行完成就 isend**：`aclrtStreamQuery` 返回 COMPLETE 早于 DMA 数据对 CPU 可见（aarch64 缓存窗口；官方文档只承诺"任务已完成"，未承诺 CPU 可见；CUDA 侧 cudaStreamQuery 语义严格故恒对）
-- [x] **修复**：`streamQuery(cpStream)` → `eventSynchronize(cpEvents[step])`（send 侧实锤点 + recv 侧防御），阻塞等到 D2H/H2D 事件真正完成；不受 event 环形复用影响（保守方向只会慢不会错；此前 eventQuery 非阻塞查询失败正是事件复用误判）
-- [x] **验证**：循环 **20/20（两轮）+ 10/10（recv 加入后）全过、0 死锁**（修复前 9/10，早期 7/10、8/10）
-- [x] **50 步训练无回归且略升**：无死锁、s0 loss=2.8891 与基线一致、s20=2.1327 vs gloo 终点 2.1312；**sync ~26.6s/步（sync_total=1331s）vs P8 的 ~32s/步（+17%）**
-- [ ] **上游待办**：P2/P6/P7/P8/P9 合并干净 diff 提交 `FlagRT/FlagCX` `kistich/ascend-dev1.0`（工作树未 commit；提交前剥离 P1-P4 诊断打点）
-
-## 阶段性总结主看板（2026-08-28）
-
-> 面向资深通信/LLM 训练工程师的**全进展汇报 + RoCE 下一阶段提案**：`docs/hetero_progress_and_roce_proposal.md`
-> 内容：P2/P6/P7/P9 四缺陷 + P8 增强 + CANN UVA 实测修正，50 步训练闭环（sync 26.6s/步、集合级 30/30）、瓶颈拆解、RoCE 收益量化 / 三件事 / 风险兜底 / 里程碑。
-
-## 开放问题与待办工作项（O1-O6）
-
-> 完整清单（逐项背景/依赖/风险/验证）：`docs/OPEN_ISSUES_HETERO_20260828.md`
-
-| ID | 工作项 | 优先级 | 状态 |
-|----|--------|--------|------|
-| O1 | P2+P6+P7+P8+P9 干净 diff 提交上游 `FlagRT/FlagCX` `kistich/ascend-dev1.0` | **P0** | ✅ `a1e7e0f` |
-| O2 | 昇腾 DAG 引擎解锁（补 `hostGetDevicePointer` + 设备侧 reduce 节点/aclnn 折中） | P2 | ⬜ |
-| O3 | `flagcxGetLastError` 存根完善（缺陷 4，错误诊断） | P2 | ✅ `4bbbae5` |
-| O4 | socket 协议无 tag 匹配加固（opId/序列号校验） | P3 | ✅ `08535e1` |
-| O5 | 诊断打点剥离（net.cc/proxy.cc P1-P4，O1 前置） | P1 | ✅ |
-| O6 | RoCE 组网推进（4090/910C RoCE 接入骨干，待 IT：UDP4791 + 无损 QoS） | P1 | ⬜ |
 
 ## 2026-08-31 第九批：910C 分布式推理方案（设备上下文 × Stream，A 线）（Kistich）
 
