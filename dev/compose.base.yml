@@ -1,6 +1,10 @@
 # FlagOS 运行时组公共资源配置（所有子方向共享，变更需全员知会）
 # 子方向 compose 通过 -f 多文件合并本文件（后文件覆盖前文件）；版本事实源：VERSIONS.md（镜像 tag 变更须同步两处）
 # 需要 docker compose v2（-f 多文件合并，后文件覆盖前文件；序列字段如 devices 需整值替换时用 !override，需 ≥2.24，!reset 会清空）
+#
+# 本镜像 = 昇腾工具链底座（CANN 9.0.0 + Python 3.12 + 昇腾工具链全套）；预装 torch_fl 0.1.0，但 A 线（厂商 torch_npu）不使用它。
+# A 线 venv 组合 / 结论性测试用的官方镜像见各子方向 README（memory→vllm-ascend；device-context→ascend-operator-runtime / flagos-infer）。
+# 镜像名 pytorch-plugin-fl 与下方 /data_lib 挂载均为 B 线（torch_fl，已冻结归档）血统残留，保留无害，勿据此误判本底座绑定 B 线。
 
 services:
   runtime-dev:
@@ -41,7 +45,8 @@ services:
       # 代码库总目录：../ = 公共仓根（dev/ 的上级，嵌套布局总目录）
       # 自动解析：compose 相对路径按首个 -f 文件所在目录解析
       - ../:/workspace
-      # 历史路径兼容（torch_fl 编译脚本硬编码引用 /data_lib/PyTorch-Plugin-FL，勿删）
+      # B 线（torch_fl，已冻结归档）残留：torch_fl 编译脚本硬编码引用 /data_lib/PyTorch-Plugin-FL；
+      # A 线不需要此挂载，保留无害且维持已归档 B 资产可复现，勿删
       - ../PyTorch-Plugin-FL:/data_lib/PyTorch-Plugin-FL
       # 昇腾驱动（只读）：机器固有路径，与代码布局无关
       - /usr/local/Ascend/driver:/usr/local/Ascend/driver

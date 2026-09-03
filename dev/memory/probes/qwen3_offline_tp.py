@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Qwen3-4B offline 推理闭环探针(910C B 线昇腾, torch_fl + vllm-plugin-FL)。
+"""Qwen3-4B offline 推理闭环探针(910C torch_fl 栈,已冻结路线——见 probes/README.md)。
 
 旧机阶段4 单卡/TP 验证脚本未入库,本脚本按 TP 验证记录矩阵重建:
   - 4 prompts 与旧机一致(Hello my name / France / 2+2 / Python)
