@@ -50,8 +50,12 @@
 | 用途 | 地址 | tag | 大小 | 获取方式 |
 |---|---|---|---|---|
 | 昇腾 910C 开发 / 构建（harbor 源） | harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev | 11.2GB | 私有 harbor，需 BAAI 账号 |
-| 昇腾 910C 开发 / 构建（本地重建，`compose.base.yml` 默认） | flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev-hostnet | 13.7GB | 2026-08-13 快照重建（同 commit）；CANN 9.0.0 + Python 3.12 + 昇腾工具链全套（通用昇腾 dev 底座，A 线在容器内装 torch_npu） |
+| 昇腾 910C 开发 / 构建（本地重建，`compose.base.yml` 默认） | flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev-hostnet | 11.2GB | 2026-08-13 快照重建（同 commit）；CANN 9.0.0 + Python 3.12 + 昇腾工具链全套（通用昇腾 dev 底座，A 线在容器内装 torch_npu） |
 | 昇腾 910C 推理结论性测试 | quay.io/ascend/vllm-ascend | v0.20.2rc1-a3 | 18GB | 华为官方，公开可直接 pull（本机现有 `nightly-main-a3`，tag 以实拉为准）；自带 torch_npu + vllm 0.20.2 + vllm_ascend；triton_ascend wheel 来源 |
+
+> **本镜像 = 昇腾工具链底座**（非设备层交付物）：预装 torch_fl 0.1.0，但 A 线（厂商 torch_npu）不使用它——A 线在容器内自建 torch_npu venv，结论性测试改用官方镜像（见各子方向 README）。
+> 镜像名 `pytorch-plugin-fl` 与 `compose.base.yml` 的 `/data_lib/PyTorch-Plugin-FL` 挂载均为 B 线（torch_fl，已冻结归档）血统残留，保留无害，勿据此误判底座绑定 B 线。
+> harbor 源与本地重建副本为**同一镜像**（IMAGE ID 一致，均 11.2GB），换用 harbor 地址不改变任何栈行为。
 
 ## 3. 运行组合（容器内按芯片组装；权威 pin 在子方向 README）
 
@@ -76,6 +80,7 @@
 
 ## 5. 变更记录
 
+- 2026-09-03：§2 基础镜像加注——明确该镜像为「昇腾工具链底座」而非设备层交付物；`pytorch-plugin-fl` 名与 `/data_lib` 挂载为 B 线（已冻结）血统残留、保留无害；harbor 源与本地副本同一 IMAGE ID；大小订正 13.7GB→11.2GB。同步 `compose.base.yml` 顶部与 `/data_lib` 挂载注释
 - 2026-09-03：§2/§3 按芯片口径整理——设备层以各芯片厂商设备插件为准（昇腾 torch_npu、昆仑芯厂商 torch），其上 FlagGems / FlagCX / vllm-plugin-FL / vLLM；各芯片镜像 / venv / 环境变量的权威 pin 归对应子方向 README
 - 2026-09-02：新增 performance 性能评测协调入口；FlagPerf 正式代码仍由独立仓库维护，宿主入口、运行环境与验证边界见 `dev/performance/README.md`
 - 2026-08-27：**公共配置对齐（组级）**——`DO_NOT_TRACK=1` 补注入 `compose.base.yml`（原"待补注入"）；子方向 compose 必须声明独立 `name:`（默认 project 取首个 -f 文件目录名 `dev`，会跨方向重建 `runtime-dev`）；`!override` 覆盖设备约束与昇腾 vLLM 通用坑写入根 README
