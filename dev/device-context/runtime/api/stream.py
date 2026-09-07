@@ -86,6 +86,10 @@ class Event:
         self._native = native
 
     @property
+    def backend(self):
+        return self._backend
+
+    @property
     def native(self):
         return self._native
 

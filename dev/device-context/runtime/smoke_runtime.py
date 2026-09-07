@@ -34,6 +34,28 @@ def check(name, cond, detail=""):
         print(f"  [FAIL] {name} {detail}")
 
 
+class _MockNativeStream:
+    """模拟后端原生流对象（需具备 wait_event/wait_stream/synchronize）。"""
+    def wait_event(self, event): pass
+    def wait_stream(self, other): pass
+    def synchronize(self): pass
+
+
+class _MockNativeEvent:
+    """模拟后端原生事件对象（需具备 record/query/synchronize）。"""
+    def __init__(self):
+        self._recorded = False
+
+    def record(self, stream=None):
+        self._recorded = True
+
+    def query(self):
+        return self._recorded
+
+    def synchronize(self):
+        self._recorded = True
+
+
 class MockBackend(RuntimeBackend):
     """最小后端实现：证明接口可实现（kunlun stub 走同一路径）。"""
     name = "mock"
@@ -50,8 +72,8 @@ class MockBackend(RuntimeBackend):
     def memory_stats(self, o):
         return {"total_mb": 65536, "used_mb": 1024, "free_mb": 64512}
 
-    def create_stream(self): return "mock-stream"
-    def create_event(self): return "mock-event"
+    def create_stream(self): return _MockNativeStream()
+    def create_event(self): return _MockNativeEvent()
     def current_stream(self): return "mock-current"
 
     def synchronize(self, ordinal, timeout_ms=None):
