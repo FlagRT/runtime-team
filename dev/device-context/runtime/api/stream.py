@@ -113,8 +113,30 @@ class Event:
         """主机侧有界等待（避免无限阻塞）。返回 True 表示已完成。"""
         return self._backend.wait_event_host(self._native, timeout_ms)
 
+    def wait(self, stream: Optional[Stream] = None) -> None:
+        """让指定流（默认当前流）等待本事件完成。
+
+        等价于 stream.wait_event(self) 的反向写法；stream 可为统一 Stream 或原生流。
+        """
+        if stream is None:
+            fn = getattr(self._native, "wait", None)
+            if fn is None:
+                raise NotImplementedError("该后端原生事件不支持 wait()")
+            fn()
+            return
+        native = stream.native if isinstance(stream, Stream) else stream
+        self._native.wait(native)
+
     def synchronize(self) -> None:
         self._native.synchronize()
+
+    def elapsed_time(self, end_event: "Event") -> float:
+        """与另一事件之间的耗时（毫秒）；后端不支持时抛 NotImplementedError。"""
+        fn = getattr(self._native, "elapsed_time", None)
+        if fn is None:
+            raise NotImplementedError("该后端不支持 elapsed_time")
+        end = end_event.native if isinstance(end_event, Event) else end_event
+        return fn(end)
 
     def __repr__(self) -> str:
         return f"<Event backend={self._backend.name} native={type(self._native).__name__}>"
