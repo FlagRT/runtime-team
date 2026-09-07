@@ -26,9 +26,13 @@ import signal
 import sys
 import traceback
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# runtime 包位于上一级
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# __file__ = <device-context>/runtime/conformance/runner.py
+# 需要把 <device-context> 加入 sys.path 才能 `import runtime`
+_HERE = os.path.dirname(os.path.abspath(__file__))          # runtime/conformance
+_RUNTIME_DIR = os.path.dirname(_HERE)                        # runtime
+_PKG_DIR = os.path.dirname(_RUNTIME_DIR)                     # device-context
+sys.path.insert(0, _HERE)
+sys.path.insert(0, _PKG_DIR)
 
 
 class CaseTimeout(Exception):
