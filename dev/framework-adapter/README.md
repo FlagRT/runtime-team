@@ -11,7 +11,8 @@
 - 主线先验证 PyTorch/vLLM，不同时铺开 TensorFlow 和 ONNX Runtime。
 - 算子实现由 FlagGems 或厂商库提供，本方向不重复开发内核。
 - 功能代码入口是 `vllm-plugin-FL/vllm_fl/dispatch`；本目录只保存环境配置、探针和联调记录。
-- 已完成执行前输入兼容性检查和运行时回退安全开关的实现；相关 60 项单元测试在 910C 服务器的 FlagGems 镜像中通过。
+- 已补齐执行前输入检查、`CachedOp` 热路径保护，以及有副作用实现失败后禁止重试的规则。
+- 2026-09-07：27 机单卡环境通过 275 项 dispatch 单测、74 项真实 NPU 测试，微型随机 Llama 完成 vLLM 解码并与 CPU 的 4 token 对照一致。详见 [当日联调记录](docs/910C单卡联调-20260907.md)。
 
 ## 任务看板
 
@@ -19,26 +20,40 @@
 |---|---|---|
 | 现有注册与调度机制梳理 | 完成 | 明确 FlagGems、vendor、reference 三类实现入口 |
 | 安全回退最小改造 | 进行中 | 不兼容输入执行前跳过；有副作用实现失败后不重试 |
-| Ascend 代表算子联调 | 待进行 | 至少完成 `silu_and_mul`、`rms_norm`、`rotary_embedding` 的路径和数值验证 |
-| 兼容性矩阵 | 待进行 | 记录框架、芯片、版本、dtype、shape、命中实现和测试证据 |
+| Ascend 代表算子联调 | 进行中 | SiLU、RMSNorm、Rotary 已有真实单卡数值与调用语义测试，继续扩大模型覆盖 |
+| 兼容性矩阵 | 初版 | 已记录当前镜像与小输入矩阵；不代表多芯片、多框架支持完成 |
 
 ## 启动环境
 
 ```bash
-cd dev/framework-adapter
-cp .env.example .env
-docker compose -f ../compose.base.yml -f docker-compose.yml up -d
-docker exec -it flagos-framework-adapter-dev-910c bash
+# 在 27 机，已有容器直接复用，不要重复创建：
+docker start flagos-cgu135-dev-910c
+docker exec -it flagos-cgu135-dev-910c bash
 ```
 
-容器内检查注册结果：
+`docker-compose.910c.yml` 保存独立单卡配置，不要叠加挂载全部设备的 base 配置。
+27 机没有可用的 `docker compose` 子命令；当前容器通过 `docker run` 创建。首次创建命令见联调记录，已有容器只需 start。
+源码位于宿主机 `/home/cgu135/framework-adapter-910c`，映射到容器 `/workspace`。
+`vllm-plugin-FL` 必须另行上传到此目录；它是独立仓库，不随 runtime-team 自动拉取。
+
+容器内首次安装与检查注册结果（不升级镜像内依赖）：
 
 ```bash
+pip install -e /workspace/vllm-plugin-FL --no-deps --no-build-isolation
 python /workspace/dev/framework-adapter/probes/dispatch_registry_probe.py
 ```
 
 ## 当前环境记录
 
-- 910C 宿主机可以 SSH 登录，16 个 NPU 芯片健康且查询时无计算进程。
-- 2026-09-03 使用临时容器执行最小 NPU 张量计算，`aclInit` 返回 `507899 Resource_Busy`；机器上同时存在 4 个挂载全部 NPU 的常驻容器。真实算子验证仍需等待 DrvMng 槽位释放或换用备用机器。
-- 详细记录见 `docs/安全回退最小验证-20260903.md`。
+- 27 机容器只映射 `davinci0`，限制 8 CPU / 32 GiB 内存 / 4 GiB shm；不独占其他卡，也不修改其他人的容器。
+- 2026-09-03 的 `aclInit 507899` 是历史阻塞；9 月 7 日清理容器后重新实测已可运行。先前日志不足以单独证明容器数量就是唯一根因。
+- 宿主机执行 `bash /home/cgu135/framework-adapter-910c/dev/framework-adapter/probes/run_910c_checks.sh` 可重跑单测及真实算子测试，日志按时间留存。
+- 用完后 `docker stop flagos-cgu135-dev-910c`，下次再 start；停止不删除源码或容器内安装。
+
+## 安全边界
+
+当前为代表算子的适配原型，并非所有算子的三级安全回退已经完成。
+`runtime_fallback_safe` 为兼容旧注册仍默认 True；未审计实现不能据此认定设备错误可恢复。
+建议开发验证采用 strict 策略：输入不兼容可以执行前选择其他实现，但执行异常立即抛出。
+`resolve()` 返回原始函数，不具备 `call()` / `CachedOp` 的执行前选择保障。
+完整模型、性能、自动求导及多芯片仍需独立验收。

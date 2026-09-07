@@ -1,0 +1,26 @@
+# Standalone: do not merge with compose.base.yml (which mounts all devices).
+name: flagos-cgu135-910c
+services:
+  runtime-dev:
+    image: leinao/flaggems-cann9.0.0:v1.0
+    container_name: flagos-cgu135-dev-910c
+    labels:
+      owner: cgu135
+    command: ["sleep", "infinity"]
+    devices:
+      - /dev/davinci0:/dev/davinci0
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    shm_size: 4g
+    mem_limit: 32g
+    cpus: 8
+    volumes:
+      - /home/cgu135/framework-adapter-910c:/workspace
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+    environment:
+      GEMS_VENDOR: ascend
+      TRITON_ENABLE_TASKQUEUE: "false"
+      DO_NOT_TRACK: "1"
+      PYTHONPATH: /workspace/vllm-plugin-FL
+    restart: "no"
