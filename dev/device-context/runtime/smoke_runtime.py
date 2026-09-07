@@ -58,6 +58,18 @@ class MockBackend(RuntimeBackend):
         if timeout_ms == 0:
             raise TimeoutError("mock timeout")
 
+    # 多流支撑（新增接口）
+    def stream_context(self, native_stream):
+        import contextlib
+        return contextlib.nullcontext()
+
+    def synchronize_stream(self, native_stream, timeout_ms):
+        if timeout_ms == 0:
+            raise TimeoutError("mock stream timeout")
+
+    def wait_event_host(self, native_event, timeout_ms):
+        return True
+
     def translate_error(self, exc, location=""):
         return FlagosError(
             category=ErrorCategory.L2_PARAM,
@@ -101,8 +113,17 @@ def main():
     check("set_device", b.current == 1)
     mem = runtime.memory_stats(0)
     check("memory_stats 结构", set(mem) == {"total_mb", "used_mb", "free_mb"}, str(mem))
-    check("create_stream", runtime.create_stream() == "mock-stream")
-    check("create_event", runtime.create_event() == "mock-event")
+    st = runtime.create_stream()
+    ev = runtime.create_event()
+    check("create_stream 返回统一 Stream",
+          isinstance(st, runtime.Stream), type(st).__name__)
+    check("Stream 持有后端引用", st.backend.name == "mock")
+    check("create_event 返回统一 Event",
+          isinstance(ev, runtime.Event), type(ev).__name__)
+    check("Event 持有后端引用", ev.backend.name == "mock")
+    ev.record(st)
+    check("Event.record 可用", True)
+    check("Event.wait_host 有界", ev.wait_host(timeout_ms=100) is True)
 
     try:
         runtime.synchronize(0, timeout_ms=0)
