@@ -1,0 +1,16 @@
+# RAG answer-generation container based on the validated Ascend vLLM image.
+# Usage from dev/rag_ljy:
+#   docker compose --env-file .env -f ../compose.base.yml \
+#     -f docker_compose/compose.vllm.yml up -d runtime-dev
+
+name: flagos-rag-ljy-vllm
+
+services:
+  runtime-dev:
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    container_name: rag-ljy-vllm-910c
+    environment:
+      - DO_NOT_TRACK=1
+    volumes:
+      - ${MODEL_DIR:-/mnt/raid/jliu171/models}:/mnt/raid/jliu171/models
+    restart: "no"
