@@ -161,8 +161,22 @@ def main():
                 fe2 = ab.translate_error(
                     RuntimeError("ACL stream sync timeout, error code is 507046"),
                     location="probe")
-                check("真实错误码翻译", fe2.category is not None,
-                      f"{fe2.category.value} graded_by={fe2.graded_by}")
+                check("真实错误码翻译（507046 → L3_EXECUTION）",
+                      fe2.category == ErrorCategory.L3_EXECUTION,
+                      f"{fe2.category.value} graded_by={fe2.graded_by} code={fe2.error_code}")
+                check("统一类型（历史 IntEnum 已转换）",
+                      isinstance(fe2.category, ErrorCategory), type(fe2.category).__name__)
+                check("统一语义可用（disposition）",
+                      fe2.disposition == "replay", fe2.disposition)
+                check("可观测字段", fe2.mapped and fe2.graded_by == "code_map")
+
+                # L4 类错误（设备级）应触发设备恢复语义
+                fe3 = ab.translate_error(
+                    RuntimeError("device reset failed, error code is 507015"),
+                    location="probe")
+                check("L4 错误 → device_recovery 语义",
+                      fe3.category == ErrorCategory.L4_FATAL,
+                      f"{fe3.category.value} → {fe3.disposition}")
         except ModuleNotFoundError as e:
             # 本地无 torch/torch_npu：不算失败，属环境缺失（真机在 910C 验证）
             print(f"  [SKIP] 本地缺少依赖（{e}），昇腾后端留待 910C 真机验证")

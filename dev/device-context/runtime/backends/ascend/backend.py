@@ -16,13 +16,21 @@
 from pathlib import Path
 from typing import Optional
 
-from ...api.errors import FlagosError
+from ...api.errors import ErrorCategory, FlagosError
 from ..base import RuntimeBackend
 
 # conformance 目录（已有资产所在）：device-context/benchmarks/ascend_regression/conformance
 _CONFORMANCE_DIR = (
     Path(__file__).resolve().parents[3] / "benchmarks" / "ascend_regression" / "conformance"
 )
+
+# conformance 模块用 IntEnum 分级（L1=1..L4=4），统一层用字符串枚举 —— 转换表
+_INT_TO_CATEGORY = {
+    1: ErrorCategory.L1_RESOURCE,
+    2: ErrorCategory.L2_PARAM,
+    3: ErrorCategory.L3_EXECUTION,
+    4: ErrorCategory.L4_FATAL,
+}
 
 
 class AscendBackend(RuntimeBackend):
@@ -148,12 +156,35 @@ class AscendBackend(RuntimeBackend):
     # ─────────────── 错误码翻译（职责 D10）──────────────
 
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
+        """翻译为**统一** FlagosError。
+
+        注意：conformance 模块的历史 FlagosError 使用 IntEnum 分级（L1=1..L4=4）
+        且不含 disposition/retryable 等统一语义字段。为保证对外类型一致，
+        这里统一转换为 runtime.api.errors.FlagosError。
+        """
         self._load_conformance()
         fe = self._errors.translate_error(exc, location=location)
-        # 补齐统一对象语义（已有实现返回的是其自身的 FlagosError，字段名一致）
-        if not getattr(fe, "backend", ""):
-            fe.backend = self.name
-        return fe
+        return self._to_unified(fe)
+
+    @staticmethod
+    def _to_unified(fe) -> FlagosError:
+        """历史 FlagosError → 统一 FlagosError（IntEnum → 统一枚举）。"""
+        cat = getattr(fe, "category", None)
+        if isinstance(cat, int) and not isinstance(cat, ErrorCategory):
+            cat = _INT_TO_CATEGORY.get(int(cat), ErrorCategory.L3_EXECUTION)
+        graded_by = getattr(fe, "graded_by", "default")
+        return FlagosError(
+            category=cat if isinstance(cat, ErrorCategory) else ErrorCategory.L3_EXECUTION,
+            root_cause=getattr(fe, "root_cause", str(fe)),
+            location=getattr(fe, "location", "") or "",
+            error_code=getattr(fe, "error_code", None),
+            mapped=bool(getattr(fe, "mapped", False)),
+            graded_by=graded_by,
+            is_grade_confident=bool(
+                getattr(fe, "is_grade_confident", graded_by == "code_map")
+            ),
+            recovery_decision=getattr(fe, "recovery_decision", {}) or {},
+        )
 
     # ─────────────── 状态恢复（职责 D11）──────────────
 
