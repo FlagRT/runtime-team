@@ -70,6 +70,20 @@ class RuntimeBackend(ABC):
         """设备同步。timeout_ms 非空时应为有界等待（超时抛 TimeoutError），
         这是长驻服务避免整体 hang 死的关键能力。"""
 
+    # ── 多流 Stream 支撑（供 api/stream.py 封装使用）──
+
+    @abstractmethod
+    def stream_context(self, native_stream):
+        """返回切换到该流的上下文管理器（with 使用）。"""
+
+    @abstractmethod
+    def synchronize_stream(self, native_stream, timeout_ms: int) -> None:
+        """有界等待指定流；超时抛 TimeoutError。"""
+
+    @abstractmethod
+    def wait_event_host(self, native_event, timeout_ms: int) -> bool:
+        """主机侧有界等待事件；返回 True 表示已完成，超时返回 False。"""
+
     # ───────────────────────── 错误码翻译（职责 D10）─────────────────────────
 
     @abstractmethod

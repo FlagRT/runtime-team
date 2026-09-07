@@ -153,6 +153,44 @@ class AscendBackend(RuntimeBackend):
                 f"设备 {ordinal} 同步超时（{timeout_ms}ms），pyACL rc={rc}"
             )
 
+    # ─────────────── 多流 Stream 支撑（供 api/stream.py 封装）───────────────
+
+    def stream_context(self, native_stream):
+        return self.torch.npu.stream(native_stream)
+
+    def synchronize_stream(self, native_stream, timeout_ms: int) -> None:
+        """有界等待指定流（pyACL synchronize_stream_with_timeout）。
+
+        注意：需要流的底层句柄（torch Stream 的 .npu_stream 属性），
+        且任务与同步必须在同一流上才会触发超时（同步空流会立即返回）。
+        """
+        acl = self.acl
+        if acl is None:
+            native_stream.synchronize()
+            return
+        handle = getattr(native_stream, "npu_stream", None)
+        if handle is None:
+            native_stream.synchronize()
+            return
+        rc = acl.rt.synchronize_stream_with_timeout(handle, timeout_ms)
+        if rc != 0:
+            raise TimeoutError(f"流同步超时（{timeout_ms}ms），pyACL rc={rc}")
+
+    def wait_event_host(self, native_event, timeout_ms: int) -> bool:
+        """主机侧有界等待：轮询 query，避免无限阻塞。"""
+        import time
+        deadline = time.time() + timeout_ms / 1000.0
+        while True:
+            try:
+                if native_event.query():
+                    return True
+            except Exception:
+                # 未 record 的事件 query 语义由契约定义；此处按"未完成"处理
+                pass
+            if time.time() >= deadline:
+                return False
+            time.sleep(0.001)
+
     # ─────────────── 错误码翻译（职责 D10）──────────────
 
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:

@@ -21,6 +21,7 @@ from .api.errors import (
     FlagosError,
     translate_via_backend,
 )
+from .api.stream import Event, Stream
 from .backends.base import RuntimeBackend
 from .backends import registry
 from .backends.registry import (
@@ -41,6 +42,7 @@ __all__ = [
     "current_name", "BackendNotFound", "RuntimeBackend", "registry",
     # 错误分级
     "FlagosError", "ErrorCategory", "DISPOSITION", "translate_via_backend",
+    "Stream", "Event",
     # 设备 / 流（转发到当前后端）
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
@@ -64,12 +66,16 @@ def memory_stats(ordinal: int = 0) -> dict:
     return current().memory_stats(ordinal)
 
 
-def create_stream():
-    return current().create_stream()
+def create_stream() -> Stream:
+    """创建统一 Stream 对象（包装后端原生流）。"""
+    b = current()
+    return Stream(b, b.create_stream())
 
 
-def create_event():
-    return current().create_event()
+def create_event() -> Event:
+    """创建统一 Event 对象（包装后端原生事件）。"""
+    b = current()
+    return Event(b, b.create_event())
 
 
 def current_stream():
