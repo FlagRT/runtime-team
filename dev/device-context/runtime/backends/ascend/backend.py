@@ -131,7 +131,14 @@ class AscendBackend(RuntimeBackend):
         return self.torch.npu.Stream()
 
     def create_event(self):
-        return self.torch.npu.Event()
+        """优先复用已有 NpuEventAdapter（补 wait_host + 未 record query 修正），
+        保证与 910C 阶段的事件语义契约完全一致；不可用时退回原生 Event。"""
+        self._load_conformance()
+        try:
+            from npu_events import NpuEventAdapter
+            return NpuEventAdapter()
+        except Exception:
+            return self.torch.npu.Event()
 
     def current_stream(self):
         return self.torch.npu.current_stream()

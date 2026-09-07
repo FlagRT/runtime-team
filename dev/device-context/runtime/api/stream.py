@@ -42,13 +42,21 @@ class Stream:
         """后端原生流对象（需要厂商特有操作时才用）。"""
         return self._native
 
-    def wait_event(self, event: "Event") -> None:
-        """等待事件：建立跨流依赖（流 A record → 本流 wait → 可见）。"""
-        self._native.wait_event(event.native)
+    def wait_event(self, event) -> None:
+        """等待事件：建立跨流依赖（流 A record → 本流 wait → 可见）。
 
-    def wait_stream(self, other: "Stream") -> None:
-        """等待另一流此前所有任务完成（粒度比 event 粗，过度等待会更慢）。"""
-        self._native.wait_stream(other.native)
+        兼容传入统一 Event 或后端原生事件对象。
+        """
+        native = event.native if isinstance(event, Event) else event
+        self._native.wait_event(native)
+
+    def wait_stream(self, other) -> None:
+        """等待另一流此前所有任务完成（粒度比 event 粗，过度等待会更慢）。
+
+        兼容传入统一 Stream 或后端原生流对象。
+        """
+        native = other.native if isinstance(other, Stream) else other
+        self._native.wait_stream(native)
 
     def synchronize(self, timeout_ms: Optional[int] = None) -> None:
         """等待本流任务完成；timeout_ms 非空时为有界等待（超时抛 TimeoutError）。"""
