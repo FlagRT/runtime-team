@@ -1,0 +1,66 @@
+{
+  "verdict": "ACL_107015_PASS",
+  "expected_code": 107015,
+  "device": 0,
+  "steps": [
+    {
+      "step": "acl.init",
+      "ret": 0
+    },
+    {
+      "step": "acl.rt.set_device",
+      "ret": 0,
+      "device": 0
+    },
+    {
+      "step": "A:create_stream",
+      "ret": 0
+    },
+    {
+      "step": "A:launch_callback(no subscribe)",
+      "ret": 107015,
+      "expected": 107015
+    },
+    {
+      "step": "B:create_stream",
+      "ret": 0
+    },
+    {
+      "step": "B:subscribe_report",
+      "ret": 0,
+      "thread_id": 281472909372128
+    },
+    {
+      "step": "B:launch_callback(after subscribe)",
+      "ret": 0,
+      "expected": 0
+    }
+  ],
+  "groups": {
+    "A_no_subscribe": {
+      "launch_callback_ret": 107015,
+      "triggered_107015": true
+    },
+    "B_after_subscribe": {
+      "subscribe_report_ret": 0,
+      "launch_callback_ret": 0,
+      "success": true
+    }
+  },
+  "translation": {
+    "error_code": 107015,
+    "category": "L3_EXECUTION",
+    "category_value": 3,
+    "location": "device:0/stream:A/op:launch_callback",
+    "root_cause": "RuntimeError: ACL runtime error: launch_callback failed, error code is 107015",
+    "is_retryable": false,
+    "is_fatal": false,
+    "in_acl_map": false
+  },
+  "note": "",
+  "checks": {
+    "a_triggered_107015": true,
+    "b_control_success": true,
+    "translated": true
+  }
+}

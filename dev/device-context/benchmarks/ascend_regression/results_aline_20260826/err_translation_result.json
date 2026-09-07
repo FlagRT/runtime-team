@@ -1,0 +1,33 @@
+{
+  "verdict": "ERR_TRANSLATION_PASS",
+  "results": [
+    {
+      "probe": "L2-形状不匹配",
+      "caught": true,
+      "category": "L2_PARAM",
+      "location": "stream:0/op:matmul",
+      "root_cause": "RuntimeError: matmul_implement_npu:../third_party/op-plugin/op_plugin/ops/opapi/MatmulKernelNpuOpApi.cpp:92 NPU function error: call aclnnMatmul failed, error code is 161002\n[ERROR] 2026-08-26-08:45:06 (PID:3839, Device:0, RankID:-1) ERR00100 PTA call acl api failed.\n[PID: 3839] 2026-08-26-08:45:06.643.681 AclNN_Parameter_Error(EZ1001): The k-axis of the two inputs are different [3, 4], [5, 6]\n",
+      "error_code": 161002,
+      "note": "统一错误对象翻译：L2_PARAM（code=161002），根因原文保留"
+    },
+    {
+      "probe": "L2-非法设备ordinal",
+      "caught": true,
+      "category": "L2_PARAM",
+      "location": "N/A（框架层无在途任务登记表）",
+      "root_cause": "RuntimeError: exchangeDevice:../torch_npu/csrc/core/npu/impl/NPUGuardImpl.cpp:38 NPU function error: c10_npu::SetDevice(d.index()), error code is 107001\n[ERROR] 2026-08-26-08:45:06 (PID:3839, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: Invalid device ID.\n        Check whether the device ID is valid.\n[PID: 3839] 2026-08-26-08:45:06.644.909 Invalid_Argument(EE1003): SetDevice failed because value 115 for parameter drv devId is invalid. Expected value: [0, 16).\n        Solution: 1.Check the input parameter range of the function. 2.Check the function invocation relationship.\n        TraceBack (most recent call last):\n        rtSetDevice execution failed, reason=device id error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:65]\n        open device 115 failed, runtime result = 107001.[FUNC:ReportCallError][FILE:log_inner.cpp][LINE:148]\n",
+      "error_code": 107001,
+      "note": "统一错误对象翻译：L2_PARAM（code=107001），根因原文保留"
+    },
+    {
+      "probe": "L1/L3-大分配或执行类",
+      "caught": false,
+      "category": "UNKNOWN",
+      "location": "N/A",
+      "root_cause": "",
+      "error_code": null,
+      "note": "调用未报错（可能未触发该错误路径）"
+    }
+  ],
+  "interface_gap": "统一错误对象API未暴露，当前为框架层异常原文"
+}

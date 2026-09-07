@@ -1,0 +1,66 @@
+{
+  "rounds": 7,
+  "batches": 6,
+  "sizes": {
+    "512": {
+      "copy_sync_ms": 0.293,
+      "calc_ms": 0.185,
+      "no_overlap_baseline_ms": 0.478,
+      "V0_ms": 0.985,
+      "V1_ms": 0.785,
+      "V4_ms": 0.559,
+      "V5_serial_same_stream_ms": 0.296,
+      "overlap_V0": -1.0619,
+      "overlap_V1": -0.6422,
+      "overlap_V4": -0.1707,
+      "sync_overhead_V0_ms": 0.507,
+      "sync_overhead_V1_ms": 0.307,
+      "sync_overhead_V4_ms": 0.082
+    },
+    "1024": {
+      "copy_sync_ms": 0.612,
+      "calc_ms": 0.299,
+      "no_overlap_baseline_ms": 0.911,
+      "V0_ms": 0.966,
+      "V1_ms": 0.79,
+      "V4_ms": 0.783,
+      "V5_serial_same_stream_ms": 0.771,
+      "overlap_V0": -0.0602,
+      "overlap_V1": 0.1334,
+      "overlap_V4": 0.1405,
+      "sync_overhead_V0_ms": 0.055,
+      "sync_overhead_V1_ms": -0.122,
+      "sync_overhead_V4_ms": -0.128
+    },
+    "2048": {
+      "copy_sync_ms": 1.858,
+      "calc_ms": 1.382,
+      "no_overlap_baseline_ms": 3.24,
+      "V0_ms": 2.194,
+      "V1_ms": 2.218,
+      "V4_ms": 3.19,
+      "V5_serial_same_stream_ms": 3.33,
+      "overlap_V0": 0.3228,
+      "overlap_V1": 0.3155,
+      "overlap_V4": 0.0155,
+      "sync_overhead_V0_ms": -1.046,
+      "sync_overhead_V1_ms": -1.022,
+      "sync_overhead_V4_ms": -0.05
+    },
+    "4096": {
+      "copy_sync_ms": 6.925,
+      "calc_ms": 9.942,
+      "no_overlap_baseline_ms": 16.867,
+      "V0_ms": 11.19,
+      "V1_ms": 11.222,
+      "V4_ms": 16.934,
+      "V5_serial_same_stream_ms": 17.181,
+      "overlap_V0": 0.3365,
+      "overlap_V1": 0.3347,
+      "overlap_V4": -0.004,
+      "sync_overhead_V0_ms": -5.677,
+      "sync_overhead_V1_ms": -5.645,
+      "sync_overhead_V4_ms": 0.067
+    }
+  }
+}

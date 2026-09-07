@@ -1,0 +1,67 @@
+{
+  "chip": "ascend",
+  "backend": "npu",
+  "env": {
+    "torch_npu": "2.10.0",
+    "devices": 16
+  },
+  "cases": {
+    "e1_event_record_wait": {
+      "ok": true,
+      "detail": "统一事件 record/wait 可用"
+    },
+    "e2_host_timeout": {
+      "ok": true,
+      "detail": "未 record wait_host(200ms) 返回 False，耗时 201ms（<1s，不永久阻塞）"
+    },
+    "e2_wait_before_record": {
+      "ok": true,
+      "detail": "record→wait 正常路径通过；边界：wait 未 record 事件可能永久阻塞（无超时），需统一层收敛（如实标注）"
+    },
+    "e3_query_unrecorded": {
+      "ok": true,
+      "detail": "未 record query=False（不崩溃）"
+    },
+    "f1_error_translation": {
+      "ok": true,
+      "detail": "统一错误对象: L2_PARAM(code=161002) 位置=stream:0/op:matmul 根因保留=RuntimeError: matmul_implement_npu:../third_party/op-plugin/"
+    },
+    "r_recovery": {
+      "ok": true,
+      "detail": "评估=available 隔离=True 重建=True 在途重放集合=True 事件=['isolated', 'available']"
+    },
+    "s1_stream_order": {
+      "ok": true,
+      "detail": "流内顺序近似：链式运算结果与逐 CPU 参考相对误差 1.04e-07（<1e-3）"
+    },
+    "s2_explicit_dependency": {
+      "ok": true,
+      "detail": "两条独立张量链结果正确（无隐式同步破坏）"
+    },
+    "s3_result_visibility": {
+      "ok": true,
+      "detail": "跨流显式依赖可见性: z 全 3 = True"
+    },
+    "s4_explicit_transfer": {
+      "ok": true,
+      "detail": "显式 wait_stream 传递: b 全 10 = True"
+    },
+    "t1_pinned_async_copy": {
+      "ok": true,
+      "detail": "pinned->device non_blocking 拷贝数据一致"
+    },
+    "t2_inflight_protection": {
+      "ok": true,
+      "detail": "拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）"
+    },
+    "t3_topology_path": {
+      "ok": true,
+      "detail": "跨设备直接传输数据一致=True；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）"
+    }
+  },
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "total": 13
+  }
+}

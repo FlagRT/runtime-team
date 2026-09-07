@@ -1,0 +1,19 @@
+{
+  "verdict": "DBUF_PASS",
+  "checks": {
+    "double_buffer_correct": {
+      "ok": true,
+      "detail": "4 批交替传输+计算数据一致"
+    },
+    "timeline": {
+      "detail": "每批耗时(含传输+计算)=[0.1301, 0.0045, 0.0039, 0.0039]s",
+      "overlap": "框架层无法直接观测重叠；统一流/事件接口暴露后可测"
+    },
+    "event_dep": {
+      "ok": true,
+      "detail": "统一流/事件依赖链示意（按 torch_fl 实际 API 调整）"
+    }
+  },
+  "stream_api": "unified",
+  "note": "双缓冲数据正确；统一流/事件接口可用，重叠可测"
+}

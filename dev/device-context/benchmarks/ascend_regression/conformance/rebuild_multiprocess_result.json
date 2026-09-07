@@ -1,0 +1,57 @@
+{
+  "ordinal": 0,
+  "rounds": 30,
+  "server": {
+    "ok_runs": 30,
+    "fails": [],
+    "total": 30
+  },
+  "recoverer": {
+    "b_init_ok": true,
+    "handle_error_decision": {
+      "captured": true,
+      "steps": [
+        "captured",
+        "evaluated: available"
+      ]
+    },
+    "category": "L4_FATAL",
+    "recovered": true,
+    "recovery_decision": {
+      "steps": [
+        "captured",
+        "evaluated: (simulated L4)",
+        "isolated",
+        "recovered: True (real aclrtResetDevice)"
+      ]
+    },
+    "s3_acl_rebuild": {
+      "set_device": 0,
+      "create_stream": 0,
+      "create_event": 0
+    },
+    "s3_torch_recover": {
+      "ok": true,
+      "val": 7641.7754
+    }
+  },
+  "checks": {
+    "S1_recoverer_real_rebuild": {
+      "ok": true,
+      "detail": "steps=['captured', 'evaluated: (simulated L4)', 'isolated', 'recovered: True (real aclrtResetDevice)']"
+    },
+    "S2_server_isolation": {
+      "ok": true,
+      "detail": "服务进程 30/30 轮无失败（B reset 期间不受影响）"
+    },
+    "S3a_rebuild_acl_handles": {
+      "ok": true,
+      "detail": "{'set_device': 0, 'create_stream': 0, 'create_event': 0}"
+    },
+    "S3b_recoverer_torch_recover": {
+      "ok": true,
+      "detail": "{'ok': True, 'val': 7641.7754}"
+    }
+  },
+  "verdict": "MULTIPROC_REBUILD_PASS"
+}

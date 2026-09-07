@@ -1,0 +1,22 @@
+{
+  "verdict": "PINSMOKE_PASS",
+  "checks": {
+    "pinned_alloc": {
+      "ok": true,
+      "detail": "shape=(8, 8), pinned=True"
+    },
+    "async_copy_pinned": {
+      "ok": true,
+      "detail": "pinned->flagos non_blocking 数据一致"
+    },
+    "async_copy_pageable": {
+      "ok": true,
+      "detail": "行为正确"
+    },
+    "pinned_lifecycle": {
+      "ok": true,
+      "detail": "分配/拷贝/释放循环无异常"
+    }
+  },
+  "note": "锁页分配/异步拷贝/生命周期行为正确；非锁页'降级事件'需运行时采集点暴露，框架层不可观测（如实标注）"
+}

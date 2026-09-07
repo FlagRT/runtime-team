@@ -1,0 +1,44 @@
+{
+  "rank": 0,
+  "world": 2,
+  "checks": {
+    "E_big_allreduce": {
+      "ok": true,
+      "size_mb": 64,
+      "got": 100663296.0,
+      "expect": 100663296,
+      "detail": "64MB all_reduce 后立即消费 got=1.0066e+08 expect=1.0066e+08"
+    },
+    "F_cross_stream_no_block": {
+      "ok": true,
+      "wall_ms": 61.96,
+      "comm_ms": 1.78,
+      "calc_ms": 61.16,
+      "serial_est_ms": 62.93,
+      "overlap_efficiency": 0.5452,
+      "detail": "通信流 all_reduce 1.8ms ∥ 计算流 61.2ms；串行估计 62.9ms、实测墙钟 62.0ms → 重叠效率 54.5%（>30% 证未互相阻塞）"
+    },
+    "G_multi_stream_concurrent": {
+      "ok": true,
+      "n_streams": 4,
+      "vals": [
+        3072.0,
+        3072.0,
+        3072.0,
+        3072.0
+      ],
+      "expect": 3072,
+      "detail": "4 流并发 all_reduce 结果: [3072.0, 3072.0, 3072.0, 3072.0] expect=3072"
+    },
+    "H_long_rounds": {
+      "ok": true,
+      "rounds": 100,
+      "nan": false,
+      "first": 6291456.0,
+      "detail": "100 轮 all_reduce: NaN=False 首值=6291456.0"
+    }
+  },
+  "passed": 4,
+  "total": 4,
+  "verdict": "TP_COMM_ENHANCED_PASS"
+}

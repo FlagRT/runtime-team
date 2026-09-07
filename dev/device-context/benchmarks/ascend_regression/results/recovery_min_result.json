@@ -1,0 +1,42 @@
+{
+  "verdict": "RECOVERY_PASS",
+  "checks": {
+    "state_initial": {
+      "ok": true,
+      "detail": "初始状态=available"
+    },
+    "state_machine": {
+      "ok": true,
+      "detail": "四态转换事件: ['degraded', 'isolated', 'available']"
+    },
+    "state_snapshot": {
+      "ok": true,
+      "detail": "快照: available"
+    },
+    "probe": {
+      "ok": true,
+      "detail": "活性探针=True"
+    },
+    "evaluate": {
+      "ok": true,
+      "detail": "评估=available"
+    },
+    "rebuild": {
+      "ok": true,
+      "detail": "重建=True 状态=available"
+    },
+    "inflight": {
+      "ok": true,
+      "detail": "在途=2 任务: ['op_a', 'op_b']"
+    },
+    "replay_set": {
+      "ok": true,
+      "detail": "重放集合(完成op_a后): ['op_b']"
+    },
+    "handle_error": {
+      "ok": true,
+      "detail": "L2_PARAM 流程: ['captured', 'evaluated: L2_PARAM, no device recovery']"
+    }
+  },
+  "note": "状态机四态 + 五段式恢复全流程落地验证通过：R1捕获/R2评估/R3隔离/R4重建/R5重放 + 状态转换订阅事件；重建为框架层最小近似（探针重试），真实上下文重建待设备生命周期接口"
+}

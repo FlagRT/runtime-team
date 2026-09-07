@@ -1,0 +1,39 @@
+{
+  "chip": "ascend",
+  "backend": "npu",
+  "env": {
+    "torch_npu": "2.10.0",
+    "devices": 1
+  },
+  "cases": {
+    "i1_device_context_after_load": {
+      "ok": true,
+      "detail": "加载后上下文可用: logits.shape=(4, 64)"
+    },
+    "i2_infer_forward_stream_order": {
+      "ok": true,
+      "detail": "多轮前向同流顺序: 固定输入逐轮一致(误差=0.00e+00) = True"
+    },
+    "i3_kv_buffer_visibility": {
+      "ok": true,
+      "detail": "KV 跨流可见性: 写入流→事件→计算流, 读回全 8 = True"
+    },
+    "i4_d2h_sample_transfer": {
+      "ok": true,
+      "detail": "D2H 采样回传: logits.cpu()→topk, shape=(4, 3)"
+    },
+    "i5_longrun_device_state": {
+      "ok": true,
+      "detail": "长驻 20 轮: 累计 logits=4.02e+00, 无 NaN/Inf = True"
+    },
+    "i6_pipeline_overlap": {
+      "ok": true,
+      "detail": "流水线依赖链: 末轮数据正确(rel_err=2.06e-07)=True | 观测: pipe=0.001s serial=0.001s 重叠率=-111.2%"
+    }
+  },
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6
+  }
+}

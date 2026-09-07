@@ -1,0 +1,24 @@
+{
+  "verdict": "DENSE_INFER_PASS",
+  "env": {
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0",
+    "vllm": "0.20.2",
+    "VLLM_PLUGINS": "(未设置)"
+  },
+  "checks": {
+    "outputs": [
+      " Matthew Bais, currently a third year PhD student in the Reed/Reiss lab. My rese",
+      " one of the most popular destinations in Europe. If you read a tourist guide for",
+      "____\n(1)2×2=4(2)2+2=4;;故答案为:4",
+      " leading server-side and web-development language. Server-side languages are oft"
+    ]
+  },
+  "timing": {
+    "load_s": 39.0,
+    "infer_s": 6.21,
+    "total_tokens": 121,
+    "tok_s": 19.49
+  },
+  "note": "加载 39.0s / 推理 6.2s / 121 tokens / 19.5 tok/s"
+}

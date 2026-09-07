@@ -1,0 +1,39 @@
+{
+  "verdict": "SERVE_READY_PASS",
+  "port": 8100,
+  "timing": {
+    "ready_wait_s": 55,
+    "preheat_s": 0.22,
+    "infer_s": 3.74,
+    "throughput_tok_s": 68.4,
+    "total_tokens": 256
+  },
+  "checks": {
+    "ready": true,
+    "outputs_non_empty": true,
+    "no_nan": true
+  },
+  "outputs": [
+    {
+      "prompt": "The capital of France is",
+      "text": " Paris. The capital of Germany is Berlin. The capital of Italy is Rome. The capital of Spain is Madrid. The capital of Portugal is Lisbon. The capital of Greece is Athens. The capital of Belgium is Br",
+      "completion_tokens": 64
+    },
+    {
+      "prompt": "量子计算的基本原理是",
+      "text": "量子叠加和量子纠缠，对吗？ 是的，量子计算的基本原理确实涉及量子叠加和量子纠缠。这些是量子力学中特有的现象，使得量子计算机在处理某些问题时比传统计算机更高效。\n\n1. **量子叠加**：一个量子比特（qubit）可以同时处于0",
+      "completion_tokens": 64
+    },
+    {
+      "prompt": "def fibonacci(n):",
+      "text": "\n    if n <= 0:\n        return []\n    elif n == 1:\n        return [0]\n    elif n == 2:\n        return [0, 1]\n    else:\n        fib_seq = [0, 1]\n        for i in range(2, n):\n            next_num",
+      "completion_tokens": 64
+    },
+    {
+      "prompt": "人工智能在医疗领域的应用包括",
+      "text": "哪些？有哪些具体案例？请用中文回答，不要用英文，不要用Markdown格式，分点说明，每点用数字编号，每点内容用中文表述，每点内容不超过200字，每点内容用段落形式，每段开头用数字编号，每段内容",
+      "completion_tokens": 64
+    }
+  ],
+  "note": ""
+}

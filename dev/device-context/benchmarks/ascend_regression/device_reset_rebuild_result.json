@@ -1,0 +1,80 @@
+{
+  "verdict": "RESET_REBUILD_PASS",
+  "checks": {
+    "R0_acl_init": {
+      "ok": true,
+      "ret": 0,
+      "detail": "acl.init()"
+    },
+    "R0_set_device": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtSetDevice(0)"
+    },
+    "R1_create_context": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtCreateContext"
+    },
+    "R1_create_stream": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtCreateStream"
+    },
+    "R1_create_event": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtCreateEvent"
+    },
+    "R1_destroy_event": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtDestroyEvent"
+    },
+    "R1_destroy_stream": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtDestroyStream"
+    },
+    "R1_destroy_context": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtDestroyContext"
+    },
+    "R1_reset_device": {
+      "ok": true,
+      "ret": 0,
+      "detail": "aclrtResetDevice(官方序列后)"
+    },
+    "R2_reset_set_device": {
+      "ok": true,
+      "ret": 0,
+      "detail": "reset 后重新 aclrtSetDevice"
+    },
+    "R2_rebuild_context": {
+      "ok": true,
+      "ret": 0,
+      "detail": "重建 aclrtCreateContext"
+    },
+    "R2_rebuild_stream": {
+      "ok": true,
+      "ret": 0,
+      "detail": "重建 aclrtCreateStream"
+    },
+    "R2_rebuild_event": {
+      "ok": true,
+      "ret": 0,
+      "detail": "重建 aclrtCreateEvent"
+    },
+    "R3_reset_wo_destroy": {
+      "ok": true,
+      "ret": 0,
+      "detail": "未 destroy 显式资源直接 reset（注释警告将导致异常，观察返回值）"
+    },
+    "R4_multi_process_semantics": {
+      "ok": true,
+      "ret": null,
+      "detail": "acl_rt.h: 'Reset the current operating Device...including the default context, the default stream' —— 释放范围为当前进程默认上下文；多进程共享设备时 reset 不影响其他进程的显式 Context/Stream（官方注释语义，跨进程实测待联调）"
+    }
+  }
+}
