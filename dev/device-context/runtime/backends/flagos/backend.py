@@ -30,6 +30,7 @@ class FlagosBackend(RuntimeBackend):
     """基于 torch_fl(flagos) 的后端实现。"""
 
     name = "flagos"
+    device_type = "flagos"   # 设备串前缀：flagos:0
 
     def __init__(self) -> None:
         self._torch = None
