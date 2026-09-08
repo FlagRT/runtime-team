@@ -26,6 +26,72 @@ _CONFORMANCE_DIR = (
 )
 
 
+class FlagosEventAdapter:
+    """torch_fl(flagos) Event 的统一语义适配（与 NpuEventAdapter 同构）。
+
+    补齐两点与统一事件契约的语义缺口：
+      - E3：未 record 事件 query() 误报完成 → recorded 跟踪修正（返回 False）
+      - E2v2：主机有界等待 wait_host（query 轮询，永不永久阻塞）
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._ev = None
+        self._args, self._kwargs = args, kwargs
+        self._recorded = False
+
+    def _ensure(self):
+        if self._ev is None:
+            m = _current_flagos_module()
+            self._ev = m.Event(*self._args, **self._kwargs)
+        return self._ev
+
+    def record(self, stream=None):
+        r = self._ensure().record(stream)
+        self._recorded = True
+        return r
+
+    def wait(self, stream=None):
+        return self._ensure().wait(stream)
+
+    def synchronize(self):
+        r = self._ensure().synchronize()
+        self._recorded = True
+        return r
+
+    def query(self):
+        if not self._recorded:
+            return False
+        return self._ensure().query()
+
+    def wait_host(self, timeout_ms=None):
+        deadline = None if timeout_ms is None else time.monotonic() + timeout_ms / 1000.0
+        while not self.query():
+            if deadline is not None and time.monotonic() >= deadline:
+                return False
+            time.sleep(0.002)
+        return True
+
+    def elapsed_time(self, end_event):
+        return self._ensure().elapsed_time(getattr(end_event, "_ev", end_event))
+
+    def __getattr__(self, item):
+        return getattr(self._ensure(), item)
+
+
+_CURRENT: dict = {}
+
+
+def _current_flagos_module():
+    """返回已加载的 torch.flagos 模块（由 FlagosBackend 在加载时注入）。"""
+    mod = _CURRENT.get("mod")
+    if mod is None:
+        import torch_fl  # noqa: F401
+        import torch
+        mod = torch.flagos
+        _CURRENT["mod"] = mod
+    return mod
+
+
 class FlagosBackend(RuntimeBackend):
     """基于 torch_fl(flagos) 的后端实现。"""
 
@@ -48,6 +114,7 @@ class FlagosBackend(RuntimeBackend):
 
         self._torch = torch
         self._mod = torch.flagos
+        _CURRENT["mod"] = self._mod
         if hasattr(self._mod, "init"):
             try:
                 self._mod.init()
@@ -116,7 +183,8 @@ class FlagosBackend(RuntimeBackend):
         return self.mod.Stream()
 
     def create_event(self):
-        return self.mod.Event()
+        # 统一语义适配（未 record 不误报完成 + 主机有界等待）
+        return FlagosEventAdapter()
 
     def current_stream(self):
         return self.mod.current_stream()
