@@ -31,7 +31,7 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 _CURRENT: Optional[str] = None
 
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
-_KNOWN_BACKENDS = ("ascend", "kunlun")
+_KNOWN_BACKENDS = ("ascend", "flagos", "kunlun")
 
 
 class BackendNotFound(RuntimeError):
