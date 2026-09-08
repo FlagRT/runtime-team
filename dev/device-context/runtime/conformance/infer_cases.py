@@ -14,7 +14,7 @@ conformance/infer_cases.py — 推理场景一致性用例（设备无关，机�
   B 线对照：--backend flagos --cases infer_cases
 
 【ctx 约定】同 cases.py（device/sync/event/stream/stream_ctx/current_stream）。
-【硬约束】不 import torch_fl（npu 后端）；不依赖 vLLM（机制层，与推理引擎解耦）。
+【硬约束】不直接 import 厂商扩展（统一经 runtime API）；不依赖 vLLM（机制层，与推理引擎解耦）。
 【数值纪律】跨操作对比一律 .cpu() 后计算（flag_gems 等 sum 算子不可靠，坑 B4）。
 """
 

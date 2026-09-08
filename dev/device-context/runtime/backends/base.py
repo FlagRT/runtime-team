@@ -14,7 +14,7 @@ Backend 插件接口规范 v0.1（runtime/backends/base.py）
   2. 新增一家芯片 = 实现本接口 + 跑通 conformance。这是"统一接口"的可验收定义。
   3. v0.1 为原型期，允许破坏性变更（每季度评审一次）。
 
-参考：torch_fl 的 vendor 插件目录模式（backends/vendor/<vendor>/），
+参考：vendor 插件目录模式（backends/<vendor>/），
       但本层位于其上层——设备抽象层而非算子 dispatch 层。
 """
 

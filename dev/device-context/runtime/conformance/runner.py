@@ -3,7 +3,7 @@
 统一运行时 conformance 运行框架（runtime/conformance/runner.py）
 
 与 910C 阶段的 conformance 的区别：**设备抽象全部由统一运行时 API 提供**，
-不再在 runner 里直接 import torch_npu / torch_fl。
+不再在 runner 里直接 import 厂商扩展。
 
   - 用例文件（cases.py 13 例 / infer_cases.py 6 例）保持原样，
     它们只通过 ctx 访问设备（device/sync/event/stream/stream_ctx/current_stream）
@@ -44,7 +44,7 @@ def _alarm_handler(signum, frame):
 
 
 def _setup_backend(backend_name: str):
-    """用统一运行时 API 组装设备抽象（替代原 runner 里直接 import torch_npu/torch_fl）。"""
+    """用统一运行时 API 组装设备抽象（替代原 runner 里直接 import 厂商扩展）。"""
     import torch
 
     import runtime

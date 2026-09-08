@@ -8,7 +8,7 @@ Backend 注册表（runtime/backends/registry.py）
   - register(backend)：注册一个后端实现
   - use(name)：切换当前后端（用户唯一入口）
   - current() / get(name)：取回后端实例
-  - discover()：自动发现已安装的后端插件（vendor 目录扫描，参考 torch_fl 模式）
+  - discover()：自动发现已安装的后端插件（vendor 目录扫描）
 
 设计要点：
   1. 后端为**单例**：同一进程内同一后端的实现只实例化一次（设备状态需保持）。
@@ -62,7 +62,7 @@ def register(backend: RuntimeBackend, make_current: bool = False) -> RuntimeBack
 def discover(names=_KNOWN_BACKENDS, verbose: bool = False) -> List[str]:
     """自动发现并注册后端插件（扫描 backends/<name>/backend.py）。
 
-    参考 torch_fl 的 vendor 插件目录模式：每家厂商一个子目录，
+    vendor 插件目录模式：每家厂商一个子目录，
     目录内提供 `BACKEND` 或 `build()` 工厂。发现失败（如缺依赖）仅告警，不中断。
 
     Returns:
