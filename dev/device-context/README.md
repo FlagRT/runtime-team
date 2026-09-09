@@ -14,7 +14,8 @@
 | **`distributed_training/`** | 分布式训练既有工作 | 训练侧 conformance 与探针资产、训练脚本与通信工具、通信缺陷补丁、训练映射与报告 |
 | **`distributed_inference/`** | 分布式推理既有工作 | 推理侧 conformance、探针、错误码工具、TP 对照、推理映射与阶段报告 |
 
-顶层保留：`README.md`（本看板）、`docs/`（通用与历史文档）、`docker-compose.yml`、`probes/`
+顶层保留：`README.md`（本看板）、`docs/`（通用与历史文档）、`probes/`
+（`docker-compose.yml` 与 `dev/memory` 目录已由组内于 2026-09-09 删除）
 三个目录各有分支看板：`prototype/README.md`、`distributed_training/README.md`、`distributed_inference/README.md`
 
 ---
