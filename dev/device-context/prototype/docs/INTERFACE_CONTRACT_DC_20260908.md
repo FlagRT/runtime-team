@@ -64,7 +64,7 @@ fe = runtime.translate_error(exc, location="...")
 | 接口 | 语义 |
 |---|---|
 | `device_state(ordinal)` | 设备四态查询（AVAILABLE / DEGRADED / ISOLATED / UNKNOWN） |
-| `recover_device(ordinal, mode)` | 三级重建：`probe`（保底探活）/ `real`（CANN 官方 aclrtResetDevice 序列）/ `hybrid`（先 probe 后 real） |
+| `recover_device(ordinal, mode)` -> **dict** | 三级重建：`probe`（保底探活）/ `real`（CANN 官方 aclrtResetDevice 序列）/ `hybrid`（先 probe 后 real） |
 
 - **调用约定**：监控方向做检测与恢复编排（何时调、调哪级），恢复执行由本组件完成
 - **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前默认不启用
@@ -125,3 +125,15 @@ fe = runtime.translate_error(exc, location="...")
 - **问题反馈**：device-context（Kistich）；每周五前反馈的问题当周定位、下周版本修复
 - **本周状态**：组件 v0.1 待打包下发（见 9 月计划 W2）；本章节即战略文档要求的
   "设备上下文接口约定章节"定稿
+
+---
+
+## 补充：recover_device 返回契约（2026-09-09 统一）
+
+- **返回类型统一为 `dict`**：`{ordinal, mode, recovered, state, detail}`
+- **`recovered` 语义 = 设备当前可用**（不是"是否执行了重建"）
+  - 底层 `recovery.recover_device` 仅在设备处于 ISOLATED 时才执行重建，
+    否则返回 False；此前 ascend 后端直接透传该 bool，导致"设备正常、无需重建"
+    被上报为"恢复失败"。现已统一：以设备状态 + 探活结果判定。
+- `detail` 区分三种情况：重建成功 / 无需重建（探活可用）/ 恢复失败（探活不可用）
+- `state` 为设备四态之一，便于上层与监控方向判定
