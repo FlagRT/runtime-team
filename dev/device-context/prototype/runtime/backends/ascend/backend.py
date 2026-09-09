@@ -240,21 +240,39 @@ class AscendBackend(RuntimeBackend):
                        reason: str = "") -> dict:
         """设备重建。mode: probe / real / hybrid（与 recovery.rebuild_mode 一致）。
 
-        统一返回 dict（底层 recovery 返回 bool，此处包装，
-        与 flagos 后端及接口约定保持一致）。
+        统一返回 dict，recovered 语义 = **设备当前可用**（与 flagos 后端一致）。
+
+        2026-09-09 修正：底层 recovery.recover_device 仅在设备处于 ISOLATED
+        状态时才执行恢复，否则直接 return False —— 这会让「设备本来就正常、
+        无需重建」被上层误读为「恢复失败」。此处补充状态与探活判定，
+        用 detail 区分「无需重建 / 恢复成功 / 恢复失败」。
         """
         self._load_conformance()
+        state = None
+        try:
+            state = str(self._device_state.query_device_state(ordinal))
+        except Exception:
+            state = "unknown"
+
         ok = self._recovery.recover_device(
             ordinal,
             reason=reason or f"runtime: rebuild({mode})",
             device=self.device_type,
             rebuild_mode=mode,
         )
+        if ok:
+            return {"ordinal": ordinal, "mode": mode, "recovered": True,
+                    "state": state, "detail": f"rebuild_mode={mode}：重建成功"}
+
+        # 未执行/重建失败：以探活结果判定设备是否实际可用
+        try:
+            alive = bool(self.probe_device(ordinal))
+        except Exception:
+            alive = False
         return {
-            "ordinal": ordinal,
-            "mode": mode,
-            "recovered": bool(ok),
-            "detail": f"ascend 后端：recovery.rebuild_mode={mode}",
+            "ordinal": ordinal, "mode": mode, "recovered": alive, "state": state,
+            "detail": (f"rebuild_mode={mode}：设备状态={state}，" +
+                       ("无需重建，探活可用" if alive else "探活不可用，恢复失败")),
         }
 
     # ─────────────── 可选能力 ───────────────
