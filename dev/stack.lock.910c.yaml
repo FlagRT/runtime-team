@@ -53,6 +53,15 @@ rules:
     → 两条腿（训练/推理）不需要同时跑：串行执行即可，跑完一条停掉再起下一条。
   - "结论性验证只在锁定镜像内做；日常调试容器结果不作为验收依据"
   - "任何镜像变更必须更新本文件并知会全组"
+  - |
+    【镜像获取现状（2026-09-09 实测）】锁定镜像在 registry 上**不可公开拉取**
+    （docker manifest inspect 两个镜像均查询失败；本地镜像 RepoDigests 为空 =
+    经 docker save/load 离线导入，非 docker pull）。下游复现时请向镜像负责方索取
+    离线包（docker save），或待其推送到可访问 registry 后更新本文件。
+    注意区分镜像族：flagrt/ascend-operator-runtime（无 -comm）与
+    flagrt/ascend-operator-runtime-comm（含 flagcx）是两个不同仓库，
+    本文件锁定的是后者（comm:0.1.3），勿混用。
+
   - "起容器前自查：并发容器数 ≤3、镜像与本文件一致、容器名符合规范、卡资源空闲"
   - "合入把关五条：镜像与 stack.lock 一致 ｜ 容器/分支命名合规 ｜ 接口约定章节完稿且下游确认 ｜ 能跑自己那段 demo ｜ 无环境分叉"
 
