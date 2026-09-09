@@ -1,0 +1,37 @@
+# ascend-train-comm —— 路径 B（功能等价，可从代码仓 + 回收资产复现）
+# 参照 dev/images/ascend-train-comm/v1/Dockerfile（history 还原，byte 级目标）。
+# 路径 B 替代点：FlagCX 用从原镜像回收的「已装包 + dist-info」vendor 进来
+#   （原始 wheel 已 rm、commit 55eb2ff + 2 patch 为 owner 私有，见 lock.yaml:gaps）。
+ARG PARENT_IMAGE=flagrt/ascend-operator-runtime:0.2.0-reproB
+FROM ${PARENT_IMAGE}
+
+ARG FLAGCX_VERSION=0.13.0
+LABEL org.opencontainers.image.title="FlagRT Ascend communication runtime (repro-B)" \
+      org.opencontainers.image.version="0.1.3-reproB" \
+      io.flagrt.flagcx.version="${FLAGCX_VERSION}" \
+      io.flagrt.flagcx.commit="55eb2ffff6988ae1db5e6ecb325472aecc93d238" \
+      io.flagrt.flagcx.adaptor="ascend" \
+      io.flagrt.flagcx.torch_backend="flagos" \
+      io.flagrt.release.stage="candidate" \
+      io.flagrt.repro="path-B functional; flagcx vendored from recovered install"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# vendor 回收的 flagcx 0.13.0（已装包 + dist-info，metadata 可被 importlib 识别）
+COPY flagcx-vendor/flagcx/ /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/
+COPY flagcx-vendor/flagcx-0.13.0.dist-info/ /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx-0.13.0.dist-info/
+COPY verify_flagcx_runtime.py /opt/flagrt/verify_flagcx_runtime.py
+COPY verify_flagcx_p2p.py /opt/flagrt/verify_flagcx_p2p.py
+
+ENV FLAGCX_TORCH_BACKEND=flagos \
+    HCCL_WHITELIST_DISABLE=1 \
+    TORCH_DEVICE_BACKEND_AUTOLOAD=0 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LD_LIBRARY_PATH=/usr/local/python3.11.15/lib/python3.11/site-packages/torch/lib:${LD_LIBRARY_PATH}
+
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && python3 -c "from importlib import metadata; assert metadata.version('flagcx')=='0.13.0'; print('flagcx metadata ok')" \
+    && ! python3 -m pip list --format=freeze | grep -E '^torch[-_]npu==' \
+    && (python3 /opt/flagrt/verify_flagcx_runtime.py --static || echo "[repro-B] verify_flagcx_runtime --static 非致命失败（缺 driver 挂载，正常）")
+
+WORKDIR /workspace/FlagPerf/base

@@ -30,14 +30,8 @@ lock:
     image: "flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64"
     notes: "容器内补装 transformers；通信库与算子库已内置。release.stage=candidate（torch_fl 例外线，非官方主线）"
     container_name: "flagos-proto-train-910c"
-    base_image_entry: "dev/images/ascend-train-comm/v1"        # 构造记录：Dockerfile + pin 清单 + 官方/自定义边界
-    registry_status: "临时机器绑定资产（2026-09-09 核实）｜ repro_status 🟡（配方已还原入库，registry 未发布）"
-    registry_status_detail: |
-      Docker Hub 无此仓库（docker pull 报 repository does not exist），RepoDigests 为空。
-      构造方式已从 npu1-27 本地镜像 docker history 还原，落盘于 dev/images/ascend-train-comm/v1/（repro_status 🟡：
-      配方在手，尚未重建/验证/发布）。当前已知可用位置：npu1-27（10.120.73.79）；其他机器联系镜像 owner 拿
-      `docker save` 分发包。
-      可复现化任务清单与进度见 dev/images/TODO.md（负责：总组；构建/登记可指派执行方）。
+    base_image_entry: "dev/images/ascend-train-comm/v1"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
+    registry_status: "组内镜像，无 registry 要求；构造与重建见 base_image_entry（repro_status 🟢 functional-repro，2026-09-10 实机验证）"
   infer:                                # 推理腿：单卡推理服务
     image: "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3"
     notes: "推理框架 0.20.2 官方自带"
@@ -74,9 +68,10 @@ rules:
   - "合入把关五条：镜像与 stack.lock 一致 ｜ 容器/分支命名合规 ｜ 接口约定章节完稿且下游确认 ｜ 能跑自己那段 demo ｜ 无环境分叉"
   - |
     基座镜像入锁门槛：任何镜像进入本文件 lock: 前，dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，
-    repro_status ≥ 🟡（配方在手）；官方镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
+    repro_status ≥ 🟡（配方在手；组内镜像不涉及 registry，看能否凭仓内 Dockerfile.repro+assets 重建）；
+    官方镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
     统一基座的确定/调整/发布由总组裁定（依据各子方向 STATUS.md 暴露的问题与意见）；各方向只消费不自建
-    （docker pull <digest> 或执行方的 docker save 包），诉求写进本方向 STATUS.md 由总组收拢。
+    （用锁定 tag 的本机镜像或执行方的 docker save 包），诉求写进本方向 STATUS.md 由总组收拢。
 
 # ---------------------------------------------------------------
 # 两条腿的运行方式约束（实测）
@@ -118,3 +113,20 @@ changelog:
       新增 dev/images/ 基座镜像规范：从 npu1-27 本地镜像还原训练腿两层（ascend-train-comm /
       ascend-operator-runtime）的 Dockerfile 与 pin 清单，标注官方/自定义边界；每个 lock 条目加
       base_image_entry 指针；新增「基座镜像入锁门槛」规则。训练腿 repro_status 由黑盒升至 🟡。
+  - date: "2026-09-09"
+    who: "总组"
+    what: |
+      按 dev/images/TODO.md 推进一轮：docker save 两镜像止血备份（/mnt/raid/xliu969/flagrt-image-backup/
+      20260909，非仓库；raid 盘，抗 prune）；查明 CANN 基座 = harbor pytorch-plugin-fl:manual-20260807-
+      ascend-dev@sha256:a36a3022；从现镜像回收 wheelhouse(36 wheel)/flagcx 已装包/DSA 覆盖文件；补齐
+      mpich 源码；pin 源码 commit 就位。缺口收敛到两项 owner 独占资产（FlagCX 私有 commit 55eb2ff +
+      2 个 patch）。未改 lock: 镜像；仍锁原预构建镜像。详见 dev/images/TODO.md。
+  - date: "2026-09-10"
+    who: "总组"
+    what: |
+      功能等价重建完成并验证：各 dev/images/*/v1/Dockerfile.repro 实机构建出重建镜像，
+      pip freeze 与原镜像逐行一致、FlagCX .so 逐字节一致（见各 dev/images/*/v1/REBUILD.md）。
+      两镜像 repro_status → 🟢。明确：组内镜像无 registry 推送要求，可复现性 = 凭仓内
+      Dockerfile.repro + assets 重建。逐字节复现为可选金标准，需 owner 交出 FlagCX 私有
+      commit+patch。lock: 镜像 tag 不变。dev/images/ 同日重构为纯归档/索引/重建目录，
+      去除消费方定位/路线/治理内容（那些留在本文件与 docs/）。

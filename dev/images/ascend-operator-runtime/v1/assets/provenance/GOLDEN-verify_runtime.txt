@@ -1,0 +1,60 @@
+Traceback (most recent call last):
+  File "/opt/flagrt/verify_runtime.py", line 80, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/opt/flagrt/verify_runtime.py", line 53, in main
+    raise RuntimeError(f"HCCL AllReduce has unresolved libraries:\n{linked}")
+RuntimeError: HCCL AllReduce has unresolved libraries:
+	linux-vdso.so.1 (0x0000ffff8d315000)
+	libhccl.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl.so (0x0000ffff8cf60000)
+	libacl_rt.so => /usr/local/Ascend/cann-9.0.0/lib64/libacl_rt.so (0x0000ffff8cf20000)
+	libmpi.so.12 => /usr/local/mpich/lib/libmpi.so.12 (0x0000ffff8a920000)
+	libmsprofiler.so => /usr/local/Ascend/cann-9.0.0/lib64/libmsprofiler.so (0x0000ffff8a8e0000)
+	libstdc++.so.6 => /lib/aarch64-linux-gnu/libstdc++.so.6 (0x0000ffff8a6b0000)
+	libm.so.6 => /lib/aarch64-linux-gnu/libm.so.6 (0x0000ffff8a610000)
+	libgcc_s.so.1 => /lib/aarch64-linux-gnu/libgcc_s.so.1 (0x0000ffff8a5e0000)
+	libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000ffff8a430000)
+	/lib/ld-linux-aarch64.so.1 (0x0000ffff8d2dc000)
+	libhcomm.so => /usr/local/Ascend/cann-9.0.0/lib64/libhcomm.so (0x0000ffff899e0000)
+	libc_sec.so => /usr/local/Ascend/cann-9.0.0/lib64/libc_sec.so (0x0000ffff899a0000)
+	libunified_dlog.so => /usr/local/Ascend/cann-9.0.0/lib64/libunified_dlog.so (0x0000ffff89960000)
+	libmmpa.so => /usr/local/Ascend/cann-9.0.0/lib64/libmmpa.so (0x0000ffff89930000)
+	libacl_rt_impl.so => /usr/local/Ascend/cann-9.0.0/lib64/libacl_rt_impl.so (0x0000ffff89840000)
+	libatomic.so.1 => /lib/aarch64-linux-gnu/libatomic.so.1 (0x0000ffff89820000)
+	libprofapi.so => /usr/local/Ascend/cann-9.0.0/lib64/libprofapi.so (0x0000ffff897d0000)
+	liberror_manager.so => /usr/local/Ascend/cann-9.0.0/lib64/liberror_manager.so (0x0000ffff89760000)
+	libpthread.so.0 => /lib/aarch64-linux-gnu/libpthread.so.0 (0x0000ffff89740000)
+	libascendalog.so => /usr/local/Ascend/cann-9.0.0/lib64/libascendalog.so (0x0000ffff89700000)
+	libhccl_alg.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_alg.so (0x0000ffff88ae0000)
+	libhccl_plf.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_plf.so (0x0000ffff885e0000)
+	libhccl_v2.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_v2.so (0x0000ffff87a60000)
+	libdl.so.2 => /lib/aarch64-linux-gnu/libdl.so.2 (0x0000ffff87a40000)
+	librt.so.1 => /lib/aarch64-linux-gnu/librt.so.1 (0x0000ffff87a20000)
+	libascend_dump.so => /usr/local/Ascend/cann-9.0.0/lib64/libascend_dump.so (0x0000ffff878a0000)
+	libruntime.so => /usr/local/Ascend/cann-9.0.0/lib64/libruntime.so (0x0000ffff877d0000)
+	libplatform.so => /usr/local/Ascend/cann-9.0.0/lib64/libplatform.so (0x0000ffff87750000)
+	libhccl_legacy.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_legacy.so (0x0000ffff874f0000)
+	libascendcl.so => /usr/local/Ascend/cann-9.0.0/lib64/libascendcl.so (0x0000ffff87490000)
+	libhccl_v2_alg_frame.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_v2_alg_frame.so (0x0000ffff873d0000)
+	libccl_dpu.so => /usr/local/Ascend/cann-9.0.0/lib64/libccl_dpu.so (0x0000ffff873a0000)
+	libtsdclient.so => /usr/local/Ascend/cann-9.0.0/lib64/libtsdclient.so (0x0000ffff86bc0000)
+	libra.so => /usr/local/Ascend/cann-9.0.0/lib64/libra.so (0x0000ffff86b60000)
+	libtopoaddrinfo.so => /usr/local/Ascend/cann-9.0.0/lib64/libtopoaddrinfo.so (0x0000ffff86b30000)
+	libascend_protobuf.so.3.13.0.0 => /usr/local/Ascend/cann-9.0.0/lib64/libascend_protobuf.so.3.13.0.0 (0x0000ffff86600000)
+	libascend_hal.so => not found
+	libruntime_common.so => /usr/local/Ascend/cann-9.0.0/lib64/libruntime_common.so (0x0000ffff865a0000)
+	libascend_hal.so => not found
+	libmetadef.so => /usr/local/Ascend/cann-9.0.0/lib64/libmetadef.so (0x0000ffff86480000)
+	libopp_registry.so => /usr/local/Ascend/cann-9.0.0/lib64/libopp_registry.so (0x0000ffff863f0000)
+	libhccl_v2_native_alg_repo.so => /usr/local/Ascend/cann-9.0.0/lib64/libhccl_v2_native_alg_repo.so (0x0000ffff857e0000)
+	libascend_hal.so => not found
+	libra_hdc.so => /usr/local/Ascend/cann-9.0.0/lib64/libra_hdc.so (0x0000ffff85770000)
+	libra_peer.so => /usr/local/Ascend/cann-9.0.0/lib64/libra_peer.so (0x0000ffff85730000)
+	libascend_hal.so => not found
+	libascend_watchdog.so => /usr/local/Ascend/cann-9.0.0/lib64/libascend_watchdog.so (0x0000ffff85700000)
+	libascend_trace.so => /usr/local/Ascend/cann-9.0.0/lib64/libascend_trace.so (0x0000ffff84cd0000)
+	librs.so => /usr/local/Ascend/cann-9.0.0/lib64/librs.so (0x0000ffff84a10000)
+	libascend_hal.so => not found
+	libtls_adp.so => /usr/local/Ascend/cann-9.0.0/lib64/libtls_adp.so (0x0000ffff844f0000)
+	libascend_kms.so => /usr/local/Ascend/cann-9.0.0/lib64/libascend_kms.so (0x0000ffff84100000)
+

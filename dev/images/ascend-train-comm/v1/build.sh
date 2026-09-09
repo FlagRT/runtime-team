@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
-# 重建 ascend-train-comm v1。需先备齐 lock.yaml:gaps 列出的资产：
-#   assets/wheels/flagcx-0.13.0-cp311-cp311-linux_aarch64.whl
-#   父镜像 flagrt/ascend-operator-runtime:0.2.0-...（或 dev/images/ascend-operator-runtime/v1/build.sh 先建）
+# 重建 ascend-train-comm —— 功能等价重建（见 REBUILD.md）。
+# 父层 flagrt/ascend-operator-runtime:0.2.0-reproB 需先构建（../ascend-operator-runtime/v1/build.sh）。
+#
+# 前置（准备构建上下文）：
+#   flagcx-vendor/flagcx/               从原镜像 site-packages 回收的已装包
+#   flagcx-vendor/flagcx-0.13.0.dist-info/  同上（metadata 供 importlib 识别）
+#   （sha256 见 assets/provenance/flagcx-vendor.sha256；.so 与原镜像逐字节一致）
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CTX="${1:?用法: build.sh <构建上下文目录>（含 Dockerfile.repro + flagcx-vendor/）}"
 
-TAG="flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64"
-PARENT="${PARENT_IMAGE:-flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64}"
+cp "$HERE/Dockerfile.repro" "$CTX/Dockerfile"
+cp "$HERE/assets/verify_flagcx_runtime.py" "$HERE/assets/verify_flagcx_p2p.py" "$CTX/"
 
-test -f assets/wheels/flagcx-0.13.0-cp311-cp311-linux_aarch64.whl || { echo "缺 flagcx wheel，见 lock.yaml:gaps"; exit 1; }
-sha256sum -c assets/flagcx-wheel.sha256
+cd "$CTX"
+DOCKER_BUILDKIT=0 docker build --network=host \
+  --build-arg PARENT_IMAGE=flagrt/ascend-operator-runtime:0.2.0-reproB \
+  -t flagrt/ascend-operator-runtime-comm:0.1.3-reproB .
 
-DOCKER_BUILDKIT=1 docker build \
-  --platform linux/arm64 \
-  --build-arg PARENT_IMAGE="$PARENT" \
-  -t "$TAG" .
-
-echo "built $TAG"
-echo "自检：docker run --rm --entrypoint /usr/local/python3.11.15/bin/python3 $TAG /opt/flagrt/verify_flagcx_runtime.py --static"
+echo "校验：pip freeze 逐行一致 + flagcx .so sha256 一致"
+docker run --rm --entrypoint /usr/local/python3.11.15/bin/python3 \
+  flagrt/ascend-operator-runtime-comm:0.1.3-reproB -m pip freeze | sort | \
+  diff - "$HERE/assets/provenance/GOLDEN-pipfreeze-comm.txt" && echo "PIP FREEZE OK"
