@@ -51,7 +51,7 @@
 |---|---|---|---|---|---|
 | D1 | 封装 Runtime 接口 | vllm-ascend + torch_npu 在 910C 的设备接入 | P0 dense 推理输出正确（DENSE_INFER_PASS） | dense_infer 脚本 | ✅ 2026-09-01 PASS（19.5 tok/s）；⚠️ vllm-plugin-FL 不适用，见坑 A5 |
 | D2 | 设备句柄+生命周期 | 推理加载/卸载设备初始化；EngineCore 子进程设备句柄；TP rank 设备枚举 | P0 加载 OK + P2 多卡枚举 + P3 子进程句柄 | conformance i1 + 设备枚举探针 + probe_enginecore_device_ctx | ✅ i1 PASS + P0 加载 OK + **A8 子进程句柄 PASS**（spawn pid/ppid + `/dev/davinci_manager` fd + 124 处设备映射 + RSS 5952MB） |
-| D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻 20 轮无泄漏 | conformance i3/i4/i5 | ✅ 2026-08-31：i3 KV 跨流可见性 / i4 D2H 采样回传 / i5 长驻 20 轮无 NaN-Inf，均 PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
+| D3 | 内存句柄+生命周期 | KV cache 分配；权重加载显存；D2H logits 缓冲；长驻显存不泄漏 | KV 分配访问正确 + 长驻无泄漏 | conformance i3/i4/i5 + serve 跨天长驻观察 | ✅ 2026-08-31：i3/i4/i5 均 PASS + **2026-09-03 跨天 28 小时长驻验证**：HBM 61237→61279MB（+42MB，+0.07%）、EngineCore RSS 5936→5972MB（+36MB，+0.6%），pid 未重启，**基本零增长无泄漏**（原 21 分钟样本已升级为跨天级） |
 | D4 | 执行句柄 | 推理前向执行通道 | 多轮前向正确（i2） | conformance i2 | ✅ 2026-08-31：i2 多轮前向同流顺序一致（误差 0.00e+00）PASS（2026-09-02 校准：原标 🔄 属状态滞后） |
 | D5 | Stream 语义 | **16 项 stream 子项**（见 §5.4 核查表）：流内顺序/显式依赖/跨流可见性/wait_stream/多流并发/通信流绑定/图捕获/默认流/错误隔离/生命周期/跨流内存/流优先级/多设备绑定/超时/IPC/配额 | 子项全量核查通过 | S1-S4 + i6 + 双缓冲 + test_tp_comm_sync + probe_graph_capture_stream + **probe_stream_semantics_full** | ✅ **STREAM_SEMANTICS_PASS 8/8**（2026-09-02 全量核查）：S1 流内顺序 / S2 无隐式同步 / S8 默认流vs命名流+record_stream 跨流分配器安全 / S9 API 级错误隔离 / S10 500 次创建销毁无配额泄漏 / S11 跨流内存 / S12 流优先级（least=7/greatest=0，值越小越高）/ S13 多设备流绑定。详见 **§5.4** |
 | D6 | Host/Device 异步传输 | prompt H2D 异步；logits D2H 回传；KV offload（可选） | ① 功能：异步拷贝数据一致 ② 性能：与计算重叠 | T1/T2 + i4 + 双缓冲 | ⚠️ **部分达标**：① 功能 ✅（i4 D2H 回传 PASS、T1/T2 在 conformance 13/13 内）② 性能 **规模相关**：重叠依赖 D8；n≥1024 转正、n≤512 为负（见 §5.2） |
@@ -312,7 +312,7 @@ argmax 在某步选择不同分支 → 自回归放大），**不是同步缺陷
 | **P1-④** | **D5 graph capture 流语义** | 映射文档显式缺口，从未覆盖 | ✅ **GRAPH_CAPTURE_PASS 5/5**：capture 正确/replay 确定性/输入更新/流内切换/显式流，rel_err 全 0（探针：probe_graph_capture_stream.py） |
 | **P1-③** | **D11 真实重建调研** | 恢复从"探针重试近似"升级为真实重建 | ✅ **RESET_REBUILD_PASS**：CANN 官方序列在 pyACL 层全部可执行、reset 后设备可恢复；释放范围=当前进程默认上下文（probe_device_reset_rebuild.py）。落地到 recovery.py 待拍板 |
 | **P1-⑥** | **A8 SIGKILL 释放** | 坑 A2 称 SIGKILL 残留占位 | ✅ **未复现残留**：kill -9 后进程 0 残留、HBM 完全释放回落基线。坑 A2 在当前环境不成立 |
-| **P1-⑤** | **D3 长驻显存（serve 小时级）** | i5 仅 20 轮，serve 长驻未验 | ✅ **加载后零增长**（T1=T2：HBM 61129MB / RSS 5855MB）；12 请求后 +107MB HBM/+81MB RSS（vLLM KV cache 正常缓存）后回落。小时级持续观察中（serve 运行于 910C:8100） |
+| **P1-⑤** | **D3 长驻显存（serve 跨天级）** | i5 仅 20 轮，serve 长驻未验 | ✅ **跨天 28 小时长驻零增长**：HBM +42MB（+0.07%）/ RSS +36MB（+0.6%），serve pid 21865 全程未重启；此前 21 分钟窗口亦为零增长。结论已从小时级升级为**跨天级**（serve 运行于 910C:8100，持续可用） |
 | **P2-⑦** | **D10 timeout 真实触发** | TIMEOUT 类仅做过构造消息验证（L2 层），未真实触发 | ✅ **TIMEOUT_REALTIME_PASS**：stream 同步超时真实返回 **507046**（STREAM_SYNC_TIMEOUT），翻译 **L3_EXECUTION**（mapped=True）；三层验证 L3 层补齐（probe_timeout_realtime.py） |
 | **P2-⑧** | **训练 D8 完整复测** | 此前仅 MAX_STEPS=20 冒烟 | ✅ **完整复测通过（MAX_STEPS=100）**：双卡 hccl 全程 `TORCHRUN_EXIT=0` 无崩溃；loss 2.64→1.37（s50，历史基准 1.9 同量级）；tok/s 单调爬升至 **5166**；训练后 HBM 完全回落基线无泄漏、进程残留 0 |
 | **O3** | PR 到 `dev-1.0` | 描述已备（`docs/PR_DEV_1_0_20260902.md`，**训练 ‖ 推理 双侧对称版**） | ⏸ 暂不发起（用户决定） |
