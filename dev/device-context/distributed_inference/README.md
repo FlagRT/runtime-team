@@ -48,12 +48,12 @@ distributed_inference/
 | 推理 | 路径 | 是否经统一原型 |
 |---|---|---|
 | 历史 vLLM + TP（Qwen3-4B，TP=1/2/4） | `inference/` 下各探针与对照脚本 | ❌ 直接 import 厂商扩展，不经统一 API |
-| **本轮推理腿单卡（Qwen3-Embedding-0.6B）** | `../prototype/runtime/proto/proto_infer_leg.py` | ✅ `runtime.use("ascend")` + `set_device(0)` |
+| **本轮推理腿单卡（前向，Qwen3-Embedding-0.6B）** | `../prototype/runtime/proto/proto_infer_leg.py` | ✅ `runtime.use("ascend")` + `set_device(0)` |\n| **本轮推理腿单卡（vLLM 服务化）** | `../prototype/runtime/proto/proto_infer_serve.py` | ✅ 同上 + HTTP 调 `/v1/embeddings`，10/10 |
 
 **已知缺口（如实标注）**：
 
-1. 本轮推理腿只验证 **transformers 前向形态**，**vLLM 服务化形态尚未基于统一原型验证**
-   （验收标准 2 要求"单卡推理服务"）；
+1. ~~vLLM 服务化尚未基于统一原型验证~~ → **已于 2026-09-09 补齐**：
+   `proto_infer_serve.py` 经统一 API 接入 + HTTP 调服务，10/10 通过（验收标准 2 达成）；
 2. 历史 Qwen3-4B 的 TP 验证**尚未用统一原型复跑**。
 
 

@@ -63,7 +63,7 @@ prototype/
 | 腿 | 脚本 | 后端 | 结果 |
 |---|---|---|---|
 | 训练腿 2 卡微调 | `runtime/proto/proto_train_leg.py` | flagos | 6/6：loss 15.45 → 11.15（50 步）、2117 tok/s、通信三类对照全对 |
-| 推理腿单卡 | `runtime/proto/proto_infer_leg.py` | ascend | 10/10：向量区分度 0.638、66–79 句/s、无 NaN |
+| 推理腿单卡（前向） | `runtime/proto/proto_infer_leg.py` | ascend | 10/10：向量区分度 0.638、66–79 句/s、无 NaN |\n| **推理腿单卡（服务化）** | `runtime/proto/proto_infer_serve.py` | ascend | **10/10 SERVE_LEG_PASS**：vLLM OpenAI 兼容服务，维度 1024、区分度 0.4123、108 句/s（p50 27.4ms）、超长输入 → L2_PARAM/raise 且业务继续 |
 | 错误注入→恢复闭环 | `runtime/proto/proto_error_recovery_loop.py` | 双后端通用 | 推理腿 5 闭环 / 训练腿 4 闭环（1 项因无有界同步如实跳过） |
 
 **与历史资产的关系（易混淆，务必看清）**：本原型跑的是**验收模型的新验证**；
@@ -71,7 +71,7 @@ prototype/
 Qwen3-4B vLLM+TP）是**旧代码路径**（直接 import 厂商扩展，不经统一 API），
 **尚未用本原型复跑**。
 
-**已知缺口**：推理腿只验证 transformers 前向，**vLLM 服务化形态待补**。
+**已知缺口**：推理腿服务化已补齐（vLLM OpenAI 兼容接口）；历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
 
 
 ## 4. 运行方式
