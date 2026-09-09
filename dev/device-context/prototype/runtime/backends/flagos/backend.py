@@ -21,9 +21,7 @@ from ...api.errors import DISPOSITION, ErrorCategory, FlagosError
 from ..base import RuntimeBackend
 
 # conformance 目录（已有资产所在）
-_CONFORMANCE_DIR = (
-    Path(__file__).resolve().parents[3] / "benchmarks" / "ascend_regression" / "conformance"
-)
+_CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
 
 
 class FlagosEventAdapter:

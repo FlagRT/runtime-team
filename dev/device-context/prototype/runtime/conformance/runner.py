@@ -34,7 +34,7 @@ _PKG_DIR = os.path.dirname(_RUNTIME_DIR)                     # device-context
 sys.path.insert(0, _HERE)
 sys.path.insert(0, _PKG_DIR)
 # 共享资产目录（errors / device_state / recovery 等），避免用例导入依赖后端加载顺序
-_ASSETS_DIR = os.path.join(_PKG_DIR, 'benchmarks', 'ascend_regression', 'conformance')
+_ASSETS_DIR = _HERE  # 资产已随 prototype 自包含（errors/recovery/device_state/npu_events）
 if os.path.isdir(_ASSETS_DIR):
     sys.path.insert(0, _ASSETS_DIR)
 

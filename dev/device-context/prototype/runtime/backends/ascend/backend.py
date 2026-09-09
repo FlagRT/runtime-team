@@ -20,9 +20,7 @@ from ...api.errors import ErrorCategory, FlagosError
 from ..base import RuntimeBackend
 
 # conformance 目录（已有资产所在）：device-context/benchmarks/ascend_regression/conformance
-_CONFORMANCE_DIR = (
-    Path(__file__).resolve().parents[3] / "benchmarks" / "ascend_regression" / "conformance"
-)
+_CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
 
 # conformance 模块用 IntEnum 分级（L1=1..L4=4），统一层用字符串枚举 —— 转换表
 _INT_TO_CATEGORY = {
