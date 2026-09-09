@@ -111,7 +111,7 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 
 ## 6. 文档索引
 
-- 统一标准：`prototype/docs/`（接口约定、原型设计、职责框架、月度计划、通信路线、双侧全景、事件契约、错误码映射、镜像诊断）
+- 统一标准：`prototype/docs/`（**阶段性总结**、接口约定、原型设计、职责框架、月度计划、通信路线、双侧全景、事件契约、错误码映射、镜像诊断）
 - 训练：`distributed_training/docs/` ｜ 推理：`distributed_inference/docs/`
 - 通用与历史：`docs/`（含 `PR_DEV_1_0_20260902.md`）
 

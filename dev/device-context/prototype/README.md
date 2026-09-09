@@ -101,4 +101,5 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 | `docs/event_semantics_contract.md` | 统一事件契约 |
 | `docs/ACL_ERROR_MAP_20260901.md` | 错误码映射（108 条 / 64.8% 覆盖） |
 | `docs/DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练镜像 NPU 初始化失败排查记录 |
+| `docs/DC_STAGE_SUMMARY_20260909.md` | **阶段性总结**：两条腿证据 + 组件自检 + 已知缺口（设备上下文部分） |
 | `docs/ERROR_RECOVERY_LOOP_20260909.md` | **错误注入 → 恢复闭环**：验证记录、两个发现、代码修正 |
