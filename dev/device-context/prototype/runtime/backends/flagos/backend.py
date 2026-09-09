@@ -256,17 +256,19 @@ class FlagosBackend(RuntimeBackend):
         }
 
     # ───────────── 能力声明 ─────────────
+    # 能力声明：与 ascend 后端同一套键名（此前键名不一致，已统一）
+    _capabilities = {
+        "device", "memory", "stream", "event",
+        "error_map",            # 复用 conformance/errors.py 错误码映射
+        "recovery_probe",       # probe 级恢复
+        "device_state",
+        "multidevice",
+        # 不支持：bounded_sync（原生同步为阻塞式）/ recovery_real / stream_priority
+    }
+
     def supports(self, capability: str) -> bool:
-        table = {
-            "stream_priority": False,
-            "device_rebuild_real": False,
-            "device_rebuild_hybrid": False,
-            "device_rebuild_probe": True,
-            "error_code_map": True,
-            "bounded_sync": False,          # 原生同步为阻塞式
-            "ipc_event": False,
-        }
-        return table.get(capability, False)
+        """能力查询（键名与 ascend 后端一致，便于上层统一判断）。"""
+        return capability in getattr(self, "_capabilities", set())
 
     def info(self) -> dict:
         self._load()

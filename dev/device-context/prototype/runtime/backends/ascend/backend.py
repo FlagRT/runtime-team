@@ -40,7 +40,8 @@ class AscendBackend(RuntimeBackend):
     # 已具备的能力（conformance 会据此生成 stub-skip 报告）
     _capabilities = {
         "device", "memory", "stream", "event",
-        "sync_timeout",            # pyACL synchronize_*_with_timeout
+        "sync_timeout",            # pyACL synchronize_*_with_timeout（历史键名）
+        "bounded_sync",           # 统一键名：有界同步（与 flagos 对齐）
         "error_map",               # 108 条 ACL 错误码映射
         "recovery_probe", "recovery_real",  # 探针重试 + 真实重建
         "device_state",            # 四态机
