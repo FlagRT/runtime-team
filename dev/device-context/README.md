@@ -1,3 +1,124 @@
+# 设备上下文（device-context）· 主看板
+
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-09
+> 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
+> 统一基座配置：**`dev/stack.lock.910c.yaml`**（锁定镜像、使用规则、两条腿约束）
+
+---
+
+## 1. 目录结构（三部分）
+
+| 目录 | 定位 | 内容 |
+|---|---|---|
+| **`prototype/`** | **我们制定的统一标准**（基座/接口/实现/验证） | 统一运行时 API、Backend 注册表与后端实现（ascend / flagos）、conformance 用例与 runner、两条腿自验证脚本与结果、接口约定与设计文档 |
+| **`distributed_training/`** | 分布式训练既有工作 | 训练侧 conformance 与探针资产、训练脚本与通信工具、通信缺陷补丁、训练映射与报告 |
+| **`distributed_inference/`** | 分布式推理既有工作 | 推理侧 conformance、探针、错误码工具、TP 对照、推理映射与阶段报告 |
+
+顶层保留：`README.md`（本看板）、`docs/`（通用与历史文档）、`probes/`
+（`docker-compose.yml` 与 `dev/memory` 目录已由组内于 2026-09-09 删除）
+三个目录各有分支看板：`prototype/README.md`、`distributed_training/README.md`、`distributed_inference/README.md`
+
+---
+
+## 1.1 分支与 dev-1.0 的关系
+
+| 项 | 状态 |
+|---|---|
+| PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
+| 本分支在此后 | ① 仓库重组为三部分 ② 新增统一原型 `prototype/`（统一 API + Backend 注册表）③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 |
+| 当前相对 dev-1.0 | **领先 45 提交**（+5653 / −7） |
+| 下一轮合入 | 按 `dev/stack.lock.910c.yaml` 的**合入把关五条**走流程 |
+
+
+---
+
+## 2. 当前状态总览（910C 实跑证据）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37 |
+| 昇腾后端（torch_npu，推理腿） | ✅ | conformance **13/13 + 6/6**、推理腿自验证 **10/10** |
+| FlagOS 后端（torch_fl，训练腿） | ✅ | conformance **13/13**（锁定训练镜像） |
+| 训练腿 2 卡分布式微调（验收模型） | ✅ | loss **15.45 → 11.15**（50 步）、2117 tok/s、通信三类对照（all_reduce / all_gather / P2P）全对 |
+| 推理腿单卡推理 · 前向形态 | ✅ | 向量区分度 **0.638**、66–79 句/s、无 NaN |\n| 推理腿单卡推理 · **服务化形态** | ✅ | vLLM OpenAI 兼容服务，**10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4ms）、超长输入 → **L2_PARAM/raise** 且业务继续 |
+| 通信栈 | ✅ | 上层 `torch.distributed(flagos)`，底层 `flagcx`（镜像 canary 两 rank passed） |
+| **错误注入 → 恢复闭环**（验收标准 3） | ✅ 两条腿均通过 | 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放，业务继续）；训练腿 **4 闭环 / 1 跳过 / 0 失败**（超时因后端无有界同步，如实跳过）。归因核查已推翻此前两条"发现"（详见 `prototype/docs/ERROR_RECOVERY_LOOP_20260909.md` §3） |
+
+---
+
+## 2.1 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+
+本轮在 910C 上跑的两条腿，**都是基于本目录的统一原型**（经 `runtime.use(...)` 接入设备）：
+
+| 腿 | 脚本 | 接入方式 | 模型 | 形态 |
+|---|---|---|---|---|
+| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | `runtime.use("flagos")` + `set_device(local_rank)` | Qwen3-Embedding-0.6B | 2 卡 torchrun 微调（底层 flagcx） |
+| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` + `set_device(0)` | Qwen3-Embedding-0.6B | 单卡 transformers 前向 |
+
+但**不是**把历史那两套训推用统一原型重跑了一遍：
+
+- `distributed_training/` 的 910C 双卡 DDP（Qwen2.5-1.5B，2481 步 loss 1.95）是**旧代码路径**
+  ——直接 `import torch_npu` + `torch.distributed`，`runtime.use` 出现 **0 次**；
+- `distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
+
+**如实标注的缺口**：
+
+1. ~~推理腿尚未做 vLLM 服务化~~ → **已于 2026-09-09 补齐**（见上表服务化形态，10/10）；
+2. 历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
+
+
+---
+
+## 3. 快速入口
+
+```bash
+cd dev/device-context/prototype
+python3 runtime/smoke_runtime.py                                    # 冒烟自检
+python3 runtime/conformance/runner.py --backend ascend               # 昇腾后端（推理腿镜像）
+python3 runtime/conformance/runner.py --backend ascend --cases infer_cases
+python3 runtime/conformance/runner.py --backend flagos               # FlagOS 后端（训练腿镜像）
+python3 runtime/proto/proto_infer_leg.py                             # 推理腿自验证
+torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练腿 2 卡微调
+```
+
+---
+
+## 4. 关键约束（务必先读）
+
+**`dev/stack.lock.910c.yaml` 置顶规则：带卡容器并发上限 3。**
+
+- 超限后 `acl.init()` 返回 **500000**（`ACL_ERROR_INTERNAL_ERROR`），表现为 `device_count=0`、设备"消失"
+- 出现该现象**第一时间核查并发容器数**，不要先怀疑镜像/驱动/代码
+- 两条腿**串行**执行（跑完一条停掉再起下一条）
+
+| 腿 | 锁定镜像 | 设备后端 | 额外约束 |
+|---|---|---|---|
+| 训练 | `flagrt/ascend-operator-runtime-comm:0.1.3` | **flagos（torch_fl）** | 禁止 torch_npu 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`；容器内补装 `transformers` |
+| 推理 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | — |
+
+---
+
+## 5. 近期动作
+
+| # | 动作 | 状态 |
+|---|---|---|
+| 1 | 仓库重组为三部分 + 看板重写 | ✅ 本轮完成 |
+| 2 | **错误注入 → 恢复闭环**（验收标准 3，设备侧原语 + 真实证据） | ✅ 两条腿均通过 |
+| 3 | 组件 v0.1 打包下发（README / 接口约定 / 自验证脚本） | 🔲 下一步 |
+| 4 | 与分布式方向对齐通信接口约定（见 `prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |\n| 5 | **补推理腿 vLLM 服务化形态**（验收标准 2） | ✅ 10/10 SERVE_LEG_PASS |
+
+---
+
+## 6. 文档索引
+
+- 统一标准：`prototype/docs/`（**阶段性总结**、接口约定、原型设计、职责框架、月度计划、通信路线、双侧全景、事件契约、错误码映射、镜像诊断）
+- 训练：`distributed_training/docs/` ｜ 推理：`distributed_inference/docs/`
+- 通用与历史：`docs/`（含 `PR_DEV_1_0_20260902.md`）
+
+---
+
+# 以下为历史看板原文（2026-08 ~ 2026-09，保留备查）
+
 # device-context（设备执行上下文）项目
 
 > **状态：🟢 职责验收闭环（2026-09-01 更新）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
