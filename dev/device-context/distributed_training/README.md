@@ -44,6 +44,17 @@ distributed_training/
 
 ---
 
+### 3.1 代码路径说明（重要）
+
+| 训练 | 路径 | 是否经统一原型 |
+|---|---|---|
+| 历史 910C 双卡 DDP（Qwen2.5-1.5B，2481 步） | `scripts/train_qwen_1_5b_npu.py` | ❌ 直接 `import torch_npu` + `torch.distributed`（`runtime.use` 出现 0 次） |
+| **本轮训练腿 2 卡微调（Qwen3-Embedding-0.6B）** | `../prototype/runtime/proto/proto_train_leg.py` | ✅ `runtime.use("flagos")` + `set_device(local_rank)` |
+
+即：本目录保留的是**旧路径下的历史资产与证据**；基于统一原型的训练验证在
+`../prototype/` 下，两者不混用。**历史训练尚未用统一原型复跑**（缺口）。
+
+
 ## 4. 运行注意
 
 - 训练腿锁定镜像的设备后端是 **flagos（torch_fl）**，禁止 torch_npu 共存；需 `AUTOLOAD=0` 且先 `import torch_fl`

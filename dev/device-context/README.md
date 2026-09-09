@@ -20,6 +20,18 @@
 
 ---
 
+## 1.1 分支与 dev-1.0 的关系
+
+| 项 | 状态 |
+|---|---|
+| PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
+| 本分支在此后 | ① 仓库重组为三部分 ② 新增统一原型 `prototype/`（统一 API + Backend 注册表）③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 |
+| 当前相对 dev-1.0 | **领先 45 提交**（+5653 / −7） |
+| 下一轮合入 | 按 `dev/stack.lock.910c.yaml` 的**合入把关五条**走流程 |
+
+
+---
+
 ## 2. 当前状态总览（910C 实跑证据）
 
 | 项 | 状态 | 证据 |
@@ -27,10 +39,33 @@
 | 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37 |
 | 昇腾后端（torch_npu，推理腿） | ✅ | conformance **13/13 + 6/6**、推理腿自验证 **10/10** |
 | FlagOS 后端（torch_fl，训练腿） | ✅ | conformance **13/13**（锁定训练镜像） |
-| 训练腿 2 卡分布式微调 | ✅ | loss 15.45 → 11.15（50 步）、2117 tok/s、通信三类对照全对 |
-| 推理腿单卡推理服务 | ✅ | 向量区分度 0.638、66–79 句/s、无 NaN |
+| 训练腿 2 卡分布式微调（验收模型） | ✅ | loss **15.45 → 11.15**（50 步）、2117 tok/s、通信三类对照（all_reduce / all_gather / P2P）全对 |
+| 推理腿单卡推理（验收模型） | ✅ 前向形态 | 向量区分度 **0.638**、66–79 句/s、无 NaN；**vLLM 服务化形态待补**（见 §2.1） |
 | 通信栈 | ✅ | 上层 `torch.distributed(flagos)`，底层 `flagcx`（镜像 canary 两 rank passed） |
 | **错误注入 → 恢复闭环**（验收标准 3） | ✅ 两条腿均通过 | 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放，业务继续）；训练腿 **4 闭环 / 1 跳过 / 0 失败**（超时因后端无有界同步，如实跳过）。归因核查已推翻此前两条"发现"（详见 `prototype/docs/ERROR_RECOVERY_LOOP_20260909.md` §3） |
+
+---
+
+## 2.1 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+
+本轮在 910C 上跑的两条腿，**都是基于本目录的统一原型**（经 `runtime.use(...)` 接入设备）：
+
+| 腿 | 脚本 | 接入方式 | 模型 | 形态 |
+|---|---|---|---|---|
+| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | `runtime.use("flagos")` + `set_device(local_rank)` | Qwen3-Embedding-0.6B | 2 卡 torchrun 微调（底层 flagcx） |
+| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` + `set_device(0)` | Qwen3-Embedding-0.6B | 单卡 transformers 前向 |
+
+但**不是**把历史那两套训推用统一原型重跑了一遍：
+
+- `distributed_training/` 的 910C 双卡 DDP（Qwen2.5-1.5B，2481 步 loss 1.95）是**旧代码路径**
+  ——直接 `import torch_npu` + `torch.distributed`，`runtime.use` 出现 **0 次**；
+- `distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
+
+**如实标注的缺口**：
+
+1. 推理腿**尚未做 vLLM 服务化**（验收标准 2 要求"单卡推理服务"），当前只验证前向形态；
+2. 历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
+
 
 ---
 
@@ -69,8 +104,8 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 |---|---|---|
 | 1 | 仓库重组为三部分 + 看板重写 | ✅ 本轮完成 |
 | 2 | **错误注入 → 恢复闭环**（验收标准 3，设备侧原语 + 真实证据） | ✅ 两条腿均通过 |
-| 3 | 组件 v0.1 打包下发（README / 接口约定 / 自验证脚本） | 🔲 |
-| 4 | 与分布式方向对齐通信接口约定（见 `prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
+| 3 | 组件 v0.1 打包下发（README / 接口约定 / 自验证脚本） | 🔲 下一步 |
+| 4 | 与分布式方向对齐通信接口约定（见 `prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |\n| 5 | **补推理腿 vLLM 服务化形态**（验收标准 2 要求"推理服务"，当前只验前向） | 🔲 |
 
 ---
 
