@@ -9,7 +9,7 @@
     runtime.set_device(0)
     s = runtime.create_stream()
     fe = runtime.translate_error(exc, location="op:matmul")
-    ok = runtime.recover_device(0, mode="real")
+    r = runtime.recover_device(0, mode="real")   # -> dict: {ordinal, mode, recovered, detail}\n    ok = r["recovered"]
 
 对应职责子层：设备上下文 + 多流 Stream + 错误码翻译 + 状态恢复。
 架构位置：上承算子层/编译层与模型转换器，下接多机多卡分布式训练与推理。
@@ -94,7 +94,7 @@ def probe_device(ordinal: int = 0) -> bool:
     return current().probe_device(ordinal)
 
 
-def recover_device(ordinal: int = 0, mode: str = "probe", reason: str = "") -> bool:
+def recover_device(ordinal: int = 0, mode: str = "probe", reason: str = "") -> dict:
     return current().recover_device(ordinal, mode=mode, reason=reason)
 
 

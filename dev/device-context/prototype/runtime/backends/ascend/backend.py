@@ -237,15 +237,25 @@ class AscendBackend(RuntimeBackend):
         return self._recovery.probe_device(ordinal, device=self.device_type)
 
     def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "") -> bool:
-        """设备重建。mode: probe / real / hybrid（与 recovery.rebuild_mode 一致）。"""
+                       reason: str = "") -> dict:
+        """设备重建。mode: probe / real / hybrid（与 recovery.rebuild_mode 一致）。
+
+        统一返回 dict（底层 recovery 返回 bool，此处包装，
+        与 flagos 后端及接口约定保持一致）。
+        """
         self._load_conformance()
-        return self._recovery.recover_device(
+        ok = self._recovery.recover_device(
             ordinal,
             reason=reason or f"runtime: rebuild({mode})",
             device=self.device_type,
             rebuild_mode=mode,
         )
+        return {
+            "ordinal": ordinal,
+            "mode": mode,
+            "recovered": bool(ok),
+            "detail": f"ascend 后端：recovery.rebuild_mode={mode}",
+        }
 
     # ─────────────── 可选能力 ───────────────
 

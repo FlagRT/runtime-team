@@ -98,7 +98,12 @@ class RuntimeBackend(ABC):
 
     @abstractmethod
     def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "") -> bool:
+                       reason: str = "") -> dict:
+        """设备重建，统一返回 dict：{ordinal, mode, recovered, detail}。
+
+        2026-09-09 统一：此前 ascend 返回 bool、flagos 返回 dict，
+        同一接口跨后端返回类型不一致，上层无法统一处理（已按 dict 归一）。
+        """
         """设备重建。
 
         mode:

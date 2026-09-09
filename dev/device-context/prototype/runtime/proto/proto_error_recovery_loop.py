@@ -62,6 +62,9 @@ def inject_oom():
         total = int(stats.get("total_mb", 60000))
     except Exception:
         total = 60000
+    # 2026-09-09 核查：一次性 3 倍显存申请**不会**拖死进程
+    # （独立实验中正常抛 OutOfMemoryError 且后续业务正常，用时 9s；
+    #   渐进式同样安全但耗时 38s）。故保持一次性。
     n = int((total * 1024 * 1024) * 3)          # 3 倍显存 → 必失败
     return torch.empty(n, dtype=torch.uint8, device=dev)
 
@@ -69,46 +72,36 @@ def inject_oom():
 def inject_timeout(b):
     """真实异常：流同步超时（执行类）。
 
-    重要（实测）：在 910C 上真实触发流同步超时会导致**进程终止**，
-    Python 无法在进程内捕获。因此放到**子进程**里取证：
-    若子进程异常退出 → 结论为"超时属进程级致命错误，L3 恢复必须在
-    进程外编排（重启/重调度），不能依赖进程内重放"。
+    2026-09-09 归因核查更正：真实触发**不会**终止进程。
+    直调 pyACL（rc=507046）与统一封装路径（TimeoutError rc=507046）
+    在干净进程与「OOM 之后」两种顺序下均被正常捕获、进程存活、后续业务正常。
+    故此处改为**进程内真实触发**，交 handle 走 L3 处置。
     """
-    import subprocess
+    import torch
 
     if not b.supports("bounded_sync"):
         return None, "该后端未声明有界同步能力，跳过（如实标注，不伪造）"
 
-    code = (
-        "import sys, os;"
-        "sys.path.insert(0, r'{pkg}');"
-        "import runtime;"
-        "runtime.use('{name}');"
-        "runtime.set_device(0);"
-        "b = runtime.current();"
-        "s = runtime.create_stream();"
-        "import torch;"
-        "dev = b.device_type + ':0';"
-        "with b.stream_context(s.native if hasattr(s, 'native') else s):"
-        "    a = torch.randn(4096, 4096, device=dev);"
-        "    [a @ a for _ in range(4)];"
-        "b.synchronize_stream(s.native if hasattr(s, 'native') else s, timeout_ms=1);"
-        "print('NO_TIMEOUT')"
-    ).format(pkg=_PKG_DIR, name=b.name)
+    dev = f"{b.device_type}:0"
+    s = runtime.create_stream()
+    with b.stream_context(s.native):
+        a = torch.randn(8192, 8192, device=dev)
+        for _ in range(5):
+            a = a @ a
     try:
-        r = subprocess.run([sys.executable, "-c", code], capture_output=True,
-                           text=True, timeout=240)
+        b.synchronize_stream(s.native, timeout_ms=1)
+    except TimeoutError as e:
+        note = "进程内捕获 TimeoutError（真实 507046），进程存活"
+        # 重放前置：等待流上剩余任务落地、设备归零
+        try:
+            b.synchronize(0)
+            note += "；已等待设备归零"
+        except Exception:
+            note += "；设备归零等待失败"
+        return e, note
     except Exception as e:
-        return RuntimeError(f"timeout injection subprocess error: {e}"), None
-
-    if r.returncode == 0 and "NO_TIMEOUT" in r.stdout:
-        return RuntimeError("未触发超时（任务过短），如实标注"), None
-    # 子进程被终止 = 真实超时触发
-    tail = (r.stderr or "").strip().splitlines()[-1:] or [""]
-    return (RuntimeError(
-        "ACL stream sync timeout (507046) —— 真实触发，进程被终止"),
-        f"子进程 returncode={r.returncode}，末行: {tail[0][:120]}；"
-        f"结论：超时为进程级致命错误，恢复需进程外编排")
+        return e, f"其他异常 {type(e).__name__}: {str(e)[:80]}"
+    return None, "未触发超时（任务在 1ms 内完成）"
 
 
 def inject_l4_by_code():
@@ -137,8 +130,10 @@ def handle(exc, backend, tag: str) -> dict:
         action = "raise_to_caller（参数类，重试无意义）"
     elif rec["disposition"] in ("replay", "device_recovery"):
         r = runtime.recover_device(0, mode="probe")
-        rec["recover"] = r
-        action = f"recover_probe={'ok' if r.get('recovered') else 'fail'}"
+        # 兼容：统一约定返回 dict；若后端仍返回 bool 则按布尔解读
+        recovered = r.get("recovered") if isinstance(r, dict) else bool(r)
+        rec["recover"] = r if isinstance(r, dict) else {"recovered": recovered}
+        action = f"recover_probe={'ok' if recovered else 'fail'}"
         if rec["disposition"] == "replay":
             try:
                 business_once(256)
@@ -166,7 +161,7 @@ def main() -> None:
     ap.add_argument("--backend", default="ascend")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-timeout", action="store_true",
-                    help="跳过超时注入（真实触发会终止进程，已单独取证，默认不重触发）")
+                    help="跳过超时注入（默认触发；2026-09-09 核查已证明进程内安全）")
     args = ap.parse_args()
 
     runtime.use(args.backend)
@@ -201,9 +196,9 @@ def main() -> None:
                     continue
                 rec_t = handle(exc, b, tag)
                 rec_t["note"] = note or ""
-                rec_t["ok"] = True          # 取证成功即算闭环（结论已记录）
                 results.append(rec_t)
-                print(f"[{tag}] {rec_t['category']} / {rec_t['disposition']} / {note}")
+                print(f"[{tag}] {rec_t['category']} / {rec_t['disposition']} / "
+                      f"业务继续={rec_t.get('business_continues')} / {note}")
                 continue
             else:
                 exc = None
