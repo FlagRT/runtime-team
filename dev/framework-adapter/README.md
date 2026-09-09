@@ -1,61 +1,82 @@
 # 框架接入与算子调用适配（framework-adapter）
 
-> **状态：进行中** ｜ 负责人：顾宬
+> 负责人：顾宬（cgu135）｜当前阶段：已有原型收拢、统一基座对齐｜更新：2026-09-09
 
-## 目标
+## 目标（一句话）
 
-复用框架已有调用入口，在 FlagGems、厂商原生实现和参考实现之间进行可验证的算子选择，并限制不安全的运行时重试。
+复用框架已有入口和算子库，明确何时选择优化实现、何时保持同设备原生调用，以及执行失败后不能自动重试的边界。
 
-## 当前结论
+## 当前阶段与现状
 
-- 主线先验证 PyTorch/vLLM，不同时铺开 TensorFlow 和 ONNX Runtime。
-- 算子实现由 FlagGems 或厂商库提供，本方向不重复开发内核。
-- vLLM 功能代码入口是 `vllm-plugin-FL/vllm_fl/dispatch`；本目录保存环境配置、接入原型探针和联调记录。
-- 已补齐执行前输入检查、`CachedOp` 热路径保护，以及有副作用实现失败后禁止重试的规则。
-- 2026-09-07：27 机单卡环境通过 275 项 dispatch 单测、74 项真实 NPU 测试，微型随机 Llama 完成 vLLM 解码并与 CPU 的 4 token 对照一致。详见 [当日联调记录](docs/910C单卡联调-20260907.md)。
-- PyTorch 独立接入：`PreferGems` 作用域内支持 F.silu/F.rms_norm 及对应 nn 层，68 项测试与独立示例通过；不导入 vLLM。目前有保守 NPU 同步开销，异步互操作仍待排查，不是全局默认注册或性能交付。见 [说明与限制](docs/PyTorch独立接入-20260907.md)。
+- 总组快速入口：[STATUS.md](STATUS.md)；具体任务与接口草案：[9 月任务规划](docs/框架接入与安全回退-9月任务规划-20260909.md)。
+- 对齐 [910C 阶段目标 v1](../../docs/运行时层原型验证-战略目标-910C.v1.md) §5「调度」第 3 项：本月交框架接入与多级安全回退方案，不改变推理框架默认行为。训练编排、动态 Batch 不是本方向自动承担的任务。
+- 9 月 9 日周会后，下一步围绕 `Qwen/Qwen3-Embedding-0.6B` 梳理实际调用链和代表算子输入，先建立原生基线；额外适配探索单列，不作为统一基座验收成果。
+- 设备注册主线采用厂商官方插件，910C 推理腿为 `torch_npu`。锁定训练镜像中的 `torch_fl` 是阶段文件明示的例外；本方向不自行更换它，也不把 Torch-FL 改造作为当前前置任务。
+
+已有验证均有范围限制，不能合称“三级安全回退完成”：
+
+- 910C 历史实验镜像：vLLM dispatch 单测 275 项、真实 NPU 测试 74 项通过；微型随机 Llama 的 4 token 解码与 CPU 对照一致。不是 0.6B Embedding 模型验收。
+- PyTorch 独立同步原型：68 项测试通过（8 项控制/CPU、60 项 NPU）；支持作用域内 SiLU、RMSNorm 选择，不是 ATen 全局默认注册，异步互操作问题未闭环。
+- 多芯片探索：平头哥原生、FlagGems 直接调用、注册与退出恢复各 8 组通过；壁仞 BF16 原生 4 组通过、FP16 两条路径报错；昆仑芯仅完成 SSH/资源检查，尚无算子结果。
+
+## 目录与代码归属
+
+- `STATUS.md`：当前阶段、量化结果、阻塞、基座差异，供每周收拢。
+- `docs/`：任务规划、带日期的实验记录与原始证据；历史记录不替代当前状态。
+- `probes/`：本方向统一测试入口、独立接入原型和验证脚本。
+- `patches/`：独立子库改动的可追溯补丁，不会自动安装或应用。
+- `docker-compose*.yml`、`.env.example`：历史实验配置，保留复现，不能作为本月验收启动配置。
+
+正式算子内核由 FlagGems/厂商库提供，本方向不重复实现。已有 vLLM 改动位于独立仓库 `FlagRT/vllm-plugin-FL` 的 `cgu135/safe-op-fallback` 分支（`635ff6d`）；本次只向 runtime-team 提交方向入口、原型、补丁和证据，不推送该子库，也不将整个子库复制入协调仓。
 
 ## 任务看板
 
-| 任务 | 状态 | 出口标准 |
-|---|---|---|
-| 现有注册与调度机制梳理 | 完成 | 明确 FlagGems、vendor、reference 三类实现入口 |
-| 安全回退最小改造 | 进行中 | 不兼容输入执行前跳过；有副作用实现失败后不重试 |
-| Ascend 代表算子联调 | 进行中 | SiLU、RMSNorm、Rotary 已有真实单卡数值与调用语义测试，继续扩大模型覆盖 |
-| 兼容性矩阵 | 初版 | 已记录当前镜像与小输入矩阵；不代表多芯片、多框架支持完成 |
-| 普通 PyTorch eager 接入 | 同步原型 | 作用域内优先选择，执行前回到原生；继续定位异步互操作问题 |
+| 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
+|---|---|---|---|---|
+| 既有原型、脚本与证据收拢 | 顾宬 | 已整理，待 PR review | 个人分支 | 统一入口可访问，历史/当前结果区分清楚 |
+| 锁定两套基座的差异核对 | 顾宬 | 待实测 | 总组、device-context | 记录镜像标识、包版本、后端、附加依赖 |
+| 0.6B 模型调用链与代表算子基线 | 顾宬 | 待执行 | 推理镜像、模型与可用设备 | 1 份实际调用与输入记录，2 类候选算子的原生结果或明确不适用原因 |
+| 框架接入与安全回退方案 | 顾宬 | 任务/接口草案已整理，待联调完善 | 实际模型路径 | 1 份方案，覆盖选择条件、执行边界、注册恢复与后续验证 |
+| 下游接口确认 | 顾宬 | 未确认 | 总组指定对接方 | 至少 1 个下游方向 review 并留记录 |
+| 平头哥等额外适配 | 顾宬 | 探索结果保留 | 可用环境和主线进度 | 单独记结果，不冲抵本月 910C 验收 |
 
-## 启动环境
+## 测试入口
 
-```bash
-# 在 27 机，已有容器直接复用，不要重复创建：
-docker start flagos-cgu135-dev-910c
-docker exec -it flagos-cgu135-dev-910c bash
-```
-
-`docker-compose.910c.yml` 保存独立单卡配置，不要叠加挂载全部设备的 base 配置。
-27 机没有可用的 `docker compose` 子命令；当前容器通过 `docker run` 创建。首次创建命令见联调记录，已有容器只需 start。
-源码位于宿主机 `/home/cgu135/framework-adapter-910c`，映射到容器 `/workspace`。
-`vllm-plugin-FL` 必须另行上传到此目录；它是独立仓库，不随 runtime-team 自动拉取。
-
-容器内首次安装与检查注册结果（不升级镜像内依赖）：
+从 runtime-team 根目录运行：
 
 ```bash
-pip install -e /workspace/vllm-plugin-FL --no-deps --no-build-isolation
-python /workspace/dev/framework-adapter/probes/dispatch_registry_probe.py
+# 默认仅显示帮助；local 只做语法检查，不导入 torch、不连接服务器、不用卡。
+bash dev/framework-adapter/probes/run_checks.sh
+bash dev/framework-adapter/probes/run_checks.sh local
 ```
 
-## 当前环境记录
+历史 910C 重跑入口（仅在原宿主机、确认资源并人工启动自己的旧容器后执行；不是锁定环境验收）：
 
-- 27 机容器只映射 `davinci0`，限制 8 CPU / 32 GiB 内存 / 4 GiB shm；不独占其他卡，也不修改其他人的容器。
-- 2026-09-03 的 `aclInit 507899` 是历史阻塞；9 月 7 日清理容器后重新实测已可运行。先前日志不足以单独证明容器数量就是唯一根因。
-- 宿主机执行 `bash /home/cgu135/framework-adapter-910c/dev/framework-adapter/probes/run_910c_checks.sh` 可重跑单测及真实算子测试，日志按时间留存。
-- 用完后 `docker stop flagos-cgu135-dev-910c`，下次再 start；停止不删除源码或容器内安装。
+```bash
+bash dev/framework-adapter/probes/run_checks.sh legacy-pytorch
+bash dev/framework-adapter/probes/run_checks.sh legacy-vllm
+```
 
-## 安全边界
+跨芯片探针在已准备好的容器内运行，必须显式选择设备和模式；各模式单独启动进程。镜像、物理/逻辑设备映射和超时命令见 [多芯片记录](docs/多芯片环境与算子验证-20260909.md)。
 
-当前为代表算子的适配原型，并非所有算子的三级安全回退已经完成。
-`runtime_fallback_safe` 为兼容旧注册仍默认 True；未审计实现不能据此认定设备错误可恢复。
-建议开发验证采用 strict 策略：输入不兼容可以执行前选择其他实现，但执行异常立即抛出。
-`resolve()` 返回原始函数，不具备 `call()` / `CachedOp` 的执行前选择保障。
-完整模型、性能、自动求导及多芯片仍需独立验收。
+```bash
+# 示例：平头哥只映射物理设备 1 时，exec 层仍须覆盖 CUDA_VISIBLE_DEVICES=0。
+bash dev/framework-adapter/probes/run_checks.sh cross-vendor --device cuda:0 --mode native
+```
+
+这些入口不会创建、启动、停止容器或安装依赖。`legacy-*` 只对历史个人容器执行已有测试，不操作其他容器。跨芯片命令必须在对应设备环境执行，不能在本机冒充真机结果。
+
+## 统一基座使用与安全边界
+
+当前基座以 [stack.lock.910c.v1.yaml](../stack.lock.910c.v1.yaml) 为准，使用总组锁定的训练/推理镜像与容器；本目录不新建第三套基座。需要补装的依赖及版本差异写入 STATUS，供总组收拢；未批准、未验证的依赖升级不进入验收结论。
+
+优先复用 [device-context 原型](../device-context/prototype/README.md) 的模型与设备入口。现有 `PreferGems` 只在历史 `torch_npu` 环境验证，不可直接套到 `torch_fl` 训练腿；也不向官方 vLLM 推理腿自动安装旧的 FL 补丁。
+
+执行前可因不兼容而选择同设备原生实现；执行异常立即上抛，不承诺自动重试、迁移设备或 CPU 回退。旧 vLLM 原型的 `runtime_fallback_safe` 为兼容既有注册仍默认 True，不能据此推断未审计实现安全；探索测试优先 strict 模式。`resolve()` 返回原始函数，不具备 `call()` / `CachedOp` 的输入检查保障。
+
+## 实验记录
+
+- [2026-09-03 安全回退最小验证](docs/安全回退最小验证-20260903.md)
+- [2026-09-07 910C 单卡联调](docs/910C单卡联调-20260907.md)
+- [2026-09-07 PyTorch 独立接入](docs/PyTorch独立接入-20260907.md)
+- [2026-09-09 多芯片环境与算子验证](docs/多芯片环境与算子验证-20260909.md)

@@ -1,0 +1,35 @@
+[W909 14:51:22.226663717 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+{"stage": "environment", "versions": {"torch": "2.8.0+cpu", "torch-br": "1.8.7.20800+br1xx", "flag-gems": null, "triton": "3.6.0"}, "device": "supa:0", "count": 1, "name": "Biren166M"}
+Could not create log file: File exists
+COULD NOT CREATE LOGFILE '20260909-145127.391'!
+Could not create log file: File exists
+COULD NOT CREATE LOGFILE '20260909-145127.391'!
+E20260909 14:51:27.721633   391 DefaultLogger.cpp:87] 2026-09-09T06:51:27.721617690Z FRAMEWORK [torch_br:/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/aten/operators/supa_backend_op/kernels/TypeCast.su:3393] [ERROR] 391 Typecast for COLMAJOR layout, src_dtype_FP32 and dst_dtype_FP16 is not implemented
+E20260909 14:51:27.729754   391 DefaultLogger.cpp:87] 2026-09-09T06:51:27.729753294Z FRAMEWORK [torch_br] [ERROR] 391 Throwing exception ERROR (BR TORCH INTERNAL):/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/utils/BRCopy.cpp:279 ErrorCode: 1, BR Torch Internal Error
+backtrace: 1: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libbr_common.so: torch_br::utils::BaseException::traceOnThrow()+0x71
+backtrace: 2: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: torch_br::utils::BrTorchInternalException::BrTorchInternalException(torch_br::utils::BrTorchErrorStatus, char const*, char const*, unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)+0xa5
+backtrace: 3: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libbr_common.so: ()+0x40a338
+backtrace: 4: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xea3ade
+backtrace: 5: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xbfc7b0
+backtrace: 6: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::_ops::copy_::call(at::Tensor&, at::Tensor const&, bool)+0x197
+backtrace: 7: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: at::supa::SUPANativeFunctions::_to_copy(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)+0x821
+backtrace: 8: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xc0ef10
+backtrace: 9: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xc0eff1
+backtrace:10: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::_ops::_to_copy::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)+0xf2
+backtrace:11: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: ()+0x294d8db
+backtrace:12: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::_ops::_to_copy::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)+0x23d
+backtrace:13: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::native::to(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>)+0xee
+backtrace:14: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: ()+0x2c77f52
+backtrace:15: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::_ops::to_dtype_layout::redispatch(c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>)+0x10a
+Traceback (most recent call last):
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 105, in <module>
+    main()
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 62, in main
+    actual = native()
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 55, in native
+    return F.silu(x) if op == "silu" else F.rms_norm(x, [shape[-1]], w, 1e-6)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/functional.py", line 2924, in rms_norm
+    return torch.rms_norm(input, normalized_shape, weight, eps)
+RuntimeError: ERROR (BR TORCH INTERNAL):/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/utils/BRCopy.cpp:279 ErrorCode: 1, BR Torch Internal Error

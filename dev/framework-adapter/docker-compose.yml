@@ -1,3 +1,5 @@
+# Historical experiment only; NOT the September locked acceptance environment.
+# See STATUS.md. Retained for traceability, not the current launch recipe.
 name: flagos-framework-adapter
 
 services:
@@ -8,4 +10,3 @@ services:
       - VLLM_FL_STRICT=${VLLM_FL_STRICT:-0}
       - VLLM_FL_DISPATCH_DEBUG=${VLLM_FL_DISPATCH_DEBUG:-1}
     restart: "no"
-
