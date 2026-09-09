@@ -1,0 +1,36 @@
+{
+  "verdict": "TIMEOUT_REALTIME_PASS",
+  "checks": {
+    "T1_stream_sync_timeout": {
+      "ok": true,
+      "detail": "rc=507046 耗时=4.24ms 翻译=L3_EXECUTION"
+    },
+    "T1_translated_L3": {
+      "ok": true,
+      "detail": "{'category': 'L3_EXECUTION', 'mapped': True, 'graded_by': 'code_map', 'error_code': 507046}"
+    },
+    "T2_event_sync_timeout": {
+      "ok": false,
+      "detail": "rc=0 耗时=0.01ms"
+    }
+  },
+  "note": "真实触发成功：stream 同步超时返回错误码 507046，翻译为 L3_EXECUTION（mapped=True）",
+  "details": {
+    "t1": {
+      "sync_timeout_rc": 507046,
+      "sync_timeout_ms": 4.24,
+      "stream_handle": 187651512826640,
+      "translated": {
+        "category": "L3_EXECUTION",
+        "mapped": true,
+        "graded_by": "code_map",
+        "error_code": 507046
+      },
+      "expected_L3": true
+    },
+    "t2": {
+      "sync_event_timeout_rc": 0,
+      "sync_event_timeout_ms": 0.01
+    }
+  }
+}

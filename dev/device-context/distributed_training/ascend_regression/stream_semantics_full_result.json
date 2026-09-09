@@ -1,0 +1,39 @@
+{
+  "verdict": "STREAM_SEMANTICS_PASS",
+  "passed": 8,
+  "total": 8,
+  "checks": {
+    "S1_stream_order": {
+      "ok": true,
+      "detail": "流内 4 个 op 按序执行 → 5.000000（期望 5.0）"
+    },
+    "S2_no_implicit_sync": {
+      "ok": true,
+      "detail": "流A均值=7.0000(期望7) 流B均值=11.0000(期望11)"
+    },
+    "S8_default_vs_named_stream": {
+      "ok": true,
+      "detail": "默认流=2.0000(期望2) 命名流=4.0000(期望4)；跨流内存安全：record_stream 后复用结果=10.0000(期望10)。注：PyTorch 缓存分配器跨流复用须 record_stream，否则存在提前回收风险"
+    },
+    "S9_stream_error_isolation": {
+      "ok": true,
+      "detail": "【API 调用级隔离·已实测】流A 注入 107015（rc=107015，期望107015）后流B 仍正常执行 → 6.0000(期望6)。⚠️【设备级错误·语义推断未实测】507014 AICORE_TIMEOUT/507015 AICORE_EXCEPTION 等为芯片级错误，语义上影响该设备全部流，需设备级恢复（aclrtResetDevice）而非流级重试；真实触发风险高未做，依据错误码定义与 D11 恢复分级推断"
+    },
+    "S10_stream_event_lifecycle": {
+      "ok": true,
+      "detail": "500 次创建销毁后仍可正常创建使用新流（新流结果=9.0000，期望9）"
+    },
+    "S11_cross_stream_memory": {
+      "ok": true,
+      "detail": "流A分配内存在流B使用（依赖后）→ 6.0000（期望6）"
+    },
+    "S12_stream_priority": {
+      "ok": true,
+      "detail": "优先级范围查询: leastPriority=7, greatestPriority=0（值越小优先级越高，范围 0~7）；多流并发结果正确 hi=5.0000(期望5) lo=8.0000(期望8)。注：昇腾提供优先级 range API，但调度效果需压力测试验证（非职责验收项）"
+    },
+    "S13_multidevice_stream_bind": {
+      "ok": true,
+      "detail": "双设备各创建独立流，结果=[2.0, 3.0]（期望 [2.0, 3.0]）"
+    }
+  }
+}

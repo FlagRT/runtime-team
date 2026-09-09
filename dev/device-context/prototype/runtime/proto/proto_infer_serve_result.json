@@ -1,0 +1,56 @@
+{
+  "mode": "vllm_serve",
+  "backend": "ascend",
+  "checks": {
+    "device_context": {
+      "ok": true,
+      "detail": "后端=ascend 设备数=2 已绑定 device 0"
+    },
+    "stream_on_serving_device": {
+      "ok": true,
+      "detail": "服务运行同卡上跨流计算 = 3.0"
+    },
+    "service_ready": {
+      "ok": true,
+      "detail": "/v1/models -> 200, served model = /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B"
+    },
+    "embedding_valid": {
+      "ok": true,
+      "detail": "维度=1024 有限=True 首条范数=1.000000"
+    },
+    "semantic_order": {
+      "ok": true,
+      "detail": "同主题 0.6980 > 异主题最小 0.2857"
+    },
+    "semantic_gap": {
+      "ok": true,
+      "detail": "区分度 0.4123（判据 ≥0.10）"
+    },
+    "throughput": {
+      "ok": true,
+      "detail": "108.35 句/s，p50 27.4ms"
+    },
+    "error_injection": {
+      "ok": true,
+      "detail": "HTTP 400 | This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at l；统一分级 L2_PARAM / disposition=raise"
+    },
+    "error_grading_consistency": {
+      "ok": true,
+      "detail": "期望 L2_PARAM/raise（参数类上抛，重试无意义），实测 L2_PARAM/raise"
+    },
+    "business_continues": {
+      "ok": true,
+      "detail": "注入后仍可正常请求，维度一致"
+    }
+  },
+  "perf": {
+    "qps": 108.35,
+    "latency_ms_p50": 27.4,
+    "latency_ms_max": 29.4,
+    "rounds": 5,
+    "batch": 3
+  },
+  "passed": 10,
+  "total": 10,
+  "verdict": "SERVE_LEG_PASS"
+}

@@ -1,0 +1,37 @@
+# ascend-infer-vllm / v1
+# 推理腿锁定基座（stack.lock lock.infer）。官方镜像，无自定义层。
+
+image_tag: "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3"
+digest: "sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
+pull: "docker pull quay.io/ascend/vllm-ascend@sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
+built_at: "2026-06-03T16:57:25Z"
+container_name: "flagos-proto-infer-910c"
+repro_status: "🟢"                 # 公共 registry，digest 已锁，已验证可拉取（2026-09-09）
+dockerfile: "upstream"             # 开源，见 github.com/vllm-project/vllm-ascend（docker/）
+
+# --- 官方 / 自定义边界 ---
+layers:
+  - name: "vllm-ascend v0.20.2rc1-a3（含 vLLM 0.20.2 + torch_npu + CANN + triton-ascend）"
+    origin: official
+    pin: "digest sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
+custom_layers: none
+
+mainline_fallback: "本镜像即官方主线，无需回退。"
+
+gaps:
+  - "rc 标签有被 registry GC/覆盖风险 —— 按 digest mirror 到 harbor.baai.ac.cn 固化。见 dev/images/TODO.md T3（负责：总组）"
+
+notes: |
+  triton-ascend 3.2.1 wheel（组内其他环境用）是从本镜像拷出的（见 VERSIONS.md）；本镜像若失效，
+  该 wheel 来源一并失效，mirror 时一并留存。
+  容器内 transformers 版本仓库内有 5.15.1 / 5.5.3 两处不一致记录 —— 由 device-context 定 pin 回写 stack.lock。
+
+governance:
+  decides_and_releases: "总组（见 dev/images/README.md §6）"
+  builds_and_registers: "官方镜像，无需构建；mirror 到 harbor 由总组指派执行方，登记当前在 performance"
+consumers: ["device-context（段二：单卡推理服务）", "memory（显存画像）", "调度", "performance"]
+
+changelog:
+  - date: "2026-09-09"
+    who: "runtime-team"
+    what: "首次登记：官方镜像，digest 锁定。"

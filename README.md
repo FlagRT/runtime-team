@@ -122,6 +122,7 @@ cd dev/<子方向>
 - 所有直接 commit / rebase 只发生在用户开发分支
 - `dev-1.0` 只接受用户开发分支的 merge（本地自行 merge 后 push 即可）
 - `main` 只接受 `dev-1.0` 的 merge（只能走正式 PR）
+- 同步动作走「标准提交流程」五步（见下文 §标准提交流程 / `dev/sync_to_dev.sh`）
 
 **规范（fork 仓，如 6 个子库）**
 
@@ -140,3 +141,34 @@ cd dev/<子方向>
 
 - 组织仓保留 fork 状态：`main` 同步上游用网页 **Sync fork** 按钮；fork 仓的 `dev-1.0` 追上游 = merge `main`（`git checkout dev-1.0 && git merge origin/main`，main 已 sync 上游）
 - 纪律：每周至少一次；冲突当场解决并记录；共享分支只用 merge，不用 rebase
+
+## 标准提交流程（个人开发分支 → dev-1.0）
+
+自建仓（runtime-team）把个人分支变更同步进 `dev-1.0` 的固定五步，全程只 merge 不 rebase；一键脚本：`bash dev/sync_to_dev.sh`（在个人分支上、工作区干净时执行）。
+
+前提：变更已 commit 在个人开发分支（`<名字>/<功能>`），工作区 clean。
+
+```bash
+# 1. 远端 dev 同步到本地 dev-1.0（必须快进，不产生新提交）
+git fetch origin
+git checkout dev-1.0
+git merge --ff-only origin/dev-1.0
+
+# 2. dev-1.0 merge 进个人分支（冲突只在这里解决，解决后从第 1 步重来）
+git checkout <名字>/<功能>
+git merge --no-ff dev-1.0 -m "Merge dev-1.0 into <名字>/<功能>"
+
+# 3. 处理好的个人分支合入本地 dev-1.0
+git checkout dev-1.0
+git merge --no-ff <名字>/<功能> -m "Merge <名字>/<功能> into dev-1.0: <一句话摘要>"
+
+# 4. 校验远端无分叉（origin/dev-1.0 是本地 dev-1.0 的祖先）后推送
+git fetch origin
+git merge-base --is-ancestor origin/dev-1.0 dev-1.0 && echo "OK 无分叉" || echo "STOP 远端已分叉，回第 1 步"
+git push origin dev-1.0
+
+# 5. 回个人分支，结束
+git checkout <名字>/<功能>
+```
+
+中止条件：第 1/4 步非快进、第 2/3 步合并冲突、第 4 步远端分叉 —— 停下处理后重跑。`dev-1.0` 无需 PR（`main` 才走正式 PR）；个人分支是否 push 组织仓由本人决定，不影响本流程。

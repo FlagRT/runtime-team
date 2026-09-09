@@ -1,0 +1,22 @@
+{
+  "verdict": "CPUCOOP_PASS",
+  "checks": {
+    "device_ops": {
+      "ok": true,
+      "detail": "flagos 设备侧算子链（matmul+relu+sum）正常"
+    },
+    "cpu_bridge": {
+      "ok": true,
+      "detail": "CPU↔flagos 互转数据一致"
+    },
+    "cpu_fallback_bridge": {
+      "ok": true,
+      "detail": "CPU 计算→flagos 回填衔接正常"
+    },
+    "unified_expression": {
+      "ok": true,
+      "detail": "设备+标量统一表达正确"
+    }
+  },
+  "note": "设备侧算子/CPU衔接/回退/统一表达外部行为全部正常；芯片内 AI CPU↔AI Core 混合调度的内部切换由插件层收敛，框架层不可观测（如实标注）"
+}

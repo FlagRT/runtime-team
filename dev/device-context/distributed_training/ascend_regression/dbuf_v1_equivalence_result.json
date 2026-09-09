@@ -1,0 +1,44 @@
+{
+  "config": {
+    "batches": 6,
+    "n": 1024,
+    "rounds": 5,
+    "out": "/mnt/raid/hliu553/runtime-team/dev/device-context/benchmarks/ascend_regression/dbuf_v1_equivalence_result.json"
+  },
+  "v0_median_s": 0.00173,
+  "v1_median_s": 0.00129,
+  "v0_all": [
+    0.00173,
+    0.00165,
+    0.00285,
+    0.00174,
+    0.00158
+  ],
+  "v1_all": [
+    0.00134,
+    0.00133,
+    0.00128,
+    0.00129,
+    0.0012
+  ],
+  "speedup_pct": "25.8%",
+  "max_rel_diff": 0.0,
+  "numerically_equivalent": true,
+  "v0_outputs": [
+    -598.9144897460938,
+    -557.568359375,
+    -598.9144897460938,
+    -557.568359375,
+    -598.9144897460938,
+    -557.568359375
+  ],
+  "v1_outputs": [
+    -598.9144897460938,
+    -557.568359375,
+    -598.9144897460938,
+    -557.568359375,
+    -598.9144897460938,
+    -557.568359375
+  ],
+  "verdict": "V1_EQUIVALENT_AND_FASTER"
+}

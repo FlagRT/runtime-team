@@ -1,0 +1,54 @@
+{
+  "model": "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",
+  "checks": {
+    "device_count": {
+      "ok": true,
+      "detail": "可见设备 2"
+    },
+    "stream": {
+      "ok": true,
+      "detail": "<Stream backend=ascend native=Stream>"
+    },
+    "memory_stats": {
+      "ok": true,
+      "detail": "{'total_mb': 62740, 'used_mb': 440, 'free_mb': 62299}"
+    },
+    "probe": {
+      "ok": true,
+      "detail": "设备探活"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "transformers 加载到 npu:0"
+    },
+    "vector_normalized": {
+      "ok": true,
+      "detail": "范数 [1.0, 1.0, 1.0]"
+    },
+    "vector_no_nan": {
+      "ok": true,
+      "detail": "无 NaN"
+    },
+    "semantic_order": {
+      "ok": true,
+      "detail": "同主题相似度 0.7811 > 异主题 0.1431"
+    },
+    "semantic_gap": {
+      "ok": true,
+      "detail": "区分度 0.6380（判据：≥0.10 视为语义可区分；采用 last-token 池化 + query 指令前缀，符合模型自带 1_Pooling 配置）"
+    },
+    "error_translate": {
+      "ok": true,
+      "detail": "L3_EXECUTION → replay"
+    }
+  },
+  "perf": {
+    "batch": 3,
+    "rounds": 3,
+    "avg_latency_ms": 45.24,
+    "throughput_sent_per_s": 66.32
+  },
+  "verdict": "INFER_LEG_PASS",
+  "passed": 10,
+  "total": 10
+}
