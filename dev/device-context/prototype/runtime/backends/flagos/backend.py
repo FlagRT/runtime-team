@@ -218,6 +218,7 @@ class FlagosBackend(RuntimeBackend):
 
     def _to_unified(self, fe) -> FlagosError:
         """后端负责把历史类型（IntEnum 分级）转成统一 FlagosError。"""
+        graded_by = getattr(fe, "graded_by", "unknown")
         cat = getattr(fe, "category", None)
         if not isinstance(cat, ErrorCategory):
             try:
@@ -226,13 +227,15 @@ class FlagosBackend(RuntimeBackend):
                 cat = ErrorCategory.L3_EXECUTION
         return FlagosError(
             category=cat,
-            backend=self.name,
-            raw=str(getattr(fe, "raw", fe)),
-            message=getattr(fe, "message", str(fe)),
+            root_cause=getattr(fe, "root_cause", str(fe)),
+            location=getattr(fe, "location", "") or "",
+            error_code=getattr(fe, "error_code", None),
             mapped=bool(getattr(fe, "mapped", False)),
-            graded_by=getattr(fe, "graded_by", "unknown"),
-            code=getattr(fe, "code", None),
-            location=getattr(fe, "location", ""),
+            graded_by=graded_by,
+            is_grade_confident=bool(
+                getattr(fe, "is_grade_confident", graded_by == "code_map")),
+            recovery_decision=getattr(fe, "recovery_decision", {}) or {},
+            backend=self.name,
         )
 
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
