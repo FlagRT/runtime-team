@@ -1,10 +1,10 @@
 # 2026.09 最小通信 Backend 契约与验收矩阵
 
-> 负责人：尤联忠 ｜ 状态：接口草案 v0.1 ｜ 更新：2026-09-02
+> 负责人：尤联忠 ｜ 状态：接口草案 v0.2 ｜ 更新：2026-09-09
 
 ## 1. 交付目标与边界
 
-9 月目标是接入基础运行时原型，打通通信 Backend 最小调用链，并形成“基础通信适配原型 + 通信组与 Collective 基础测试”。本方向把既有 FlagCX/HCCL 能力接入统一执行链路，不负责模型切分策略，不重复实现 Stream/Event、显存分配或厂商通信协议。
+当前统一目标是在 `dev/stack.lock.910c.v1.yaml` 锁定的训练镜像内支撑 Qwen3-Embedding-0.6B 双卡微调，并提供可追溯的通信正确性对照。本方向把既有 FlagCX 能力接入统一执行链路，不负责模型切分策略，不重复实现 Stream/Event、显存分配或厂商通信协议。
 
 首轮只建立小规模、确定性的正确性基线；正确性闭环后再扩大卡数、消息规模并开展通信计算重叠优化。
 
@@ -33,29 +33,36 @@
 | L4 稳定性 | 循环 Collective | 2 卡，100 轮 | 无超时、NaN、数据漂移或残留进程 | `docs/results/<date>/stability.json` |
 | L5 扩展基线 | Collective 带宽/时延 | 16 卡 | 固定消息大小、预热和迭代，归档原始数据 | `benchmarks/results/<date>/` |
 
-L0～L4 是 9 月最小原型的强制出口；L5 在共享服务器资源允许时执行，不阻塞两卡正确性基线合入。
+当前阶段先完成双卡正确性、训练腿闭环和接口约定。更大卡数与性能测试属于后续规模化验证，不作为本轮双卡原型的合入前置条件。
+
+### 当前执行结果
+
+- 新增统一探针 `dev/communication/probes/communication_correctness.py`，覆盖 AllReduce、AllGather、P2P 和异步 AllReduce。
+- 锁定训练镜像内使用 2 Rank、FP32/BF16、20 轮执行，共 320 次通信调用，结果 320/320 PASS、0 失败。
+- 异步 AllReduce 提交后立即查询 `Work.is_completed()`，共 80/80 次返回 `true`；最终结果在 `wait` 与设备同步后正确。该现象已列为后续跨流完成语义验证项。
+- 执行记录与原始 JSON：`docs/COMMUNICATION_CORRECTNESS_20260909.md`、`results/20260909/`。
 
 ## 4. 已对齐的可复用资产
 
 - 双卡 FlagCX AllReduce 冒烟：`dev/memory/probes/flagcx_smoke.py`。该脚本已显式记录 FlagCX 异步返回后需设备同步的现状。
 - Route A 多尺寸 AllReduce：`dev/memory/probes/routeA_s2_3_allreduce.py`，可参考其正确性和带宽记录方式，但 P800 环境不能直接作为 910C 结论。
-- Work 完成语义：`dev/device-context/benchmarks/test_work_sem.py`。
-- TP 通信与跨流验证：`dev/device-context/benchmarks/inference/test_tp_comm_sync_enhanced.py`。
+- Work 完成语义：`dev/device-context/distributed_training/scripts/test_work_sem.py`。
+- TP 通信与跨流验证：`dev/device-context/distributed_inference/inference/test_tp_comm_sync_enhanced.py`。
 - 设备上下文方向已在 `dev-1.0` 归档 Qwen3-4B TP=1/2/4 greedy 输出一致性结果，可作为上层链路证据；本方向仍需独立完成基础 Collective 的可重复基线。
 
-复用方式：通信方向保留统一执行入口和结果索引；源探针仍由原目录维护，避免复制后发生版本漂移。若探针需要通用化，先在原目录提取公共参数，再由双方 review。
+复用方式：通信方向保留统一执行入口和结果索引；源探针仍由原目录维护，避免复制后发生版本漂移。若探针需要通用化，先在原目录提取公共参数，再由双方共同确认。
 
 ## 5. 执行顺序与责任接口
 
 1. 固定 FlagCX、Torch/设备插件、CANN、驱动及镜像版本，记录 commit 与环境快照。
-2. 复用现有双卡 AllReduce 探针完成 L0/L1，核实 Backend 注册、通信组生命周期和退出清理。
-3. 补齐 AllGather、ReduceScatter、Broadcast、Send/Recv 的确定性输入与 Host 参考结果。
+2. 使用通信方向统一探针核实 Backend 注册、通信组生命周期，以及 AllReduce、AllGather、P2P 的确定性结果。
+3. 在当前三类对照稳定后，再补 ReduceScatter、Broadcast 等操作，不扩大本轮双卡原型的强制范围。
 4. 与设备上下文方向共同确认当前流、Event 和 Work 完成语义，先消除“Host 返回即设备完成”的歧义。
-5. 完成 L0～L4 后形成基础适配原型 PR；资源窗口满足时再执行 16 卡 L5。
+5. 与设备方向共同确认训练腿证据，满足组内合入把关后自行合入 `dev-1.0`；后续再执行 8 卡及以上规模验证。
 
 ## 6. 当前风险与降级
 
-- 共享 910C 服务器存在 DrvMng 客户端/容器并发限制；先做两卡小规模验证，16 卡性能基线预约资源窗口。
+- 共享 910C 服务器带卡容器并发上限为 3；两条腿按 `stack.lock` 要求串行执行，规模化性能验证另行预约资源窗口。
 - 通信验证资产分散在 `device-context` 与 `memory`；以本文件作为通信验收索引，避免重复维护实现副本。
 - FlagCX 的异步完成、当前流和 Backend 适配语义曾出现差异；所有上层 TP/PP 验证前必须先通过 L3，不以单次模型跑通替代基础语义验收。
 - 若某 Collective 暂不支持，能力声明应显式标记并由上层选择安全路径；不得静默返回成功或伪造同步完成。
