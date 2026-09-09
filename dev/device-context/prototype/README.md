@@ -52,6 +52,7 @@ prototype/
 | conformance（flagos 后端） | 13/13 |
 | 推理腿自验证 | 10/10（向量区分度 0.638、66–79 句/s） |
 | 训练腿 2 卡微调 | 6/6（loss 15.45→11.15、2117 tok/s、通信三类对照） |
+| **错误注入 → 恢复闭环**（设备侧） | ✅ 训练腿 4 闭环 / 0 失败；推理腿进行中（详见 `docs/ERROR_RECOVERY_LOOP_20260909.md`） |
 
 ---
 
@@ -82,3 +83,4 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 | `docs/event_semantics_contract.md` | 统一事件契约 |
 | `docs/ACL_ERROR_MAP_20260901.md` | 错误码映射（108 条 / 64.8% 覆盖） |
 | `docs/DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练镜像 NPU 初始化失败排查记录 |
+| `docs/ERROR_RECOVERY_LOOP_20260909.md` | **错误注入 → 恢复闭环**：验证记录、两个发现、代码修正 |
