@@ -47,7 +47,7 @@ docker ps | grep flagos-__NAME__-dev-910c    # 确认 Up
 ```bash
 # 进开发容器
 docker exec -it flagos-__NAME__-dev-910c bash
-# 容器内验证挂载（应看到 5 个子库 + dev/ 等公共仓内容）
+# 容器内验证挂载（应看到 6 个子库 + dev/ 等公共仓内容）
 docker exec -it flagos-__NAME__-dev-910c bash -c "ls /workspace"
 ```
 
