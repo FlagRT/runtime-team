@@ -3,6 +3,16 @@
 > 只读诊断脚本，不改造子库；待入库的正式资产在此暂存。
 > 运行环境见各脚本头 docstring。
 
+## 910C 原型阶段（2026-09，锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3`，torch_npu 纯栈）
+
+> UNTESTED —— pending 910C 锁定镜像验证；旧 flagos/xpytorch 探针在该镜像 API 不存在，不复用。
+
+| 脚本 | 用途 | 运行位置 |
+|---|---|---|
+| `infer910c_hbm_sampler.py` | 外挂 npu-smi 轮询采样 per-chip HBM/AICore → 时间戳 CSV（画像真值来源） | 宿主机（不进容器，无 torch 依赖） |
+| `infer910c_mem_profile.py` | 锁定镜像内 torch_npu 口径显存画像 harness（offline/server-probe，pooling runner）→ JSON | 容器 `flagos-proto-infer-910c` 内 |
+| `infer910c_ab_matrix.py` | 跨 gpu-mem-util / alloc-conf / enforce-eager / max-num-seqs 轴批量跑 profile → 汇总 CSV+MD | 容器内 |
+
 ## 当前方向（FlagOS 官方栈）
 
 | 脚本 | 用途 | 平台 |

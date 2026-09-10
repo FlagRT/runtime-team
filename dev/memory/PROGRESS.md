@@ -1,20 +1,33 @@
 # memory 子方向 · 项目进展时间线
 
-> 更新：2026-09-03 ｜ 用途：子方向唯一追踪文档（待办 + 完成 + 时间线）；每项 ≤2 句、正文 ≤30 字
-> 入口与操作：`README.md` ｜ 权威方案：《[显存与缓存管理方案-20260822](docs/路线A-显存与缓存管理-方案-20260822.md)》
+> 更新：2026-09-10 ｜ 用途：子方向唯一追踪文档（待办 + 完成 + 时间线）；每项 ≤2 句、正文 ≤30 字
+> 入口与操作：`README.md` ｜ 速览：`STATUS.md` ｜ 权威方案：《[显存与缓存管理方案-20260822](docs/路线A-显存与缓存管理-方案-20260822.md)》
 > 历史/已冻结路线条目见 [docs/archive/README.md](docs/archive/README.md)，不作为当前进度或基线。
+
+## 910C 原型阶段 (2026-09) 范围调整
+
+> ⚠️ **本期按 [运行时层原型验证-战略目标-910C.v1](../../docs/运行时层原型验证-战略目标-910C.v1.md) §3/§5/§7 重新收敛范围**。下方历史「待办/完成」表全部保留；与本期无关的行就地加「（本期冻结）」标注，不删除。
+
+- **本期范围** = 910C 单芯片 + 锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3`（华为昇腾官方纯栈，torch_npu）+ 验收模型 `Qwen/Qwen3-Embedding-0.6B`（embedding，非生成式）。
+- **冻结（本期不作为进度/交付）**：全部 P800/昆仑芯条目；torch_fl / vllm-plugin-FL 的 910C dev 容器画像；MoE 阻塞链（causal_conv1d / topk_softmax / moe_align_block_size）；910C native KV→Host 卸载阻塞（routeA-S4 留档即可）；5 项 FlagOS/智源 issue 不卡本期验收。
+- **本期 P0 待办**：
+  1. 起 `flagos-proto-infer-910c` 跑通 embedding 推理（与 device-context 对齐，战略文档段二）。
+  2. torch_npu 口径显存画像报告（加载阶段结构 + 运行阶段峰值），骨架见 [docs/910C-显存画像报告-骨架.md](docs/910C-显存画像报告-骨架.md)。
+  3. 显存池定义文档（torch_npu caching allocator 底座 + vLLM 层：gpu_memory_utilization / KV-or-pooling 预分配 / ACLGraph capture）+ A/B 对照数据。
+- **本期 P1**：维护 STATUS.md；给 device-context / 调度 输出安全 `gpu_mem_util` + `max_num_seqs` 区间；与监控共用一份 HBM + allocator 采样脚本（`probes/infer910c_hbm_sampler.py`）；数据供 performance 统一验收报告。
+- **已就绪（未测，pending 带卡容器 slot）**：`probes/infer910c_hbm_sampler.py`（宿主 npu-smi 采样）、`probes/infer910c_mem_profile.py`（容器内 torch_npu 画像 harness）、`probes/infer910c_ab_matrix.py`（A/B 矩阵驱动）。旧 flagos/xpytorch 探针（`p800_v1_memory_profile.py` / `probe_allocator_profile.py`）在锁定镜像 API 不存在，不复用。
 
 ## 待办事项（按优先级）
 
 | 优先级 | 事项 | 状态/依赖 |
 |---|---|---|
-| P0 | 目标模型清单确认（是否含混合注意力架构） | MoE 跨路线阻塞决定项，见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md) |
-| 高 | 向智源/FlagOS 提交 issue（causal_conv1d / topk_softmax / moe_align_block_size / 文档滞后，共 5 项） | 附 file:line；清单见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)；#5 已附根因与修复建议 |
-| 中 | V3 分层缓存原型（KV 按需释放 + Host 溢出） | **P800（vllm 0.13）KV 卸载到 Host 已跑通**（09-01，官方 OffloadingConnector）；下一步：容量/驱逐行为/吞吐代价实测。**910C（vllm 0.20.2）官方 native 路径不可用**（09-03，is_cuda_alike 平台门 + vllm._C 缺 libcudart，见 [routeA-S4-KV卸载Host-910C尝试-20260903](docs/routeA-S4-KV卸载Host-910C尝试-20260903.md)）→ 昇腾需 plugin 侧补 CPU-offload handlers，或先敲定昇腾锁 0.13 还是 0.20.2 |
-| 中 | 显存池定义与 V2 A/B 回归设计（vLLM 层） | 主战场 vLLM 层，厂商 torch 分配器为底座（无独立显存池） |
-| 中 | 昇腾 venv 组合验证与 V1 画像 | 910c 机器补充（torch_npu + vllm 0.20.2） |
-| 低 | V4 SSD 层评估（NVMe 带宽实测） | 随时可做 |
-| 低 | 执行计划感知分配 | 等编译组接口答复，问题仍开放 |
+| P0 | 目标模型清单确认（是否含混合注意力架构） | **（本期冻结）** 本期验收模型锁定 `Qwen/Qwen3-Embedding-0.6B`；MoE 跨路线阻塞决定项，见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md) |
+| 高 | 向智源/FlagOS 提交 issue（causal_conv1d / topk_softmax / moe_align_block_size / 文档滞后，共 5 项） | **（本期冻结，不卡本期验收）** 附 file:line；清单见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)；#5 已附根因与修复建议 |
+| 中 | V3 分层缓存原型（KV 按需释放 + Host 溢出） | **（本期冻结，routeA-S4 留档即可）** **P800（vllm 0.13）KV 卸载到 Host 已跑通**（09-01，官方 OffloadingConnector）；下一步：容量/驱逐行为/吞吐代价实测。**910C（vllm 0.20.2）官方 native 路径不可用**（09-03，is_cuda_alike 平台门 + vllm._C 缺 libcudart，见 [routeA-S4-KV卸载Host-910C尝试-20260903](docs/routeA-S4-KV卸载Host-910C尝试-20260903.md)）→ 昇腾需 plugin 侧补 CPU-offload handlers，或先敲定昇腾锁 0.13 还是 0.20.2 |
+| P0（本期） | 显存池定义文档 + A/B 对照数据（910C 锁定推理镜像口径） | 由「显存池定义与 V2 A/B」转本期口径：torch_npu caching allocator 底座 + vLLM 层（gpu_memory_utilization / KV-or-pooling 预分配 / ACLGraph capture）；脚本 `probes/infer910c_ab_matrix.py` 就绪，**阻塞：带卡容器 slot** |
+| P0（本期） | 910C 锁定镜像显存画像报告（torch_npu 口径） | 由「昇腾 venv 组合验证与 V1 画像」转本期口径；环境侦察完成、探针移植未测、骨架 [docs/910C-显存画像报告-骨架.md](docs/910C-显存画像报告-骨架.md) 已建，**阻塞：带卡容器 slot（并发上限 3 已满）** |
+| 低 | V4 SSD 层评估（NVMe 带宽实测） | **（本期冻结）** 随时可做 |
+| 低 | 执行计划感知分配 | **（本期冻结）** 等编译组接口答复，问题仍开放 |
 
 ## 完成事项（按时间，新→旧）
 
