@@ -1,6 +1,6 @@
 # device-context · 当前状态
 
-更新：2026-09-10 ｜ 负责人：Kistich（刘宏彬）
+更新：2026-09-10 ｜ 负责人：Kistich（hliu553）
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
 > 结论性环境依据见 [`dev/stack.lock.910c.v1.yaml`](../stack.lock.910c.v1.yaml)（总组定稿，本方向只消费不自建）。
