@@ -7,7 +7,8 @@
 #       Torch-FL / FlagGems 源码、mpich-4.1.3.tar.gz。缺口见 lock.yaml:gaps。
 
 # --- official：CANN 9.0.0 基座（ubuntu22.04 + python3.12.13 + /usr/local/Ascend + 构建工具 + ATB/ASCEND ENV + ENTRYPOINT） ---
-ARG BASE_IMAGE=flagrt/ascend-cann-base@sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29
+# 注：docker history 不保留 FROM 的镜像名，只余 digest；此处填回已知的真实来源（见 lock.yaml:parent_image / image_list.md）。
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl@sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29
 FROM ${BASE_IMAGE}
 
 # --- custom：FlagRT operator runtime 层 ---
