@@ -59,8 +59,14 @@ CSV_FIELDS = [
 _NUM = re.compile(r"\d+(?:\.\d+)?")
 # 行1：| <id>  <Name 非纯数字> ... |  —— 芯片块首行
 _CHIP_HEAD = re.compile(r"^\|\s*(\d+)\s+\S+")
-# 行2：| <id> [|] <Bus-Id 形如 0000:C1:00.0> | ... |  —— 芯片块次行（带 HBM/AICore）
-# [\s|]+ 兼容「id 与 Bus-Id 之间有/无中缝竖线」两种 npu-smi 版式。
+# 行2（新版式 npu-smi 25.x / A3，实机 npu1-27 2026-09-10 取样为准）：
+#   | <Chip-id 0/1>  <Phy-ID 0..15> | <Bus-Id 0000:93:00.0> | <AICore%> <Mem u/t> <HBM u/t> |
+#   首格是「Chip-id + Phy-ID」两个数，Phy-ID 才是 davinci 号（--chips 用它做键）。
+_CHIP_BODY_PHY = re.compile(
+    r"^\|\s*(\d+)\s+(\d+)\s*\|\s*"
+    r"([0-9A-Fa-f]{2,4}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.\d)\s*\|(.*)")
+# 行2（旧版式：首格只有一个 id，直接接 Bus-Id）——回退用，按该 id 做键。
+# [\s|]+ 兼容「id 与 Bus-Id 之间有/无中缝竖线」。
 _CHIP_BODY = re.compile(
     r"^\|\s*(\d+)[\s|]+([0-9A-Fa-f]{2,4}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}\.\d)")
 
@@ -93,19 +99,24 @@ def run_npu_smi() -> str:
 def parse_npu_smi(text: str) -> dict[int, dict[str, float]]:
     """解析 npu-smi info 文本 → {chip_id: {hbm_used_mb, hbm_total_mb, aicore_pct}}。
 
+    键：新版式（A3 / npu-smi 25.x）用 **Phy-ID**（davinci 号 0..15）；旧版式回退用首格 id。
     只依赖：芯片块次行（含 Bus-Id）末尾 `used / total` 为 HBM(MB)，首个数字为 AICore(%)。
     对列宽/字段顺序变化鲁棒：不按固定列位置切分。
     """
     out: dict[int, dict[str, float]] = {}
     lines = text.splitlines()
     for i, line in enumerate(lines):
-        m = _CHIP_BODY.match(line)
-        if not m:
-            continue
-        chip = int(m.group(1))
-        # 取最后一个 `|` 之后 / 倒数第二个 `|` 之后的数据区（不同版本 `|` 数不定，
-        # 统一从 Bus-Id 之后到行尾找所有数字）。
-        after_busid = line[m.end():]
+        m = _CHIP_BODY_PHY.match(line)
+        if m:
+            chip = int(m.group(2))          # Phy-ID = davinci 号
+            after_busid = m.group(4)
+        else:
+            m = _CHIP_BODY.match(line)
+            if not m:
+                continue
+            chip = int(m.group(1))          # 旧版式：首格单 id
+            after_busid = line[m.end():]
+        # 从 Bus-Id 之后到行尾找所有数字（不同版本 `|` 数不定，不按固定列位置切分）。
         nums = _NUM.findall(after_busid)
         if len(nums) < 3:
             # 回退：AICore 可能在行1（Power/Temp 那行的某些定制版），或本行被截断
