@@ -30,7 +30,7 @@
 | 统一 conformance | 13 例 + 推理 6 例，跨后端可跑；`supports()` 声明能力边界，未支持项如实跳过 |
 | 接口约定文档 | `docs/INTERFACE_CONTRACT_DC_20260908.md` |
 | 阶段性总结 | `docs/DC_STAGE_SUMMARY_20260909.md`（两条腿证据 + 已知缺口） |
-| 统一基座配置 | `dev/stack.lock.910c.yaml`（锁定镜像、使用规则、合入把关五条） |
+| 统一基座配置 | `dev/stack.lock.910c.v1.yaml`（锁定镜像、使用规则、合入把关五条） |
 
 ---
 
@@ -97,4 +97,4 @@ s = runtime.create_stream()    # 统一 Stream 对象
 - 节奏：v0.1.0（本版）→ v0.1.x（吸收下游反馈）→ v0.2（10 月）→ v1.0（接口稳定，2027.06）
 - 反馈渠道：device-context 方向；请附**复现脚本 + 结果 json**，便于定位
 - 使用规则（含**带卡容器并发上限 3**，超限会导致 `acl.init()` 返回 500000、设备"消失"）
-  见 `dev/stack.lock.910c.yaml`，**使用前请先读**
+  见 `dev/stack.lock.910c.v1.yaml`，**使用前请先读**
