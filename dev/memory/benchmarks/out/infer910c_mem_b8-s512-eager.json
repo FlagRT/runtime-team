@@ -1,0 +1,63 @@
+{
+  "schema": "infer910c_mem_profile/v1",
+  "status": "untested-pending-910c-validation",
+  "tag": "b8-s512-eager",
+  "config": {
+    "model": "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",
+    "mode": "offline",
+    "runner": "pooling",
+    "gpu_memory_utilization": 0.9,
+    "max_num_seqs": 256,
+    "max_model_len": 8192,
+    "batch": 8,
+    "seq_len_approx": 512,
+    "concurrency": 1,
+    "warmup": 3,
+    "enforce_eager": true,
+    "alloc_conf": "expandable_segments:True",
+    "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True"
+  },
+  "env": {
+    "image_expected": "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3",
+    "container_name_expected": "flagos-proto-infer-910c"
+  },
+  "timings": {
+    "load_s": 12.969,
+    "warmup_s": 0.349,
+    "measured_s": 0.088,
+    "total_s": 22.093
+  },
+  "vllm_log": {
+    "available_kv_cache_memory": 53.76,
+    "gpu_kv_cache_size_tokens": 503296,
+    "maximum_concurrency": 61.44,
+    "model_weights_gib": 1.1333,
+    "peak_memory_gib": null,
+    "non_torch_memory_gib": 0.0,
+    "profiled_total_gpu_memory": null,
+    "_raw_matched_lines": [
+      "(EngineCore pid=3599) INFO 09-10 13:41:45 [model_runner_v1.py:3421] Loading model weights took 1.1333 GB",
+      "(EngineCore pid=3599) INFO 09-10 13:41:47 [worker.py:394] Available KV cache memory: 53.76 GiB",
+      "(EngineCore pid=3599) INFO 09-10 13:41:47 [kv_cache_utils.py:1708] GPU KV cache size: 503,296 tokens",
+      "(EngineCore pid=3599) INFO 09-10 13:41:47 [kv_cache_utils.py:1709] Maximum concurrency for 8,192 tokens per request: 61.44x",
+      "(EngineCore pid=3599) INFO 09-10 13:41:50 [worker.py:546] Free memory on device (61.13/61.28 GiB) on startup. Desired GPU memory utilization is (0.9, 55.15 GiB). Actual usage: 1.13 GiB for weights, 0.24 GiB for peak activation, 0.01 GiB for non-torch memory, 0.0 GiB for NPU graph memory. Replace gpu"
+    ],
+    "maximum_concurrency_for_tokens": 8192,
+    "_source": "/workspace/dev/memory/benchmarks/out/infer910c_mem_b8-s512-eager.vllm.log"
+  },
+  "driver_torch_npu_stats": {
+    "_note": "driver 进程口径；EngineCore 为 spawn 子进程，故通常≈0，真值见外挂 npu-smi sampler + vLLM 日志",
+    "memory_allocated": 0,
+    "max_memory_allocated": 0,
+    "memory_reserved": 0,
+    "max_memory_reserved": 0
+  },
+  "errors": [],
+  "llm_construction": "runner=\"pooling\"",
+  "measured": {
+    "batch": 8,
+    "seq_len_approx": 512,
+    "n_outputs": 8,
+    "throughput_req_s": 90.91
+  }
+}
