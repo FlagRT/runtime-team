@@ -3,6 +3,10 @@
 
 image_tag: "flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64"
 image_id: "sha256:d948410966b0dfdfaf4f9c95b9b14bdb7c4279cb85ccd7f9157f0fb5d1c6d397"
+flagtree_line: >-
+  ascend3.5（CANN 9.0.0 / py3.11 / torch 2.10.0 / triton 3.5.0）。
+  triton_ascend 3.2.1 = 华为昇腾 Triton 插件版本号（import 自报 3.2.0），非 3.2 线证据。
+  未按 FlagTree ascend 手册构建（无 FlagTree/triton 构建物）。详见 dev/images/image_list.md。
 built_at: "2026-09-03T09:29:49Z"
 builder: "Docker 20.10.8 / arm64 / BuildKit"
 repro_status: "🟢 functional-repro"     # 2026-09-10 已实机重建并验证，见 REBUILD.md
@@ -15,20 +19,22 @@ parent_image:
   digest: "sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29"
   note: "CANN 9.0.0 基座；本机 + BAAI harbor 可拉；离线包见 ARCHIVE.md。`-hostnet` 为同 IMAGE ID 变体。"
 
-# --- 官方 / 自定义边界（见 README §4） ---
+# --- official / custom 边界（见 README §4.0 术语 + §4.1）。
+#     official 此处 = 华为昇腾官方（CANN / triton-ascend wheel）或通用开源上游（ubuntu / CPython / MPICH）；
+#     父镜像本体是 BAAI 内部手工底座（见 parent_image），非华为发布物。 ---
 layers:
   - name: "CANN 9.0.0 基座镜像"
-    origin: official
+    origin: official   # 按 digest 跟随；但镜像本体是 BAAI 内部手工构建（非华为发布），内含华为昇腾官方 CANN 9.0.0 toolkit
     pin: "sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29"
-    note: "ubuntu22.04 + python3.12.13 + /usr/local/Ascend(CANN 9.0.0) + 构建工具 + ATB/ASCEND ENV + ENTRYPOINT"
+    note: "ubuntu22.04 + python3.12.13 + /usr/local/Ascend(华为昇腾官方 CANN 9.0.0) + 构建工具 + ATB/ASCEND ENV + ENTRYPOINT"
   - name: "Python 3.11.15 运行时"
     origin: official
     pin: "python 3.11.15；原镜像为 COPY 进 /usr/local/python3.11.15，Dockerfile.repro 改为 python.org 源码编译"
   - name: "运行时 pip 依赖"
-    origin: official
+    origin: official   # 上游 PyPI wheel + 华为昇腾官方 triton-ascend wheel（无 PyPI，从 vllm-ascend 镜像拷出）
     pin: "assets/requirements-runtime.txt（35 项全 pin：torch==2.10.0+cpu / triton==3.5.0 / triton-ascend==3.2.1 / numpy==1.26.4 …）；离线 wheelhouse 见 assets/wheelhouse.sha256"
   - name: "MPICH"
-    origin: official
+    origin: official   # MPICH 项目官方源码发行版
     pin: "4.1.3 源码编译（--disable-fortran）；tar sha256 见 assets/mpich-4.1.3.tar.gz.sha256"
   - name: "Torch-FL (torch_fl 0.1.0)"
     origin: custom

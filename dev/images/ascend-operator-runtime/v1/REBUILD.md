@@ -10,7 +10,7 @@
 |---|---|
 | `Dockerfile` | = 本目录 `Dockerfile.repro`（build.sh 会拷） |
 | `wheelhouse/`（36 wheel, 574M） | 从原镜像 `/opt/flagrt/wheelhouse` 回收；校验 `assets/wheelhouse.sha256`；实体见 `ARCHIVE.md` |
-| `mpich-4.1.3.tar.gz` | 官方发行版，sha256 见 `assets/mpich-4.1.3.tar.gz.sha256` |
+| `mpich-4.1.3.tar.gz` | MPICH 项目官方源码发行版，sha256 见 `assets/mpich-4.1.3.tar.gz.sha256` |
 | `src/FlagGems/` | `git archive` 自 `FlagGems @ f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4` |
 | `src/Torch-FL/` | `git archive` 自 `PyTorch-Plugin-FL @ af50297463d59ca4bb3aca59f51724afb5f6723a` |
 | `FlagGems-DSA-__init__.py` / `requirements-runtime.txt` / `verify_runtime.py` / `patch_triton_ascend_3_2_1.py` | 本目录 `assets/` |

@@ -1,6 +1,6 @@
 # ascend-infer-vllm v1 —— 离线归档
 
-> 官方公共镜像，`docker pull <digest>` 随时可拉，一般无需离线包。
+> 华为昇腾官方公共镜像，`docker pull <digest>` 随时可拉，一般无需离线包。
 
 ## 若本机保留离线副本
 

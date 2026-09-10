@@ -1,7 +1,11 @@
-# 大文件与本机专属指针不进 git（详见 README §2）
+# 只挡大二进制本体与本机专属指针；.sha256 / *.md / 脚本 / 清单等文本照常追踪（详见 README §2）
+#
+# assets/ 里：脚本 + pin 清单 + *.sha256 + docker-history + provenance 基线  → 追踪（重建配方与信任锚）
+#            大二进制本体（wheel / so / tar）                              → 下列规则挡掉，实体在离线归档
 **/BACKUP.local
-**/assets/wheelhouse/
-**/assets/flagcx-vendor/
 **/assets/**/*.whl
-**/assets/**/*.tar.gz
 **/assets/**/*.so
+**/assets/**/*.tar
+**/assets/**/*.tar.gz
+**/assets/**/*.tgz
+**/assets/**/*.bin

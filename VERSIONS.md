@@ -20,6 +20,7 @@
 
 > 原 5 个仓的基线 commit 与上游一致（见 §1 表格）；FlagPerf 按 FlagRT fork 的 `main` 对齐。成员直接 clone FlagRT 组织仓，无需 fork。
 > **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（2026-08-18 确认，旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
+> **FlagTree 版本线**：**BAAI·FlagTree 官方指南**（非华为）见 **FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2）。本表 FlagTree 行的 `triton_v3.2.x` 是通用 dev 底座口径；**910C 原型锁定镜像走 ascend3.5**（triton 3.5.0 + 华为 triton_ascend 3.2.1，**不含 FlagTree 构建物**），见 `dev/images/image_list.md`。原型不触发 fork 分支变更；日后若 FlagTree 构建物要进 ascend3.5 镜像，fork 须先切到 `triton_v3.5.x`。
 
 | 仓（fork 名） | 上游链接 | 基线 | 版本标识 | 角色 | 依赖（源码核实） |
 |---|---|---|---|---|---|
@@ -27,7 +28,7 @@
 | FlagCX | github.com/flagos-ai/FlagCX | main@0a747f6 | flagcx 0.13.0 | 多卡通信 + KV 传输 | torch（构建期自动检测，`TORCH_DEVICE_BACKEND_AUTOLOAD=0`）；源码构建需 make + git submodule（plugin/torch 为 torch 插件） |
 | FlagGems | github.com/flagos-ai/FlagGems | master@c22f8eb | flag_gems 0.0.0（editable） | 多芯片 triton 算子库 | packaging≥26.0、PyYAML==6.0.1、sqlalchemy==2.0.48、numpy；昇腾组合 torch==2.10.0+cpu + torch_npu（厂商设备插件） |
 | vllm-plugin-FL | github.com/flagos-ai/vllm-plugin-FL | main@db9afd6 | vllm-plugin-fl 0.0.0（editable） | 推理插件（KV Cache 挂载点、Platform 层） | 运行时 pyyaml；配套 vllm==0.20.2；Python 3.10~3.13；构建需 torch≥2.7.1 |
-| FlagTree | github.com/flagos-ai/FlagTree | 分支 triton_v3.2.x | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311） |
+| FlagTree | github.com/flagos-ai/FlagTree | 分支 triton_v3.2.x | triton_ascend 3.2.1（import 报 3.2.0，已知差异） | 编译层（triton kernel 编译） | 构建 setuptools/wheel/cmake≥3.18/ninja≥1.11.1；triton_ascend 3.2.1 wheel 无 PyPI 发行，**从 vllm-ascend 镜像拷出**（cp311）。**原型口径与手册链接见上方 FlagTree 版本线注**及 `dev/images/image_list.md` |
 | FlagPerf | github.com/flagos-ai/FlagPerf | main（FlagRT fork） | FlagPerf | AI 硬件评测与基准测试 | 依赖以 FlagPerf 仓库自身 README/requirements 为准；不自动并入 §3 运行组合；性能评测的宿主入口、运行环境和验证边界见 `dev/performance/README.md` |
 
 ### 1.1 协同开发链接（FlagRT 组织主干）
@@ -55,7 +56,7 @@
 
 > **910C 原型阶段（2026-09 起）另有一套锁定镜像**，与本节的通用 dev 底座不同：训练腿 `flagrt/ascend-operator-runtime-comm:0.1.3-…`（candidate，torch_fl 例外线）、推理腿 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`。血统与内置版本见 `dev/images/image_list.md`，锁定状态见 `dev/stack.lock.910c.v1.yaml`。本节 dev 底座不用于原型结论性验证。
 
-> **本镜像 = 昇腾工具链底座**（非设备层交付物）：预装 torch_fl 0.1.0，但 A 线（厂商 torch_npu）不使用它——A 线在容器内自建 torch_npu venv，结论性测试改用官方镜像（见各子方向 README）。
+> **本镜像 = 昇腾工具链底座**（非设备层交付物）：预装 torch_fl 0.1.0，但 A 线（厂商 torch_npu）不使用它——A 线在容器内自建 torch_npu venv，结论性测试改用华为昇腾官方镜像（见各子方向 README）。
 > 镜像名 `pytorch-plugin-fl` 与 `compose.base.yml` 的 `/data_lib/PyTorch-Plugin-FL` 挂载均为 B 线（torch_fl，已冻结归档）血统残留，保留无害，勿据此误判底座绑定 B 线。
 > harbor 源与本地重建副本为**同一镜像**（IMAGE ID 一致，均 11.2GB），换用 harbor 地址不改变任何栈行为。
 

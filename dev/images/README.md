@@ -31,7 +31,7 @@ dev/images/
       assets/               # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
 ```
 
-官方镜像（非自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
+上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
 
 ## 3. 命名与版本化
 
@@ -44,12 +44,25 @@ dev/images/
 
 ## 4. 官方 / 自定义边界
 
+### 4.0 术语："官方"在本目录指哪个主体（必须带主体名，不写裸"官方"）
+
+| 简称 | 主体 | 在本目录出现的东西 | 性质 |
+|---|---|---|---|
+| **华为昇腾官方** | 华为技术有限公司昇腾计算 | `quay.io/ascend/vllm-ascend` 镜像、CANN toolkit、`torch_npu`、`triton-ascend` wheel | 厂商正式发布物，公共可拉 |
+| **BAAI·FlagTree 官方** | 北京智源人工智能研究院 / FlagTree 开源项目 | 「FlagTree ascend 用户手册」wiki、ascend3.5 / ascend3.2 版本线定义 | 开源社区构建规范（本目录镜像仅作对标，未按其构建路径） |
+| **BAAI 内部（非发布物）** | 智源内部构建，未对外发布 | `harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl:manual-*`（CANN 底座） | 人工手搭（`manual-` 前缀），仅存 BAAI harbor + 本机 + 离线包 |
+| **通用开源上游** | ubuntu / python.org / MPICH 等各自项目 | ubuntu 22.04、CPython、MPICH 源码 | 各项目官方发行版 |
+
+### 4.1 origin 标注
+
 `lock.yaml` 的 `layers:` 逐项标 `origin`，供重建时判断"跟随上游"还是"需按 pin 重现"：
 
 | origin | 含义 | pin 方式 |
 |---|---|---|
-| `official` | 上游（华为昇腾 / 开源项目）原样产物：CANN、ubuntu、Python、vLLM-Ascend、triton-ascend 官方 wheel、MPICH 源码等 | digest 或官方版本号 |
+| `official` | 上游原样产物（华为昇腾官方 / 通用开源上游）：CANN、ubuntu、CPython、`vllm-ascend`、华为发布的 `triton-ascend` wheel、MPICH 源码等 | digest 或上游版本号 |
 | `custom` | FlagRT/FlagOS 自行组合或打补丁：Torch-FL、FlagGems、FlagCX、triton 补丁、verify 脚本、运行时开关 ENV | git commit + patch sha256 |
+
+> 注：`origin: official` 只表示"该层是上游原样产物、按上游版本号/digest 跟随"，**不等于"华为发布"**——CANN 底座镜像本体是 **BAAI 内部**手搭的（见 4.0），只是其中的 CANN toolkit 用的是华为昇腾官方版本。
 
 ## 5. 入档门槛
 
@@ -57,9 +70,15 @@ dev/images/
 
 1. 有 `lock.yaml`（血统 + 内置版本 + 官方/自定义边界）；
 2. `repro_status` ≥ 🟡；
-3. 官方镜像可无 Dockerfile，但须记可拉取 digest + 上游来源。
+3. 上游发布的镜像（华为昇腾官方 / 社区）可无 Dockerfile，但须记可拉取 digest + 上游来源。
 
 `repro_status`：
 - 🟢 = `Dockerfile.repro` + `assets` 已实机重建，且与原镜像比对通过（`pip freeze` 逐行 / 关键 `.so` 逐字节）
 - 🟡 = 配方在手，未实机验证
 - 🔴 = 黑盒，无配方（不得作为归档终态；须有 `ARCHIVE.md` 记录离线包）
+
+上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的备注列会写明是哪一种。
+
+## 6. 迁移前置
+
+把归档整套迁到新机器，需要：① 仓内配方（本目录，随 git）② 各 `ARCHIVE.md` 指向的离线包（三个 `docker save` tar.gz + `recovered/` 资产，当前在 raid 盘，不随 git）③ 上游可达（`harbor.baai.ac.cn` 的 **BAAI 内部** CANN 底座、`quay.io` 的**华为昇腾官方** vLLM 镜像）。三者缺一：缺 ② 退化到"从 ① + ③ 功能等价重建"；缺 ③ 且缺 ② 则阻塞。逐字节复现另需 owner 私有 FlagCX commit + patch（见 `TODO.md`）。

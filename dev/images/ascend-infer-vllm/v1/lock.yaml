@@ -1,17 +1,21 @@
 # ascend-infer-vllm / v1
-# 华为官方镜像，非自建。
+# 华为昇腾官方镜像（华为技术有限公司昇腾计算发布），非自建、非 FlagTree。
 
 image_tag: "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3"
 digest: "sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
+flagtree_line: >-
+  ascend3.5（CANN 9.0.0 / py3.11 / torch 2.10.0 / vLLM 0.20.2）。华为昇腾官方镜像，非 FlagTree 构建物
+  （版本纪元对齐 BAAI·FlagTree 官方手册的 ascend3.5 线，非按其构建）。
+  组内其他环境用的 triton_ascend 3.2.1 wheel 即从本镜像拷出。详见 dev/images/image_list.md。
 pull: "docker pull quay.io/ascend/vllm-ascend@sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
 built_at: "2026-06-03T16:57:25Z"
-repro_status: "🟢 官方"                 # 公共 registry，digest 锁定，已验证可拉（2026-09-09）
+repro_status: "🟢 华为昇腾官方"         # 公共 registry，digest 锁定，已验证可拉（2026-09-09）
 dockerfile: "upstream —— github.com/vllm-project/vllm-ascend（docker/）"
 
-# --- 官方 / 自定义边界（见 README §4） ---
+# --- official / custom 边界（见 README §4；此处 official = 华为昇腾官方原样产物） ---
 layers:
   - name: "vllm-ascend v0.20.2rc1-a3"
-    origin: official
+    origin: official   # 华为昇腾官方
     pin: "digest sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"
     note: "含 vLLM 0.20.2 + torch_npu + CANN + vllm_ascend"
 custom_layers: none
@@ -20,11 +24,11 @@ gaps:
   - "rc 标签有被 registry GC/覆盖风险 —— 归档实体见 ARCHIVE.md（按 digest 保存）"
 
 notes: |
-  组内其他环境用的 triton_ascend 3.2.1 wheel 是从本镜像拷出的（见 VERSIONS.md §1）；
+  组内其他环境用的 triton_ascend 3.2.1 wheel 是从本镜像拷出的（见仓库根 VERSIONS.md §1）；
   本镜像离线包一并保留该 wheel 的来源。
 
 changelog:
   - date: "2026-09-09"
-    what: "首次登记：官方镜像，digest 锁定。"
+    what: "首次登记：华为昇腾官方镜像，digest 锁定。"
   - date: "2026-09-10"
     what: "去除非归档内容（消费方定位/治理）。"

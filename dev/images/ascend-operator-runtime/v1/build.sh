@@ -3,7 +3,7 @@
 #
 # 前置（准备构建上下文）：
 #   assets/wheelhouse/          从原镜像 /opt/flagrt/wheelhouse 回收（或按 assets/wheelhouse.sha256 重建）
-#   assets/mpich-4.1.3.tar.gz   官方发行版，sha256 见 assets/mpich-4.1.3.tar.gz.sha256
+#   assets/mpich-4.1.3.tar.gz   MPICH 项目官方源码发行版，sha256 见 assets/mpich-4.1.3.tar.gz.sha256
 #   src/FlagGems  src/Torch-FL  git archive 自本机 checkout 的 pin commit（见 lock.yaml）
 #   CPython 3.11.15             Dockerfile.repro 构建期从 python.org 拉取（需 --network=host）
 set -euo pipefail
