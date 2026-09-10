@@ -7,13 +7,32 @@
 
 - 对应 §3 验收标准**第 4 条**（显存池定义 + 显存占用峰值画像；KV 相关不作硬性指标）。
 - §5 memory 任务清单进度：
-  1. 锁定推理镜像显存画像 —— **环境侦察完成**（栈版本已核对：py3.11.15 / vllm 0.20.2 / vllm_ascend 0.20.2rc1 / torch 2.10.0 / torch_npu 2.10.0 / CANN 9.0.0 / SOC ascend910_9391 / 单芯 HBM 64GiB），**探针已移植未测**（`infer910c_hbm_sampler.py` + `infer910c_mem_profile.py` + `infer910c_ab_matrix.py`，旧 flagos/xpytorch 探针不适用），报告骨架已建（`docs/910C-显存画像报告-骨架.md`）。**阻塞在带卡容器 slot**。
-  2. 显存池定义文档 + 对照数据 —— A/B 矩阵脚本就绪，待起容器跑数。
-  3. 分层缓存/Host 溢出 —— 本期非硬性指标，routeA-S4 留档即可。
+  1. 锁定推理镜像显存画像 —— ✅ **完成**（2026-09-10，npu1-27 davinci-7，锁定镜像内实测）。
+     环境核对 + embedding API surface 实测 + 加载阶段 HBM 分解 + 运行阶段峰值 sweep（batch×seq-len）+ A/B 三轴。
+     报告：[docs/910C-显存画像报告.md](docs/910C-显存画像报告.md)（已从骨架转正）。探针已实测通过；
+     `infer910c_hbm_sampler.py` 解析器按 npu-smi 25.5.0 A3 版式修过（按 Phy-ID 做键）。
+  2. 显存池定义文档 + 对照数据 —— ✅ **完成**。[docs/910C-显存池定义.md](docs/910C-显存池定义.md)：
+     两层池（torch_npu caching allocator 底座 + vLLM 层）、gpu_memory_utilization/pooling 预分配/
+     ACLGraph capture、复用回收、A/B 对照表、**给 device-context/调度 的安全区间**
+     （embedding 服务：gmu 0.35–0.45、max_num_seqs 64–128）。原始数据 `benchmarks/out/`。
+  3. 分层缓存/Host 溢出 —— 本期非硬性指标，routeA-S4 留档即可（对 embedding 无意义：预分配池是余量非需求）。
 
-## 关键阻塞
+## 关键结论（供总组 / device-context / 调度）
 
-- **带卡容器并发上限 3，当前 3 个已占满**（stack.lock rule #1）。需总组协调一个 slot 起 `flagos-proto-infer-910c`（推理腿，串行即可；跑完即停）。在此之前所有画像/对照数据无法采集。
+- **embedding-on-vLLM 的 HBM 峰值 ≈ driver 2.82 + 权重 1.13 + `gpu_memory_utilization` × 空闲HBM(61.3 GiB) + 激活 0.2–0.57 + graph 0–0.1（GiB）**。
+- **峰值几乎与 batch / seq-len / max_model_len 无关**；唯一大杠杆是 `gpu_memory_utilization`。
+- vLLM 对 pooling runner 仍按 gmu 吃满空闲 HBM 建 "KV cache" 池（gmu0.9 → 53.79 GiB / 503,552 tok），
+  但 embedding 永不使用 → 纯余量。**gmu 0.4 实测 HBM 峰值 42.8%（28 GiB），吞吐与 0.9 无差**。
+- eager vs ACLGraph：显存差仅 0.2 GiB，是时延（load +15s）↔吞吐（+8%）权衡，非显存权衡。
+- `expandable_segments:True` 对 embedding 无可测效果（池是整块分配，无碎片）。
+- 预热 4.7s（旧栈生成式首次 attention 是 437s）。
+
+## 遗留 / 环境备忘
+
+- 带卡容器并发**实测上限 2**（x-benchmark 跑 sweep 时）：第 3 个容器 acl/dcmi init 报 `-8020 device is used`
+  + `DrvMngGetConsoleLogLevel failed ret=4`，与 stack.lock rule #1 写的「3」不符 —— 建议总组核实并更新 stack.lock。
+- house 起容器脚本的驱动绑定 `:ro` 在本机 driver 25.5.0 下不可用，须 `:rw`。
+- `flagos-proto-infer-910c` 画像跑完已 `docker rm -f` 拆除，davinci-7 归还 idle。
 
 ## 最近更新日期
 
