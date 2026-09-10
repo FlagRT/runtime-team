@@ -1,4 +1,5 @@
-# RAG answer-generation container based on the validated Ascend vLLM image.
+# Single RAG container for local embedding/reranking and future generation.
+# Alternative to docker-compose.yml; do not start both Compose projects.
 # Usage from dev/rag_ljy:
 #   docker compose --env-file .env -f ../compose.base.yml \
 #     -f docker_compose/compose.vllm.yml up -d runtime-dev
@@ -11,6 +12,15 @@ services:
     container_name: rag-ljy-vllm-910c
     environment:
       - DO_NOT_TRACK=1
+      - RETRIEVAL_BACKEND=${RETRIEVAL_BACKEND:-elasticsearch}
+      - ELASTICSEARCH_URL=http://127.0.0.1:${ELASTICSEARCH_PORT:-9200}
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-rag-chunks-v1}
+      - MILVUS_URI=${MILVUS_URI:-http://127.0.0.1:19530}
+      - MILVUS_DATABASE=${MILVUS_DATABASE:-default}
+      - MILVUS_COLLECTION=${MILVUS_COLLECTION:-rag_chunks_v1}
+      - MILVUS_TOKEN=${MILVUS_TOKEN:-}
     volumes:
       - ${MODEL_DIR:-/mnt/raid/jliu171/models}:/mnt/raid/jliu171/models
     restart: "no"

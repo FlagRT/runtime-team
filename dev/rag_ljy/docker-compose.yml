@@ -8,8 +8,8 @@ name: flagos-rag-ljy
 
 services:
   runtime-dev:
-    image: flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64
-    container_name: flagos-rag-ljy-dev-910c
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    container_name: rag-ljy-vllm-910c
     environment:
       - RETRIEVAL_BACKEND=${RETRIEVAL_BACKEND:-elasticsearch}
       - ELASTICSEARCH_URL=http://127.0.0.1:${ELASTICSEARCH_PORT:-9200}
