@@ -28,7 +28,7 @@
 | PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
 | 本分支在此后 | ① 仓库重组为三部分 ② 新增统一原型 `prototype/`（统一 API + Backend 注册表）③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 |
 | 当前相对 dev-1.0 | **领先 45 提交**（+5653 / −7） |
-| 下一轮合入 | 按 `dev/stack.lock.910c.yaml` 的**合入把关五条**走流程 |
+| 下一轮合入 | 按 `dev/stack.lock.910c.v1.yaml` 的**合入把关五条**走流程 |
 
 
 ---
@@ -86,7 +86,7 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 
 ## 4. 关键约束（务必先读）
 
-**`dev/stack.lock.910c.yaml` 置顶规则：带卡容器并发上限 3。**
+**`dev/stack.lock.910c.v1.yaml` 置顶规则：带卡容器并发上限 3。**
 
 - 超限后 `acl.init()` 返回 **500000**（`ACL_ERROR_INTERNAL_ERROR`），表现为 `device_count=0`、设备"消失"
 - 出现该现象**第一时间核查并发容器数**，不要先怀疑镜像/驱动/代码
