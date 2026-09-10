@@ -1,0 +1,8 @@
+# infer910c A/B 汇总 —— 轴: `enforce-eager`
+
+> UNTESTED —— pending 910C 锁定镜像验证。HBM 峰值真值请对齐 infer910c_hbm_sampler.py CSV（按 tag）。
+
+| run | tag | status | load_s | warmup_s | measured_s | total_s | throughput_req_s | model_weights_gib | available_kv_cache_memory | gpu_kv_cache_size_tokens | maximum_concurrency | peak_memory_gib | non_torch_memory_gib | profiled_total_gpu_memory | driver_max_memory_reserved |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| enforce-eager_aclgraph | aclgraph | untested-pending-910c-validation | 27.526 | 0.219 | 0.202 | 36.923 | 316.83 | 1.1333 | 53.79 | 503552 | 61.47 | None | 0.1 | None | 0 |
+| enforce-eager_eager | eager | untested-pending-910c-validation | 12.146 | 0.394 | 0.218 | 21.386 | 293.58 | 1.1333 | 53.76 | 503296 | 61.44 | None | 0.0 | None | 0 |
