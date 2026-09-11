@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""infer910c_hbm_sampler.py —— 910C 外挂 HBM / AICore 采样器（宿主侧，无 torch 依赖）。
+"""hbm-sampler_910c.py —— 910C 外挂 HBM / AICore 采样器（宿主侧，无 torch 依赖）。
 
 用途
   锁定推理镜像画像的**设备级真值来源**：EngineCore 是 spawn 子进程，driver 进程
   读不到 worker 分配器计数（见 archive/V1-显存画像报告-20260817 §3.3），故 HBM 峰值
   必须靠外部按固定间隔轮询 `npu-smi info` 采样 + vLLM 日志交叉验证。
 
-  本脚本**在宿主机运行**（不进容器、不 import torch），与容器内 infer910c_mem_profile.py
+  本脚本**在宿主机运行**（不进容器、不 import torch），与容器内 mem-profile_910c.py
   同时起：容器内跑加载/推理，宿主这边采 HBM 曲线，事后按时间戳对齐。
 
 解析

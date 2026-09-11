@@ -7,8 +7,8 @@
   - ASCEND_RT_VISIBLE_DEVICES 单卡/多卡可见(TP 语义), 容器内跑
 
 用法(容器内):
-  ASCEND_RT_VISIBLE_DEVICES=0 VLLM_FL_TP=1 python qwen3_offline_tp.py
-  ASCEND_RT_VISIBLE_DEVICES=0,1 VLLM_FL_TP=2 python qwen3_offline_tp.py
+  ASCEND_RT_VISIBLE_DEVICES=0 VLLM_FL_TP=1 python qwen3-offline-tp_910c.py
+  ASCEND_RT_VISIBLE_DEVICES=0,1 VLLM_FL_TP=2 python qwen3-offline-tp_910c.py
 输出: 平台/vendor、加载耗时、每 prompt 生成文本(与 TP=1 逐字对比用)。
 """
 import os

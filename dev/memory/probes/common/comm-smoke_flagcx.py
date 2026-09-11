@@ -2,8 +2,8 @@
 """flagcx 2 进程 allreduce 冒烟(验证 c10_npu shim 的 stream/event 路径)。
 
 用法(容器内):
-  ASCEND_RT_VISIBLE_DEVICES=0,1 python flagcx_smoke.py 0 2 &
-  ASCEND_RT_VISIBLE_DEVICES=0,1 python flagcx_smoke.py 1 2 &
+  ASCEND_RT_VISIBLE_DEVICES=0,1 python comm-smoke_flagcx.py 0 2 &
+  ASCEND_RT_VISIBLE_DEVICES=0,1 python comm-smoke_flagcx.py 1 2 &
 期望: 两个 rank 都打印 allreduce OK, 数值 = rank 值之和。
 """
 import os

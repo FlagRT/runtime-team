@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""infer910c_ab_matrix.py —— infer910c_mem_profile.py 的 A/B 矩阵驱动 + 结果汇总。
+"""mem-ab-matrix_910c.py —— mem-profile_910c.py 的 A/B 矩阵驱动 + 结果汇总。
 
 用途
-  为「显存池对照数据」交付物（战略文档 §5 memory 第 2 条）批量跑 infer910c_mem_profile.py，
+  为「显存池对照数据」交付物（战略文档 §5 memory 第 2 条）批量跑 mem-profile_910c.py，
   每个 A/B 点起一次子进程，各自出一份 JSON，最后收敛成一张 CSV + 一张 Markdown 表。
 
 A/B 轴（--axis 选一）
@@ -26,7 +26,7 @@ A/B 轴（--axis 选一）
       --model /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B \
       --batch 64 --seq-len 512 --warmup 3 \
       --outdir dev/memory/benchmarks/out/ab_gmu'
-  # 建议：宿主机同时跑 infer910c_hbm_sampler.py，--tag 用本脚本打印的 run tag 对齐 HBM 峰值。
+  # 建议：宿主机同时跑 hbm-sampler_910c.py，--tag 用本脚本打印的 run tag 对齐 HBM 峰值。
 
 产物
   <outdir>/run_<axis>_<value>.json     每个 A/B 点的 profile JSON
@@ -44,7 +44,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PROFILE = os.path.join(HERE, "infer910c_mem_profile.py")
+PROFILE = os.path.join(HERE, "mem-profile_910c.py")
 
 AXES: dict[str, list[dict]] = {
     "gpu-mem-util": [
@@ -133,7 +133,7 @@ def flatten(run_label: str, j: dict) -> dict:
 def write_md(rows: list[dict], path: str, axis: str) -> None:
     with open(path, "w") as f:
         f.write(f"# infer910c A/B 汇总 —— 轴: `{axis}`\n\n")
-        f.write("> UNTESTED —— pending 910C 锁定镜像验证。HBM 峰值真值请对齐 infer910c_hbm_sampler.py CSV（按 tag）。\n\n")
+        f.write("> UNTESTED —— pending 910C 锁定镜像验证。HBM 峰值真值请对齐 hbm-sampler_910c.py CSV（按 tag）。\n\n")
         f.write("| " + " | ".join(SUMMARY_COLS) + " |\n")
         f.write("| " + " | ".join("---" for _ in SUMMARY_COLS) + " |\n")
         for r in rows:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """S4 KV 卸载到 Host —— 910C 昇腾版(vllm 0.20.2 + vllm-plugin-FL)
 
-P800 版(routeA_s4_kv_host_offload.py / routeA_s4_kv_offload_xfer.py)基于 vllm 0.13
+P800 版(kv-offload-host_p800.py / kv-offload-xfer_p800.py)基于 vllm 0.13
 官方昆仑芯镜像;本脚本把同一目标搬到 910C 昇腾栈。
 
 ⚠️ 2026-09-03 实测结论(见《../../docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md》):

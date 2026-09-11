@@ -13,7 +13,7 @@ moe_pre_sorted）为退化源; 若两者均乱码 → 责任层在 attention/KV/
     CUDA_VISIBLE_DEVICES=2 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=flagos \
     USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1 \
     S3_MODEL=/models/Qwen3-30B-A3B S3_ENFORCE_EAGER=1 S3_MOE_IMPL=both \
-    python -u /tmp/routeA_s3_moe_ab.py
+    python -u /tmp/moe-ab_p800.py
 
 S3_MOE_IMPL: vendor | reference | both（默认 vendor，与 routeA_s3_offline 基线一致）
 

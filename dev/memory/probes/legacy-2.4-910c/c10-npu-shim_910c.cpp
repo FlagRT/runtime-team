@@ -7,7 +7,7 @@
 // dispatch key PrivateUse1")。
 //
 // 编译(容器内):
-//   g++ -std=c++17 -O2 -shared -fPIC c10_npu_shim.cpp -o libtorch_npu.so \
+//   g++ -std=c++17 -O2 -shared -fPIC c10-npu-shim_910c.cpp -o libtorch_npu.so \
 //     -I/root/vllm-venv312/lib/python3.12/site-packages/torch_npu/include \
 //     -I/root/vllm-venv312/lib/python3.12/site-packages/torch/include \
 //     -I/root/vllm-venv312/lib/python3.12/site-packages/torch/include/torch/csrc/api/include \

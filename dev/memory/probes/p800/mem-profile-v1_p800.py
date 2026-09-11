@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """P800 V1 显存画像探针 v2 (memory 子方向 / 重建版)
 
-对应 910c V1 画像 (docs/V1-显存画像报告-20260817.md) 的最小复刻:
+对应 910c V1 画像 (docs/goals/legacy-2.4-910c/profile_V1显存画像_910c.md) 的最小复刻:
   阶段1 加载    : 模型加载耗时 + 加载后 HBM 占用
   阶段2 预热    : 短请求, 避开首次 attention/autotune 慢路径
   阶段3 画像    : 递增输入长度 (128/1k/4k/8k tokens), 每轮采样 HBM
@@ -12,7 +12,7 @@ v2 改进: 单阶段超时 (默认 120s, 超时即退出并保留已写 CSV) + �
 
 用法:
     source /root/miniconda/bin/activate python310_torch29_cuda
-    CUDA_VISIBLE_DEVICES=1 python p800_v1_memory_profile.py [模型路径] [阶段: all|load|length|concurrent] [阶段超时秒]
+    CUDA_VISIBLE_DEVICES=1 python mem-profile-v1_p800.py [模型路径] [阶段: all|load|length|concurrent] [阶段超时秒]
 """
 import os
 import sys

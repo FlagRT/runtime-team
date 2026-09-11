@@ -1,4 +1,4 @@
-"""flagos_boot.py — vllm-venv 引导模块(重建自阶段4执行记录挂点清单,2026-09-02 适配 py312)。
+"""boot-shim_910c.py (原 flagos_boot.py) — vllm-venv 引导模块(重建自阶段4执行记录挂点清单,2026-09-02 适配 py312)。
 
 由 site-packages/flagos_torchfl.pth 加载(内容单行: import flagos_boot)。
 在任意 python 进程 site 初始化时执行,先于业务代码,保证:

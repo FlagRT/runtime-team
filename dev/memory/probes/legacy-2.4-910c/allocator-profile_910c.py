@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""probe_allocator_profile.py — torch_fl caching allocator 现状画像探针（只读，不改造）。
+"""allocator-profile_910c.py — torch_fl caching allocator 现状画像探针（只读，不改造）。
 
-重建自 docs/allocator-画像报告-20260817.md 的测试矩阵（原探针未入库，本脚本按报告复刻）：
+重建自 docs/goals/legacy-2.4-910c/profile_allocator画像_910c.md 的测试矩阵（原探针未入库，本脚本按报告复刻）：
   1) 环境与开关：FLAGOS_USE_CACHING_ALLOCATOR 默认开启、device_count、暴露接口
   2) 缓存复用：10 次 1GiB alloc/free 循环 → 期望仅 1 次 device malloc
   3) 交错释放：alloc A/B/C(2GiB) → del B → alloc D(2GiB) → 期望 0 次新 malloc
@@ -11,7 +11,7 @@
 
 自适应：先用 aclrtGetMemInfo 探测 HBM 空闲量，不足时按比例缩放块大小
 （报告中的绝对值依赖当时空卡环境，语义判定不依赖块大小）。
-用法：/root/vllm-venv312/bin/python probe_allocator_profile.py [device]
+用法：/root/vllm-venv312/bin/python allocator-profile_910c.py [device]
 """
 import ctypes
 import os

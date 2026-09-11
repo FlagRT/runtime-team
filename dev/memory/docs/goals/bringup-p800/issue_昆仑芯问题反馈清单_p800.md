@@ -98,6 +98,6 @@
 - 纯 MoE（新线，2026-08-22 复测）：宿主 `dev/memory/benchmarks/out/` 下
   `newline_pure_moe_default.log`（#4 6/7 参崩溃）、`newline_pure_moe_default_prefer_flagos.log`（graph capture 超时）、
   `newline_pure_moe_eager.log`（#5 生成退化）——完整分析见 [note_新线镜像纯MoE复测_p800.md](note_新线镜像纯MoE复测_p800.md)
-- 报告：`dev/memory/docs/官方镜像复测-MoE-20260822.md`、`dev/memory/docs/纯MoE-昆仑芯-20260822.md`、
+- 报告：`dev/memory/docs/goals/bringup-p800/history/note_官方镜像复测MoE-20260822_p800.md`、`dev/memory/docs/goals/bringup-p800/history/note_纯MoE隔离测试-20260822_p800.md`、
   `dev/memory/docs/goals/bringup-p800/note_新线镜像纯MoE复测_p800.md`、`dev/memory/docs/goals/bringup-p800/history/note_新线镜像MoE静态预检-20260822_p800.md`
 - 模型：/workspace/models/Qwen3.6-35B-A3B（复用机内）、Qwen3-30B-A3B（61.1GB，可删）

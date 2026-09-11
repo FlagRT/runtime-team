@@ -82,7 +82,7 @@ modelscope download --model Qwen/Qwen3-4B --local_dir /workspace/models/Qwen3-4B
 
 - 容器 `flagos-fl-dev-910c`(运行中)+ venv `/root/vllm-venv312`(torch 2.10.0+cpu + torch_fl 0.1.0 编译版 + triton_ascend 3.2.2 + vllm 0.20.2 + flag_gems/vllm-plugin-FL editable + flagcx 0.13.0)
 - 模型 `/home/xliu969/runtime-team/models/Qwen3-4B`(14 文件 7.6G,容器内 `/workspace/models/Qwen3-4B`;models/ 已 gitignore)
-- 探针与脚本(dev/memory/probes/,未提交):probe_allocator_profile.py(分配器画像)、flagos_boot.py(venv 引导,已拷入 site-packages + flagos_torchfl.pth)、flagcx_smoke.py(双卡 allreduce 冒烟)、hccl_direct.py(纯 ctypes HCCL 对照)、c10_npu_shim.cpp(已被 fix 分支取代,留档)
+- 探针与脚本(dev/memory/probes/,未提交):allocator-profile_910c.py(分配器画像)、boot-shim_910c.py(venv 引导,已拷入 site-packages + flagos_torchfl.pth)、comm-smoke_flagcx.py(双卡 allreduce 冒烟)、comm-hccl-direct_910c.py(纯 ctypes HCCL 对照)、c10-npu-shim_910c.cpp(已被 fix 分支取代,留档)
 - FlagCX 本地分支 `local-ascend-fix` + 提交 `153cdfd`(rootinfo/stream slot 修复,未 push)
 - torch_fl 工作区补丁:ascend_memory.h get_device_index fallback(未提交)
 - torch_fl 构建日志:容器内 /tmp/torchfl_build*.log、flagcx:/tmp/flagcx_build.log

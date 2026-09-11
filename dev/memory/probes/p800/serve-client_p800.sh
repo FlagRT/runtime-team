@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # S3 vllm serve 请求测试（Route A / P800）
-# 用法: bash routeA_s3_serve_client.sh <port> <模型名>
+# 用法: bash serve-client_p800.sh <port> <模型名>
 set -e
 PORT=${1:-8001}
 MODEL=${2:-Qwen3-4B}

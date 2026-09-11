@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """下载 Qwen3-30B-A3B 全部文件（hf-mirror.com 直连，断点续传，并行）。
-用法: python3 fetch_qwen3_30b.py <file_list_json> <dest_dir> [parallel]
+用法: python3 model-fetch_qwen3.py <file_list_json> <dest_dir> [parallel]
 file_list_json 由 HF tree API 生成，含 path/size。
 """
 import json

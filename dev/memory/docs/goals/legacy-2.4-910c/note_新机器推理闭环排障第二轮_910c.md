@@ -1,7 +1,7 @@
 # memory 子方向全卡验证执行记录 —— 新机器 2026-09-02(二轮)
 
 > 日期:2026-09-02 ｜ 执行人:xliu969(agent 代跑) ｜ 机器:16× Ascend910C 全卡空闲窗口
-> 前置:一轮已复现分配器画像(5/5)、flagcx 双卡、链路 import(见《复现验证记录-新机器-20260902.md》)
+> 前置:一轮已复现分配器画像(5/5)、flagcx 双卡、链路 import(见《note_新机器复现验证_910c.md》)
 > 本轮目标:全卡验证 + 打通单卡推理闭环(Qwen3-4B,唯一未复现项)+ **补丁体系化留档**
 
 ## 0. 结论速览
@@ -57,7 +57,7 @@
 - 结果:16/16 OK,数值 136(=16×17/2)全 rank 正确(比一轮双卡更进一步,补全新卡档位)
 
 ### 分配器画像
-- device 0,probe_allocator_profile.py:5/5 全绿,HBM 空闲 62.4GiB 满血档,与 08-17 语义一致
+- device 0,allocator-profile_910c.py:5/5 全绿,HBM 空闲 62.4GiB 满血档,与 08-17 语义一致
 
 ## 3. 推理闭环排障进度
 
@@ -128,5 +128,5 @@
 - vllm 0.20.2;triton_ascend 3.2.2(USE_TORCH_NPU 段为 3.2.2 新增);torch_fl(ebc8762 编译);
   vllm-plugin-FL dev-1.0;模型 /workspace/models/Qwen3-4B
 - 新探针:probes/legacy-2.4-910c/qwen3-offline-tp_910c.py(4 prompts,TP 参数化)、qwen3-mini-probe_910c.py(单 prompt 诊断)、
-  op_smoke.py / triton_smoke.py / triton_mm_smoke.py / matmul_compare.py / linear_shape_probe.py /
-  linear_twice.py(算子级隔离用)
+  op-smoke_910c.py / triton-smoke_910c.py / triton-mm-smoke_910c.py / matmul-compare_910c.py / linear-shape-probe_910c.py /
+  linear-twice_910c.py(算子级隔离用)

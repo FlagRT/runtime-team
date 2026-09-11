@@ -2,7 +2,7 @@
 """最小化诊断:单 prompt + 短生成,逐步打印,定位 prefill 卡点。
 
 用法(容器内):
-  ASCEND_RT_VISIBLE_DEVICES=0 python qwen3_mini_probe.py
+  ASCEND_RT_VISIBLE_DEVICES=0 python qwen3-mini-probe_910c.py
 """
 import os
 import time

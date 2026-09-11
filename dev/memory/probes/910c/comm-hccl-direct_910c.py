@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """纯 ctypes HCCL 直测:2 进程 HcclGetRootInfo + HcclCommInitRootInfo + AllReduce。
 
-用法: ASCEND_RT_VISIBLE_DEVICES=0,1 python hccl_direct.py 0 2  (两进程同时)
+用法: ASCEND_RT_VISIBLE_DEVICES=0,1 python comm-hccl-direct_910c.py 0 2  (两进程同时)
 """
 import ctypes
 import os

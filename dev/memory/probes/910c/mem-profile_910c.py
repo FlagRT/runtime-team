@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""infer910c_mem_profile.py —— 锁定推理镜像（vllm-ascend:v0.20.2rc1-a3）显存画像 harness。
+"""mem-profile_910c.py —— 锁定推理镜像（vllm-ascend:v0.20.2rc1-a3）显存画像 harness。
 
 用途
   在 910C 锁定推理镜像内，对 `Qwen/Qwen3-Embedding-0.6B`（EMBEDDING 模型，pooling
@@ -8,7 +8,7 @@
 
 方法学（沿用 archive/V1-显存画像报告-20260817）
   - EngineCore 是 spawn 子进程：**driver 进程读到的 torch_npu.npu.memory_* 近似为 0**，
-    仅作存在性/上下文佐证。真实 HBM 峰值来自外挂 infer910c_hbm_sampler.py（宿主 npu-smi）
+    仅作存在性/上下文佐证。真实 HBM 峰值来自外挂 hbm-sampler_910c.py（宿主 npu-smi）
     + 本脚本解析的 vLLM 日志字段（Available KV cache memory / GPU KV cache size /
     Maximum concurrency / model weights / peak memory）。
   - **必须先预热**：短请求先跑 --warmup 轮，避开首次 kernel 初始化长尾，再测量。

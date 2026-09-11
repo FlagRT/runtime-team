@@ -127,7 +127,7 @@ vLLM 0.20.2 自带：KV Cache 按块（block）预分配（块表 BlockTable）�
 - **文档**：本文为权威方案（定稿）；执行记录按阶段系列（阶段5-显存管理-NN-执行记录.md）；结论性数据归档到 `dev/memory/docs/`。
 - **任务看板**：`dev/memory/PROGRESS.md`（待办/完成 + 时间线）。
 - **协作**：与编译组的执行计划接口、与算子组的 P0 清单、与验证组的 Benchmark 对接（7.4 性能与能效 Benchmark 可复用其工况）。
-- **已归档产物**（定稿时点）：探针 probe_allocator_profile.py、画像脚本 benchmarks/v1_memory_profile.py、报告 4 篇（allocator 画像 / V1 显存画像 / vLLM offload 调研 / 执行计划跨组确认）。
+- **已归档产物**（定稿时点）：探针 allocator-profile_910c.py、画像脚本 benchmarks/v1_memory_profile.py、报告 4 篇（allocator 画像 / V1 显存画像 / vLLM offload 调研 / 执行计划跨组确认）。
 
 ---
 

@@ -2,48 +2,50 @@
 
 > 只读诊断脚本，不改造子库；待入库的正式资产在此暂存。
 > 运行环境见各脚本头 docstring。
+> 按芯片分类：`common/`（跨芯片通用）→ `910c/` → `p800/` → `legacy-2.4-910c/`（⛔ 冻结路线，仅留档）。
 
-## 910C 原型阶段（2026-09，锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3`，torch_npu 纯栈）
-
-> UNTESTED —— pending 910C 锁定镜像验证；旧 flagos/xpytorch 探针在该镜像 API 不存在，不复用。
-
-| 脚本 | 用途 | 运行位置 |
-|---|---|---|
-| `infer910c_hbm_sampler.py` | 外挂 npu-smi 轮询采样 per-chip HBM/AICore → 时间戳 CSV（画像真值来源） | 宿主机（不进容器，无 torch 依赖） |
-| `infer910c_mem_profile.py` | 锁定镜像内 torch_npu 口径显存画像 harness（offline/server-probe，pooling runner）→ JSON | 容器 `flagos-proto-infer-910c` 内 |
-| `infer910c_ab_matrix.py` | 跨 gpu-mem-util / alloc-conf / enforce-eager / max-num-seqs 轴批量跑 profile → 汇总 CSV+MD | 容器内 |
-
-## 当前方向（FlagOS 官方栈）
-
-| 脚本 | 用途 | 平台 |
-|---|---|---|
-| `routeA_s2_1_device.py` | 设备枚举/初始化冒烟 | P800 |
-| `routeA_s2_3_allreduce.py` | 双卡 allreduce 数值 | P800 |
-| `routeA_s3_offline.py` / `routeA_s3_serve_client.sh` | dense 推理离线/服务化 | P800 |
-| `routeA_s3_moe_ab.py` | MoE A/B（flag_gems vs reference） | P800 |
-| `ref_moe_impl.py` | MoE 参考实现 | 通用 |
-| `routeA_s4_kv_host_offload.py` / `routeA_s4_kv_offload_xfer.py` | KV→Host 卸载 + 传输冒烟 | P800（vllm 0.13） |
-| `routeA_s4_kv_host_offload_910c.py` | KV→Host 卸载移植尝试（阻塞留档） | 910C（vllm 0.20.2） |
-| `p800_env_check.py` / `p800_chain_smoke.py` / `p800_v1_memory_profile.py` | P800 环境/链路/V1 画像 | P800 |
-| `fetch_qwen3_30b.py` | 模型下载工具 | 通用 |
-
-## 通信相关（跨方向复用）
+## common/（跨芯片通用）
 
 | 脚本 | 用途 | 备注 |
 |---|---|---|
-| `flagcx_smoke.py` | FlagCX 双卡 allreduce 冒烟（含异步返回需设备同步的现状） | communication 子方向《最小 Backend 契约》引用 |
-| `hccl_direct.py` | 纯 ctypes HCCL 对照 | 与 `flagcx_smoke.py` 配套 |
+| `model-fetch_qwen3.py` | 模型下载工具（hf-mirror 直连 + 断点续传 + 并行 + 大小校验） | 通用 |
+| `moe-ref-impl.py` | MoE 参考实现（A/B 对照用） | 通用 |
+| `comm-smoke_flagcx.py` | FlagCX 双卡 allreduce 冒烟（含异步返回需设备同步的现状） | communication 子方向《最小 Backend 契约》引用 |
 
-## ⛔ 已冻结路线（torch_fl 设备层栈，仅留档，勿在其上继续开发）
+## 910c/（910C 原型阶段，2026-09，锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3`，torch_npu 纯栈）
 
-> 这些脚本产生于昇腾 910C 的 torch_fl + vllm-plugin-FL 栈复现，该路线已冻结（见 [../docs/archive/README.md](../docs/archive/README.md)）。
-> 保留仅供方法论/历史对照；**不要以它们为基线扩展新工作**，当前方向从 [../docs/路线A-显存与缓存管理-方案-20260822.md](../docs/路线A-显存与缓存管理-方案-20260822.md) 起步。
+> 探针已实测通过（画像报告已交付，见 `../docs/goals/proto-910c-202609/`）。
+
+| 脚本 | 用途 | 运行位置 |
+|---|---|---|
+| `hbm-sampler_910c.py` | 外挂 npu-smi 轮询采样 per-chip HBM/AICore → 时间戳 CSV（画像真值来源） | 宿主机（不进容器，无 torch 依赖） |
+| `mem-profile_910c.py` | 锁定镜像内 torch_npu 口径显存画像 harness（offline/server-probe，pooling runner）→ JSON | 容器 `flagos-proto-infer-910c` 内 |
+| `mem-ab-matrix_910c.py` | 跨 gpu-mem-util / alloc-conf / enforce-eager / max-num-seqs 轴批量跑 profile → 汇总 CSV+MD | 容器内 |
+| `kv-offload-host_910c.py` | KV→Host 卸载移植尝试（阻塞留档） | 910C（vllm 0.20.2） |
+| `comm-hccl-direct_910c.py` | 纯 ctypes HCCL 对照 | 与 `../common/comm-smoke_flagcx.py` 配套 |
+
+## p800/（当前方向，FlagOS 官方栈）
+
+| 脚本 | 用途 | 平台 |
+|---|---|---|
+| `device-smoke_p800.py` | 设备枚举/初始化冒烟 | P800 |
+| `allreduce-smoke_p800.py` | 双卡 allreduce 数值 | P800 |
+| `offline-infer_p800.py` / `serve-client_p800.sh` | dense 推理离线/服务化 | P800 |
+| `moe-ab_p800.py` | MoE A/B（flag_gems vs reference，配合 `../common/moe-ref-impl.py`） | P800 |
+| `kv-offload-host_p800.py` / `kv-offload-xfer_p800.py` | KV→Host 卸载 + 传输冒烟 | P800（vllm 0.13） |
+| `env-check_p800.py` / `chain-smoke_p800.py` / `mem-profile-v1_p800.py` | P800 环境/链路/V1 画像 | P800 |
+| `hbm-sampler_p800.sh` | 宿主侧 HBM/util 采样（对应 910c npu-smi 方法学，原 `benchmarks/xpu_smi_sampler.sh`） | P800 |
+
+## ⛔ legacy-2.4-910c/（已冻结路线，torch_fl 设备层栈，仅留档，勿在其上继续开发）
+
+> 这些脚本产生于昇腾 910C 的 torch_fl + vllm-plugin-FL 栈复现，该路线已冻结（见 [../docs/goals/legacy-2.4-910c/README.md](../docs/goals/legacy-2.4-910c/README.md)）。
+> 保留仅供方法论/历史对照；**不要以它们为基线扩展新工作**，当前方向从 [../docs/common/design_显存与缓存管理权威方案.md](../docs/common/design_显存与缓存管理权威方案.md) 起步。
 
 | 脚本 | 原用途 |
 |---|---|
-| `flagos_boot.py` | torch_fl venv 引导 shim（npu/cann→flagos 别名等；补丁台账见 archive/patches/） |
-| `c10_npu_shim.cpp` | torch_npu 符号 stub（已被 FlagCX fix 分支取代） |
-| `probe_allocator_profile.py` | torch_fl caching allocator 画像 |
-| `qwen3_mini_probe.py` / `qwen3_offline_tp.py` | 910C torch_fl 栈推理闭环诊断 |
-| `op_smoke.py` / `triton_smoke.py` / `triton_mm_smoke.py` / `triton_mm_debug.py` | 910C torch_fl 栈算子级隔离 |
-| `linear_shape_probe.py` / `linear_twice.py` / `matmul_compare.py` | 同上（linear/matmul 数值与耗时对照） |
+| `boot-shim_910c.py` | torch_fl venv 引导 shim（npu/cann→flagos 别名等；补丁台账见 `../docs/goals/legacy-2.4-910c/patches/`） |
+| `c10-npu-shim_910c.cpp` | torch_npu 符号 stub（已被 FlagCX fix 分支取代） |
+| `allocator-profile_910c.py` | torch_fl caching allocator 画像 |
+| `qwen3-mini-probe_910c.py` / `qwen3-offline-tp_910c.py` | 910C torch_fl 栈推理闭环诊断 |
+| `op-smoke_910c.py` / `triton-smoke_910c.py` / `triton-mm-smoke_910c.py` / `triton-mm-debug_910c.py` | 910C torch_fl 栈算子级隔离 |
+| `linear-shape-probe_910c.py` / `linear-twice_910c.py` / `matmul-compare_910c.py` | 同上（linear/matmul 数值与耗时对照） |

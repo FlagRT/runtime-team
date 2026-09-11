@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """S4 KV 卸载传输冒烟（Route A / P800 vllm 0.13 官方）— 验证 gpu->cpu store + cpu->gpu load 真实发生
 
-背景: routeA_s4_kv_host_offload.py 已证明 OffloadingConnector/CPUOffloadingSpec 配置与初始化可用,
+背景: kv-offload-host_p800.py 已证明 OffloadingConnector/CPUOffloadingSpec 配置与初始化可用,
 但短序列日志(默认 INFO)看不到传输证据。本探针:
   1. 开 DEBUG 日志抓 offload 行 ("offloading N blocks" / "hit N offloaded tokens");
   2. 同一长 prompt 跑两遍: 第 2 遍应命中 CPU 块(manager.lookup 命中)并跳过重算 ——
