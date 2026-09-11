@@ -27,13 +27,19 @@
 - `expandable_segments:True` 对 embedding 无可测效果（池是整块分配，无碎片）。
 - 预热 4.7s（旧栈生成式首次 attention 是 437s）。
 
+## 跨方向反馈（待总组收拢，本次画像顺带实测出的环境事实）
+
+| # | 发现 | 建议处理方 | 处理建议 |
+|---|---|---|---|
+| 1 | 带卡容器并发**实测上限 2**（`x-benchmark` 跑多进程 sweep 时）：第 3 个容器 acl/dcmi init 报 `-8020 device is used` + `DrvMngGetConsoleLogLevel failed ret=4`，与 `stack.lock` rule #1 写的「上限 3」不符——本次因此被卡了三轮（起容器→排查→等窗口）。可能真实上限是「≈3 个 DrvMng 客户端」而非「3 个容器」，`x-benchmark` 多进程一次占多个槽。 | 总组 | 核实 + 更新 `stack.lock` rule #1 表述；跑结论性验证前先确认同机其他容器的进程数，不只数容器数 |
+| 2 | house 起容器脚本（如 `distributed_inference/start_infer_container.sh` 一类）的驱动绑定用 `:ro`，在本机 driver 25.5.0 下会 `DrvMngGetConsoleLogLevel failed ret=4` / `device_count()=0`；实测须改 `:rw` 才能起。 | device-context | 检查并修正相关起容器脚本的驱动挂载模式 |
+| 3 | 锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3` 内 `transformers` 实测自带 **5.5.3**（战略文档 §7 提到的两处冲突记录 5.15.1 / 5.5.3 之一，本次是权威实测值）。 | device-context | 按 §7「device-context 负责固定版本并回写 stack.lock」处理 |
+
 ## 遗留 / 环境备忘
 
-- 带卡容器并发**实测上限 2**（x-benchmark 跑 sweep 时）：第 3 个容器 acl/dcmi init 报 `-8020 device is used`
-  + `DrvMngGetConsoleLogLevel failed ret=4`，与 stack.lock rule #1 写的「3」不符 —— 建议总组核实并更新 stack.lock。
-- house 起容器脚本的驱动绑定 `:ro` 在本机 driver 25.5.0 下不可用，须 `:rw`。
 - `flagos-proto-infer-910c` 画像跑完已 `docker rm -f` 拆除，davinci-7 归还 idle。
+- 画像期间为腾容器名额，`rag-ljy-vllm-910c` 被临时停过（memory 未重启，需 rag_ljy 或总组视情况处理）。
 
 ## 最近更新日期
 
-2026-09-10
+2026-09-11
