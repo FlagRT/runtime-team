@@ -10,12 +10,15 @@
 
 - **本期范围** = 910C 单芯片 + 锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3`（华为昇腾官方纯栈，torch_npu）+ 验收模型 `Qwen/Qwen3-Embedding-0.6B`（embedding，非生成式）。
 - **冻结（本期不作为进度/交付）**：全部 P800/昆仑芯条目；torch_fl / vllm-plugin-FL 的 910C dev 容器画像；MoE 阻塞链（causal_conv1d / topk_softmax / moe_align_block_size）；910C native KV→Host 卸载阻塞（routeA-S4 留档即可）；5 项 FlagOS/智源 issue 不卡本期验收。
-- **本期 P0 待办**：
-  1. 起 `flagos-proto-infer-910c` 跑通 embedding 推理（与 device-context 对齐，战略文档段二）。
-  2. torch_npu 口径显存画像报告（加载阶段结构 + 运行阶段峰值），骨架见 [docs/goals/proto-910c-202609/profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)。
-  3. 显存池定义文档（torch_npu caching allocator 底座 + vLLM 层：gpu_memory_utilization / KV-or-pooling 预分配 / ACLGraph capture）+ A/B 对照数据。
-- **本期 P1**：维护 STATUS.md；给 device-context / 调度 输出安全 `gpu_mem_util` + `max_num_seqs` 区间；与监控共用一份 HBM + allocator 采样脚本（`probes/910c/hbm-sampler_910c.py`）；数据供 performance 统一验收报告。
-- **已就绪（未测，pending 带卡容器 slot）**：`probes/910c/hbm-sampler_910c.py`（宿主 npu-smi 采样）、`probes/910c/mem-profile_910c.py`（容器内 torch_npu 画像 harness）、`probes/910c/mem-ab-matrix_910c.py`（A/B 矩阵驱动）。旧 flagos/xpytorch 探针（`p800/mem-profile-v1_p800.py` / `legacy-2.4-910c/allocator-profile_910c.py`）在锁定镜像 API 不存在，不复用。
+- **本期 P0**（✅ 2026-09-10/11 全部完成，实测证据见 [STATUS.md](STATUS.md)）：
+  1. ✅ 起 `flagos-proto-infer-910c` 跑通 embedding 推理（`runner="pooling"` 直接可用）。
+  2. ✅ torch_npu 口径显存画像报告，[docs/goals/proto-910c-202609/profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)。
+  3. ✅ 显存池定义文档 + A/B 对照数据，[docs/goals/proto-910c-202609/design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md)。
+- **本期 P1**（🟡 2026-09-11 已把三项 handoff 内容写清楚并挂进 STATUS.md「给下游子方向的建议」，仍待接收方确认；调度/监控两个方向截至目前在仓库内无目录，无法对接到具体位置）：
+  1. 给 device-context / 调度 的安全 `gpu_memory_utilization`(0.35–0.45) + `max_num_seqs`(128) 区间 —— 内容已就绪，待接收。
+  2. 与监控共用 `probes/910c/hbm-sampler_910c.py` 作为 HBM 采集脚本 —— 已就绪，待监控方向接入后对接。
+  3. 给 performance 统一验收报告的证据块 —— 已按其 README 表格格式备好，待引用。
+- **探针状态**：`probes/910c/hbm-sampler_910c.py` / `mem-profile_910c.py` / `mem-ab-matrix_910c.py` 均已实测通过（非 UNTESTED）。旧 flagos/xpytorch 探针（`p800/mem-profile-v1_p800.py` / `legacy-2.4-910c/allocator-profile_910c.py`）在锁定镜像 API 不存在，不复用。
 
 ## 待办事项（按优先级）
 

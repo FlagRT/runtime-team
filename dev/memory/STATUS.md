@@ -1,7 +1,7 @@
 # memory · STATUS
 
 > 总组速览入口（战略文档 §8.2 格式）｜ 详细看板见 [PROGRESS.md](PROGRESS.md) / [README.md](README.md)
-> 最近更新：2026-09-10
+> 最近更新：2026-09-11
 
 ## 当前阶段
 
@@ -26,6 +26,23 @@
 - eager vs ACLGraph：显存差仅 0.2 GiB，是时延（load +15s）↔吞吐（+8%）权衡，非显存权衡。
 - `expandable_segments:True` 对 embedding 无可测效果（池是整块分配，无碎片）。
 - 预热 4.7s（旧栈生成式首次 attention 是 437s）。
+
+## 给下游子方向的建议（Action Items，待接收）
+
+> 以下三项是 memory 本期产出里**别的方向用得上、但目前只写在 memory 自己文档里**的部分。仓库里没有找到 `调度`/`监控` 的子方向目录（截至 2026-09-11，`dev/` 下只有 `communication` / `device-context` / `memory` / `performance` / `rag_ljy`），无法直接对接到具体目录，先在此列清楚，等总组确认接收方或该方向建目录后对接。
+
+| # | 给谁 | 内容 | 状态 |
+|---|---|---|---|
+| 1 | **device-context**（段二显存参数） | 段二 embedding 服务建议起服务参数：`gpu_memory_utilization=0.35~0.45`（推荐 0.4）、`max_num_seqs=128`、`enforce_eager=False`（默认）。依据见 [design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md) §6。不采纳的实际后果：默认 `gmu=0.9` 会把单卡 HBM 打到 91%，带卡容器抢名额/显存时（本次画像就因此被卡三轮）没有回旋余地。 | 待接收 |
+| 2 | **调度**（请求调度侧） | 同上参数里 `max_num_seqs=128` 直接影响调度侧的并发/排队策略；HBM 峰值几乎不随 batch/并发变化（见同文档 §3.4），排队策略不必为"显存不够"保守让路。 | 待接收（该方向暂无仓库目录） |
+| 3 | **监控**（§5 监控任务 2：内存采集脚本） | 建议直接复用 [`probes/910c/hbm-sampler_910c.py`](probes/910c/hbm-sampler_910c.py)（宿主侧轮询 npu-smi，已针对本机 npu-smi 25.5.0 版式修过解析 bug，采过 HBM+AICore），而不是各写一份——避免口径不一致、避免监控重踩已经踩过的解析器坑。错误注入闭环若涉及 OOM 类注入，此脚本可直接复用抓 HBM 证据。 | 待接收（该方向暂无仓库目录） |
+
+**给 performance（§5 任务 4：统一验收报告）的现成证据块**（可直接引用/粘贴，格式对齐 `dev/performance/README.md` 的「当前进展」表）：
+
+| 能力 | 当前状态 | 已验证范围 | 交付状态 |
+|---|---|---|---|
+| 显存池定义 + 画像（910C 锁定镜像） | 已完成 | 锁定镜像 `vllm-ascend:v0.20.2rc1-a3`、`Qwen/Qwen3-Embedding-0.6B`，davinci-7 单卡；加载阶段 HBM 分解 + batch(8-256)×seqlen(128-512) 峰值 sweep + gmu/enforce-eager/alloc-conf 三轴 A/B，全部实测（2026-09-10/11） | 分支 `xliu969/memory-docs-reorg`（尚未合 `dev-1.0`），证据：[profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)、[design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md) |
+| KV 分层缓存 / Host 溢出 | 未验证（本期非硬指标） | 验收模型为 embedding，无生成式缓存增长场景，该能力对本次验收模型无意义 | 不在本期交付范围（§7 已注明），910C native 路径阻塞留档见 [note_KV卸载Host尝试_910c.md](docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md) |
 
 ## 跨方向反馈（待总组收拢，本次画像顺带实测出的环境事实）
 
