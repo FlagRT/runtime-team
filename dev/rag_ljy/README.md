@@ -1,12 +1,20 @@
 # Elasticsearch/Milvus + Ascend NPU RAG（rag_ljy）
 
-> **状态：🔄 可切换检索后端的代码已实现，待两个后端分别完成集成验证**
+更新日期：2026-09-11
+
+## 已完成进展
+
+- **Elasticsearch 检索精排链路已跑通**：完成 1024 维索引创建、样本文档向量化、BM25 + dense 检索、RRF 融合及 Qwen3 精排。5 条样本文档返回 Top 5，问题 `How does hybrid search work?` 对应文档排名第 1，rerank score 为 0.99944717。
+- **常驻查询 API 已实现**：两个模型启动时加载一次、请求间复用，无空闲卸载；支持健康检查、参数校验及并发保护。NPU 连续请求与显存常驻待实跑验证。
+- **双后端接口和单镜像环境已对齐**：Elasticsearch / Milvus 共用检索与精排流程；Milvus 集成实跑待完成。RAG 模型容器统一使用 vLLM Ascend 镜像，安装脚本按镜像推理栈版本约束依赖。
+
+详细进展及实际排序结果见 [status.md](status.md)。当前返回排序后的文档片段；生成模型尚未接入。
 
 ## 目标
 
 构建一条可运行的 RAG 链路。`RETRIEVAL_BACKEND` 在 Elasticsearch 和 Milvus
 之间进行完整数据库切换；被选中的数据库同时执行 BM25 稀疏检索和 dense
-向量检索。`torch_npu` 在 Ascend NPU 上执行 embedding、rerank 和后续生成。
+向量检索。`torch_npu` 在 Ascend NPU 上执行 embedding 和 rerank；答案生成属于后续工作。
 
 一次请求只使用一个数据库，不采用 Elasticsearch 做 sparse、Milvus 做 dense
 的跨数据库组合。
@@ -32,7 +40,7 @@
   -> 当前所选数据库保存文本、元数据和向量
 ```
 
-### 在线问答
+### 当前查询链路
 
 ```text
 用户问题
@@ -40,10 +48,10 @@
   -> 当前所选数据库执行 BM25 + dense vector 两路召回
   -> RRF coarse ranking（粗排），取 Top 20~50
   -> torch_npu reranker fine ranking（精排），取 Top 3~5
-  -> 构造 prompt
-  -> NPU 大模型生成答案
-  -> 返回答案和引用来源
+  -> 返回排序片段 JSON（文本、来源、检索排名、RRF / rerank 分数）
 ```
+
+后续将基于精排片段构造 prompt，接入 generation 模型生成答案和引用。
 
 ## 数据库切换语义
 
@@ -117,7 +125,16 @@ Milvus collection 额外维护 `search_text` 和 BM25 生成的
 `EMBEDDING_DIMS` 必须与实际 embedding 输出维度一致。修改维度或 mapping/schema
 后，需要使用新名称或明确执行 `create_index.py --recreate`。
 
-## 容器划分
+## 容器与运行镜像
+
+Embedding 和 reranking 使用同一个 NPU 容器，唯一模型运行镜像为：
+
+```text
+quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+```
+
+Python 3.11.15、PyTorch、torch_npu 和 vLLM 由镜像提供。当前模型通过
+Transformers 直接推理，常驻 API 由 FastAPI 提供，无需启动 vLLM 模型服务器。
 
 | 容器 | 设备 | 职责 |
 |---|---|---|
@@ -137,25 +154,35 @@ NPU 开发容器来自 `../compose.base.yml` 并使用 host network，因此可�
 ```text
 dev/rag_ljy/
 ├── README.md
+├── status.md                          # 已完成进展与实际结果
 ├── pyproject.toml
 ├── docker-compose.yml                 # NPU 开发容器覆盖配置
 ├── docker_compose/
 │   ├── compose.elasticsearch.yml      # 独立 CPU-only Elasticsearch
-│   └── compose.milvus.yml             # 独立 CPU-only Milvus
+│   ├── compose.milvus.yml             # 独立 CPU-only Milvus
+│   └── compose.vllm.yml               # 唯一 NPU 模型容器
 ├── .env                               # 本地配置和密码，不入 Git
 ├── data/sample_documents.jsonl
-├── scripts/                           # 建库、入库、查询和模型下载入口
-├── src/rag_engine/                    # RAG 引擎
+├── scripts/
+│   ├── setup_npu_env.sh               # 镜像依赖约束与 venv 安装
+│   ├── create_index.py               # 创建选定后端的索引 / collection
+│   ├── ingest_test_data.py           # 文档切块、embedding 和入库
+│   ├── query.py                      # 单次查询，退出后释放模型
+│   └── serve_queries.py              # 常驻 HTTP 查询，复用模型
+├── src/rag_engine/                    # 检索引擎、server.py 和 query_runtime.py
 └── tests/                             # 不需要 NPU 的单元测试
 ```
 
-## 启动容器
+## 启动容器（宿主机执行）
 
 进入项目目录：
 
 ```bash
 cd /home/jliu171/runtime-team/dev/rag_ljy
 ```
+
+确认项目目录中的 `.env` 已配置 `ELASTIC_PASSWORD`，以及所需的数据库端口、
+存储目录等参数。以下 `compose up` 命令会创建尚不存在的容器，也可启动已有服务。
 
 启动 Elasticsearch：
 
@@ -176,8 +203,8 @@ docker compose --env-file .env \
 查看状态：
 
 ```bash
-docker ps --filter name=rag-ljy-elasticsearch
-docker ps --filter name=rag-ljy-milvus
+docker ps -a --filter name=rag-ljy-elasticsearch
+docker ps -a --filter name=rag-ljy-milvus
 ```
 
 启动唯一的 NPU 容器（vLLM Ascend 镜像，自带 torch_npu）：
@@ -195,21 +222,26 @@ docker compose --env-file .env \
 docker exec -it rag-ljy-vllm-910c bash
 ```
 
-## Python 环境
+## Python 环境（容器内执行）
 
-以下命令在 NPU 开发容器内执行：
+将 `N` 替换为已分配的 NPU 索引，后续入库和查询复用同一 `RAG_DEVICE`：
 
 ```bash
 cd /workspace/dev/rag_ljy
-./scripts/setup_npu_env.sh
+bash scripts/setup_npu_env.sh
 source .venv/bin/activate
-python scripts/check_npu.py
+export RAG_DEVICE=npu:N
+python scripts/check_npu.py --device "$RAG_DEVICE"
 ```
 
 `setup_npu_env.sh` 默认使用镜像 PATH 中的 `python3`（要求 >=3.11），先检查
 `torch` / `torch_npu` 可以导入，再用 `--system-site-packages` 创建 venv，复用
 镜像中与 CANN 匹配的 `torch` 和 `torch_npu`，并安装 Elasticsearch 与 Milvus
-Python 客户端。它不会重新安装 PyTorch。
+Python 客户端、RAG 模型依赖及 API 依赖。
+
+`.venv` 位于挂载的仓库目录，因此文件保存在宿主机，但应使用容器内 Python 运行。
+新开容器 shell 时重新执行 `source .venv/bin/activate`，并设置 `RAG_DEVICE`；
+环境已就绪时无需每次重跑安装脚本。
 
 安装时按镜像内的版本约束 PyTorch、torch_npu、Transformers、Hugging Face Hub、
 tokenizers 和 vLLM，避免 RAG 依赖覆盖镜像的推理栈；最后执行 `pip check`。
@@ -236,7 +268,7 @@ export RETRIEVAL_BACKEND=milvus
 export RETRIEVAL_BACKEND=elasticsearch
 ```
 
-### Checkpoint 1：BM25
+### 可选：仅验证 BM25
 
 不加载模型，也不占用 NPU：
 
@@ -248,11 +280,13 @@ python scripts/test_bm25.py "How are sparse and dense retrieval combined?"
 
 Milvus schema 要求每条记录包含 dense vector，因此 `--skip-embedding` 会暂时写入
 一个非零占位向量；后续完整入库会通过相同 `chunk_id` upsert 为真实向量。
+该步骤仅用于首次排查，完整向量入库后不要再对同一数据执行 `--skip-embedding`，
+否则会覆盖已写入的真实向量。
 
 不要随意使用 `create_index.py --recreate`。该参数会删除当前所选后端中的
 索引或 collection 及其全部文档。
 
-### Checkpoint 2：完整检索与精排
+### 完整入库与单次查询
 
 模型目录：
 
@@ -261,15 +295,17 @@ Milvus schema 要求每条记录包含 dense vector，因此 `--skip-embedding` 
 /mnt/raid/jliu171/models/Qwen/Qwen3-Reranker-0.6B
 ```
 
-运行：
+若尚未下载，运行 `python scripts/download_models.py --model all`；已下载时直接使用本地模型。
+当前 `data/sample_documents.jsonl` 包含 5 条样本文档。
+
+以下命令在容器内执行，先建库、入库，再查询：
 
 ```bash
-# 已下载上述两个模型时，跳过 download_models.py。
 python scripts/create_index.py
-python scripts/ingest_test_data.py --device npu:0
+python scripts/ingest_test_data.py --device "$RAG_DEVICE"
 python scripts/query.py \
   "How are sparse and dense retrieval combined?" \
-  --device npu:0 \
+  --device "$RAG_DEVICE" \
   --coarse-top-k 30 \
   --fine-top-k 5
 ```
@@ -283,11 +319,10 @@ python scripts/query.py \
 `rag-ljy-vllm-910c` 容器中运行下面的服务。它通过 Transformers/torch_npu
 加载 embedding 和 reranker，并不是 vLLM generation server。
 
-先更新依赖（复用镜像推理栈），再选择已分配的设备；将 `N` 替换为实际索引：
+以下在现有容器内执行。先完成前面的环境安装和完整入库；将 `N` 替换为已分配的设备索引：
 
 ```bash
 cd /workspace/dev/rag_ljy
-bash scripts/setup_npu_env.sh
 source .venv/bin/activate
 export RAG_DEVICE=npu:N
 export RETRIEVAL_BACKEND=elasticsearch  # 或 milvus，须已入库
@@ -333,20 +368,12 @@ kill -TERM "$(cat /tmp/rag-query-server.pid)"
 显式重启。请求可设置与 CLI 对应的 top-k 和 batch 参数，设备与数据库在启动时固定。
 此服务完成的是持久化查询能力，生产并发容量仍需在目标 NPU 上压测。
 
-## 当前进度
+## 后续工作
 
-| # | 任务 | 状态 |
-|---|---|---|
-| 1 | Elasticsearch Compose 服务 | ✅ |
-| 2 | Milvus Compose 服务 | ✅ |
-| 3 | 可切换的完整数据库后端 | ✅ |
-| 4 | 两个后端分别完成 BM25 smoke test | 🔄 |
-| 5 | NPU embedding、dense retrieval 和 RRF | 🔄 |
-| 6 | NPU reranker fine ranking | 🔄 |
-| 7 | Prompt 与 NPU generation | ⬜ |
-| 8 | 两个后端的质量和延迟评测 | ⬜ |
-
-> 状态图例：⬜ 待开始 ｜ 🔄 进行中 ｜ ✅ 完成
+- 验证常驻 API 的连续查询、空闲显存保持及显式停止后的资源释放。
+- 完成 Milvus 入库与查询实跑，比较两个后端的排序结果。
+- 扩充标注数据集，测量检索质量、P50 / P95 延迟、QPS 和显存峰值。
+- 接入 generation 模型，补齐基于检索片段的回答生成。
 
 ## 工作原则
 
