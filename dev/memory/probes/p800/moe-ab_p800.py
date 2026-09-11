@@ -18,7 +18,7 @@ moe_pre_sorted）为退化源; 若两者均乱码 → 责任层在 attention/KV/
 S3_MOE_IMPL: vendor | reference | both（默认 vendor，与 routeA_s3_offline 基线一致）
 
 ⚠️ 重要: vllm 0.20.2 的 EngineCore 是独立子进程, 主进程 monkeypatch 不会传播到模型运行侧。
-   reference 模式必须先在容器内把 probes/ref_moe_impl.py 的 ref_fused_experts_impl 注入到
+   reference 模式必须先在容器内把 probes/common/moe-ref-impl.py 的 ref_fused_experts_impl 注入到
    /workspace/vllm-plugin-FL/vllm_fl/dispatch/backends/vendor/kunlunxin/impl/fused_moe/fused_moe.py
    的 fused_experts_impl 函数体最前面（改前备份 .orig_bak）。本文件内联 _ref_fused_experts_impl
    仅作独立数值参考用（单进程对比），EngineCore 日志中出现 [REF-MOE] 标记才算注入生效。
@@ -108,7 +108,7 @@ def _run(mode: str, model: str, enforce_eager: bool):
         # EngineCore 子进程不继承主进程 monkeypatch —— 仅提示, 实际注入须改插件源码
         # （见文件头 ⚠️ 说明; 容器内注入后此模式才有效）
         print(f"[{mode}] 提示: 主进程 monkeypatch 对 EngineCore 子进程无效, "
-              f"需容器内注入 probes/ref_moe_impl.py（EngineCore 日志见 [REF-MOE] 标记）")
+              f"需容器内注入 probes/common/moe-ref-impl.py（EngineCore 日志见 [REF-MOE] 标记）")
 
     from vllm import LLM, SamplingParams
 

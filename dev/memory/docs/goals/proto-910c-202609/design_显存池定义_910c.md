@@ -1,7 +1,7 @@
 # 910C 锁定推理镜像 · 显存池定义
 
 > 状态：🟢 实测（2026-09-10，npu1-27 davinci-7）｜ 负责人：xliu969
-> 配套：[910C-显存画像报告.md](910C-显存画像报告.md)（分阶段画像 + A/B 原始表）
+> 配套：[910C-显存画像报告.md](profile_显存画像_910c.md)（分阶段画像 + A/B 原始表）
 > 对应：战略文档 §3 验收标准第 4 条第 2 项（显存池定义 + 对照数据）、§5 memory 第 2 条
 > 镜像：`quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（py3.11.15 / vllm 0.20.2+empty / vllm_ascend 0.20.2rc1 / torch 2.10.0 / torch_npu 2.10.0 / CANN 9.0.0 / SOC ascend910_9391）
 > 验收模型：`Qwen/Qwen3-Embedding-0.6B`（EMBEDDING / pooling runner，dtype bf16，输出 dim 1024）
@@ -35,7 +35,7 @@
 - **`PYTORCH_NPU_ALLOC_CONF`**（对应 CUDA 的 `PYTORCH_CUDA_ALLOC_CONF`）：
   - `expandable_segments:True` —— 段可原地扩展，减少「大小不匹配导致的段浪费」。**本负载实测无差异**（见 §4 轴 3）：KV/pooling 池是一次性整块分配，没有反复增长/回收的段，`expandable_segments` 无用武之地。对未来生成式长上下文负载才有价值。
   - `max_split_size_mb` —— 限制大段被切成小块（防碎片）。本负载未调，无必要。
-- **driver 侧计数为 0**：vLLM EngineCore 是 spawn 子进程，主进程读 `torch_npu.npu.memory_allocated/reserved` 恒 0。真值只能靠**宿主 npu-smi 连续采样** + **vLLM worker 日志结算行**交叉验证（沿用 archive/V1-显存画像报告-20260817 §3.3 的方法学）。
+- **driver 侧计数为 0**：vLLM EngineCore 是 spawn 子进程，主进程读 `torch_npu.npu.memory_allocated/reserved` 恒 0。真值只能靠**宿主 npu-smi 连续采样** + **vLLM worker 日志结算行**交叉验证（沿用 ../legacy-2.4-910c/profile_V1显存画像_910c.md §3.3 的方法学）。
 
 ## 3. vLLM 层
 
@@ -111,4 +111,4 @@ vLLM 还打印可直接定量的替代项：`--kv-cache-memory=<bytes>`（如 gm
 
 ## 7. 复现
 
-见 [910C-显存画像报告.md](910C-显存画像报告.md) §8。要点：驱动绑定 `:rw`；带卡容器并发实测上限 2（x-benchmark 在跑时）；`ASCEND_RT_VISIBLE_DEVICES=7` 钉 davinci-7（= npu-smi NPU 3 / Chip 1 / Bus 0000:93:00.0）；`DO_NOT_TRACK=1` 必设。
+见 [910C-显存画像报告.md](profile_显存画像_910c.md) §8。要点：驱动绑定 `:rw`；带卡容器并发实测上限 2（x-benchmark 在跑时）；`ASCEND_RT_VISIBLE_DEVICES=7` 钉 davinci-7（= npu-smi NPU 3 / Chip 1 / Bus 0000:93:00.0）；`DO_NOT_TRACK=1` 必设。

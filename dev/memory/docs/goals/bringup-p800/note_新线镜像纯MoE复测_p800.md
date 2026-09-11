@@ -4,9 +4,9 @@
 > 容器：flagos-newline-moe（新线官方镜像，一次性，任务后 stop 保留）
 > 镜像：harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4
 > 模型：/models/Qwen3-30B-A3B（= 宿主 /data2/xliu969/code/runtime-team/models/Qwen3-30B-A3B，61.1GB，Qwen3MoeForCausalLM 纯 MoE）
-> 前置参考：[纯MoE-昆仑芯-20260822.md](archive/纯MoE-昆仑芯-20260822.md)（旧线 4 参/5 参 TypeError 失败）、[新线镜像-MoE复测-静态预检-20260822.md](archive/新线镜像-MoE复测-静态预检-20260822.md)（gems 5.x 全系未补 renormalize）
-> 本文档为昆仑芯 MoE 复测系列**结论主文档**，整合自《官方镜像复测-MoE》《纯MoE-昆仑芯》《新线镜像-MoE复测-静态预检》（均已归档 docs/archive/）
-> 探针：dev/memory/probes/routeA_s3_offline.py（docker cp 至容器 /tmp/，3 prompts / max_tokens=64 / temp=0）
+> 前置参考：[纯MoE-昆仑芯-20260822.md](history/note_纯MoE隔离测试-20260822_p800.md)（旧线 4 参/5 参 TypeError 失败）、[新线镜像-MoE复测-静态预检-20260822.md](history/note_新线镜像MoE静态预检-20260822_p800.md)（gems 5.x 全系未补 renormalize）
+> 本文档为昆仑芯 MoE 复测系列**结论主文档**，整合自《官方镜像复测-MoE》《纯MoE-昆仑芯》《新线镜像-MoE复测-静态预检》（均已归档 docs/goals/bringup-p800/history/）
+> 探针：dev/memory/probes/p800/offline-infer_p800.py（docker cp 至容器 /tmp/，3 prompts / max_tokens=64 / temp=0）
 
 ---
 
@@ -196,7 +196,7 @@ dispatch 归属（eager 日志实证）：
 1. **生成质量**：eager 输出首 token 正确后退化重复 —— **已于 2026-09-01 定位根因**：
    厂商插件 `patch_decode_attention`（decode_paged_attention→prefill_attention prefix_cache，
    无条件应用）为退化源，与 expert GEMM 无关（纯 torch 参考 A/B 同样乱码，dense 模型同退化）；
-   禁用补丁后生成正常、解码提速近 2x。详见 [新线栈decode生成退化-根因定位-20260901.md](新线栈decode生成退化-根因定位-20260901.md)。
+   禁用补丁后生成正常、解码提速近 2x。详见 [新线栈decode生成退化-根因定位-20260901.md](note_新线栈decode生成退化根因定位_p800.md)。
 2. **默认模式不可用**：KunlunxinAttentionBackend 声明 AttentionCGSupport.NEVER → FULL_AND_PIECEWISE 降级
    PIECEWISE，51 sizes × ~42s ≈ 35min capture；生产默认配置（enforce_eager=False）不可行，需
    限制 cudagraph capture size 或等待厂商图捕获优化。
@@ -230,12 +230,12 @@ docker run -d --name flagos-newline-moe --network host --ipc host --shm-size 512
   harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4 \
   -c 'sleep infinity'
 # 探针
-docker cp dev/memory/probes/routeA_s3_offline.py flagos-newline-moe:/tmp/
+docker cp dev/memory/probes/p800/offline-infer_p800.py flagos-newline-moe:/tmp/
 # eager（新线正确口径）
 docker exec flagos-newline-moe bash -lc 'source /root/miniconda/bin/activate python310_torch29_cuda
 export CUDA_VISIBLE_DEVICES=2 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=flagos \
   USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1 S3_ENFORCE_EAGER=1
-S3_MODEL=/models/Qwen3-30B-A3B python -u /tmp/routeA_s3_offline.py'
+S3_MODEL=/models/Qwen3-30B-A3B python -u /tmp/offline-infer_p800.py'
 # 默认模式：去掉 S3_ENFORCE_EAGER=1（预期卡 graph capture ~35min）；旧口径对照：VLLM_FL_PREFER=flagos|vendor（预期 moe_align_block_size 6/7 参崩溃）
 ```
 

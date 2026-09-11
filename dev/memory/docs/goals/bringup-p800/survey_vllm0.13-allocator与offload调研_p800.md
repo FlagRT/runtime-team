@@ -3,8 +3,8 @@
 > 执行：xliu969（Hermes 协助）｜ 性质：源码静态调研（容器内 grep/sed 定位，未改任何代码）
 > 环境：容器 flagos-official-moe-recheck（官方发布镜像，昆仑芯 P800 构建），
 > vllm 0.13.0 site-packages = /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/vllm/（下文缩略为 `$V`）
-> 对照基线：[vllm-offload-调研笔记-20260817.md](vllm-offload-调研笔记-20260817.md)（0.20.2，来源容器 venv311 已不在运行容器中，0.20.2 侧仅依据笔记、未现场复核）
-> 任务来源：[路线A-显存与缓存管理-方案-20260822.md](路线A-显存与缓存管理-方案-20260822.md) §4.3「vllm 0.13 vs 0.20.2 差异：offload/evict_blocks/prefix caching/allocator 接口逐项对照」
+> 对照基线：[vllm-offload-调研笔记-20260817.md](../legacy-2.4-910c/survey_vllm-offload调研笔记_910c.md)（0.20.2，来源容器 venv311 已不在运行容器中，0.20.2 侧仅依据笔记、未现场复核）
+> 任务来源：[路线A-显存与缓存管理-方案-20260822.md](../../common/design_显存与缓存管理权威方案.md) §4.3「vllm 0.13 vs 0.20.2 差异：offload/evict_blocks/prefix caching/allocator 接口逐项对照」
 
 ---
 
@@ -168,7 +168,7 @@ kv_offload 子系统（`$V/v1/kv_offload/`）：
    ① native KV offload 启用路径 —— `--kv-offloading-size` 写入的 num_cpu_blocks=0 会被
    CPUOffloadingSpec 直接 raise（cpu.py:24-29），kv_bytes_per_rank 全树无消费点（config/vllm.py:495-500）；
    **须构造 KVTransferConfig 显式传 kv_connector_extra_config.num_cpu_blocks**（探针
-   probes/routeA_s4_kv_host_offload.py / routeA_s4_kv_offload_xfer.py，已跑通）；
+   probes/p800/kv-offload-host_p800.py / kv-offload-xfer_p800.py，已跑通）；
    ② `is_pin_memory_available()` 在 xpytorch = **True**（CPU 张量 pinned）；
    ③ swap_blocks 与 kunlunxin vendor attention backend（KV shape (2,N,H,B,S)）**兼容**：
    gpu→cpu store 75 块、重复 prompt cpu→gpu load 命中（run2 仅算 1 新块）均实测通过，
@@ -189,7 +189,7 @@ kv_offload 子系统（`$V/v1/kv_offload/`）：
 `cpu_bytes_to_use`(字节),块数由 `CPUOffloadingSpec` 内部按 `cpu_bytes_to_use // kv_bytes_per_offloaded_block` 自算。
 0.13 那个 `num_cpu_blocks=0` 接线缺陷在 0.20.2 已不存在(换了字段)。
 
-详见《[routeA-S4-KV卸载Host-910C尝试-20260903](routeA-S4-KV卸载Host-910C尝试-20260903.md)》。下一步:昇腾需 vllm-plugin-FL 侧补 CPU-offload handlers(ACL memcpy + stream/event)并放行平台门,或先敲定昇腾锁 0.13(0.13 同有 is_cuda_alike 门,未必放行)还是 0.20.2。
+详见《[routeA-S4-KV卸载Host-910C尝试-20260903](../proto-910c-202609/note_KV卸载Host尝试_910c.md)》。下一步:昇腾需 vllm-plugin-FL 侧补 CPU-offload handlers(ACL memcpy + stream/event)并放行平台门,或先敲定昇腾锁 0.13(0.13 同有 is_cuda_alike 门,未必放行)还是 0.20.2。
 
 ---
 

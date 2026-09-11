@@ -24,11 +24,11 @@
 
 用法（示例）
   # 采 chip 0，每 0.5s 一次，跟随到 Ctrl+C：
-  python3 dev/memory/probes/infer910c_hbm_sampler.py --chips 0 --interval 0.5 \
+  python3 dev/memory/probes/910c/hbm-sampler_910c.py --chips 0 --interval 0.5 \
       --out /mnt/raid/xliu969/mem910c/hbm.csv --tag gmu0.9-eager
 
   # 采 chip 0,1，跑 180s 自动停：
-  python3 dev/memory/probes/infer910c_hbm_sampler.py --chips 0,1 --duration 180 \
+  python3 dev/memory/probes/910c/hbm-sampler_910c.py --chips 0,1 --duration 180 \
       --out /mnt/raid/xliu969/mem910c/hbm.csv --tag load-phase
 
 UNTESTED —— pending 910C 锁定镜像验证。npu-smi 输出格式以实机为准，解析回退分支

@@ -4,7 +4,7 @@
 用法（容器内）:
     source /root/miniconda/bin/activate python310_torch29_cuda
     CUDA_VISIBLE_DEVICES=1,2 FLAGCX_ADAPTOR=klx \
-      torchrun --nproc-per-node=2 /workspace/dev/memory/probes/routeA_s2_3_allreduce.py
+      torchrun --nproc-per-node=2 /workspace/dev/memory/probes/p800/allreduce-smoke_p800.py
 
 覆盖: flagcx backend 初始化 / allreduce 正确性 / 多尺寸带宽
 """

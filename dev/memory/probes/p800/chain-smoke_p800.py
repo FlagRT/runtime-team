@@ -6,7 +6,7 @@ kunlunxin_example/README.md 的单卡测试 (flag_gems 算子路径).
 
 用法:
     source /root/miniconda/bin/activate python310_torch29_cuda
-    CUDA_VISIBLE_DEVICES=1 python /workspace/dev/memory/probes/p800_chain_smoke.py [模型路径]
+    CUDA_VISIBLE_DEVICES=1 python /workspace/dev/memory/probes/p800/chain-smoke_p800.py [模型路径]
 默认模型: /workspace/models/Qwen2.5-1.5B-Instruct
 """
 import os

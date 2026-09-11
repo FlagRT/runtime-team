@@ -14,7 +14,7 @@
 | 权重加载(7.6GB,1.13s) | ✅(修完挂点链后) |
 | **单卡推理闭环(Qwen3-4B 生成)** | ✅ **链路打通(exit=0,确定性输出)**——但输出为乱码文本且极慢(4 tok/69s),数值正确性未达(见 §4) |
 | TP=2/4 数值复现 | ⛔ 依赖输出数值正确,未达(下轮) |
-| 补丁台账 + 镜像固化指示 | ✅ `dev/memory/docs/archive/patches/README.md`(P1-P4) |
+| 补丁台账 + 镜像固化指示 | ✅ `dev/memory/docs/goals/legacy-2.4-910c/patches/README.md`(P1-P4) |
 
 ## 1. 本轮挂点链(新机器 venv312 缺失,逐一修复)
 
@@ -113,8 +113,8 @@
 
 ## 5. 补丁体系化(用户要求交付,已完成)
 
-见 `dev/memory/docs/archive/patches/README.md`:
-- P1 flagos_boot.py(仓内权威副本 = probes/flagos_boot.py,本次 7+ 处新增均有注释锚点)
+见 `dev/memory/docs/goals/legacy-2.4-910c/patches/README.md`:
+- P1 flagos_boot.py(仓内权威副本 = probes/legacy-2.4-910c/boot-shim_910c.py,本次 7+ 处新增均有注释锚点)
 - P2 triton npu_utils.cpp(USE_TORCH_NPU 段去 at_npu 依赖)
 - P3 vllm base_loader.py(model.to target)
 - P4 triton npu_utils.cpp workspace 悬空(static per-size 保活)
@@ -127,6 +127,6 @@
 - 容器 flagos-fl-dev-910c;venv /root/vllm-venv312(py3.12.13)
 - vllm 0.20.2;triton_ascend 3.2.2(USE_TORCH_NPU 段为 3.2.2 新增);torch_fl(ebc8762 编译);
   vllm-plugin-FL dev-1.0;模型 /workspace/models/Qwen3-4B
-- 新探针:probes/qwen3_offline_tp.py(4 prompts,TP 参数化)、qwen3_mini_probe.py(单 prompt 诊断)、
+- 新探针:probes/legacy-2.4-910c/qwen3-offline-tp_910c.py(4 prompts,TP 参数化)、qwen3-mini-probe_910c.py(单 prompt 诊断)、
   op_smoke.py / triton_smoke.py / triton_mm_smoke.py / matmul_compare.py / linear_shape_probe.py /
   linear_twice.py(算子级隔离用)

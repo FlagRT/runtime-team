@@ -12,7 +12,7 @@
     CUDA_VISIBLE_DEVICES=3 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=flagos|vendor \
     USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1 \
     S4_NUM_CPU_BLOCKS=910 VLLM_LOGGING_LEVEL=DEBUG \
-    python -u /workspace/dev/memory/probes/routeA_s4_kv_offload_xfer.py
+    python -u /workspace/dev/memory/probes/p800/kv-offload-xfer_p800.py
 """
 import os
 import time

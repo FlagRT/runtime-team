@@ -4,7 +4,7 @@
 P800 版(routeA_s4_kv_host_offload.py / routeA_s4_kv_offload_xfer.py)基于 vllm 0.13
 官方昆仑芯镜像;本脚本把同一目标搬到 910C 昇腾栈。
 
-⚠️ 2026-09-03 实测结论(见《routeA-S4-KV卸载Host-910C尝试-20260903.md》):
+⚠️ 2026-09-03 实测结论(见《../../docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md》):
   vllm 0.20.2 官方 native OffloadingConnector 在昇腾栈**当前不可用**,硬阻塞两处:
     A. `v1/kv_offload/cpu/spec.py:84` get_handlers() 平台门 ——
        `Exception: CPU Offloading is currently only supported on CUDA-alike GPUs`
@@ -27,7 +27,7 @@ P800 版(routeA_s4_kv_host_offload.py / routeA_s4_kv_offload_xfer.py)基于 vllm
 用法(容器 flagos-fl-dev-910c 内,venv312 已 pth 自动引导 flagos_boot):
     ASCEND_RT_VISIBLE_DEVICES=0 VLLM_FL_USE_FLAGGEMS_ATTN=1 DO_NOT_TRACK=1 \
     S4_NUM_CPU_BLOCKS=1024 S4_MAX_TOKENS=4 VLLM_LOGGING_LEVEL=DEBUG \
-    /root/vllm-venv312/bin/python -u dev/memory/probes/routeA_s4_kv_host_offload_910c.py
+    /root/vllm-venv312/bin/python -u dev/memory/probes/910c/kv-offload-host_910c.py
 
 S4_NUM_CPU_BLOCKS: 0 = 不启用卸载(基线对照);>0 = OffloadingConnector 的 CPU 块数
 S4_MAX_TOKENS:     每 prompt 生成 token 数(默认 4,昇腾慢路径下别调大)

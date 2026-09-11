@@ -2,7 +2,7 @@
 
 > 执行：xliu969（Hermes 协助）｜ 设备：P800（XPU 2）｜ 容器：flagos-newline-moe（新线官方镜像，一次性）
 > 镜像：kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-…:tele4
-> 上游：[新线镜像纯MoE复测-20260822](新线镜像纯MoE复测-20260822.md) E.2 剩余风险 #1（eager 生成质量退化）
+> 上游：[新线镜像纯MoE复测-20260822](note_新线镜像纯MoE复测_p800.md) E.2 剩余风险 #1（eager 生成质量退化）
 > 本文档为 **issue #5（昆仑芯问题反馈清单）的根因定位结论主文档**
 
 ---
@@ -61,14 +61,14 @@
 
 1. **EngineCore 是独立子进程**：主进程 monkeypatch 不生效（vllm 0.20.2 V1 引擎）。
    A/B 注入必须改插件源码（容器内编辑，改前备份 .orig_bak）——见
-   [probes/routeA_s3_moe_ab.py](../probes/routeA_s3_moe_ab.py) 与 [probes/ref_moe_impl.py](../probes/ref_moe_impl.py)
+   [probes/p800/moe-ab_p800.py](../../../probes/p800/moe-ab_p800.py) 与 [probes/common/moe-ref-impl.py](../../../probes/common/moe-ref-impl.py)
 2. **flag_gems bmm autotuner 在 EngineCore 上下文内 ZeroDivisionError**（do_bench estimate_ms=0，
    CUDA event 计时异常，与 README「event-timing 回退」已知问题同族）；einsum 会被降级到该路径
 3. **flag_gems nonzero triton 内核 error 719 launch failure**（EngineCore 上下文内）；
    torch.nonzero/掩码索引在引擎内不可靠 → 参考实现改用 **CPU 侧 numpy 排序 + GPU 侧
    2D mm（稠密推理同路径）/ gather / index_add_**，全部为引擎内已验证算子
 4. **vllm 0.20.2 无内置纯 torch MoE 参考**（UnquantizedMoeBackend.TORCH 已移除），
-   A/B 参考实现需自研（本子方向已固化在 probes/ref_moe_impl.py）
+   A/B 参考实现需自研（本子方向已固化在 probes/common/moe-ref-impl.py）
 5. **权重布局**：Qwen3-30B-A3B w1=[E, 2F=1536, H=2048]（中间维 2F），w2=[E, H, F]——
    与 vLLM 常见 einsum 写法（末维 2F）相反，参考实现首版因此形状报错
 
@@ -82,13 +82,13 @@ cp $P $P.nanpatch_bak
 # 验证: EngineCore 日志不再出现 "Patched KunlunxinPagedAttention.forward_decode"
 
 # dense 对照（Qwen3-4B）
-docker cp dev/memory/probes/routeA_s3_offline.py flagos-newline-moe:/tmp/
+docker cp dev/memory/probes/p800/offline-infer_p800.py flagos-newline-moe:/tmp/
 docker exec flagos-newline-moe bash -lc 'source /root/miniconda/bin/activate python310_torch29_cuda
 export CUDA_VISIBLE_DEVICES=2 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=flagos USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1
-S3_MODEL=/models/Qwen3-4B S3_ENFORCE_EAGER=1 python -u /tmp/routeA_s3_offline.py'
+S3_MODEL=/models/Qwen3-4B S3_ENFORCE_EAGER=1 python -u /tmp/offline-infer_p800.py'
 
 # 纯 MoE 对照（Qwen3-30B-A3B，issue #5 目标模型）
-S3_MODEL=/models/Qwen3-30B-A3B S3_ENFORCE_EAGER=1 python -u /tmp/routeA_s3_offline.py
+S3_MODEL=/models/Qwen3-30B-A3B S3_ENFORCE_EAGER=1 python -u /tmp/offline-infer_p800.py
 ```
 
 ## E. 日志与产物
@@ -98,7 +98,7 @@ S3_MODEL=/models/Qwen3-30B-A3B S3_ENFORCE_EAGER=1 python -u /tmp/routeA_s3_offli
 - `benchmarks/out/dense_qwen3_4b_newline.log` —— 步骤 3（dense + 补丁，乱码）
 - `benchmarks/out/dense_qwen3_4b_nopatch.log` —— 步骤 4（dense 无补丁，正常 ✅）
 - `benchmarks/out/moe_nopatch.log` —— 步骤 5（MoE 无补丁，正常 ✅）
-- 参考实现与 A/B 探针：`probes/ref_moe_impl.py`、`probes/routeA_s3_moe_ab.py`
+- 参考实现与 A/B 探针：`probes/common/moe-ref-impl.py`、`probes/p800/moe-ab_p800.py`
 
 ## 影响与后续
 

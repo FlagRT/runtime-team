@@ -3,7 +3,7 @@
 
 在 flagos-fl-dev-p800 容器内运行:
     source /root/miniconda/bin/activate python310_torch29_cuda
-    python /workspace/dev/memory/probes/p800_env_check.py
+    python /workspace/dev/memory/probes/p800/env-check_p800.py
 
 验证: torch/flag_gems/vllm/vllm-plugin-fl 版本、XPU 可见性、vendor 识别、HBM 容量
 对应 910c 流程的"环境验证"环节。

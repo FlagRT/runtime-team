@@ -4,7 +4,7 @@
 覆盖: cuda.is_available / device_count / 设备名 / 基础 tensor 运算 / D2H-H2D
 在 flagos-fl-dev-p800 容器内运行:
     source /root/miniconda/bin/activate python310_torch29_cuda
-    CUDA_VISIBLE_DEVICES=1 python /workspace/dev/memory/probes/routeA_s2_1_device.py
+    CUDA_VISIBLE_DEVICES=1 python /workspace/dev/memory/probes/p800/device-smoke_p800.py
 """
 import os
 import time

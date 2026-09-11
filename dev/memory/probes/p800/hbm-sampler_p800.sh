@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # P800 宿主侧 HBM/利用率采样器 (交叉验证用, 对应 910c 的 npu-smi 采样方法学)
-# 用法: bash benchmarks/xpu_smi_sampler.sh <card> <interval_s> <seconds> [out.csv]
+# 用法: bash probes/p800/hbm-sampler_p800.sh <card> <interval_s> <seconds> [out.csv]
 # 输出: ts,card,used_mib,total_mib,util_pct
 set -u
 CARD=${1:-1}

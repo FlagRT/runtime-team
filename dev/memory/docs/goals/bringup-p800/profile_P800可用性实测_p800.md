@@ -144,10 +144,10 @@ USE_FLAGGEMS=1  GEMS_VENDOR=kunlunxin  KLX_USE_AUTOTUNE=0  (CUDA_VISIBLE_DEVICES
 ---
 
 ## 附：原始证据位置
-- 探针脚本：`dev/memory/probes/routeA_s2_1_device.py`、`routeA_s2_3_allreduce.py`、`routeA_s3_offline.py`、`routeA_s3_serve_client.sh`
+- 探针脚本：`dev/memory/probes/p800/device-smoke_p800.py`、`allreduce-smoke_p800.py`、`offline-infer_p800.py`、`serve-client_p800.sh`
 - 原始日志：`dev/memory/docs/routeA-p800-20260821-logs/`（FlagGems 全量/rotary、S3 offline 4B、S3 MoE 默认/eager）
 - 模型：`/workspace/models/Qwen3-4B`（ModelScope，gitignore）
-- 参考：昨日记录 `dev/memory/docs/P800适配-执行记录-20260820.md`
+- 参考：昨日记录 `dev/memory/docs/goals/bringup-p800/note_P800适配执行记录_p800.md`
 
 ## 复现命令
 ```bash
@@ -160,12 +160,12 @@ cd /env/FlagGems/tests && GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 \
   test_special_ops.py::test_apply_rotary_pos_emb
 # S2.3 FlagCX 2 卡 allreduce
 CUDA_VISIBLE_DEVICES=1,2 FLAGCX_ADAPTOR=klx torchrun --nproc-per-node=2 \
-  /workspace/dev/memory/probes/routeA_s2_3_allreduce.py
+  /workspace/dev/memory/probes/p800/allreduce-smoke_p800.py
 # S3 offline（Qwen3-4B）
 CUDA_VISIBLE_DEVICES=1 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin "VLLM_FL_PREFER=flagos|vendor" \
   USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 \
-  python -u /workspace/dev/memory/probes/routeA_s3_offline.py
+  python -u /workspace/dev/memory/probes/p800/offline-infer_p800.py
 # S3 serve
 vllm serve /workspace/models/Qwen3-4B --served-model-name Qwen3-4B --port 8001
-bash /workspace/dev/memory/probes/routeA_s3_serve_client.sh 8001 Qwen3-4B
+bash /workspace/dev/memory/probes/p800/serve-client_p800.sh 8001 Qwen3-4B
 ```

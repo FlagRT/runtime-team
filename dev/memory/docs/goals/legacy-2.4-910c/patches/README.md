@@ -16,7 +16,7 @@
 
 ### P1. flagos_boot.py —— venv 引导模块(单文件承载大部分 boot 层补丁)
 - 位置:site-packages/flagos_boot.py(由 flagos_torchfl.pth 单行 `import flagos_boot` 加载)
-- 仓内副本(权威):`dev/memory/probes/flagos_boot.py`(已同步,改后须 docker cp)
+- 仓内副本(权威):`dev/memory/probes/legacy-2.4-910c/boot-shim_910c.py`(已同步,改后须 docker cp)
 - 职责:见文件头 docstring;2026-09-02 新增 5 项(带注释锚点):
   1. `torch_npu.__spec__` 修正 + `__path__`(triton_ascend `_get_package_dir("torch_npu")`
      找不到 include 目录 → npu_utils JIT 编译失败;旧 shim 只给 origin 无 submodule_search_locations)
@@ -80,7 +80,7 @@ FROM harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev
 #    (ACCELERATOR=ascend FLAGGEMS_KERNEL=0 FLAGGEMS_PYTHON=0)→ vllm 0.20.2 --no-deps
 #    → flag_gems/vllm-plugin-FL editable → flagcx(FLAGCX_ADAPTOR=ascend, fix 分支)
 
-# 2) P1 flagos_boot:COPY dev/memory/probes/flagos_boot.py $SP/flagos_boot.py
+# 2) P1 flagos_boot:COPY dev/memory/probes/legacy-2.4-910c/boot-shim_910c.py $SP/flagos_boot.py
 #    + 确保 flagos_torchfl.pth 存在(单行:import flagos_boot)
 
 # 3) P2 triton npu_utils.cpp:COPY patches/triton_ascend_npu_utils.cpp.diff /

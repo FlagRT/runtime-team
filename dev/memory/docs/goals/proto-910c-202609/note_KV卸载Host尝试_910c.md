@@ -1,9 +1,9 @@
 # S4 KV 卸载到 Host —— 910C 昇腾尝试记录
 
 > 日期:2026-09-03 ｜ 执行人:xliu969(agent 代跑) ｜ 机器:16× Ascend910C 全卡空闲
-> 探针:`dev/memory/probes/routeA_s4_kv_host_offload_910c.py`
+> 探针:`dev/memory/probes/910c/kv-offload-host_910c.py`
 > 环境:910C 当前可用推理容器(vllm 0.20.2 + triton_ascend 3.2.2 + vllm-plugin-FL)
-> 上游对照:P800 已跑通(vllm 0.13,《[vllm-0.13-allocator与offload调研-20260822](vllm-0.13-allocator与offload调研-20260822.md)》§4 + `routeA_s4_kv_*`)
+> 上游对照:P800 已跑通(vllm 0.13,《[vllm-0.13-allocator与offload调研-20260822](../bringup-p800/survey_vllm0.13-allocator与offload调研_p800.md)》§4 + `probes/p800/kv-offload-*`)
 >
 > **关键:下述两处阻塞都在 vLLM 层(平台门 + CUDA 扩展),与设备栈无关——昇腾换任何设备层组合都会撞同样的门。**
 
@@ -26,7 +26,7 @@ cd /workspace
 # 正确的 0.20.2 配置(cpu_bytes_to_use),仍会撞平台门:
 env ASCEND_RT_VISIBLE_DEVICES=0 VLLM_PLUGINS=fl VLLM_FL_USE_FLAGGEMS_ATTN=1 DO_NOT_TRACK=1 \
   S4_CONNECTOR=OffloadingConnector S4_CPU_BYTES_GB=4 S4_MAX_TOKENS=4 S4_XFER=0 \
-  /root/vllm-venv312/bin/python -u dev/memory/probes/routeA_s4_kv_host_offload_910c.py
+  /root/vllm-venv312/bin/python -u dev/memory/probes/910c/kv-offload-host_910c.py
 ```
 
 ## 逐阶段证据
@@ -79,6 +79,6 @@ P800 的 `PlatformFL`(xpytorch,USE_CUDA=ON)`is_cuda_alike()=True`,所以同一�
 
 ## 产物
 
-- 探针 `dev/memory/probes/routeA_s4_kv_host_offload_910c.py`(P800 版的昇腾移植;含 `S4_CONNECTOR` / `S4_CPU_BYTES_GB` / `S4_FORCE_CUDA_ALIKE` 开关)
+- 探针 `dev/memory/probes/910c/kv-offload-host_910c.py`(P800 版的昇腾移植;含 `S4_CONNECTOR` / `S4_CPU_BYTES_GB` / `S4_FORCE_CUDA_ALIKE` 开关)
 - 容器内日志:`/root/s4_910c_run{1,2,3}.log`
 - NPU 全程无残留(procs clean,卡回落基线 ~3GB)

@@ -8,7 +8,7 @@
   阶段4 并发    : 4x2048-token 并发, 观测峰值 (910c P0 复现点)
 
 v2 改进: 单阶段超时 (默认 120s, 超时即退出并保留已写 CSV) + 增量写 CSV + 阶段选择
-方法学: 与 910c 对齐 (预热必做; 设备级 HBM 采样交叉验证见 benchmarks/xpu_smi_sampler.sh)
+方法学: 与 910c 对齐 (预热必做; 设备级 HBM 采样交叉验证见 probes/p800/hbm-sampler_p800.sh)
 
 用法:
     source /root/miniconda/bin/activate python310_torch29_cuda

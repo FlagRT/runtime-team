@@ -1,13 +1,13 @@
 # 路线 A P800 显存画像报告（V1-A 专项，2026-08-22）
 
 > 日期：2026-08-22 ｜ 执行：xliu969（Hermes 协助）｜ 容器：**flagos-official-moe-recheck**（官方发布镜像）｜ 卡：**XPU 1**（CUDA_VISIBLE_DEVICES=1）
-> 模型：/workspace/models/Qwen3-4B（bf16 单卡）｜ 探针：dev/memory/probes/p800_v1_memory_profile.py（all 阶段，单阶段超时 180s）
+> 模型：/workspace/models/Qwen3-4B（bf16 单卡）｜ 探针：dev/memory/probes/p800/mem-profile-v1_p800.py（all 阶段，单阶段超时 180s）
 > 环境：VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER="flagos|vendor" USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1；torch 2.9.0+cu129 / vllm 0.13.0；**enforce_eager=True，gpu_memory_utilization=0.9**
-> 对应验证计划：路线A-显存与缓存管理-方案-20260822.md §5 V1-A P800 专项｜对照：archive/V1-显存画像报告-20260817.md（910c 旧栈，archive）、路线A-P800可用性实测-20260821.md（graph 模式基线）
+> 对应验证计划：../../common/design_显存与缓存管理权威方案.md §5 V1-A P800 专项｜对照：../legacy-2.4-910c/profile_V1显存画像_910c.md（910c 旧栈，legacy-2.4-910c）、profile_P800可用性实测_p800.md（graph 模式基线）
 
 ## D. 一句话判定
 
-> **P800（官方发布镜像 + eager 模式）Qwen3-4B 显存画像全部 7 阶段通过、无超时无卡死**：加载后 HBM 92.01 GB（≈85.69 GiB，占卡 89.3%），vLLM 一次性预分配 **KV cache 556,352 tokens / 76.40 GiB（占加载后 ~89%）**，各长度档（128/1k/4k/8k）与 4×2048 并发全程 HBM 恒平无尖峰，2048×4 并发 3.39s 完成 —— **910c 旧栈 P0（archive）（长序列 prefill 22min 卡死）在 P800 不存在**，KV 预分配策略与利用率分析见 §6。
+> **P800（官方发布镜像 + eager 模式）Qwen3-4B 显存画像全部 7 阶段通过、无超时无卡死**：加载后 HBM 92.01 GB（≈85.69 GiB，占卡 89.3%），vLLM 一次性预分配 **KV cache 556,352 tokens / 76.40 GiB（占加载后 ~89%）**，各长度档（128/1k/4k/8k）与 4×2048 并发全程 HBM 恒平无尖峰，2048×4 并发 3.39s 完成 —— **910c 旧栈 P0（legacy-2.4-910c）（长序列 prefill 22min 卡死）在 P800 不存在**，KV 预分配策略与利用率分析见 §6。
 
 ---
 
@@ -24,7 +24,7 @@
 | 最大并发容量 | 40,960 tokens/请求 × **13.58x** | kv_cache_utils.py:1296 |
 | KV 占加载后显存 | **~89%**（76.40 GiB / 85.69 GiB） | 同上 |
 
-对照基线（路线A-P800可用性实测-20260821.md S3，graph 模式）：KV 504,000 tokens / 69.22 GiB、加载后 used 93.80GiB（xpu-smi 口径）。**本 eager 画像 KV 反而多 ~52k tokens（+7.2 GiB）**——因 eager 模式无 CUDA graph 工作区占用，可分配 KV 池更大；加载耗时 ~43s（eager）远小于实测 84.5s（graph 含 capture 71.5s）。两者为探针设定差异（enforce_eager），非性能回退。
+对照基线（profile_P800可用性实测_p800.md S3，graph 模式）：KV 504,000 tokens / 69.22 GiB、加载后 used 93.80GiB（xpu-smi 口径）。**本 eager 画像 KV 反而多 ~52k tokens（+7.2 GiB）**——因 eager 模式无 CUDA graph 工作区占用，可分配 KV 池更大；加载耗时 ~43s（eager）远小于实测 84.5s（graph 含 capture 71.5s）。两者为探针设定差异（enforce_eager），非性能回退。
 
 > 注：本画像 HBM 数值为探针口径 `(total-free)/1e9`（GB）；vLLM 日志 KV 为 GiB（2^30）。行文已分别标注。
 
@@ -76,7 +76,7 @@
 
 - **CSV**：`/workspace/dev/memory/benchmarks/out/v1_profile_p800.csv`（本机 dev/memory/benchmarks/out/，7 行全 ok）
 - **运行日志**：`/workspace/dev/memory/benchmarks/out/v1_profile_p800_run.log`（88 行，含 KV/加载明细与进度条吞吐）
-- **探针**：`/workspace/dev/memory/probes/p800_v1_memory_profile.py`（未修改）
+- **探针**：`/workspace/dev/memory/probes/p800/mem-profile-v1_p800.py`（未修改）
 
 ```bash
 # 容器内复现（选空闲卡，本报告用 XPU 1）
@@ -84,6 +84,6 @@ docker exec flagos-official-moe-recheck bash -lc 'source /root/miniconda/bin/act
   export CUDA_VISIBLE_DEVICES=1; \
   export VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin "VLLM_FL_PREFER=flagos|vendor" USE_FLAGGEMS=1 \
          GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 DO_NOT_TRACK=1; \
-  cd /workspace && python -u dev/memory/probes/p800_v1_memory_profile.py /workspace/models/Qwen3-4B all 180 \
+  cd /workspace && python -u dev/memory/probes/p800/mem-profile-v1_p800.py /workspace/models/Qwen3-4B all 180 \
     2>&1 | tee dev/memory/benchmarks/out/v1_profile_p800_run.log'
 ```

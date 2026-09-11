@@ -1,10 +1,10 @@
 # 910C 显存画像报告
 
 > 状态：🟢 **环境 + 加载阶段 + 运行阶段峰值 + A/B 已实测**（2026-09-10，npu1-27 davinci-7）｜ 起草：2026-09-10 ｜ 负责人：xliu969
-> 对应：战略文档 §3 验收标准第 4 条、§5 memory 第 1 条 ｜ 权威方案：[路线A-显存与缓存管理-方案-20260822](路线A-显存与缓存管理-方案-20260822.md)
-> 对照基线：[archive/V1-显存画像报告-20260817](archive/V1-显存画像报告-20260817.md)（910C 旧栈，torch_fl/Qwen3-4B，已冻结）
+> 对应：战略文档 §3 验收标准第 4 条、§5 memory 第 1 条 ｜ 权威方案：[路线A-显存与缓存管理-方案-20260822](../../common/design_显存与缓存管理权威方案.md)
+> 对照基线：[archive/V1-显存画像报告-20260817](../legacy-2.4-910c/profile_V1显存画像_910c.md)（910C 旧栈，torch_fl/Qwen3-4B，已冻结）
 > 数据来源：宿主 `npu-smi` 采样 CSV `benchmarks/out/infer910c_hbm.csv` + 各 run 的 profile JSON/vLLM 日志 `benchmarks/out/infer910c_mem_*.{json,vllm.log}`。
-> 探针已实测通过（此前 UNTESTED 头注失效）；`infer910c_hbm_sampler.py` 解析器针对 npu-smi 25.5.0 A3 版式修过一次（按 Phy-ID 做键）。
+> 探针已实测通过（此前 UNTESTED 头注失效）；`probes/910c/hbm-sampler_910c.py` 解析器针对 npu-smi 25.5.0 A3 版式修过一次（按 Phy-ID 做键）。
 
 ---
 
@@ -32,12 +32,12 @@
 
 ## 2. 方法
 
-- **设备级 HBM 采样为真值**：外挂 `probes/infer910c_hbm_sampler.py`（宿主机轮询 `npu-smi info`，解析 per-chip HBM-Usage MB + AICore%，按 `--interval` 写时间戳 CSV，`--tag` 区分 run）。
+- **设备级 HBM 采样为真值**：外挂 `probes/910c/hbm-sampler_910c.py`（宿主机轮询 `npu-smi info`，解析 per-chip HBM-Usage MB + AICore%，按 `--interval` 写时间戳 CSV，`--tag` 区分 run）。
   - ⚠️ 本机 `npu-smi info` 单次约 **1.9 s**（x-benchmark 容器在跑，npu-exporter/hccn_tool 抢占），故 `--interval 0.5` 实际有效分辨率约 **2 s**。embedding 无 decode、无 KV 逐步增长，加载/峰值都是秒级台阶，2 s 分辨率够用；但 ACLGraph capture 那一段（~13 s）只有 6-7 个采样点。
-- **vLLM 日志解析**：`probes/infer910c_mem_profile.py` 抓 `Available KV cache memory` / `GPU KV cache size` / `Maximum concurrency` / model weights / peak memory 等行。
+- **vLLM 日志解析**：`probes/910c/mem-profile_910c.py` 抓 `Available KV cache memory` / `GPU KV cache size` / `Maximum concurrency` / model weights / peak memory 等行。
 - **driver 侧 torch_npu 计数仅作佐证**：`torch_npu.npu.memory_allocated / max_memory_allocated / memory_reserved / max_memory_reserved` 在 driver 进程读取 —— **预期 ≈ 0**，因 EngineCore 是 spawn 子进程，主进程读不到 worker 分配器状态（沿用 archive/V1 §3.3）。
 - **必须先预热**：测量前先跑 `--warmup N` 轮短请求，避开首次 kernel 初始化长尾（旧栈曾达 437s）。
-- **A/B 对照**：`probes/infer910c_ab_matrix.py` 跨 `gpu-mem-util` / `alloc-conf` / `enforce-eager` / `max-num-seqs` 轴批量跑，汇总 CSV + Markdown。
+- **A/B 对照**：`probes/910c/mem-ab-matrix_910c.py` 跨 `gpu-mem-util` / `alloc-conf` / `enforce-eager` / `max-num-seqs` 轴批量跑，汇总 CSV + Markdown。
 - 时间戳对齐：sampler CSV 的 `tag` 与 profile JSON 的 `tag` 同名，事后按时间窗切曲线。
 
 ## 3. 加载阶段画像
@@ -123,7 +123,7 @@ sweep：batch ∈ {8, 64, 256} × seq-len ∈ {128, 512}，全部 **enforce_eage
 
 ## 5. 碎片与 reserved-vs-allocated / A/B 对照
 
-详见 [910C-显存池定义.md](910C-显存池定义.md) 与 `benchmarks/out/ab_summary.{csv,md}`。A/B 均 batch 64 / seq≈512 / warmup 3。
+详见 [910C-显存池定义.md](design_显存池定义_910c.md) 与 `benchmarks/out/ab_summary.{csv,md}`。A/B 均 batch 64 / seq≈512 / warmup 3。
 
 | axis | point | HBM 峰值 MiB | 峰值% | KV/pooling 池 GiB | KV tokens | 最大并发 | NPU graph GiB | load_s | 吞吐 req/s |
 |---|---|---|---|---|---|---|---|---|---|
@@ -174,7 +174,7 @@ sweep：batch ∈ {8, 64, 256} × seq-len ∈ {128, 512}，全部 **enforce_eage
 
 ## 7. 结论
 
-- **显存池定义**：见 [910C-显存池定义.md](910C-显存池定义.md)（torch_npu caching allocator 底座 + `PYTORCH_NPU_ALLOC_CONF` + vLLM 层 gpu_memory_utilization/pooling 预分配/ACLGraph capture + 复用回收 + 安全区间）。
+- **显存池定义**：见 [910C-显存池定义.md](design_显存池定义_910c.md)（torch_npu caching allocator 底座 + `PYTORCH_NPU_ALLOC_CONF` + vLLM 层 gpu_memory_utilization/pooling 预分配/ACLGraph capture + 复用回收 + 安全区间）。
 - **峰值画像（硬指标）**：embedding-on-vLLM 的 HBM 峰值 ≈ **driver 基线 2.82 GiB + 权重 1.13 GiB + gpu_memory_utilization × 空闲 HBM（KV/pooling 池）+ 激活 0.2–0.57 GiB + ACLGraph 0–0.1 GiB**。峰值**几乎与 batch / seq-len / max_model_len 无关**，唯一大杠杆是 `gpu_memory_utilization`。
 - **给 device-context / 调度 的安全区间**（embedding 服务，单卡 davinci，64 GiB HBM）：
   - `gpu_memory_utilization`：**0.35–0.45**。0.4 实测 HBM 峰值 42.8%（28 GiB），留一半 HBM 富余，吞吐与 0.9 无差异（314 vs 323 req/s）。低于 0.3 可能触发 vLLM「KV 池太小」告警，不建议。真要压到极限可用 vLLM 提示的 `--kv-cache-memory=<bytes>` 直接给池定量（如 8–12 GiB）。
@@ -190,7 +190,7 @@ sweep：batch ∈ {8, 64, 256} × seq-len ∈ {128, 512}，全部 **enforce_eage
 - profile JSON + vLLM 日志：`dev/memory/benchmarks/out/infer910c_mem_*.{json,vllm.log}`（加载基准 + Phase B sweep）
 - A/B：`dev/memory/benchmarks/out/ab_{gmu,eager,alloc}/run_*.{json,vllm.log}` + 各轴 `ab_summary.*` + 合并 `dev/memory/benchmarks/out/ab_summary.{csv,md}`
 - 真实 npu-smi 版式样例 + 起容器踩坑记录：`dev/memory/benchmarks/out/npu-smi-sample.txt`
-- 探针：`dev/memory/probes/infer910c_{hbm_sampler,mem_profile,ab_matrix}.py`（**已实测通过**；sampler `parse_npu_smi` 针对 npu-smi 25.5.0 A3 版式修过，按 Phy-ID 做键）
-- 复现：`docker run -d --name flagos-proto-infer-910c --network host --shm-size 512g --cap-add SYS_PTRACE --device /dev/davinci0..15 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/Ascend/driver:/usr/local/Ascend/driver:rw -v /mnt/raid:/mnt/raid -v <repo>:/workspace -w /workspace quay.io/ascend/vllm-ascend:v0.20.2rc1-a3 sleep infinity`；容器内 `ASCEND_RT_VISIBLE_DEVICES=7 DO_NOT_TRACK=1 python3 dev/memory/probes/infer910c_mem_profile.py ...`；宿主同时 `python3 dev/memory/probes/infer910c_hbm_sampler.py --chips 7 ...`。
+- 探针：`dev/memory/probes/910c/{hbm-sampler,mem-profile,mem-ab-matrix}_910c.py`（**已实测通过**；sampler `parse_npu_smi` 针对 npu-smi 25.5.0 A3 版式修过，按 Phy-ID 做键）
+- 复现：`docker run -d --name flagos-proto-infer-910c --network host --shm-size 512g --cap-add SYS_PTRACE --device /dev/davinci0..15 --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc -v /usr/local/Ascend/driver:/usr/local/Ascend/driver:rw -v /mnt/raid:/mnt/raid -v <repo>:/workspace -w /workspace quay.io/ascend/vllm-ascend:v0.20.2rc1-a3 sleep infinity`；容器内 `ASCEND_RT_VISIBLE_DEVICES=7 DO_NOT_TRACK=1 python3 dev/memory/probes/910c/mem-profile_910c.py ...`；宿主同时 `python3 dev/memory/probes/910c/hbm-sampler_910c.py --chips 7 ...`。
   - ⚠️ 驱动绑定须 `:rw`（house 脚本的 `:ro` 在 driver 25.5.0 报 `DrvMngGetConsoleLogLevel failed ret=4`）。
   - ⚠️ 带卡容器并发实测上限 **2**（x-benchmark 在跑时）：第 3 个容器 acl/dcmi init 报 `-8020 device is used`，与 stack.lock 写的 3 不符。

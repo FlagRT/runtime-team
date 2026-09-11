@@ -5,7 +5,7 @@
     source /root/miniconda/bin/activate python310_torch29_cuda
     CUDA_VISIBLE_DEVICES=1 VLLM_PLUGINS=fl VLLM_FL_PLATFORM=kunlunxin \
     VLLM_FL_PREFER=flagos|vendor USE_FLAGGEMS=1 GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0 \
-    python -u /workspace/dev/memory/probes/routeA_s3_offline.py
+    python -u /workspace/dev/memory/probes/p800/offline-infer_p800.py
 
 记录: 平台/vendor 选择、加载耗时、显存、生成耗时与文本
 """

@@ -21,7 +21,7 @@ A/B 轴（--axis 选一）
 
 用法（UNTESTED —— pending 910C 锁定镜像验证；须在锁定推理容器 flagos-proto-infer-910c 内跑）
   docker exec flagos-proto-infer-910c bash -lc '
-    cd /workspace && python3 dev/memory/probes/infer910c_ab_matrix.py \
+    cd /workspace && python3 dev/memory/probes/910c/mem-ab-matrix_910c.py \
       --axis gpu-mem-util \
       --model /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B \
       --batch 64 --seq-len 512 --warmup 3 \

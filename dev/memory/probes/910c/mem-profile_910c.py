@@ -33,7 +33,7 @@
 
   # 容器内跑 harness（driver 侧计数近 0 属预期，真值看外挂 sampler）
   docker exec flagos-proto-infer-910c bash -lc '
-    cd /workspace && python3 dev/memory/probes/infer910c_mem_profile.py \
+    cd /workspace && python3 dev/memory/probes/910c/mem-profile_910c.py \
       --mode offline --runner pooling \
       --model /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B \
       --gpu-mem-util 0.9 --max-num-seqs 256 --max-model-len 8192 \
@@ -43,7 +43,7 @@
       --out dev/memory/benchmarks/out/infer910c_mem_gmu0.9.json'
 
   # 同时在宿主机跑：
-  #   python3 dev/memory/probes/infer910c_hbm_sampler.py --chips 0 --interval 0.5 \
+  #   python3 dev/memory/probes/910c/hbm-sampler_910c.py --chips 0 --interval 0.5 \
   #     --out dev/memory/benchmarks/out/infer910c_hbm.csv --tag gmu0.9-eager
 
 模型权重（宿主已就位，任选其一）：

@@ -66,7 +66,7 @@
 
 - **现象**（2026-08-22 新线镜像复测）：Qwen3-30B-A3B eager 模式 EXIT=0 完整跑通（3.2 tok/s），
   但首 token 正确（"Paris"/"John"）后退化为重复/乱码。
-- **根因定位**（2026-09-01，见 [新线栈decode生成退化-根因定位-20260901.md](新线栈decode生成退化-根因定位-20260901.md)）：
+- **根因定位**（2026-09-01，见 [note_新线栈decode生成退化根因定位_p800.md](note_新线栈decode生成退化根因定位_p800.md)）：
   排除 expert GEMM（纯 torch 参考 A/B 同样乱码）与 MoE 本身（dense Qwen3-4B 同退化）；
   实锤 **厂商插件 `patch_decode_attention`（patch.py:348-416）为退化源**——它把 decode 阶段
   `xtorch_ops.decode_paged_attention` 无条件替换为 `prefill_attention(is_prefix_cache=True)`
@@ -97,7 +97,7 @@
   `pure_moe_native_noplugin.log`（#3 平台引导）
 - 纯 MoE（新线，2026-08-22 复测）：宿主 `dev/memory/benchmarks/out/` 下
   `newline_pure_moe_default.log`（#4 6/7 参崩溃）、`newline_pure_moe_default_prefer_flagos.log`（graph capture 超时）、
-  `newline_pure_moe_eager.log`（#5 生成退化）——完整分析见 [新线镜像纯MoE复测-20260822.md](新线镜像纯MoE复测-20260822.md)
+  `newline_pure_moe_eager.log`（#5 生成退化）——完整分析见 [note_新线镜像纯MoE复测_p800.md](note_新线镜像纯MoE复测_p800.md)
 - 报告：`dev/memory/docs/官方镜像复测-MoE-20260822.md`、`dev/memory/docs/纯MoE-昆仑芯-20260822.md`、
-  `dev/memory/docs/新线镜像纯MoE复测-20260822.md`、`dev/memory/docs/新线镜像-MoE复测-静态预检-20260822.md`
+  `dev/memory/docs/goals/bringup-p800/note_新线镜像纯MoE复测_p800.md`、`dev/memory/docs/goals/bringup-p800/history/note_新线镜像MoE静态预检-20260822_p800.md`
 - 模型：/workspace/models/Qwen3.6-35B-A3B（复用机内）、Qwen3-30B-A3B（61.1GB，可删）

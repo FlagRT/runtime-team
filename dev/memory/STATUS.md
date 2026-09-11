@@ -9,9 +9,9 @@
 - §5 memory 任务清单进度：
   1. 锁定推理镜像显存画像 —— ✅ **完成**（2026-09-10，npu1-27 davinci-7，锁定镜像内实测）。
      环境核对 + embedding API surface 实测 + 加载阶段 HBM 分解 + 运行阶段峰值 sweep（batch×seq-len）+ A/B 三轴。
-     报告：[docs/910C-显存画像报告.md](docs/910C-显存画像报告.md)（已从骨架转正）。探针已实测通过；
-     `infer910c_hbm_sampler.py` 解析器按 npu-smi 25.5.0 A3 版式修过（按 Phy-ID 做键）。
-  2. 显存池定义文档 + 对照数据 —— ✅ **完成**。[docs/910C-显存池定义.md](docs/910C-显存池定义.md)：
+     报告：[docs/goals/proto-910c-202609/profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)（已从骨架转正）。探针已实测通过；
+     `hbm-sampler_910c.py` 解析器按 npu-smi 25.5.0 A3 版式修过（按 Phy-ID 做键）。
+  2. 显存池定义文档 + 对照数据 —— ✅ **完成**。[docs/goals/proto-910c-202609/design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md)：
      两层池（torch_npu caching allocator 底座 + vLLM 层）、gpu_memory_utilization/pooling 预分配/
      ACLGraph capture、复用回收、A/B 对照表、**给 device-context/调度 的安全区间**
      （embedding 服务：gmu 0.35–0.45、max_num_seqs 64–128）。原始数据 `benchmarks/out/`。
