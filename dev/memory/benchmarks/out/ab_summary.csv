@@ -1,7 +1,0 @@
-axis,point,hbm_peak_mib,hbm_peak_pct,kv_pool_gib,kv_tokens,max_concurrency,weights_gib,peak_activation_gib_vllm,npu_graph_gib,non_torch_gib,load_s,warmup_s,measured_s,throughput_req_s,enforce_eager,alloc_conf,gpu_mem_util
-gpu-mem-util,gmu0.4,28072,42.8,23.15,216704,26.45,1.1333,0.22,0.1,0.1,23.249,0.262,0.204,313.73,False,(default),0.4
-gpu-mem-util,gmu0.9,59689,91.1,53.79,503552,61.47,1.1333,0.22,0.09,0.09,24.914,0.212,0.198,323.23,False,(default),0.9
-enforce-eager,aclgraph,59671,91.1,53.79,503552,61.47,1.1333,0.22,0.1,0.1,27.526,0.219,0.202,316.83,False,(default),0.9
-enforce-eager,eager,59444,90.7,53.76,503296,61.44,1.1333,0.24,0.0,0.0,12.146,0.394,0.218,293.58,True,(default),0.9
-alloc-conf,alloc-default,59551,90.9,53.79,503552,61.47,1.1333,0.22,0.1,0.1,25.129,0.228,0.202,316.83,False,(default),0.9
-alloc-conf,alloc-expandable,59451,90.7,53.79,503552,61.47,1.1333,0.22,0.1,0.1,26.535,0.227,0.199,321.61,False,expandable_segments:True,0.9
