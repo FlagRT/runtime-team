@@ -1,0 +1,126 @@
+# ascend-operator-runtime v2 — 新血统:BAAI·FlagTree 官方 ascend3.5 手册基座 + 自编译 triton
+#
+# 与 v1（dev/images/ascend-operator-runtime/v1）的关键区别：
+#   - 基座不再是 BAAI 内部手工构建的 pytorch-plugin-fl:manual-*，而是
+#     BAAI·FlagTree 官方发布的预构建基座镜像（公开 harbor 仓库，digest 见 lock.yaml）。
+#   - triton 不再是 PyPI `triton==3.5.0` wheel + 华为昇腾官方 `triton-ascend` wheel
+#     （从 vllm-ascend 镜像里拷出）的组合，而是按 FlagTree ascend 用户手册的
+#     ascend3.5 线，从 FlagTree 上游仓库 `triton_v3.5.x` 分支的公开 commit 现场编译
+#     （FLAGTREE_BACKEND=ascend）。产物 import 名仍是 `triton`（由 `flagtree` 包提供）。
+#     实测版本：triton.__version__ == 3.5.1（不是手册版本线表格暗示的 3.5.0，如实记录）。
+#   - MPI 改用基座自带的系统 mpich（apt，4.0-3），不再从源码编译 MPICH 4.1.3——
+#     系统 mpich 的头文件在 multiarch 路径（/usr/include/aarch64-linux-gnu/mpich），
+#     与 CANN hccl_test 自带 Makefile 的 ${MPI_HOME}/include 假设不兼容，遂放弃编译
+#     独立 hccl_test 二进制（v1 的次要自检项）；通信正确性改由更强的证据覆盖——
+#     真机 torch.distributed all_reduce/all_gather/p2p（见 REBUILD.md、
+#     dev/images/ascend-train-comm/v2）。
+#   - torch_npu 不再被排斥：基座本身预装 torch_npu==2.10.0（供其他用途，如推理腿共用
+#     同一基座时）。本层不卸载它，也不在构建期断言其不存在——实测它与 torch_fl 的
+#     冲突只是"进程内 import 顺序"问题而非"能否共装"问题，见
+#     assets/verify_runtime.py 的 torch_npu_coexistence 检查与 REBUILD.md。
+#
+# 边界：BASE_IMAGE 为 official（BAAI·FlagTree 官方发布的预构建基座，公开可拉，
+#       非本组产物）；FlagTree/Torch-FL/FlagGems 编译产物与本文件新增层均为 custom。
+# 网络：本文件需要构建期网络（docker build --network=host）——从 FlagTree 官方公开
+#       上游仓库拉取 triton_v3.5.x 分支的 pinned commit，以及 BAAI·FlagTree 官方
+#       公开分发桶（ks3-cn-beijing.ksyuncs.com）的 llvm 工具链 + triton 编译依赖包。
+#       两者均为 BAAI·FlagTree 官方公开资源，非本组私有资产，不违反"不改 FlagRT fork"
+#       的约束——这里只读上游，从未推送/改动 FlagRT 组织下的 FlagTree fork。
+
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
+FROM ${BASE_IMAGE}
+
+ARG FLAGTREE_COMMIT=15ec1a6cbc8d51f597f46459a500e96f3812c58f
+ARG TORCH_FL_COMMIT=162582d678e40f133924a4d3b5b6df1cb8154dc7
+ARG FLAG_GEMS_COMMIT=f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+ARG LLVM_TOOLCHAIN_URL=https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/llvm-7d5de303-ubuntu-aarch64-python311-compat_v0.6.0.tar.gz
+ARG TRITON_BUILD_DEPS_URL=https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/build-deps-triton_3.5.x-linux-aarch64.tar.gz
+ARG PYTHON_BIN=/usr/local/python3.11.15/bin/python3
+
+LABEL org.opencontainers.image.title="FlagRT Ascend operator runtime (v2, FlagTree ascend3.5 lineage)" \
+      org.opencontainers.image.version="1.0.0" \
+      io.flagrt.cann.version="9.0.0" \
+      io.flagrt.python.version="3.11.15" \
+      io.flagrt.torch.version="2.10.0+cpu" \
+      io.flagrt.torch_npu.version="2.10.0 (base image, not built by this layer)" \
+      io.flagrt.triton.version="3.5.1" \
+      io.flagrt.flagtree.version="0.6.0+ascend.git15ec1a6c" \
+      io.flagrt.flagtree.commit="${FLAGTREE_COMMIT}" \
+      io.flagrt.flagtree.branch="triton_v3.5.x" \
+      io.flagrt.torch_fl.commit="${TORCH_FL_COMMIT}" \
+      io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}" \
+      io.flagrt.lineage="flagtree-official-ascend3.5"
+
+ENV GEMS_VENDOR=ascend \
+    TRITON_ENABLE_TASKQUEUE=false \
+    DO_NOT_TRACK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# --- official：llvm 编译工具链 + triton 编译依赖（BAAI·FlagTree 官方公开分发桶） ---
+RUN mkdir -p /root/.flagtree/ascend && cd /root/.flagtree/ascend \
+    && curl -fL --retry 3 -o llvm.tar.gz "${LLVM_TOOLCHAIN_URL}" \
+    && tar xzf llvm.tar.gz && rm -f llvm.tar.gz
+
+# --- official：FlagTree 上游仓库，pin 到 triton_v3.5.x 分支的公开 commit ---
+# 只读 https://github.com/flagos-ai/FlagTree.git（上游），不涉及 FlagRT 组织 fork。
+RUN git config --global --add safe.directory "*" \
+    && mkdir -p /root/FlagTree && cd /root/FlagTree \
+    && git init -q \
+    && git remote add origin https://github.com/flagos-ai/FlagTree.git \
+    && git fetch --depth 1 origin ${FLAGTREE_COMMIT} \
+    && git checkout -q FETCH_HEAD -b triton_v3.5.x \
+    && test "$(git rev-parse HEAD)" = "${FLAGTREE_COMMIT}"
+
+# 保留原始文件名(以 -linux-aarch64.tar.gz 结尾):unpack_triton_build_deps.sh
+# 靠文件名末尾的架构后缀做 arch 校验,改名会导致该脚本误判 "Arch mismatch"。
+# The unpack script (`set -e`) does a bare `read dummy` confirmation prompt
+# and treats a non-zero `read` exit as fatal. docker build's classic builder
+# does not close RUN's stdin (unlike `docker exec` without -it), so a plain
+# `read` on inherited stdin blocks forever; `< /dev/null` avoids the hang but
+# makes `read` itself return 1 (EOF, nothing read), which `set -e` then
+# treats as a script failure. Piping an actual newline in gives `read` a
+# real 0-exit success instead.
+RUN curl -fL --retry 3 -o /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz "${TRITON_BUILD_DEPS_URL}" \
+    && printf '\n' | sh /root/FlagTree/python/scripts/unpack_triton_build_deps.sh /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz \
+    && rm -f /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz
+
+# --- custom：编译 triton（FLAGTREE_BACKEND=ascend）。setup.py 在构建期自行
+#     clone third_party/flir、third_party/ascend/AscendNPU-IR（按 CANN 版本自动选 pin）、
+#     third_party/FlagPrism，均为 FlagTree 官方公开子项目，同样只读、不改动。 ---
+RUN export PATH=/root/.flagtree/ascend/llvm-7d5de303-ubuntu-aarch64-python311-compat/bin:${PATH} \
+    && export FLAGTREE_BACKEND=ascend \
+    && source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && cd /root/FlagTree \
+    && MAX_JOBS=32 ${PYTHON_BIN} -m pip install . --no-build-isolation -v \
+    && rm -rf /root/.cache/pip /root/FlagTree/build
+
+# --- custom：FlagGems 先装（Torch-FL 的 cmake 需要能 import 到已装的 flag_gems），
+#     再装 Torch-FL（ACCELERATOR=ascend，FLAGGEMS_PYTHON=1 走 triton 分派路径） ---
+COPY src/FlagGems/ /opt/flagrt/src/FlagGems/
+COPY src/Torch-FL/ /opt/flagrt/src/Torch-FL/
+COPY assets/FlagGems-DSA-__init__.py /opt/flagrt/src/FlagGems/src/flag_gems/fused/DSA/__init__.py
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_FLAG_GEMS=0.0.0+${FLAG_GEMS_COMMIT:0:12} \
+       ${PYTHON_BIN} -m pip install --no-build-isolation --no-deps /opt/flagrt/src/FlagGems \
+    && ACCELERATOR=ascend ASCEND_KERNEL=1 CUDA_KERNEL=0 FLAGGEMS_KERNEL=0 FLAGGEMS_PYTHON=1 FLAGOS_BUILD_JOBS=32 \
+       ${PYTHON_BIN} -m pip install --no-build-isolation --no-deps /opt/flagrt/src/Torch-FL \
+    && rm -rf /root/.cache/pip /opt/flagrt/src
+
+# --- custom：FlagTree 自带 ascend triton 后端补丁（NOT v1's patch_triton_ascend.py --
+#     see assets/patch_triton_ascend_flagtree.py 顶部注释：v1 那份脚本是针对华为
+#     独立 triton-ascend 3.2.1 wheel 写的扁平 backends/ascend/driver.py+utils.py，
+#     FlagTree 这份 triton 3.5.1 已经重构成 backend_strategy_registry 插件式结构，
+#     旧脚本的字符串替换规则基本全部 "pattern not found"，必须用新脚本） ---
+COPY assets/patch_triton_ascend_flagtree.py /opt/flagrt/patch_triton_ascend_flagtree.py
+RUN ${PYTHON_BIN} /opt/flagrt/patch_triton_ascend_flagtree.py \
+      --triton-path /usr/local/python3.11.15/lib/python3.11/site-packages/triton \
+    && rm -rf /root/.triton/cache
+
+# --- custom：静态自检（fail-closed） ---
+COPY assets/verify_runtime.py /opt/flagrt/verify_runtime.py
+RUN ${PYTHON_BIN} /opt/flagrt/verify_runtime.py --static
+
+WORKDIR /workspace/FlagPerf/base
