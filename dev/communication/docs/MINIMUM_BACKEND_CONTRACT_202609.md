@@ -44,8 +44,8 @@
 
 ## 4. 已对齐的可复用资产
 
-- 双卡 FlagCX AllReduce 冒烟：`dev/memory/probes/flagcx_smoke.py`。该脚本已显式记录 FlagCX 异步返回后需设备同步的现状。
-- Route A 多尺寸 AllReduce：`dev/memory/probes/routeA_s2_3_allreduce.py`，可参考其正确性和带宽记录方式，但 P800 环境不能直接作为 910C 结论。
+- 双卡 FlagCX AllReduce 冒烟：`dev/memory/probes/common/comm-smoke_flagcx.py`。该脚本已显式记录 FlagCX 异步返回后需设备同步的现状。
+- Route A 多尺寸 AllReduce：`dev/memory/probes/p800/allreduce-smoke_p800.py`，可参考其正确性和带宽记录方式，但 P800 环境不能直接作为 910C 结论。
 - Work 完成语义：`dev/device-context/distributed_training/scripts/test_work_sem.py`。
 - TP 通信与跨流验证：`dev/device-context/distributed_inference/inference/test_tp_comm_sync_enhanced.py`。
 - 设备上下文方向已在 `dev-1.0` 归档 Qwen3-4B TP=1/2/4 greedy 输出一致性结果，可作为上层链路证据；本方向仍需独立完成基础 Collective 的可重复基线。

@@ -1,8 +1,8 @@
 # memory — 显存与缓存管理项目
 
-> **状态：🟢 推进中** ｜ 权威方案：《[显存与缓存管理方案-20260822](docs/路线A-显存与缓存管理-方案-20260822.md)》
+> **状态：🟢 推进中** ｜ 权威方案：《[显存与缓存管理方案-20260822](docs/common/design_显存与缓存管理权威方案.md)》
 > 本文档 = 子方向**入口**（目标、环境、操作）；**进展/待办/时间线见 [PROGRESS.md](PROGRESS.md)**，文档收拢在 `docs/`。
-> 历史归档（已冻结路线，勿作新工作基线）见 [docs/archive/](docs/archive/README.md)。
+> 历史归档（已冻结路线，勿作新工作基线）见 [docs/goals/legacy-2.4-910c/](docs/goals/legacy-2.4-910c/README.md)。
 
 ## 目标（一句话）
 
@@ -14,15 +14,44 @@
 dev/memory/
 ├── README.md               # 本文档（入口：目标、环境、操作）
 ├── PROGRESS.md             # 项目进展时间线（待办 + 完成，含日期）
-├── docs/                   # 子方向文档（权威方案、画像报告、执行记录）
-├── docs/archive/           # 历史归档（已冻结路线，勿作新工作基线）
-├── dev-prep.sh             # 开发前置一键准备（fetch 全部仓 + 切本地 <用户名>/dev 分支，--dry-run 先看计划）
-├── docker-compose.yml      # 昇腾 910c 容器配置
-├── docker-compose.p800.yml # 昆仑芯 P800 容器配置
-├── .env.example            # 环境变量模板（cp 成 .env 按需调整）
-├── probes/                 # 探针/画像脚本（只读，不改造，待入库）
-└── benchmarks/             # 负载与对比脚本
+├── STATUS.md                # 总组速览入口
+├── docs/
+│   ├── common/              # 跨芯片/跨目标的政策与权威方案文档
+│   └── goals/                # 按目标分类的文档（见下）
+│       ├── legacy-2.4-910c/  # 🧊 冻结路线（910c），含 patches/
+│       ├── bringup-p800/     # 🟢 进行中（p800），含 history/
+│       └── proto-910c-202609/ # ✅ 本期已交付（910c）
+├── dev-prep.sh              # 开发前置一键准备（fetch 全部仓 + 切本地 <用户名>/dev 分支，--dry-run 先看计划）
+├── docker-compose.yml       # 昇腾 910c 容器配置
+├── docker-compose.p800.yml  # 昆仑芯 P800 容器配置
+├── .env.example             # 环境变量模板（cp 成 .env 按需调整）
+├── probes/                  # 探针/画像脚本（只读，不改造，待入库），按芯片分类：common/910c/p800/legacy-2.4-910c
+└── benchmarks/              # 负载与对比脚本 + 采样原始数据（out/，不入库）
 ```
+
+## 文档组织方式
+
+文档与探针按两条轴组织：**芯片代号**（脚本/数据实测所在硬件）× **目标代号**（对应的工作目标/路线）。
+
+**芯片代号**
+
+| 代号 | 含义 |
+|---|---|
+| `910c` | 昇腾 910C |
+| `p800` | 昆仑芯 P800 |
+| `zhenwu` | 平头哥真武（占位，未接入）|
+
+**目标代号**
+
+| 代号 | 含义 |
+|---|---|
+| `legacy-2.4-910c` | 🧊 冻结，910c |
+| `bringup-p800` | 🟢 进行中，p800，开放式无锁定终点 |
+| `proto-910c-202609` | ✅ 本期已交付，910c，锁定镜像 + Qwen3-Embedding-0.6B + 验收标准 |
+
+**命名规范**：docs 用 `<功能>_<主题>_<芯片>.md`（功能段仅限 6 个固定值：`profile`/`design`/`survey`/`issue`/`note`/`policy`；无芯片绑定则省略芯片段）；probes 用 `<功能描述，可含连字符>_<芯片>.<ext>`（功能描述自由但要一看就懂，无芯片绑定省略芯片段）。
+
+各目标目录下的详细文件索引见其各自 README；探针索引见 [probes/README.md](probes/README.md)；跨方向速览见 [STATUS.md](STATUS.md)。
 
 代码改造主战场：**vLLM 层**（显存池/缓存管理在 vLLM 内做）；厂商 torch 自带分配器为底座（P800 上 torch_plugin 无独立显存池）。
 
@@ -38,11 +67,11 @@ dev/memory/
 **昆仑芯 P800（2026-08-21~22 实测）**
 
 - **triton 版本偏差致 FlagGems GEMM 崩溃**：dev 容器 triton 3.6.0（flagtree 0.6.1+xpu3.6）≠ 官方发布镜像 3.0.0，FlagGems mm/bmm/addmm 在 dev 容器 SIGABRT（编译期 make_llir），官方发布镜像同 commit 全过 → **结论性测试在官方发布镜像内做**。
-- **MoE 双阻塞**：`xpudnn::causal_conv1d_update ret=1`（厂商算子库缺口，混合注意力模型昆仑芯不可用）；`flag_gems._kunlunxin.topk_softmax` 缺 `renormalize` 参（组件版本配对，纯 MoE 必崩）→ 见 [昆仑芯问题反馈清单-20260822](docs/昆仑芯问题反馈清单-20260822.md)。
+- **MoE 双阻塞**：`xpudnn::causal_conv1d_update ret=1`（厂商算子库缺口，混合注意力模型昆仑芯不可用）；`flag_gems._kunlunxin.topk_softmax` 缺 `renormalize` 参（组件版本配对，纯 MoE 必崩）→ 见 [昆仑芯问题反馈清单-20260822](docs/goals/bringup-p800/issue_昆仑芯问题反馈清单_p800.md)。
 - **KV 预分配 P800 69.22GiB / 504k tokens**（Qwen3-4B，gpu_mem_util 0.9，加载合计 84.5s、含 graph 71.5s）。
-- **decode 生成退化根因**：厂商 `patch_decode_attention`（decode 无条件替换为 prefix-cache prefill_attention）→ 禁用后正常、解码提速近 2x → [新线栈decode生成退化-根因定位-20260901](docs/新线栈decode生成退化-根因定位-20260901.md)
-- **vllm 0.13 官方 KV CPU 卸载可用（P800）**：`--kv-offloading-size` 有 num_cpu_blocks=0 接线缺陷，须显式 KVTransferConfig；store/load 双向实测通过、吞吐代价 ~2.4% → [vllm-0.13-allocator与offload调研-20260822](docs/vllm-0.13-allocator与offload调研-20260822.md) §4
-- **910C（vllm 0.20.2）官方 native KV 卸载不可用**：`is_cuda_alike()` 平台门 + `vllm._C` 缺 libcudart → [routeA-S4-KV卸载Host-910C尝试-20260903](docs/routeA-S4-KV卸载Host-910C尝试-20260903.md)
+- **decode 生成退化根因**：厂商 `patch_decode_attention`（decode 无条件替换为 prefix-cache prefill_attention）→ 禁用后正常、解码提速近 2x → [新线栈decode生成退化-根因定位-20260901](docs/goals/bringup-p800/note_新线栈decode生成退化根因定位_p800.md)
+- **vllm 0.13 官方 KV CPU 卸载可用（P800）**：`--kv-offloading-size` 有 num_cpu_blocks=0 接线缺陷，须显式 KVTransferConfig；store/load 双向实测通过、吞吐代价 ~2.4% → [vllm-0.13-allocator与offload调研-20260822](docs/goals/bringup-p800/survey_vllm0.13-allocator与offload调研_p800.md) §4
+- **910C（vllm 0.20.2）官方 native KV 卸载不可用**：`is_cuda_alike()` 平台门 + `vllm._C` 缺 libcudart → [routeA-S4-KV卸载Host-910C尝试-20260903](docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md)
 
 ## 启动容器（宿主侧）
 
