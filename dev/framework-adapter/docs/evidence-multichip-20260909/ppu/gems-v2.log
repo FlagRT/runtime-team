@@ -1,0 +1,10 @@
+{"stage": "environment", "versions": {"torch": "2.9.0", "torch-br": null, "flag-gems": "5.0.1rc0", "triton": "3.5.0+ppu2.0.0.oe"}, "device": "cuda:0", "count": 1, "name": "PPU-ZW810E"}
+{"stage": "case", "mode": "gems", "op": "silu", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "silu", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "silu", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "silu", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "gems", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "summary", "mode": "gems", "passed": 8, "vllm_imported": true, "vllm_modules": ["vllm", "vllm._C", "vllm._moe_C", "vllm._version", "vllm.env_override", "vllm.envs", "vllm.logger", "vllm.logging_utils", "vllm.logging_utils.formatter", "vllm.logging_utils.lazy", "vllm.logging_utils.log_time", "vllm.utils", "vllm.utils.torch_utils", "vllm.version", "vllm.vllm_flash_attn", "vllm.vllm_flash_attn._vllm_fa2_C", "vllm.vllm_flash_attn._vllm_fa3_C", "vllm.vllm_flash_attn.flash_attn_interface"]}
