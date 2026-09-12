@@ -15,6 +15,7 @@ def prepare_torch_device(device: str):
             ) from error
         if not hasattr(torch, "npu") or not torch.npu.is_available():
             raise RuntimeError("torch_npu is installed, but no Ascend NPU is available")
+        torch.npu.set_device(torch.device(device))
     elif device.startswith("cuda") and not torch.cuda.is_available():
         raise RuntimeError("CUDA was requested, but no CUDA device is available")
     return torch, torch.device(device)

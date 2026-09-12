@@ -10,10 +10,7 @@ from _bootstrap import load_project_env
 
 load_project_env()
 
-from rag_engine import Settings, create_retrieval_store  # noqa: E402
-from rag_engine.embedding import Qwen3Embedder  # noqa: E402
-from rag_engine.pipeline import RetrievalPipeline  # noqa: E402
-from rag_engine.reranker import Qwen3Reranker  # noqa: E402
+from rag_engine.query_runtime import create_pipeline, format_hits  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,21 +27,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    settings = Settings.from_env()
-    store = create_retrieval_store(settings)
-    store.require_connection()
-    embedder = Qwen3Embedder(
-        settings.embedding_model_path,
-        device=args.device,
-        output_dims=settings.embedding_dims,
-        instruction=settings.retrieval_instruction,
-    )
-    reranker = Qwen3Reranker(
-        settings.reranker_model_path,
-        device=args.device,
-        instruction=settings.retrieval_instruction,
-    )
-    pipeline = RetrievalPipeline(store, embedder, reranker)
+    pipeline = create_pipeline(args.device)
     hits = pipeline.retrieve(
         args.query,
         retriever_top_k=args.retriever_top_k,
@@ -54,20 +37,7 @@ def main() -> None:
         reranker_batch_size=args.reranker_batch_size,
     )
 
-    result = [
-        {
-            "rank": rank,
-            "rerank_score": hit["_rerank_score"],
-            "rrf_score": hit["_rrf_score"],
-            "retrieval_ranks": hit["_retrieval_ranks"],
-            "document_id": hit["_source"]["document_id"],
-            "chunk_id": hit["_source"]["chunk_id"],
-            "title": hit["_source"]["title"],
-            "text": hit["_source"]["text"],
-            "source_uri": hit["_source"]["source_uri"],
-        }
-        for rank, hit in enumerate(hits, start=1)
-    ]
+    result = format_hits(hits)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
