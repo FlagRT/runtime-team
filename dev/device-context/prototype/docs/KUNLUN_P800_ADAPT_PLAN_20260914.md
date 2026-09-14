@@ -22,6 +22,16 @@
 **接入契约**：实现 13 个 `@abstractmethod`（上表五域）+ 可选 `stream_priority_range()`；
 经 `supports()` 如实声明能力边界（不支持项不伪造，conformance 会如实跳过）。
 
+> **已对着代码核实（2026-09-14）**：`prototype/runtime/backends/base.py` 实测**恰好 13 个 `@abstractmethod`**，
+> 与上表五域一一对应 —— 设备抽象 4（`device_count` / `set_device` / `memory_stats` / `probe_device`）、
+> 多流 Stream 7（`create_stream` / `create_event` / `current_stream` / `synchronize` /
+> `stream_context` / `synchronize_stream` / `wait_event_host`）、
+> 错误码翻译 1（`translate_error`）、状态恢复 1（`recover_device`）。
+> 且 `backends/registry.py` 的 `_KNOWN_BACKENDS` **已预留 `("ascend", "flagos", "kunlun")`** ——
+> 昆仑芯的接入位在原型设计时已留好，本次属**填位**而非改造。
+> conformance 侧现状：`cases.py`（13 例）、`infer_cases.py`（6 例），
+> 已有结果集 `conformance_runtime_ascend.json`（13）、`conformance_runtime_infer.json`（6）、`conf_proto_flagos_13.json`（13）。
+
 ### 1.2 不属我方（识别到即**对外提交**，不自行适配）
 
 | 缺失项类型 | 归属子方向 | 我方提供什么 |
