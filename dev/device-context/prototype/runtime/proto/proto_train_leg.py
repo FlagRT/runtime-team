@@ -73,8 +73,32 @@ BATCH = int(os.environ.get("BATCH", "4"))
 SEQ = int(os.environ.get("SEQ", "128"))
 
 
+def _preflight_env_check() -> None:
+    """环境前提检查：把**已实测的上游坑**在开跑前明确告警，避免踩坑者误判。
+
+    背景（实测，2026-09-14）：昆仑芯 P800 上 `XPU_EVENT_KL3_ENABLE=1` **且**存在设备侧
+    集合通信时，设备事件同步会概率性**永久挂死**（18 次运行 16 次，≈89%）。
+    自旋点在厂商 `libcuda.so`（实为 `libxpucuda.so`）内的
+    `cudaEventRecordWithFlags` / `cudaDeviceSynchronize`；属厂商层缺陷，已上报。
+
+    本方向训练腿（transformers 纯 torch）与推理腿（vLLM）**均不依赖 FlagGems**，
+    故可在不设置该变量下进行 —— 但必须显式告知，不能悄悄改条件。
+    """
+    kl3 = os.environ.get("XPU_EVENT_KL3_ENABLE")
+    if BACKEND == "kunlun" and kl3 == "1":
+        print(
+            "[preflight][WARN] BACKEND=kunlun 且 XPU_EVENT_KL3_ENABLE=1。\n"
+            "  已知上游缺陷 KUNLUN-KL3-EVENT-SYNC-HANG：该组合下多进程设备集合通信\n"
+            "  概率性永久挂死（实测 ≈89%；自旋于厂商 libcuda.so / libxpucuda.so）。\n"
+            "  本方向训练腿/推理腿均不依赖 FlagGems，建议**不设置该变量**后重跑；\n"
+            "  证据与最小复现：prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md\n"
+            "  若确需在开启该变量下取证据，请把本告警与结果一并记录，**不得作为通过依据**。",
+            flush=True)
+
+
 def main() -> None:
     local_rank = int(os.environ["LOCAL_RANK"])
+    _preflight_env_check()
     dist.init_process_group(DIST_BT, timeout=timedelta(seconds=180))
     rank = dist.get_rank()
     world = dist.get_world_size()

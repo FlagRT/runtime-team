@@ -631,6 +631,106 @@ CUDA_VISIBLE_DEVICES=6,7 FLAGCX_ADAPTOR=klx XPU_EVENT_KL3_ENABLE=1 \
 
 **注意**：用卡前先 `xpu-smi` 挑**连续且空闲**的卡；挂死进程 `kill -9` 才能清掉（`timeout` 的 SIGTERM 无效）。
 
+### 2.6 处理策略：**根因上报厂商，本方向不停摆**（职责边界内推进）
+
+> **原则**：**上报厂商**与**本方向继续推进**是两件事，不应互相阻塞。
+> 边界是「**不改公共资产**（FlagGems / 锁定镜像口径 / 基座文件）」，
+> 而不是「不能在自己方寸之内控制实验条件并如标注」。
+
+#### 2.6.1 关键解锁点：**我们的训推验证路径都不依赖 FlagGems**
+
+| 路径 | 算子来源 | 是否依赖 FlagGems |
+|---|---|---|
+| **训练腿** | `transformers 4.57.1` + 原生 torch 算子（XPytorch 提供） | ❌ 不依赖 |
+| **推理腿** | `vllm 0.13.0` + `vllm-plugin-fl 0.1.0` | ❌ 不依赖（源码里 `flag_gems` / `USE_FLAGGEMS` **0 处引用**） |
+
+⇒ `XPU_EVENT_KL3_ENABLE` 是 **FlagGems kunlunxin 后端的环境处方**，**不属于我们的验证前置条件**。
+**在本方向验证运行中不设置它，性质是「去掉一个我们本来就不需要的变量」，
+而不是「修改 FlagGems 的口径」** —— 两者是不同的事。
+
+#### 2.6.2 flagcx 侧不可规避（已查源码）
+
+`flagcxBackend::syncStream`（`plugin/torch/flagcx/src/backend_flagcx.cpp:424`）：
+
+```cpp
+void flagcxBackend::syncStream(at::Device device, int index) {
+  auto &event = getEventByIndex(index);
+  auto stream = getStreamByIndex(index);
+  event->record(device.index());      // ← 挂死点
+  event->block(stream, device.index());
+}
+```
+
+在 `allreduce` 中的调用注释写明用途：*"First let default flagcx stream wait for
+input tensor allocation stream"* —— 它是**流序正确性所必需**，**14 处集合通信各调一次，
+没有开关也不能关**（关掉会造成输入未就绪即被读取）。
+⇒ **规避杠杆只在厂商那个变量上，不在 flagcx 侧。**
+
+#### 2.6.3 三轨推进
+
+**轨 1 · 不受阻的交付先做完（立即可执行）**
+
+| 项 | 是否受该缺陷影响 |
+|---|---|
+| 阶段 1 接入（conformance 13/13 + 6/6、smoke 42/0） | ✅ 已完成，不受影响 |
+| 阶段 3 **推理腿单卡**（vLLM 服务化）——不涉及多进程集合通信 | ✅ 不受阻，可立即做 |
+| 阶段 4 **错误闭环**（单卡/单进程） | ✅ 不受阻（但见 2.6.4 的对照要求） |
+| 阶段 5《新芯片接入手册》+ 规范修订建议 | ✅ 不受阻，且**这条缺陷本身就是手册里最有价值的一节** |
+
+**轨 2 · 训练腿分档交付（不伪造、不空等）**
+
+| 档 | 内容 | 处置 |
+|---|---|---|
+| **2a** | **单卡/单进程**训练腿：验证设备上下文 + 数据通路 + loss 下降 | ✅ 不受阻，立即做 |
+| **2b** | **多卡**训练腿：在**本方向验证运行环境**中不设置该变量取证据 | ✅ 可做，但证据文件与报告**必须逐条标注条件**：<br>「本条证据在 `XPU_EVENT_KL3_ENABLE` 未设置下取得；开启时本环境概率性挂死（厂商缺陷，已上报）」 |
+| **2c** | **开启该变量下的多卡结果** | ⛔ **标注为阻塞项**，等厂商修复；**不硬凑、不伪造** |
+
+**轨 3 · 上报与标注**
+
+| 位置 | 标注形式 |
+|---|---|
+| ① `backends/kunlun/backend.py` | **机器可读**：`info()["known_issues"]` 结构化条目 + `known_upstream_defects` 追加一条；新增可选方法 `known_issues()`（base 默认返回 `[]`，零回归）——**其他子方向接入时读到后端即可获知** |
+| ② `proto/proto_train_leg.py` | **开跑前环境前提检查 + 明确告警**（属"错误捕获/设备状态"职责），不设变量时**不误报** |
+| ③ `docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` | 完整根因、复现、责任层判定与三份提交建议 |
+| ④ `STATUS.md`「阻塞与需要协调」 | 正式登记（含"若厂商不修的交付口径"预案） |
+| ⑤ 《新芯片接入手册》 | 「已知坑」一节：最小复现 + 触发条件 + 临时规避 + **规避的代价** |
+
+**统一措辞**：
+> **根本原因在厂商 CUDA 兼容运行时 `libxpucuda.so`（KL3 事件机制与设备事件同步原语的交互），
+> 需上报芯片厂商适配**；我方已按 2b 方式规避以不阻塞本方向验证，并如实标注条件。
+
+#### 2.6.4 一个必须做的对照（属我方五域）
+
+该变量**可能影响厂商设备异常上报**——而"错误捕获"正是我方五域之一。因此：
+
+> **阶段 4 错误闭环必须在「设 / 不设该变量」两种设置下各跑一次并对比**，
+> 差异本身就是产出，并用于回答"关闭该变量是否损失诊断能力"。
+
+（这也正是要向厂商提问的重点问题之一：**`XPU_EVENT_KL3_ENABLE` 的语义是什么？
+关闭后设备异常是否仍能上报到 Python 层？** —— 镜像与厂商文档里对该变量**零说明**。）
+
+#### 2.6.5 明确**不做**的事（守边界）
+
+- ❌ 不改 FlagGems 的 `tools/env.sh` / `src/flag_gems/backends.yaml` / CI 配置
+- ❌ 不改锁定镜像的环境口径，不把"不设该变量"写进基座文件
+- ❌ 不把"关闭变量后的通过"包装成"在官方推荐环境下已验证通过"
+- ❌ 不代厂商做规避性补丁（如 hook 掉 event record）
+
+#### 2.6.6 若厂商不修：本方向的交付口径预案
+
+训练腿以「**单卡证据 + 多卡标注条件证据 + 归属判定 + 最小复现**」形式交付，
+验收标准 4 按**标注条件**判定，并在 STATUS 与手册中把该项登记为
+「**已识别、需上游修复、不影响本方向其余交付**」——**不阻塞 release**。
+
+#### 2.6.7 本轮已落地的改动与回归证据
+
+| 改动 | 回归证据 |
+|---|---|
+| `backends/base.py` 新增可选方法 `known_issues()`（默认 `[]`） | `base 默认 known_issues(): []`、`stream_priority_range(): None` ⇒ **对既有后端零回归** |
+| `backends/kunlun/backend.py` 新增 `_KNOWN_ISSUES` + `known_issues()`，`info()` 暴露 `known_issues` 与追加的 `known_upstream_defects` | `known_issues 条数: 1`；`info 含 known_issues: True`；`known_upstream_defects 条数: 3` |
+| `proto/proto_train_leg.py` 新增 `_preflight_env_check()`（KL3=1 时告警） | 告警正确输出；**不设变量时不误报**（对照通过） |
+| 既有能力不受影响 | `smoke_runtime.py --backend kunlun` **42 通过 / 0 失败**；`conformance` **13/13** |
+
 ---
 
 ## 3. 待办总清单（按「谁来做」分类）

@@ -360,6 +360,44 @@ class KunlunBackend(RuntimeBackend):
     def supports(self, capability: str) -> bool:
         return capability in self._capabilities
 
+    # ───────────── 已知上游/环境问题（给接入方直接可读）─────────────
+    #: 只收录**已实测**的问题；每条注明复现率、归属层与证据位置。
+    #: 目的是「release 给其他子方向」时，接入方读到后端即可获知坑与临时规避。
+    _KNOWN_ISSUES = [
+        {
+            "id": "KUNLUN-KL3-EVENT-SYNC-HANG",
+            "severity": "high",
+            "scope": "多进程设备侧集合通信（flagcx / BKCL）",
+            "condition": "环境变量 XPU_EVENT_KL3_ENABLE=1 **且**存在设备侧集合通信",
+            "symptom": (
+                "概率性永久挂死。自旋点三处：① dist.all_reduce 内部 "
+                "c10d::flagcxBackend::syncStream → CUDAEvent::record → cudaEventRecordWithFlags；"
+                "② 上层 torch.cuda.synchronize → cudaDeviceSynchronize；③ 通信域首次初始化"
+                "（bkcl::init_rank / net_socket_all_gather）。前两处自旋于厂商 libcuda.so"
+                "（实为 libxpucuda.so）内，用户态 100% CPU"
+            ),
+            "repro_rate": "≈89%（18 次运行 16 次挂死；本轮基线 4/4 = 100%）；挂死步数游走，与数据量/张量形状/reduce op/用卡对/同步间隔均无关",
+            "root_cause_layer": "厂商 CUDA 兼容运行时 —— libxpucuda.so / XRE 的 KL3 事件机制与设备事件同步原语的交互",
+            "ruled_out": "算子层（FlagGems 未参与，探针全程裸 torch.distributed）、编译层（无 triton 编译，BKCL 为预编译内核）均已排除",
+            "workaround": (
+                "在**不依赖 FlagGems** 的验证路径中不设置 XPU_EVENT_KL3_ENABLE"
+                "（实测 8 次运行 0 次挂死，且 all_reduce 结果真值 2^120 精确匹配）。"
+                "本方向训练腿（transformers 纯 torch）与推理腿（vLLM）均不依赖 FlagGems，故适用"
+            ),
+            "workaround_risk": (
+                "该变量是 FlagGems kunlunxin 官方推荐值（tools/env.sh、"
+                "src/flag_gems/backends.yaml、CI P800.yml 三处均设 1）；关闭可能影响厂商设备事件上报。"
+                "**走 FlagGems 路径时不适用本规避**。注意 flagcx 侧无法规避："
+                "syncStream 是流序正确性所必需（backend_flagcx.cpp:424，14 处集合通信各调一次）"
+            ),
+            "report_to": "昆仑芯（XPytorch / XRE）—— 我方已上报，对应本方向对外提交项 C3",
+            "evidence": "prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md",
+        },
+    ]
+
+    def known_issues(self) -> list:
+        return [dict(x) for x in self._KNOWN_ISSUES]
+
     def info(self) -> dict:
         self._load()
         return {
@@ -383,7 +421,12 @@ class KunlunBackend(RuntimeBackend):
             "known_upstream_defects": [
                 "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)",
                 "厂商错误码不透出到 Python 异常（仅退出钩子偶见 error code=101）",
+                "XPU_EVENT_KL3_ENABLE=1 且存在设备侧集合通信时，设备事件同步概率性永久挂死（≈89%，"
+                "自旋于厂商 libcuda.so）—— 详见 known_issues[0] 与 "
+                "prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md",
             ],
+            # 结构化版本（含复现率/归属层/临时规避/上报对象），供接入方机器可读消费
+            "known_issues": self.known_issues(),
         }
 
 

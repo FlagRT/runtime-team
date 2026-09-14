@@ -122,6 +122,18 @@ class RuntimeBackend(ABC):
         """流优先级范围 (least, greatest)；不支持返回 None。"""
         return None
 
+    def known_issues(self) -> list:
+        """本后端已知的**上游/环境**问题清单（默认空）。
+
+        用途：接入方（其他子方向）读到后端即可获知该环境的坑与临时规避，
+        无需翻文档。每项为 dict，建议字段：
+            id / severity / scope / condition / symptom / root_cause_layer /
+            workaround / workaround_risk / report_to / evidence
+
+        纪律：只描述**已实测**的问题，须注明复现率与证据位置；不得把推测写成结论。
+        """
+        return []
+
     def supports(self, capability: str) -> bool:
         """能力查询，便于 conformance 做 stub-skip 报告。"""
         return capability in getattr(self, "_capabilities", set())
