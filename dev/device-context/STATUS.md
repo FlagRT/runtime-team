@@ -94,7 +94,15 @@
      三条均已修复并回归（含向后兼容实测），详见接入方案 §7.5。
   - **【需对外提交】2 项**：① 流优先级 `torch.cuda.Stream.priority_range()` 稳定触发
     PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`；② 厂商错误码不透出到 Python 异常。
-  - **阶段 2（训练腿）进行中 · 集合通信已验证可用**：分布式后端探测结论
+  - **✅ 阶段 2（训练腿）已完成（标注条件）**：卡 6,7，**两 rank TRAIN_LEG_PASS 6/6**、
+    loss **15.4488 → 11.1481**（50 步、无 NaN）、**3482 tok/s**（两卡合计、14.7 s）、
+    通信三类对照全对（`3.0/3.0`、`[0.0, 1.0]`、P2P 一致）。**A/B 单变量对照**：
+    同一脚本 `XPU_EVENT_KL3_ENABLE` **未设 → 退出码 0**；**设为 1 → 只到 `[step 0]` 即挂死、退出码 124**。
+    ⇒ **规避方案有效，且缺陷确实存在，两者互为证明**。
+    **诚实标注**：本组证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得，**不能代表开启该变量时的行为**。
+    证据：`probes/kunlun/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`。
+    与 910C 基线对照（同构可比）：loss 15.4497→11.15 / 2117 tok/s ⇢ **15.4488→11.1481 / 3482 tok/s**。
+  - 阶段 2 过程记录（集合通信验证与卡点定位）：分布式后端探测结论
     —— `nccl` 挂死、`xccl` 未编译（`Distributed package doesn't have XCCL built in`）、`kccl` 无响应，
     **可用路径只有 `flagcx`**：`import flagcx` + `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx`
     （与 xliu969 已验证的 Route A 一致）。

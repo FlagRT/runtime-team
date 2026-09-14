@@ -27,7 +27,7 @@
 | 单卡五域基线 | 设备抽象 ✅ ｜ 多流 Stream/Event ✅ ｜ 算子 ✅ ｜ 错误 ⚠️（无厂商码）｜ 状态恢复 ⚠️（仅 probe 级） |
 | 已识别问题 | **上游 3 条**（基线报告 §3）**＋ 接入过程暴露并已修 3 条**（§7.5） |
 | 距"本方向职责完成"还差 | ① 训推验证与简单修复 ②《新芯片接入手册》③ 规范修订建议 ④ release |
-| **下一步** | 阶段 2/3：训练腿（多卡）+ 推理腿并行 |
+| **下一步** | 阶段 3 推理腿（单卡 + 服务化）；训练腿已在标注条件下完成 |
 
 ---
 
@@ -249,7 +249,7 @@ prototype/runtime/backends/
 | 1 | `backends/kunlun/` 实现全部 **13 个抽象方法**；`supports()` 声明与实测一致，**不伪造能力** |
 | 2 | conformance **13 例 + 推理 6 例**全绿**或如实跳过**；每个跳过项说明原因与归属 |
 | 3 | `smoke_runtime.py` 通过率不低于 910C 基线，或差异项已逐条解释 |
-| 4 | **训练腿**：最小分布式训练跑通，通信三类对照通过，loss 单调下降、无 NaN；暴露的问题已按 §2.3 分流（五域内已修 / 五域外已提交） |
+| 4 | **训练腿**：最小分布式训练跑通，通信三类对照通过，loss 单调下降、无 NaN；暴露的问题已按 §2.3 分流（五域内已修 / 五域外已提交）。<br>✅ **已达成（标注条件）**：两 rank 6/6；条件＝`XPU_EVENT_KL3_ENABLE` 未设（设为 1 即挂死，属厂商缺陷已上报） |
 | 5 | **推理腿**：单卡推理跑通，维度 / 无 NaN / 区分度 / 吞吐 / p50 指标齐备 |
 | 6 | **产出齐备**：《新芯片接入手册》+ 接口约定修订建议 + 缺失项清单（含归属）；**原型可 release 给其他子方向** |
 
@@ -269,8 +269,8 @@ prototype/runtime/backends/
 |---|---|---|---|
 | **阶段 0 · 环境与基线** | 2026-09-14 ✅ **已完成** | 环境汇总、五域基线实测、接入路线调研 | — |
 | **阶段 1 · 接入** | 9/14 ✅ **已完成** | `backends/kunlun/` + `supports()` + `build()` 登记 + smoke + conformance **13/13 + 6/6** | 验收 1–3 ✅ |
-| **阶段 2 · 训练腿** | 9/21–9/25 | 最小分布式训练（2 卡起，优先 XPU0-1 组内配对）+ 通信三类对照 + 问题分流 | 验收 4 |
-| **阶段 3 · 推理腿** | 9/21–9/25（**与阶段 2 并行**） | 单卡前向 + 服务化，复用 `Qwen3-Embedding-0.6B` | 验收 5 |
+| **阶段 2 · 训练腿** | ✅ **已完成（标注条件）** | 卡 6,7；**两 rank TRAIN_LEG_PASS 6/6**、loss **15.4488→11.1481**、**3482 tok/s**；通信三类对照全对。<br>**条件**：`XPU_EVENT_KL3_ENABLE` 未设（设为 1 则挂死，退出码 124）；问题已分流（厂商层，已上报） | 验收 4 ✅ |
+| **阶段 3 · 推理腿** | ⏳ 待执行（**不受该缺陷影响**，可立即启动） | 单卡前向 + 服务化，复用 `Qwen3-Embedding-0.6B`；已确认 vLLM / vllm-plugin-FL **不依赖 FlagGems** | 验收 5 |
 | **阶段 4 · 错误闭环** | 9/21–9/30（穿插） | 昆仑芯错误映射表 v0（异常类型 + 消息模板为键）+ 注入→分级→恢复闭环 | 验收 4–5 |
 | **阶段 5 · 产出与 release** | 9/28–9/30 | 《新芯片接入手册》+ 规范修订建议 + 缺失项清单 + 对外提交单 + STATUS 更新 + **release** | 验收 6 |
 
@@ -287,7 +287,8 @@ prototype/runtime/backends/
 | 2e | └ 五域基线实测 | ✅ **已完成** | [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md) |
 | 3 | **阶段 1**：`kunlun` backend + conformance | ✅ **已完成** | `backends/kunlun/` 已实现；conformance **13/13 + 6/6**；smoke **42/0**；证据见 §7.1 |
 | 3a | └ 接入过程修复 | ✅ **已修 3 项** | registry 急切求值缺陷、conformance f1 厂商码假设、smoke 仅覆盖昇腾（详见 §7.5） |
-| 4 | **阶段 2/3**：训练腿 + 推理腿 | ⏳ 待执行（前置已解除） | 可立即启动；训练腿是**暴露问题**的主手段 |
+| 4 | **阶段 2**：训练腿（多卡） | ✅ **已完成（标注条件）** | 两 rank 6/6；loss 15.4488→11.1481；3482 tok/s；证据 `probes/kunlun/E_train_leg_result_rank{0,1}.json` |
+| 5 | **阶段 3**：推理腿（单卡 + 服务化） | ⏳ 待执行 | 不受厂商缺陷影响，可立即启动 |
 | 5 | **阶段 4/5**：错误闭环 + 产出与 release | ⏳ 待执行 | 缺失项清单已出 3 条；对外提交单 2 张待起草（§7.4） |
 
 ---
@@ -333,7 +334,7 @@ prototype/runtime/backends/
 | **昆仑芯后端实现** | `prototype/runtime/backends/kunlun/`（`backend.py` + `__init__.py`） | ✅ 阶段 1 |
 | **conformance 结果** | `prototype/runtime/conformance/conformance_runtime_kunlun.json`（13/13）、`..._kunlun_infer.json`（6/6） | ✅ 阶段 1 |
 | **组件自检证据** | `dev/device-context/probes/kunlun/smoke_kunlun_20260914.txt`（42 通过 / 0 失败） | ✅ 阶段 1 |
-| 训练腿 / 推理腿结果 | `prototype/runtime/proto/kunlun_*.json` | ⏳ 阶段 2/3 |
+| 训练腿 / 推理腿结果 | `probes/kunlun/E_train_leg_result_rank{0,1}.json`（训练腿，✅ 阶段 2） | ✅ / ⏳ 阶段 3 |
 | **《新芯片接入手册》** | `prototype/docs/NEW_CHIP_ONBOARD_GUIDE.md` | ⏳ 阶段 5 |
 | **接口约定修订建议** | `prototype/docs/INTERFACE_CONTRACT_REVISION_<date>.md` | ⏳ 阶段 5 |
 | 适配记录（含缺失项与归属） | `prototype/docs/KUNLUN_ADAPT_RECORD_<date>.md` | ⏳ 阶段 5 |
