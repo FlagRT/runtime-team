@@ -120,9 +120,28 @@
          → `cudaEventRecordWithFlags` → 厂商 libcuda 自旋（含 `sched_yield`）；
       ③ 通信域**首次初始化**死锁：rank1 阻塞在 `bkcl::net_socket_all_gather` 的 `recv()`，
          rank0 卡在 `bkcl::kl3::init_device_param` → `xpu_free`。
-    **h) 判别条件（单变量探针 20 次运行）**：挂死需**同时**满足
-      「`XPU_EVENT_KL3_ENABLE=1`」+「设备集合通信」+「设备同步」三条，缺一不挂；
-      该组合 10 次运行 9 次挂死（≈90%），挂死点游走，**与数据量/形状/reduce op/用卡对无关**。
+    **h) 判别条件（⚠️ 已更正，单变量探针 26 次运行）**：**两要素**，缺一不挂 ——
+      ① `XPU_EVENT_KL3_ENABLE=1`；② 存在设备侧集合通信（flagcx）。
+      该组合 18 次运行 16 次挂死（**≈89%**；本轮基线 4/4 = 100%），挂死步数游走
+      （rep 0/20/30/40/70/100），**与数据量/形状/reduce op/用卡对/同步间隔均无关**。
+      **更正说明**：初版误把「设备同步」列为必要条件之一，依据是旧探针
+      `V5_nosync` 报「通过」——但**该探针不自证**（只是没等就退出，从未确认 120 次通信是否完成）。
+      用**带真值校验**的新探针复测：KL3=1 + 循环内完全不显式同步 → **仍 2/2 挂死**
+      （挂在第 101–120 次 `all_reduce` **内部**）。
+      机理：`dist.all_reduce` → `flagcxBackend::allreduce` → **`syncStream`** → `CUDAEvent::record`
+      —— **flagcx 插件每次 all_reduce 内部自带一次设备事件记录**，故未显式同步照样挂。
+      三处暴露点：P1 `all_reduce` 内部（根本）/ P2 显式 `torch.cuda.synchronize()` / P3 通信域首次初始化（复现率低）。
+      真值校验旁证：不设 KL3 时 `value = 2^120` **精确匹配（rel_err = 0.000e+00）** ⇒ 「通过」是真通过。
+    **j) 责任层判定（核对结论）**：**既不是算子层、也不是编译层**，应提交**厂商运行时/驱动层** ——
+      ① 算子层（FlagGems）排除：`flag_gems` **未导入**、探针源码 0 引用、无 `.pth` 自动 enable；
+      ② 编译层（FlagTree/triton）排除：`/root/.triton` mtime 仍为镜像构建时、近 2 小时无编译产物、
+      日志无 triton/jit/compile 字样、挂死路径上用的是 BKCL 预编译内核；
+      ③ **指向厂商层**：`XPU_EVENT_KL3_ENABLE` 在全栈中**只被 `libxpucuda.so` 读取（1 处）**，
+      且位于 `CUDA_*` 运行时旋钮块中；三处自旋帧均在 `libxpucuda.so` 内。
+      **提交建议**：主提交昆仑芯 XPytorch/XRE（含函数级栈 + 偏移 `+0x94080` + 最小复现）；
+      抄送 FlagCX（`syncStream` 是否必需）；知会 FlagGems/FlagTree（复核该变量在 xpu3.6 是否仍必要，
+      其回归为单进程单卡、覆盖不到本缺陷）。详见
+      [`prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`](prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md)。
     **i) ⚠️ 规避手段有代价，不可擅改**：不设/设 `0` 该变量后 4/4 全通过，
       但它同时是 **FlagGems kunlunxin 后端的官方推荐变量**
       （`tools/env.sh`、`src/flag_gems/backends.yaml`、CI `P800.yml` 三处均设 1）
