@@ -82,11 +82,21 @@
   - **关键认知：昆仑芯设备 API 走 `torch.cuda`，`torch.xpu` 不可用**
     （编译标志 `USE_XPU=OFF` 实测；选卡变量为 `CUDA_VISIBLE_DEVICES`）→ 已写入接入规范建议。
   - **五域基线**：设备抽象 ✅ / 多流 Stream-Event ✅（**跨流 Event 依赖实测正确**）/
-    FlagGems 算子 ✅（`add` max diff = 0.0）；错误 ⚠️（厂商码不可得）；状态恢复与有界同步**待测**。
+    FlagGems 算子 ✅（`add` max diff = 0.0）；错误 ⚠️（厂商码不可得）；状态恢复仅 probe 级。
+  - **✅ 阶段 1（接入）已完成**：`backends/kunlun/` 落地；
+     **conformance 13/13 + 推理 6/6**；`smoke_runtime.py` **42 通过 / 0 失败**；
+     证据见 `prototype/runtime/conformance/conformance_runtime_kunlun*.json` 与
+     `probes/kunlun/smoke_kunlun_20260914.txt`。
+  - **接入过程暴露并已修 3 个「非昇腾实例才能暴露」的框架/判据缺陷**（与昆仑芯本身无关）：
+     ① `registry` 注册日志急切求值 `info()` → 缺厂商依赖时**中断整个 discover()**；
+     ② conformance `f1` 硬要求厂商错误码，超出其自称的「类别/位置/根因」三投影契约；
+     ③ `smoke_runtime.py` 只覆盖昇腾 → 新增「真实后端通用自检（后端无关）」。
+     三条均已修复并回归（含向后兼容实测），详见接入方案 §7.5。
   - **【需对外提交】2 项**：① 流优先级 `torch.cuda.Stream.priority_range()` 稳定触发
     PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`；② 厂商错误码不透出到 Python 异常。
-  - **9 月产出**：`kunlun` backend + conformance + 训推证据 + **《新芯片接入手册》**
-    + **接口约定修订建议**（P800 是该规范首次被非昇腾芯片检验）→ 完成后 release。
+  - **9 月产出**：~~`kunlun` backend + conformance~~ ✅ 已完成 +
+    训推证据（阶段 2/3 进行中）+ **《新芯片接入手册》** + **接口约定修订建议**
+    （P800 是该规范首个非昇腾实例）→ 完成后 release。
   - 详见环境汇总 / 基线实测 / 接入方案三份文档（`prototype/docs/KUNLUN_P800_*_20260914.md`）。
   - **基座级约束建议（待总组裁定）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
     ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用）。

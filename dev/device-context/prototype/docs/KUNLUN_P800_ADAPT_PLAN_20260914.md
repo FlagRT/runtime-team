@@ -23,10 +23,11 @@
 | 昆仑芯资源 | ✅ 8× P800（96 GB/卡）、1.5 TiB 内存、384 线程；⚠️ **共享机**（25 人在线、22 容器） |
 | 容器 | ✅ `hliu553-device-context-p800` 运行中（镜像 `flaggems-main-dev:202608`，本机镜像库已有，无需 pull） |
 | 调用入口 | `conda activate python310_torch29_cuda` + `export XPU_EVENT_KL3_ENABLE=1`；**设备 API 走 `torch.cuda`** |
-| 单卡五域基线 | 设备抽象 ✅ ｜ 多流 Stream/Event ✅ ｜ 算子 ✅ ｜ 错误 ⚠️ ｜ 状态恢复 ⏳ |
-| 已识别缺失项 | **3 条**：1 项上游缺陷 + 1 项上游约束 + 1 项设计依据（见基线报告 §3） |
-| 距"本方向职责完成"还差 | ① `kunlun` backend + conformance ② 训推验证与简单修复 ③《新芯片接入手册》④ 规范修订建议 ⑤ release |
-| **下一步** | **等你确认本方案 → 启动接入（开始写 `backends/kunlun/`）** |
+| **阶段 1 接入结果** | ✅ **已完成**：`kunlun` backend 落地；conformance **13/13** + 推理 **6/6**；`smoke_runtime.py` **42 通过 / 0 失败** |
+| 单卡五域基线 | 设备抽象 ✅ ｜ 多流 Stream/Event ✅ ｜ 算子 ✅ ｜ 错误 ⚠️（无厂商码）｜ 状态恢复 ⚠️（仅 probe 级） |
+| 已识别问题 | **上游 3 条**（基线报告 §3）**＋ 接入过程暴露并已修 3 条**（§7.5） |
+| 距"本方向职责完成"还差 | ① 训推验证与简单修复 ②《新芯片接入手册》③ 规范修订建议 ④ release |
+| **下一步** | 阶段 2/3：训练腿（多卡）+ 推理腿并行 |
 
 ---
 
@@ -267,7 +268,7 @@ prototype/runtime/backends/
 | 阶段 | 时间 | 交付 | 对应验收 |
 |---|---|---|---|
 | **阶段 0 · 环境与基线** | 2026-09-14 ✅ **已完成** | 环境汇总、五域基线实测、接入路线调研 | — |
-| **阶段 1 · 接入** | 9/14–9/18（本周） | `backends/kunlun/` + `supports()` + `build()` 登记 + smoke + conformance 13/6 | 验收 1–3 |
+| **阶段 1 · 接入** | 9/14 ✅ **已完成** | `backends/kunlun/` + `supports()` + `build()` 登记 + smoke + conformance **13/13 + 6/6** | 验收 1–3 ✅ |
 | **阶段 2 · 训练腿** | 9/21–9/25 | 最小分布式训练（2 卡起，优先 XPU0-1 组内配对）+ 通信三类对照 + 问题分流 | 验收 4 |
 | **阶段 3 · 推理腿** | 9/21–9/25（**与阶段 2 并行**） | 单卡前向 + 服务化，复用 `Qwen3-Embedding-0.6B` | 验收 5 |
 | **阶段 4 · 错误闭环** | 9/21–9/30（穿插） | 昆仑芯错误映射表 v0（异常类型 + 消息模板为键）+ 注入→分级→恢复闭环 | 验收 4–5 |
@@ -284,7 +285,8 @@ prototype/runtime/backends/
 | 2c | └ flagtree | ✅ **xpu3.6 已满足** | 镜像内含 `flagtree 0.6.1+xpu3.6`；升级列为可选实验（§9） |
 | 2d | └ FlagGems | ✅ **已满足** | 镜像内含 `flag_gems 5.3.4`，算子级实测通过（`add` max diff = 0.0）；源码在 `/env/FlagGems` |
 | 2e | └ 五域基线实测 | ✅ **已完成** | [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md) |
-| 3 | **阶段 1**：`kunlun` backend + conformance | ⏳ **待方案确认** | 遵循「方案确认后再实现」，**尚未动代码** |
+| 3 | **阶段 1**：`kunlun` backend + conformance | ✅ **已完成** | `backends/kunlun/` 已实现；conformance **13/13 + 6/6**；smoke **42/0**；证据见 §7.1 |
+| 3a | └ 接入过程修复 | ✅ **已修 3 项** | registry 急切求值缺陷、conformance f1 厂商码假设、smoke 仅覆盖昇腾（详见 §7.5） |
 | 4 | **阶段 2/3**：训练腿 + 推理腿 | ⏳ 待执行（前置已解除） | 可立即启动；训练腿是**暴露问题**的主手段 |
 | 5 | **阶段 4/5**：错误闭环 + 产出与 release | ⏳ 待执行 | 缺失项清单已出 3 条；对外提交单 2 张待起草（§7.4） |
 
@@ -328,8 +330,9 @@ prototype/runtime/backends/
 | 五域基线实测报告 | `prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` | ✅ 已交付 |
 | 探针脚本与原始结果 | `dev/device-context/probes/kunlun/` | ✅ 已交付 |
 | 本方案 | `prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` | ✅ 已交付 |
-| **昆仑芯后端实现** | `prototype/runtime/backends/kunlun/` | ⏳ 阶段 1 |
-| conformance 结果 | `prototype/runtime/conformance/kunlun_*.json` | ⏳ 阶段 1 |
+| **昆仑芯后端实现** | `prototype/runtime/backends/kunlun/`（`backend.py` + `__init__.py`） | ✅ 阶段 1 |
+| **conformance 结果** | `prototype/runtime/conformance/conformance_runtime_kunlun.json`（13/13）、`..._kunlun_infer.json`（6/6） | ✅ 阶段 1 |
+| **组件自检证据** | `dev/device-context/probes/kunlun/smoke_kunlun_20260914.txt`（42 通过 / 0 失败） | ✅ 阶段 1 |
 | 训练腿 / 推理腿结果 | `prototype/runtime/proto/kunlun_*.json` | ⏳ 阶段 2/3 |
 | **《新芯片接入手册》** | `prototype/docs/NEW_CHIP_ONBOARD_GUIDE.md` | ⏳ 阶段 5 |
 | **接口约定修订建议** | `prototype/docs/INTERFACE_CONTRACT_REVISION_<date>.md` | ⏳ 阶段 5 |
@@ -359,6 +362,9 @@ P800 是接口约定**首次被非昇腾芯片检验**，已识别出需要斟�
 | `synchronize_stream(timeout_ms)` **有界同步** | 规范写「超时抛 TimeoutError」，但未定义**底层不支持有界同步时**的降级语义 | 补充降级条款（如降级为无界 + 显式标注能力缺失） |
 | `translate_error` 的 `graded_by` | 规范含 `code_map` / `message_hint`；昆仑芯**无错误码可得** | 明确「仅 message_hint 可用」时的置信度标注要求（`is_grade_confident`） |
 | **厂商判别**要求 | 规范未提「两家厂商可能共用同一 torch 命名空间」 | 在接入规范中补「厂商判别」条款（§3.2 特征表） |
+| **conformance 用例的设备无关性** | ① `f1` 原断言硬要求厂商错误码非空，超出其自称的「类别/位置/根因三投影」；② `t3` 提示文案写死 `torch_npu` | 用例只应依赖统一 API 与 `supports()`；提示文案避免写死厂商名（`f1` 已修，见 §7.5） |
+| **注册流程的副作用** | `registry` 注册日志会触发后端 `info()`，而 `info()` 常需加载厂商依赖；缺依赖时**中断整个发现流程** | 规范要求后端 `info()` 无副作用，且注册/发现不得依赖 `info()` 成功（已修，见 §7.5） |
+| **判据的后端覆盖** | 原 `smoke_runtime.py` 只显式覆盖昇腾，其他后端不被自检 | 判据应设备无关：任何已注册后端都能被同一套自检覆盖（已修，见 §7.5） |
 
 ### 7.4 对外提交物（非我方职责项）
 
@@ -368,6 +374,20 @@ P800 是接口约定**首次被非昇腾芯片检验**，已识别出需要斟�
 | **7.4.2** | 厂商错误码不透出到 Python 异常（`AcceleratorError` 消息无码；仅退出钩子偶见 `error code= 101`） | 上游错误上报层 | `python3 -c "import torch; torch.cuda.set_device(99)"` | ⏳ 待起草 |
 
 **提交单须含**：现象、最小复现、错误原文、初步定位证据、影响面（我方哪个能力被卡）。**提交渠道待确认**（§10）。
+
+### 7.5 本次接入暴露并已修的问题（供《新芯片接入手册》收录）
+
+阶段 1 落地过程中，昆仑芯这一「非昇腾实例」暴露了 3 个**与具体芯片无关的框架/判据缺陷**，
+均在本方向五域内，已按「先简单修复」处理：
+
+| # | 问题 | 现象与根因 | 修复 | 回归证据 |
+|---|---|---|---|---|
+| **1** | **registry 注册日志急切求值** | `logger.debug("...: %s", backend.info())` 的 `info()` **无条件被调用**；`flagos.info()` → `_load()` → `import torch_fl`，在 P800 上抛 `ModuleNotFoundError`，**穿透 `register()` 中断整个 `discover()`**，违背该模块自称的「发现失败仅告警、不中断」 | ① 日志改为 `if logger.isEnabledFor(logging.DEBUG)` 守卫 + `try/except`；② 把 `factory()` 构造与 `register()` 一并纳入 `discover()` 容错 | 修复后 `discover()` 在 P800 上返回 `['ascend','flagos','kunlun']` 且不中断；smoke 42/0 |
+| **2** | **conformance `f1` 硬要求厂商错误码** | 原断言 `fe.error_code is not None` 超出用例自称的「类别/位置/根因三投影」契约，把昇腾/flagos 的 `ret=XXXX` 当成通用前提 → **无厂商码的后端恒 FAIL，与实现质量无关** | 按 `supports("error_map")` 分支：声明者仍要求 `error_code` 非空；未声明者改为要求 `mapped=False` 且类别/根因正确 | **向后兼容已实测**：同一无码错误下，模拟「声明 error_map」的后端仍判 FAIL（既有断言路径一字未改），昆仑芯判 PASS |
+| **3** | **`smoke_runtime.py` 只覆盖昇腾** | 第 [5] 节硬编码 `ascend`，非昇腾后端得不到自检覆盖 | 新增第 **[6] 节「真实后端通用自检（后端无关）」**：按注册表自动挑选可用后端，跑厂商无关契约检查；新增 `--backend` 参数（不传则自动挑选，保持原用法可用）；能力相关项按 `supports()` 如实判定 | `--backend kunlun` 与无参数两种调用均为 **42 通过 / 0 失败** |
+
+> **这三条正是「P800 作为规范首个非昇腾实例」的价值所在**：它们与昆仑芯本身无关，
+> 但在昇腾单实例下永远暴露不出来。已一并写入 §7.3 修订建议，供接口约定升版参考。
 
 ---
 

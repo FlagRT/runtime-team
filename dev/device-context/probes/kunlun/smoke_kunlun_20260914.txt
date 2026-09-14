@@ -1,0 +1,62 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+=== 运行时框架冒烟测试（本地）===
+
+[1] 注册表机制
+  [PASS] 初始无后端 got []
+  [PASS] 未注册时 use 抛 BackendNotFound 
+  [PASS] 注册后可见 got ['mock']
+  [PASS] use 返回后端实例 
+  [PASS] current 一致 
+  [PASS] 后端单例 
+
+[2] 统一 API 转发
+  [PASS] device_count 
+  [PASS] set_device 
+  [PASS] memory_stats 结构 {'total_mb': 65536, 'used_mb': 1024, 'free_mb': 64512}
+  [PASS] create_stream 返回统一 Stream Stream
+  [PASS] Stream 持有后端引用 
+  [PASS] create_event 返回统一 Event Event
+  [PASS] Event 持有后端引用 
+  [PASS] Event.record 可用 
+  [PASS] Event.wait_host 有界 
+  [PASS] 有界同步超时抛 TimeoutError 
+
+[3] 统一错误分级
+  [PASS] 分级为 L2_PARAM 
+  [PASS] 处置 = 上抛 raise
+  [PASS] 重试性 = False 
+  [PASS] 可观测字段 
+  [PASS] 后端名回填 mock
+  [PASS] location 透传 
+  [PASS] __str__ 可读 [L2_PARAM] @ op:matmul :: bad param
+  [PASS] L1-L4 → 处置全映射 
+
+[4] 能力查询
+  [PASS] supports(device) 
+  [PASS] 不支持的能力返回 False 
+  [PASS] info 含 name/device_type/capabilities {'name': 'mock', 'device_type': 'mock', 'capabilities': ['device', 'stream']}
+
+[5] 昇腾后端（需 torch_npu，不可用则跳过）
+  [PASS] ascend 加载 
+  [SKIP] 本地缺少依赖（No module named 'torch_npu'），昇腾后端留待 910C 真机验证
+         （判定：SKIP，不计入失败）
+
+[6] 真实后端通用自检（后端无关）
+  → 选中后端: kunlun  (device_type=cuda)
+  [PASS] device_count > 0 n=8
+  [PASS] memory_stats 结构 {'total_mb': 98304, 'used_mb': 52, 'free_mb': 98252}
+  [PASS] memory_stats total_mb > 0 {'total_mb': 98304, 'used_mb': 52, 'free_mb': 98252}
+  [PASS] 统一 Stream 可用 Stream
+  [PASS] 统一 Event 可用 Event
+  [PASS] Stream.context 上下文可用 
+  [PASS] Event.record + wait_host 有界返回 
+  [PASS] probe_device(0) 
+  [PASS] recover_device 返回 dict（统一契约） {'ordinal': 0, 'mode': 'probe', 'recovered': True, 'detail': 'probe 级探活：设备当前可用'}
+  [PASS] translate_error 返回统一类型 
+  [PASS] translate_error 回填后端名 kunlun
+  [PASS] 未声明 error_map → 分级来源非 code_map（如实） graded_by=message_hint
+  [PASS] info.capabilities 与 supports() 自洽 []
+  [PASS] info.supports 与 supports() 一致 []
+
+=== 结果: 42 通过 / 0 失败 ===
