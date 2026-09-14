@@ -2,7 +2,8 @@
 
 > 目标：把 910C 上已验证的**设备上下文 + 多流 Stream** 能力适配到昆仑芯 P800，
 > **基于既有统一原型接入**（`prototype/runtime/backends/` 插件机制），不另起炉灶。
-> 状态：方案已完成；**实际运行部分待 P800 可访问后执行**（见 §7 阻塞）。
+> 状态：**连接已打通**（见 §7.0）；**实际运行部分因「权限 + 磁盘」资源不足暂停**（见 §7.1）。
+> 环境基线实测数据见 [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md)。
 
 ---
 
@@ -74,24 +75,50 @@ prototype/runtime/backends/
 
 ### 3.2 需要一并实测的环境约束（对标 910C 踩过的坑）
 
-- **带卡容器并发上限**：910C 为 3（超限 `acl.init()` 返 500000）。昆仑芯是否有同类限制？**待实测并记录**。
-- **设备可见性机制**：`ASCEND_RT_VISIBLE_DEVICES` 对应物（XPU 侧环境变量）；
-- **有界同步能力**：910C 有（pyACL `synchronize_stream_with_timeout`），FlagOS 无 —— 昆仑芯待实测；
-- **驱动/SDK 版本锁定**：宿主机 `xpu-smi` 与容器内版本差异（指引显示宿主机 5.0.21.47 / 容器 515.58，属正常分层）。
+#### 3.2.1 已完成实测的部分（2026-09-14，只读探测）
+
+| 项 | 910C 基线 | P800 实测 | 影响 |
+|---|---|---|---|
+| 驱动/SDK 版本 | CANN 9.0 | 宿主 `xpu-smi` **5.0.21.47** / XPU-RT 5.0.21；内核模块 `kunlun` 5.0.21 | 版本已锁定，可写入约束清单 |
+| 设备可见性 | `ASCEND_RT_VISIBLE_DEVICES` | `/dev/xpu0..7` 全局 `crw-rw-rw-`；**未见等价环境变量**（`/etc/profile.d` 无 XPU 配置） | 待容器内确认 XPU 侧变量名 |
+| 卡间互联 | HCCL / RoCE | **XPU0-3（NUMA0）、XPU4-7（NUMA1）组内 XL 私有链路；跨组 SYS** | 训练腿规模设计：**优先组内配对**可避开跨 NUMA |
+| 网卡与卡的亲和 | — | **NIC0-3 ↔ XPU0-3、NIC4-7 ↔ XPU4-7 均为 PIX**，200 Gb RoCE，`PORT_ACTIVE` | 多卡通信路径干净，优于 910C 侧条件 |
+| 网卡直访显存能力 | 910C 待查（HIXL 是否等价 GDR） | **`kunlun_peermem` 模块已加载** | 昆仑芯侧存在类 GDR 原语 → **纳入跨芯片原语调研** |
+| 显存容量 | 910C 64 GB | **96 GB × 8** | 已验证模型规模无压力 |
+| 宿主机内存 | — | **1.5 TiB**（无 swap） | 充裕 |
+| CPU | — | 2× EPYC 9K84 = **384 线程**，2 NUMA | 充裕 |
+| 机器共享程度 | 独占 | **25 人在线、22 容器 shim、272 僵尸进程** | **共享机**，容器须可识别、可回收 |
+| **权限** | hliu553 可用 docker | **不在 `docker` 组；`sudo` 需密码** | ❌ 阻塞（§7.1） |
+| **磁盘** | 数据盘 11 T 可写 | `/` 剩 **2.9 G**；`/data1`、`/data2` **均不可写** | ❌ 阻塞（§7.1） |
+
+#### 3.2.2 仍待实测（必须在容器启动后回答）
+
+1. **带卡容器并发上限**：910C 为 3（超限 `acl.init()` 返 500000）。昆仑芯是否有同类限制？**待实测并记录**；
+2. **有界同步能力**：910C 有（pyACL `synchronize_stream_with_timeout`），FlagOS 无 —— 昆仑芯待实测；
+3. XPU 侧「可见设备」环境变量名与语义；
+4. 容器内 `xpu-smi` 版本（指引称容器内为 515.58，属正常分层，需实测确认）。
+
 
 ---
 
-## 4. 执行步骤（任务 2 → 任务 3）
+## 4. 执行步骤（任务 2 → 任务 3）与当前进度
 
-1. **环境信息汇总**（任务 1，阻塞中）：内存与占用、专用数据盘、CPU 架构、XPU 设备与驱动、Docker 可用性；
-2. **起容器 + 装组件**（任务 2）：
-   - 镜像：`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（pull 59.9GB / load 包 32GB）
-   - 启动参数按指引（`--privileged`、`--device=/dev/xpu0..7`、`/dev/xpuctrl`、`--shm-size=256g`、挂 `/data` `/home`）
-   - flagtree：`pip install flagtree===0.7.0rc1+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（**先卸干净 triton**）
-   - FlagGems：源码 `pip install .[kunlunxin] -i https://pypi.tuna.tsinghua.edu.cn/simple`
-3. **接入原型**：新增 `kunlun` 后端 → 跑 `smoke_runtime.py` 与 conformance（先看接口完备度）；
-4. **最小分布式训练**：跑起来并记录失败点 → 按 §1.3 规则逐个判定归属；
-5. **产出**：适配结果 + 缺失项清单（含归属）+ STATUS.md 更新 + 对外提交单。
+| # | 步骤 | 状态 | 说明 |
+|---|---|---|---|
+| 1 | **环境信息汇总**（任务 1） | ✅ **已完成** | 见 [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md) |
+| 2 | **起容器 + 装组件**（任务 2） | ❌ **资源不足，暂停** | 权限 + 磁盘双阻塞，见 §7.1 |
+| 2a | └ 镜像获取 | ⏳ 待执行 | 优先 `docker load` 本机已有 32 GiB 包（`202606-base`，**需先确认版本适用性**）；否则 pull `202608-base`（59.9 GB） |
+| 2b | └ 容器启动 | ⏳ 待执行 | 按官方指引：`--net=host --privileged --shm-size=256g --ulimit stack=67108864 --ulimit memlock=-1 --ulimit nofile=120000 --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`，`--device=/dev/xpu0..7` + `/dev/xpuctrl` + `/dev/fuse`；**挂载须改为数据盘路径**（官方示例挂 `/data`、`/home` 落在仅剩 2.9 G 的根分区，**不可照搬**） |
+| 2c | └ flagtree 安装 | ⏳ 待执行 | `pip uninstall -y triton`（**反复执行至卸净**）→ `pip install flagtree===0.7.0rc1+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple` |
+| 2d | └ FlagGems 安装 | ⏳ 待执行 | `git clone https://github.com/flagos-ai/FlagGems && cd FlagGems && pip install .[kunlunxin] -i https://pypi.tuna.tsinghua.edu.cn/simple` |
+| 3 | **接入原型**：新增 `kunlun` 后端 → 跑 `smoke_runtime.py` 与 conformance | ⏳ 待执行 | 遵循「**方案确认后再实现**」：本节完成后即视为方案确认，可启动编码 |
+| 4 | **最小分布式训练**：跑通并记录失败点 → 按 §1.3 判定归属 | ⏳ 待执行（依赖步骤 2） | 这是**识别缺失项**的主手段 |
+| 5 | **产出**：适配结果 + 缺失项清单（含归属）+ STATUS.md 更新 + 对外提交单 | ⏳ 待执行 | |
+
+> **关于「先简单运行分布式训练以识别缺失项」**：该步骤按用户要求排在任务 3，
+> 但**必须先把容器跑起来**（步骤 2）。当前资源不足，故**缺失项识别暂无法启动**；
+> §1.3 的归属判定规则已就绪，一旦容器可用即可立即套用。
+
 
 ---
 
@@ -109,20 +136,53 @@ prototype/runtime/backends/
 
 ## 6. 尚未确认、需在实测中回答的问题
 
-1. 昆仑芯是否提供**设备级重置/重建**原语（影响 `recover_device` 的 real 模式）；
-2. XPU Stream/Event 是否具备**跨流依赖**与**有界等待**能力；
-3. XPU 错误码体系（用于新建 `translate_error` 映射表）；
-4. 单机多卡规模与卡间通信方式（用于训练腿验证设计）；
-5. 是否同样存在"带卡容器并发上限"（影响使用规则，若存在需提总组入 v1）。
+| # | 问题 | 状态 |
+|---|---|---|
+| 1 | 昆仑芯是否提供**设备级重置/重建**原语（影响 `recover_device` 的 real 模式） | ⏳ 待实测 |
+| 2 | XPU Stream/Event 是否具备**跨流依赖**与**有界等待**能力 | ⏳ 待实测 |
+| 3 | XPU 错误码体系（用于新建 `translate_error` 映射表） | ⏳ 待实测 |
+| 4 | 单机多卡规模与卡间通信方式 | ✅ **已回答**：单机 8× P800（96 GB/卡）；组内 XL 私有链路、跨组 SYS；另有 8× 200 G RoCE，NIC 与卡 PIX 直连，`kunlun_peermem` 已加载 |
+| 5 | 是否同样存在"带卡容器并发上限" | ⏳ 待实测（910C 为 3，超限 `acl.init()` 返 500000）；若存在需提总组入 v1 |
+
 
 ---
 
-## 7. 阻塞（截至 2026-09-14 09:30）
+## 7. 阻塞
 
-**P800（43.180.254.67）SSH 22 端口 `Connection refused`**：
-- DNS/路由正常：`ping` 通（123ms，0% 丢包）
-- TCP 层面：22、2222、2022、8022、10022、80、443 均不可达（`refused`）
-- `~/.ssh/config` 中 P800 配置存在（`HostName 43.180.254.67`、`User hliu553`，未指定端口与密钥）
+### 7.0 连接阻塞：✅ 已解决（2026-09-14 09:39）
 
-推断为三类之一：① 主机 SSH 服务未启动；② 云安全组/防火墙未放行来源 IP；③ 需经跳板或内网访问。
-**任务 1/2 需待访问方式确认后执行**；任务 3 的方案部分（本文）已完成。
+**根因是端口，不是 VPN/防火墙/沙箱。**
+
+| 项 | 内容 |
+|---|---|
+| 真实连接方式 | `ssh hliu553@43.180.254.67 -p 26008`（**非标准端口**） |
+| 之前失败原因 | `~/.ssh/config` 的 `Host P800` **缺 `Port` 行** → `ssh P800` 默认走 22 → `Connection refused`；且此前只探测了 22/2222/2022/8022/10022/80/443 等常见端口，恰好未试 26008 |
+| 佐证 | TCP 实测 `43.180.254.67:26008 → connect_ex=0 (OK)`；`:22 → connect_ex=61 (FAIL)` |
+| 已修复 | `~/.ssh/config` 的 `Host P800` 增加 `Port 26008` 并加注释；`ssh -G P800` 验证生效 |
+| 免密登录 | 已由使用者执行 `ssh-copy-id -i ~/.ssh/id_ed25519.pub P800`，之后可 `BatchMode` 免密自动化 |
+| 经验教训 | **连不上的第一件事是核对端口与实际生效配置（`ssh -G <host>`），而不是怀疑网络策略** |
+
+### 7.1 资源阻塞：❌ **当前阻塞任务 2**（截至 2026-09-14 10:00）
+
+XPU / 内存 / CPU 三项充裕，**瓶颈在账号权限与存储规划**。详见环境报告的 §7 与 §9–§10。
+
+| # | 阻塞项 | 现状 | 需要的动作 |
+|---|---|---|---|
+| **B1** | **无 docker 权限** | `hliu553` 不在 `docker` 组（组内仅有 `xliu969`、`daizijian`）；`docker ps` → `permission denied`；`sudo` 需密码 | 管理员执行 `sudo usermod -aG docker hliu553`，之后重新登录 |
+| **B2** | **无镜像落盘空间** | docker data-root 为默认 `/var/lib/docker`，位于**仅剩 2.9 GB** 的根分区（98%）；`docker load` 需 32 GB、`docker pull` 需 59.9 GB → **必然失败** | 平台决策：将 docker data-root 迁至数据盘（本机已有先例 `/data1/xianghuang/docker-data`） |
+| **B3** | **无工作目录空间** | `/data1`、`/data2` 顶层均 `root:root 755`，`hliu553` 不可写；`/data` 是根分区上的普通目录（非挂载点） | 管理员执行 `sudo mkdir -p /data2/hliu553 && sudo chown hliu553:hliu553 /data2/hliu553` |
+
+**三项均需落实后任务 2 方可启动**：B1 决定「能不能用 docker」，B2 决定「镜像有没有地方落」（`load` 与 `pull` **都要**写入 data-root，本地包只能省掉 59.9 GB 联网下载，**省不掉 32 GB 落盘**），B3 决定「代码/模型/产物放哪儿」。
+
+### 7.2 需要提请注意的既有资产与版本差异
+
+- 本机已有 **`/data1/dinghaisong/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04.202606-base.tar.gz`**
+  （33.5 GB，**全局可读**，gzip 校验通过）→ 可省去 59.9 GB 联网 pull；
+  但版本为 **`202606-base`**，官方手册当前给出 **`202608-base`**，
+  **使用前须确认 `202606` 是否满足 xpu3.6 要求，不可默认等同**。
+- 共享模型缓存 `/data1/dinghaisong/hf_cache`（1.7 T，可读）中已含
+  **Qwen3-Embedding-0.6B（1.2 G，实测可读）** —— 正是原型验收模型，
+  训练腿/推理腿可直接复用，无需重新下载。
+- **`/data1/songchao` 为 `drwxrwxrwx`（他人目录但全局可写）**，技术上可作为临时落脚点，
+  **但不建议占用他人目录**；如确需使用须先向该目录属主说明。
+
