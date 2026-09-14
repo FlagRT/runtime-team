@@ -511,8 +511,20 @@ Thread 0x... (most recent call first):
 | **B ×3** | **不设** KL3（其余同 A） | ✅ **3/3 通过 120/120** |
 | **C** | 显式 **`XPU_EVENT_KL3_ENABLE=0`** | ✅ 通过 120/120 |
 | **D** | KL3=1 + **纯设备计算（无通信）**，10 万次迭代 | ✅ 通过 |
-| E | KL3=1 + 每次都同步 | ✅ 通过（**单次；第三轮 N=1 重复 2 次均挂死 → 判为偶然**) |
-| **第三轮 N=1 ×2** | KL3=1 + 每次同步（重复） | ❌ **2/2 挂死** |
+| E | KL3=1 + 每次都同步 | ✅ 通过（**单次；第三轮 N=1 重复 2 次均挂死 → 判为偶然**） |
+
+**第三轮（剂量-反应：固定 KL3=1，只改「同步间隔 N」= 同步前积压的通信次数）**
+
+| N（每 N 次通信同步一次） | 结果 |
+|---|---|
+| **1**（×2） | ❌ ❌ **2/2 挂死** |
+| **2** | ❌ 挂死 |
+| **3** | ❌ 挂死（rep=40） |
+| **5** | ✅ 通过 120/120 |
+| **10** | ❌ 挂死（rep=30） |
+
+⇒ **无阈值效应**：N=1 全挂而 N=5 通过、N=10 又挂 ⇒ **同步间隔不是关键变量，挂死是随机的**。
+（第二轮 E 那次通过随之被确认为偶然。）
 
 #### 2.5.4 结论：判别条件是一个「三要素与」
 
@@ -524,8 +536,13 @@ Thread 0x... (most recent call first):
 | 2 | **存在设备集合通信**（flagcx） | D / V8：纯设备计算 → 通过 |
 | 3 | **存在设备同步**（`torch.cuda.synchronize` / event record） | V5 / V7：不做同步 → 通过 |
 
-**实测挂死率**：`KL3=1 + 通信 + 同步` 组合共 10 次运行，**9 次挂死**（≈90%），
-挂死点游走（rep 0 / 20 / 30 / 40 / 70 / 100 均出现过），**与数据量、张量形状、reduce op、用哪对卡均无关**。
+**实测挂死率**：`KL3=1 + 通信 + 同步` 组合共 **14 次运行，12 次挂死（≈86%）**，
+挂死点游走（rep 0 / 20 / 30 / 40 / 70 / 100 均出现过），
+**与数据量、张量形状、reduce op、用哪对卡、同步间隔均无关**。
+
+**精确偏移（给上游定位）**：一次挂死实测 —— `libcuda.so.1`（→ `libxpucuda.so.515.58.kunlun`）
+映射基址 `0x744bb1400000`，自旋帧地址 `0x744bb1494080` ⇒ **偏移 `+0x94080`**
+（该库符号已剥离，gdb 只能给地址；上游可用此偏移对应 release 符号）。
 
 #### 2.5.5 归属判定：**不在我方五域**（证据比 §2.4.9 更强）
 
@@ -552,6 +569,32 @@ Thread 0x... (most recent call first):
 **本方向处置**：① 列为对外提交项（C3，升级为「函数级证据 + 最小复现」）；
 ② **不擅自改我们锁定镜像的环境口径**，仅在探针/诊断场景做对照；
 ③ 在《新芯片接入手册》里记为**已知坑 + 复现命令 + 临时规避**（明确标注"需上游确认后再正式采用"）。
+
+#### 2.5.7 复现方式（可照做）
+
+```bash
+# 1) 取证容器（主容器 ptrace 被 seccomp 拦，故单起一个；用同一镜像与挂载，不动主容器）
+docker run -dit --name hliu553-dc-debug-p800 \
+  --network=bridge --shm-size=64g \
+  --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  --device=/dev/xpu0 --device=/dev/xpu1 --device=/dev/xpu2 --device=/dev/xpu3 \
+  --device=/dev/xpu4 --device=/dev/xpu5 --device=/dev/xpu6 --device=/dev/xpu7 \
+  --device=/dev/xpuctrl --device=/dev/fuse \
+  -v /data2/hliu553:/workspace -w /workspace \
+  flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608 /bin/bash
+
+# 2) 探针组（含挂死自动抓 gdb 原生栈）——脚本在 probes/kunlun/
+docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery.sh   # 第一轮：8 变体
+docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery2.sh  # 第二轮：重复验证
+docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery3.sh  # 第三轮：剂量-反应
+
+# 3) 单点复现（最小）：KL3=1 + 集合通信 + 同步
+CUDA_VISIBLE_DEVICES=6,7 FLAGCX_ADAPTOR=klx XPU_EVENT_KL3_ENABLE=1 \
+  python3 -m torch.distributed.run --standalone --nproc_per_node=2 dc_probe_rep.py
+#   对照：去掉 XPU_EVENT_KL3_ENABLE 或把 MODE 设为 ar_nosync（不同步）→ 未观测到挂死
+```
+
+**注意**：用卡前先 `xpu-smi` 挑**连续且空闲**的卡；挂死进程 `kill -9` 才能清掉（`timeout` 的 SIGTERM 无效）。
 
 ---
 
