@@ -112,6 +112,21 @@
       而 910C 上同一套训练腿 50 步稳定跑通（2117 tok/s）
       ⇒ 不是 FlagCX 整体不可用，而是 **P800 这一份构建/适配的问题** → 列为候选对外提交项（§7.4 C3），
       定案前需补：换卡复现 + 向上游确认（日志含 `[[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK]`）。
+    **g) ⭐ 根因已定位到函数级（第二轮深挖）**：自建带 `SYS_PTRACE` 的调试容器 + gdb，
+      抓到**三处挂死点**，全部在厂商 `libcuda.so`（实为 `libxpucuda.so` 兼容层）与
+      flagcx c10d 插件的交界处：
+      ① `torch.cuda.synchronize()` → `cudaDeviceSynchronize` → 厂商 libcuda **用户态自旋**；
+      ② `c10d::flagcxBackend::allreduce` → **`flagcxBackend::syncStream`** → `CUDAEvent::record`
+         → `cudaEventRecordWithFlags` → 厂商 libcuda 自旋（含 `sched_yield`）；
+      ③ 通信域**首次初始化**死锁：rank1 阻塞在 `bkcl::net_socket_all_gather` 的 `recv()`，
+         rank0 卡在 `bkcl::kl3::init_device_param` → `xpu_free`。
+    **h) 判别条件（单变量探针 20 次运行）**：挂死需**同时**满足
+      「`XPU_EVENT_KL3_ENABLE=1`」+「设备集合通信」+「设备同步」三条，缺一不挂；
+      该组合 10 次运行 9 次挂死（≈90%），挂死点游走，**与数据量/形状/reduce op/用卡对无关**。
+    **i) ⚠️ 规避手段有代价，不可擅改**：不设/设 `0` 该变量后 4/4 全通过，
+      但它同时是 **FlagGems kunlunxin 后端的官方推荐变量**
+      （`tools/env.sh`、`src/flag_gems/backends.yaml`、CI `P800.yml` 三处均设 1）
+      ⇒ 是否可关须上游确认，**本方向不擅自改锁定镜像口径**。
     **f) 实操教训**：`timeout` 的 SIGTERM **无法中断**这类挂死进程（挂死点持 GIL 自旋、信号被推迟），
       清理必须 `kill -9` 并按 PID 强杀，再复查 `xpu-smi` 确认卡释放。
     **c) ⚠️ 一次需要更正的判断**：曾把首次失败（卡 0,1 报 KL3 内核异常 `status=299`；

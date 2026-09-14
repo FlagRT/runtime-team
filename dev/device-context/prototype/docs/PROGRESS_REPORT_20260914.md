@@ -465,6 +465,94 @@ Thread 0x... (most recent call first):
 |---|---|
 | **`timeout` 的 SIGTERM 无法中断这类挂死进程** | 挂死点持有 GIL 自旋、信号被推迟 ⇒ `timeout 120` 到点后进程**仍存活 73 分钟**。清理必须 `kill -9` + 按 PID 强杀，并**复查 `xpu-smi` 确认卡已释放**（本轮已清理：容器内无遗留进程，卡 6,7 归零） |
 
+### 2.5 ⭐ 根因定位（第二轮深挖：gdb 原生栈 + 单变量探针对照）
+
+#### 2.5.1 方法：从「现象」升级到「函数级证据」
+
+第 2.4 阶段只能证明「反复集合通信会挂」。本次**换了取证手段**：发现容器内有 `gdb`，
+于是自建一个**带 `SYS_PTRACE` + `seccomp=unconfined` 的独立调试容器**（不动主容器），
+配合「探针组 + 挂死自动抓栈」的脚本，把挂死点定位到**函数级**。
+
+> 主容器 ptrace 被 seccomp 拦住（`ptrace: Inappropriate ioctl for device`）；
+> 调试容器 `hliu553-dc-debug-p800` 专门用于取证，**不改变主容器配置**。
+
+#### 2.5.2 三处挂死点（全部在 vendor `libcuda` 与 flagcx/BKCL 的交界处）
+
+| 挂死点 | 原生栈（gdb 实测） | 观测变体 |
+|---|---|---|
+| **H1** `cudaDeviceSynchronize` 用户态自旋 | `torch.cuda.synchronize()` → `THCPModule_cudaSynchronize` → `c10::cuda::device_synchronize()` → `cudaDeviceSynchronize` → **厂商 `libcuda.so.1` 内 8 层无符号帧自旋** | V1、V4、A1–A3 |
+| **H2** `cudaEventRecordWithFlags` 自旋（**含 `sched_yield`**） | `c10d::ops::allreduce_CUDA` → `c10d::flagcxBackend::allreduce` → **`flagcxBackend::syncStream`** → `at::cuda::CUDAEvent::record` → `cudaEventRecordWithFlags` → 厂商 `libcuda.so.1` 自旋 | V6 |
+| **H3** 通信域**首次初始化**死锁 | rank1：`flagcxBackend::initComm` → `flagcxCommInitRank` → `flagcxHomoCommInit` → `xcclAdaptorCommInitRank`（`xccl_adaptor.cc:87`）→ `bkcl::init_rank` → **`bkcl::net_socket_all_gather` 的 `recv()` 阻塞**；rank0：同一初始化路径但**卡在 `bkcl::kl3::init_device_param` → `xpu_free`** | V2 |
+
+**关键旁证**：`libcuda.so.1` 实为符号 **`libxpucuda.so`**（厂商 CUDA 兼容层，符号已剥离，故 gdb 只能给地址）。
+两个 rank 的主线程栈**完全一致**，所有其它线程处于 `pthread_cond_wait`（BKCL 代理线程在 `bkcl::util::BlockingQueue::pop` 上空闲）
+⇒ **不是锁竞争、不是我方代码**，而是厂商同步原语「有工作未完成」的永久等待。
+
+#### 2.5.3 单变量对照（第一轮 8 组 + 第二轮重复验证）
+
+**第一轮（每个条件只改一个变量）**
+
+| 变体 | 变化 | 结果 |
+|---|---|---|
+| V1_base | 基线（KL3=1、SUM、每 10 次同步） | ❌ 挂死 |
+| V2_cards12 | 换卡 1,2 | ❌ 挂死 → **与卡无关** |
+| **V3_noevent** | **不设 `XPU_EVENT_KL3_ENABLE`** | ✅ **120/120** |
+| V4_gcmask | `BKCL_GC_SIGNAL_MASK=1` | ❌ 挂死 → **该开关无效** |
+| **V5_nosync** | **循环内不做设备同步** | ✅ **120/120** |
+| V6_max | `op=MAX` | ❌ 挂死 → **与 reduce op 无关** |
+| V7_barrier | 只做 `dist.barrier()`（无同步） | ✅ 120/120 |
+| V8_devonly | 单进程纯设备计算（无通信） | ✅ 完成 |
+
+**第二轮（重复验证 + 补对照）**
+
+| 组 | 条件 | 结果 |
+|---|---|---|
+| **A ×3** | `XPU_EVENT_KL3_ENABLE=1` + 集合通信 + 同步 | ❌ **3/3 挂死**（rep=20 / 40 / 70） |
+| **B ×3** | **不设** KL3（其余同 A） | ✅ **3/3 通过 120/120** |
+| **C** | 显式 **`XPU_EVENT_KL3_ENABLE=0`** | ✅ 通过 120/120 |
+| **D** | KL3=1 + **纯设备计算（无通信）**，10 万次迭代 | ✅ 通过 |
+| E | KL3=1 + 每次都同步 | ✅ 通过（**单次；第三轮 N=1 重复 2 次均挂死 → 判为偶然**) |
+| **第三轮 N=1 ×2** | KL3=1 + 每次同步（重复） | ❌ **2/2 挂死** |
+
+#### 2.5.4 结论：判别条件是一个「三要素与」
+
+> **同时满足以下三条才会挂死，缺任一条均未观测到挂死：**
+
+| # | 条件 | 反证（缺它就不挂） |
+|---|---|---|
+| 1 | **`XPU_EVENT_KL3_ENABLE=1`** | B/C 组：不设或设 0 → 4/4 通过 |
+| 2 | **存在设备集合通信**（flagcx） | D / V8：纯设备计算 → 通过 |
+| 3 | **存在设备同步**（`torch.cuda.synchronize` / event record） | V5 / V7：不做同步 → 通过 |
+
+**实测挂死率**：`KL3=1 + 通信 + 同步` 组合共 10 次运行，**9 次挂死**（≈90%），
+挂死点游走（rep 0 / 20 / 30 / 40 / 70 / 100 均出现过），**与数据量、张量形状、reduce op、用哪对卡均无关**。
+
+#### 2.5.5 归属判定：**不在我方五域**（证据比 §2.4.9 更强）
+
+- 探针全程使用**裸 `torch.distributed.all_reduce` / `dist.barrier()` / `torch.cuda.synchronize()`**，
+  **没有经过我方 `RuntimeBackend` 任何一层**；
+- 挂死点落在 **厂商 `libcuda.so`（`libxpucuda.so`）** 与 **flagcx c10d 插件（`flagcxBackend::syncStream`）** 内；
+- 910C 上同款训练腿 50 步稳定（2117 tok/s）⇒ 不是 FlagCX 整体问题，也不是我们的抽象层问题。
+
+⇒ **对外提交对象：① 昆仑芯 XPytorch / XRE（`libxpucuda.so` 的 `cudaDeviceSynchronize` 与 `cudaEventRecordWithFlags` 在 KL3 事件开启时可能永久自旋）；② flagcx c10d 插件（`syncStream` 路径）。**
+
+#### 2.5.6 ⚠️ 规避手段与其代价（**不能简单当成开关**）
+
+实测**不设 / 设 0** 该变量后，**4/4 次全部通过**。但**不能直接建议关闭**，因为：
+
+| 出处 | 内容 |
+|---|---|
+| `FlagGems/tools/env.sh`（`kunlunxin)` 分支） | `export XPU_EVENT_KL3_ENABLE=1` —— 官方环境脚本里就这么写 |
+| `FlagGems/src/flag_gems/backends.yaml`（`kunlunxin:` 段） | `env: XPU_EVENT_KL3_ENABLE: "1"` |
+| `FlagGems/.github/configs/weekly/P800.yml` | CI 环境里也设 `1` |
+
+⇒ 它是 **FlagGems kunlunxin 后端的官方推荐环境变量**（我们当初也是照此设置）。
+**关闭它可能掩盖厂商的 KL3 设备事件/异常上报**，是否安全必须由上游确认。
+
+**本方向处置**：① 列为对外提交项（C3，升级为「函数级证据 + 最小复现」）；
+② **不擅自改我们锁定镜像的环境口径**，仅在探针/诊断场景做对照；
+③ 在《新芯片接入手册》里记为**已知坑 + 复现命令 + 临时规避**（明确标注"需上游确认后再正式采用"）。
+
 ---
 
 ## 3. 待办总清单（按「谁来做」分类）
