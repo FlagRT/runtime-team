@@ -77,13 +77,16 @@
   - 算力/内存/CPU **充足**：8× P800（96 GB/卡，全部空闲）、1.5 TiB 内存、384 线程；
   - **B1 无 docker 权限**：`hliu553` 不在 `docker` 组，`sudo` 需密码 → 请管理员执行
     `sudo usermod -aG docker hliu553`（执行后重新登录）；
-  - **B2 无镜像落盘空间**：docker data-root 在**仅剩 2.9 GB（98% 满）**的根分区，
-    而 `docker load` 需 32 GB、`docker pull` 需 59.9 GB → **必然失败**；
-    本机已有既有做法 `/data1/xianghuang/docker-data`（data-root 外移到数据盘），请平台决策；
-  - **B3 无工作目录空间**：`/data1`、`/data2`（各 5.8 TB）顶层均不可写 → 请管理员执行
+  - **B2 无自有工作目录**：`/data1`、`/data2`（各 5.8 TB）顶层均不可写 → 请执行
     `sudo mkdir -p /data2/hliu553 && sudo chown hliu553:hliu553 /data2/hliu553`；
-  - **基座级约束建议（待总组裁定是否跨方向登记）**：在 P800 机器上**镜像与工作数据必须落在数据盘**，
-    默认 data-root 的 docker 使用会撞根分区容量墙——这条对全组在 P800 上的工作都成立；
+  - **（已撤销）镜像落盘不构成阻塞**：本机 `/var/lib/docker` 已 **bind mount 到 `/data1`**
+    （5.8 TB NVMe，剩 1.5 TB），`findmnt -T /var/lib/docker` 证实；
+    初版曾误判「根分区 98% 满会导致镜像加载失败」，已更正（误因：`du -x` 跨文件系统即停止，
+    不该把 `/var/lib/docker` 计入根分区占用）；
+  - **根分区 98%（剩 2.9 GB）属机器健康问题**：可读部分仅 11 GB，
+    约 80 GB 位于无权限目录，需 root 复查；**不影响本方向**，建议一并提平台；
+  - **基座级约束建议（待总组裁定是否跨方向登记）**：昆仑芯机器的 **docker 权限 + 自有可写数据目录**
+    是使用前置条件（与 910C 「带卡容器并发上限 3」同类）；
   - 可复用资产：本机已有 flagtree xpu3.6 镜像包（**`202606-base`**，32 GiB，全局可读，
     **版本需与官方手册的 `202608-base` 核对**）；共享 `hf_cache` 中已有 **Qwen3-Embedding-0.6B**（可读），
     即原型验收模型，无需重新下载。

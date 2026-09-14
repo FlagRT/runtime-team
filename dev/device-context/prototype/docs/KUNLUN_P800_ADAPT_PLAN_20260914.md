@@ -2,7 +2,7 @@
 
 > 目标：把 910C 上已验证的**设备上下文 + 多流 Stream** 能力适配到昆仑芯 P800，
 > **基于既有统一原型接入**（`prototype/runtime/backends/` 插件机制），不另起炉灶。
-> 状态：**连接已打通**（见 §7.0）；**实际运行部分因「权限 + 磁盘」资源不足暂停**（见 §7.1）。
+> 状态：**连接已打通**（见 §7.0）；**实际运行部分因账号权限不足暂停**（见 §7.1）。
 > 环境基线实测数据见 [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md)。
 
 ---
@@ -98,8 +98,9 @@ prototype/runtime/backends/
 | 宿主机内存 | — | **1.5 TiB**（无 swap） | 充裕 |
 | CPU | — | 2× EPYC 9K84 = **384 线程**，2 NUMA | 充裕 |
 | 机器共享程度 | 独占 | **25 人在线、22 容器 shim、272 僵尸进程** | **共享机**，容器须可识别、可回收 |
-| **权限** | hliu553 可用 docker | **不在 `docker` 组；`sudo` 需密码** | ❌ 阻塞（§7.1） |
-| **磁盘** | 数据盘 11 T 可写 | `/` 剩 **2.9 G**；`/data1`、`/data2` **均不可写** | ❌ 阻塞（§7.1） |
+| **权限** | hliu553 可用 docker | **不在 `docker` 组；`sudo` 需密码** | ❌ 阻塞（§7.1 B1） |
+| **镜像落盘** | 数据盘 11 T | `/var/lib/docker` **已 bind mount 到 `/data1`（5.8 T NVMe），剩 1.5 T** | ✅ **充足**（初版曾误判为阻塞） |
+| **工作目录** | 数据盘可写 | `/data1`、`/data2` 顶层**均不可写** | ❌ 阻塞（§7.1 B2） |
 
 #### 3.2.2 仍待实测（必须在容器启动后回答）
 
@@ -116,7 +117,7 @@ prototype/runtime/backends/
 | # | 步骤 | 状态 | 说明 |
 |---|---|---|---|
 | 1 | **环境信息汇总**（任务 1） | ✅ **已完成** | 见 [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md) |
-| 2 | **起容器 + 装组件**（任务 2） | ❌ **资源不足，暂停** | 权限 + 磁盘双阻塞，见 §7.1 |
+| 2 | **起容器 + 装组件**（任务 2） | ❌ **权限不足，暂停** | B1 docker 组 / B2 工作目录，见 §7.1 |
 | 2a | └ 镜像获取 | ⏳ 待执行 | 优先 `docker load` 本机已有 32 GiB 包（`202606-base`，**需先确认版本适用性**）；否则 pull `202608-base`（59.9 GB） |
 | 2b | └ 容器启动 | ⏳ 待执行 | 按官方指引：`--net=host --privileged --shm-size=256g --ulimit stack=67108864 --ulimit memlock=-1 --ulimit nofile=120000 --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`，`--device=/dev/xpu0..7` + `/dev/xpuctrl` + `/dev/fuse`；**挂载须改为数据盘路径**（官方示例挂 `/data`、`/home` 落在仅剩 2.9 G 的根分区，**不可照搬**） |
 | 2c | └ flagtree 安装 | ⏳ 待执行 | `pip uninstall -y triton`（**反复执行至卸净**）→ `pip install flagtree===0.7.0rc1+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple` |
@@ -126,7 +127,7 @@ prototype/runtime/backends/
 | 5 | **产出**：适配结果 + 缺失项清单（含归属）+ STATUS.md 更新 + 对外提交单 | ⏳ 待执行 | |
 
 > **关于「先简单运行分布式训练以识别缺失项」**：该步骤按用户要求排在任务 3，
-> 但**必须先把容器跑起来**（步骤 2）。当前资源不足，故**缺失项识别暂无法启动**；
+> 但**必须先把容器跑起来**（步骤 2）。当前账号权限不足，故**缺失项识别暂无法启动**；
 > §1.3 的归属判定规则已就绪，一旦容器可用即可立即套用。
 
 
@@ -174,15 +175,22 @@ prototype/runtime/backends/
 
 ### 7.1 资源阻塞：❌ **当前阻塞任务 2**（截至 2026-09-14 10:00）
 
-XPU / 内存 / CPU 三项充裕，**瓶颈在账号权限与存储规划**。详见环境报告的 §7 与 §9–§10。
+XPU / 内存 / CPU / **镜像落盘空间**均已具备，瓶颈**只在账号权限**。详见环境报告的 §5.3、§9–§10。
 
 | # | 阻塞项 | 现状 | 需要的动作 |
 |---|---|---|---|
-| **B1** | **无 docker 权限** | `hliu553` 不在 `docker` 组（组内仅有 `xliu969`、`daizijian`）；`docker ps` → `permission denied`；`sudo` 需密码 | 管理员执行 `sudo usermod -aG docker hliu553`，之后重新登录 |
-| **B2** | **无镜像落盘空间** | docker data-root 为默认 `/var/lib/docker`，位于**仅剩 2.9 GB** 的根分区（98%）；`docker load` 需 32 GB、`docker pull` 需 59.9 GB → **必然失败** | 平台决策：将 docker data-root 迁至数据盘（本机已有先例 `/data1/xianghuang/docker-data`） |
-| **B3** | **无工作目录空间** | `/data1`、`/data2` 顶层均 `root:root 755`，`hliu553` 不可写；`/data` 是根分区上的普通目录（非挂载点） | 管理员执行 `sudo mkdir -p /data2/hliu553 && sudo chown hliu553:hliu553 /data2/hliu553` |
+| **B1** | **无 docker 权限** | `hliu553` 不在 `docker` 组（组内仅有 `xliu969`、`daizijian`）；`docker ps` → `permission denied`；`/var/run/docker.sock` 为 `srw-rw---- root docker`；`sudo` 需密码 | `sudo usermod -aG docker hliu553`，之后**新开 SSH 会话**生效 |
+| **B2** | **无自有工作目录** | `/data1`、`/data2` 顶层均 `root:root 755`，`hliu553` 不可写；`/data` 是根分区上的普通目录（非挂载点） | `sudo mkdir -p /data2/hliu553 && sudo chown hliu553:hliu553 /data2/hliu553` |
 
-**三项均需落实后任务 2 方可启动**：B1 决定「能不能用 docker」，B2 决定「镜像有没有地方落」（`load` 与 `pull` **都要**写入 data-root，本地包只能省掉 59.9 GB 联网下载，**省不掉 32 GB 落盘**），B3 决定「代码/模型/产物放哪儿」。
+**两项落实后任务 2 即可启动。**
+
+> **已撤销的阻塞项（初版误判，保留记录）**
+> 初版曾列 **「B2 无镜像落盘空间」**，理由是「docker data-root 在只剩 2.9 GB 的根分区」——
+> **该判断错误**。`findmnt -T /var/lib/docker` 显示：
+> `/var/lib/docker → /dev/nvme0n1p1[/xianghuang/docker-data/docker]`，
+> 即 **该机器早已把 docker 数据目录 bind mount 到 5.8 TB 数据盘上，尚有 1.5 TB 可用**。
+> 误因：拿 `du -xhd1 /` 的可读合计（11 G）与 `df` 的已用（91 G）求差并归因给 docker，
+> 而 `du -x` 遇跨文件系统即停止，`/var/lib/docker` 本就不该出现其中。
 
 ### 7.2 需要提请注意的既有资产与版本差异
 
