@@ -70,26 +70,26 @@
 - **训练腿 torch_fl 例外的退出口径**：v1 记有 TODO「10 月起评估训练腿切回 Route A 的成本」，
   请总组给出时间表与责任方（涉及镜像是否需出带 torch_npu 的版本）。
 - **通信接口约定**待分布式方向回复（启动方式 / flagcx 接口形态 / 对照用例归属 / 训练镜像是否换版）。
-- **昆仑芯 P800 资源阻塞（2026-09-14 新增，需协调）**：连接已打通（非标准端口 26008），
-  但**本方向账号在 P800 上无法启动容器**，任务 2/3 暂停。环境基线实测见
-  [`prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md`](prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md)，
-  适配方案见 [`prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md`](prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md)。
-  - 算力/内存/CPU **充足**：8× P800（96 GB/卡，全部空闲）、1.5 TiB 内存、384 线程；
-  - **B1 无 docker 权限**：`hliu553` 不在 `docker` 组，`sudo` 需密码 → 请管理员执行
-    `sudo usermod -aG docker hliu553`（执行后重新登录）；
-  - **B2 无自有工作目录**：`/data1`、`/data2`（各 5.8 TB）顶层均不可写 → 请执行
-    `sudo mkdir -p /data2/hliu553 && sudo chown hliu553:hliu553 /data2/hliu553`；
-  - **（已撤销）镜像落盘不构成阻塞**：本机 `/var/lib/docker` 已 **bind mount 到 `/data1`**
-    （5.8 TB NVMe，剩 1.5 TB），`findmnt -T /var/lib/docker` 证实；
-    初版曾误判「根分区 98% 满会导致镜像加载失败」，已更正（误因：`du -x` 跨文件系统即停止，
-    不该把 `/var/lib/docker` 计入根分区占用）；
-  - **根分区 98%（剩 2.9 GB）属机器健康问题**：可读部分仅 11 GB，
-    约 80 GB 位于无权限目录，需 root 复查；**不影响本方向**，建议一并提平台；
-  - **基座级约束建议（待总组裁定是否跨方向登记）**：昆仑芯机器的 **docker 权限 + 自有可写数据目录**
-    是使用前置条件（与 910C 「带卡容器并发上限 3」同类）；
-  - 可复用资产：本机已有 flagtree xpu3.6 镜像包（**`202606-base`**，32 GiB，全局可读，
-    **版本需与官方手册的 `202608-base` 核对**）；共享 `hf_cache` 中已有 **Qwen3-Embedding-0.6B**（可读），
-    即原型验收模型，无需重新下载。
+- **昆仑芯 P800：阻塞已全部解除，任务 2 已完成（2026-09-14 更新）**：连接（非标准端口 26008）、
+  `docker` 组、`/data2/hliu553` 工作目录**三项均已解决**；容器 `hliu553-device-context-p800` 运行中。
+  - **算力/内存/CPU/镜像落盘均充足**：8× P800（96 GB/卡，全空闲）、1.5 TiB 内存、384 线程；
+    镜像 `flaggems-main-dev:202608`（38.3 GB）**本机镜像库已有** → 手册的 59.9 GB pull 与
+    32 GB load **全部跳过**；FlagGems 源码亦已在容器内 `/env/FlagGems`（github clone，无需联网）。
+  - **关键认知：昆仑芯设备 API 走 `torch.cuda`，`torch.xpu` 不可用**
+    （XPytorch + 符号重写；官方 xpu3.6 单测 `--device` 默认值即为 `cuda`）→ 已固化进调用契约。
+  - **五域基线**：设备抽象 ✅ / 多流 Stream-Event ✅（**跨流 Event 依赖语义实测正确**）/
+    FlagGems 算子 ✅（`add` max diff = 0.0）；状态恢复与有界同步**待补测**。
+  - **【需对外提交 · 上游缺陷】流优先级**：`torch.cuda.Stream.priority_range()` 稳定触发
+    PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188` →
+    本方向 `supports()` 如实声明不支持、conformance 如实跳过。
+  - **【需对外提交 · 上游约束】厂商错误码不透出**：Python 异常消息中拿不到昆仑芯错误码
+    （仅进程退出钩子偶见 `error code= 101, invalid device ordinal`）→
+    错误映射表暂以「**异常类型 + 消息模板**」为键建立，不依赖数字码。
+  - 详见环境汇总 [`KUNLUN_P800_ENV_REPORT_20260914.md`](prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md)、
+    基线实测 [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md)、
+    适配方案 [`KUNLUN_P800_ADAPT_PLAN_20260914.md`](prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md)。
+  - **基座级约束建议（待总组裁定是否跨方向登记）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
+    ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用，建议写入基座说明）。
 - 本方向**不自行更换基座**，上述诉求提交总组裁定。
 
 ---

@@ -112,23 +112,24 @@ prototype/runtime/backends/
 
 ---
 
-## 4. 执行步骤（任务 2 → 任务 3）与当前进度
+## 4. 执行步骤（任务 2 → 任务 3）与当前进度（截至 2026-09-14 11:00）
 
 | # | 步骤 | 状态 | 说明 |
 |---|---|---|---|
 | 1 | **环境信息汇总**（任务 1） | ✅ **已完成** | 见 [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md) |
-| 2 | **起容器 + 装组件**（任务 2） | ❌ **权限不足，暂停** | B1 docker 组 / B2 工作目录，见 §7.1 |
-| 2a | └ 镜像获取 | ⏳ 待执行 | 优先 `docker load` 本机已有 32 GiB 包（`202606-base`，**需先确认版本适用性**）；否则 pull `202608-base`（59.9 GB） |
-| 2b | └ 容器启动 | ⏳ 待执行 | 按官方指引：`--net=host --privileged --shm-size=256g --ulimit stack=67108864 --ulimit memlock=-1 --ulimit nofile=120000 --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`，`--device=/dev/xpu0..7` + `/dev/xpuctrl` + `/dev/fuse`；**挂载须改为数据盘路径**（官方示例挂 `/data`、`/home` 落在仅剩 2.9 G 的根分区，**不可照搬**） |
-| 2c | └ flagtree 安装 | ⏳ 待执行 | `pip uninstall -y triton`（**反复执行至卸净**）→ `pip install flagtree===0.7.0rc1+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple` |
-| 2d | └ FlagGems 安装 | ⏳ 待执行 | `git clone https://github.com/flagos-ai/FlagGems && cd FlagGems && pip install .[kunlunxin] -i https://pypi.tuna.tsinghua.edu.cn/simple` |
-| 3 | **接入原型**：新增 `kunlun` 后端 → 跑 `smoke_runtime.py` 与 conformance | ⏳ 待执行 | 遵循「**方案确认后再实现**」：本节完成后即视为方案确认，可启动编码 |
-| 4 | **最小分布式训练**：跑通并记录失败点 → 按 §1.3 判定归属 | ⏳ 待执行（依赖步骤 2） | 这是**识别缺失项**的主手段 |
-| 5 | **产出**：适配结果 + 缺失项清单（含归属）+ STATUS.md 更新 + 对外提交单 | ⏳ 待执行 | |
+| 2 | **起容器 + 装组件**（任务 2） | ✅ **已完成** | 权限已解（docker 组 + `/data2/hliu553`），容器 `hliu553-device-context-p800` 运行中 |
+| 2a | └ 镜像获取 | ✅ **无需拉取** | 本机镜像库已有 `flaggems-main-dev:202608`（38.3 GB）与 `ubuntu22.04:202606-base`（34.7 GB）→ 手册的 59.9 GB pull / 32 GB load **全部跳过** |
+| 2b | └ 容器启动 | ✅ **已完成** | 用本机**已跑通容器的等价配置**（非 privileged / bridge / `--shm-size=64g` / `/dev/xpu0..7`+`xpuctrl`+`fuse`），挂 `/data2/hliu553:/workspace` |
+| 2c | └ flagtree | ✅ **xpu3.6 已满足** | 镜像内含 **`flagtree 0.6.1+xpu3.6`**；手册最新为 `0.7.0rc1+xpu3.6` → **升级列为可选单变量实验**，非阻塞（见 §8） |
+| 2d | └ FlagGems | ✅ **已满足** | 镜像内含 `flag_gems 5.3.4.post1.dev12`，**算子级实测通过**（`add` max diff = 0.0）；源码已在容器内 `/env/FlagGems`（github clone），**无需联网** |
+| 2e | └ **五域基线实测** | ✅ **已完成** | 见 [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md)；识别出 **1 缺陷 + 1 约束 + 1 设计依据** |
+| 3 | **接入原型**：新增 `kunlun` 后端 → 跑 `smoke_runtime.py` 与 conformance | ⏳ **待方案确认** | 遵循「方案确认后再实现」，**尚未动代码** |
+| 4 | **最小分布式训练**：跑通并记录失败点 → 按 §1.3 判定归属 | ⏳ 待执行（**前置已解除**） | 这是**识别缺失项**的主手段；可立即启动 |
+| 5 | **产出**：适配结果 + 缺失项清单（含归属）+ STATUS.md 更新 + 对外提交单 | 🔄 **进行中** | 缺失项清单已出 3 条（§3），对外提交单 2 张待起草 |
 
-> **关于「先简单运行分布式训练以识别缺失项」**：该步骤按用户要求排在任务 3，
-> 但**必须先把容器跑起来**（步骤 2）。当前账号权限不足，故**缺失项识别暂无法启动**；
-> §1.3 的归属判定规则已就绪，一旦容器可用即可立即套用。
+> **关于「先简单运行分布式训练以识别缺失项」**：步骤 2 已打通（容器运行中、镜像与组件均就绪），
+> 该步骤的**前置已解除，可立即启动**。本报告已先通过**单卡五域探针**取到第一批缺失项（§3），
+> 分布式训练将补充**多卡与集合通信**维度的缺失项。
 
 
 ---
@@ -138,6 +139,8 @@ prototype/runtime/backends/
 | 交付物 | 位置 |
 |---|---|
 | 昆仑芯后端实现 | `prototype/runtime/backends/kunlun/` |
+| **探针脚本与原始结果** | `dev/device-context/probes/kunlun/`（`dc_probe_p800.py`、`dc_probe_isolated.py` + 两份 json） |
+| **基线实测报告** | `prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` |
 | conformance 结果 | `prototype/runtime/conformance/kunlun_*.json` |
 | 适配记录（含缺失项与归属） | `prototype/docs/KUNLUN_ADAPT_RECORD_<date>.md` |
 | 本方向状态更新 | `dev/device-context/STATUS.md`（每周三） |
@@ -204,3 +207,32 @@ XPU / 内存 / CPU / **镜像落盘空间**均已具备，瓶颈**只在账号�
 - **`/data1/songchao` 为 `drwxrwxrwx`（他人目录但全局可写）**，技术上可作为临时落脚点，
   **但不建议占用他人目录**；如确需使用须先向该目录属主说明。
 
+---
+
+## 8. 可选实验（非阻塞）：flagtree 0.6.1 → 0.7.0rc1
+
+**现状**：镜像 `flaggems-main-dev:202608` 内含 **`flagtree 0.6.1+xpu3.6`**（xpu3.6 后端已满足），
+且已实测**算子级可用**（FlagGems `add` max diff = 0.0）。官方手册的免源码安装行给出的是
+**`flagtree===0.7.0rc1+xpu3.6`**。
+
+**为什么不立即升级**：镜像的 `flagtree + flag_gems + torch` 是一套**被验证过的组合**，
+贸然升级会把「接入验证」与「版本升级」两个变量混在一起，违反单变量原则。
+
+**升级实验设计（需要时再跑，同样单变量）**
+
+```bash
+# 与基线隔离：先在容器内快照现状，再升级，复跑同一探针对比
+python3 -m pip freeze > /workspace/pin_before_$(date +%Y%m%d_%H%M).txt
+python3 -m pip uninstall -y triton          # 反复执行至卸净
+python3 -m pip install flagtree===0.7.0rc1+xpu3.6 \
+  --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+# 复跑同一探针，逐项对比 /workspace/dc_probe_isolated_result.json
+```
+
+**判据**：① 8 卡仍可见；② FlagGems 算子 max diff 仍为 0；③ **流优先级缺陷是否消失**（§3.1）；
+④ 无新增报错。任一不满足即回滚镜像（容器可重建，回滚成本为零）。
+
+**来源**：官方手册 [User manual for xpu](https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu)；
+网络实测 `resource.flagos.net` 与 `pypi.tuna.tsinghua.edu.cn` 在容器内**可达（HTTP 200）**，
+但 **`github.com` 不可达**（超时）→ 故 FlagGems **不重新 clone**，改用容器内已有的
+`/env/FlagGems`（本就来自 `git clone https://github.com/flagos-ai/FlagGems`，HEAD `73c5aff1`）。
