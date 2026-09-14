@@ -110,6 +110,37 @@ xliu969 的 P800 实测文档记有「torch.xpu 亦存在 → **双通道**」�
 我方实测 `torch.xpu.is_available() = False`，且编译标志为 `USE_XPU=OFF`
 ⇒ **功能上并非双通道，实际只有 CUDA 单通道**。
 
+### 2.2 后端划分依据：**厂商实现**，而非 torch 命名空间
+
+`ascend` / `flagos` / `kunlun` 这三个名字是**我们注册表里的键**（`_KNOWN_BACKENDS`），
+与 torch 命名空间**不是一一对应关系**：
+
+| 我们的后端名（对外） | 对应厂商 | **内部 torch 命名空间** | 厂商插件 / 运行时 |
+|---|---|---|---|
+| `ascend` | 昇腾 | `torch.npu` | torch_npu / CANN |
+| `flagos` | 昇腾（走设备层路线 B） | `torch_fl` 自有 API | torch_fl（**已冻结**） |
+| `kunlun` | 昆仑芯 | **`torch.cuda`** | XPytorch / torch_xray / XCCL |
+| （未来）`nvidia` | NVIDIA | `torch.cuda` | 官方 PyTorch / NCCL |
+
+**⚠️ 由此产生的设计约束：`kunlun` 与未来的 `nvidia` 共用 `torch.cuda` 命名空间。**
+因此 **`supports()` / `probe_vendor()` 不能靠命名空间判别厂商**，必须用厂商特征：
+
+| 判别特征 | 昆仑芯 P800 | NVIDIA |
+|---|---|---|
+| 厂商 Python 模块 | `torch_xray` / `torch_xmlir` 存在 | 无 |
+| 宿主伪文件系统 | **`/proc/kunlun/` 存在** | 无 |
+| 宿主工具 | `xpu-smi` 存在 | `nvidia-smi` 存在 |
+| `get_device_name(0)` | `"GPU"` | 真实型号（如 `NVIDIA A100-SXM4-80GB`） |
+| 通信库 | `libbkcl.so`（XCCL/BKCL） | `libnccl.so` |
+
+**并且两者的 `torch.cuda` 行为并不等价**（昆仑芯是兼容 / 重定向层）：
+流优先级在此栈触发 PyTorch `INTERNAL ASSERT`、厂商错误码不透出（§3.1 / §3.2）。
+⇒ **不能把 `kunlun` 当作 `nvidia` 的别名**，能力集必须分开声明。
+
+**另一处命名债（低优先，建议月度评估时一并处理，现在不建议动）**
+现有三个键混了两个轴：`ascend` / `kunlun` 是**芯片**，`flagos` 是**设备层路线**。
+若要统一为「按芯片命名」，改动会波及已有 conformance 结果文件与文档指针。
+
 ---
 
 ## 3. 分布式训练与推理的验证要求
