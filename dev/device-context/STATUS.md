@@ -94,9 +94,20 @@
      三条均已修复并回归（含向后兼容实测），详见接入方案 §7.5。
   - **【需对外提交】2 项**：① 流优先级 `torch.cuda.Stream.priority_range()` 稳定触发
     PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`；② 厂商错误码不透出到 Python 异常。
-  - **9 月产出**：~~`kunlun` backend + conformance~~ ✅ 已完成 +
-    训推证据（阶段 2/3 进行中）+ **《新芯片接入手册》** + **接口约定修订建议**
-    （P800 是该规范首个非昇腾实例）→ 完成后 release。
+  - **阶段 2（训练腿）进行中 · 集合通信已验证可用**：分布式后端探测结论
+    —— `nccl` 挂死、`xccl` 未编译（`Distributed package doesn't have XCCL built in`）、`kccl` 无响应，
+    **可用路径只有 `flagcx`**：`import flagcx` + `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx`
+    （与 xliu969 已验证的 Route A 一致）。
+    **a) 又一条接入手册级别的坑**：同一个 FlagCX，在 910C 上注册的后端名是 `flagos`，
+      **在 P800 上是 `flagcx`** —— 换芯片不只换设备命名空间，连集合通信后端名也变。
+    **b) 卡 6,7 复测：通信三类对照全通过**
+      （`all_reduce got=[1.0,3.0,5.0,7.0]` / `all_gather [0.0,1.0]` / `p2p OK`，EXIT_CODE=0）。
+    **c) ⚠️ 一次需要更正的判断**：曾把首次失败（卡 0,1 报 KL3 内核异常 `status=299`；
+      卡 0,2 超时挂死）判为「flagcx/BKCL 在 P800 上的适配缺陷」。**该判断不成立** ——
+      同一份代码在**卡 6,7** 上三类通信全通过；真因指向**共享机上被其他租户占用的卡**
+      （实验期间卡 1 被他人反复占用 166→502 MiB / 100%，卡 0/3/4 亦有他人负载）。
+      ⇒ 拟对外提交的「flagcx 缺陷」一项**已撤销**；`dma_excp_mask` 开关**无需变更**。
+      ⇒ **实操纪律**：共享机上用卡前先 `xpu-smi` 挑**连续且空闲**的卡，并在实验记录写明用卡。
   - 详见环境汇总 / 基线实测 / 接入方案三份文档（`prototype/docs/KUNLUN_P800_*_20260914.md`）。
   - **基座级约束建议（待总组裁定）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
     ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用）。
