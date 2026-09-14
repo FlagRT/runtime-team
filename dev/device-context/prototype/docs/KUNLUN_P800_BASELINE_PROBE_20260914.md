@@ -30,6 +30,7 @@
 | **必需环境变量** | `export XPU_EVENT_KL3_ENABLE=1`（官方手册明确要求） |
 | **设备 API** | **走 `torch.cuda`，不是 `torch.xpu`** |
 | 关键包版本 | `torch 2.9.0+cu129`、`flagtree 0.6.1+xpu3.6`、`flag_gems 5.3.4.post1.dev12`、`triton 3.6.0`、`transformers 4.57.1`、`flagcx 0.10.0`（editable `/env/FlagCX/plugin/torch`） |
+| **torch 编译标志（理论级证据）** | `USE_CUDA=ON, USE_CUDNN=ON, USE_NCCL=1, USE_XCCL=OFF, `**`USE_XPU=OFF`**`（`torch.__config__.show()` 原文） |
 
 ### 1.1 「XPU 走 cuda 命名空间」的三条独立证据
 
@@ -40,6 +41,13 @@
    parser.addoption("--device", action="store", default='cuda')
    ```
    （来源：`FlagTree/third_party/xpu/python/test/unit/conftest.py`）
+
+4. **编译标志** `USE_XPU=OFF`（`torch.__config__.show()`）—— 这是**理论级证据**：
+   该 torch 根本没有编译 XPU 支持，`torch.xpu` 只是 Python 侧属性存在、功能为空。
+
+> ⚠️ **一处既有判断偏差**：xliu969 的 P800 实测文档记有「torch.xpu 亦存在 → 双通道」，
+> 但该结论仅来自 `hasattr(torch,'xpu')`（其探针未测 `is_available()`）。
+> 实测 + 编译标志均表明 **只有 CUDA 单通道**，建议对齐时提示更正。
 
 进程启动时会打印：
 
@@ -67,6 +75,7 @@ SYMBOL_REWRITE torch success
 | `mem_get_info(0)` | free **98272 MiB** / total **98304 MiB**（= 96 GiB） |
 | `memory_allocated(0)` | 0 |
 | `mem_get_info` 原始字节 | `(103045660672, 103079215104)` 一致 |
+| **设备可见性变量** | **`CUDA_VISIBLE_DEVICES`** —— 实测 `=2` → `device_count()=1`；`=2,5` → `2`（910C 的 `ASCEND_RT_VISIBLE_DEVICES` 对应物就是它，**不是** XPU 侧变量） |
 
 ### 域 2 · 多流 Stream / Event
 
@@ -162,7 +171,7 @@ SYMBOL_REWRITE torch success
 |---|---|---|
 | 1 | 补测**设备级重置原语**（是否有 `reset_device` / context 重建） | 填 `recover_device` 的 real 模式证据 |
 | 2 | 补测**有界同步**（`Stream.synchronize()` 是否支持超时） | 对齐 910C 的三态语义 |
-| 3 | 补测**设备可见性环境变量** | 容器内多卡隔离用法 |
+| 3 | ~~补测**设备可见性环境变量**~~ | ✅ **已完成**：即 `CUDA_VISIBLE_DEVICES`（见 §2 域1） |
 | 4 | 补测**带卡容器并发上限** | 若存在，提总组入约束清单 |
 | 5 | 建立**昆仑芯错误映射表 v0**（以异常类型 + 消息模板为键） | 填 `translate_error` |
 | 6 | 出 **2 张对外提交单**（§3.1 流优先级缺陷、§3.2 错误码不透出） | 非我方项，按渠道提交 |

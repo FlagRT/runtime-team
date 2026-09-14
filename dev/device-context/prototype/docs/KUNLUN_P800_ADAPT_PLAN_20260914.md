@@ -68,6 +68,48 @@ prototype/runtime/backends/
   13 例 + 推理 6 例，作为接入完备度的度量器（910C 上 FlagOS 后端从零到 13/13 即先例）。
 - **不修改**既有后端与统一 API（插件式，互不影响）。
 
+### 2.1 接入路线：内部用厂商命名空间，统一放在我方抽象层
+
+**调研依据**（2026-09-14 核对 xliu969 在 P800 上的既有工作与全组路线决策）
+
+| 项 | 事实 |
+|---|---|
+| 该方向在 P800 上的活跃子方向 | **`dev/memory`（显存与缓存管理）**；其 `dev/device-context/` 内是 910C 的 FlagCX/HCCL 补丁，`compose.base.yml` 是昇腾底座（CANN 9.0 + `/dev/davinci*`） |
+| P800 设备栈 | **厂商 CUDA 兼容 torch（xpytorch）** + `torch_xray 2.0.4` + `xmlir` + `xtorch_ops`；XCCL/BKCL 为 FlagCX klx 底层 |
+| **torch 编译标志（原文）** | `USE_CUDA=ON, USE_CUDNN=ON, USE_NCCL=1, USE_XCCL=OFF, **USE_XPU=OFF**` |
+| **选卡变量** | **`CUDA_VISIBLE_DEVICES`**（实测 `=2` → 1 卡；`=2,5` → 2 卡） |
+| 其运行环境变量口径 | `VLLM_PLUGINS=fl`、`VLLM_FL_PLATFORM=kunlunxin`、`USE_FLAGGEMS=1`、`GEMS_VENDOR=kunlunxin`、`KLX_USE_AUTOTUNE=0` |
+| **全组路线决策** | **2026-08-22：生产交付统一走路线 A（各芯片厂商设备插件）+ FlagGems + FlagCX + vllm-plugin-FL；2026-09-03 `torch_fl` 设备层路线冻结** |
+| 决策原话 | 「"跨芯统一设备层"目前不是 B 的现实优势，而是其最薄弱处」 |
+
+**结论：不自造 `torch.xpu` 包装。三点理由**
+
+1. **与全组已定路线冲突**：自建统一设备层正是被冻结的路线 B 的思路；路线 A 的语义就是「直接用厂商插件」，
+   在厂商层之上再造一个设备层，等于把刚冻结的方向重建一遍。
+2. **技术上不是「包装」而是「重建」**：`USE_XPU=OFF` ⇒ `torch.xpu` 无编译实现（`is_available()` 实测 False）。
+   要让 `torch.xpu` 可用，需自行实现设备枚举 / 流 / 事件 / 内存分配 / 错误码 / 通信对接全套 —— 这是自建设备层。
+3. **会造成两套设备世界割裂**：FlagGems（实测 dispatch key = **CUDA**）、FlagCX/BKCL、vllm-plugin-FL
+   全挂在 **CUDA 设备语义**上；我方的 Stream/Event 若走独立命名空间，就无法与它们在同一上下文里正确串流与同步。
+
+**因此：统一点放在我方抽象层，而非 torch 命名空间层**
+
+```
+统一 API（我方）   runtime/api/{stream,errors}.py + RuntimeBackend 抽象 + conformance
+      ↑ 各后端内部各用各的厂商命名空间（互不影响）
+├── ascend   → torch_npu
+├── flagos   → torch_fl
+└── kunlun   → torch.cuda（xpytorch）   ← 仅内部实现选择，对外统一 API 与 conformance 不变
+```
+
+**收益**：若厂商日后提供可用的 `torch.xpu`（`USE_XPU=ON`），**只改 `kunlun` backend 内部实现**，
+对外 API 与 conformance 用例**一行不动** —— 这正是 backend 插件化的价值所在。
+
+**附：一处既有判断偏差，建议与分布式/显存方向对齐时提示更正**
+xliu969 的 P800 实测文档记有「torch.xpu 亦存在 → **双通道**」。该结论来自 `hasattr(torch,'xpu')`
+（其探针 `p800_env_check.py` 仅打印该属性是否存在），**未测 `is_available()`**。
+我方实测 `torch.xpu.is_available() = False`，且编译标志为 `USE_XPU=OFF`
+⇒ **功能上并非双通道，实际只有 CUDA 单通道**。
+
 ---
 
 ## 3. 分布式训练与推理的验证要求
