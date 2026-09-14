@@ -70,26 +70,26 @@
 - **训练腿 torch_fl 例外的退出口径**：v1 记有 TODO「10 月起评估训练腿切回 Route A 的成本」，
   请总组给出时间表与责任方（涉及镜像是否需出带 torch_npu 的版本）。
 - **通信接口约定**待分布式方向回复（启动方式 / flagcx 接口形态 / 对照用例归属 / 训练镜像是否换版）。
-- **昆仑芯 P800：阻塞已全部解除，任务 2 已完成（2026-09-14 更新）**：连接（非标准端口 26008）、
-  `docker` 组、`/data2/hliu553` 工作目录**三项均已解决**；容器 `hliu553-device-context-p800` 运行中。
-  - **算力/内存/CPU/镜像落盘均充足**：8× P800（96 GB/卡，全空闲）、1.5 TiB 内存、384 线程；
-    镜像 `flaggems-main-dev:202608`（38.3 GB）**本机镜像库已有** → 手册的 59.9 GB pull 与
-    32 GB load **全部跳过**；FlagGems 源码亦已在容器内 `/env/FlagGems`（github clone，无需联网）。
+- **昆仑芯 P800：按接入规范新建「第二个芯片实例」（2026-09-14）**：阻塞已全部解除
+  （连接 26008 / `docker` 组 / `/data2/hliu553`），容器 `hliu553-device-context-p800` 运行中。
+  - **定位（重要）**：P800 是统一运行时原型的**第二个接入实例** —— 迁移的是
+    《运行时层接口约定》的**规范与方法**，**910C 的实现与结论不迁移**（不照搬代码）。
+    9 月完成原型接入与训推验证，11 月为整个运行时层的最终交付。
+  - 本方向职责＝**原型搭建 + 接入的头和框架**：接入 → 训推验证暴露问题 → 属五域的**先简单修复**
+    → 完成后把原型 **release 给运行时层其他子方向**做验证与迭代循环。
+  - 算力/内存/CPU 充足；镜像 `flaggems-main-dev:202608` **本机已有** →
+    跳过手册的 59.9 GB pull 与 32 GB load；FlagGems 源码已在容器内 `/env/FlagGems`（无需联网）。
   - **关键认知：昆仑芯设备 API 走 `torch.cuda`，`torch.xpu` 不可用**
-    （XPytorch + 符号重写；官方 xpu3.6 单测 `--device` 默认值即为 `cuda`）→ 已固化进调用契约。
-  - **五域基线**：设备抽象 ✅ / 多流 Stream-Event ✅（**跨流 Event 依赖语义实测正确**）/
-    FlagGems 算子 ✅（`add` max diff = 0.0）；状态恢复与有界同步**待补测**。
-  - **【需对外提交 · 上游缺陷】流优先级**：`torch.cuda.Stream.priority_range()` 稳定触发
-    PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188` →
-    本方向 `supports()` 如实声明不支持、conformance 如实跳过。
-  - **【需对外提交 · 上游约束】厂商错误码不透出**：Python 异常消息中拿不到昆仑芯错误码
-    （仅进程退出钩子偶见 `error code= 101, invalid device ordinal`）→
-    错误映射表暂以「**异常类型 + 消息模板**」为键建立，不依赖数字码。
-  - 详见环境汇总 [`KUNLUN_P800_ENV_REPORT_20260914.md`](prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md)、
-    基线实测 [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md)、
-    适配方案 [`KUNLUN_P800_ADAPT_PLAN_20260914.md`](prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md)。
-  - **基座级约束建议（待总组裁定是否跨方向登记）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
-    ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用，建议写入基座说明）。
+    （编译标志 `USE_XPU=OFF` 实测；选卡变量为 `CUDA_VISIBLE_DEVICES`）→ 已写入接入规范建议。
+  - **五域基线**：设备抽象 ✅ / 多流 Stream-Event ✅（**跨流 Event 依赖实测正确**）/
+    FlagGems 算子 ✅（`add` max diff = 0.0）；错误 ⚠️（厂商码不可得）；状态恢复与有界同步**待测**。
+  - **【需对外提交】2 项**：① 流优先级 `torch.cuda.Stream.priority_range()` 稳定触发
+    PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`；② 厂商错误码不透出到 Python 异常。
+  - **9 月产出**：`kunlun` backend + conformance + 训推证据 + **《新芯片接入手册》**
+    + **接口约定修订建议**（P800 是该规范首次被非昇腾芯片检验）→ 完成后 release。
+  - 详见环境汇总 / 基线实测 / 接入方案三份文档（`prototype/docs/KUNLUN_P800_*_20260914.md`）。
+  - **基座级约束建议（待总组裁定）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
+    ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用）。
 - 本方向**不自行更换基座**，上述诉求提交总组裁定。
 
 ---
