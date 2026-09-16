@@ -1,0 +1,51 @@
+From 133dfba1038d52b06c0cffbf694a2ca5f6a99e52 Mon Sep 17 00:00:00 2001
+From: Lianzhong You <youyve@foxmail.com>
+Date: Wed, 16 Sep 2026 19:20:23 +0800
+Subject: [PATCH 4/4] fix(ascend): enforce host wait and order allgather
+ copy-back
+
+---
+ plugin/torch/flagcx/src/backend_flagcx.cpp | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/plugin/torch/flagcx/src/backend_flagcx.cpp b/plugin/torch/flagcx/src/backend_flagcx.cpp
+index 2d80163..6db0ef1 100644
+--- a/plugin/torch/flagcx/src/backend_flagcx.cpp
++++ b/plugin/torch/flagcx/src/backend_flagcx.cpp
+@@ -266,6 +266,12 @@ bool flagcxWork::isCompleted() { return future_->completed(); }
+ bool flagcxWork::isSuccess() const { return future_->hasValue(); }
+ 
+ bool flagcxWork::wait(std::chrono::milliseconds /* unused */) {
++#ifdef USE_ASCEND_ADAPTOR
++  // A host-blocking wait also protects temporary send buffers from being
++  // released when torch.distributed.send returns. An ACL stream wait alone
++  // only enqueues a dependency and is not host completion.
++  C10D_FLAGCX_CHECK(devHandle_->streamSynchronize(stream_), std::nullopt);
++#endif
+   event_->block(deviceId_);
+   if (isBarrierOp_) {
+     C10D_FLAGCX_CHECK(devHandle_->streamSynchronize(stream_), std::nullopt);
+@@ -708,10 +714,20 @@ flagcxBackend::allgather(std::vector<std::vector<at::Tensor>> &outputTensors,
+ 
+     // Copy the flattened tensor back into a vector of tensors.
+     {
++#ifdef USE_ASCEND_ADAPTOR
++      // The CANN stream guard does not switch the host tensor runtime stream.
++      // Complete HCCL before copy_ reads the scratch buffer on that runtime.
++      C10D_FLAGCX_CHECK(devHandle_->streamSynchronize(stream), std::nullopt);
++#endif
+       flagcxStreamGuard guard(stream, device.index());
+       for (const auto j : c10::irange(outputTensorsTmp.size())) {
+         outputTensorsTmp[j].copy_(outputFlattened[j], true);
+       }
++#ifdef USE_ASCEND_ADAPTOR
++      // Conservative compatibility path: finish copy-back before releasing
++      // outputFlattened. This intentionally does not promise async overlap.
++      C10D_FLAGCX_CHECK(devHandle_->deviceSynchronize(), std::nullopt);
++#endif
+     }
+   }
+ 
+-- 
+2.46.2
+

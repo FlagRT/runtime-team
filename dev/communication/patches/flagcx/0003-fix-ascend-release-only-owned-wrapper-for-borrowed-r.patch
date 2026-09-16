@@ -1,0 +1,42 @@
+From af5640dd565054a98fb8df92bb76cc28835eaf3c Mon Sep 17 00:00:00 2001
+From: Lianzhong You <youyve@foxmail.com>
+Date: Wed, 16 Sep 2026 19:09:44 +0800
+Subject: [PATCH 3/4] fix(ascend): release only owned wrapper for borrowed
+ runtime stream
+
+---
+ plugin/torch/flagcx/src/backend_flagcx.cpp | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/plugin/torch/flagcx/src/backend_flagcx.cpp b/plugin/torch/flagcx/src/backend_flagcx.cpp
+index c4658d9..2d80163 100644
+--- a/plugin/torch/flagcx/src/backend_flagcx.cpp
++++ b/plugin/torch/flagcx/src/backend_flagcx.cpp
+@@ -313,7 +313,13 @@ flagcxBackend::flagcxBackend(const c10::intrusive_ptr<::c10d::Store> &store,
+ flagcxBackend::~flagcxBackend() {
+   if (status_ == 1) {
+     for (auto &s : flagcxStreams_) {
++#ifdef USE_ASCEND_ADAPTOR
++      // The ACL stream belongs to the host runtime (or the shared fallback).
++      // Only the wrapper allocated by streamCopy is owned by this backend.
++      devHandle_->streamFree(s.second);
++#else
+       devHandle_->streamDestroy(s.second);
++#endif
+     }
+     // Destroy pair comms before the global comm
+     for (auto &kv : pairComms_) {
+@@ -343,7 +349,9 @@ flagcxStream_t flagcxBackend::getStreamByIndex(int streamId) {
+     // stream. Falls back to a self-managed stream when the host runtime is
+     // absent (standalone plugin build).
+     acl_stream = GetFlagcxCurrentAclStream(deviceId_);
+-    flagcxStreams_[streamId] = reinterpret_cast<flagcxStream_t>(&acl_stream);
++    C10D_FLAGCX_CHECK(
++        devHandle_->streamCopy(&flagcxStreams_[streamId], acl_stream),
++        std::nullopt);
+ #else
+     C10D_FLAGCX_CHECK(devHandle_->streamCreate(&flagcxStreams_[streamId]),
+                       std::nullopt);
+-- 
+2.46.2
+

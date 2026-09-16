@@ -1,22 +1,23 @@
 # 修复整理与测试摘要
 
-基线为 FlagCX `4e0e0cbcbf721169ca82348080f8353aebfe2c31`；来源为 Kistich 的
-`ascend-flagcx-adapt` 修复分支。本方向整理两项最小改动并补充测试，保留原作者署名。
+FlagCX 公共源码基线为 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`，最终本地提交 `133dfba`。
+四份[补丁](../patches/flagcx/)依次应用；未推送 FlagCX 子仓，未覆盖锁定容器的原安装库。
 
-- P2：将 host callback 内的等待移到 groupLaunch 调用线程，避免回调阻塞 proxy 所需驱动操作。
-- Event：析构时释放 CANN Event，初始化空句柄并禁止复制，防止资源泄漏及重复所有权。
-- P6/P7/P9/O3/O4 仍含 callback/runner/proxy 等依赖链，未整批移植，待继续审查。
+| 补丁 | 来源与作用 | 验证边界 |
+| --- | --- | --- |
+| 0001 / 8c836df | 从 Kistich 改动中整理 P2，将等待移出 host callback | 编译及同构回归完成；不等于异构 proxy 死锁路径专项已验收 |
+| 0002 / 8b15547 | 整理 Event 析构释放，补充空初始化与禁止复制 | 生产头文件真实 CANN 创建/记录/跨流等待/释放各 1000 次成功 |
+| 0003 / af5640d | 本轮定位借用流误销毁；改为 streamCopy/streamFree 管理包装对象 | 同一探针从退出 SIGABRT 变为正常完成销毁；数值问题当时仍存在 |
+| 0004 / 133dfba | 本轮补齐 Host wait 与 AllGather 复制前后同步 | 原失败探针 1600/1600；矩阵 960/960；跨流 240/240；训练回归通过 |
 
-核心库与 Torch 插件已经在锁定服务器环境编译成功。Event 主机测试直接编译生产头文件，
-ACL 测试替身完成 1000 次创建/释放及失败创建检查；它不代表真实设备 Event 运行验证。
+P6/P7/P9/O3/O4 等原分支上的其余改动仍有 callback/runner/proxy 依赖，不整批移植。
+0004 的 AllGather 同步是限定 CANN 路径的保守兼容方案，不应写成无开销或已支持异步重叠。
+`wait(timeout)` 仍未实现后端内的有界超时，外层监督器负责总超时。
 
-执行 `python3 -m unittest discover -s dev/communication/tests -v`，21/21 主机测试通过：
-14 项进程与结果验收覆盖正常退出、数值 PASS 后异常退出/SIGABRT、超时、缺失 Rank、
-旧结果、计数错配等；另 7 项是新增归属诊断工具的快照解析测试，不计入通信设备测试。
-诊断工具已用于本次服务器快照，关联到全部 16 个逻辑设备的存活容器归属，详见服务器摘要。
+`python3 -m unittest discover -s dev/communication/tests -v`：25 项主机测试通过
+（14 项进程/结果验收、7 项归属解析、4 项脱敏导出）。
+这些数量不并入 NPU 通信测试。主机 Event 替身测试仍保留，不能与新增实机测试混为一谈。
 
-历史探针的 320/320 是逐 Rank 操作校验数，P2P 每项含 send/recv；不是 320 个独立场景。
-新 schema 明确 counting_unit/run_id/phase，整体验收还检查进程组销毁与进程退出。
-
-[补丁交付包](../patches/flagcx/)可在精确基线上应用；[服务器摘要](SERVER_VALIDATION_20260916.md)
-记录真实运行阻塞。原始服务器日志未随本次发布，完整本地证据保持保留。
+历史 320/320、当前 1600/1600 均为逐 Rank 操作校验数，不是独立场景数或准确 API 调用数，
+因为双向 P2P 的一个校验含 send 和 recv。本周实测、失败迭代及库指纹见
+[服务器记录](SERVER_VALIDATION_20260916.md)和[脱敏数值摘要](../results/20260916-release/summary.json)。

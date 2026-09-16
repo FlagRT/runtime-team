@@ -1,0 +1,5604 @@
+{
+  "schema_version": 1,
+  "scope": "sanitized_experiment_results_not_raw_logs",
+  "records": [
+    {
+      "source": "baseline/7bcf5e99035a4ac491450fa28d079875/acceptance.json",
+      "source_sha256": "9d82975fbe2a02ee958734c2b90ceb1801278423f3a33484049ec00d3893c7d8",
+      "result": {
+        "numeric_ok": false,
+        "cleanup_ok": true,
+        "run_id": "7bcf5e99035a4ac491450fa28d079875",
+        "returncode": 1,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "baseline/7bcf5e99035a4ac491450fa28d079875/communication_correctness_rank0.json",
+      "source_sha256": "7cd8cbb0a79f8d513459f9cbd1af92340229fa255806807004f2a60baa9b3237",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "7bcf5e99035a4ac491450fa28d079875",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 799,
+        "failed_calls": 1,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.849,
+        "failures": [
+          {
+            "iteration": 16,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "baseline/7bcf5e99035a4ac491450fa28d079875/communication_correctness_rank1.json",
+      "source_sha256": "964b9a909e4007196192bd82f12ae7256480095a74866efc651e962c290d8331",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "7bcf5e99035a4ac491450fa28d079875",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 800,
+        "failed_calls": 0,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.807,
+        "failures": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "cross_final/matrix_rank0.json",
+      "source_sha256": "2a6a8e2409edf69eee2dde2142007f0e73b46a5742a19685a177ece6633ed889",
+      "result": {
+        "rank": 0,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "cross_stream",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 4.181,
+        "passed": 120,
+        "total": 120,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "cross_final/matrix_rank1.json",
+      "source_sha256": "0dc7374c939dd4ad1900c3df761ab1498833d0d1e53b896d62300769fb6945ef",
+      "result": {
+        "rank": 1,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "cross_stream",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.618,
+        "passed": 120,
+        "total": 120,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "cross_original/matrix_rank0.json",
+      "source_sha256": "2267973688112d9e737292445a29f29d9b6f347fb711c488ff3042168afb589d",
+      "result": {
+        "rank": 0,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "cross_stream",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.763,
+        "passed": 120,
+        "total": 120,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "9ddcd6ededced4867e858ca96a24082046779ff7797b583f8bb3ebfb825abc94"
+            },
+            {
+              "name": "libflagcx.so",
+              "sha256": "7a1a243d577980d8635cc4ccb8d8619c27d5f48690364581cd497e9a883df895"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "cross_original/matrix_rank1.json",
+      "source_sha256": "c87b8e03c3ee4f62c058e864c3976cfd539a2fc3486c06ec94708e2d30ba40d0",
+      "result": {
+        "rank": 1,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "cross_stream",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.406,
+        "passed": 120,
+        "total": 120,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "9ddcd6ededced4867e858ca96a24082046779ff7797b583f8bb3ebfb825abc94"
+            },
+            {
+              "name": "libflagcx.so",
+              "sha256": "7a1a243d577980d8635cc4ccb8d8619c27d5f48690364581cd497e9a883df895"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_ar_event_consumer",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "fault_recovery/39db2d89edc74f2c857943c2a8543b84/acceptance.json",
+      "source_sha256": "d7a35113b32e25d4b115e2f3c2db36724616a4a8b8e71e9b4429b07a318ea868",
+      "result": {
+        "numeric_ok": false,
+        "cleanup_ok": false,
+        "run_id": "39db2d89edc74f2c857943c2a8543b84",
+        "returncode": 1,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "fault_recovery/dbfdd062e75646e3bbbc0f2f624f4b23/acceptance.json",
+      "source_sha256": "72b86410786206dcd693641addd0f9f5d3da2c00222c641c82e1fb0d74d4a257",
+      "result": {
+        "numeric_ok": true,
+        "cleanup_ok": true,
+        "run_id": "dbfdd062e75646e3bbbc0f2f624f4b23",
+        "returncode": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "fault_recovery/dbfdd062e75646e3bbbc0f2f624f4b23/communication_correctness_rank0.json",
+      "source_sha256": "83694c6c8f20211a014a42b8216c78772398a2d496b9940e47949bc3183d5608",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "dbfdd062e75646e3bbbc0f2f624f4b23",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 800,
+        "failed_calls": 0,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.511,
+        "failures": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "fault_recovery/dbfdd062e75646e3bbbc0f2f624f4b23/communication_correctness_rank1.json",
+      "source_sha256": "e2e654635e56f470f9098ef555c0cdbee4f9ecc0429195f88f4284b57c996fb1",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "dbfdd062e75646e3bbbc0f2f624f4b23",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 800,
+        "failed_calls": 0,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.464,
+        "failures": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "fault_recovery/fault_recovery.json",
+      "source_sha256": "8501a1ae9f1748d95223ca39e8045709cbf29e3645571767937ec3c12e8ea38b",
+      "result": {
+        "fault_run_id": "39db2d89edc74f2c857943c2a8543b84",
+        "fault_returncode": 1,
+        "fault_timed_out": false,
+        "classification": {
+          "category": "L3_EXECUTION",
+          "disposition": "replay",
+          "mapped": false,
+          "graded_by": "message_hint",
+          "is_grade_confident": false
+        },
+        "recovery_action": "new_process_group_not_same_group_replay",
+        "recovery_run_id": "dbfdd062e75646e3bbbc0f2f624f4b23",
+        "recovery_verdict": "PASS"
+      }
+    },
+    {
+      "source": "final/dc5c40a8d05241428d168f97aad137c2/acceptance.json",
+      "source_sha256": "de8978650aaa1e4d12a3c3d0382b0fe86fb85371c8ad9c38c168f91b7eae297c",
+      "result": {
+        "numeric_ok": true,
+        "cleanup_ok": true,
+        "run_id": "dc5c40a8d05241428d168f97aad137c2",
+        "returncode": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "final/dc5c40a8d05241428d168f97aad137c2/communication_correctness_rank0.json",
+      "source_sha256": "0109652605399d427d4dd7fc5457a8e6b322f024da5e22c423a91241a89cd838",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "dc5c40a8d05241428d168f97aad137c2",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 800,
+        "failed_calls": 0,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.789,
+        "failures": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "final/dc5c40a8d05241428d168f97aad137c2/communication_correctness_rank1.json",
+      "source_sha256": "3c5a9a561e9080cb9f61a9601d681c771d186823c7d885c925dd818b4779aa09",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "dc5c40a8d05241428d168f97aad137c2",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 800,
+        "failed_calls": 0,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.783,
+        "failures": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "source": "lifetime_attempt/9cfde76bfa1b44ab89776e77c1801d70/acceptance.json",
+      "source_sha256": "beab9919acae501dc9d643e380364709e2e11560aa3e5741ce9b9c3632845181",
+      "result": {
+        "numeric_ok": false,
+        "cleanup_ok": true,
+        "run_id": "9cfde76bfa1b44ab89776e77c1801d70",
+        "returncode": 1,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "lifetime_attempt/9cfde76bfa1b44ab89776e77c1801d70/communication_correctness_rank0.json",
+      "source_sha256": "ede4dc1b29bf9cd0a8a7902625365503440556c3c5f6e3bd58db4b6ab6dd63cc",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "9cfde76bfa1b44ab89776e77c1801d70",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 705,
+        "failed_calls": 95,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.98,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 3,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 8,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 8,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 11,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 14,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 16,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 24,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 30,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 31,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 34,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 34,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 36,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 39,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 40,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 40,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 43,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 47,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 56,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 59,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 59,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 60,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 64,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 65,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 66,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 67,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 70,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 72,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 73,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 74,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 75,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 80,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 81,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 83,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 85,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 86,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 88,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 90,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 93,
+            "dtype": "float32",
+            "operation": "all_gather"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "lifetime_attempt/9cfde76bfa1b44ab89776e77c1801d70/communication_correctness_rank1.json",
+      "source_sha256": "5bced0f00c06a22b8714387979445b42e040742b03585b02348d464f6b8d4ac7",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "9cfde76bfa1b44ab89776e77c1801d70",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 755,
+        "failed_calls": 45,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 10.01,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 2,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 5,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 16,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 24,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 35,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 39,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 44,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 50,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 54,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 67,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 80,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 96,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 97,
+            "dtype": "float32",
+            "operation": "all_gather"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "matrix_final/matrix_rank0.json",
+      "source_sha256": "9bbf8aee160d625e99f01345296c0886836833dfbf42f3374e7e9af11026d44a",
+      "result": {
+        "rank": 0,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 4.191,
+        "passed": 480,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "matrix_final/matrix_rank1.json",
+      "source_sha256": "aca3430492c6c7d59f394e40d688db00ef6c77dc8e91745e68188a34aed06132",
+      "result": {
+        "rank": 1,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.665,
+        "passed": 480,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "matrix_lifetime_attempt/matrix_rank0.json",
+      "source_sha256": "be1d2fb1a83c0bb5a0112aa8901eebe2fca114261e5b4ca25e36258d6ffcb26e",
+      "result": {
+        "rank": 0,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.95,
+        "passed": 417,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "76328402d91791085e8c35861f0374d761ae55ec6072ec0d33a600a96bea18f1"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 2,
+            "max_abs_diff": 16.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 17,
+            "max_abs_diff": 17.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 4,
+            "max_abs_diff": 16.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 10,
+            "max_abs_diff": 17.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 8,
+            "max_abs_diff": 16.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 16,
+            "max_abs_diff": 17.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "matrix_lifetime_attempt/matrix_rank1.json",
+      "source_sha256": "cd0447fa6439c324d6d1ad3edcc3f53f3c7c386a0e2f05822de3131e20308506",
+      "result": {
+        "rank": 1,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.543,
+        "passed": 426,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "76328402d91791085e8c35861f0374d761ae55ec6072ec0d33a600a96bea18f1"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 1,
+            "max_abs_diff": 10.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 16,
+            "max_abs_diff": 17.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 6,
+            "max_abs_diff": 16.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 14,
+            "max_abs_diff": 5.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 13,
+            "max_abs_diff": 12.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 16,
+            "max_abs_diff": 17.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "matrix_original/matrix_rank0.json",
+      "source_sha256": "9e1ad95daf354ab7615afd91ed1a42a00dc643dd2ba52add44c33ea24cbd0930",
+      "result": {
+        "rank": 0,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.653,
+        "passed": 480,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "9ddcd6ededced4867e858ca96a24082046779ff7797b583f8bb3ebfb825abc94"
+            },
+            {
+              "name": "libflagcx.so",
+              "sha256": "7a1a243d577980d8635cc4ccb8d8619c27d5f48690364581cd497e9a883df895"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "matrix_original/matrix_rank1.json",
+      "source_sha256": "df27b754f42ea89e5856ab8fd9efccbcde8b20f896bd1018a9bbdebdb4a90b03",
+      "result": {
+        "rank": 1,
+        "iterations": 20,
+        "sizes": [
+          8,
+          1024,
+          65536
+        ],
+        "mode": "explicit_sync",
+        "phase": "group_destroyed",
+        "counting_unit": "per_rank_operation_check",
+        "elapsed_s": 3.478,
+        "passed": 480,
+        "total": 480,
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "9ddcd6ededced4867e858ca96a24082046779ff7797b583f8bb3ebfb825abc94"
+            },
+            {
+              "name": "libflagcx.so",
+              "sha256": "7a1a243d577980d8635cc4ccb8d8619c27d5f48690364581cd497e9a883df895"
+            }
+          ]
+        },
+        "groups": [
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.float32",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 8,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 1024,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "all_gather",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "p2p_retained",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          },
+          {
+            "operation": "async_all_reduce",
+            "dtype": "torch.bfloat16",
+            "elements": 65536,
+            "total": 20,
+            "passed": 20,
+            "max_abs_diff": 0.0,
+            "nonfinite_diff": false
+          }
+        ]
+      }
+    },
+    {
+      "source": "owned_stream/ac72a00cd58f42b0ade38021bfe67c93/acceptance.json",
+      "source_sha256": "49377e2bc98e3e7bdcb8f63548e0301c18d6ff5e1e93d64b18af819b71994397",
+      "result": {
+        "numeric_ok": false,
+        "cleanup_ok": true,
+        "run_id": "ac72a00cd58f42b0ade38021bfe67c93",
+        "returncode": 1,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "owned_stream/ac72a00cd58f42b0ade38021bfe67c93/communication_correctness_rank0.json",
+      "source_sha256": "a6c1e31aeeb7f3a5939e643835b5b756280ad32f0dad8a96fb3a4919907aad6e",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "ac72a00cd58f42b0ade38021bfe67c93",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 646,
+        "failed_calls": 154,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.999,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 2,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 2,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 3,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 5,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 5,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 8,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 8,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 11,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 11,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 14,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 15,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 16,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 21,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 24,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 24,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 33,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 35,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 36,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 39,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 40,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 43,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 43,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 44,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 44,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 47,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 47,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 49,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 50,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 52,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 54,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 55,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 56,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 56,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 59,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 60,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 60,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 63,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 63,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 64,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 65,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 66,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 67,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 69,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 69,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 70,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 72,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 73,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 74,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 74,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 75,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 78,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 78,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 80,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 81,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 83,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 83,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 84,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 84,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 85,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 86,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 86,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 88,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 89,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 90,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 93,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 94,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 94,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 95,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 95,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 96,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 96,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 97,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 98,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 98,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 99,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 99,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "owned_stream/ac72a00cd58f42b0ade38021bfe67c93/communication_correctness_rank1.json",
+      "source_sha256": "b187d6d2a190d4cc160234378159334e044e27bb23017e88c98ada8fa6bd58ad",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "ac72a00cd58f42b0ade38021bfe67c93",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "group_destroyed",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 768,
+        "failed_calls": 32,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 10.01,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 2,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 30,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 30,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 31,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 33,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 34,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 35,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 69,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 70,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 93,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 98,
+            "dtype": "float32",
+            "operation": "all_gather"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "training_final/train_leg_result_rank0.json",
+      "source_sha256": "3d4b0dee6292487a40f9626def82af76c4ac771861909868f455a278785a129c",
+      "result": {
+        "rank": 0,
+        "world_size": 2,
+        "perf": {
+          "steps": 50,
+          "batch": 4,
+          "seq": 128,
+          "tokens_per_s_per_rank": 1023.7,
+          "tokens_per_s_total": 2047.4,
+          "elapsed_s": 25.01
+        },
+        "loss_curve": [
+          15.4497,
+          14.0865,
+          13.2543,
+          12.9658,
+          12.453,
+          12.2768,
+          11.9218,
+          11.9301,
+          11.8671,
+          11.7234,
+          11.5851,
+          11.5836,
+          11.4933,
+          11.5469,
+          11.4023,
+          11.3737,
+          11.3746,
+          11.3159,
+          11.3366,
+          11.2827,
+          11.3213,
+          11.2481,
+          11.2099,
+          11.2954,
+          11.264,
+          11.275,
+          11.294,
+          11.2296,
+          11.1891,
+          11.2608,
+          11.1666,
+          11.1951,
+          11.1853,
+          11.18,
+          11.1647,
+          11.1203,
+          11.1758,
+          11.1287,
+          11.1712,
+          11.1291,
+          11.1994,
+          11.2459,
+          11.1978,
+          11.1945,
+          11.1612,
+          11.1839,
+          11.1838,
+          11.098,
+          11.1921,
+          11.1547
+        ],
+        "verdict": "TRAIN_LEG_PASS",
+        "passed": 6,
+        "total": 6,
+        "reference_sha256": "78fc0cda4b1754cf9d4e7295ae367e95a794f363d7bc724d600ea88a1e9b5f54",
+        "phase": "group_destroyed",
+        "transformers_version": "5.16.1",
+        "attribution": "device-context training algorithm; communication regression run",
+        "checks": {
+          "device_context": {
+            "ok": true
+          },
+          "model_load": {
+            "ok": true
+          },
+          "comm_all_reduce": {
+            "ok": true
+          },
+          "comm_all_gather": {
+            "ok": true
+          },
+          "comm_p2p": {
+            "ok": true
+          },
+          "loss_decrease": {
+            "ok": true
+          }
+        },
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "training_final/train_leg_result_rank1.json",
+      "source_sha256": "7b90fc49323353d17c8b648383308484d39bf21222c7c9160b06627c240933ee",
+      "result": {
+        "rank": 1,
+        "world_size": 2,
+        "perf": {
+          "steps": 50,
+          "batch": 4,
+          "seq": 128,
+          "tokens_per_s_per_rank": 1023.6,
+          "tokens_per_s_total": 2047.2,
+          "elapsed_s": 25.01
+        },
+        "loss_curve": [
+          15.4497,
+          14.0865,
+          13.2544,
+          12.966,
+          12.4556,
+          12.2791,
+          11.9254,
+          11.9323,
+          11.8703,
+          11.7261,
+          11.5885,
+          11.586,
+          11.4962,
+          11.5491,
+          11.4049,
+          11.376,
+          11.3782,
+          11.3168,
+          11.3363,
+          11.2827,
+          11.3208,
+          11.2469,
+          11.2091,
+          11.2932,
+          11.2613,
+          11.2705,
+          11.2912,
+          11.2226,
+          11.1832,
+          11.2551,
+          11.1587,
+          11.1885,
+          11.1813,
+          11.171,
+          11.1564,
+          11.112,
+          11.1655,
+          11.1203,
+          11.1634,
+          11.119,
+          11.1887,
+          11.2329,
+          11.1891,
+          11.1838,
+          11.1463,
+          11.1748,
+          11.1717,
+          11.087,
+          11.1827,
+          11.1442
+        ],
+        "verdict": "TRAIN_LEG_PASS",
+        "passed": 6,
+        "total": 6,
+        "reference_sha256": "78fc0cda4b1754cf9d4e7295ae367e95a794f363d7bc724d600ea88a1e9b5f54",
+        "phase": "group_destroyed",
+        "transformers_version": "5.16.1",
+        "attribution": "device-context training algorithm; communication regression run",
+        "checks": {
+          "device_context": {
+            "ok": true
+          },
+          "model_load": {
+            "ok": true
+          },
+          "comm_all_reduce": {
+            "ok": true
+          },
+          "comm_all_gather": {
+            "ok": true
+          },
+          "comm_p2p": {
+            "ok": true
+          },
+          "loss_decrease": {
+            "ok": true
+          }
+        },
+        "identity": {
+          "inner_name": "flagcx",
+          "libraries": [
+            {
+              "name": "libflagcx.so",
+              "sha256": "10cd7eb5b1d10b2f138186dbeef5e3a4abef134e012d607b5948d1067083de6e"
+            },
+            {
+              "name": "_C.cpython-311-aarch64-linux-gnu.so",
+              "sha256": "170126cbde9b69c0ec695dec78563285e028a5bf68e985f91e89fcb90b25fe81"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "training_original/train_leg_result_rank0.json",
+      "source_sha256": "7d4cc2aa7c445b716eb7354b5f9367d1bef64ef97243e6f74dbb4e7812e38eaf",
+      "result": {
+        "rank": 0,
+        "world_size": 2,
+        "perf": {
+          "steps": 50,
+          "batch": 4,
+          "seq": 128,
+          "tokens_per_s_per_rank": 1122.6,
+          "tokens_per_s_total": 2245.2,
+          "elapsed_s": 22.8
+        },
+        "loss_curve": [
+          15.4497,
+          14.0868,
+          13.2545,
+          12.9659,
+          12.4555,
+          12.2791,
+          11.9256,
+          11.9319,
+          11.8702,
+          11.7261,
+          11.5887,
+          11.586,
+          11.4963,
+          11.5495,
+          11.4052,
+          11.3762,
+          11.3785,
+          11.3177,
+          11.3377,
+          11.2847,
+          11.3229,
+          11.2496,
+          11.2107,
+          11.2955,
+          11.2631,
+          11.2746,
+          11.2939,
+          11.2288,
+          11.1887,
+          11.2598,
+          11.1654,
+          11.1944,
+          11.1855,
+          11.1806,
+          11.1611,
+          11.12,
+          11.1736,
+          11.1301,
+          11.1715,
+          11.1266,
+          11.196,
+          11.2414,
+          11.1992,
+          11.1927,
+          11.1563,
+          11.182,
+          11.1801,
+          11.0975,
+          11.1918,
+          11.1519
+        ],
+        "verdict": "TRAIN_LEG_PASS",
+        "passed": 6,
+        "total": 6,
+        "reference_sha256": "78fc0cda4b1754cf9d4e7295ae367e95a794f363d7bc724d600ea88a1e9b5f54",
+        "phase": "group_destroyed",
+        "attribution": "device-context training algorithm; communication regression run",
+        "checks": {
+          "device_context": {
+            "ok": true
+          },
+          "model_load": {
+            "ok": true
+          },
+          "comm_all_reduce": {
+            "ok": true
+          },
+          "comm_all_gather": {
+            "ok": true
+          },
+          "comm_p2p": {
+            "ok": true
+          },
+          "loss_decrease": {
+            "ok": true
+          }
+        }
+      }
+    },
+    {
+      "source": "training_original/train_leg_result_rank1.json",
+      "source_sha256": "15b07ba78265eb29303b5e74c24033109eb86ca0e4b7ce656524b2301767badf",
+      "result": {
+        "rank": 1,
+        "world_size": 2,
+        "perf": {
+          "steps": 50,
+          "batch": 4,
+          "seq": 128,
+          "tokens_per_s_per_rank": 1122.6,
+          "tokens_per_s_total": 2245.2,
+          "elapsed_s": 22.8
+        },
+        "loss_curve": [
+          15.4497,
+          14.0868,
+          13.2543,
+          12.9657,
+          12.4531,
+          12.2765,
+          11.9212,
+          11.928,
+          11.8649,
+          11.7213,
+          11.583,
+          11.582,
+          11.4914,
+          11.5452,
+          11.3998,
+          11.3705,
+          11.3721,
+          11.3123,
+          11.3318,
+          11.2773,
+          11.3154,
+          11.2414,
+          11.2035,
+          11.2886,
+          11.2581,
+          11.2667,
+          11.288,
+          11.2209,
+          11.1824,
+          11.2527,
+          11.1584,
+          11.1887,
+          11.1788,
+          11.1707,
+          11.1597,
+          11.1116,
+          11.1681,
+          11.1196,
+          11.1638,
+          11.1202,
+          11.1919,
+          11.2369,
+          11.19,
+          11.1852,
+          11.1496,
+          11.1752,
+          11.1755,
+          11.0877,
+          11.1821,
+          11.1473
+        ],
+        "verdict": "TRAIN_LEG_PASS",
+        "passed": 6,
+        "total": 6,
+        "reference_sha256": "78fc0cda4b1754cf9d4e7295ae367e95a794f363d7bc724d600ea88a1e9b5f54",
+        "phase": "group_destroyed",
+        "attribution": "device-context training algorithm; communication regression run",
+        "checks": {
+          "device_context": {
+            "ok": true
+          },
+          "model_load": {
+            "ok": true
+          },
+          "comm_all_reduce": {
+            "ok": true
+          },
+          "comm_all_gather": {
+            "ok": true
+          },
+          "comm_p2p": {
+            "ok": true
+          },
+          "loss_decrease": {
+            "ok": true
+          }
+        }
+      }
+    },
+    {
+      "source": "two_patches/ef585d25fb6b4f9ebc412a5dd51f7d3d/acceptance.json",
+      "source_sha256": "889e1385508bc7311140b6927153a7268db1b165dd8bf28c3f0f813f3a35bc75",
+      "result": {
+        "numeric_ok": false,
+        "cleanup_ok": false,
+        "run_id": "ef585d25fb6b4f9ebc412a5dd51f7d3d",
+        "returncode": 1,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "validation_scope": "process_and_result_contract",
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "two_patches/ef585d25fb6b4f9ebc412a5dd51f7d3d/communication_correctness_rank0.json",
+      "source_sha256": "ff83aede9e141883fa161d70501fca29713edb05d7dc52e2e070fca187ea161f",
+      "result": {
+        "rank": 0,
+        "schema_version": 2,
+        "run_id": "ef585d25fb6b4f9ebc412a5dd51f7d3d",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "checks_complete",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 745,
+        "failed_calls": 55,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.667,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 1,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 2,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 3,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 3,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 16,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 21,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 28,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 30,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 31,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 31,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 38,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 39,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 39,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 42,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 45,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 46,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 47,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 49,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 63,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 67,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 75,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "bfloat16",
+            "operation": "p2p"
+          },
+          {
+            "iteration": 84,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 85,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 88,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 89,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 90,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 94,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 95,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 97,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 99,
+            "dtype": "float32",
+            "operation": "p2p"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "two_patches/ef585d25fb6b4f9ebc412a5dd51f7d3d/communication_correctness_rank1.json",
+      "source_sha256": "a12b44141e0c445b29e51b1c99bd19d9bc9c636ccfaf3b39db44dad7961081da",
+      "result": {
+        "rank": 1,
+        "schema_version": 2,
+        "run_id": "ef585d25fb6b4f9ebc412a5dd51f7d3d",
+        "counting_unit": "per_rank_operation_check",
+        "phase": "checks_complete",
+        "world_size": 2,
+        "iterations": 100,
+        "dtypes": [
+          "float32",
+          "bfloat16"
+        ],
+        "calls_per_operation": {
+          "all_reduce": 200,
+          "all_gather": 200,
+          "p2p": 200,
+          "async_all_reduce": 200
+        },
+        "total_calls": 800,
+        "passed_calls": 622,
+        "failed_calls": 178,
+        "immediate_is_completed_true": {
+          "float32": 100,
+          "bfloat16": 100
+        },
+        "elapsed_s": 9.636,
+        "failures": [
+          {
+            "iteration": 0,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 0,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 1,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 2,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 4,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 5,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 5,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 6,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 7,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 8,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 9,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 10,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 11,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 12,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 13,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 14,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 14,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 15,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 15,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 16,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 16,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 17,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 18,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 19,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 20,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 21,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 21,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 22,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 23,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 24,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 25,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 26,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 27,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 28,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 29,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 30,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 30,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 31,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 31,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 32,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 33,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 34,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 34,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 35,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 35,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 36,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 36,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 37,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 38,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 39,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 39,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 40,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 41,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 42,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 43,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 43,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 44,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 44,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 45,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 46,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 47,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 47,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 48,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 49,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 49,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 50,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 50,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 51,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 52,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 53,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 54,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 54,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 55,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 55,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 56,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 56,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 57,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 58,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 59,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 59,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 60,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 60,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 61,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 62,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 63,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 63,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 64,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 65,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 65,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 66,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 66,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 67,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 67,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 68,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 69,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 69,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 70,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 70,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 71,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 72,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 72,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 73,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 73,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 74,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 74,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 75,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 75,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 76,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 77,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 78,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 78,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 79,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 80,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 80,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 81,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 81,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 82,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 83,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 83,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 84,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 84,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 85,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 85,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 86,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 87,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 88,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 88,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 89,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 89,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 90,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 90,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 91,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 92,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 94,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 95,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 96,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 96,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 97,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 97,
+            "dtype": "bfloat16",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 98,
+            "dtype": "float32",
+            "operation": "all_gather"
+          },
+          {
+            "iteration": 99,
+            "dtype": "float32",
+            "operation": "all_gather"
+          }
+        ],
+        "verdict": "FAIL"
+      }
+    },
+    {
+      "source": "event.log",
+      "source_sha256": "0085867f4af2ea39de43e760056ef8a9c256fe8aee47ac28e3cd21f8f50a3cf2",
+      "result": {
+        "created": 1000,
+        "destroyed": 1000,
+        "recorded": 1000,
+        "waited": 1000,
+        "iterations": 1000,
+        "scope": "production_event_real_acl"
+      }
+    },
+    {
+      "source": "acl_release.log",
+      "source_sha256": "744f4f3c11a99fbbd17d72e957a6fb69195714926fd037fa31d70af1d4220c87",
+      "result": {
+        "acl_init": 0,
+        "get_device_count": 0,
+        "device_count": 2,
+        "acl_finalize": 0
+      }
+    }
+  ]
+}

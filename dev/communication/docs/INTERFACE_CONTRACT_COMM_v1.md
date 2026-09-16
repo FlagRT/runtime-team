@@ -1,7 +1,7 @@
 # 通信接口约定 v1（本地待确认）
 
 负责人：尤联忠。依据战略目标 §5，设备接口参考 `kistich/device-context@f81adaf`。
-通信章节已补齐；下游确认与新代码真机回归尚未完成，因此未达到公共分支合入门槛。
+通信章节已按新代码实机回归更新；下游人员确认尚未完成，因此未达到公共分支合入门槛。
 
 ## 环境与后端
 
@@ -33,12 +33,12 @@ P800 在设备方向分支中使用 `cpu:gloo,cuda:flagcx`，且有 KL3 条件�
 
 | 操作 | 输入/输出约定 | 当前证据 |
 | --- | --- | --- |
-| AllReduce SUM | 各 Rank 同形状/dtype；原地更新；参考值为各 Rank 贡献之和 | 2 Rank，FP32/BF16，8 元素 |
-| AllGather | 输出列表长为 world size；各输出与输入同形状/dtype；按 Rank 排列 | 2 Rank，FP32/BF16，4 元素 |
-| Send/Recv | 对等 src/dst、形状、dtype；显式双向次序避免双方阻塞 send | 2 Rank，FP32/BF16，8 元素 |
-| async AllReduce | 保留输入和 Work，完成依赖建立后再消费/复用缓冲 | wait + 全设备同步后的数值正确 |
+| AllReduce SUM | 各 Rank 同形状/dtype；原地更新；参考值为各 Rank 贡献之和 | 2 Rank，FP32/BF16，8/1024/65536 元素 |
+| AllGather | 输出列表长为 world size；各输出与输入同形状/dtype；按 Rank 排列 | 同上，等长连续张量；新 CANN 路径复制前后保守同步 |
+| Send/Recv | 对等 src/dst、形状、dtype；显式双向次序避免双方阻塞 send | 同上，保留缓冲；新 CANN wait 阻塞 Host 至通信流完成 |
+| async AllReduce | 保留输入和 Work，完成依赖建立后再消费/复用缓冲 | 同上；wait + 同步及 Event 跨流消费分别验证 |
 | ReduceScatter/Broadcast | API 已纳入计划；不宣称当前探针已验收 | 未覆盖 |
-| 跨流消费/并行通信计算 | 须验证通信完成到消费流的真实依赖 | 待真机验证 |
+| 跨流消费/并行通信计算 | 须验证通信完成到消费流的真实依赖 | Event 消费对照 240/240；不代表已验证计算通信重叠 |
 | 多节点、8/16 卡、性能 | 独立的后续规模化任务 | 本轮不声明支持结论 |
 
 不支持与未验证必须区分：表中未覆盖项表示本方向没有验收证据，不能推断后端不支持。
@@ -48,8 +48,11 @@ P800 在设备方向分支中使用 `cpu:gloo,cuda:flagcx`，且有 KL3 条件�
 
 `async_op=True` 的返回、`is_completed()` 为 true、`wait()` 返回、设备完成、跨流可见
 是不同观察点。历史 80 次立即查询均为 true，并不足以证明设备提前完成或接口有缺陷。
-当前已验证消费路径为 `work.wait()` + `torch.flagos.synchronize()` 后做 Host 对照。
-全设备同步是当前正确性基线，有性能代价；尚不承诺通信计算重叠。
+已验证 `work.wait()` + `torch.flagos.synchronize()` 后的 Host 对照，以及生产流提交、wait、
+记录 Event、消费流等待并读取的路径。最终补丁在 CANN 上将 wait 改为 Host 阻塞到通信流完成，
+AllGather 列表复制还使用全设备同步；这是有性能代价的正确性方案，不承诺通信计算重叠。
+`is_completed()` / Future 的既有实现仍可能早于设备完成，不能作为单独的缓冲复用条件。
+`wait(timeout)` 参数尚未在后端实现有界等待；必须保留外层总超时。
 
 跨流接入须同时满足两件事：通信完成后在正确的流记录 Event，并让消费流 wait；张量
 保留到消费完成，必要时 `record_stream(consumer)` 防止缓存分配器提前复用。
@@ -63,6 +66,11 @@ P800 在设备方向分支中使用 `cpu:gloo,cuda:flagcx`，且有 KL3 条件�
 调用方按 disposition 处理；通信组超时或成员退出先视为整个组失败，协调调度重建，
 不因为某个 Rank 可继续运行就恢复提交。设备致命错误交设备方向 `recover_device`，
 何时恢复、检查点重放由监控/调度编排，通信库不自行重置共享设备。
+
+本轮实机验证：成功规约后 Rank 0 退出 42，旧组失败被识别；统一 API 返回
+L3_EXECUTION/replay，但 mapped=false、graded_by=message_hint、is_grade_confident=false。
+实际处置为重启全部 Rank、创建新组，恢复后 1600/1600 校验通过；不是对失败组原地重放，
+也不是设备 reset。该跨方向处置口径仍待监控和调度确认。
 
 `run_acceptance.py` 用独立 run_id/输出目录归档 launcher.log、各 Rank JSON、acceptance.json。
 完整 PASS 必须同时满足：
@@ -79,5 +87,6 @@ P800 在设备方向分支中使用 `cpu:gloo,cuda:flagcx`，且有 KL3 条件�
 
 设备方向确认完成依赖与生命周期；调度方向接入退出码和 acceptance.json；performance
 引用原始结果及测试环境，不把主机模拟测试并入真机性能报告。
-本次完成本地章节、监督器及主机回归；下游人员确认、910C 新代码回归和完整训练腿联测
-仍待执行。没有下游确认记录，不能将“章节写完”标为“全组契约已冻结”。
+本次完成章节、监督器、主机测试、910C 新代码通信回归与训练腿复测，证据见
+[实机记录](SERVER_VALIDATION_20260916.md)。没有下游人员确认记录，不能将“章节写完”
+标为“全组契约已冻结”；性能代价、低置信度错误分级与未测能力须随交付保留。
