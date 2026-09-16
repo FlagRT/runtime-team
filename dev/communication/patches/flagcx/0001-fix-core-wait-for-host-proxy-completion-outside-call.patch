@@ -1,0 +1,42 @@
+From 8c836df5025bb7da328d68b9120da4ccc8f16faa Mon Sep 17 00:00:00 2001
+From: Lianzhong You <youyve@foxmail.com>
+Date: Wed, 16 Sep 2026 16:56:53 +0800
+Subject: [PATCH 1/2] fix(core): wait for host proxy completion outside
+ callback
+
+Extract the P2 fix from Kistich a1e7e0f without heterogeneous runner or diagnostic changes. Local source review only; device regression remains required.
+
+Co-authored-by: Kistich <kistich@users.noreply.github.com>
+---
+ flagcx/core/group.cc         | 3 +++
+ flagcx/core/launch_kernel.cc | 5 +++--
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/flagcx/core/group.cc b/flagcx/core/group.cc
+index c245e29..7e37779 100644
+--- a/flagcx/core/group.cc
++++ b/flagcx/core/group.cc
+@@ -456,6 +456,9 @@ static flagcxResult_t groupLaunch(struct flagcxAsyncJob *job_) {
+     } else {
+       FLAGCXCHECK(deviceAdaptor->launchHostFunc(launchStream, cpuAsyncKernel,
+                                                 (void *)semaphore.get()));
++      // Do not hold a driver callback while waiting for proxy completion.
++      // Keep the semaphore alive until all queued operations have finished.
++      semaphore->wait();
+     }
+   }
+ 
+diff --git a/flagcx/core/launch_kernel.cc b/flagcx/core/launch_kernel.cc
+index 3ad2657..fa0a391 100644
+--- a/flagcx/core/launch_kernel.cc
++++ b/flagcx/core/launch_kernel.cc
+@@ -74,5 +74,6 @@ void *flagcxDeviceSemaphoreBufferPool::getDevicePtr(int id) {
+ void cpuAsyncKernel(void *args) {
+   flagcxHostSemaphore *semaphore = (flagcxHostSemaphore *)args;
+   semaphore->signalStart();
+-  semaphore->wait();
+-}
+\ No newline at end of file
++  // Completion is waited by groupLaunch, outside the driver callback.
++  // Blocking here can prevent proxy copies from making progress.
++}

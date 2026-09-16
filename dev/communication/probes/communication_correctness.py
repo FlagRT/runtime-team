@@ -91,14 +91,14 @@ def main() -> None:
         parser.error("--iterations must be positive")
 
     started = time.perf_counter()
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.flagos.set_device(local_rank)
     dist.init_process_group("flagos", timeout=timedelta(seconds=180))
     rank = dist.get_rank()
     world = dist.get_world_size()
     if world != 2:
         raise RuntimeError(f"this probe requires exactly 2 ranks, got {world}")
 
-    local_rank = int(os.environ["LOCAL_RANK"])
-    torch.flagos.set_device(local_rank)
     device = f"flagos:{local_rank}"
 
     failures: list[dict[str, object]] = []
@@ -131,7 +131,10 @@ def main() -> None:
     elapsed = time.perf_counter() - started
     total_calls = sum(calls_per_operation.values())
     result = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "run_id": os.environ.get("COMM_RUN_ID"),
+        "counting_unit": "per_rank_operation_check",
+        "phase": "checks_complete",
         "backend": "flagos (FlagCX implementation in locked training image)",
         "rank": rank,
         "world_size": world,
@@ -162,6 +165,8 @@ def main() -> None:
         flush=True,
     )
     dist.destroy_process_group()
+    result["phase"] = "group_destroyed"
+    out_file.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     if failures:
         raise SystemExit(1)
 
