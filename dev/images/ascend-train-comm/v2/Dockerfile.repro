@@ -1,0 +1,64 @@
+# ascend-train-comm v2 — 在 ascend-operator-runtime:v2 之上叠加 FlagCX（公开 commit）
+#
+# 相比 v1（dev/images/ascend-train-comm/v1）的改进：
+#   FlagCX 层不再依赖 owner 私有 commit。v1 锁定的 FlagCX commit
+#   55eb2ffff6988ae1db5e6ecb325472aecc93d238 只在 owner 私有分支存在（已 fetch
+#   核实不在 FlagRT/FlagCX 任何已推分支），且构建还需要 2 个 owner 私有 patch，
+#   v1 只能靠"回收已装包 vendor 进新镜像"functional-repro，逐字节复现被列为
+#   TODO 且需总组向 owner 索取私有资产。
+#   v2 改用 FlagRT/FlagCX 组织仓公开主干 tip（commit
+#   4e0e0cbcbf721169ca82348080f8353aebfe2c31，本身同步自 flagos-ai/FlagCX 公开
+#   上游），`USE_ASCEND=1 pip install . --no-build-isolation` 直接从干净 checkout
+#   端到端构建，没有任何私有 patch、没有需要回收的已装包——是"真正可从零复现"
+#   的训练腿通信层，不再有本组无法交出的私有资产缺口。
+#
+# 边界：父镜像与本文件新增层均为 custom（FlagRT 自建 + 组织仓公开 commit）。
+
+ARG PARENT_IMAGE=flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64
+FROM ${PARENT_IMAGE}
+
+ARG FLAGCX_VERSION=0.13.0
+ARG FLAGCX_COMMIT=4e0e0cbcbf721169ca82348080f8353aebfe2c31
+ARG PYTHON_BIN=/usr/local/python3.11.15/bin/python3
+
+LABEL org.opencontainers.image.title="FlagRT Ascend communication runtime (v2, FlagTree ascend3.5 lineage)" \
+      org.opencontainers.image.version="1.0.0" \
+      io.flagrt.flagcx.version="${FLAGCX_VERSION}" \
+      io.flagrt.flagcx.commit="${FLAGCX_COMMIT}" \
+      io.flagrt.flagcx.origin="public (FlagRT/FlagCX org fork public trunk, synced from flagos-ai/FlagCX upstream)" \
+      io.flagrt.flagcx.adaptor="ascend" \
+      io.flagrt.flagcx.torch_backend="flagos" \
+      io.flagrt.release.stage="candidate" \
+      io.flagrt.lineage="flagtree-official-ascend3.5"
+
+# 与 v1 相同的 torch_fl 运行时开关:禁止 torch_npu 自动加载,通信走 flagos 后端。
+# 与 v1 不同:不再断言 torch_npu 不存在(见 ascend-operator-runtime/v2/REBUILD.md
+# 「torch_npu 共存问题」——基座自带 torch_npu,共装本身安全,只需保证 import 顺序)。
+ENV FLAGCX_TORCH_BACKEND=flagos \
+    HCCL_WHITELIST_DISABLE=1 \
+    TORCH_DEVICE_BACKEND_AUTOLOAD=0 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LD_LIBRARY_PATH=/usr/local/python3.11.15/lib/python3.11/site-packages/torch/lib:${LD_LIBRARY_PATH}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# FlagCX 源码(组织仓公开主干 tip,git archive 到构建上下文)+ 校验/自检脚本
+COPY src/FlagCX/ /opt/flagrt/src/FlagCX/
+COPY assets/verify_flagcx_runtime.py /opt/flagrt/verify_flagcx_runtime.py
+COPY assets/verify_flagcx_p2p.py /opt/flagrt/verify_flagcx_p2p.py
+
+# third-party/json、third-party/googletest 是 FlagCX 的公开 git submodule
+# (nlohmann/json、google/googletest),构建期直接 clone(需 --network=host)。
+RUN git config --global --add safe.directory "*" \
+    && cd /opt/flagrt/src/FlagCX \
+    && rm -rf third-party/json third-party/googletest \
+    && git clone --depth 1 https://github.com/nlohmann/json.git third-party/json \
+    && git clone --depth 1 https://github.com/google/googletest.git third-party/googletest
+
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && cd /opt/flagrt/src/FlagCX \
+    && USE_ASCEND=1 ${PYTHON_BIN} -m pip install --no-build-isolation . \
+    && ${PYTHON_BIN} /opt/flagrt/verify_flagcx_runtime.py --static \
+    && rm -rf /root/.cache/pip /opt/flagrt/src
+
+WORKDIR /workspace/FlagPerf/base

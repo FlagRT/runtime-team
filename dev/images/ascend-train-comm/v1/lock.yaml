@@ -1,24 +1,27 @@
 # ascend-train-comm / v1
-# 本月训练腿锁定基座（stack.lock lock.train）。release.stage=candidate。
+# 在 ascend-operator-runtime:0.2.0 之上叠加 FlagCX。
 
 image_tag: "flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64"
 image_id: "sha256:3b9e08f231d0"
+flagtree_line: >-
+  ascend3.5（随父镜像 ascend-operator-runtime；本层只叠加 FlagCX）。
+  版本线口径见父 lock.yaml 与 dev/images/image_list.md。
 built_at: "2026-09-03T09:36:48Z"
 builder: "Docker 20.10.8 / arm64 / BuildKit"
-container_name: "flagos-proto-train-910c"     # 见 stack.lock
-repro_status: "🟡"                             # 配方在手，registry 未发布
-registry_status: "临时机器绑定资产：仅 npu1-27（10.120.73.79）本地有；Docker Hub 报 repository does not exist"
-dockerfile: "reconstructed"                     # 从 docker history 还原；assets/docker-history.txt 为原始记录
+repro_status: "🟢 functional-repro"     # 2026-09-10 已实机重建并验证，见 REBUILD.md
+dockerfile: |
+  Dockerfile       = 从 docker history 还原，逐字节复现目标（缺 owner 私有 FlagCX 件，见 gaps）
+  Dockerfile.repro = 已实机验证可重建（功能等价），build.sh 驱动
 
 parent_image:
   name: "flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64"
   id: "sha256:d948410966b0dfdfaf4f9c95b9b14bdb7c4279cb85ccd7f9157f0fb5d1c6d397"
   entry: "dev/images/ascend-operator-runtime/v1"
 
-# --- 官方 / 自定义边界 ---
+# --- official / custom 边界（见 README §4.0 术语 + §4.1）。本层全部 custom（FlagRT 自建）。 ---
 # 父镜像的边界见 ascend-operator-runtime/v1/lock.yaml。本版本仅叠加下面一层，全部 custom。
 layers:
-  - name: "FlagCX 0.13.0（昇腾 adaptor，flagos torch 后端）"
+  - name: "FlagCX 0.13.0（昇腾 adaptor）"
     origin: custom
     pin:
       version: "0.13.0"
@@ -29,38 +32,33 @@ layers:
       wheel_sha256: "eb7a26765586de3491cf6410eb9d38ef02fe71a6b3b1aa7dd776a62db74f914a"
       source_tree_manifest: "assets/flagcx-source-artifacts.sha256（1692 行，打补丁后源码树逐文件 sha256）"
       verifier_sha256: "8055c276f531032b8cc5e84fd9bbf0ef992a388771c3e39ac97a451fd5bbb6e5"
-  - name: "运行时开关"
+  - name: "运行时开关 ENV"
     origin: custom
-    pin: "ENV FLAGCX_TORCH_BACKEND=flagos / TORCH_DEVICE_BACKEND_AUTOLOAD=0 / HCCL_WHITELIST_DISABLE=1"
+    pin: "FLAGCX_TORCH_BACKEND=flagos / TORCH_DEVICE_BACKEND_AUTOLOAD=0 / HCCL_WHITELIST_DISABLE=1"
 
-# 设计约束（构造使然，非缺陷）
-design_constraints: |
-  镜像刻意不含 torch_npu：verify_flagcx_runtime.py 在构建期断言 torch_npu 不存在，FlagCX 的 .so
-  强制链接 libflagos.so/libascendcl.so/libhccl.so 且断言不链 torch_npu。因此容器内
-  torch.npu.device_count()==0 是预期行为，训练腿必须走 torch_fl（先 import torch_fl 再 import torch）。
-  这更正了 DIAG_TRAIN_IMAGE_NPU_20260908.md 中"镜像打包时组件缺失"的推测。
+# 构造事实（重建时须知，非缺陷）
+construction_facts: |
+  镜像构造上排斥 torch_npu：verify_flagcx_runtime.py 在构建期断言 torch_npu 不存在；
+  FlagCX 的 .so 强制链接 libflagos.so/libascendcl.so/libhccl.so 且断言不链 torch_npu。
+  故容器内 torch.npu 不可用（device_count()==0）。这更正了
+  DIAG_TRAIN_IMAGE_NPU_20260908.md 中"镜像打包时组件缺失"的推测——是刻意不装，非缺失。
 
-mainline_fallback: |
-  官方主线是 torch_npu（Route A）。回退路径 = 改用 ascend-operator-runtime/v1（父镜像）
-  + 容器内移植 torch_npu，即设备上下文 08-24 的 A 线做法（flagos-device-context-a-910c）。
-  stack.lock device_registration 已记 TODO：10 月评估训练腿切回 Route A。
-
-# byte 级重建缺口（🟡 → 🟢）。任务清单与负责人见 dev/images/TODO.md（负责：总组）
+# 重建缺口：Dockerfile.repro（功能等价，flagcx .so 逐字节一致）已打通；逐字节复现还缺：
 gaps:
-  - "父镜像的缺口（见 ascend-operator-runtime/v1/lock.yaml:gaps）"
-  - "flagcx wheel（assets/wheels/）已从镜像内 rm，需按 wheel_sha256 重新获取或按 commit+patch 重建"
-  - "FlagCX 的 2 个 patch 文件本体不在镜像内（只有 sha256），需向镜像 owner 索取"
-  - "推送到 harbor.baai.ac.cn 并登记可拉取 digest"
+  - "FlagCX commit 55eb2ffff698…：不在 FlagRT/FlagCX 任何已推分支（已 fetch 核实），在 owner 私有分支"
+  - "FlagCX 2 个 patch 本体（bc84ea26… / 524654689…），仓库内只有 sha256"
+  - "原始 flagcx-0.13.0-cp311…whl（已 rm）—— Dockerfile.repro 用回收的已装包 vendor，.so sha256 与原镜像一致"
+  - "父镜像的缺口，见 ascend-operator-runtime/v1/lock.yaml:gaps"
 
-governance:
-  decides_and_releases: "总组（收拢各子方向 STATUS.md 的问题/意见后统一裁定，见 dev/images/README.md §6）"
-  builds_and_registers: "总组指派的执行方；发布状态登记当前在 performance（战略文档 §5）"
-consumers:
-  - "device-context（段一：2 卡分布式微调，torch_fl 后端）"
-  - "communication（FlagCX 昇腾适配验证）"
-  - "performance（训练侧吞吐采集）"
+# 重建验证（2026-09-10，见 REBUILD.md）
+repro_result:
+  image: "flagrt/ascend-operator-runtime-comm:0.1.3-reproB"
+  pip_freeze: "与原镜像逐行一致（63 包）"
+  flagcx_so: "_C.so / libflagcx.so / __init__.py sha256 与原镜像逐字节一致"
+  build_time: "3s（父层复用）"
 
 changelog:
   - date: "2026-09-09"
-    who: "runtime-team"
     what: "首次登记：从 npu1-27 本地镜像 docker history + labels 还原 Dockerfile 与 pin 清单；抠出 verify/清单脚本入 assets/。"
+  - date: "2026-09-10"
+    what: "Dockerfile.repro 实机重建 + 验证通过；repro_status → 🟢。去除非归档内容（消费方定位/路线/治理）。"

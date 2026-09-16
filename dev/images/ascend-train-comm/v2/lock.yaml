@@ -1,0 +1,74 @@
+# ascend-train-comm / v2
+# 在 ascend-operator-runtime:v2（FlagTree 官方 ascend3.5 血统）之上叠加 FlagCX。
+
+superseded_by: null   # v1 未被本版本取代——两条血统并存,详见 image_list.md"当前生效版本"
+
+image_tag: "flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
+flagtree_line: >-
+  ascend3.5,随父镜像 ascend-operator-runtime/v2。本层只叠加 FlagCX。
+built_at: "2026-09-12"
+builder: "Docker 20.10 / arm64 / DOCKER_BUILDKIT=0, --network=host"
+repro_status: "🟢 functional-repro（且逐字节可复现:公开 commit,无需回收任何已装包)"
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方(全新血统首次构建)。build.sh 驱动。
+
+parent_image:
+  name: "flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64"
+  entry: "dev/images/ascend-operator-runtime/v2"
+
+# --- 相比 v1 的改进(任务书要求明确写出) ---
+improvement_over_v1: |
+  FlagCX 层不再依赖 owner 私有 commit。v1(dev/images/ascend-train-comm/v1)锁定的
+  commit 55eb2ffff6988ae1db5e6ecb325472aecc93d238 经核实只在 owner 私有分支存在
+  （已 fetch 核实不在 FlagRT/FlagCX 任何已推分支），且构建还需要 2 个 owner 私有
+  patch——v1 只能靠"从原镜像回收已装包 vendor 进新镜像"做到 functional-repro
+  （.so 逐字节一致于原镜像，但原镜像本身就是黑盒终点），逐字节复现被列为
+  dev/images/TODO.md 的 #1 项，需总组向 owner 发 issue 索取私有资产。
+  v2 改用 FlagRT/FlagCX 组织仓公开主干 tip（commit
+  4e0e0cbcbf721169ca82348080f8353aebfe2c31，本身同步自 flagos-ai/FlagCX 公开上游），
+  `USE_ASCEND=1 pip install . --no-build-isolation` 直接从干净 checkout 端到端构建：
+  没有任何私有 patch、没有需要回收的已装包、没有"原始 wheel 已 rm 找不回"的问题。
+  这是"真正可从零复现"的训练腿通信层——lock.yaml 不再有 gaps 段。
+
+layers:
+  - name: "FlagCX 0.13.0(昇腾 adaptor,公开 commit)"
+    origin: custom
+    pin:
+      version: "0.13.0"
+      commit: "4e0e0cbcbf721169ca82348080f8353aebfe2c31"
+      repo: "https://github.com/FlagRT/FlagCX.git（组织仓公开主干,同步自 flagos-ai/FlagCX 公开上游)"
+      build_command: "USE_ASCEND=1 pip install --no-build-isolation ."
+      submodules: "third-party/json(nlohmann/json)、third-party/googletest(google/googletest),构建期 git clone --depth 1,均为公开仓库"
+    note: "无 owner 私有 patch;.so 从干净 checkout 现场编译,非 vendor 回收件"
+  - name: "运行时开关 ENV"
+    origin: custom
+    pin: "FLAGCX_TORCH_BACKEND=flagos / TORCH_DEVICE_BACKEND_AUTOLOAD=0 / HCCL_WHITELIST_DISABLE=1(与 v1 相同)"
+
+# v2 没有 gaps 段——见上面 improvement_over_v1。
+
+# 实机验证(2026-09-12,真机 2 卡,见 REBUILD.md)
+repro_result:
+  image: "flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
+  flagcx_so_present: true
+  verify_flagcx_runtime_static: "通过"
+  verify_flagcx_runtime_device: "通过(all_reduce 数值正确,两 rank 均 device_all_reduce_ok=true);进程退出时有已知 SIGABRT,见下方 known_issues"
+  communication_correctness_probe: "40/40 all_reduce/all_gather/p2p/async_all_reduce 调用通过(fp32+bf16,2 卡,dev/communication/probes/communication_correctness.py)"
+
+known_issues:
+  - id: "teardown-sigabrt"
+    description: >-
+      成功完成 all_reduce/all_gather/p2p 等集合通信、且结果数值正确之后,进程退出
+      （无论是否显式调用 dist.destroy_process_group()，还是让 Python 自然退出触发
+      atexit）会以 "free(): invalid pointer" 报错并 SIGABRT。已隔离验证:与
+      torch_npu 共存无关（纯 torch_fl + FlagCX 场景、完全不 import torch_npu 的
+      dev/communication/probes/communication_correctness.py 同样在写出 PASS 结果
+      文件之后于进程退出时复现同一崩溃）。推测是 FlagCX 与 Torch-FL 各自的
+      退出期清理(atexit/析构函数)顺序冲突导致的 double-free 类问题,需要
+      FlagCX/Torch-FL 侧进一步定位,不在本次重建范围内解决。
+    impact: "不影响训练期间的通信正确性(崩溃只发生在进程退出阶段);批处理式短生命周期任务(如本次两个验证脚本)需自行在通信结果落盘/打印之后再进入 teardown,不能依赖退出码判断成功与否。"
+    workaround: "assets/verify_flagcx_runtime.py 已改为在 destroy_process_group 之前打印 JSON 结果,避免退出期崩溃掩盖已经正确完成的通信结果。"
+
+changelog:
+  - date: "2026-09-12"
+    what: "首次构建:FlagCX 组织仓公开主干 tip,端到端从源码构建,静态自检 + 真机 2 卡 all_reduce/all_gather/p2p/async_all_reduce 全部通过。发现并记录进程退出期 SIGABRT 已知问题。未改 dev/stack.lock.910c.v1.yaml(仍锁 v1)。"

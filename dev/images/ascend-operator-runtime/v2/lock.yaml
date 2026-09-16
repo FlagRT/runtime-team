@@ -1,0 +1,139 @@
+# ascend-operator-runtime / v2
+# 新血统:BAAI·FlagTree 官方 ascend3.5 手册基座 + 自编译 triton_v3.5.x。
+# 对应 dev/images/TODO.md 的"下一期 N1"项。候选血统,未进入 dev/stack.lock.910c.v1.yaml
+# 的 lock:(那里仍指向 v1 镜像),是否切换由总组另行裁定。
+
+superseded_by: null   # v1 未被本版本取代——两条血统并存,详见 image_list.md"当前生效版本"
+
+image_tag: "flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64"
+flagtree_line: >-
+  ascend3.5,与 v1 版本纪元相同(CANN 9.0.0 / py3.11 / torch 2.10.0),但 v2 是
+  第一次真正按 BAAI·FlagTree 官方 ascend3.5 手册的构建路径产出的镜像:官方预构建
+  基座镜像 + checkout triton_v3.5.x + FLAGTREE_BACKEND=ascend 现场编译,而不是像
+  v1 那样直接 pip 装上游 triton wheel + 华为 triton-ascend wheel、底座另找 BAAI
+  内部手工镜像。triton 实测版本 3.5.1(手册版本线表格暗示 3.5.0,如实按实测记录,
+  不采信手册假设)。
+built_at: "2026-09-12"
+builder: "Docker 20.10 / arm64 / DOCKER_BUILDKIT=0, --network=host"
+repro_status: "🟢 functional-repro"   # 2026-09-12 实机构建 + 静态自检通过,见 REBUILD.md
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方(本血统没有"从 docker history 还原"的 Dockerfile——
+  这是全新血统的首次构建,不是既有镜像的事后重建)。build.sh 驱动。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2"
+  note: >-
+    BAAI·FlagTree 官方发布的预构建基座镜像(公开 harbor 仓库,本机已存在,
+    非本组产物,非 BAAI 内部手搭)。内置 Python 3.11.15 / torch 2.10.0+cpu /
+    torch_npu 2.10.0 / vLLM 0.20.2(editable)/ CANN 9.0.0。不含 triton。
+  registry: "harbor.baai.ac.cn/flagtree(BAAI·FlagTree 官方公开仓库)"
+  offline_mirror: "https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64.202608-torch2.10.0-vllm0.20.2.tar.gz（手册记载的官方离线包地址,未本机验证下载,仅记录来源)"
+
+# --- official / custom 边界(见 README §4.0/§4.1)。origin: official 此处严格等于
+#     "BAAI·FlagTree 官方发布/托管的公开产物",与 v1 的"official=按版本号跟随但本体
+#     是 BAAI 内部手搭"不同——这是 v2 相对 v1 在可锚定性上的核心改进点。 ---
+layers:
+  - name: "FlagTree ascend3.5 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2"
+    note: "BAAI·FlagTree 官方发布,公开 harbor + 官方离线包镜像双通道,无需 BAAI 内部账号"
+  - name: "llvm 编译工具链(triton 编译期依赖)"
+    origin: official
+    pin: "llvm-7d5de303-ubuntu-aarch64-python311-compat_v0.6.0.tar.gz"
+    note: "BAAI·FlagTree 官方公开分发桶(ks3-cn-beijing.ksyuncs.com/trans/),手册记载地址,构建期直接 curl,未入库(2.2GB,见 REBUILD.md 复现方式)"
+  - name: "triton 编译依赖包(nvidia/json/googletest 预置)"
+    origin: official
+    pin: "build-deps-triton_3.5.x-linux-aarch64.tar.gz"
+    note: "同上分发桶;通过 FlagTree 自带 python/scripts/unpack_triton_build_deps.sh 解包到 ~/.triton"
+  - name: "FlagTree(triton_v3.5.x 分支,提供 triton 包)"
+    origin: official
+    pin:
+      repo: "https://github.com/flagos-ai/FlagTree.git（上游,非 FlagRT 组织 fork——本次未修改/未推送 FlagRT fork 的任何分支)"
+      branch: "triton_v3.5.x"
+      commit: "15ec1a6cbc8d51f597f46459a500e96f3812c58f"
+      measured_package_version: "flagtree==0.6.0+ascend.git15ec1a6c"
+      measured_triton_version: "3.5.1"
+    note: >-
+      构建期用 FLAGTREE_BACKEND=ascend, MAX_JOBS=32, pip install . --no-build-isolation。
+      setup.py 在构建期自动 clone 三个 FlagTree 官方公开子项目(均只读,未修改)：
+      third_party/flir、third_party/ascend/AscendNPU-IR(按 CANN 版本自动选 pin,
+      本次实测选中 tle-3.5.x-cann9.0.0-dev@a205c957)、third_party/FlagPrism。
+  - name: "Torch-FL (torch_fl 0.1.0)"
+    origin: custom
+    pin: "git commit 162582d678e40f133924a4d3b5b6df1cb8154dc7（FlagRT/Torch-FL,组内公开主干)"
+    note: "ACCELERATOR=ascend ASCEND_KERNEL=1 CUDA_KERNEL=0 FLAGGEMS_KERNEL=0 FLAGGEMS_PYTHON=1 源码装;需先装 FlagGems(cmake find_package 依赖)"
+  - name: "FlagGems (flag_gems 0.0.0+f7ae8e6b934a)"
+    origin: custom
+    pin: "git commit f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4（FlagRT/FlagGems,组内公开主干,与 v1 相同 commit)"
+    note: "GEMS_VENDOR=ascend;DSA 包标记见 assets/FlagGems-DSA-__init__.py(与 v1 相同的打包缺口/相同修复)"
+  - name: "triton-ascend 后端补丁(torch_fl 兼容)"
+    origin: custom
+    pin: "assets/patch_triton_ascend_flagtree.py"
+    note: >-
+      NOT v1 的 assets/patch_triton_ascend_3_2_1.py(也 NOT Torch-FL 仓库自带的
+      scripts/patch_triton_ascend.py)——两者都是针对华为独立发布的
+      triton-ascend 3.2.1 wheel 写的扁平 backends/ascend/{driver,utils}.py 字符串替换。
+      FlagTree 的 triton 3.5.1 已将 ascend 后端重构为
+      triton/backends/ascend/backend_register.py 的 backend_strategy_registry 插件式
+      结构(见该文件的 "torch_npu"/"mindspore" 两个已注册 category)。实测直接跑
+      旧脚本:13 条替换规则里 12 条 "pattern not found",且真正生效的 1 条也不能让
+      torch_npu 相关调用消失(它们已经搬进 backend_register.py 里,旧脚本够不着)。
+      本脚本改为新增一个 "torch_fl" category(镜像每个 "torch_npu" 策略函数,
+      torch.npu.* → torch.flagos.*),并把 get_backend_func() 的选择逻辑从
+      "try import torch_npu" 改为 "hasattr(torch,'flagos') 优先"——对未装 torch_fl
+      的环境(如华为官方 torch_npu 主线)完全不生效,纯增量。
+  - name: "MPI 工具链"
+    origin: official
+    pin: "基座镜像自带系统 mpich 4.0-3(apt,Ubuntu 22.04 官方源),未从源码编译"
+    note: >-
+      v1 从源码编译 MPICH 4.1.3 以配合 CANN hccl_test 独立二进制自检。v2 简化:
+      系统 mpich 的头文件在 multiarch 路径(/usr/include/aarch64-linux-gnu/mpich),
+      与 hccl_test 自带 Makefile 的 ${MPI_HOME}/include 假设不兼容,遂放弃编译该
+      二进制——通信正确性改由更强证据覆盖(真机 torch.distributed all_reduce/
+      all_gather/p2p,见 ascend-train-comm/v2)。见 REBUILD.md「相比 v1 的简化」。
+
+# v2 相比 v1 没有 gaps 段——本层的每一个 custom 组件都是从公开 commit /
+# 公开分发桶现场构建,没有 owner 私有资产依赖。
+
+# 实测发现:torch_npu 与 torch_fl 的关系(对应 stack.lock.910c.v1.yaml
+# per_leg.train.note 的进一步验证,详见 REBUILD.md「torch_npu 共存问题」一节)
+torch_npu_coexistence_finding: |
+  基座镜像预装 torch_npu==2.10.0(未卸载)。实测(无 NPU 设备容器内,PrivateUse1
+  注册逻辑与设备无关,纯 Python/C++ 层面):
+    - 先 import torch_fl(TORCH_DEVICE_BACKEND_AUTOLOAD=0)再 import torch_npu：
+      torch_npu 正常 import 成功,不抛异常,PrivateUse1 backend name 仍是
+      "flagos"(torch_npu 未能覆盖/未尝试覆盖已被占用的 PrivateUse1)。
+    - 反过来,先 import torch(未设 AUTOLOAD=0,或已 import torch_npu)再
+      import torch_fl：torch_fl 立即抛出明确的 RuntimeError("PrivateUse1 is
+      already claimed by the 'npu' backend..."),不会静默损坏状态。
+  结论:这是"进程内 import 顺序"约束,不是"两个包不能共装"的约束。v1 在构建期
+  硬性断言 torch_npu 不存在(pip list | grep 不到才算过)是过度保守的选择——在
+  v1 的场景下这没问题(因为 v1 的基座本来就不含 torch_npu)。v2 的基座默认自带
+  torch_npu(供其他用途共用同一基座),所以 v2 不再复用这条断言,改为
+  assets/verify_runtime.py / assets/verify_flagcx_runtime.py 里的
+  torch_npu_coexistence 检查(验证"import 顺序安全"这个真正的不变量)。
+
+# 重建验证(2026-09-12,见 REBUILD.md)
+repro_result:
+  image: "flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64"
+  triton_version: "3.5.1"
+  flagtree_version: "0.6.0+ascend.git15ec1a6c"
+  torch_fl_version: "0.1.0"
+  flag_gems_version: "0.0.0+f7ae8e6b934a"
+  verify_runtime_static: "通过"
+  verify_runtime_dynamic_device: "通过(真机 2 卡,torch_npu_coexistence_check: passed;详见 REBUILD.md「真机动态验证」)"
+  build_time: "约 20 分钟(llvm 工具链下载 ~3min + triton 编译 ~13min + Torch-FL/FlagGems ~2min,--network=host)"
+
+known_issues:
+  - id: "triton-2-active-drivers"
+    description: >-
+      真机验证中发现:FlagTree 顶层 triton 驱动自动发现把 Torch-FL 的生态兼容
+      shim(torch.cuda.is_available 恒真)误判成"CUDA 也 active",与真正的
+      NPUDriver 冲突报错。已通过 assets/patch_triton_ascend_flagtree.py 第 4
+      条补丁修复(给 CudaDriver.is_active() 加 torch.version.cuda is not None
+      检查),已验证修复后 FlagGems/triton kernel 真机正确执行。
+
+changelog:
+  - date: "2026-09-12"
+    what: "首次构建:BAAI·FlagTree 官方 ascend3.5 预构建基座 + 上游 triton_v3.5.x pinned commit 现场编译,产出全新血统 v2。Dockerfile.repro 实机构建通过,静态自检通过。未改 dev/stack.lock.910c.v1.yaml(仍锁 v1)。"
