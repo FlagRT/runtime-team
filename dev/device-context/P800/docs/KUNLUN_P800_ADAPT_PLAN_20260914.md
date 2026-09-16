@@ -11,7 +11,7 @@
 > 配套文档：
 > - 环境汇总 → [`KUNLUN_P800_ENV_REPORT_20260914.md`](KUNLUN_P800_ENV_REPORT_20260914.md)
 > - **五域基线实测（缺失项清单在此）** → [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md)
-> - 探针脚本与原始结果 → [`../../probes/kunlun/`](../../probes/kunlun/)
+> - 探针脚本与原始结果 → [`../../P800/probes/`](../probes/)
 
 ---
 
@@ -287,7 +287,7 @@ prototype/runtime/backends/
 | 2e | └ 五域基线实测 | ✅ **已完成** | [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md) |
 | 3 | **阶段 1**：`kunlun` backend + conformance | ✅ **已完成** | `backends/kunlun/` 已实现；conformance **13/13 + 6/6**；smoke **42/0**；证据见 §7.1 |
 | 3a | └ 接入过程修复 | ✅ **已修 3 项** | registry 急切求值缺陷、conformance f1 厂商码假设、smoke 仅覆盖昇腾（详见 §7.5） |
-| 4 | **阶段 2**：训练腿（多卡） | ✅ **已完成（标注条件）** | 两 rank 6/6；loss 15.4488→11.1481；3482 tok/s；证据 `probes/kunlun/E_train_leg_result_rank{0,1}.json` |
+| 4 | **阶段 2**：训练腿（多卡） | ✅ **已完成（标注条件）** | 两 rank 6/6；loss 15.4488→11.1481；3482 tok/s；证据 `P800/probes/E_train_leg_result_rank{0,1}.json` |
 | 5 | **阶段 3**：推理腿（单卡 + 服务化） | ⏳ 待执行 | 不受厂商缺陷影响，可立即启动 |
 | 5 | **阶段 4/5**：错误闭环 + 产出与 release | ⏳ 待执行 | 缺失项清单已出 3 条；对外提交单 2 张待起草（§7.4） |
 
@@ -327,14 +327,14 @@ prototype/runtime/backends/
 
 | 交付物 | 位置 | 状态 |
 |---|---|---|
-| 环境汇总 | `prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md` | ✅ 已交付 |
-| 五域基线实测报告 | `prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` | ✅ 已交付 |
-| 探针脚本与原始结果 | `dev/device-context/probes/kunlun/` | ✅ 已交付 |
-| 本方案 | `prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` | ✅ 已交付 |
+| 环境汇总 | `P800/docs/KUNLUN_P800_ENV_REPORT_20260914.md` | ✅ 已交付 |
+| 五域基线实测报告 | `P800/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` | ✅ 已交付 |
+| 探针脚本与原始结果 | `dev/device-context/P800/probes/` | ✅ 已交付 |
+| 本方案 | `P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` | ✅ 已交付 |
 | **昆仑芯后端实现** | `prototype/runtime/backends/kunlun/`（`backend.py` + `__init__.py`） | ✅ 阶段 1 |
 | **conformance 结果** | `prototype/runtime/conformance/conformance_runtime_kunlun.json`（13/13）、`..._kunlun_infer.json`（6/6） | ✅ 阶段 1 |
-| **组件自检证据** | `dev/device-context/probes/kunlun/smoke_kunlun_20260914.txt`（42 通过 / 0 失败） | ✅ 阶段 1 |
-| 训练腿 / 推理腿结果 | `probes/kunlun/E_train_leg_result_rank{0,1}.json`（训练腿，✅ 阶段 2） | ✅ / ⏳ 阶段 3 |
+| **组件自检证据** | `dev/device-context/P800/probes/smoke_kunlun_20260914.txt`（42 通过 / 0 失败） | ✅ 阶段 1 |
+| 训练腿 / 推理腿结果 | `P800/probes/E_train_leg_result_rank{0,1}.json`（训练腿，✅ 阶段 2） | ✅ / ⏳ 阶段 3 |
 | **《新芯片接入手册》** | `prototype/docs/NEW_CHIP_ONBOARD_GUIDE.md` | ⏳ 阶段 5 |
 | **接口约定修订建议** | `prototype/docs/INTERFACE_CONTRACT_REVISION_<date>.md` | ⏳ 阶段 5 |
 | 适配记录（含缺失项与归属） | `prototype/docs/KUNLUN_ADAPT_RECORD_<date>.md` | ⏳ 阶段 5 |

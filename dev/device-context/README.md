@@ -1,6 +1,6 @@
 # 设备上下文（device-context）· 主看板
 
-> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-09
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-16
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
 > 统一基座配置：**`dev/stack.lock.910c.v1.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
 > 本方向状态文件：**`dev/device-context/STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
@@ -9,17 +9,20 @@
 
 ---
 
-## 1. 目录结构（三部分）
+## 1. 目录结构：**一份原型 + 两个芯片实例**
 
 | 目录 | 定位 | 内容 |
 |---|---|---|
-| **`prototype/`** | **我们制定的统一标准**（基座/接口/实现/验证） | 统一运行时 API、Backend 注册表与后端实现（ascend / flagos）、conformance 用例与 runner、两条腿自验证脚本与结果、接口约定与设计文档 |
-| **`distributed_training/`** | 分布式训练既有工作 | 训练侧 conformance 与探针资产、训练脚本与通信工具、通信缺陷补丁、训练映射与报告 |
-| **`distributed_inference/`** | 分布式推理既有工作 | 推理侧 conformance、探针、错误码工具、TP 对照、推理映射与阶段报告 |
+| **`prototype/`** | **芯片无关的统一标准**（我们制定的规范、实现与判据） | 统一运行时 API、Backend 注册表与后端实现（`ascend` / `flagos` / **`kunlun`**）、conformance 用例与 runner、两条腿自验证脚本、**接口约定与事件语义契约**、原型设计、月度计划 |
+| **`910C/`** | **第一个落地实例（昇腾）** —— ✅ 已完成 | 分布式训练与推理既有工作、910C 专属文档（ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断） |
+| **`P800/`** | **第二个接入实例（昆仑芯）** —— 🔄 进行中 | 环境汇总、五域基线、接入方案、根因核对、全量进度报告、**探针脚本与原始证据** |
 
-顶层保留：`README.md`（本看板）、`docs/`（通用与历史文档）、`probes/`
-（`docker-compose.yml` 与 `dev/memory` 目录已由组内于 2026-09-09 删除）
-三个目录各有分支看板：`prototype/README.md`、`distributed_training/README.md`、`distributed_inference/README.md`
+顶层保留：`README.md`（本看板）、`STATUS.md`（方向状态）、`.env.example`
+各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`
+
+> **划分原则：原型与规范是芯片无关的，放在外面；芯片专属的落地实例资产按芯片分目录。**
+> 新芯片接入 = 在 `prototype/` 下**新建一个 backend** + 跑通 conformance，
+> **不复制任何既有芯片的实现**（详见 `910C/README.md` §1 铁律）。
 
 ---
 
@@ -28,76 +31,100 @@
 | 项 | 状态 |
 |---|---|
 | PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
-| 本分支在此后 | ① 仓库重组为三部分 ② 新增统一原型 `prototype/`（统一 API + Backend 注册表）③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 |
-| 当前相对 dev-1.0 | **领先 45 提交**（+5653 / −7） |
+| 本分支在此后 | ① 仓库重组 ② 新增统一原型 `prototype/` ③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 ⑤ **P800 第二实例接入** ⑥ **按芯片重组目录（原型 + `910C/` + `P800/`）** |
+| 当前相对 dev-1.0 | **领先 76 提交**（255 文件 +10269 / −7） |
 | 下一轮合入 | 按 `dev/stack.lock.910c.v1.yaml` 的**合入把关五条**走流程 |
-
 
 ---
 
-## 2. 当前状态总览（910C 实跑证据）
+## 2. 当前状态总览
+
+### 2.1 原型（芯片无关）
 
 | 项 | 状态 | 证据 |
 |---|---|---|
 | 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37 |
+| Backend 抽象与接入规范 | ✅ | 13 个 `@abstractmethod` 对应五域；`registry._KNOWN_BACKENDS` 已含 `ascend` / `flagos` / `kunlun` |
+| conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，三个后端结果并列可比 |
+| 组件打包 | ✅ | Git tag `runtime-v0.1.0` + `prototype/RELEASE_NOTES_v0.1.0.md` |
+
+### 2.2 910C 实例（第一个落地实例，✅ 已完成）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
 | 昇腾后端（torch_npu，推理腿） | ✅ | conformance **13/13 + 6/6**、推理腿自验证 **10/10** |
 | FlagOS 后端（torch_fl，训练腿） | ✅ | conformance **13/13**（锁定训练镜像） |
-| 训练腿 2 卡分布式微调（验收模型） | ✅ | loss **15.45 → 11.15**（50 步）、2117 tok/s、通信三类对照（all_reduce / all_gather / P2P）全对 |
-| 推理腿单卡推理 · 前向形态 | ✅ | 向量区分度 **0.638**、66–79 句/s、无 NaN |\n| 推理腿单卡推理 · **服务化形态** | ✅ | vLLM OpenAI 兼容服务，**10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4ms）、超长输入 → **L2_PARAM/raise** 且业务继续 |
-| 通信栈 | ✅ | 上层 `torch.distributed(flagos)`，底层 `flagcx`（镜像 canary 两 rank passed） |
-| **错误注入 → 恢复闭环**（验收标准 3） | ✅ 两条腿均通过 | 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放，业务继续）；训练腿 **4 闭环 / 1 跳过 / 0 失败**（超时因后端无有界同步，如实跳过）。归因核查已推翻此前两条"发现"（详见 `prototype/docs/ERROR_RECOVERY_LOOP_20260909.md` §3） |
+| 训练腿 2 卡分布式微调 | ✅ | loss **15.4497 → 11.15**（50 步）、**2117 tok/s**、通信三类对照全对 |
+| 推理腿（前向 + 服务化） | ✅ | 服务化 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms） |
+| **错误注入 → 恢复闭环** | ✅ | 推理腿 **5 闭环 / 0 失败**；训练腿 **4 闭环 / 1 跳过 / 0 失败** |
 
----
+→ 详见 `910C/README.md`
 
-## 2.1 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+### 2.3 P800 实例（第二个接入实例，🔄 进行中）
 
-本轮在 910C 上跑的两条腿，**都是基于本目录的统一原型**（经 `runtime.use(...)` 接入设备）：
+| 项 | 状态 | 证据 |
+|---|---|---|
+| 阶段 0 环境与基线 | ✅ | 8× P800（96 GB/卡，全空闲）、1.5 TiB 内存；五域基线 + 接入路线调研 |
+| 阶段 1 单卡接入 | ✅ | `kunlun` backend 落地；conformance **13/13 + 6/6**；smoke **42/0** |
+| 阶段 2 训练腿（多卡） | ✅（**标注条件**） | 两 rank **TRAIN_LEG_PASS 6/6**；loss **15.4488 → 11.1481**；**3482 tok/s** |
+| 阶段 3 推理腿 | ⏳ | 不受厂商缺陷影响，可立即启动 |
+| 阶段 4 错误闭环 / 阶段 5 收敛 | ⏳ | 见 `P800/README.md` §6 |
+| **已知厂商缺陷** | ⚠️ 已上报 | KL3 事件同步概率性挂死（≈89%），归属**厂商运行时层**（算子层/编译层已硬证据排除） |
 
-| 腿 | 脚本 | 接入方式 | 模型 | 形态 |
-|---|---|---|---|---|
-| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | `runtime.use("flagos")` + `set_device(local_rank)` | Qwen3-Embedding-0.6B | 2 卡 torchrun 微调（底层 flagcx） |
-| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` + `set_device(0)` | Qwen3-Embedding-0.6B | 单卡 transformers 前向 |
+→ 详见 `P800/README.md`
+
+### 2.4 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+
+两条腿**都是基于 `prototype/` 的统一原型**（经 `runtime.use(...)` 接入设备）：
+
+| 腿 | 脚本 | 接入方式 | 形态 |
+|---|---|---|---|
+| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | **后端无关化**（`DC_BACKEND` 环境变量驱动） | 910C → `use("flagos")`；P800 → `use("kunlun")` |
+| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` | 单卡 transformers 前向（910C） |
 
 但**不是**把历史那两套训推用统一原型重跑了一遍：
 
-- `distributed_training/` 的 910C 双卡 DDP（Qwen2.5-1.5B，2481 步 loss 1.95）是**旧代码路径**
+- `910C/distributed_training/` 的双卡 DDP（Qwen2.5-1.5B，loss 1.95）是**旧代码路径**
   ——直接 `import torch_npu` + `torch.distributed`，`runtime.use` 出现 **0 次**；
-- `distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
+- `910C/distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
 
-**如实标注的缺口**：
-
-1. ~~推理腿尚未做 vLLM 服务化~~ → **已于 2026-09-09 补齐**（见上表服务化形态，10/10）；
-2. 历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
-
+**如实标注的缺口**：历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
 
 ---
 
 ## 3. 快速入口
 
 ```bash
+# 原型自检与 conformance（任一后端）
 cd dev/device-context/prototype
-python3 runtime/smoke_runtime.py                                    # 冒烟自检
-python3 runtime/conformance/runner.py --backend ascend               # 昇腾后端（推理腿镜像）
-python3 runtime/conformance/runner.py --backend ascend --cases infer_cases
-python3 runtime/conformance/runner.py --backend flagos               # FlagOS 后端（训练腿镜像）
-python3 runtime/proto/proto_infer_leg.py                             # 推理腿自验证
-torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练腿 2 卡微调
+python3 runtime/smoke_runtime.py                          # 冒烟自检（不传 --backend 则自动挑选可用后端）
+python3 runtime/conformance/runner.py --backend ascend    # 昇腾后端
+python3 runtime/conformance/runner.py --backend flagos    # FlagOS 后端（训练镜像）
+python3 runtime/conformance/runner.py --backend kunlun    # 昆仑芯后端（P800）
+
+# 两条腿（后端由环境变量决定）
+torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py     # 训练腿
+python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 ```
+
+**P800 侧**：探针与原始证据见 `P800/probes/`；复现命令见
+`P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` 与 `P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` §7.5。
 
 ---
 
 ## 4. 关键约束（务必先读）
 
-**`dev/stack.lock.910c.v1.yaml` 置顶规则：带卡容器并发上限 3。**
+**`dev/stack.lock.910c.v1.yaml` 置顶规则：带卡容器并发上限 3（910C）。**
+（P800 无此限制，但**用卡前必须 `xpu-smi` 挑「连续且空闲」的卡并记录用卡**）
 
 - 超限后 `acl.init()` 返回 **500000**（`ACL_ERROR_INTERNAL_ERROR`），表现为 `device_count=0`、设备"消失"
 - 出现该现象**第一时间核查并发容器数**，不要先怀疑镜像/驱动/代码
-- 两条腿**串行**执行（跑完一条停掉再起下一条）
 
-| 腿 | 锁定镜像 | 设备后端 | 额外约束 |
-|---|---|---|---|
-| 训练 | `flagrt/ascend-operator-runtime-comm:0.1.3` | **flagos（torch_fl）** | 禁止 torch_npu 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`；容器内补装 `transformers` |
-| 推理 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | — |
+| 腿 | 芯片 | 镜像 | 设备后端 | 额外约束 |
+|---|---|---|---|---|
+| 训练 | 910C | `flagrt/ascend-operator-runtime-comm:0.1.3` | **flagos（torch_fl）** | 禁止 torch_npu 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch` |
+| 推理 | 910C | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | 选卡 `ASCEND_RT_VISIBLE_DEVICES` |
+| 训练 | P800 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` | **kunlun（`torch.cuda`）** | 选卡 `CUDA_VISIBLE_DEVICES`；需 `FLAGCX_ADAPTOR=klx` + 显式 `import flagcx`；**不设 `XPU_EVENT_KL3_ENABLE`**（见 `P800/README.md` §3） |
 
 ---
 
@@ -105,22 +132,35 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 
 | # | 动作 | 状态 |
 |---|---|---|
-| 1 | 仓库重组为三部分 + 看板重写 | ✅ 本轮完成 |
-| 2 | **错误注入 → 恢复闭环**（验收标准 3，设备侧原语 + 真实证据） | ✅ 两条腿均通过 |
-| 3 | 组件 v0.1 打包下发（README / 接口约定 / 自验证脚本） | 🔲 下一步 |
-| 4 | 与分布式方向对齐通信接口约定（见 `prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |\n| 5 | **补推理腿 vLLM 服务化形态**（验收标准 2） | ✅ 10/10 SERVE_LEG_PASS |
+| 1 | 仓库重组 + 看板重写 | ✅ |
+| 2 | 错误注入 → 恢复闭环（910C 两条腿） | ✅ |
+| 3 | 组件 v0.1.0 打包（Git tag + Release note） | ✅ |
+| 4 | **P800 第二实例接入**（`kunlun` backend + conformance 13/13 + 6/6） | ✅ |
+| 5 | **P800 训练腿**（多卡，标注条件） | ✅ |
+| 6 | **按芯片重组目录**（原型 + `910C/` + `P800/`） | ✅ 本轮 |
+| 7 | P800 推理腿 + 错误闭环 + 接入手册 + release | 🔲 下一步 |
+| 8 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 
 ---
 
 ## 6. 文档索引
 
-- 统一标准：`prototype/docs/`（**阶段性总结**、接口约定、原型设计、职责框架、月度计划、通信路线、双侧全景、事件契约、错误码映射、镜像诊断）
-- 训练：`distributed_training/docs/` ｜ 推理：`distributed_inference/docs/`
-- 通用与历史：`docs/`（含 `PR_DEV_1_0_20260902.md`）
+| 目录 | 内容 |
+|---|---|
+| `prototype/docs/` | **芯片无关的统一标准**：接口约定（**新芯片接入规范**）、事件语义契约、原型设计、职责框架、月度计划、通信路线 |
+| `910C/docs/` | 910C 专属：ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断 + 8 月早期工作 |
+| `P800/docs/` | P800 专属：环境汇总、五域基线、接入方案、根因核对、全量进度报告 |
+| `910C/distributed_training/docs/` ｜ `910C/distributed_inference/docs/` | 训练 / 推理既有工作文档 |
+
+**当前阶段的主线汇报材料**：`P800/docs/PROGRESS_REPORT_20260914.md`（全量进度报告，含 910C 回顾与待办四分类）
 
 ---
 
 # 以下为历史看板原文（2026-08 ~ 2026-09，保留备查）
+
+> ⚠️ 以下为**历史原文**（2026-08 ~ 2026-09 的逐批记录），其中的目录路径为**重组前**的旧结构，
+> 阅读时请以本文件 §1 的现行目录结构为准。
+
 
 # device-context（设备执行上下文）项目
 

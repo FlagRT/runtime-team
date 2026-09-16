@@ -1,0 +1,271 @@
+=========== 第三轮 剂量-反应 开始 Mon Sep 14 15:56:55 CST 2026 ===========
+
+############ N=1 (每 1 次通信后同步一次) | KL3=1 ############
+  >>> ❌ 挂死  完成到: 
+    pid=14317 utime=0 stime=0
+    pid=14320 utime=774 stime=44
+    pid=14387 utime=7224 stime=79
+    pid=14388 utime=7228 stime=81
+    ---- gdb pid=14317 顶层帧 ----
+#0  0x00007d43f68dd7dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x0000579c1ab41f5e in ?? ()
+#2  0x00007d43f68c4d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007d43f68c4e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x0000579c1ab42195 in ?? ()
+    ---- gdb pid=14320 顶层帧 ----
+#0  0x00007175fd9a16ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000065277420c79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x000065277410c53a in cfunction_vectorcall_O (func=0x7175fd637c40, args=0x717381d10bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x0000652774101a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x717381d10bf8, callable=0x7175fd637c40, tstate=0x65279b9ea350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x717381d10bf8, callable=0x7175fd637c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffcfe8fb9b0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x717381d10a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x000065277410d0ec in _PyEval_EvalFrame (throwflag=0, f=0x717381d10a40, tstate=0x65279b9ea350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x717381dbba40, tstate=0x65279b9ea350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x717381dbba30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00006527740fd7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x717381d109d8, callable=0x717381dbba30, tstate=0x65279b9ea350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=14387 顶层帧 ----
+#0  0x000072d52768b1d3 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x000072d527676d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x000072d5276438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x000072d527643937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x000072d527670a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x000072d527670b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x000072d527642203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x000072d5276425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x000072d52762a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x000072d5276eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x000072d5272169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x000072d5274ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+    ---- gdb pid=14388 顶层帧 ----
+#0  0x00007ba5536e6051 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ba5522a4dd2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007ba5522a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007ba5522a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007ba55227017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007ba552270917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007ba552270b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007ba552242203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007ba5522425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007ba55222a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007ba5522eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x00007ba551e169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+/workspace/probe_battery3.sh: line 8: 14317 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+
+############ N=1 (每 1 次通信后同步一次) | KL3=1 ############
+  >>> ❌ 挂死  完成到: 
+    pid=16023 utime=0 stime=0
+    pid=16026 utime=779 stime=45
+    pid=16093 utime=7223 stime=68
+    pid=16094 utime=7220 stime=79
+    ---- gdb pid=16023 顶层帧 ----
+#0  0x0000722ce1c847dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000062ef1a8faf5e in ?? ()
+#2  0x0000722ce1c6bd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x0000722ce1c6be40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x000062ef1a8fb195 in ?? ()
+    ---- gdb pid=16026 顶层帧 ----
+#0  0x00007f13fe2c36ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005fc88dfb879f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x00005fc88deb853a in cfunction_vectorcall_O (func=0x7f13fdf5bc40, args=0x7f1182610bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x00005fc88deada65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7f1182610bf8, callable=0x7f13fdf5bc40, tstate=0x5fc894458350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7f1182610bf8, callable=0x7f13fdf5bc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffe12b9e790, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7f1182610a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x00005fc88deb90ec in _PyEval_EvalFrame (throwflag=0, f=0x7f1182610a40, tstate=0x5fc894458350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7f11826bba40, tstate=0x5fc894458350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x7f11826bba30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00005fc88dea97b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7f11826109d8, callable=0x7f11826bba30, tstate=0x5fc894458350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=16093 顶层帧 ----
+#0  0x00007e6c13070157 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007e6c13070917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007e6c13070b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007e6c13042203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007e6c130425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007e6c1302a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007e6c130eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007e6c12c169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#8  0x00007e6c12ead0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#9  0x00007e6c031a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#10 0x000057e49cd7b902 in cfunction_vectorcall_NOARGS (func=0x7e6c12b17ba0, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+#11 0x000057e49cd72a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7e6add89ed80, callable=0x7e6c12b17ba0, tstate=0x57e4b0b9d600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=16094 顶层帧 ----
+#0  0x00007c5b54e94080 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007c5b54e8b1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007c5b54e76d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007c5b54e438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007c5b54e43937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007c5b54e70a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007c5b54e70b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007c5b54e42203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007c5b54e425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007c5b54e2a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007c5b54eeb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x00007c5b54a169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+/workspace/probe_battery3.sh: line 8: 16023 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+
+############ N=2 (每 2 次通信后同步一次) | KL3=1 ############
+  >>> ❌ 挂死  完成到: 
+    pid=17729 utime=0 stime=0
+    pid=17732 utime=774 stime=46
+    pid=17799 utime=7216 stime=70
+    pid=17800 utime=7206 stime=83
+    ---- gdb pid=17729 顶层帧 ----
+#0  0x00007c16308017dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005edba0707f5e in ?? ()
+#2  0x00007c16307e8d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007c16307e8e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00005edba0708195 in ?? ()
+    ---- gdb pid=17732 顶层帧 ----
+#0  0x00007cad33e046ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005cd9697ca79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x00005cd9696ca53a in cfunction_vectorcall_O (func=0x7cad33a9bc40, args=0x7caab8114bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x00005cd9696bfa65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7caab8114bf8, callable=0x7cad33a9bc40, tstate=0x5cd977c5e350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7caab8114bf8, callable=0x7cad33a9bc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc1fa62ad0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7caab8114a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x00005cd9696cb0ec in _PyEval_EvalFrame (throwflag=0, f=0x7caab8114a40, tstate=0x5cd977c5e350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7caab81bfa40, tstate=0x5cd977c5e350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x7caab81bfa30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00005cd9696bb7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7caab81149d8, callable=0x7caab81bfa30, tstate=0x5cd977c5e350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=17799 顶层帧 ----
+#0  0x000070136d24f051 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000070136bea4dd2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x000070136bea4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x000070136bea509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x000070136be7017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x000070136be70917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x000070136be70b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x000070136be42203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x000070136be425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x000070136be2a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x000070136beeb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x000070136ba169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+    ---- gdb pid=17800 顶层帧 ----
+#0  0x00007008494a4ddd in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007008494a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007008494a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x000070084947017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x0000700849470917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x0000700849470b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x0000700849442203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007008494425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x000070084942a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007008494eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007008490169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x00007008492ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+/workspace/probe_battery3.sh: line 8: 17729 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+
+############ N=3 (每 3 次通信后同步一次) | KL3=1 ############
+  >>> ❌ 挂死  完成到: rep=40
+    pid=19484 utime=0 stime=0
+    pid=19486 utime=781 stime=43
+    pid=19554 utime=5886 stime=78
+    pid=19555 utime=7180 stime=87
+    ---- gdb pid=19484 顶层帧 ----
+#0  0x00007c3e33bec7dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000056c3da32cf5e in ?? ()
+#2  0x00007c3e33bd3d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007c3e33bd3e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x000056c3da32d195 in ?? ()
+    ---- gdb pid=19486 顶层帧 ----
+#0  0x00007331235906ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000060ebada1c79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x000060ebad91c53a in cfunction_vectorcall_O (func=0x733123227c40, args=0x732ea771cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x000060ebad911a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x732ea771cbf8, callable=0x733123227c40, tstate=0x60ebb3577350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x732ea771cbf8, callable=0x733123227c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd9138e1a0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x732ea771ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x000060ebad91d0ec in _PyEval_EvalFrame (throwflag=0, f=0x732ea771ca40, tstate=0x60ebb3577350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x732ea79c3a40, tstate=0x60ebb3577350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x732ea79c3a30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x000060ebad90d7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x732ea771c9d8, callable=0x732ea79c3a30, tstate=0x60ebb3577350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=19554 顶层帧 ----
+#0  0x0000744bb14a4dbc in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x0000744bb14a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x0000744bb14a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x0000744bb146fc23 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x0000744bb147099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x0000744bb1470b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x0000744bb1442203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x0000744bb14425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x0000744bb142a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x0000744bb14eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x0000744bb10169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x0000744bb12ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+    ---- gdb pid=19555 顶层帧 ----
+#0  0x000070ce0f0a4dbc in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x000070ce0f0a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x000070ce0f0a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x000070ce0f06fc23 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x000070ce0f07099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x000070ce0f070b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x000070ce0f042203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x000070ce0f0425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x000070ce0f02a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x000070ce0f0eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x000070ce0ec169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x000070ce0ebad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+/workspace/probe_battery3.sh: line 8: 19484 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+
+############ N=5 (每 5 次通信后同步一次) | KL3=1 ############
+  >>> ✅ 完成  完成到: rep=120
+/workspace/probe_battery3.sh: line 8: 22480 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+
+############ N=10 (每 10 次通信后同步一次) | KL3=1 ############
+  >>> ❌ 挂死  完成到: rep=30
+    pid=22588 utime=0 stime=0
+    pid=22591 utime=776 stime=46
+    pid=22658 utime=7227 stime=70
+    pid=22659 utime=7219 stime=86
+    ---- gdb pid=22588 顶层帧 ----
+#0  0x000071009ebc27dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000057545e266f5e in ?? ()
+#2  0x000071009eba9d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x000071009eba9e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x000057545e267195 in ?? ()
+    ---- gdb pid=22591 顶层帧 ----
+#0  0x00007db086b5c6ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005578657af79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x00005578656af53a in cfunction_vectorcall_O (func=0x7db0867f3c40, args=0x7dae0ac1cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x00005578656a4a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7dae0ac1cbf8, callable=0x7db0867f3c40, tstate=0x557870874350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7dae0ac1cbf8, callable=0x7db0867f3c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffe9d522cf0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7dae0ac1ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x00005578656b00ec in _PyEval_EvalFrame (throwflag=0, f=0x7dae0ac1ca40, tstate=0x557870874350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7dae0aec3a40, tstate=0x557870874350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x7dae0aec3a30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00005578656a07b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7dae0ac1c9d8, callable=0x7dae0aec3a30, tstate=0x557870874350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+    ---- gdb pid=22658 顶层帧 ----
+#0  0x00007de8fa270b76 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007de8fa242203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007de8fa2425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007de8fa22a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007de8fa2eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007de8f9e169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#6  0x00007de8fa0ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#7  0x00007de8ea3a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#8  0x000062c27706a902 in cfunction_vectorcall_NOARGS (func=0x7de8fa11bbf0, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+#9  0x000062c277061a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7de7c4ba2d80, callable=0x7de8fa11bbf0, tstate=0x62c28bba3600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#10 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7de7c4ba2d80, callable=0x7de8fa11bbf0) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#11 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffcf9fde9c0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+    ---- gdb pid=22659 顶层帧 ----
+#0  0x00007ec8ccb30a70 in pthread_mutex_unlock () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ec8cb6a4e11 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007ec8cb6a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007ec8cb6a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007ec8cb67017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007ec8cb670917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007ec8cb670b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007ec8cb642203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007ec8cb6425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007ec8cb62a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007ec8cb6eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x00007ec8cb2169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+/workspace/probe_battery3.sh: line 8: 22588 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=ar REPS=$REPS SYNC_EVERY=$n XPU_EVENT_KL3_ENABLE=1 timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r3_N${n}.log 2>&1
+=========== 第三轮结束 Mon Sep 14 16:05:03 CST 2026 ===========

@@ -1,7 +1,7 @@
 # 昆仑芯 P800 设备上下文 · 基线实测报告（2026-09-14）
 
 > 目的：容器已起，按**我方五域**逐项取基线，识别缺失项并按适配方案 §1.3 判定归属。
-> 复现脚本与原始结果：[`dev/device-context/probes/kunlun/`](../../probes/kunlun/)
+> 复现脚本与原始结果：[`dev/device-context/P800/probes/`](../probes/)
 > 容器：`hliu553-device-context-p800`（镜像 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`）
 
 ---

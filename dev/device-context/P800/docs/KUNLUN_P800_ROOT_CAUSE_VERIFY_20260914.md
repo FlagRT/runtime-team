@@ -89,7 +89,7 @@
 | **复现条件** | 明确且最小化：`XPU_EVENT_KL3_ENABLE=1` + 2 进程 + flagcx 设备集合通信 |
 | **最小复现耗时** | **约 10 秒内**挂死（120 次 1024×1024 all_reduce） |
 | **是否确定性** | ❌ **非确定性**——挂死步数游走（rep 0 / 20 / 30 / 40 / 70 / 100 均出现） |
-| **脚本化程度** | ✅ 探针与命令均已入库：`probes/kunlun/dc_probe_verify.py` 等；复现命令见进度报告 §2.5.7 |
+| **脚本化程度** | ✅ 探针与命令均已入库：`P800/probes/dc_probe_verify.py` 等；复现命令见进度报告 §2.5.7 |
 | **机器前提** | 需**空闲卡**（他租户占用会引入噪声；但已验证换到 1,2 号卡同样挂死，非卡特定） |
 | **未控变量（诚实标注）** | 共享机他租户负载未受控；`P3`（初始化死锁）18 次仅出现 1 次，**复现率低**，单独计入 |
 
@@ -176,7 +176,7 @@ CUDA_CTA_PREEMPTION / CUDA_ENABLE_ABI_TRAPHANDLER / CUDA_CNP_LAUNCH_QUEUE
 | 是否修 | ❌ **不修**——不在五域内，且证据显示属厂商层 |
 | 是否改上游环境口径 | ❌ **不擅自改**——`XPU_EVENT_KL3_ENABLE=1` 是 FlagGems kunlunxin 官方推荐变量，关闭可能掩盖厂商 KL3 事件上报，须上游确认 |
 | 是否影响训练腿验收 | ⚠️ 会。若上游不修，训练腿只能以「**标注缺口的证据 + 归属判定 + 最小复现**」形式验收，**不伪造通过** |
-| 已产出 | 探针与三轮原始日志（`probes/kunlun/`）、进度报告 §2.5、本文 |
+| 已产出 | 探针与三轮原始日志（`P800/probes/`）、进度报告 §2.5、本文 |
 
 ---
 
@@ -184,11 +184,11 @@ CUDA_CTA_PREEMPTION / CUDA_ENABLE_ABI_TRAPHANDLER / CUDA_CNP_LAUNCH_QUEUE
 
 | 文件 | 内容 |
 |---|---|
-| `probes/kunlun/dc_probe_verify.py` | **带真值校验**的验证探针（本次核对的主要工具） |
-| `probes/kunlun/verify_battery.sh` + `D_verify_truthvalue_20260914.log` | 本轮 A/B/C/D 四组核对原始日志 |
-| `probes/kunlun/dc_probe_rep.py`、`probe_battery{1,2,3}.sh` | 单变量探针与三轮探针组 |
-| `probes/kunlun/A_round1_battery_20260914.log` 等三份 | 原始证据（含 gdb 原生栈） |
-| `prototype/docs/PROGRESS_REPORT_20260914.md` §2.5 / §2.5.7 | 根因定位与复现命令 |
+| `P800/probes/dc_probe_verify.py` | **带真值校验**的验证探针（本次核对的主要工具） |
+| `P800/probes/verify_battery.sh` + `D_verify_truthvalue_20260914.log` | 本轮 A/B/C/D 四组核对原始日志 |
+| `P800/probes/dc_probe_rep.py`、`probe_battery{1,2,3}.sh` | 单变量探针与三轮探针组 |
+| `P800/probes/A_round1_battery_20260914.log` 等三份 | 原始证据（含 gdb 原生栈） |
+| `P800/docs/PROGRESS_REPORT_20260914.md` §2.5 / §2.5.7 | 根因定位与复现命令 |
 
 **复现命令（最小）**
 

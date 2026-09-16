@@ -57,7 +57,7 @@
 | 统一 conformance | 13 例 + 推理 6 例，跨后端可跑 | `prototype/runtime/conformance/` |
 | 接口约定（**规范本体**） | API 承诺 + **§2 Backend 插件接入规范（新芯片照此实现）** + 两条硬纪律 | `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` |
 | 组件 v0.1.0 | Release note + Git tag | tag `runtime-v0.1.0` |
-| 仓库重组 | prototype / distributed_training / distributed_inference 三部分 + 各级看板 | — |
+| 仓库重组 | **device-context（原型，芯片无关）** + **910C（第一实例）** + **P800（第二实例）** + 各级看板（2026-09-16 按芯片重组后） | — |
 | 组织架构 PR | 同步 dev-1.0，**0 冲突** | ⏳ 待评审合入 |
 
 **设计主张**：**新增一家芯片 = 实现一个 backend + 跑通 conformance**（接入成本目标 ≤5 人天）。
@@ -205,7 +205,7 @@ FlagGems 源码也已在容器内 `/env/FlagGems`（来自 `git clone`）→ **�
 | 验收标准 1–3 | ✅ 全满足 |
 
 **按接口约定 §2 那 5 步走完**：`backends/kunlun/` 落地 → `build()` 登记 → `supports()` 如实声明 → conformance → smoke。
-提交 `530f456`（11 个文件，+777/−19）。证据：`conformance_runtime_kunlun.json`、`..._kunlun_infer.json`、`probes/kunlun/smoke_kunlun_20260914.txt`。
+提交 `530f456`（11 个文件，+777/−19）。证据：`conformance_runtime_kunlun.json`、`..._kunlun_infer.json`、`P800/probes/smoke_kunlun_20260914.txt`。
 
 > `name="kunlun"`（我方的注册表键，按厂商）+ `device_type="cuda"`（设备串前缀，按命名空间）——
 > **后端名与命名空间是两层不同的东西**。`kunlun` 与未来的 `nvidia` 会**共用 `torch.cuda`**，
@@ -240,7 +240,7 @@ FlagGems 源码也已在容器内 `/env/FlagGems`（来自 `git clone`）→ **�
 > **结果**：同一份脚本，`XPU_EVENT_KL3_ENABLE` **未设** → 两 rank **TRAIN_LEG_PASS 6/6**、
 > loss **15.4488 → 11.1481**（50 步、无 NaN）、**3482 tok/s**（两卡合计、14.7 s）；
 > **设为 1** → 只跑到 `[step 0]` 即挂死、1800/300 s 超时（退出码 124）。
-> 证据：`probes/kunlun/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`。详见 §2.6.3 轨 2（2b 已执行）。
+> 证据：`P800/probes/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`。详见 §2.6.3 轨 2（2b 已执行）。
 
 #### 2.4.1 已完成：脚本后端无关化
 
@@ -402,7 +402,7 @@ Thread 0x... (most recent call first):
 
 #### 2.4.8 定点探针：**大通信正常，反复小通信挂死**（关键反差）
 
-为判定卡点性质，写了一支单变量探针 `probes/kunlun/dc_probe_grad_ar.py`：
+为判定卡点性质，写了一支单变量探针 `P800/probes/dc_probe_grad_ar.py`：
 **A) 把 310 个梯度 concat 成一块后做一次 all_reduce**（单次大通信）
 **B) 再逐参数 all_reduce**（多次小通信），逐个打印
 
@@ -424,7 +424,7 @@ Thread 0x... (most recent call first):
 **没触发说明挂死点是一个持有 GIL 且不自旋让出的 C 调用**，与「驱动层空转等待」的特征吻合
 （对照：训练脚本那里的系统时间 172 s ≫ 用户时间 46 s）。
 
-**判定探针结果**（`probes/kunlun/dc_probe_ar_rep.py`）：
+**判定探针结果**（`P800/probes/dc_probe_ar_rep.py`）：
 
 | 步骤 | 结果 |
 |---|---|
@@ -623,7 +623,7 @@ docker run -dit --name hliu553-dc-debug-p800 \
   -v /data2/hliu553:/workspace -w /workspace \
   flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608 /bin/bash
 
-# 2) 探针组（含挂死自动抓 gdb 原生栈）——脚本在 probes/kunlun/
+# 2) 探针组（含挂死自动抓 gdb 原生栈）——脚本在 P800/probes/
 docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery.sh   # 第一轮：8 变体
 docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery2.sh  # 第二轮：重复验证
 docker exec -d hliu553-dc-debug-p800 bash /workspace/probe_battery3.sh  # 第三轮：剂量-反应
@@ -809,20 +809,20 @@ input tensor allocation stream"* —— 它是**流序正确性所必需**，**1
 
 | 类别 | 文件 |
 |---|---|
-| **本报告** | `prototype/docs/PROGRESS_REPORT_20260914.md` |
-| **结论核对与责任层判定** | `prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` |
-| P800 环境汇总 | `prototype/docs/KUNLUN_P800_ENV_REPORT_20260914.md` |
-| P800 五域基线实测 | `prototype/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` |
-| P800 接入工作方案（含 §7.5 已修问题） | `prototype/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` |
-| 910C 阶段性总结 | `prototype/docs/DC_STAGE_SUMMARY_20260909.md` |
+| **本报告** | `P800/docs/PROGRESS_REPORT_20260914.md` |
+| **结论核对与责任层判定** | `P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` |
+| P800 环境汇总 | `P800/docs/KUNLUN_P800_ENV_REPORT_20260914.md` |
+| P800 五域基线实测 | `P800/docs/KUNLUN_P800_BASELINE_PROBE_20260914.md` |
+| P800 接入工作方案（含 §7.5 已修问题） | `P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` |
+| 910C 阶段性总结 | `910C/docs/DC_STAGE_SUMMARY_20260909.md` |
 | **接口约定（规范本体）** | `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` |
-| 错误闭环记录 | `prototype/docs/ERROR_RECOVERY_LOOP_20260909.md` |
-| 910C 侧错误码表（108 条，**不迁移**） | `prototype/docs/ACL_ERROR_MAP_20260901.md` |
+| 错误闭环记录 | `910C/docs/ERROR_RECOVERY_LOOP_20260909.md` |
+| 910C 侧错误码表（108 条，**不迁移**） | `910C/docs/ACL_ERROR_MAP_20260901.md` |
 | 本方向 STATUS（总组收拢依据） | `dev/device-context/STATUS.md` |
 | 昆仑芯后端实现 | `prototype/runtime/backends/kunlun/backend.py` |
 | conformance 结果 | `prototype/runtime/conformance/conformance_runtime_kunlun.json`、`..._kunlun_infer.json` |
-| **P800 训练腿证据（A/B 对照）** | `probes/kunlun/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`、`E_train_R2_control_KL3on.log` |
-| 探针与自检证据 | `probes/kunlun/`（`dc_probe_p800.py`、`dc_probe_isolated.py`、两份 json、`smoke_kunlun_20260914.txt`） |
+| **P800 训练腿证据（A/B 对照）** | `P800/probes/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`、`E_train_R2_control_KL3on.log` |
+| 探针与自检证据 | `P800/probes/`（`dc_probe_p800.py`、`dc_probe_isolated.py`、两份 json、`smoke_kunlun_20260914.txt`） |
 
 ---
 

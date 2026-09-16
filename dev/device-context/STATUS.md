@@ -3,7 +3,7 @@
 更新：2026-09-14（临时补充：昆仑芯 P800 资源阻塞）｜上次例行更新 2026-09-10 ｜ 负责人：Kistich（hliu553） ｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
-> 结论性环境依据见 [`dev/stack.lock.910c.v1.yaml`](../stack.lock.910c.v1.yaml)（总组定稿，本方向只消费不自建）。
+> 结论性环境依据见 `dev/stack.lock.910c.v1.yaml`（总组定稿，位于 **`dev-1.0` 分支**；本方向只消费不自建）。
 
 ## 更新机制（本方向约定）
 
@@ -86,7 +86,7 @@
   - **✅ 阶段 1（接入）已完成**：`backends/kunlun/` 落地；
      **conformance 13/13 + 推理 6/6**；`smoke_runtime.py` **42 通过 / 0 失败**；
      证据见 `prototype/runtime/conformance/conformance_runtime_kunlun*.json` 与
-     `probes/kunlun/smoke_kunlun_20260914.txt`。
+     `P800/probes/smoke_kunlun_20260914.txt`。
   - **接入过程暴露并已修 3 个「非昇腾实例才能暴露」的框架/判据缺陷**（与昆仑芯本身无关）：
      ① `registry` 注册日志急切求值 `info()` → 缺厂商依赖时**中断整个 discover()**；
      ② conformance `f1` 硬要求厂商错误码，超出其自称的「类别/位置/根因」三投影契约；
@@ -100,7 +100,7 @@
     同一脚本 `XPU_EVENT_KL3_ENABLE` **未设 → 退出码 0**；**设为 1 → 只到 `[step 0]` 即挂死、退出码 124**。
     ⇒ **规避方案有效，且缺陷确实存在，两者互为证明**。
     **诚实标注**：本组证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得，**不能代表开启该变量时的行为**。
-    证据：`probes/kunlun/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`。
+    证据：`P800/probes/E_train_leg_result_rank{0,1}.json`、`E_train_ab.log`。
     与 910C 基线对照（同构可比）：loss 15.4497→11.15 / 2117 tok/s ⇢ **15.4488→11.1481 / 3482 tok/s**。
   - 阶段 2 过程记录（集合通信验证与卡点定位）：分布式后端探测结论
     —— `nccl` 挂死、`xccl` 未编译（`Distributed package doesn't have XCCL built in`）、`kccl` 无响应，
@@ -149,7 +149,7 @@
       **提交建议**：主提交昆仑芯 XPytorch/XRE（含函数级栈 + 偏移 `+0x94080` + 最小复现）；
       抄送 FlagCX（`syncStream` 是否必需）；知会 FlagGems/FlagTree（复核该变量在 xpu3.6 是否仍必要，
       其回归为单进程单卡、覆盖不到本缺陷）。详见
-      [`prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`](prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md)。
+      [`P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`](P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md)。
     **i) ⚠️ 规避手段有代价，不可擅改**：不设/设 `0` 该变量后 4/4 全通过，
       但它同时是 **FlagGems kunlunxin 后端的官方推荐变量**
       （`tools/env.sh`、`src/flag_gems/backends.yaml`、CI `P800.yml` 三处均设 1）
@@ -162,7 +162,7 @@
       （实验期间卡 1 被他人反复占用 166→502 MiB / 100%，卡 0/3/4 亦有他人负载）。
       ⇒ 拟对外提交的「flagcx 缺陷」一项**已撤销**；`dma_excp_mask` 开关**无需变更**。
       ⇒ **实操纪律**：共享机上用卡前先 `xpu-smi` 挑**连续且空闲**的卡，并在实验记录写明用卡。
-  - 详见环境汇总 / 基线实测 / 接入方案三份文档（`prototype/docs/KUNLUN_P800_*_20260914.md`）。
+  - 详见环境汇总 / 基线实测 / 接入方案三份文档（`P800/docs/KUNLUN_P800_*_20260914.md`）。
   - **基座级约束建议（待总组裁定）**：① 昆仑芯机器需 `docker` 权限 + 自有可写数据目录；
     ② **昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`**（跨方向通用）。
 - **【已上报 · 需芯片厂商适配】昆仑芯 KL3 事件同步概率性挂死（2026-09-14）**
@@ -191,7 +191,7 @@
     而错误捕获属我方五域）。
   - **若厂商不修**：训练腿以「单卡证据 + 多卡标注条件证据 + 归属判定 + 最小复现」交付，
     登记为「已识别、需上游修复、不影响其余交付」，**不阻塞 release**。
-  - 详见 `prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` 与进度报告 §2.6。
+  - 详见 `P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` 与进度报告 §2.6。
 - 本方向**不自行更换基座**，上述诉求提交总组裁定。
 
 ---
