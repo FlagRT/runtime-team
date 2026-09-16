@@ -10,8 +10,10 @@
 核心库与 Torch 插件已经在锁定服务器环境编译成功。Event 主机测试直接编译生产头文件，
 ACL 测试替身完成 1000 次创建/释放及失败创建检查；它不代表真实设备 Event 运行验证。
 
-执行 `python3 -m unittest discover -s dev/communication/tests -v`，14/14 通过，覆盖正常退出、
-数值 PASS 后异常退出/SIGABRT、超时、缺失 Rank、旧结果、计数错配等。
+执行 `python3 -m unittest discover -s dev/communication/tests -v`，21/21 主机测试通过：
+14 项进程与结果验收覆盖正常退出、数值 PASS 后异常退出/SIGABRT、超时、缺失 Rank、
+旧结果、计数错配等；另 7 项是新增归属诊断工具的快照解析测试，不计入通信设备测试。
+诊断工具已用于本次服务器快照，关联到全部 16 个逻辑设备的存活容器归属，详见服务器摘要。
 
 历史探针的 320/320 是逐 Rank 操作校验数，P2P 每项含 send/recv；不是 320 个独立场景。
 新 schema 明确 counting_unit/run_id/phase，整体验收还检查进程组销毁与进程退出。
