@@ -81,6 +81,9 @@ def _setup_backend(backend_name: str):
         "name": f"runtime:{backend.name}",
         "ver": getattr(runtime, "__version__", "0.1.0"),
         "count": backend.device_count,
+        # 后端能力查询：供用例区分「能力相关项」与「通用契约项」
+        # （2026-09-14 新增：昆仑芯无厂商错误码，f1 需据此放宽断言）
+        "supports": backend.supports,
     }
     return device, _sync, _event_factory, _stream_factory, _stream_ctx, _current_stream, env
 
@@ -119,6 +122,8 @@ def main():
         "stream": stream_cls,
         "stream_ctx": stream_ctx,
         "current_stream": current_stream,
+        # 能力查询（见 _setup_backend 中说明）
+        "supports": env.get("supports"),
     }
 
     mod = importlib.import_module(args.cases)

@@ -55,7 +55,16 @@ def register(backend: RuntimeBackend, make_current: bool = False) -> RuntimeBack
     _REGISTRY[backend.name] = backend
     if make_current or _CURRENT is None:
         set_current(backend.name)
-    logger.debug("registered backend: %s", backend.info())
+    # 注意：此处**必须**避免急切求值 backend.info()。
+    # 2026-09-14 修复：原写法 `logger.debug("...: %s", backend.info())` 会无条件调用 info()，
+    # 而后端的 info() 常需加载厂商依赖（如 flagos 的 info() → _load() → `import torch_fl`）。
+    # 在缺少该依赖的环境上（如昆仑芯 P800），info() 抛 ModuleNotFoundError 会**穿透 register()
+    # 并中断整个 discover()**，违背本模块设计要点 2「发现失败仅告警、不中断」。
+    if logger.isEnabledFor(logging.DEBUG):
+        try:
+            logger.debug("registered backend: %s", backend.info())
+        except Exception as e:
+            logger.debug("registered backend: %s (info 不可用: %s)", backend.name, e)
     return backend
 
 
@@ -84,8 +93,15 @@ def discover(names=_KNOWN_BACKENDS, verbose: bool = False) -> List[str]:
             if verbose:
                 logger.warning("backend '%s' 缺少 build()/BACKEND 工厂", name)
             continue
-        backend = factory() if callable(factory) else factory
-        register(backend, make_current=False)
+        # 2026-09-14：工厂构造与注册一并纳入容错 —— 单个后端初始化失败
+        # 不得中断其他后端的发现（本模块设计要点 2）。
+        try:
+            backend = factory() if callable(factory) else factory
+            register(backend, make_current=False)
+        except Exception as e:
+            if verbose:
+                logger.warning("backend '%s' 注册失败: %s", name, e)
+            continue
         loaded.append(name)
     return loaded
 

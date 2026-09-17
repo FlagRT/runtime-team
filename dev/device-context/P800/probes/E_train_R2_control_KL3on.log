@@ -1,0 +1,60 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py:126: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[preflight][WARN] BACKEND=kunlun 且 XPU_EVENT_KL3_ENABLE=1。
+  已知上游缺陷 KUNLUN-KL3-EVENT-SYNC-HANG：该组合下多进程设备集合通信
+  概率性永久挂死（实测 ≈89%；自旋于厂商 libcuda.so / libxpucuda.so）。
+  本方向训练腿/推理腿均不依赖 FlagGems，建议**不设置该变量**后重跑；
+  证据与最小复现：prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md
+  若确需在开启该变量下取证据，请把本告警与结果一并记录，**不得作为通过依据**。
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[preflight][WARN] BACKEND=kunlun 且 XPU_EVENT_KL3_ENABLE=1。
+  已知上游缺陷 KUNLUN-KL3-EVENT-SYNC-HANG：该组合下多进程设备集合通信
+  概率性永久挂死（实测 ≈89%；自旋于厂商 libcuda.so / libxpucuda.so）。
+  本方向训练腿/推理腿均不依赖 FlagGems，建议**不设置该变量**后重跑；
+  证据与最小复现：prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md
+  若确需在开启该变量下取证据，请把本告警与结果一并记录，**不得作为通过依据**。
+[Gloo] Rank [Gloo] Rank 10 is connected to  is connected to 11 peer ranks.  peer ranks. Expected number of connected peer ranks is : Expected number of connected peer ranks is : 11
+
+[17:47:34][e61057e3a4d5][14475:14475][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[17:47:34][e61057e3a4d5][14476:14476][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[step   0] loss=15.4488
+W0914 17:52:26.058000 14408 site-packages/torch/distributed/elastic/agent/server/api.py:725] Received Signals.SIGTERM death signal, shutting down workers
+W0914 17:52:26.059000 14408 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 14475 closing signal SIGTERM
+W0914 17:52:26.060000 14408 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 14476 closing signal SIGTERM
+W0914 17:52:56.060000 14408 site-packages/torch/distributed/elastic/multiprocessing/api.py:927] Unable to shutdown process 14475 via Signals.SIGTERM, forcefully exiting via Signals.SIGKILL
+W0914 17:52:59.923000 14408 site-packages/torch/distributed/elastic/multiprocessing/api.py:927] Unable to shutdown process 14476 via Signals.SIGTERM, forcefully exiting via Signals.SIGKILL
+Traceback (most recent call last):
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 284, in launch_agent
+    result = agent.run()
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/metrics/api.py", line 138, in wrapper
+    result = f(*args, **kwargs)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 717, in run
+    result = self._invoke_run(role)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 881, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 85, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 14408 got signal: 15
