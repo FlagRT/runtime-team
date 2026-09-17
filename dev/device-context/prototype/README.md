@@ -2,7 +2,7 @@
 
 > 定位：**我们制定的统一标准**——统一基座之上的统一 API、统一 Backend、统一验证。
 > 主张：**换芯片不改代码**；新增一家芯片/后端 = 实现一个 backend + 跑通 conformance。
-> 上级看板：`../README.md` ｜ 基座配置：`dev/stack.lock.910c.v1.yaml`（总组定稿，位于 `dev-1.0` 分支）
+> 上级看板：`../README.md` ｜ 基座配置：`dev/stack.lock.910c.v2.yaml`（总组定稿，位于 `dev-1.0` 分支）
 
 ---
 

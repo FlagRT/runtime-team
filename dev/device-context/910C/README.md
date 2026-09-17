@@ -89,7 +89,7 @@
 
 ## 5. 环境要点（910C 专属，不迁移）
 
-- **带卡容器并发上限 3**（`dev/stack.lock.910c.v1.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
+- **带卡容器并发上限 3**（`dev/stack.lock.910c.v2.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
   表现为 `device_count=0`；出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3` → 后端 **flagos（torch_fl）**：
   禁止 `torch_npu` 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`。

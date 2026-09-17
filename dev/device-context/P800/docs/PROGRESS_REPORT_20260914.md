@@ -49,7 +49,7 @@
 
 | 交付项 | 内容 | 位置 |
 |---|---|---|
-| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v1.yaml`（总组定稿，本方向只消费不自建） |
+| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v2.yaml`（总组定稿，本方向只消费不自建） |
 | 统一运行时 API | 后端选择 / 设备 / 流与事件 / 错误翻译 / 状态恢复 | `prototype/runtime/api/` |
 | Backend 插件机制 | 抽象基类（13 个 `@abstractmethod`）+ 注册表 + 自动发现 | `prototype/runtime/backends/` |
 | 昇腾后端 | `torch_npu`，推理腿使用 | `backends/ascend/` |
