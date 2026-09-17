@@ -1,0 +1,97 @@
+=========== 核对开始 Mon Sep 14 16:14:26 CST 2026 ===========
+卡占用（用卡前必须为空闲）:
+| N/A   47C  N/A    163W / 400W |  31110MiB / 98304MiB |     57%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   59C  N/A    222W / 400W |  34710MiB / 98304MiB |     90%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   40C  N/A    104W / 400W |   4330MiB / 98304MiB |      4%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   38C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     95W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+##### ① 基线复现率：KL3=1 + 每10次同步 ×4 #####
+
+############ A1_KL3on_sync10 | cards=6,7 mode=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: rep=100
+  >>> 真值校验: 
+      现场 pid=11493 utime=0 stime=0
+      现场 pid=11495 utime=782 stime=43
+      现场 pid=11563 utime=6718 stime=76
+      现场 pid=11564 utime=6717 stime=81
+/workspace/verify_battery.sh: line 9: 11493 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+############ A2_KL3on_sync10 | cards=6,7 mode=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: rep=20
+  >>> 真值校验: 
+      现场 pid=11634 utime=0 stime=0
+      现场 pid=11636 utime=785 stime=48
+      现场 pid=11704 utime=6713 stime=75
+      现场 pid=11705 utime=6709 stime=80
+/workspace/verify_battery.sh: line 9: 11634 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+############ A3_KL3on_sync10 | cards=6,7 mode=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: 
+  >>> 真值校验: 
+      现场 pid=11787 utime=0 stime=0
+      现场 pid=11790 utime=779 stime=46
+      现场 pid=11857 utime=6690 stime=86
+      现场 pid=11858 utime=6691 stime=83
+/workspace/verify_battery.sh: line 9: 11787 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+############ A4_KL3on_sync10 | cards=6,7 mode=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: 
+  >>> 真值校验: 
+      现场 pid=11928 utime=0 stime=0
+      现场 pid=11931 utime=780 stime=44
+      现场 pid=11998 utime=6713 stime=85
+      现场 pid=11999 utime=6708 stime=95
+/workspace/verify_battery.sh: line 9: 11928 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+##### ② 不设 KL3 的「通过」是否为真：×2（含真值校验）#####
+
+############ B1_KL3unset_sync10 | cards=6,7 mode=sync10 env=[] ############
+  >>> ✅ 完成  完成到: rep=120
+  >>> 真值校验: VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True[ra
+/workspace/verify_battery.sh: line 9: 12081 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+############ B2_KL3unset_sync10 | cards=6,7 mode=sync10 env=[] ############
+  >>> ✅ 完成  完成到: rep=120
+  >>> 真值校验: VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True[ra
+/workspace/verify_battery.sh: line 9: 12191 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+##### ③ 「不同步就通过」是否假阴性：循环内不同步，结尾仍校验 ×2 #####
+
+############ C1_KL3on_nosync_then_verify | cards=6,7 mode=nosync env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: rep=100
+  >>> 真值校验: 
+      现场 pid=12301 utime=0 stime=0
+      现场 pid=12304 utime=771 stime=47
+      现场 pid=12371 utime=1347 stime=5436
+      现场 pid=12372 utime=1506 stime=5278
+/workspace/verify_battery.sh: line 9: 12301 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+############ C2_KL3on_nosync_then_verify | cards=6,7 mode=nosync env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: rep=100
+  >>> 真值校验: 
+      现场 pid=12454 utime=0 stime=0
+      现场 pid=12457 utime=778 stime=45
+      现场 pid=12524 utime=1371 stime=5419
+      现场 pid=12525 utime=1377 stime=5419
+/workspace/verify_battery.sh: line 9: 12454 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+##### ④ 对照：不设 KL3 + 循环内不同步（结尾校验）×1 #####
+
+############ D1_KL3unset_nosync | cards=6,7 mode=nosync env=[] ############
+  >>> ✅ 完成  完成到: rep=120
+  >>> 真值校验: VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True[ra
+/workspace/verify_battery.sh: line 9: 12595 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+30)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/vf_${tag}.log 2>&1
+
+=========== 核对结束 Mon Sep 14 16:22:27 CST 2026 ===========

@@ -1,0 +1,75 @@
+--- /tmp/npu_utils_orig.cpp	2026-08-28 21:49:56.000000000 +0800
++++ /tmp/npu_utils_ws.cpp	2026-09-02 21:29:42.032581383 +0800
+@@ -28,6 +28,7 @@
+ #include <vector>
+ #include <tuple>
+ #include <unordered_map>
++#include <mutex>
+ #include <fstream>
+ #include <algorithm>
+ #include <utility>
+@@ -37,8 +38,6 @@
+ #ifdef USE_TORCH_NPU
+ #include <acl/acl.h>
+ #include <ATen/ATen.h>
+-#include <torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h>
+-#include <torch_npu/csrc/framework/OpCommand.h>
+ #include <functional>
+ #endif
+ 
+@@ -347,21 +346,35 @@
+   return retained->data;
+ }
+ 
++// flagos 环境:真 torch_npu 的 allocate_workspace 返回持久 workspace 池内存,
++// 而 at::empty 临时对象表达式结束即析构(内存回缓存池) → 悬空指针,
++// 异步 kernel 读/写该 workspace 会触发设备端死循环(unified_attention 31812B workspace 实测卡死)。
++// 修法:static 缓存按 size 保活 tensor,launch 同步执行(rtStreamSynchronize 后才返回),
++// 同 size 复用同一块安全;跨 size 各留一块,进程内无释放(量级:每 size 一块,可接受)。
++static std::mutex g_ws_mu;
++static std::unordered_map<uint64_t, at::Tensor> g_ws_cache;
++
+ extern "C" void* triton_allocate_workspace_legacy(uint64_t size)
+ {
+-  return const_cast<void*>(
+-      at::empty(size, at::TensorOptions().device(at::kPrivateUse1).dtype(at::kByte))
+-          .storage()
+-          .data());
++  std::lock_guard<std::mutex> lk(g_ws_mu);
++  auto it = g_ws_cache.find(size);
++  if (it == g_ws_cache.end()) {
++    at::Tensor t = at::empty(size, at::TensorOptions().device(at::kPrivateUse1).dtype(at::kByte));
++    it = g_ws_cache.emplace(size, std::move(t)).first;
++  }
++  return const_cast<void*>(it->second.storage().data());
+ }
+ 
+ extern "C" void* triton_allocate_sync_block_lock(uint64_t size, void* stream, void **handle)
+ {
++  // 原实现依赖 at_npu::native::allocate_workspace(真 torch_npu 库);flagos 环境
++  // 无真库(仅 stub),等价语义 = 在 PrivateUse1 上分配块并保活(stream 由调用方另做同步)。
++  (void)stream;
+   if (handle == nullptr) {
+     return nullptr;
+   }
+   *handle = nullptr;
+-  auto tensor = at_npu::native::allocate_workspace(size, reinterpret_cast<rtStream_t>(stream));
++  auto tensor = at::empty(size, at::TensorOptions().device(at::kPrivateUse1).dtype(at::kByte));
+   return retainTensor(std::move(tensor), handle);
+ }
+ 
+@@ -373,9 +386,12 @@
+ 
+ extern "C" void triton_async_launch(void* func_obj, const char* name)
+ {
++  // 原实现走 at_npu::native::OpCommand 异步入队;flagos 无真 torch_npu,
++  // 且 taskqueue=false 模式下该函数不会被 launch 模板调用(仅同步路径)。
++  // 保留同步直调语义作为兜底。
++  (void)name;
+   auto& func = *static_cast<std::function<rtError_t()>*>(func_obj);
+-  at_npu::native::OpCommand cmd;
+-  cmd.Name(name).SetCustomHandler(func).Run();
++  func();
+ }
+ #endif
+ 

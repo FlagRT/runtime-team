@@ -1,0 +1,79 @@
+{
+  "backend": "ascend",
+  "closed_loops": 5,
+  "skipped": 0,
+  "failed": 0,
+  "results": [
+    {
+      "inject": "baseline",
+      "ok": true,
+      "value": 786432.0
+    },
+    {
+      "inject": "shape_mismatch(L2_PARAM 期望)",
+      "raw": "matmul_implement_npu:../third_party/op-plugin/op_plugin/ops/opapi/MatmulKernelNpuOpApi.cpp:92 NPU function error: call aclnnMatmul failed, e",
+      "category": "L2_PARAM",
+      "disposition": "raise",
+      "mapped": true,
+      "graded_by": "code_map",
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "raise_to_caller（参数类，重试无意义）",
+      "ok": true
+    },
+    {
+      "inject": "oom(L1_RESOURCE 期望)",
+      "raw": "NPU out of memory. Tried to allocate 183.81 GiB (NPU 0; 61.27 GiB total capacity; 0 bytes already allocated; 0 bytes current active; 60.82 G",
+      "category": "L1_RESOURCE",
+      "disposition": "retry",
+      "mapped": false,
+      "graded_by": "message_hint",
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "retry_ok",
+      "ok": true
+    },
+    {
+      "inject": "stream_timeout(L3_EXECUTION 期望)",
+      "raw": "流同步超时（1ms），pyACL rc=507046",
+      "category": "L3_EXECUTION",
+      "disposition": "replay",
+      "mapped": false,
+      "graded_by": "default",
+      "recover": {
+        "ordinal": 0,
+        "mode": "probe",
+        "recovered": true,
+        "state": "DeviceState.AVAILABLE",
+        "detail": "rebuild_mode=probe：设备状态=DeviceState.AVAILABLE，无需重建，探活可用"
+      },
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "recover_probe=ok + replay_ok",
+      "ok": true,
+      "note": "进程内捕获 TimeoutError（真实 507046），进程存活；已等待设备归零"
+    },
+    {
+      "inject": "l4_by_code(device_recovery 路径)",
+      "raw": "AICORE exception, error code is 507015",
+      "category": "L4_FATAL",
+      "disposition": "device_recovery",
+      "mapped": true,
+      "graded_by": "code_map",
+      "recover": {
+        "ordinal": 0,
+        "mode": "probe",
+        "recovered": true,
+        "state": "DeviceState.AVAILABLE",
+        "detail": "rebuild_mode=probe：设备状态=DeviceState.AVAILABLE，无需重建，探活可用"
+      },
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "recover_probe=ok",
+      "ok": true
+    }
+  ],
+  "verdict": "ERROR_RECOVERY_LOOP_PASS",
+  "note": "设备侧职责：识别(translate_error) + 恢复执行(recover_device/重放/重试) + 业务继续验证。监控方向负责注入编排与恢复策略编排。",
+  "timestamp": "2026-09-09 02:26:07"
+}

@@ -1,0 +1,63 @@
+{
+  "backend": "flagos",
+  "closed_loops": 4,
+  "skipped": 1,
+  "failed": 0,
+  "results": [
+    {
+      "inject": "baseline",
+      "ok": true,
+      "value": 786432.0
+    },
+    {
+      "inject": "shape_mismatch(L2_PARAM 期望)",
+      "raw": "aclnnMatmulGetWorkspaceSize failed, ret=161002",
+      "category": "L2_PARAM",
+      "disposition": "raise",
+      "mapped": true,
+      "graded_by": "code_map",
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "raise_to_caller（参数类，重试无意义）",
+      "ok": true
+    },
+    {
+      "inject": "oom(L1_RESOURCE 期望)",
+      "raw": "CachingDeviceAllocator: failed to allocate 188743680000 bytes on device 0",
+      "category": "L1_RESOURCE",
+      "disposition": "retry",
+      "mapped": false,
+      "graded_by": "message_hint",
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "retry_ok",
+      "ok": true
+    },
+    {
+      "inject": "stream_timeout(L3_EXECUTION 期望)",
+      "ok": null,
+      "skipped": "该后端未声明有界同步能力，跳过（如实标注，不伪造）"
+    },
+    {
+      "inject": "l4_by_code(device_recovery 路径)",
+      "raw": "AICORE exception, error code is 507015",
+      "category": "L4_FATAL",
+      "disposition": "device_recovery",
+      "mapped": true,
+      "graded_by": "code_map",
+      "recover": {
+        "ordinal": 0,
+        "mode": "probe",
+        "recovered": true,
+        "detail": "flagos 后端：probe 级探活恢复（real/hybrid 暂未支持）"
+      },
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "recover_probe=ok",
+      "ok": true
+    }
+  ],
+  "verdict": "ERROR_RECOVERY_LOOP_PASS",
+  "note": "设备侧职责：识别(translate_error) + 恢复执行(recover_device/重放/重试) + 业务继续验证。监控方向负责注入编排与恢复策略编排。",
+  "timestamp": "2026-09-09 02:26:59"
+}

@@ -1,0 +1,55 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+{
+ "torch": "2.9.0+cu129",
+ "device_count": 8,
+ "device_name_0": "GPU",
+ "1_current_device": 0,
+ "1_mem_get_info": {
+  "free_MiB": 98272,
+  "total_MiB": 98304
+ },
+ "1_mem_allocated": 0,
+ "2_create_stream": "Stream",
+ "2_stream_priority": "EXC RuntimeError: greatest_priority <= -1 INTERNAL ASSERT FAILED at \"/pytorch/c10/cuda/CUDAStream.h\":188, please report a bug to PyTorch. Unexpected CUDA stream priority range",
+ "2_event_timing": {
+  "event_elapsed_ms": 0.0
+ },
+ "2_stream_context": {
+  "stream_context_ok": true,
+  "y_sum": 8388608.0
+ },
+ "2_current_stream": "Stream",
+ "2_cross_stream": {
+  "cross_stream_visible": 45056.0,
+  "expect": 45056.0
+ },
+ "2_record_stream": "record_stream OK",
+ "4_err_bad_device": "AcceleratorError: CUDA error: invalid device ordinal\nGPU device may be out of range, do you have enough GPUs?\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be",
+ "4_err_oom": "AcceleratorError: CUDA error: invalid device ordinal\nGPU device may be out of range, do you have enough GPUs?\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be",
+ "5_dist_available": true,
+ "5_dist_backends": [
+  "flagcx",
+  "gloo",
+  "kccl",
+  "mpi",
+  "nccl",
+  "ucc",
+  "undefined",
+  "xccl"
+ ],
+ "5_bkcl_registered": false,
+ "5_cuda_reset_fn": true
+}
+Exception ignored in atexit callback: <function _prepare_to_exit at 0x7042b09764d0>
+Traceback (most recent call last):
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/__init__.py", line 144, in _prepare_to_exit
+    _XMLIRC._prepare_to_exit()
+torch.AcceleratorError: CUDA error: invalid device ordinal
+GPU device may be out of range, do you have enough GPUs?
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+terminate called after throwing an instance of 'pybind11::value_error'
+  what():  [RUNTIME ERROR]: error code= 101, invalid device ordinal;

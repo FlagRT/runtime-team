@@ -1,0 +1,33 @@
+# Standalone CPU-only Elasticsearch deployment for RAG.
+# This file does not inherit dev/compose.base.yml and does not expose NPU devices.
+# Usage: docker compose --env-file .env -f docker_compose/compose.elasticsearch.yml up -d
+
+name: flagos-rag-ljy-elasticsearch
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-9.5.2}
+    container_name: rag-ljy-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.autoconfiguration.enabled=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.ml.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:?Set ELASTIC_PASSWORD in dev/rag_ljy/.env and pass --env-file .env}
+    ports:
+      # Only the host and host-network containers can access Elasticsearch.
+      - 127.0.0.1:${ELASTICSEARCH_PORT:-9200}:9200
+    volumes:
+      # Store indices on RAID instead of Docker's nearly-full root disk.
+      - ${ELASTICSEARCH_DATA_DIR:-/mnt/raid/jliu171/elasticsearch-data}:/usr/share/elasticsearch/data
+    mem_limit: ${ELASTICSEARCH_MEMORY_LIMIT:-4g}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health >/dev/null || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: "no"

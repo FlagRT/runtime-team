@@ -1,0 +1,94 @@
+{
+  "rank": 0,
+  "world_size": 2,
+  "model": "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",
+  "checks": {
+    "device_context": {
+      "ok": true,
+      "detail": "rank0 绑定 flagos:0；可见设备 2；统一流 <Stream backend=flagos native=Stream>"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "加载到 flagos:0"
+    },
+    "comm_all_reduce": {
+      "ok": true,
+      "detail": "实测 3.0 / 期望 3.0"
+    },
+    "comm_all_gather": {
+      "ok": true,
+      "detail": "收集到 [0.0, 1.0]"
+    },
+    "comm_p2p": {
+      "ok": true,
+      "detail": "rank0 接收一致=True"
+    },
+    "loss_decrease": {
+      "ok": true,
+      "detail": "首 15.4497 → 末 11.1497（50 步）；无 NaN=True"
+    }
+  },
+  "perf": {
+    "steps": 50,
+    "batch": 4,
+    "seq": 128,
+    "tokens_per_s_per_rank": 1058.7,
+    "tokens_per_s_total": 2117.4,
+    "elapsed_s": 24.18
+  },
+  "loss_curve": [
+    15.4497,
+    14.087,
+    13.2544,
+    12.9656,
+    12.4545,
+    12.2777,
+    11.9239,
+    11.9305,
+    11.8681,
+    11.7244,
+    11.5863,
+    11.5842,
+    11.494,
+    11.5482,
+    11.4037,
+    11.3743,
+    11.3754,
+    11.3165,
+    11.3353,
+    11.2825,
+    11.3208,
+    11.2478,
+    11.2081,
+    11.2935,
+    11.2634,
+    11.2718,
+    11.2922,
+    11.2243,
+    11.1855,
+    11.2563,
+    11.1627,
+    11.1927,
+    11.1806,
+    11.175,
+    11.1583,
+    11.1155,
+    11.169,
+    11.123,
+    11.1678,
+    11.1203,
+    11.1885,
+    11.2359,
+    11.1915,
+    11.1873,
+    11.153,
+    11.1813,
+    11.1778,
+    11.0958,
+    11.1874,
+    11.1497
+  ],
+  "verdict": "TRAIN_LEG_PASS",
+  "passed": 6,
+  "total": 6
+}

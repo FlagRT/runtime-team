@@ -1,0 +1,42 @@
+--- /tmp/npu_utils_orig.cpp	2026-08-28 21:49:56.000000000 +0800
++++ /tmp/npu_utils_patched.cpp	2026-09-02 19:59:16.000000000 +0800
+@@ -37,8 +37,6 @@
+ #ifdef USE_TORCH_NPU
+ #include <acl/acl.h>
+ #include <ATen/ATen.h>
+-#include <torch_npu/csrc/core/npu/NPUWorkspaceAllocator.h>
+-#include <torch_npu/csrc/framework/OpCommand.h>
+ #include <functional>
+ #endif
+ 
+@@ -357,11 +355,14 @@
+ 
+ extern "C" void* triton_allocate_sync_block_lock(uint64_t size, void* stream, void **handle)
+ {
++  // 原实现依赖 at_npu::native::allocate_workspace(真 torch_npu 库);flagos 环境
++  // 无真库(仅 stub),等价语义 = 在 PrivateUse1 上分配块并保活(stream 由调用方另做同步)。
++  (void)stream;
+   if (handle == nullptr) {
+     return nullptr;
+   }
+   *handle = nullptr;
+-  auto tensor = at_npu::native::allocate_workspace(size, reinterpret_cast<rtStream_t>(stream));
++  auto tensor = at::empty(size, at::TensorOptions().device(at::kPrivateUse1).dtype(at::kByte));
+   return retainTensor(std::move(tensor), handle);
+ }
+ 
+@@ -373,9 +374,12 @@
+ 
+ extern "C" void triton_async_launch(void* func_obj, const char* name)
+ {
++  // 原实现走 at_npu::native::OpCommand 异步入队;flagos 无真 torch_npu,
++  // 且 taskqueue=false 模式下该函数不会被 launch 模板调用(仅同步路径)。
++  // 保留同步直调语义作为兜底。
++  (void)name;
+   auto& func = *static_cast<std::function<rtError_t()>*>(func_obj);
+-  at_npu::native::OpCommand cmd;
+-  cmd.Name(name).SetCustomHandler(func).Run();
++  func();
+ }
+ #endif
+ 

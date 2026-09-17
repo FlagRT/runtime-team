@@ -1,0 +1,51 @@
+========= A/B 对照开始 Mon Sep 14 17:46:57 CST 2026 =========
+用卡 6,7（连续同组，用前已确认空闲）
+| N/A   38C  N/A     91W / 400W |  31110MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   41C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   56C  N/A    261W / 400W |  24712MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   38C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     95W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   41C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+################ RUN R1_workaround_noKL3 | XPU_EVENT_KL3_ENABLE=[<未设>] | 预算 1800s ################
+  >>> 退出码=0  ✅ 正常结束
+  --- 关键输出 ---
+[step   5] loss=12.2795
+[step  10] loss=11.5892
+[step  15] loss=11.3755
+[step  20] loss=11.3223
+[step  25] loss=11.2736
+[step  30] loss=11.1641
+[step  35] loss=11.1174
+[step  40] loss=11.1933
+[step  45] loss=11.1801
+[step  49] loss=11.1481
+[rank0] TRAIN_LEG_PASS 6/6 | backend=kunlun dist=cpu:gloo,cuda:flagcx | loss 15.4488→11.1481 | 3508.4 tok/s(两卡合计) -> /workspace/out_ab/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=kunlun dist=cpu:gloo,cuda:flagcx | loss 15.4488→11.1481 | 3507.2 tok/s(两卡合计) -> /workspace/out_ab/train_leg_result_rank1.json
+
+################ RUN R2_control_KL3on | XPU_EVENT_KL3_ENABLE=[1] | 预算 300s ################
+  >>> 退出码=124  ❌ 超时/异常
+  --- 关键输出 ---
+[preflight][WARN] BACKEND=kunlun 且 XPU_EVENT_KL3_ENABLE=1。
+  若确需在开启该变量下取证据，请把本告警与结果一并记录，**不得作为通过依据**。
+[preflight][WARN] BACKEND=kunlun 且 XPU_EVENT_KL3_ENABLE=1。
+  若确需在开启该变量下取证据，请把本告警与结果一并记录，**不得作为通过依据**。
+[step   0] loss=15.4488
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+  --- 挂死现场（进程 CPU 时间）---
+      pid=14648 utime=0 stime=0
+      pid=14649 utime=779 stime=47
+      pid=14716 utime=8672 stime=249
+      pid=14717 utime=8938 stime=226
+
+========= 对照结束 Mon Sep 14 17:53:05 CST 2026 =========
