@@ -44,6 +44,13 @@ docker compose --env-file .env -f ../compose.base.yml -f docker-compose.yml up -
 docker ps | grep flagos-batch-yxy-dev-910c    # 确认 Up
 ```
 
+本机 docker 20.10.8 无 compose v2 插件（`!override` 也需 compose ≥2.24），可用等价脚本启动（单卡 davinci0）：
+
+```bash
+npu-smi info    # 先确认 davinci0 空闲
+CONFIRM_DEVICE0_IDLE=yes bash dev/batch_yxy/scripts/start_container.sh
+```
+
 ## 常用命令（环境速查）
 
 ```bash
