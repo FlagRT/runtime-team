@@ -10,6 +10,8 @@ case "$mode" in
     printf '%s\n' \
       'Usage: bash probes/run_checks.sh MODE [arguments]' \
       '  local            Syntax only; no torch import, network, or device access' \
+      '  metadata-tests   Model-probe control tests; no torch or device needed' \
+      '  model-baseline   Explicit --model --device --dtype --out; no automatic fallback' \
       '  legacy-pytorch   Existing personal 910C container; NOT monthly acceptance' \
       '  legacy-vllm      Existing personal 910C container; NOT monthly acceptance' \
       '  cross-vendor     Container-side probe; pass --device and --mode explicitly'
@@ -41,6 +43,13 @@ PY
     else
       exec bash "$probe_dir/run_910c_checks.sh"
     fi
+    ;;
+  metadata-tests)
+    if (( $# != 0 )); then echo 'metadata-tests takes no arguments' >&2; exit 2; fi
+    exec python3 -m unittest discover -s "$probe_dir" -p 'test_qwen_probe_metadata.py' -v
+    ;;
+  model-baseline)
+    exec python3 "$probe_dir/qwen_embedding_baseline.py" "$@"
     ;;
   cross-vendor)
     exec python3 "$probe_dir/cross_vendor_smoke.py" "$@"
