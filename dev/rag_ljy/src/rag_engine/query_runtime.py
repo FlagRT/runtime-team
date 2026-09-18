@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 
-def create_pipeline(device: str):
+def create_pipeline(device: str, *, settings=None, execution_mode: str = "concurrent"):
     from . import Settings, create_retrieval_store
     from .embedding import Qwen3Embedder
     from .pipeline import RetrievalPipeline
     from .reranker import Qwen3Reranker
+    from .retrieval import validate_execution_mode
 
-    settings = Settings.from_env()
+    validate_execution_mode(execution_mode)
+    if settings is None:
+        settings = Settings.from_env()
     store = create_retrieval_store(settings)
     store.require_connection()
     if not store.has_index():
@@ -28,7 +31,7 @@ def create_pipeline(device: str):
         device=device,
         instruction=settings.retrieval_instruction,
     )
-    return RetrievalPipeline(store, embedder, reranker)
+    return RetrievalPipeline(store, embedder, reranker, execution_mode=execution_mode)
 
 
 def format_hits(hits: list[dict]) -> list[dict]:

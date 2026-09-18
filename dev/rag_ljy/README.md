@@ -1,12 +1,13 @@
 # Elasticsearch/Milvus + Ascend NPU RAG（rag_ljy）
 
-更新日期：2026-09-11
+更新日期：2026-09-16
 
 ## 已完成进展
 
 - **Elasticsearch 检索精排链路已跑通**：完成 1024 维索引创建、样本文档向量化、BM25 + dense 检索、RRF 融合及 Qwen3 精排。5 条样本文档返回 Top 5，问题 `How does hybrid search work?` 对应文档排名第 1，rerank score 为 0.99944717。
 - **常驻查询 API 已实现**：两个模型启动时加载一次、请求间复用，无空闲卸载；支持健康检查、参数校验及并发保护。NPU 连续请求与显存常驻待实跑验证。
 - **双后端接口和单镜像环境已对齐**：Elasticsearch / Milvus 共用检索与精排流程；Milvus 集成实跑待完成。RAG 模型容器统一使用 vLLM Ascend 镜像，安装脚本按镜像推理栈版本约束依赖。
+- **BM25 / dense 并发路径已实现**：查询 pipeline 默认使用常驻的两个数据库请求线程，保留 `sequential` 模式作为 baseline；计时工具支持两种模式，完整 NFCorpus 性能对比待采集。
 
 详细进展及实际排序结果见 [status.md](status.md)。当前返回排序后的文档片段；生成模型尚未接入。
 
@@ -167,6 +168,10 @@ dev/rag_ljy/
 │   ├── setup_npu_env.sh               # 镜像依赖约束与 venv 安装
 │   ├── create_index.py               # 创建选定后端的索引 / collection
 │   ├── ingest_test_data.py           # 文档切块、embedding 和入库
+│   ├── convert_beir_corpus.py        # 宿主机将 BEIR corpus 转为文档 JSONL
+│   ├── ingest_corpus_both.py         # embedding 一次，分批写入两个数据库
+│   ├── prepare_benchmark_queries.py # 宿主机按 qrels split 导出评测问题
+│   ├── benchmark_sequential.py      # 顺序检索基线、逐阶段耗时及 CSV / JSON
 │   ├── query.py                      # 单次查询，退出后释放模型
 │   └── serve_queries.py              # 常驻 HTTP 查询，复用模型
 ├── src/rag_engine/                    # 检索引擎、server.py 和 query_runtime.py
@@ -253,6 +258,205 @@ tokenizers 和 vLLM，避免 RAG 依赖覆盖镜像的推理栈；最后执行 `
 不需要启动 vLLM server；generation 模型、server 和检索结果到生成接口的连接尚未实现。
 `python scripts/check_npu.py --device npu:N` 可检查已分配的设备；后续入库和查询也传
 相同的 `--device npu:N`。默认 `npu:0` 不代表已经获得该设备的使用分配。
+
+## NFCorpus：同一份语料写入两个数据库
+
+以下命令使用已下载到 `/mnt/raid/jliu171/data/nfcorpus` 的 Hugging Face
+Parquet corpus。只入库 corpus，不入库 queries 或 qrels；原始 document ID
+保持不变，以便后续对照 qrels 评测。两个数据库保存相同 chunks 和 1024 维
+embeddings；一次查询仍只使用一个选定的数据库。
+
+先在运行 Uvicorn 的终端按 Ctrl+C 停止查询 API，释放 NPU 模型。
+不要停止 NPU 开发容器、Elasticsearch 或 Milvus。
+
+在宿主机执行转换。已检查宿主机 `sol` 环境有 PyArrow，不需要修改 NPU
+虚拟环境，也不需要额外挂载或重建容器：
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+mkdir -p /mnt/raid/jliu171/data/nfcorpus/processed
+/home/jliu171/miniconda3/envs/sol/bin/python scripts/convert_beir_corpus.py \
+  --input /mnt/raid/jliu171/data/nfcorpus/corpus \
+  --output /mnt/raid/jliu171/data/nfcorpus/processed/nfcorpus_documents.jsonl
+docker cp /mnt/raid/jliu171/data/nfcorpus/processed/nfcorpus_documents.jsonl \
+  rag-ljy-vllm-910c:/tmp/nfcorpus_documents.jsonl
+docker exec -it rag-ljy-vllm-910c bash
+```
+
+原始 Parquet 和转换输出均保留在 RAID 上，不在 home 下的项目目录保存
+语料副本。现有容器没有挂载 `/mnt/raid/jliu171/data`，因此使用 `docker cp`
+将 JSONL 复制到容器内 `/tmp`，无需重建容器。容器被删除并重建后需要重新
+复制；数据库中已经入库的数据不受这份临时输入文件影响。
+转换器不覆盖已有文件；已经成功转换时跳过转换，直接复制即可。
+
+在容器内运行完整入库，使用已经分配的 `npu:3`：
+
+```bash
+cd /workspace/dev/rag_ljy
+source .venv/bin/activate
+export RAG_DEVICE=npu:3
+python scripts/ingest_corpus_both.py \
+  --input /tmp/nfcorpus_documents.jsonl \
+  --device "$RAG_DEVICE" \
+  --es-index nfcorpus-chunks-v1 \
+  --milvus-collection nfcorpus_chunks_v1 \
+  --batch-size 8 \
+  --write-batch-size 64
+```
+
+脚本连接两个数据库并创建不存在的资源，不删除已有 index/collection。
+Embedding 模型只加载一次；每批生成的真实向量复用于两个数据库。输出逐批
+进度，最后执行 refresh/flush、核对两个数据库的 chunk 总数，并检查 BM25
+和 dense 均能返回结果。最后出现 `DONE` 才代表这些检查全部通过；这些检查
+不等于基于 qrels 的检索质量评测。
+
+两个数据库的写入不是跨数据库事务。中途失败可能已有部分数据入库；相同
+输入、chunk 参数和资源名称可以重新运行入库，通过确定性 chunk ID upsert。
+修改 chunk 参数或 corpus 内容时使用新资源名称，避免旧 chunks 混入计数。
+若报 NPU 内存不足，可将 `--batch-size` 降为 4 或 1 后重试。
+
+入库结束后，重启常驻 API，并显式选择 NFCorpus 资源（不要继续查询样例索引）：
+
+```bash
+export ELASTICSEARCH_INDEX=nfcorpus-chunks-v1
+export MILVUS_COLLECTION=nfcorpus_chunks_v1
+export RETRIEVAL_BACKEND=elasticsearch  # 测试 Milvus 时改为 milvus
+python scripts/serve_queries.py --device "$RAG_DEVICE" --port 8088
+```
+
+## 顺序检索性能测量（先建立 baseline）
+
+支持 **sequential：BM25 完成后才执行 dense** 和 **concurrent：提交两路搜索后
+等待两路完成**。查询 CLI / API 默认 concurrent，benchmark 默认 sequential，
+避免改变原有 baseline 命令的含义。两者都可通过 `--execution-mode` 显式选择。
+[benchmark_search.py](scripts/benchmark_search.py) 使用同一套检索代码，
+旧入口 [benchmark_sequential.py](scripts/benchmark_sequential.py) 保留兼容，
+通过 `time.perf_counter_ns()` 记录客户端观察到的 wall-clock 毫秒数，包括
+数据库请求、网络等待及结果返回，不是数据库内部 CPU 耗时。
+
+| 字段 | 测量区间 |
+|---|---|
+| `embedding_ms` | 单次 query embedding 调用，包含输出向量返回 CPU |
+| `bm25_ms` | BM25 调用开始至结果返回 |
+| `dense_ms` | Dense 调用开始至结果返回 |
+| `search_ms` | 两路搜索的整体区间：sequential 为 BM25 开始至 dense 返回；concurrent 为提交前至两路完成；均不包含 RRF |
+| `rrf_ms` | 客户端 RRF 融合 |
+| `rerank_ms` | 精排调用，包含输出分数返回 CPU |
+| `total_ms` | full-query：embedding 至精排结束；retrieval-only：搜索至 RRF 结束 |
+
+`search_ms` 是独立计时的实际区间，sequential 约为两路耗时之和，concurrent
+理想情况下约为较慢一路加调度开销；并非通过相加或取 `max()` 算出的估计值。
+Concurrent 的 branch 计时在线程内进行，整体计时包含提交及等待开销。
+`total_ms` 不包含启动、warmup、HTTP 收发、JSON
+响应格式化或 CSV / JSON 文件写入。模型初始化和 retrieval-only 的向量预计算
+分别记录为 metadata 中的 `runtime_init_ms` 和 `query_vector_precompute_ms`。
+未执行的阶段留空，不记成 0。默认 CLI / HTTP 查询的结果格式保持不变；
+单次 CLI 可通过 `query.py --timings` 选择输出结果和阶段耗时，但不要用反复
+启动 CLI 的方式测量模型常驻时的 baseline。
+
+### 准备 NFCorpus 的 323 条 test queries（宿主机）
+
+Hugging Face queries 包含多个 split 的问题，用 `qrels/test.tsv` 筛选 test
+问题，不将全部问题混入 benchmark。原始 query ID 保留。
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+mkdir -p /mnt/raid/jliu171/data/nfcorpus/processed
+/home/jliu171/miniconda3/envs/sol/bin/python scripts/prepare_benchmark_queries.py \
+  --queries /mnt/raid/jliu171/data/nfcorpus/queries \
+  --qrels /mnt/raid/jliu171/data/nfcorpus/qrels/test.tsv \
+  --output /mnt/raid/jliu171/data/nfcorpus/processed/nfcorpus_test_queries.jsonl
+docker cp /mnt/raid/jliu171/data/nfcorpus/processed/nfcorpus_test_queries.jsonl \
+  rag-ljy-vllm-910c:/tmp/nfcorpus_test_queries.jsonl
+```
+
+已成功导出时跳过转换，直接复制；转换器不会覆盖已有输出。省略 `--output`
+可只预览所选问题数，不写文件。
+
+### 测量（NPU 容器内）
+
+先停止同一 NPU 上本项目的查询 API / 入库进程，避免重复加载模型或争抢
+资源；不要停止 Docker 容器或两个数据库。Benchmark 自己加载并复用模型，
+结束后退出并释放自己的模型；不会修改索引或 collection。
+
+```bash
+cd /workspace/dev/rag_ljy
+source .venv/bin/activate
+export RAG_DEVICE=npu:3
+python scripts/benchmark_search.py \
+  --queries /tmp/nfcorpus_test_queries.jsonl \
+  --backend elasticsearch \
+  --execution-mode sequential \
+  --device "$RAG_DEVICE" \
+  --scope retrieval-only \
+  --warmup 10 \
+  --repeats 3 \
+  --output-dir /tmp/rag-ljy-benchmarks
+```
+
+- `retrieval-only`：只加载 embedding 模型，所有 query vectors 在测量前生成，
+  搜索期间复用相同向量；计时只覆盖搜索及 RRF，适合后续顺序 / 并发对比。
+- `full-query`：将上面 `--scope` 改为 `full-query`，两个模型只加载一次，
+  每次记录 embedding、搜索、RRF、rerank 和完整 pipeline 耗时。
+- 将 `--backend` 改为 `milvus` 测量相同语料的 Milvus；默认 NFCorpus 资源为
+  `nfcorpus-chunks-v1` / `nfcorpus_chunks_v1`。
+- 将 `--execution-mode` 改为 `concurrent` 测量同一后端的并发搜索，其他参数
+  保持一致。输出 run 名称与 metadata 中记录实际模式，不覆盖顺序结果。
+- 首次可加 `--limit 20` 做短跑；正式 baseline 使用完整 test queries。
+  `--query "..."` 可替代 `--queries` 做单问题 smoke test，但不是数据集性能结论。
+
+每个 execution-mode / scope / backend 单独运行。模型初始化与 warmup 不计入样本；每轮按固定
+seed 打乱查询顺序，并保留 query ID、轮次和位置。输出目录每次创建唯一的
+run 子目录，不覆盖旧测量，内含：
+
+- `raw.csv`：每个 measured query 的状态、结果数与阶段毫秒数。
+- `summary.json`：成功 / 失败数、错误率，以及成功样本的 mean / P50 / P95 /
+  P99 / min / max；记录查询指纹、参数、模型路径和环境版本，不记录密码。
+- `queries.jsonl`：本次实际使用的问题，以便重复测试。
+
+Percentile 使用排序后线性插值，样本少时 P99 不作为稳定结论。失败样本保留
+在 CSV，但不混入成功样本的延迟统计；出现失败时完成后返回非零退出码。
+中断会保存已完成样本及标记为 `interrupted` 的 summary。此脚本逐条执行查询，
+不是多请求并发负载 / 最大 QPS 测试，也不自动计算检索质量指标。
+
+在宿主机将正式测量结果保存到自己的 RAID 数据目录，保持 home 目录无数据产物：
+
+```bash
+mkdir -p /mnt/raid/jliu171/data/benchmarks
+docker cp rag-ljy-vllm-910c:/tmp/rag-ljy-benchmarks/. \
+  /mnt/raid/jliu171/data/benchmarks/
+```
+
+### 启动并发查询 API（容器内）
+
+旧服务需要 Ctrl+C 后重新启动才会采用新代码；不用重建容器或重新入库。
+
+```bash
+export RETRIEVAL_BACKEND=elasticsearch
+export ELASTICSEARCH_INDEX=nfcorpus-chunks-v1
+export MILVUS_COLLECTION=nfcorpus_chunks_v1
+python scripts/serve_queries.py \
+  --device "$RAG_DEVICE" \
+  --port 8088 \
+  --execution-mode concurrent
+```
+
+每条 query 先在原 NPU 推理线程完成 embedding，再在两个常驻请求线程内
+提交同一个数据库的 BM25 和 dense 搜索；两路完成后回到原推理线程做 RRF
+和 rerank。只有数据库请求并发，不启动额外 NPU streams，不改变返回 JSON。
+API 仍同一时刻只处理一个 query，重叠 HTTP 请求仍返回 503。
+如果某一路失败，等待另一路结束后传播错误，不返回静默降级的部分结果。
+服务 / benchmark 停止时等待在途操作完成并关闭自己拥有的 search pool。
+
+需要顺序查询时改为 `--execution-mode sequential`。单次 CLI 也支持同一选项：
+
+```bash
+python scripts/query.py "What are the effects of statins on breast cancer survival?" \
+  --device "$RAG_DEVICE" --execution-mode concurrent --timings
+```
+
+共享客户端请求线程的依据见 [Elasticsearch 官方客户端](https://github.com/elastic/elasticsearch-py)
+和 [PyMilvus 官方线程 / 连接管理示例](https://github.com/milvus-io/pymilvus/blob/master/examples/manage_milvus_client/how_to_manage_milvus_client.md)。
 
 ## 运行检索链路
 

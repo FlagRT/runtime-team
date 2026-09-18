@@ -115,6 +115,30 @@ def test_model_loading_failure_prevents_startup():
             pytest.fail("Startup must fail")
 
 
+@pytest.mark.parametrize("mode", ["sequential", "concurrent"])
+def test_server_selects_mode_and_closes_pipeline_on_initialization_thread(monkeypatch, mode):
+    import rag_engine.server as server
+
+    pipeline = FakePipeline()
+    loads = []
+    closed = []
+    pipeline.close = lambda: closed.append(threading.get_ident())
+
+    def factory(device, *, execution_mode):
+        loads.append((device, execution_mode, threading.get_ident()))
+        return pipeline
+
+    monkeypatch.setattr(server, "create_pipeline", factory)
+    app = create_app("npu:3", execution_mode=mode)
+    with TestClient(app) as client:
+        assert client.post("/query", json={"query": "first"}).status_code == 200
+        assert client.post("/query", json={"query": "second"}).status_code == 200
+        assert not closed
+    assert loads == [("npu:3", mode, pipeline.threads[0])]
+    assert closed == [loads[0][2]]
+    assert app.state.pipeline is None
+
+
 def test_cancelled_request_keeps_busy_until_inference_finishes():
     pipeline = FakePipeline()
     app = create_app(pipeline_factory=lambda _: pipeline)

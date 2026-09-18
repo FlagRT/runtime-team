@@ -6,11 +6,13 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from functools import partial
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from .query_runtime import create_pipeline, format_hits
+from .retrieval import validate_execution_mode
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,9 @@ class QueryRequest(BaseModel):
     reranker_batch_size: int = Field(default=4, ge=1, le=4)
 
 
-def create_app(device: str = "npu:0", pipeline_factory=None) -> FastAPI:
-    factory = pipeline_factory or create_pipeline
+def create_app(device: str = "npu:0", pipeline_factory=None, *, execution_mode: str = "concurrent") -> FastAPI:
+    validate_execution_mode(execution_mode)
+    factory = pipeline_factory or partial(create_pipeline, execution_mode=execution_mode)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -46,9 +49,16 @@ def create_app(device: str = "npu:0", pipeline_factory=None) -> FastAPI:
             yield
         finally:
             app.state.ready = False
-            # Do not release the models while an in-flight inference is running.
-            executor.shutdown(wait=True, cancel_futures=True)
-            app.state.pipeline = None
+            try:
+                pipeline = getattr(app.state, "pipeline", None)
+                close = getattr(pipeline, "close", None)
+                if close is not None:
+                    # Queued behind any active inference, on its initialization
+                    # thread. Close search workers before releasing model owner.
+                    await asyncio.get_running_loop().run_in_executor(executor, close)
+            finally:
+                executor.shutdown(wait=True, cancel_futures=True)
+                app.state.pipeline = None
 
     app = FastAPI(title="RAG retrieval and reranking", lifespan=lifespan)
 
