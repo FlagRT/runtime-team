@@ -15,7 +15,7 @@
 | 芯片 | 昇腾 910C（4 NPU / 8 chip，HBM 64 GB，CANN 9.0.0） | 昆仑芯 P800（8 卡，96 GB/卡） |
 | **设备 API 命名空间** | `npu`（`torch_npu`） | **`cuda`**（XPytorch + `torch_xray` 符号重写；`torch.xpu` 不可用） |
 | **选卡变量** | `ASCEND_RT_VISIBLE_DEVICES` | **`CUDA_VISIBLE_DEVICES`** |
-| 训练腿镜像 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（38.3 GB，本机已有） |
+| 训练腿镜像 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（磁盘 107 GB / 镜像层 38.3 GB，本机已有）<br>**官方推荐对应物**：`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（磁盘 94.2 GB / 镜像层 33.8 GB，digest `sha256:ea6d797a…`）—— 已于 2026-09-20 完成等价性验证（结论完全一致），但**开箱不含 `triton`**，须按官方手册装 `flagtree===0.7.0rc3+xpu3.6` 才能支撑推理腿服务化 |
 | 训练腿容器 | `flagos-proto-train-910c` | `hliu553-device-context-p800` |
 | 训练腿 Python | `/usr/local/python3.11.15/bin/python3` | conda env `python310_torch29_cuda`（Python 3.10.18） |
 | 推理腿镜像 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 与训练腿同容器 |

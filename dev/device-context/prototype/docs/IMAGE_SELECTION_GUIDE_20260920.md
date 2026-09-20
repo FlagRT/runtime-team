@@ -109,14 +109,30 @@ python -c "import vllm; from vllm.platforms import current_platform; print('plat
 | tag | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` |
 | 来源 | 组内（BAAI 内部 CANN 9.0.0 底座 + FlagOS 组件：Torch-FL / FlagGems / FlagCX） | **华为昇腾官方**发布物 | 内置标签显示 `description: xvllm_ubuntu2204_torch29 环境`、**`maintainer: huangyun <huangyun07@kunlunxin.com>`** ⇒ 底座由**昆仑芯**提供，外层按 BAAI·FlagTree 的 xpu3.6 线命名 |
 | digest | 无 registry（靠重建 + `docker save`） | `sha256:5cf8a2b6…` | **`sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`** |
-| 大小 | — | — | 38.3 GB（创建于 2026-08-12） |
+| 大小 | — | — | 磁盘 **107 GB**（镜像层 38.3 GB，创建于 2026-08-12）；官方 `-base` 磁盘 **94.2 GB**（镜像层 33.8 GB） |
 | 已归档 | ✅ `dev/images/ascend-train-comm/v1` | ✅ `dev/images/ascend-infer-vllm/v1` | ❌ **未归档** |
 | 已入锁 | ✅ `lock.train` | ✅ `lock.infer` | ❌ **未入锁** |
 | 结论性验证依据 | ✅ | ✅ | ⚠️ 目前 P800 的结论是在**未入锁**的镜像上取得的 |
+| 官方推荐对应物 | 官方镜像不含 FlagCX（训练腿必需） | 华为官方 `vllm-ascend`（vLLM 同 0.20.2） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（33.8 GB，digest `sha256:ea6d797a…`） |
+| 等价性验证 | — | — | ✅ **已完成（2026-09-20）**：在官方 `-base` 上重跑 conformance 13+6（逐用例一致）、smoke 42/0、训练腿/推理腿/服务化全 PASS、KL3 挂死一致重现 ⇒ 两镜像结论等价 |
 
 **⇒ 这是我们当前的明确缺口**：P800 镜像在位、有 digest、两条腿已跑通，但**既没归档也没入锁**。
 补这个缺口的成本很低（归档半天 + 一次 docker save），但收益明确——否则"P800 的结论性验证"在纪律上站不住
 （而 910C 的结论是有锁定基座背书的）。
+
+**⇒ 2026-09-20 补充：官方 `-base` 可直接作为入锁候选，但配方必须含补齐步骤。**
+官方 `-base` 开箱**不含 `triton`**（`...-base-ssh` 变体也没有），vLLM 服务化路径会断在
+`vllm_fl → flag_gems → triton`，报 `Failed to infer device type`。按官方手册 1.2 节执行：
+
+```bash
+python3 -m pip uninstall -y triton          # 反复执行至彻底卸载
+python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 \
+  --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+```
+
+实测源可达（HTTP 200）、wheel 3.3 GB、约 2.5 分钟装完，装后 `triton 3.6.0`
+（与现用 `flaggems-main-dev` 变体**版本号完全一致**），`flag_gems` / `vllm_fl` 均可导入，
+服务化随即跑通（`SERVE_LEG_PASS 10/10`、区分度 0.4102 与现用一致）。
 
 ---
 

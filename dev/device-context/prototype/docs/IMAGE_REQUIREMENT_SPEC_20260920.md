@@ -27,10 +27,11 @@
 |---|---|---|---|
 | **910C 训练腿** | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64`（组内） | `harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2`（19.2 GB） | **版本线一致**（CANN 9.0.0 / py3.11 / torch 2.10 / vLLM 0.20.2），但血统不同：官方镜像**不含 FlagCX**（我们训练腿的集合通信依赖它），且官方镜像带 vLLM（训练腿用不上） |
 | **910C 推理腿** | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（**华为昇腾官方**） | 同上 FlagTree 镜像（含 vllm0.20.2） | vLLM 版本同为 0.20.2；我们用华为官方移植版（自带 ascend 平台，可直接 `vllm serve`） |
-| **P800** | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（38.3 GB，digest `sha256:cd53efa4…`） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-**base**`（59.9 GB pull / 32 GB load） | **同系列不同变体**：官方是 `-base`，我们用 `flaggems-main-dev`（含 FlagGems main 分支 dev 版）。本机还存有 `...-base-ssh` 变体（94.5 GB）。**官方推荐的是 `-base`** |
+| **P800** | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（107 GB，靠 `docker save`） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-**base**`（33.8 GB 磁盘 / 94.2 GB 展开，digest `sha256:ea6d797a…`） | **同系列不同变体**。2026-09-20 已做**等价性验证**：两者结论完全等价（conformance 逐用例一致、推理腿 `detail` 14/14 逐字相同）。**但官方 `-base` 开箱不含 `triton`**（`...-base-ssh` 变体也没有），须按官方手册 1.2 节 `pip install flagtree===0.7.0rc3+xpu3.6`（3.3 GB）补齐后才与现用变体版本对齐（同为 `triton 3.6.0`） |
 
-> 结论：**两个实例都没有用官方手册推荐的那个镜像**。910C 是"模型组为通信而自建"，P800 是"用了同系列的 FlagGems dev 变体"。
-> ⇒ 这一点在向总组提需求时必须先讲清楚，否则会出现"你们怎么不用官方镜像"的质疑。
+> 结论：**两个实例都没有直接用官方手册推荐的那个镜像**。910C 是"训练腿必需的 FlagCX 官方镜像不含"；
+> P800 是"官方 `-base` 需要一步补齐（装 `flagtree`）才能支撑推理腿服务化"。
+> ⇒ 提需求时先讲清楚，否则会出现"你们怎么不用官方镜像"的质疑。**P800 侧的补齐步骤已实测走通**（见镜像需求 §3.1 H4）。
 
 ---
 
@@ -43,14 +44,15 @@
 | **H1** | 设备可见 + 厂商 torch 栈可导入 | 这是所有工作的前提。昆仑芯侧四条独立证据表明设备 API 走 `torch.cuda` 命名空间：`torch.xpu.is_available()` 报 `AssertionError: Torch not compiled with XPU enabled`；`torch.cuda.device_count()` 返回 8；编译标志 `USE_XPU=OFF`；官方单测 `--device` 默认值即 `'cuda'`。**若镜像里设备不可见，smoke 直接跑不了** |
 | **H2** | 训练腿：镜像内必须有**可用的集合通信路径** | P800 实测四种后端只有一种可用：`nccl` 挂死；`xccl` 未编译（报 `Distributed package doesn't have XCCL built in`）；`kccl` 无响应；唯一可用是 `flagcx`（需显式 `import flagcx` + `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx`）。⇒ **镜像不带 FlagCX 或等价通信库，训练腿无法验证** |
 | **H3** | 推理腿：镜像内必须有**让 vLLM 认出设备的路径** | P800 容器里是社区 vLLM（`vllm/platforms/` 只有 cpu/cuda/rocm/tpu/xpu，**无 kunlun**），`current_platform` 初始为 `UnspecifiedPlatform`；靠 vllm-plugin-FL 提供 `PlatformFL` 后才可用。⇒ 若镜像既无厂商 vLLM 移植版、又无平台插件，推理腿无法服务化 |
-| **H4** | 依赖可完整导入（避免"包在但子模块导不进来"） | P800 推理服务化的硬前置：`PYTHONPATH=/env/FlagGems/src`。原因：`vllm_fl` import 时依赖 `flag_gems.runtime.backend.device.DeviceDetector`，而 site-packages 里那份 `flag_gems`（`pip show` 显示 5.3.4.post1.dev12）**该子模块不可导入**，缺该变量时 vLLM 直接报 `Failed to infer device type` 退出 —— **看着像设备问题，其实是 Python 包问题** |
+| **H4** | 推理服务化的**依赖链必须完整**（含 `triton`），且 `flag_gems` 的子模块可导入 | 实测两层断链，**都表现为同一句 `Failed to infer device type`**（看着像设备问题，其实是 Python 包问题）：<br>**① `triton` 缺失（官方 `-base` 开箱状态）**：调用链为 `vllm_fl/__init__.py:6 → vllm_fl/utils.py:8 import flag_gems → flag_gems/testing/__init__.py:3 → flag_gems/runtime/configloader.py:4 import triton` → `ModuleNotFoundError: No module named 'triton'`。实测 `...:202608-base` 与 `...:202608-base-ssh` 两个官方变体的 site-packages 里**都没有 `triton` 目录、pip 也无记录**；补齐方式为官方手册 1.2 节原文命令 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源可达 HTTP 200、wheel 3.3 GB、约 2.5 分钟，装后得到 `triton 3.6.0`）。<br>**② `flag_gems` 只有 `/env/FlagGems/src` 那份是完整的**：site-packages 里那份（`pip show` 显示 5.3.4.post1.dev12）子模块不可导入 ⇒ 须 `PYTHONPATH=/env/FlagGems/src` |
+| **H6** | 若采用官方 `-base`，镜像配方里必须**显式包含补齐步骤** | 见 H4①。"`-base` 开箱即用"不成立；入锁配方若不写这一步，第三家接入者会卡在与我们完全相同的位置。等价性验证（2026-09-20）表明补齐后 `-base` 与现用 `flaggems-main-dev` 的软件栈版本完全对齐（`triton 3.6.0` / torch 2.9.0+cu129 / vLLM 0.13.0 / transformers 4.57.1） |
 | **H5** | 容器启动参数与宿主机驱动匹配 | 官方 xpu 手册要求带 `--device=/dev/xpu0..7`、`--device=/dev/xpuctrl`、`--device /dev/fuse`、`--privileged`、`--shm-size=256g`、`--ulimit memlock=-1` 等；宿主机驱动版本需匹配（官方记 host `Driver 5.0.21.47`、容器内 `515.58`）。**设备节点漏挂会表现为"卡不可见"** |
 
 ### 3.2 期望需求（影响可信度与效率）
 
 | # | 需求 | 实测依据 |
 |---|---|---|
-| **E1** | **环境变量口径必须全组统一裁定**（当前存在冲突） | 官方 xpu 手册明确要求"**测试前需 `export XPU_EVENT_KL3_ENABLE=1`**"；但我们实测：该变量 **＋ 设备侧集合通信** 组合下，18 次运行 16 次**永久挂死（≈89 %）**，挂死点游走于第 3–120 次通信之间，与数据量/形状/reduce op/用卡对/同步间隔均无关；三处自旋点全部位于厂商 `libxpucuda.so`（偏移 `+0x94080`）。A/B 单变量对照：不设 → 退出码 0；设 1 → 只到 `[step 0]` 即挂死、退出码 124。**⇒ 官方手册要求与真实多卡训练实测相悖，这是必须上报厂商并由总组统一口径的点**，不能各方向自行决定 |
+| **E1** | **环境变量口径必须全组统一裁定**（当前存在冲突） | 官方 xpu 手册明确要求"**测试前需 `export XPU_EVENT_KL3_ENABLE=1`**"；但我们实测：该变量 **＋ 设备侧集合通信** 组合下，18 次运行 16 次**永久挂死（≈89 %）**，挂死点游走于第 3–120 次通信之间，与数据量/形状/reduce op/用卡对/同步间隔均无关；三处自旋点全部位于厂商 `libxpucuda.so`（偏移 `+0x94080`）。A/B 单变量对照：不设 → 退出码 0；设 1 → 只到 `[step 0]` 即挂死、退出码 124。**2026-09-20 在官方 `-base` 镜像上复测：A 组（设 1）3/3 挂死、B 组（不设）2/2 通过且真值 `2^120` 精确匹配，挂死现场特征（进程 `Rsl` 自旋、`utime` 累积至 ~9700、卡 100% 利用率而显存仅 366 MiB）与现用镜像一致 ⇒ 该缺陷由厂商运行时/驱动层引起，与镜像变体和容器参数无关。** 这条排除了"是我们镜像的问题"这一可能，是本条最有力的证据。**⇒ 官方手册要求与真实多卡训练实测相悖，必须上报厂商并由总组统一口径，不能各方向自行决定** |
 | **E2** | 镜像应自带**完整的 FlagGems 安装**（或给出正确 `PYTHONPATH`） | 见 H4；当前需要人工指定 `PYTHONPATH=/env/FlagGems/src` 才能起来 |
 | **E3** | python 环境应可直接激活（conda/venv 路径明确） | P800 容器默认 `python` 无 torch；实际环境在 conda env `python310_torch29_cuda`（py3.10.18 / torch 2.9.0+cu129 / transformers 4.57.1 / vLLM 0.13.0）。**不知道路径时第一步就卡住** |
 | **E4** | 镜像有 digest 且可归档 | 910C 推理腿有 digest（`sha256:5cf8a2b6…`）、P800 有 digest（`sha256:cd53efa4…`）；910C 训练腿无 registry、靠 `docker save` + 重建配方。**有 digest 是"结论可背书"的前提** |
@@ -70,8 +72,8 @@
 
 | # | 事项 | 我们的诉求 | 依据 |
 |---|---|---|---|
-| 1 | **P800 镜像入锁** | 把 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（digest `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`）或其官方 `-base` 对应版本纳入基座 | P800 现已完成阶段 0–4（conformance 13+6、训练腿 6/6、推理腿 13/13 与服务化 10/10、错误闭环两设置一致），但**结论建立在一个未入锁的镜像上**；910C 的同类结论有锁定基座背书，P800 没有 |
-| 2 | **`XPU_EVENT_KL3_ENABLE` 口径冲突** | 请总组明确"锁定口径是设还是不设"，并支持向昆仑芯上报该冲突（官方手册要求设 1，实测该组合 89 % 挂死） | 见 E1；这同时是厂商缺陷上报的核心证据，需权威渠道 |
+| 1 | **P800 镜像入锁** | **建议以官方 `-base` 为准**（`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`，digest `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34`，33.8 GB），**并在配方里写明补齐步骤**（`pip install flagtree===0.7.0rc3+xpu3.6`）。备选：把现用 `flaggems-main-dev:202608`（digest `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`）入锁 | ① P800 阶段 0–4 与镜像等价性验证均已完成，但**结论建立在一个未入锁的镜像上**（910C 有锁定基座背书，P800 没有）；② **官方 `-base` 上已重跑出全套等价证据**（conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、KL3 对照一致），可直接作为入锁验证材料；③ 官方 `-base` 有 digest、血统清晰（`maintainer: huangyun@kunlunxin.com`）、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB）。⚠️ 若采用 `-base`，配方**必须**含 H4① 的 `flagtree` 补齐步骤，否则推理腿服务化不可复现 |
+| 2 | **`XPU_EVENT_KL3_ENABLE` 口径冲突** | 请总组明确"锁定口径是设还是不设"，并支持向昆仑芯上报该冲突（官方手册要求设 1，实测该组合 89 %–100 % 挂死） | 见 E1；**该缺陷已在两个不同镜像上一致重现**（现用 16/18、官方 `-base` 3/3），排除了镜像因素，是本条上报最有力的证据；需权威渠道提交 |
 | 3 | **910C 训练腿镜像血统** | 官方推荐镜像不含 FlagCX，而训练腿必需；请裁定：① 官方镜像 + 叠加 FlagCX（需可复现配方），还是 ② 维持组内自建镜像并补齐重建配方 | 见 E5 与 §2；当前训练腿镜像无 registry，靠 `docker save` + `docker.repro` 保证可复现 |
 
 ---

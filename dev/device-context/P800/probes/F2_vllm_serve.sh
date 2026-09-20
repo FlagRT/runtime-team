@@ -14,8 +14,10 @@
 #
 # 用法（容器内）：  DEV=6 bash F2_vllm_serve.sh
 set -u
-mkdir -p /workspace/out_serve
-exec > /workspace/out_serve/F2_vllm_serve.log 2>&1
+# OUT 用于**多镜像等价性对照**：不同镜像跑同一脚本时把结果分开存放（默认行为不变）
+OUT=${OUT:-/workspace/out_serve}
+mkdir -p "$OUT"
+exec > "$OUT/F2_vllm_serve.log" 2>&1
 source /root/miniconda/etc/profile.d/conda.sh && conda activate python310_torch29_cuda
 
 DEV=${DEV:-6}
@@ -28,7 +30,6 @@ EAGER=${EAGER:-1}
 [ "$EAGER" = "1" ] && EAGER_FLAG="--enforce-eager" || EAGER_FLAG=""
 TAG=${TAG:-eager$EAGER}
 PROTO=/workspace/prototype/runtime/proto/proto_infer_serve.py
-OUT=/workspace/out_serve
 
 export PYTHONPATH=/env/FlagGems/src
 export VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=vendor USE_FLAGGEMS=0

@@ -1,6 +1,6 @@
 # device-context · 当前状态
 
-更新：2026-09-20（P800 阶段 3 推理腿 + 阶段 4 错误闭环完成）｜上次例行更新 2026-09-10 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
+更新：2026-09-20（P800 阶段 3/4 完成 + **官方 `-base` 镜像等价性验证完成**）｜上次例行更新 2026-09-10 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
 > 结论性环境依据见 `dev/stack.lock.910c.v2.yaml`（总组定稿，位于 **`dev-1.0` 分支**；本方向只消费不自建）。
@@ -25,7 +25,8 @@
 
 当前状态：**统一 API 与 Backend 插件机制已完成**，并在**两个芯片实例**上取得实证 ——
 910C（第一实例）两条腿全闭环；**P800（第二实例，昆仑芯）阶段 0–4 全部完成**
-（接入 → 训练腿 → **推理腿 13/13** → **推理腿服务化 10/10** → **错误闭环两设置对照 PASS**）。
+（接入 → 训练腿 → **推理腿 13/13** → **推理腿服务化 10/10** → **错误闭环两设置对照 PASS**），
+并已在**上游官方推荐镜像 `-base`** 上完成**等价性验证**（全部结论复现、KL3 缺陷一致重现）。
 未完成项：阶段 5 收敛（接入手册 / 接口修订建议 / 原型 release）、组件下游反馈收集、全组联合 demo 合稿。
 
 ## 已有量化结果（实跑）
@@ -44,7 +45,7 @@
 
 以上结果**均在锁定镜像内取得**（`stack.lock.910c.v2.yaml` 的两腿镜像），非个人调试容器。
 
-### P800 实例（第二实例，昆仑芯；阶段 0–2 已完成）
+### P800 实例（第二实例，昆仑芯；阶段 0–4 已完成 + 镜像等价性已验证）
 
 | 项 | 结果 |
 |---|---|
@@ -62,6 +63,8 @@
 | **阶段 3 补 · vLLM 服务化（09-20）** | **`SERVE_LEG_PASS 10/10`**：维度 **1024**、区分度 **0.4102**（910C 0.4123）、**30.70 句/s**、p50 **96.4 ms**、超长输入（6001 tokens > 4096）→ HTTP 400 → **L2_PARAM/raise** + 业务继续；服务与设备上下文同卡共存不冲突（跨流计算 = 3.0）。⚠️ 硬前置：`PYTHONPATH=/env/FlagGems/src`（否则 vllm-plugin-FL 报 `Failed to infer device type`）|
 | **阶段 4 · 错误闭环两设置对照（09-20）** | 两组均 **`ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）**，且**逐字节一致**（除时间戳）⇒ **关闭 `XPU_EVENT_KL3_ENABLE` 不损失错误诊断能力**；同时说明该厂商缺陷**不影响单进程设备上下文路径** |
 | **框架缺陷第 4 例（09-20，已修）** | 错误对象**跨模块类不相等**（`conformance/errors.py` 被 importlib 动态加载为独立模块，其 `ErrorCategory` 是 IntEnum）→ `FlagosError.disposition` 取 `DISPOSITION[cat]` **KeyError**。修在**框架层**（新增 `coerce_category` / `normalize_error`，并在 `translate_via_backend` 加归一化兜底）+ `kunlun.translate_error` 显式归一 |
+| **镜像等价性验证（09-20）** | 在**上游官方推荐镜像** `harbor.baai.ac.cn/...:202608-base`（digest `sha256:ea6d797a…`，33.8 GB）上重跑全套：conformance **13+6 逐用例一致**、smoke **42/0**、训练腿 **6/6（loss 逐位相同 15.4488→11.1481）**、推理腿 **13/13**（`detail` **14/14 逐字相同**）、服务化 **10/10**（区分度 0.4102 一致）、**KL3 挂死一致重现（A 组 3/3 挂死、B 组 2/2 通过且 `2^120` 真值精密匹配）** ⇒ **两镜像结论等价**；**KL3 缺陷与镜像无关**，归属厂商运行时/驱动层 |
+| ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
 
 **诚实标注**：P800 训练腿证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得；
 该变量开启时本环境概率性挂死（厂商缺陷），**不能代表开启时的行为**。
@@ -94,6 +97,10 @@
 2. ✅ **阶段 4 错误闭环（2026-09-20 完成）**：两设置对照（唯一变量 `XPU_EVENT_KL3_ENABLE`），
    两组均 **闭环 5 / 跳过 0 / 失败 0** 且**逐字节一致** ⇒ **关闭该变量不损失错误诊断能力**；
    并说明该厂商缺陷**不影响单进程设备上下文路径**。证据：`P800/probes/error_recovery_loop_kunlun_KL3{off,on}.json`。
+2b. ✅ **官方 `-base` 镜像等价性验证（2026-09-20 完成）**：全套结论在官方推荐镜像上复现
+   （conformance 13+6 逐用例一致、smoke 42/0、训练腿 loss 逐位相同、推理腿 `detail` 14/14 逐字相同、
+   服务化 10/10、**KL3 挂死一致重现**）。⚠️ 期间查明 `-base` 开箱缺 `triton`，补齐命令已实测走通。
+   证据与完整对照见 `P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md`。
 3. **阶段 5 收敛**：① **《新芯片接入手册》**（含厂商判别、已知坑、验收清单）；
    ② **接口约定修订建议**（现为 4+1 条：`device_type/vendor` 分离、`device_state` 入契约、
    `.native` 逃生舱约束、**错误对象跨模块类归一**，外加"不支持有界同步时的降级语义"）；
@@ -115,6 +122,17 @@
 
 ## 阻塞与需要协调的事项
 
+- **🔴 P800 镜像入锁（新增诉求，2026-09-20）**：P800 阶段 0–4 结论目前建立在**未入锁**镜像上
+  （`flaggems-main-dev:202608`，无归档、未入锁），纪律上缺锁定基座背书。
+  **本方向建议以官方 `-base` 为准**：`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`
+  （digest `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34`，33.8 GB，血统 `maintainer: huangyun@kunlunxin.com`）。
+  理由：① 该镜像上**已重跑出全套等价证据**（conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、KL3 对照一致）；
+  ② 有 digest、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB）。
+  ⚠️ **配方必须写明补齐步骤**：官方 `-base` 开箱**不含 `triton`**，须按官方手册 1.2 节
+  `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`，
+  否则推理腿服务化不可复现（报 `Failed to infer device type`）。
+  另请一并裁定：容器启动参数是否要求按官方手册给全（`--privileged --net=host --shm-size=256g --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`）——
+  本次用精简参数（非 privileged / bridge / shm 64g）仍全部跑通，但不应作为推荐值下发。
 - **训练腿镜像未发布到 registry**（v1 标注 repro_status 🟡、临时机器绑定资产）：
   当前仅 npu1-27 可用，其他机器需向镜像 owner 取 `docker save` 包 → **请总组/镜像 owner 推进发布**，
   否则其他机器无法按锁定基座复现。
@@ -199,6 +217,15 @@
       日志无 triton/jit/compile 字样、挂死路径上用的是 BKCL 预编译内核；
       ③ **指向厂商层**：`XPU_EVENT_KL3_ENABLE` 在全栈中**只被 `libxpucuda.so` 读取（1 处）**，
       且位于 `CUDA_*` 运行时旋钮块中；三处自旋帧均在 `libxpucuda.so` 内。
+    **k) ✅ 镜像无关性（2026-09-20 新增证据，进一步收窄责任面）**：在**上游官方推荐镜像**
+      `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`
+      （digest `sha256:ea6d797a…`）上，用同一探针、同一脚本、同一时段、同卡（XPU6,7）重跑：
+      **A 组（设 KL3=1 + 集合通信）3/3 挂死；B 组（不设）2/2 通过且 `2^120` 真值精密匹配。**
+      挂死现场特征与现用镜像一致：进程状态 `Rsl`、`utime` 累积至 ~9700（自旋）、
+      卡 **100% 利用率而显存仅 366 MiB**、`timeout` 的 SIGTERM 无法中断（须 `kill -9`）。
+      ⇒ 该缺陷**与镜像变体、容器参数无关，由厂商运行时/驱动层引起**；
+      上报时不再可能被反问"是不是你们镜像的问题"。
+      证据：`P800/probes/I_base_kl3_ab_20260920.log` 及 `I_base_kl3_A{1,2,3}*` / `I_base_kl3_B{1,2}*`。
       **提交建议**：主提交昆仑芯 XPytorch/XRE（含函数级栈 + 偏移 `+0x94080` + 最小复现）；
       抄送 FlagCX（`syncStream` 是否必需）；知会 FlagGems/FlagTree（复核该变量在 xpu3.6 是否仍必要，
       其回归为单进程单卡、覆盖不到本缺陷）。详见

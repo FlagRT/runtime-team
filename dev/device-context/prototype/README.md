@@ -107,3 +107,4 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 | `docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **两实例配置与依据参考**（910C / P800）：镜像 · 模型 · 训推框架 · 参数 + **依据链** + 复用坑清单 + 可复现命令 + 未覆盖项 |
 | `docs/IMAGE_SELECTION_GUIDE_20260920.md` | **镜像选择与确定指南**：需求画像 · 来源优先级 · 入档/入锁两道门槛 · 实操五步 · 判据清单（适用于第三家芯片接入与现有实例镜像补齐） |
 | `docs/IMAGE_REQUIREMENT_SPEC_20260920.md` | **镜像需求说明书（提交总组）**：上游官方文档清单（FlagTree per-backend User Manual 等）· 我们镜像与官方推荐的差异 · 硬性/期望/可协商三级需求（逐条带实测依据）· 请总组裁定的三件事 |
+| `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：全部 P800 结论在官方推荐镜像上复现（逐用例/逐 `detail` 对照）· **KL3 缺陷与镜像无关**（排除"是我们镜像的问题"）· `-base` 开箱缺 `triton` 的完整调用链与补齐命令 · 对镜像入锁的建议 |
