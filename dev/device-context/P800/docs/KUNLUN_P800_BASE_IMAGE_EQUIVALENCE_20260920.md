@@ -7,38 +7,89 @@
 
 ---
 
-## 0. 结论摘要
+## 0. 镜像速查（先看这里）
+
+### 0.1 两个被对照的镜像
+
+| | **现用**（所有既有结论的来源） | **官方推荐**（本次对照 / 建议入锁） |
+|---|---|---|
+| tag | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base` |
+| digest | **无**（本地导入，只能靠 `docker save` 流转） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` |
+| 磁盘占用 / 镜像层 | 107 GB / 38.3 GB（`38 316 770 646` B） | **94.2 GB / 33.8 GB（`33 817 700 693` B）** |
+| 创建时间 | 2026-08（5 周前） | 2026-09-09 |
+| 来源标注 | 无 | `maintainer: huangyun <huangyun07@kunlunxin.com>`、`description: xvllm_ubuntu2204_torch29 环境` |
+| 官方手册定位 | — | FlagTree wiki「User manual for xpu」§1.1 明确推荐这一只（Plan A `docker pull` 59.9 GB / Plan B `docker load` 32 GB 产出包） |
+| 预装内容 | `-base` + `flagtree`(含 triton) + FlagGems + vllm-plugin-FL 的**预装变体** | 仅 `-base`：有 `/env/{FlagCX,FlagGems,xvllm-plugin-FL}` 源码目录与 conda env，但**缺 `triton`**（见 0.2） |
+| 本方向可用性 | 直接可用 | **需一步补齐**（0.2），补齐后与现用变体软件栈版本完全对齐 |
+
+两镜像的共同底座：`flagtree-xpu3.6-py310-torch2.9.0`（KLX 昆仑芯 xpu3.6 线 / Triton 3.6 / py3.10 / torch 2.9.0），
+容器内 conda env 均为 `python310_torch29_cuda`（py3.10.18 / torch 2.9.0+cu129 / transformers 4.57.1 / vLLM 0.13.0 / flagcx 可导入）。
+
+### 0.2 官方 `-base` 的获取与补齐（三步）
+
+**第 1 步 · 获取**（本机已有，无需执行）
+
+```bash
+IMAGE=harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
+# Plan A: docker pull  （59.9 GB）
+# Plan B: docker load  （32 GB 产出包）
+#   wget https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04.202608-base.tar.gz
+```
+
+**第 2 步 · ⚠️ 补齐 `triton`（本报告最要紧的一条）**
+
+官方 `-base`（以及 `-base-ssh` 变体）**开箱不含 `triton`**，推理腿服务化会断在
+`vllm_fl → flag_gems → triton`（表现为 vLLM 报 `Failed to infer device type`，见 §3.1）。
+须按官方手册 1.2 节原文执行：
+
+```bash
+# Note: First install PyTorch, then execute the following commands
+python3 -m pip uninstall -y triton          # Repeat the cmd until fully uninstalled
+RES="--index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple"
+python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 $RES
+```
+
+实测：源可达（HTTP 200）、wheel **3.3 GB**、约 **2 分 24 秒**装完；装后得到 `triton 3.6.0`
+（**与现用变体版本号完全一致**），`import flag_gems` / `import vllm_fl` 均 OK，服务化随即跑通。
+
+**第 3 步 · 环境变量（两条均为实测硬前置）**
+
+```bash
+export PYTHONPATH=/env/FlagGems/src                 # site-packages 里的 flag_gems 子模块不完整
+export VLLM_FL_PLATFORM=kunlunxin VLLM_FL_PREFER=vendor USE_FLAGGEMS=0 \
+       GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0     # 推理腿算子路径取 vendor
+export FLAGCX_ADAPTOR=klx                          # 训练腿集合通信（P800 唯一可用后端）
+```
+
+### 0.3 容器启动参数（官方手册推荐 vs 本次实测用）
+
+| 项 | 官方手册推荐 | 本次验证用 |
+|---|---|---|
+| 权限 | `--privileged --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined` | 无（非 privileged） |
+| 网络 | `--net=host` | bridge |
+| 共享内存 | `--shm-size=256g` | `--shm-size=64g` |
+| 资源限制 | `--ulimit stack=67108864 --ulimit memlock=-1 --ulimit nofile=120000` | 默认 |
+| 设备 | `--device=/dev/xpu0..7 --device=/dev/xpuctrl --device=/dev/fuse` ＋ `--group-add video` | 设备节点同（无 `--group-add video`） |
+| 结论 | — | **精简参数下全流程仍跑通**（含服务化），说明这些参数不是本方向验证路径的必要条件；但作为入锁镜像的**推荐启动参数**应照手册给全 |
+
+> 为做**单变量对照**，新容器刻意与现用容器参数对齐（同挂载 `/data2/hliu553 → /workspace`、
+> `/data1/dinghaisong/hf_cache → /hf_cache`，同用卡，**唯一变量 = 镜像**）。
+
+### 0.4 一句话结论
+
+**官方 `-base` 与本方向现用镜像结论完全等价**（多数 `detail` 字符串逐字相同），**推荐作为 P800 入锁镜像**——
+但配方里**必须**显式包含 0.2 第 2 步的 `flagtree` 补齐，否则"官方 `-base` 开箱即用"不成立。
+
+---
+
+## 1. 结论摘要
 
 | # | 结论 | 判定 |
 |---|---|---|
 | **1** | **全部结论在官方 `-base` 镜像上可复现**：conformance 13+6、smoke 42/0、训练腿、推理腿前向、服务化 —— 逐项通过，且多数 `detail` 字符串**逐字相同** | ✅ 等价 |
 | **2** | **KL3 概率性挂死与镜像无关**：官方 `-base` 上 A 组（KL3=1 + 集合通信）**3/3 挂死**、B 组（不设）**2/2 通过**，自旋特征与现用镜像一致 | ✅ 一致重现 |
-| **3** | **官方 `-base` 开箱不含 `triton`**：vLLM 服务化路径直接不可用（`vllm_fl → flag_gems → triton` 断链）。须按官方手册 1.2 节装 `flagtree===0.7.0rc3+xpu3.6`（3.3 GB）后才有 `triton 3.6.0` | ⚠️ 补齐前提 |
+| **3** | **官方 `-base` 开箱不含 `triton`**：vLLM 服务化路径直接不可用（`vllm_fl → flag_gems → triton` 断链）。须按 0.2 第 2 步补齐 | ⚠️ 补齐前提 |
 | **4** | 补 `flagtree` 后，`-base` 与现用 `flaggems-main-dev` 的软件栈**版本完全对齐**（triton 3.6.0 / torch 2.9.0+cu129 / vLLM 0.13.0 / transformers 4.57.1） | ✅ 可互换 |
-
-**对镜像入锁的含义**：`-base` **可以**作为 P800 的入锁镜像候选，但它不是"开箱可用"的，
-必须在镜像配方里显式包含"按手册装 flagtree"这一步；否则推理腿的服务化形态不可复现。
-
----
-
-## 1. 两个被对照的镜像
-
-| | 现用（所有既有结论的来源） | 官方推荐 / 本次对照 |
-|---|---|---|
-| 镜像 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base` |
-| RepoDigest | 无（本地导入） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` |
-| 大小 | 磁盘占用 **107 GB**（镜像层 `38 316 770 646` B = 38.3 GB） | 磁盘占用 **94.2 GB**（镜像层 `33 817 700 693` B = **33.8 GB**） |
-| 标注 | — | `maintainer: huangyun <huangyun07@kunlunxin.com>`，`description: xvllm_ubuntu2204_torch29 环境` |
-| 官方手册定位 | — | FlagTree wiki「User manual for xpu」1.1 节明确推荐这一只 |
-
-容器启动参数（本次为对照而**刻意与现用容器对齐**，只换镜像这一个变量）：
-`--device=/dev/xpu0..7 --device=/dev/xpuctrl --device=/dev/fuse --shm-size=64g`，
-挂载 `/data2/hliu553 → /workspace`、`/data1/dinghaisong/hf_cache → /hf_cache`，非 privileged、bridge 网络。
-
-> 说明：官方手册给出的启动参数更严格（`--privileged --net=host --shm-size=256g
-> --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`）。
-> 本次用精简参数**仍然全部跑通**，说明这些参数不是本方向验证路径的必要条件；
-> 但作为入锁镜像的**推荐启动参数**仍应照手册给全。
 
 ---
 
@@ -144,24 +195,9 @@ flag_gems/runtime/configloader.py:4 → import triton
 | `...:202608-base-ssh` | ❌ 同上 | `ModuleNotFoundError` |
 | `flaggems-main-dev:202608`（现用） | ✅ 有 | `triton 3.6.0` |
 
-**补齐方式（来自官方手册 1.2 节「Source-free Installation」原文）**：
-
-```bash
-# Note: First install PyTorch, then execute the following commands
-python3 -m pip uninstall -y triton  # Repeat the cmd until fully uninstalled
-RES="--index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple"
-python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 $RES
-```
-
-本次实测：`resource.flagos.net` 可达（HTTP 200）；wheel 3.3 GB，约 2 分 24 秒装完；
-装后 `triton 3.6.0`、`import flag_gems` / `import vllm_fl` 均 OK —— **与现用镜像的 triton 版本号完全一致**。
-
-⇒ 这解释了现用镜像的来历：`flaggems-main-dev` = `-base` + `flagtree`(含 triton) + FlagGems + vllm-plugin-FL 的**预装变体**。
-
-⇒ 也修正了一条既有认知：**「`-base` 开箱即可跑 vLLM」不成立**；
-它还解释了为什么现用镜像上必须 `PYTHONPATH=/env/FlagGems/src`
-（`flag_gems` 的 Python 包只在 `/env/FlagGems/src`，site-packages 里装得不完整）
-—— 两个坑叠加起来，都表现为同一句 `Failed to infer device type`。
+补齐方式与实测见 §0.2 第 2 步。⇒ 这解释了现用镜像的来历（`-base` + flagtree + FlagGems + vllm-plugin-FL 的预装变体），
+也解释了为什么现用镜像上必须 `PYTHONPATH=/env/FlagGems/src`（`flag_gems` 的 Python 包只在 `/env/FlagGems/src`）
+—— **两个坑叠加起来，都表现为同一句 `Failed to infer device type`**。
 
 ### 3.2 ✅ KL3 概率性挂死与镜像无关（对厂商上报价值最高的一条）
 
@@ -188,14 +224,15 @@ python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 $RES
 
 ---
 
-## 4. 对镜像入锁的建议（相较此前版本的更新）
+## 4. 对镜像入锁的建议
 
-| 项 | 此前建议 | 本次更新后的建议 |
-|---|---|---|
-| 入锁镜像候选 | 现用 `flaggems-main-dev`（未入锁） | **官方 `-base`（有 digest，`sha256:ea6d797a…`）** —— 血统清晰（`maintainer: huangyun@kunlunxin.com`）、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB） |
-| 配方要求 | 未明确 | 必须显式包含：① 按手册装 `flagtree===0.7.0rc3+xpu3.6`；② `PYTHONPATH=/env/FlagGems/src`；③ 推理腿算子路径取 vendor（`VLLM_FL_PREFER=vendor` + `USE_FLAGGEMS=0`） |
-| 环境变量口径 | 请求裁定 KL3 变量冲突 | **冲突的证据更强了**：官方手册要求测试前 `export XPU_EVENT_KL3_ENABLE=1`，而该设置在我们这里（两个镜像上均）导致 89%–100% 挂死 |
-| 启动参数 | 未明确 | 按官方手册给全（`--privileged --net=host --shm-size=256g --cap-add=SYS_PTRACE --cap-add=SYS_ADMIN --security-opt seccomp=unconfined`）；本次精简参数虽跑通，但不应作为推荐值下发 |
+| 项 | 建议 |
+|---|---|
+| 入锁镜像 | **官方 `-base`**（`sha256:ea6d797a…`）—— 血统清晰（`maintainer: huangyun@kunlunxin.com`）、有 digest、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB） |
+| 配方必须含 | ① 按官方手册装 `flagtree===0.7.0rc3+xpu3.6`（§0.2 第 2 步）；② `PYTHONPATH=/env/FlagGems/src`；③ 推理腿算子路径取 vendor（`VLLM_FL_PREFER=vendor` + `USE_FLAGGEMS=0`） |
+| 启动参数 | 按官方手册给全（§0.3 左列）；本次精简参数虽跑通，但不应作为推荐值下发 |
+| 环境变量口径冲突 | **待裁定**：官方手册要求测试前 `export XPU_EVENT_KL3_ENABLE=1`，而该设置在两镜像上均导致 89%–100% 挂死（§3.2） |
+| 现用变体的处置 | 若切换为 `-base`，需说明 `flaggems-main-dev` 的重建配方（= `-base` + `flagtree` + FlagGems + vllm-plugin-FL），供历史结论溯源 |
 
 ---
 
@@ -210,7 +247,7 @@ python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 $RES
 | `I_ref_train_leg_result_rank0_20260920.json` | 同批次现用镜像训练腿结果（交替对照用） |
 | `I_base_infer_leg_result_20260920.json` / `I_base_infer_leg_20260920.log` | `-base` 上推理腿前向（13/13） |
 | `I_base_serve_result_20260920.json` / `I_base_serve_20260920.log` | `-base` 上服务化（10/10，含 vLLM 启动日志） |
-| `I_base_kl3_ab_20260920.log` + `kl3_A{1,2,3}_KL3on.log` + `kl3_B{1,2}_KL3unset.log` | KL3 等价性对照完整记录（含挂死现场 CPU 时间与卡利用率） |
+| `I_base_kl3_ab_20260920.log` + `I_base_kl3_A{1,2,3}_KL3on_20260920.log` + `I_base_kl3_B{1,2}_KL3unset_20260920.log` | KL3 等价性对照完整记录（含挂死现场 CPU 时间与卡利用率） |
 | `H_kl3_equivalence.sh` | KL3 对照脚本（后台轮询 + `kill -9`，因 `timeout` 无法中断自旋进程） |
 
 复现命令（在 `-base` 容器内）：
@@ -245,7 +282,7 @@ bash P800/probes/H_kl3_equivalence.sh
 | # | 项 | 说明 |
 |---|---|---|
 | 1 | `-base` 的 P800 镜像**归档** | 官方镜像有 digest，按归档要求还需 `dev/images/<name>/v<N>/` 下补 `lock.yaml` + `ARCHIVE.md` |
-| 2 | 现用 `flaggems-main-dev` 的血统说明 | 无 digest、靠 `docker save`；若切换为 `-base`，需说明该变体的重建配方（= `-base` + `flagtree` + FlagGems + vllm-plugin-FL） |
+| 2 | 现用 `flaggems-main-dev` 的血统说明 | 无 digest、靠 `docker save`；若切换为 `-base`，需说明该变体的重建配方 |
 | 3 | 容器启动参数的规范化 | 本次用精简参数跑通；入锁时是否要求 `--privileged`/`--net=host`/`shm 256g` 需总组口径 |
 | 4 | KL3 变量口径冲突 | 证据已足（两镜像均复现），仍待总组与昆仑芯侧裁定 |
 | 5 | 与其他芯片的横向可比性 | 910C 用厂商官方栈、P800 用社区 vLLM + FL 插件，性能数字**不可直接横比**；本报告不含跨芯片性能结论 |
