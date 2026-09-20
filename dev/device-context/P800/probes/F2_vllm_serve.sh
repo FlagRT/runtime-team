@@ -22,6 +22,11 @@ DEV=${DEV:-6}
 PORT=${PORT:-8100}
 BUDGET=${BUDGET:-240}                    # 服务就绪等待上限（秒）
 MODEL=${MODEL:-/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3}
+#: EAGER=1（默认）→ 加 --enforce-eager（关图捕获）；EAGER=0 → 启用图捕获。
+#: 这是"服务化 vs 前向"吞吐差的可对照单变量（见 docs 的延迟拆解）。
+EAGER=${EAGER:-1}
+[ "$EAGER" = "1" ] && EAGER_FLAG="--enforce-eager" || EAGER_FLAG=""
+TAG=${TAG:-eager$EAGER}
 PROTO=/workspace/prototype/runtime/proto/proto_infer_serve.py
 OUT=/workspace/out_serve
 
@@ -31,12 +36,18 @@ export GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0
 export CUDA_VISIBLE_DEVICES=$DEV DC_BACKEND=kunlun SERVE_PORT=$PORT SERVE_HOST=127.0.0.1
 
 stop_server() {
+  # ⚠️ 2026-09-20 实测教训：`vllm serve` 的 **EngineCore 子进程会残留并持续占卡**
+  #    （只杀主进程后，卡 6 仍被占 73850 MiB / 96 GiB，导致下一次启动报
+  #     "Free memory ... less than desired GPU memory utilization"）。
+  #    与 910C 侧的「坑 A2：清理残留 EngineCore 子进程」同类 —— 必须一并 kill -9。
+  for p in $(pgrep -f "VLLM::Engin"); do kill -9 $p 2>/dev/null; done
   for p in $(pgrep -f "vllm serve"); do kill -9 $p 2>/dev/null; done
   sleep 3
 }
 
 echo "=========== P800 阶段 3 补 · vLLM 服务化 开始 $(date) ==========="
 echo "用卡: $DEV | 端口: $PORT | 模型: $MODEL"
+echo "单变量对照: EAGER=$EAGER（$([ "$EAGER" = "1" ] && echo '关图捕获' || echo '启用图捕获')）| TAG=$TAG"
 echo "--- 用卡前：各卡显存占用 ---"
 xpu-smi 2>/dev/null | awk '/MiB \//{print}' | head -8
 
@@ -45,7 +56,7 @@ echo
 echo "############ 启动 vllm serve ############"
 nohup vllm serve $MODEL --served-model-name qwen3-embedding-0.6b \
   --runner pooling --convert embed \
-  --port $PORT --max-model-len 4096 --gpu-memory-utilization 0.25 --enforce-eager \
+  --port $PORT --max-model-len 4096 --gpu-memory-utilization 0.25 $EAGER_FLAG \
   > $OUT/vllm_serve.log 2>&1 &
 echo "  pid=$!  日志: $OUT/vllm_serve.log"
 
@@ -62,12 +73,12 @@ if [ $ready = 1 ]; then
   echo
   echo "############ 服务化验证（proto_infer_serve.py）############"
   timeout 300 python3 $PROTO --backend kunlun --rounds 5 \
-    --out $OUT/proto_infer_serve_result_kunlun.json 2>&1 \
+    --out $OUT/proto_infer_serve_result_kunlun_$TAG.json 2>&1 \
     | grep -vE "^INFO|^WARNING|XCCL|SYMBOL_REWRITE|^\(APIServer" | tail -20
-  if grep -q "SERVE_LEG_PASS" $OUT/proto_infer_serve_result_kunlun.json 2>/dev/null; then
-    echo "  >>> ✅ 服务化形态 PASS"
+  if grep -q "SERVE_LEG_PASS" $OUT/proto_infer_serve_result_kunlun_$TAG.json 2>/dev/null; then
+    echo "  >>> ✅ 服务化形态 PASS（TAG=$TAG）"
   else
-    echo "  >>> ⚠️/❌ 见结果 JSON"
+    echo "  >>> ⚠️/❌ 见结果 JSON（TAG=$TAG）"
   fi
 fi
 
