@@ -158,7 +158,8 @@ def handle(exc, backend, tag: str) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", default="ascend")
+    ap.add_argument("--backend", default=os.environ.get("DC_BACKEND", "ascend"),
+                    help="运行时后端名；也可用环境变量 DC_BACKEND（与训练腿/推理腿脚本一致）")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-timeout", action="store_true",
                     help="跳过超时注入（默认触发；2026-09-09 核查已证明进程内安全）")

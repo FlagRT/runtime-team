@@ -41,7 +41,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from ...api.errors import FlagosError
+from ...api.errors import FlagosError, coerce_category
 from ..base import RuntimeBackend
 
 logger = logging.getLogger(__name__)
@@ -321,7 +321,12 @@ class KunlunBackend(RuntimeBackend):
         if graded_by == "code_map":
             graded_by = "message_hint_unexpected"
         return FlagosError(
-            category=getattr(fe, "category", None) or _l3(),
+            # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
+            # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
+            # （L1=1..L4=4），与 api 层枚举**不是同一个类对象** —— 即使取值相同也不相等，
+            # 直接透传会让 `FlagosError.disposition` 的 `DISPOSITION[cat]` 查表 KeyError。
+            # 故经 `coerce_category` 按数值/名称归一（ascend 用的是同源 _INT_TO_CATEGORY）。
+            category=coerce_category(getattr(fe, "category", None)) or _l3(),
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
             error_code=getattr(fe, "error_code", None),
