@@ -26,6 +26,11 @@ prototype/
 └── docs/                        # 标准说明文档
 ```
 
+> **要接新芯片？** 直接读 **《新芯片接入手册》** `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`
+> ——厂商栈判别（4 条路径）→ 镜像就绪判据 → 13 个抽象方法清单 → conformance → 两条腿 → 错误闭环
+> → **可勾选验收清单**；坑与厂商上报模板也在里面。
+> 组件版本 `runtime-v0.2.0`（第二实例接入版，见 `RELEASE_NOTES_v0.2.0.md`）。
+
 ---
 
 ## 2. 统一 API 面（承诺）
@@ -128,4 +133,7 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `docs/IMAGE_SELECTION_GUIDE_20260920.md` | **镜像选择与确定指南**：需求画像 · 来源优先级 · 入档/入锁两道门槛 · 实操五步 · 判据清单（适用于第三家芯片接入与现有实例镜像补齐） |
 | `docs/IMAGE_REQUIREMENT_SPEC_20260920.md` | **镜像需求说明书（提交总组）**：上游官方文档清单（FlagTree per-backend User Manual 等）· 我们镜像与官方推荐的差异 · 硬性/期望/可协商三级需求（逐条带实测依据）· 请总组裁定的三件事 |
 | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：§0 镜像速查（两镜像 tag/digest/大小 · 官方镜像获取与补齐三步 · 容器启动参数对照）· 全部结论复现对照（逐用例 / 逐 `detail`）· **KL3 缺陷与镜像无关** · 入锁建议 |
+| `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` | **《新芯片接入手册》**（月度计划 11 月交付物）：4 条厂商栈判别路径 · 13 个抽象方法清单 · 8 步接入流程 · **可勾选验收清单** · 9 条跨芯片坑 · 厂商问题上报模板 |
+| `docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md` | **接口约定修订建议 6 条**（P800 是现行约定的首次非昇腾检验）：`device_type`/`vendor` 分离 · `device_state` 入契约 · `.native` 逃生舱约束 · **错误对象跨模块类归一** · 有界同步降级契约 · `known_issues()` 入契约 |
+| `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 两实例验证结果 · 已知限制 9 条 |
 | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：全部 P800 结论在官方推荐镜像上复现（逐用例/逐 `detail` 对照）· **KL3 缺陷与镜像无关**（排除"是我们镜像的问题"）· `-base` 开箱缺 `triton` 的完整调用链与补齐命令 · 对镜像入锁的建议 |
