@@ -14,7 +14,7 @@
 | # | 修订项 | 类型 | 依据强度 | 当前是否已改代码 |
 |---|---|---|---|---|
 | 1 | `device_type` 与 `vendor` 分离 | **契约修订** | 强（三后端取值已不同） | 未改（建议先定契约） |
-| 2 | `device_state` 纳入 Backend 契约 | **契约补漏** | 强（声明与实现不符） | 未改（需补抽象 + 实现） |
+| 2 | `device_state` 纳入 Backend 契约 | **契约补漏** | 强（声明与实现不符） | ✅ **已修**（`kunlun` 补实现；另发现文档四态名有误） |
 | 3 | `.native` 逃生舱约束 + `record_stream` 能力位 | **契约补漏** | 中（设计风险，未致故障） | 未改 |
 | 4 | 错误对象**跨模块类归一** | **契约 + 已修** | 强（真实崩溃，已复现） | ✅ 已修在框架层 |
 | 5 | 不支持有界同步时的声明与降级契约 | 前瞻性条款 | 弱（未触发） | 未改 |
@@ -95,26 +95,47 @@ RuntimeBackend 须声明三个类属性：
    AVAILABLE / DEGRADED / ISOLATED / UNKNOWN"），但 §2 的 Backend 插件规范里没有它
    —— 新接入者按 §2 实现时会漏掉，事后才在上层调用时发现。
 
+**附带发现（第四种不一致，本次核对时发现）**：接口约定 §1.5 的**四态名写错了**——
+文档写 `AVAILABLE / DEGRADED / ISOLATED / **UNKNOWN**`，而实现（`conformance/device_state.py` 的
+`DeviceState` 枚举）是 `AVAILABLE / DEGRADED / ISOLATED / **DESTROYED**`（"已销毁：优雅退出/资源回收完成"）。
+`ascend.backend.device_state` 的 docstring 也写作 `DESTROYED`，即**文档与两处实现不一致，错在文档**。
+
 ### 建议条文
 
 ```
-§1.5 状态恢复（API 承诺）保持不变，并补一句：
-  该能力由后端实现；后端若不支持，必须在 supports("device_state") 中如实声明为 False，
-  使调用方可预判（禁止声明为 True 却无实现）。
+§1.5 状态恢复（API 承诺）：
+  ① 四态名更正为 AVAILABLE / DEGRADED / ISOLATED / DESTROYED（与实现一致）；
+  ② 补一句：该能力由后端实现；后端若不支持，必须在 supports("device_state") 中如实声明为 False，
+     使调用方可预判（禁止声明为 True 却无实现）。
 
 §2 Backend 接入规范：将 device_state 列入"必须实现或如实声明不支持的接口"：
-  device_state(ordinal) -> str   设备四态之一（AVAILABLE / DEGRADED / ISOLATED / UNKNOWN）
-
-附带修正（本次已发现的具体缺陷，需在代码中修复）：
-  kunlun/backend.py 的 _capabilities 中移除 "device_state"（当前声明与实现不符），
-  或补齐实现——二选一，以"声明与实际一致"为准。
+  device_state(ordinal) -> DeviceState   设备四态之一（AVAILABLE / DEGRADED / ISOLATED / DESTROYED）
 ```
 
 ### 兼容性
 
-对 `ascend` 无影响（已实现）；`flagos` / `kunlun` 需**二者之一**：补实现，或把 `supports()` 改为 False。
-**推荐先改 `kunlun` 的 `_capabilities`（一处删键）**——它是当前唯一的"声明与实现不符"，
-而本方向对外的核心卖点正是"能力如实声明、未支持项诚实跳过"。
+对 `ascend` 无影响（已实现）。
+
+**`kunlun` 已修（2026-09-20）——选了"补齐实现"而不是"删声明"**，理由与做法：
+
+- **为什么补实现**：`device_state` 的实现是 `conformance/device_state.py` 里的**进程内状态机**
+  （不依赖任何厂商原语，四态 + 转换事件 + 订阅者），`ascend` 就是这么复用的，
+  `kunlun` 已有 `_load_errors()` 的同类加载模式 ⇒ 补齐成本极低，
+  且能消除"上层在 P800 上调 `runtime.device_state()` 直接崩"这一真实问题（只删声明解决不了它）。
+- **做法（含一个必须注意的坑）**：新增 `_load_device_state()`，**用标准 `import`（共享 `sys.modules`）**
+  ——与 `ascend` 一致；**不能**照抄 `_load_errors()` 的 `importlib` 独立模块名加载方式。
+  原因：`errors` 是无状态纯函数（两份无所谓），而 `device_state` 是**有状态单例**，
+  两次加载会得到**两份状态机**（conformance 设的状态后端查不到、反之亦然）——
+  那种"静默错"比 `AttributeError` 更难查。代码内已写明这一约束。
+- **验证**：
+  ① 本地无硬件——`backend._load_device_state() is conformance 侧 device_state` 为 **True**（单例性）；
+  `supports("device_state")` 为 True 且 `hasattr` 成立；conformance 侧 `set_device_state(0, DEGRADED)`
+  后 `backend.device_state(0)` 能查到 `DEGRADED`（状态可见性）。
+  ② P800 真机——`runtime.device_state(0)` 返回 `DeviceState.AVAILABLE`；
+  `info().capabilities` 含 `device_state` 且 `supports()` 与 `info()` 自洽；
+  **smoke 42/0、conformance 13/13 + 6/6 无回归**。
+
+`flagos` 仍无实现（`_capabilities` 中未声明该能力，故 `supports()` 为 False，属于**如实声明**，无需改动）。
 
 ---
 

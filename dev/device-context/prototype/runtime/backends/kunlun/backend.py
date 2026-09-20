@@ -127,7 +127,7 @@ class KunlunBackend(RuntimeBackend):
         "event",
         "bounded_sync",      # 主机侧等待真有界；流同步为"超时上报"语义，见 synchronize_stream
         "recovery_probe",    # 探针级恢复
-        "device_state",      # 四态机
+        "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
         "multidevice",       # 单机 8 卡
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
@@ -142,6 +142,7 @@ class KunlunBackend(RuntimeBackend):
     def __init__(self) -> None:
         self._torch = None
         self._errors_mod = None
+        self._device_state = None
         self._loaded = False
 
     # ───────────── 延迟加载 ─────────────
@@ -178,6 +179,26 @@ class KunlunBackend(RuntimeBackend):
             spec.loader.exec_module(mod)
             self._errors_mod = mod
         return self._errors_mod
+
+    def _load_device_state(self):
+        """按需加载 conformance/device_state 资产（设备四态机）。
+
+        ⚠️ **必须用标准 `import`（与 ascend 一致、共享 `sys.modules`），
+        不能用 importlib 独立模块名加载。**
+
+        原因：`device_state` 是**有状态的进程内单例**（模块级 `_ensure(ordinal)` 持有
+        每个设备的四态、转换事件与订阅者）。若像 `_load_errors()` 那样用
+        `spec_from_file_location("dc_xxx", ...)` 加载成独立模块，就会得到**两份状态机**
+        —— conformance / 上层设置的状态，后端查不到；后端设置的状态，上层也看不到。
+
+        （`errors` 是无状态纯函数，两份无所谓——但那正是「第 4 个跨后端框架缺陷」
+        的成因，**不应效仿**。）
+        """
+        if self._device_state is None:
+            sys.path.insert(0, str(_CONFORMANCE_DIR))
+            import device_state as _device_state
+            self._device_state = _device_state
+        return self._device_state
 
     # ───────────── 设备 ─────────────
     def device_count(self) -> int:
@@ -360,6 +381,19 @@ class KunlunBackend(RuntimeBackend):
             "ordinal": ordinal, "mode": mode, "recovered": alive,
             "detail": f"probe 级探活：设备当前{'可用' if alive else '不可用'}",
         }
+
+    def device_state(self, ordinal: int):
+        """查询设备四态：`available` / `degraded` / `isolated` / `destroyed`。
+
+        复用 conformance 的 device_state 资产（**进程内状态机，不依赖厂商原语**），
+        与 ascend 同一份实现与同一套语义，故本后端的 `device_state` 能力声明成立。
+
+        边界（如实标注）：昆仑芯侧无设备级重置/重建原语（见 `recover_device`），
+        本后端只声明 `recovery_probe` —— 四态**转换**由上层/监控方向驱动
+        （`set_device_state`），本方法只负责**查询**；恢复执行走
+        `recover_device(mode="probe")`。
+        """
+        return self._load_device_state().query_device_state(ordinal)
 
     # ───────────── 能力声明 ─────────────
     def supports(self, capability: str) -> bool:
