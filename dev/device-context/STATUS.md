@@ -28,7 +28,8 @@
 （接入 → 训练腿 → **推理腿 13/13** → **推理腿服务化 10/10** → **错误闭环两设置对照 PASS** → **镜像等价性验证** → **阶段 5 收敛三件套**），
 并已在**上游官方推荐镜像 `-base`** 上完成**等价性验证**（全部结论复现、KL3 缺陷一致重现）。
 阶段 5 交付：《新芯片接入手册》（8 步流程 + 验收清单 13 项）、接口约定修订建议 **6 条**、原型 release **`runtime-v0.2.0`**。
-未完成项：组件下游反馈收集、多流 16 项验收基线对其余后端逐项比对、全组联合 demo 合稿。
+**多流 Stream 16 项验收基线已在 P800 上逐项比对完成**（14 通过 / 1 如实标注不支持 / 1 不适用；探针 8/8 与 910C 逐项一致）。
+未完成项：组件下游反馈收集、全组联合 demo 合稿。
 
 ## 已有量化结果（实跑）
 
@@ -66,6 +67,7 @@
 | **框架缺陷第 4 例（09-20，已修）** | 错误对象**跨模块类不相等**（`conformance/errors.py` 被 importlib 动态加载为独立模块，其 `ErrorCategory` 是 IntEnum）→ `FlagosError.disposition` 取 `DISPOSITION[cat]` **KeyError**。修在**框架层**（新增 `coerce_category` / `normalize_error`，并在 `translate_via_backend` 加归一化兜底）+ `kunlun.translate_error` 显式归一 |
 | **镜像等价性验证（09-20）** | 在**上游官方推荐镜像** `harbor.baai.ac.cn/...:202608-base`（digest `sha256:ea6d797a…`，33.8 GB）上重跑全套：conformance **13+6 逐用例一致**、smoke **42/0**、训练腿 **6/6（loss 逐位相同 15.4488→11.1481）**、推理腿 **13/13**（`detail` **14/14 逐字相同**）、服务化 **10/10**（区分度 0.4102 一致）、**KL3 挂死一致重现（A 组 3/3 挂死、B 组 2/2 通过且 `2^120` 真值精密匹配）** ⇒ **两镜像结论等价**；**KL3 缺陷与镜像无关**，归属厂商运行时/驱动层 |
 | ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
+| **多流 Stream 16 项基线（09-20）** | **14 项通过 / 1 项如实标注不支持 / 1 项不适用**：探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；S-16 补测 **2000 流无限制**；唯一差异 **S-12 流优先级不支持**（上游上报非法优先级区间 → 触发 PyTorch INTERNAL ASSERT；本层主动拦截不透传、不声明该能力） |
 
 **诚实标注**：P800 训练腿证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得；
 该变量开启时本环境概率性挂死（厂商缺陷），**不能代表开启时的行为**。
@@ -110,6 +112,13 @@
    有界同步降级契约（前瞻性）、`known_issues()` 入契约；
    ③ **原型 release `runtime-v0.2.0`**（第二实例接入版）—— 第二实例接入 + 4 个框架修复 + 脚本后端无关化，
    **未改任何已有接口签名**（接口版本仍为 v0.1 原型期）。
+2c. ✅ **多流 Stream 16 项验收基线逐项比对（2026-09-20 完成）**：P800 侧 **14 项通过 / 1 项如实标注不支持
+   （S-12 流优先级，上游缺陷）/ 1 项不适用**；探针 8 项 `STREAM_SEMANTICS_PASS 8/8`（与 910C 逐项一致）；
+   **S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；
+   S-16 补测 2000 流无限制。探针已后端无关化并上提为**跨后端共用资产**
+   （`prototype/probes/probe_stream_semantics_full.py`）。
+   ⚠️ 过程中有一处**自我纠错**：S-7 首测判为"不支持"实为探针用法错误（捕获区内做了同步，违反 CUDA Graph 契约），
+   修正后 5/5 通过——已撤回错误判断。本批内容按约定**随 10 月提交**。
 4. **厂商缺陷上报**：待确认渠道后提交（主提交昆仑芯 XPytorch/XRE，抄送 FlagCX，
    知会 FlagGems/FlagTree）。
 

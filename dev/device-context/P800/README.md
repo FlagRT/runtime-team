@@ -22,6 +22,7 @@
 | **镜像等价性验证** | ✅ **完成（09-20）** | 全部结论在**官方 `-base` 镜像**上复现：conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、**KL3 挂死一致重现（A 3/3 挂死 / B 2/2 通过）** ⇒ 缺陷与镜像无关 |
 | **已知厂商缺陷** | ⚠️ 已定性、已上报 | KL3 事件同步概率性挂死（≈89%），归属**厂商运行时层**；**不影响单进程设备上下文路径**（阶段 4 两设置一致即证据） |
 | **框架缺陷（第 4 例）** | ✅ 已发现并修复 | 错误对象**跨模块类不相等** → `disposition` 取 `KeyError`；已修在框架层（详见 `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` §3） |
+| **多流 Stream 16 项基线** | ✅ **完成（09-20）** | **14 项通过 / 1 项如实标注不支持（S-12 流优先级，上游缺陷）/ 1 项不适用**；探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`（与 910C 逐项一致）**；**S-7 图捕获首次实测 5/5**、S-16 补测 2000 流无限制 ⇒ 顺带为 `kunlun` 补上 `graph_capture` 能力声明 |
 
 ---
 
@@ -101,6 +102,7 @@ P800/
 | `docs/PROGRESS_REPORT_20260914.md` | **全量进度报告**（910C 回顾 + P800 主体 + 待办总清单按「谁来做」四分类 + 证据索引 + 风险与下一步） |
 | `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` | **阶段 3/4 验证报告**：推理腿 13/13 与 910C 同构对照、错误闭环两设置对照（逐字节一致）、**§3 第 4 个框架缺陷的根因与修复**、待办 |
 | `docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：**§0 镜像速查**（两镜像 tag/digest/大小/来源一把看全 + 官方镜像获取与补齐三步 + 容器启动参数对照）· 全部结论复现对照（逐用例/逐 `detail`）· **KL3 挂死一致重现** · **`-base` 开箱缺 `triton` 的调用链与补齐命令** · 对镜像入锁的建议 |
+| `docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 Stream 验收基线 16 项逐项比对报告**：16 项 P800 结论 + **与 910C 逐项对照**（仅 S-12 一项差异）+ **S-7 图捕获首测 5/5** 与**一处自我纠错（首测失败实为用法错误）** + 证据形态差异说明 + 复现命令 |
 | `../prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **跨实例参考**（910C + P800 并列）：镜像 / 模型 / 训推框架 / 参数逐项对照 + **依据链** + 复用坑清单；后续接入者与框架方向首读 |
 
 **规范与原型（在 `../prototype/`，不属本目录）**
@@ -151,6 +153,7 @@ P800/
 | `H_kl3_equivalence.sh` | **KL3 缺陷等价性对照脚本**（后台轮询 + `kill -9`；因挂死进程持 GIL 自旋、`timeout` 的 SIGTERM 无法中断） |
 | `I_base_*_20260920.*` | **官方 `-base` 镜像全套证据**（17 份）：conformance 13+6（json+log）、smoke 42/0、训练腿两 rank、推理腿前向 13/13、服务化 10/10、**KL3 对照（ab 汇总 + A1–A3 挂死现场 + B1–B2 真值校验）** |
 | `I_ref_train_leg_result_rank0_20260920.json` | 同批次**现用镜像**训练腿结果（用于交替复测，证明吞吐差异属共享机噪声） |
+| `K_stream_semantics_full_result_p800_20260920.json` | **多流 16 项基线中 8 项探针结果**（`STREAM_SEMANTICS_PASS 8/8`，含 backend=`kunlun` / dev_api=`cuda` / 逐项 detail）——与 910C 侧同名结果逐项对照 |
 | `G_error_loop.sh` / `G_error_loop_20260920.log` | **阶段 4 错误闭环**：两设置对照脚本 + 日志（两组各 5/0/0） |
 | `error_recovery_loop_kunlun_KL3off.json` | 阶段 4 结果：**不设** `XPU_EVENT_KL3_ENABLE` |
 | `error_recovery_loop_kunlun_KL3on.json` | 阶段 4 结果：**设** `XPU_EVENT_KL3_ENABLE`（与上面除时间戳外**完全一致**） |

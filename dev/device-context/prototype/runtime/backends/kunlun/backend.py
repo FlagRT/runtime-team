@@ -128,12 +128,12 @@ class KunlunBackend(RuntimeBackend):
         "bounded_sync",      # 主机侧等待真有界；流同步为"超时上报"语义，见 synchronize_stream
         "recovery_probe",    # 探针级恢复
         "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
+        "graph_capture",     # torch.cuda.graph（2026-09-20 实测 GRAPH_CAPTURE_PASS 5/5）
         "multidevice",       # 单机 8 卡
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
         # "stream_priority" : priority_range() 触发 PyTorch INTERNAL ASSERT（上游缺陷）
-        # "graph_capture"   : 未验证
     }
 
     #: 分级来源可达性（如实标注：code_map 路径在昆仑芯不可达）

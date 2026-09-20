@@ -23,6 +23,7 @@ prototype/
 │   ├── proto/                   # 两条腿自验证脚本与结果
 │   ├── demos/                   # 设备无关演示
 │   └── smoke_runtime.py         # 接入自检
+├── probes/                      # 跨后端验证探针（目前：多流 16 项基线探针，后端无关 V2）
 └── docs/                        # 标准说明文档
 ```
 
@@ -136,4 +137,6 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` | **《新芯片接入手册》**（月度计划 11 月交付物）：4 条厂商栈判别路径 · 13 个抽象方法清单 · 8 步接入流程 · **可勾选验收清单** · 9 条跨芯片坑 · 厂商问题上报模板 |
 | `docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md` | **接口约定修订建议 6 条**（P800 是现行约定的首次非昇腾检验）：`device_type`/`vendor` 分离 · `device_state` 入契约 · `.native` 逃生舱约束 · **错误对象跨模块类归一** · 有界同步降级契约 · `known_issues()` 入契约 |
 | `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 两实例验证结果 · 已知限制 9 条 |
+| `probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13 共 8 项（真正创建流的验证）；设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
+| `../P800/docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 16 项基线逐项比对报告**（P800 第三实例视角）：16 项结论 + 与 910C 对照（仅 S-12 差异）+ S-7 图捕获首测 5/5 + 一处自我纠错 + 证据形态差异说明 |
 | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：全部 P800 结论在官方推荐镜像上复现（逐用例/逐 `detail` 对照）· **KL3 缺陷与镜像无关**（排除"是我们镜像的问题"）· `-base` 开箱缺 `triton` 的完整调用链与补齐命令 · 对镜像入锁的建议 |
