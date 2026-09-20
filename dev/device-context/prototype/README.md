@@ -105,3 +105,4 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 | `../910C/docs/DC_STAGE_SUMMARY_20260909.md` | **阶段性总结**：两条腿证据 + 组件自检 + 已知缺口（设备上下文部分） |
 | `../910C/docs/ERROR_RECOVERY_LOOP_20260909.md` | **错误注入 → 恢复闭环**：验证记录、两个发现、代码修正 |
 | `docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **两实例配置与依据参考**（910C / P800）：镜像 · 模型 · 训推框架 · 参数 + **依据链** + 复用坑清单 + 可复现命令 + 未覆盖项 |
+| `docs/IMAGE_SELECTION_GUIDE_20260920.md` | **镜像选择与确定指南**：需求画像 · 来源优先级 · 入档/入锁两道门槛 · 实操五步 · 判据清单（适用于第三家芯片接入与现有实例镜像补齐） |
