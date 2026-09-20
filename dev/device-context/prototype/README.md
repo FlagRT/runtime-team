@@ -24,12 +24,15 @@ prototype/
 │   ├── demos/                   # 设备无关演示
 │   └── smoke_runtime.py         # 接入自检
 ├── probes/                      # 跨后端验证探针（目前：多流 16 项基线探针，后端无关 V2）
+├── scripts/                     # **组内服务启动标准脚本**（serve_standard.sh —— 下游起服务唯一入口）
 └── docs/                        # 标准说明文档
 ```
 
 > **要接新芯片？** 直接读 **《新芯片接入手册》** `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`
 > ——厂商栈判别（4 条路径）→ 镜像就绪判据 → 13 个抽象方法清单 → conformance → 两条腿 → 错误闭环
 > → **可勾选验收清单**；坑与厂商上报模板也在里面。
+> **要起推理服务？** 走 **《组内服务启动标准》** `docs/SERVICE_STARTUP_STANDARD_20260920.md`
+> ——唯一入口 `scripts/serve_standard.sh`，跨芯片只改 `DC_BACKEND`，**不要各自维护启动脚本**。
 > 组件版本 `runtime-v0.2.0`（第二实例接入版，见 `RELEASE_NOTES_v0.2.0.md`）。
 
 ---
@@ -137,6 +140,8 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` | **《新芯片接入手册》**（月度计划 11 月交付物）：4 条厂商栈判别路径 · 13 个抽象方法清单 · 8 步接入流程 · **可勾选验收清单** · 9 条跨芯片坑 · 厂商问题上报模板 |
 | `docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md` | **接口约定修订建议 6 条**（P800 是现行约定的首次非昇腾检验）：`device_type`/`vendor` 分离 · `device_state` 入契约 · `.native` 逃生舱约束 · **错误对象跨模块类归一** · 有界同步降级契约 · `known_issues()` 入契约 |
 | `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 两实例验证结果 · 已知限制 9 条 |
+| `docs/SERVICE_STARTUP_STANDARD_20260920.md` | **《组内服务启动标准》（下游服务复用指南）**：唯一入口 `scripts/serve_standard.sh` · 参数表 · 统一服务参数口径（含每条的依据）· **四条硬纪律** · 与自建脚本的关系 · **基座新发现同步机制** · 变更流程 |
+| `scripts/serve_standard.sh` | **服务启动唯一入口**：`DC_BACKEND` 切换芯片（ascend/kunlun），环境差异与停机清理全部收敛在脚本内；P800 实测 `SERVE_STANDARD_PASS`（就绪 25 s、维度 1024、停机无残留） |
 | `probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13 共 8 项（真正创建流的验证）；设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
 | `../P800/docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 16 项基线逐项比对报告**（P800 第三实例视角）：16 项结论 + 与 910C 对照（仅 S-12 差异）+ S-7 图捕获首测 5/5 + 一处自我纠错 + 证据形态差异说明 |
 | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：全部 P800 结论在官方推荐镜像上复现（逐用例/逐 `detail` 对照）· **KL3 缺陷与镜像无关**（排除"是我们镜像的问题"）· `-base` 开箱缺 `triton` 的完整调用链与补齐命令 · 对镜像入锁的建议 |

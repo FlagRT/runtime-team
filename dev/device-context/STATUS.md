@@ -29,7 +29,10 @@
 并已在**上游官方推荐镜像 `-base`** 上完成**等价性验证**（全部结论复现、KL3 缺陷一致重现）。
 阶段 5 交付：《新芯片接入手册》（8 步流程 + 验收清单 13 项）、接口约定修订建议 **6 条**、原型 release **`runtime-v0.2.0`**。
 **多流 Stream 16 项验收基线已在 P800 上逐项比对完成**（14 通过 / 1 如实标注不支持 / 1 不适用；探针 8/8 与 910C 逐项一致）。
-未完成项：组件下游反馈收集、全组联合 demo 合稿。
+**《组内服务启动标准》已发布**（下游服务复用指南 + 唯一入口 `prototype/scripts/serve_standard.sh`）——
+把此前 910C / P800 **各自维护的两套启动脚本收敛为一套**，跨芯片只改 `DC_BACKEND`，
+并明确各方向不再自建启动脚本；P800 侧已实测 `SERVE_STANDARD_PASS`。
+未完成项：组件下游反馈收集、全组联合 demo 合稿、910C 侧统一启动脚本真机复跑（本批逻辑已对齐、待补跑）。
 
 ## 已有量化结果（实跑）
 
@@ -83,6 +86,18 @@
 - **训练腿镜像禁止 torch_npu 与 Torch-FL 共存**（自带校验脚本直接报错），
   必须 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`。
 - **带卡容器并发上限 3**（已写入 v1 规则置顶）：超限 `acl.init()` 返回 500000、设备不可见。
+- **同一个 FL 插件在两家芯片上可用性相反**（第三家选型须逐个确认，不能类推）：
+  `vllm-plugin-FL` 在**昆仑芯必需**（社区 vLLM 的 `vllm/platforms/` 无 kunlun，靠它提供 FL platform
+  —— 不加载则 vLLM 报 `Failed to infer device type`）；在**昇腾必须禁用**
+  （设 `VLLM_PLUGINS=fl` 后 `current_platform.device_type` 变空 → `RuntimeError: Device string must not be empty`，
+  该插件自述 currently CUDA only）。
+- **官方 `-base` 镜像开箱不含 `triton`**：`vllm_fl → flag_gems → triton` 断链，推理服务化报
+  `Failed to infer device type`（**看着像设备问题，其实是包问题**）。须按官方手册 1.2 节
+  `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟）。
+  ⇒ 若以该镜像入锁，**配方须显式包含此步骤**，否则第三家接入者会卡在同一位置。
+- **P800 流优先级不可用（上游）**：裸调 `Stream.priority_range()` 触发 PyTorch 自身
+  `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`（XPytorch 上报非法优先级区间）。
+  本层已**主动拦截、绝不透传**（避免进程级 abort），`kunlun` 后端**不声明** `stream_priority` 能力（如实）。
 - 本轮仓库整理与验证**未新增或升级公共依赖**；容器内按需补装 `transformers`（v1 已登记）。
 
 ## 下一步（拟在下次周会前推进）

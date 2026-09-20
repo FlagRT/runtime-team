@@ -252,6 +252,11 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 
 ## 6. 可复现命令
 
+> **起服务请走《组内服务启动标准》**（`docs/SERVICE_STARTUP_STANDARD_20260920.md`）：
+> 唯一入口 `prototype/scripts/serve_standard.sh`，跨芯片只改 `DC_BACKEND`。
+> 本节列的是**我们做验证时用的完整命令**（含探针与对照脚本）——用途是**复现结论**；
+> 下游起服务不必照抄这些，走标准脚本即可（本手册是"参考/实测记录"性质，不是操作规范）。
+
 **910C（容器内）**
 
 ```bash
@@ -300,7 +305,9 @@ python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/p
 DEV=6 bash P800/probes/F_infer_leg.sh
 
 # 推理腿：服务化（脚本内含 启动 → 就绪等待 → 验证 → 停机 → 用卡复查）
-DEV=6 bash P800/probes/F2_vllm_serve.sh
+DEV=6 bash P800/probes/F2_vllm_serve.sh          # 本方向的对照探针（多镜像/多变量对照用）
+# ↑ 下游起服务不要用探针，走统一入口（含同一套停机清理与就绪判据）：
+#   DC_BACKEND=kunlun DEV=6 MODEL=<...>/snapshots/<hash> bash prototype/scripts/serve_standard.sh
 
 # 错误闭环：设 / 不设 XPU_EVENT_KL3_ENABLE 两设置对照
 DEV=6 bash P800/probes/G_error_loop.sh

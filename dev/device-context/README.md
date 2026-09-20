@@ -47,6 +47,7 @@
 | 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37（910C）/ 42/0（P800） |
 | Backend 抽象与接入规范 | ✅ | 13 个 `@abstractmethod` 对应五域；`registry._KNOWN_BACKENDS` 已含 `ascend` / `flagos` / `kunlun` |
 | **《新芯片接入手册》** | ✅ | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`：判别路径 · 13 抽象清单 · 8 步流程 · **验收清单** · 跨芯片坑 · 上报模板 |
+| **《组内服务启动标准》** | ✅ | `prototype/scripts/serve_standard.sh`（**下游起服务唯一入口**，跨芯片只改 `DC_BACKEND`）+ `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`；P800 实测 `SERVE_STANDARD_PASS` |
 | conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，三个后端结果并列可比 |
 | 组件打包 | ✅ | Git tag **`runtime-v0.2.0`** + `prototype/RELEASE_NOTES_v0.2.0.md`（第二实例接入版；上一版 `runtime-v0.1.0`） |
 
@@ -160,6 +161,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 11 | **P800 阶段 5 收敛三件套**：《新芯片接入手册》（8 步流程 + 验收清单 13 项）+ 接口约定修订建议（6 条）+ 原型 **release** `runtime-v0.2.0` | ✅ **本轮** |
 | 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 | 13 | **多流 Stream 16 项验收基线**对 P800 逐项比对（探针 8/8、S-7 图捕获首测 5/5、S-16 补测 2000 流） | ✅ **本轮**（内容随 10 月提交） |
+| 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用 | ✅ **本轮** |
 
 ---
 
@@ -167,7 +169,8 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 
 | 目录 | 内容 |
 |---|---|
-| `prototype/docs/` | **芯片无关的统一标准**：接口约定（**新芯片接入规范**）、事件语义契约、原型设计、职责框架、月度计划、通信路线；**《新芯片接入手册》**（接芯片先读这份）；**接口约定修订建议 6 条**；另有三份**跨实例参考**——**两实例验证配置与依据**（镜像/模型/训推框架/参数的逐项依据链 + 可复现命令）、**镜像选择与确定指南**、**镜像需求说明书**（提交总组，含硬性/期望/可协商三级需求） |
+| `prototype/docs/` | **芯片无关的统一标准**：接口约定（**新芯片接入规范**）、事件语义契约、原型设计、职责框架、月度计划、通信路线；**《新芯片接入手册》**（接芯片先读这份）；**《组内服务启动标准》**（起服务先读这份）；**接口约定修订建议 6 条**；另有三份**跨实例参考**——**两实例验证配置与依据**（镜像/模型/训推框架/参数的逐项依据链 + 可复现命令）、**镜像选择与确定指南**、**镜像需求说明书**（提交总组，含硬性/期望/可协商三级需求） |
+| `prototype/scripts/` | **组内服务启动标准脚本** `serve_standard.sh`（下游起服务唯一入口）；`prototype/probes/` 为跨后端验证探针 |
 | `910C/docs/` | 910C 专属：ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断 + 8 月早期工作 |
 | `P800/docs/` | P800 专属：环境汇总、五域基线、接入方案、根因核对、阶段 3/4 验证报告、**官方 `-base` 镜像等价性验证报告**、**多流 16 项基线逐项比对报告**、全量进度报告 |
 | `910C/distributed_training/docs/` ｜ `910C/distributed_inference/docs/` | 训练 / 推理既有工作文档 |
