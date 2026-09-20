@@ -1,6 +1,6 @@
 # 设备上下文（device-context）· 主看板
 
-> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-16
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-09-20**
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
 > 统一基座配置：**`dev/stack.lock.910c.v2.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
 > 本方向状态文件：**`dev/device-context/STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
@@ -33,8 +33,8 @@
 | PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
 | 本分支在此后 | ① 仓库重组 ② 新增统一原型 `prototype/` ③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 ⑤ **P800 第二实例接入** ⑥ **按芯片重组目录（原型 + `910C/` + `P800/`）** —— ⑤⑥ 已随 **PR #19** 合入 |
 | **PR #19** | 已于 **2026-09-17 合入 dev-1.0**：**P800 第二实例接入 + 按芯片重组目录**（一份原型 + 两个芯片实例），241 文件（+6591/−179，GitHub 重命名识别后口径） |
-| 当前相对 dev-1.0 | **仅领先 2 个提交**：① 本方向基座工作草稿（按约定不 PR）② 基座引用对齐 v2 |
-| 下一轮合入 | 按 `dev/stack.lock.910c.v2.yaml` 的**合入把关五条**走流程（P800 阶段 3–5 完成后） |
+| 当前相对 dev-1.0 | **领先 13 个提交**（含 PR #19 后新增的今日批次）：P800 阶段 3/4（推理腿 13/13 + 服务化 10/10 + 错误闭环两设置对照）、**官方 `-base` 镜像等价性验证**、吞吐差异拆解、两实例配置手册、镜像需求说明书与选择指南 |
+| 下一轮合入 | 按 `dev/stack.lock.910c.v2.yaml` 的**合入把关五条**走流程（P800 阶段 5 收敛完成后） |
 
 ---
 
@@ -61,16 +61,20 @@
 
 → 详见 `910C/README.md`
 
-### 2.3 P800 实例（第二个接入实例，🔄 进行中）
+### 2.3 P800 实例（第二个接入实例，🔄 阶段 0–4 完成 + 镜像等价性已验证）
 
 | 项 | 状态 | 证据 |
 |---|---|---|
 | 阶段 0 环境与基线 | ✅ | 8× P800（96 GB/卡，全空闲）、1.5 TiB 内存；五域基线 + 接入路线调研 |
 | 阶段 1 单卡接入 | ✅ | `kunlun` backend 落地；conformance **13/13 + 6/6**；smoke **42/0** |
 | 阶段 2 训练腿（多卡） | ✅（**标注条件**） | 两 rank **TRAIN_LEG_PASS 6/6**；loss **15.4488 → 11.1481**；**3482 tok/s** |
-| 阶段 3 推理腿 | ⏳ | 不受厂商缺陷影响，可立即启动 |
-| 阶段 4 错误闭环 / 阶段 5 收敛 | ⏳ | 见 `P800/README.md` §6 |
-| **已知厂商缺陷** | ⚠️ 已上报 | KL3 事件同步概率性挂死（≈89%），归属**厂商运行时层**（算子层/编译层已硬证据排除） |
+| 阶段 3 推理腿（单卡前向） | ✅ | **INFER_LEG_PASS 13/13**（1 项如实跳过 `vendor_code_map`）：维度 **1024**、区分度 **0.6392**、**53.12 句/s**、p50 **56.17 ms**、真实参数异常 → **L2_PARAM/raise** 且业务继续 |
+| 阶段 3 补 推理腿（vLLM 服务化） | ✅ | **SERVE_LEG_PASS 10/10**：区分度 **0.4102**、**30.70 句/s**、p50 96.4 ms、超长输入（6001 tokens）→ HTTP 400 → **L2_PARAM/raise** |
+| 阶段 4 错误闭环（两设置对照） | ✅ | 设/不设 `XPU_EVENT_KL3_ENABLE` 两组均 **闭环 5 / 跳过 0 / 失败 0**，结果**逐字节一致**（除时间戳）⇒ 关闭该变量不损失诊断能力 |
+| **官方 `-base` 镜像等价性验证** | ✅ **09-20** | 全部结论在官方推荐镜像上复现：conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、推理腿 `detail` **14/14 逐字相同**、**KL3 挂死一致重现（A 组 3/3）** ⇒ **建议以官方 `-base` 入锁**（配方须含 `flagtree` 补齐步骤） |
+| 阶段 5 收敛 | ⏳ | 《新芯片接入手册》+ 接口约定修订建议 + 原型 release，见 `P800/README.md` §6 |
+| **已知厂商缺陷** | ⚠️ 已定性 | KL3 事件同步概率性挂死（现用镜像 16/18 ≈89%；**官方镜像上 A 组 3/3**），归属**厂商运行时层**（算子层与编译层已硬证据排除，**镜像因素亦已排除**） |
+| **框架缺陷（第 4 例）** | ✅ 已修复 | 错误对象**跨模块类不相等** → `FlagosError.disposition` 取 `KeyError`；修在**框架层**（新增 `coerce_category` / `normalize_error`），寒武纪接入不会重犯 |
 
 → 详见 `P800/README.md`
 
@@ -81,7 +85,9 @@
 | 腿 | 脚本 | 接入方式 | 形态 |
 |---|---|---|---|
 | 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | **后端无关化**（`DC_BACKEND` 环境变量驱动） | 910C → `use("flagos")`；P800 → `use("kunlun")` |
-| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` | 单卡 transformers 前向（910C） |
+| 推理腿（前向） | `prototype/runtime/proto/proto_infer_leg.py` | **后端无关化 V2**（`DC_BACKEND` 驱动；设备串取 `runtime.current().device_type`，同步走 `runtime.synchronize()`） | 单卡 `transformers` 前向 + 真实异常注入（910C / P800 同一份脚本） |
+| 推理腿（服务化） | `prototype/runtime/proto/proto_infer_serve.py` | 同上 | vLLM OpenAI 兼容服务（910C 108 句/s / P800 30.70 句/s，两实例均 10/10） |
+| 错误闭环 | `prototype/runtime/proto/proto_error_recovery_loop.py` | 同上（补 `DC_BACKEND`） | 910C 两后端各自跑通；P800 两设置对照均跑通 |
 
 但**不是**把历史那两套训推用统一原型重跑了一遍：
 
@@ -108,8 +114,14 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py     # 训练腿
 python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 ```
 
-**P800 侧**：探针与原始证据见 `P800/probes/`；复现命令见
-`P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` 与 `P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` §7.5。
+**P800 侧**：探针与原始证据见 `P800/probes/`；**可复现命令统一入口**见
+`prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` §6（含镜像补齐、conformance、两条腿、KL3 对照）；
+根因取证见 `P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`。
+
+> ⚠️ **若在官方 `-base` 镜像上跑**，开工前须先补齐 `triton`（否则推理腿服务化报
+> `Failed to infer device type`）：`pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`，
+> 并设 `PYTHONPATH=/env/FlagGems/src`（两条均为实测硬前置，详见
+> `prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` §2.1.1 C）。
 
 ---
 
@@ -125,7 +137,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 |---|---|---|---|---|
 | 训练 | 910C | `flagrt/ascend-operator-runtime-comm:0.1.3` | **flagos（torch_fl）** | 禁止 torch_npu 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch` |
 | 推理 | 910C | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | 选卡 `ASCEND_RT_VISIBLE_DEVICES` |
-| 训练 | P800 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` | **kunlun（`torch.cuda`）** | 选卡 `CUDA_VISIBLE_DEVICES`；需 `FLAGCX_ADAPTOR=klx` + 显式 `import flagcx`；**不设 `XPU_EVENT_KL3_ENABLE`**（见 `P800/README.md` §3） |
+| 训练／推理 | P800 | 现用 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`；**建议入锁** `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（等价性已验证） | **kunlun（`torch.cuda`）** | 选卡 `CUDA_VISIBLE_DEVICES`；需 `FLAGCX_ADAPTOR=klx` + 显式 `import flagcx`；**不设 `XPU_EVENT_KL3_ENABLE`**（见 `P800/README.md` §3）；若用官方 `-base` 须先补 `triton` 并设 `PYTHONPATH=/env/FlagGems/src` |
 
 ---
 
@@ -138,9 +150,13 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 3 | 组件 v0.1.0 打包（Git tag + Release note） | ✅ |
 | 4 | **P800 第二实例接入**（`kunlun` backend + conformance 13/13 + 6/6） | ✅ |
 | 5 | **P800 训练腿**（多卡，标注条件） | ✅ |
-| 6 | **按芯片重组目录**（原型 + `910C/` + `P800/`） | ✅ 本轮 |
-| 7 | P800 推理腿 + 错误闭环 + 接入手册 + release | 🔲 下一步 |
-| 8 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
+| 6 | **按芯片重组目录**（原型 + `910C/` + `P800/`） | ✅ |
+| 7 | **P800 推理腿**：单卡前向 13/13 + vLLM 服务化 10/10 | ✅ |
+| 8 | **P800 错误闭环**：设/不设 `XPU_EVENT_KL3_ENABLE` 两设置对照，结果逐字节一致 | ✅ |
+| 9 | **吞吐差异拆解**（服务化 vs 前向：约 70% 在 vLLM 引擎路径、30% 在 HTTP；`--enforce-eager` 非瓶颈） | ✅ |
+| 10 | **官方 `-base` 镜像等价性验证 + 镜像选型**（全部结论复现、KL3 缺陷与镜像无关） | ✅ **本轮** |
+| 11 | P800 阶段 5 收敛（《新芯片接入手册》+ 接口约定修订建议 + 原型 release） | 🔲 下一步 |
+| 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 
 ---
 
@@ -148,12 +164,16 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 
 | 目录 | 内容 |
 |---|---|
-| `prototype/docs/` | **芯片无关的统一标准**：接口约定（**新芯片接入规范**）、事件语义契约、原型设计、职责框架、月度计划、通信路线 |
+| `prototype/docs/` | **芯片无关的统一标准**：接口约定（**新芯片接入规范**）、事件语义契约、原型设计、职责框架、月度计划、通信路线；另有三份**跨实例参考**——**两实例验证配置与依据**（镜像/模型/训推框架/参数的逐项依据链 + 可复现命令）、**镜像选择与确定指南**、**镜像需求说明书**（提交总组，含硬性/期望/可协商三级需求） |
 | `910C/docs/` | 910C 专属：ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断 + 8 月早期工作 |
-| `P800/docs/` | P800 专属：环境汇总、五域基线、接入方案、根因核对、全量进度报告 |
+| `P800/docs/` | P800 专属：环境汇总、五域基线、接入方案、根因核对、阶段 3/4 验证报告、**官方 `-base` 镜像等价性验证报告**、全量进度报告 |
 | `910C/distributed_training/docs/` ｜ `910C/distributed_inference/docs/` | 训练 / 推理既有工作文档 |
 
-**当前阶段的主线汇报材料**：`P800/docs/PROGRESS_REPORT_20260914.md`（全量进度报告，含 910C 回顾与待办四分类）
+**当前阶段的主线汇报材料**：`prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md`
+（两实例配置与依据，含 P800 镜像选型）；**镜像相关专题**见
+`P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md`（等价性验证）与
+`prototype/docs/IMAGE_REQUIREMENT_SPEC_20260920.md`（提交总组的镜像需求）。
+历史全量进度报告见 `P800/docs/PROGRESS_REPORT_20260914.md`。
 
 ---
 
