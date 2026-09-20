@@ -104,3 +104,4 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 | `../910C/docs/DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练镜像 NPU 初始化失败排查记录 |
 | `../910C/docs/DC_STAGE_SUMMARY_20260909.md` | **阶段性总结**：两条腿证据 + 组件自检 + 已知缺口（设备上下文部分） |
 | `../910C/docs/ERROR_RECOVERY_LOOP_20260909.md` | **错误注入 → 恢复闭环**：验证记录、两个发现、代码修正 |
+| `docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **两实例配置与依据参考**（910C / P800）：镜像 · 模型 · 训推框架 · 参数 + **依据链** + 复用坑清单 + 可复现命令 + 未覆盖项 |
