@@ -34,6 +34,7 @@
 │   ├── inference/                   #   推理探针、错误码工具、TP 对照、服务化脚本与结果
 │   ├── docs/                        #   推理映射、P0–P3 阶段报告、Qwen3 TP 对照
 │   └── start_infer_container.sh
+├── probes/                          # 910C 侧验证证据（跨后端脚本/标准脚本的原始日志）
 └── docs/                            # 910C 专属文档（见 §4）
 ```
 
@@ -50,6 +51,7 @@
 | 推理腿单卡 · 前向形态 | ✅ 向量区分度 **0.638**、66–79 句/s、无 NaN |
 | 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms） |
 | **错误注入 → 恢复闭环** | ✅ 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放）；训练腿 **4 闭环 / 1 跳过 / 0 失败** |
+| **统一启动脚本**（组内服务启动标准 v1.1，09-20） | ✅ **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 `free=60.91GiB / total=61.27GiB`（停机前后一致）；宿主侧 8100 端口已释放。证据：`probes/L_serve_standard_910c_20260920.log` |
 | 组件打包 | ✅ Git tag `runtime-v0.1.0` + Release note（`../prototype/RELEASE_NOTES_v0.1.0.md`） |
 
 > **两条腿都是基于统一原型跑通的**（经 `runtime.use(...)` 接入设备），
@@ -95,3 +97,9 @@
   禁止 `torch_npu` 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`。
 - **推理镜像** `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` → 后端 **npu（torch_npu）**。
 - 选卡变量：`ASCEND_RT_VISIBLE_DEVICES`。
+- **容器内没有 `npu-smi`**（实测 `npu-smi: command not found`）——它是**宿主工具**。
+  容器内查卡请退回 torch 侧（`torch.npu.mem_get_info`）；要看整机 16 卡全貌在宿主执行 `npu-smi info`。
+  统一启动脚本已按此降级（`[torch.npu:0] free=… / total=…`）。
+- **起服务统一走《组内服务启动标准》**：`../prototype/scripts/serve_standard.sh`（唯一入口，
+  `DC_BACKEND=ascend`）。本目录的 `distributed_inference/inference/start_vllm_serve_910c.sh`
+  含 D10/D11 集成（错误翻译包装器 + 设备状态监控），**保留但仅供该集成场景**，下游新需求请走统一脚本。

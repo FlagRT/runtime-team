@@ -47,7 +47,7 @@
 | 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37（910C）/ 42/0（P800） |
 | Backend 抽象与接入规范 | ✅ | 13 个 `@abstractmethod` 对应五域；`registry._KNOWN_BACKENDS` 已含 `ascend` / `flagos` / `kunlun` |
 | **《新芯片接入手册》** | ✅ | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`：判别路径 · 13 抽象清单 · 8 步流程 · **验收清单** · 跨芯片坑 · 上报模板 |
-| **《组内服务启动标准》** | ✅ | `prototype/scripts/serve_standard.sh`（**下游起服务唯一入口**，跨芯片只改 `DC_BACKEND`）+ `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`；P800 实测 `SERVE_STANDARD_PASS` |
+| **《组内服务启动标准》** | ✅ | `prototype/scripts/serve_standard.sh`（**下游起服务唯一入口**，跨芯片只改 `DC_BACKEND`）+ `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`；**两实例真机均 `SERVE_STANDARD_PASS`**（910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 冒烟维度 1024） |
 | conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，三个后端结果并列可比 |
 | 组件打包 | ✅ | Git tag **`runtime-v0.2.0`** + `prototype/RELEASE_NOTES_v0.2.0.md`（第二实例接入版；上一版 `runtime-v0.1.0`） |
 
@@ -161,7 +161,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 11 | **P800 阶段 5 收敛三件套**：《新芯片接入手册》（8 步流程 + 验收清单 13 项）+ 接口约定修订建议（6 条）+ 原型 **release** `runtime-v0.2.0` | ✅ **本轮** |
 | 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 | 13 | **多流 Stream 16 项验收基线**对 P800 逐项比对（探针 8/8、S-7 图捕获首测 5/5、S-16 补测 2000 流） | ✅ **本轮**（内容随 10 月提交） |
-| 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用 | ✅ **本轮** |
+| 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用；**两实例真机均验证通过**（v1.1 补服务入口就绪 / 生成形态冒烟 / 容器内卡快照降级） | ✅ **本轮** |
 
 ---
 

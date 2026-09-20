@@ -31,8 +31,9 @@
 **多流 Stream 16 项验收基线已在 P800 上逐项比对完成**（14 通过 / 1 如实标注不支持 / 1 不适用；探针 8/8 与 910C 逐项一致）。
 **《组内服务启动标准》已发布**（下游服务复用指南 + 唯一入口 `prototype/scripts/serve_standard.sh`）——
 把此前 910C / P800 **各自维护的两套启动脚本收敛为一套**，跨芯片只改 `DC_BACKEND`，
-并明确各方向不再自建启动脚本；P800 侧已实测 `SERVE_STANDARD_PASS`。
-未完成项：组件下游反馈收集、全组联合 demo 合稿、910C 侧统一启动脚本真机复跑（本批逻辑已对齐、待补跑）。
+并明确各方向不再自建启动脚本；**两实例真机均已实测 `SERVE_STANDARD_PASS`**
+（910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 维度 1024 范数 1.000000）。
+未完成项：组件下游反馈收集、全组联合 demo 合稿。
 
 ## 已有量化结果（实跑）
 
@@ -47,6 +48,7 @@
 | 推理腿单卡服务化 | 10/10：维度 1024、范数 1.0、语义区分度 0.4123、108 句/s（p50 27.4ms）、超长输入 → L2_PARAM/raise 且业务继续 |
 | 推理腿单卡前向（对照） | 10/10：区分度 0.638、66–79 句/s、无 NaN |
 | 错误注入 → 恢复闭环 | 推理腿 5 闭环 / 0 失败；训练腿 4 闭环 / 1 跳过（该后端无有界同步，如实标注）/ 0 失败 |
+| **统一启动脚本**（组内服务启动标准 v1.1，09-20） | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 `free=60.91GiB / total=61.27GiB`（停机前后一致）；宿主侧 8100 端口已释放、容器内无残留 `vllm` 进程 |
 
 以上结果**均在锁定镜像内取得**（`stack.lock.910c.v2.yaml` 的两腿镜像），非个人调试容器。
 
@@ -71,6 +73,7 @@
 | **镜像等价性验证（09-20）** | 在**上游官方推荐镜像** `harbor.baai.ac.cn/...:202608-base`（digest `sha256:ea6d797a…`，33.8 GB）上重跑全套：conformance **13+6 逐用例一致**、smoke **42/0**、训练腿 **6/6（loss 逐位相同 15.4488→11.1481）**、推理腿 **13/13**（`detail` **14/14 逐字相同**）、服务化 **10/10**（区分度 0.4102 一致）、**KL3 挂死一致重现（A 组 3/3 挂死、B 组 2/2 通过且 `2^120` 真值精密匹配）** ⇒ **两镜像结论等价**；**KL3 缺陷与镜像无关**，归属厂商运行时/驱动层 |
 | ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
 | **多流 Stream 16 项基线（09-20）** | **14 项通过 / 1 项如实标注不支持 / 1 项不适用**：探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；S-16 补测 **2000 流无限制**；唯一差异 **S-12 流优先级不支持**（上游上报非法优先级区间 → 触发 PyTorch INTERNAL ASSERT；本层主动拦截不透传、不声明该能力） |
+| **统一启动脚本**（组内服务启动标准 v1.1，09-20） | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **25 s**；embedding 冒烟 **维度 1024 / 范数 1.000000**；停机后**无残留进程**、卡 6 释放至 **0 MiB**。⚠️ 需先激活 conda 环境（vLLM 不在默认 `PATH`，脚本按 `DC_CONDA_ENV=python310_torch29_cuda` 自动处理） |
 
 **诚实标注**：P800 训练腿证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得；
 该变量开启时本环境概率性挂死（厂商缺陷），**不能代表开启时的行为**。
@@ -98,6 +101,13 @@
 - **P800 流优先级不可用（上游）**：裸调 `Stream.priority_range()` 触发 PyTorch 自身
   `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`（XPytorch 上报非法优先级区间）。
   本层已**主动拦截、绝不透传**（避免进程级 abort），`kunlun` 后端**不声明** `stream_priority` 能力（如实）。
+- **镜像的"服务入口"与"用卡工具"口径不一致**（09-20 启动标准补跑时实测，两条均为镜像特征、非缺陷）：
+  ① **P800 镜像的 `vllm` 不在默认 `PATH`**——它在 conda 环境 `python310_torch29_cuda` 内，不激活就
+  `nohup: failed to run command 'vllm': No such file or directory`（启动即退出，极易误判为"服务起不来"）；
+  ② **910C 镜像不含 `npu-smi`**（`npu-smi: command not found`，它是宿主工具），容器内查卡需退回 torch 侧
+  （`torch.npu.mem_get_info`）。
+  ⇒ 本方向已在统一启动脚本内消化（自动激活环境 / 快照降级）；**建议总组在基座层明确"镜像须自带可用服务入口"**，
+  否则第三家接入者会各自踩一遍。
 - 本轮仓库整理与验证**未新增或升级公共依赖**；容器内按需补装 `transformers`（v1 已登记）。
 
 ## 下一步（拟在下次周会前推进）

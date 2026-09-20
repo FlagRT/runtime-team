@@ -27,6 +27,15 @@
 #   ⚠️ 该版本 vLLM **没有 --task 参数**；embedding 服务必须用 --runner pooling --convert embed
 #      （写 --task embed 会报 `vllm: error: unrecognized arguments: --task embed`）。
 #
+# 【功能冒烟（两形态都有，且纳入 verdict）】
+#     embedding 形态（kunlun）→ POST /v1/embeddings，校验维度与范数
+#     生成形态     （ascend）→ POST /v1/completions，校验产出非空且 completion_tokens>0
+#   ⚠️ "就绪" ≠ "可用"：只看 /v1/models 返回 200 会掩盖"服务起来了但算不出"的情况。
+#      2026-09-20 补齐（此前生成形态只验就绪，与 embedding 形态强度不对等）。
+#
+# 【绑定地址】HOST 默认 127.0.0.1（不对外暴露）。跨容器 / 跨机访问需显式 HOST=0.0.0.0，
+#   并自行确认网络与访问控制策略。
+#
 # 【集成层说明（D10/D11）——如实标注当前范围】
 #   910C 版脚本额外挂了两项集成：错误码翻译包装器（inject_error_translation.serve()）
 #   与设备状态监控（device_state_monitor.py），资产在 910C 目录下。
@@ -54,9 +63,14 @@
 #   EAGER           1=加 --enforce-eager（默认 1）；0=启用图捕获
 #                   （P800 实测：去掉 eager 反而更慢 p50 132ms，故默认保留）
 #   DC_OUT_DIR      日志与 pid 目录（默认 /tmp/dc_serve）
+#   DC_CONDA_ENV    vllm 不在 PATH 时尝试激活的 conda 环境名（默认 python310_torch29_cuda，P800 用）
 #   STOP_AFTER      1=就绪并健康检查后立即停机（验证用）；0=保持运行（下游起服务用，默认 0）
 #   READY_BUDGET    就绪等待上限秒数（180）
+#   HOST            绑定地址（127.0.0.1；跨容器/跨机访问需设 0.0.0.0）
 #   ERROR_TRANSLATION / MONITOR  集成层开关（默认 0；**当前仅 910C 可用**）
+#
+# 【verdict 口径】STOP_AFTER=1 时输出 `SERVE_STANDARD_PASS` 需 **ready=1 且 smoke=1**；
+#   任一不满足即 `SERVE_STANDARD_FAIL (ready=? smoke=?)`。
 # ═══════════════════════════════════════════════════════════════════════════════
 set -u
 
@@ -98,6 +112,7 @@ case "$BACKEND" in
     export DO_NOT_TRACK=1
     [ -n "$DEV" ] && export ASCEND_RT_VISIBLE_DEVICES="$DEV"
     SKIP_EXTRA=1        # 910C 既有脚本不传 --runner pooling（生成类服务）
+    DEV_API=npu         # 供 card_snapshot 的 torch 侧降级查询使用
     ;;
   kunlun)
     MODEL=${MODEL:-/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B}
@@ -110,10 +125,39 @@ case "$BACKEND" in
     export GEMS_VENDOR=kunlunxin KLX_USE_AUTOTUNE=0
     [ -n "$DEV" ] && export CUDA_VISIBLE_DEVICES="$DEV"
     SKIP_EXTRA=0
+    DEV_API=cuda
     ;;
   *)
     echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun）"; exit 2 ;;
 esac
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1b) 服务入口就绪（vllm 可执行文件）
+#     跨芯片差异：910C 镜像自带（/usr/local/python3.11.15/bin/vllm）；
+#     P800 的 vLLM 装在 conda 环境 `python310_torch29_cuda` 里，
+#     **不激活就直接 nohup: failed to run command 'vllm': No such file or directory**
+#     —— 2026-09-20 910C 补跑时顺带发现的缺口（下游照抄同样会踩），此处自动激活。
+# ─────────────────────────────────────────────────────────────────────────────
+if ! command -v vllm >/dev/null 2>&1; then
+  CONDA_ENV=${DC_CONDA_ENV:-python310_torch29_cuda}
+  echo "--- vllm 不在 PATH，尝试激活厂商 python 环境（$CONDA_ENV）---"
+  for CAND in /root/miniconda/etc/profile.d/conda.sh /opt/conda/etc/profile.d/conda.sh; do
+    [ -f "$CAND" ] || continue
+    # shellcheck disable=SC1090
+    . "$CAND" 2>/dev/null || continue
+    if conda activate "$CONDA_ENV" 2>/dev/null; then
+      echo "  已激活：$CONDA_ENV"; break
+    fi
+  done
+fi
+if ! command -v vllm >/dev/null 2>&1; then
+  echo "❌ 找不到 vllm 可执行文件（服务入口不可用）"
+  echo "   910C：镜像自带 vllm（/usr/local/python3.11.15/bin/vllm）——确认容器镜像是否为 vllm-ascend"
+  echo "   P800：vLLM 在 conda 环境内，需 DC_CONDA_ENV=<env 名>（默认 python310_torch29_cuda）"
+  echo "   手动方式：source /root/miniconda/etc/profile.d/conda.sh && conda activate python310_torch29_cuda"
+  exit 3
+fi
+echo "  vllm = $(command -v vllm) ｜ python3 = $(command -v python3)（$(python3 -V 2>&1)）"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2) 停机清理（坑 A2 / P800 实测教训：EngineCore 子进程残留持续占卡）
@@ -128,13 +172,36 @@ cleanup() {
 }
 
 # 用卡现状（便于前后对比；两芯片工具名不同）
+#   ⚠️ npu-smi / xpu-smi 是**宿主工具**，容器内通常不存在
+#      （910C 的 vllm-ascend 镜像实测 `npu-smi: command not found`），
+#      故补一层 torch 侧查询（按后端取 torch.npu / torch.cuda），保证容器内日志也有卡状态。
 card_snapshot() {
   if command -v npu-smi >/dev/null 2>&1; then
     npu-smi info 2>/dev/null | grep -E "^\| [0-9]+" | head -8
   elif command -v xpu-smi >/dev/null 2>&1; then
     xpu-smi 2>/dev/null | awk '/MiB \//{print}' | head -8
   else
-    echo "  (无 npu-smi / xpu-smi)"
+    python3 - "$DEV_API" <<'PY' 2>/dev/null || echo "  (无 smi 工具，torch 侧查询亦不可用)"
+import sys, torch
+name = sys.argv[1]
+if name == "npu" and not hasattr(torch, "npu"):     # torch_npu 需显式导入才会注册 torch.npu
+    try:
+        __import__("torch_npu")
+    except Exception:
+        pass
+api = getattr(torch, name, None)
+if api is None or not hasattr(api, "mem_get_info"):
+    raise SystemExit(1)
+n = api.device_count()
+for i in range(n):
+    try:
+        free, total = api.mem_get_info(i)
+        print(f"  [torch.{sys.argv[1]}:{i}] free={free/2**30:.2f}GiB / total={total/2**30:.2f}GiB")
+    except Exception as e:
+        print(f"  [torch.{sys.argv[1]}:{i}] 查询失败：{type(e).__name__}")
+    if i >= 7:
+        print("  ... （仅列前 8 个）"); break
+PY
   fi
 }
 
@@ -177,14 +244,40 @@ for i in $(seq 1 $((READY_BUDGET/5))); do
 done
 [ "$READY" = "0" ] && { echo "  ❌ 服务未在 ${READY_BUDGET}s 内就绪"; tail -20 "$SRV_LOG"; }
 
-# 就绪后做一次 embedding 冒烟（仅在 embedding 形态下）
-if [ "$READY" = "1" ] && [ "$SKIP_EXTRA" = "0" ]; then
-  echo "--- 冒烟：/v1/embeddings ---"
-  curl -s -X POST "http://$HOST:$PORT/v1/embeddings" \
-    -H 'Content-Type: application/json' \
-    -d "{\"model\":\"$SERVED_NAME\",\"input\":[\"服务启动标准冒烟\"]}" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); v=d['data'][0]['embedding']; import math; n=math.sqrt(sum(x*x for x in v)); print(f'  维度={len(v)} 范数={n:.6f}')" 2>/dev/null \
-    || echo "  ⚠️ 冒烟请求失败（见服务日志）"
+# ─────────────────────────────────────────────────────────────────────────────
+# 4b) 功能冒烟（**两形态都有**）
+#     "就绪"只证明端口通了、引擎起来了；冒烟才证明**服务真的能算**。
+#     此前只有 embedding 形态有冒烟，生成形态（910C Qwen3-4B）只验了就绪
+#     —— 2026-09-20 补齐，并纳入 verdict（PASS 要求 READY=1 且 SMOKE=1）。
+# ─────────────────────────────────────────────────────────────────────────────
+SMOKE=0
+if [ "$READY" = "1" ]; then
+  if [ "$SKIP_EXTRA" = "0" ]; then
+    echo "--- 冒烟（embedding 形态）：/v1/embeddings ---"
+    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/embeddings" \
+      -H 'Content-Type: application/json' \
+      -d "{\"model\":\"$SERVED_NAME\",\"input\":[\"服务启动标准冒烟\"]}" 2>/dev/null) \
+      && echo "$OUT" | python3 -c "import sys,json,math; d=json.load(sys.stdin); v=d['data'][0]['embedding']; print(f'  维度={len(v)} 范数={math.sqrt(sum(x*x for x in v)):.6f}')" 2>/dev/null \
+      && SMOKE=1
+  else
+    echo "--- 冒烟（生成形态）：/v1/completions ---"
+    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/completions" \
+      -H 'Content-Type: application/json' \
+      -d "{\"model\":\"$SERVED_NAME\",\"prompt\":\"1+1=\",\"max_tokens\":8,\"temperature\":0}" 2>/dev/null) \
+      && echo "$OUT" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+t = (d['choices'][0].get('text') or '').strip()
+n = d.get('usage', {}).get('completion_tokens', 0)
+if not t or not n:
+    raise SystemExit(1)
+print(f'  生成 {n} tokens，首段={t[:40]!r}')
+" 2>/dev/null \
+      && SMOKE=1
+  fi
+  [ "$SMOKE" = "1" ] || { echo "  ❌ 冒烟失败（服务已就绪但功能不通，见服务日志与上方响应）"; echo "  raw: $(echo "$OUT" | head -c 300)"; }
+else
+  echo "--- 冒烟跳过（服务未就绪）---"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +288,12 @@ if [ "$STOP_AFTER" = "1" ]; then
   echo "############ 验证模式：停机 ############"
   cleanup
   echo "--- 用卡后复查（确认已释放）---"; card_snapshot
-  echo "[verdict] $([ "$READY" = 1 ] && echo SERVE_STANDARD_PASS || echo SERVE_STANDARD_FAIL)"
+  # verdict 要求"就绪 + 冒烟"双通过（只看端口会掩盖"起来了但算不出"的情况）
+  if [ "$READY" = "1" ] && [ "$SMOKE" = "1" ]; then
+    echo "[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)"
+  else
+    echo "[verdict] SERVE_STANDARD_FAIL (ready=$READY smoke=$SMOKE)"
+  fi
 else
   echo
   echo "############ 服务保持运行 ############"

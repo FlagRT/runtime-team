@@ -154,7 +154,8 @@ P800/
 | `I_base_*_20260920.*` | **官方 `-base` 镜像全套证据**（17 份）：conformance 13+6（json+log）、smoke 42/0、训练腿两 rank、推理腿前向 13/13、服务化 10/10、**KL3 对照（ab 汇总 + A1–A3 挂死现场 + B1–B2 真值校验）** |
 | `I_ref_train_leg_result_rank0_20260920.json` | 同批次**现用镜像**训练腿结果（用于交替复测，证明吞吐差异属共享机噪声） |
 | `K_stream_semantics_full_result_p800_20260920.json` | **多流 16 项基线中 8 项探针结果**（`STREAM_SEMANTICS_PASS 8/8`，含 backend=`kunlun` / dev_api=`cuda` / 逐项 detail）——与 910C 侧同名结果逐项对照 |
-| `L_serve_standard_p800_20260920.log` | **组内服务启动标准脚本**（`prototype/scripts/serve_standard.sh`）在 P800 的验证日志：服务就绪 **25 s**、冒烟**维度 1024 / 范数 1.000000**、停机后**无残留进程**且卡 6 释放至 0 MiB、`SERVE_STANDARD_PASS` |
+| `L_serve_standard_p800_20260920.log` | **组内服务启动标准脚本**（`prototype/scripts/serve_standard.sh`）在 P800 的验证日志：服务就绪 **25 s**、冒烟**维度 1024 / 范数 1.000000**、停机后**无残留进程**且卡 6 释放至 0 MiB、`SERVE_STANDARD_PASS`（脚本 v1.0 首轮） |
+| `L_serve_standard_p800_v2_20260920.log` | 同上脚本 **v1.1**（补服务入口自动激活 / 生成形态冒烟 / 容器内卡快照降级后）的复跑日志：`SERVE_STANDARD_PASS (ready=1 smoke=1)`（与 910C 同版本脚本、同日验证） |
 | `G_error_loop.sh` / `G_error_loop_20260920.log` | **阶段 4 错误闭环**：两设置对照脚本 + 日志（两组各 5/0/0） |
 | `error_recovery_loop_kunlun_KL3off.json` | 阶段 4 结果：**不设** `XPU_EVENT_KL3_ENABLE` |
 | `error_recovery_loop_kunlun_KL3on.json` | 阶段 4 结果：**设** `XPU_EVENT_KL3_ENABLE`（与上面除时间戳外**完全一致**） |
