@@ -33,6 +33,8 @@ prototype/
 > → **可勾选验收清单**；坑与厂商上报模板也在里面。
 > **要起推理服务？** 走 **《组内服务启动标准》** `docs/SERVICE_STARTUP_STANDARD_20260920.md`
 > ——唯一入口 `scripts/serve_standard.sh`，跨芯片只改 `DC_BACKEND`，**不要各自维护启动脚本**。
+> **要复核我们说过的话？** 走 **《两实例验证复核清单》** `docs/VERIFICATION_MANIFEST_20260920.md`
+> ——逐条声明 → 证据文件 → 复跑命令 → 当前缺口，9 条命令即可自行判定 ✅/❌。
 > 组件版本 `runtime-v0.2.0`（第二实例接入版，见 `RELEASE_NOTES_v0.2.0.md`）。
 
 ---
@@ -142,6 +144,7 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 两实例验证结果 · 已知限制 9 条 |
 | `docs/SERVICE_STARTUP_STANDARD_20260920.md` | **《组内服务启动标准》（下游服务复用指南）**：唯一入口 `scripts/serve_standard.sh` · 参数表 · 统一服务参数口径（含每条的依据）· **六条硬纪律** · 三个已知行为 · 与自建脚本的关系 · **基座新发现同步机制** · 变更流程 |
 | `scripts/serve_standard.sh` | **服务启动唯一入口**：`DC_BACKEND` 切换芯片（ascend/kunlun），环境差异与停机清理全部收敛在脚本内；**两实例真机均 `SERVE_STANDARD_PASS`**（910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 冒烟维度 1024 范数 1.000000） |
+| `docs/VERIFICATION_MANIFEST_20260920.md` | **两实例验证复核清单（外部复核入口）**：9 条"声明 → 命令 → 判据"最小复现表 · 两实例证据索引（含"当前结论 = 哪一份"）· **缺口清单 G1–G8** · 复跑阻塞项 · 证据命名规范 |
 | `probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13 共 8 项（真正创建流的验证）；设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
 | `../P800/docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 16 项基线逐项比对报告**（P800 第三实例视角）：16 项结论 + 与 910C 对照（仅 S-12 差异）+ S-7 图捕获首测 5/5 + 一处自我纠错 + 证据形态差异说明 |
 | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：全部 P800 结论在官方推荐镜像上复现（逐用例/逐 `detail` 对照）· **KL3 缺陷与镜像无关**（排除"是我们镜像的问题"）· `-base` 开箱缺 `triton` 的完整调用链与补齐命令 · 对镜像入锁的建议 |
