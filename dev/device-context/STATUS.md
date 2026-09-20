@@ -25,9 +25,8 @@
 
 当前状态：**统一 API 与 Backend 插件机制已完成**，并在**两个芯片实例**上取得实证 ——
 910C（第一实例）两条腿全闭环；**P800（第二实例，昆仑芯）阶段 0–4 全部完成**
-（接入 → 训练腿 → **推理腿 13/13** → **错误闭环两设置对照 PASS**）。
-未完成项：P800 的 vLLM 服务化形态、阶段 5 收敛（接入手册 / 接口修订建议 / 原型 release）、
-组件下游反馈收集、全组联合 demo 合稿。
+（接入 → 训练腿 → **推理腿 13/13** → **推理腿服务化 10/10** → **错误闭环两设置对照 PASS**）。
+未完成项：阶段 5 收敛（接入手册 / 接口修订建议 / 原型 release）、组件下游反馈收集、全组联合 demo 合稿。
 
 ## 已有量化结果（实跑）
 
@@ -60,6 +59,7 @@
 | 上游厂商缺陷（已上报） | KL3 事件同步概率性挂死：**16/18 ≈ 89%**（本轮基线 4/4）；根因定位到**函数级**（3 处自旋点，均在厂商 `libxpucuda.so`）；最小复现 **约 10 秒** |
 | 规避验证（A/B 单变量） | 同一脚本同一用卡，唯一变量 `XPU_EVENT_KL3_ENABLE`：**不设 → 退出码 0**；**设 1 → 退出码 124（超时）** |
 | **阶段 3 · 推理腿（09-20）** | **`INFER_LEG_PASS 13/13`**（1 项如实跳过）：维度 **1024**（与 910C 一致）、语义区分度 **0.6392**（910C 0.638）、**53.12 句/s**、p50 **56.17 ms**、真实参数异常 → **L2_PARAM/raise（confident）** 且业务继续 |
+| **阶段 3 补 · vLLM 服务化（09-20）** | **`SERVE_LEG_PASS 10/10`**：维度 **1024**、区分度 **0.4102**（910C 0.4123）、**30.70 句/s**、p50 **96.4 ms**、超长输入（6001 tokens > 4096）→ HTTP 400 → **L2_PARAM/raise** + 业务继续；服务与设备上下文同卡共存不冲突（跨流计算 = 3.0）。⚠️ 硬前置：`PYTHONPATH=/env/FlagGems/src`（否则 vllm-plugin-FL 报 `Failed to infer device type`）|
 | **阶段 4 · 错误闭环两设置对照（09-20）** | 两组均 **`ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）**，且**逐字节一致**（除时间戳）⇒ **关闭 `XPU_EVENT_KL3_ENABLE` 不损失错误诊断能力**；同时说明该厂商缺陷**不影响单进程设备上下文路径** |
 | **框架缺陷第 4 例（09-20，已修）** | 错误对象**跨模块类不相等**（`conformance/errors.py` 被 importlib 动态加载为独立模块，其 `ErrorCategory` 是 IntEnum）→ `FlagosError.disposition` 取 `DISPOSITION[cat]` **KeyError**。修在**框架层**（新增 `coerce_category` / `normalize_error`，并在 `translate_via_backend` 加归一化兜底）+ `kunlun.translate_error` 显式归一 |
 
@@ -86,7 +86,11 @@
 1. ✅ **阶段 3 推理腿（2026-09-20 完成）**：单卡前向 `INFER_LEG_PASS 13/13` ——
    维度 **1024**（对齐 910C）、语义区分度 **0.6392**、**53.12 句/s**、p50 **56.17 ms**、
    真实参数异常 → **L2_PARAM/raise 且业务继续**。证据：`P800/probes/F_infer_leg_*`。
-   - ⏳ **仍缺**：vLLM 服务化形态（对齐 910C 服务化的 108 句/s 口径）
+   - ✅ **vLLM 服务化形态亦已完成**（同日）：`SERVE_LEG_PASS 10/10` —— 区分度 0.4102、30.70 句/s、
+     p50 96.4 ms、超长输入 → L2_PARAM/raise + 业务继续。证据：`P800/probes/F2_*`。
+     ⚠️ 两条接入手册级环境要点：① `PYTHONPATH=/env/FlagGems/src` 是**硬前置**（site-packages 的
+     `flag_gems` 安装不完整，缺 `runtime.backend.device`）；② 算子路径取 vendor
+     （`VLLM_FL_PREFER=vendor` + `USE_FLAGGEMS=0`）以避开 FlagGems 路径与其 KL3 依赖。
 2. ✅ **阶段 4 错误闭环（2026-09-20 完成）**：两设置对照（唯一变量 `XPU_EVENT_KL3_ENABLE`），
    两组均 **闭环 5 / 跳过 0 / 失败 0** 且**逐字节一致** ⇒ **关闭该变量不损失错误诊断能力**；
    并说明该厂商缺陷**不影响单进程设备上下文路径**。证据：`P800/probes/error_recovery_loop_kunlun_KL3{off,on}.json`。
