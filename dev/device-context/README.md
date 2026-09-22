@@ -242,6 +242,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/RELEASE_NOTES_v0.2.0.md`（155 行） | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
 | `prototype/RELEASE_NOTES_v0.1.0.md`（100 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
+| `../../summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md` | **分支级总结**（跨目录，在仓库根 `summary/`）：路线 A/B 选择依据 + 路线 A 设计方案 + 两实例实现进度与下一步 |
 
 ### 6.4 芯片专属文档（**结论不迁移**，新芯片按手册新建）
 
