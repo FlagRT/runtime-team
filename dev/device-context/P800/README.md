@@ -23,6 +23,9 @@
 | **已知厂商缺陷** | ⚠️ 已定性、已上报 | KL3 事件同步概率性挂死（≈89%），归属**厂商运行时层**；**不影响单进程设备上下文路径**（阶段 4 两设置一致即证据） |
 | **框架缺陷（第 4 例）** | ✅ 已发现并修复 | 错误对象**跨模块类不相等** → `disposition` 取 `KeyError`；已修在框架层（详见 `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` §3） |
 | **多流 Stream 16 项基线** | ✅ **完成（09-20）** | **14 项通过 / 1 项如实标注不支持（S-12 流优先级，上游缺陷）/ 1 项不适用**；探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`（与 910C 逐项一致）**；**S-7 图捕获首次实测 5/5**、S-16 补测 2000 流无限制 ⇒ 顺带为 `kunlun` 补上 `graph_capture` 能力声明 |
+| **两实例对称复跑（09-22）** | ✅ **完成** | 在当前代码上重跑：smoke **42/0**、conformance **13/13 + 6/6**、语义基线 **8/8**、错误闭环 **5/0/0**（证据 `probes/recheck_*_20260922.json` 4 份）—— 与 910C 侧构成**同判据、同格式**的双实例证据 |
+
+> 全量文档的效力分层与一句话说明见主看板 §6.4.4；复核入口见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md`。
 
 ---
 
@@ -154,11 +157,15 @@ P800/
 | `I_base_*_20260920.*` | **官方 `-base` 镜像全套证据**（17 份）：conformance 13+6（json+log）、smoke 42/0、训练腿两 rank、推理腿前向 13/13、服务化 10/10、**KL3 对照（ab 汇总 + A1–A3 挂死现场 + B1–B2 真值校验）** |
 | `I_ref_train_leg_result_rank0_20260920.json` | 同批次**现用镜像**训练腿结果（用于交替复测，证明吞吐差异属共享机噪声） |
 | `K_stream_semantics_full_result_p800_20260920.json` | **多流 16 项基线中 8 项探针结果**（`STREAM_SEMANTICS_PASS 8/8`，含 backend=`kunlun` / dev_api=`cuda` / 逐项 detail）——与 910C 侧同名结果逐项对照 |
-| `L_serve_standard_p800_20260920.log` | **组内服务启动标准脚本**（`prototype/scripts/serve_standard.sh`）在 P800 的验证日志：服务就绪 **25 s**、冒烟**维度 1024 / 范数 1.000000**、停机后**无残留进程**且卡 6 释放至 0 MiB、`SERVE_STANDARD_PASS`（脚本 v1.0 首轮） |
+| `L_serve_standard_p800_20260920.log` | **组内服务启动标准脚本**（`../prototype/scripts/serve_standard.sh`）在 P800 的验证日志：服务就绪 **25 s**、冒烟**维度 1024 / 范数 1.000000**、停机后**无残留进程**且卡 6 释放至 0 MiB、`SERVE_STANDARD_PASS`（脚本 v1.0 首轮） |
 | `L_serve_standard_p800_v2_20260920.log` | 同上脚本 **v1.1**（补服务入口自动激活 / 生成形态冒烟 / 容器内卡快照降级后）的复跑日志：`SERVE_STANDARD_PASS (ready=1 smoke=1)`（与 910C 同版本脚本、同日验证） |
 | `G_error_loop.sh` / `G_error_loop_20260920.log` | **阶段 4 错误闭环**：两设置对照脚本 + 日志（两组各 5/0/0） |
 | `error_recovery_loop_kunlun_KL3off.json` | 阶段 4 结果：**不设** `XPU_EVENT_KL3_ENABLE` |
 | `error_recovery_loop_kunlun_KL3on.json` | 阶段 4 结果：**设** `XPU_EVENT_KL3_ENABLE`（与上面除时间戳外**完全一致**） |
+| `recheck_conformance_13_kunlun_20260922.json` | **两实例对称复跑（09-22）**：一致性判据 13/13（含 `backend`） |
+| `recheck_conformance_infer6_kunlun_20260922.json` | 同上：推理 6 例 6/6 |
+| `recheck_stream_semantics_kunlun_20260922.json` | 同上：执行语义基线 8/8 |
+| `recheck_error_loop_kunlun_20260922.json` | 同上：错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
 
 > ⚠️ **注意**：本目录 `*.log` 为**原始证据**，需随仓库分发，故在此目录放了局部 `.gitignore`（`!*.log`）
 > 覆盖根仓库的 `*.log` 通用忽略规则。**此前这批日志因根规则从未入库**，本次整理时一并纳入。
@@ -184,15 +191,15 @@ ssh P800 'cd /data2/hliu553 && tar xzf dc.tgz --overwrite && rm dc.tgz'
 | 1b | 阶段 3 推理腿（vLLM 服务化形态，`--runner pooling --convert embed`） | ✅ **09-20 完成** | `SERVE_LEG_PASS 10/10`：区分度 **0.4102** ｜ **30.70 句/s** ｜ p50 96.4 ms ｜ 超长输入 → **L2_PARAM/raise** + 业务继续。⚠️ 硬前置 `PYTHONPATH=/env/FlagGems/src`（详见验证报告 §1.3） |
 | 2 | **阶段 4 错误闭环（两设置对照）** | ✅ **09-20 完成** | 两组均 `ERROR_RECOVERY_LOOP_PASS`（闭环 **5 / 跳过 0 / 失败 0**），**逐字节一致** ⇒ 关闭 KL3 **不损失**诊断能力 |
 | 2b | **官方 `-base` 镜像等价性验证** | ✅ **09-20 完成** | 全部结论复现：conformance 13+6 逐用例一致、smoke 42/0、训练腿/推理腿/服务化全 PASS、**KL3 A 组 3/3 挂死 + B 组 2/2 通过** ⇒ 缺陷与镜像无关。⚠️ `-base` 开箱**无 `triton`**，须按官方手册装 `flagtree===0.7.0rc3+xpu3.6`（3.3 GB） |
-| 3 | **阶段 5 收敛**：《新芯片接入手册》（8 步流程 + 验收清单 13 项，§2 六条认知与 §3 已知缺陷已并入）；接口约定修订建议 **6 条**；原型 release **`runtime-v0.2.0`** | ✅ **09-20 完成** | 手册 `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`；修订建议 `prototype/docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`；release `prototype/RELEASE_NOTES_v0.2.0.md` |
+| 3 | **阶段 5 收敛**：《新芯片接入手册》（8 步流程 + 验收清单 13 项，§2 六条认知与 §3 已知缺陷已并入）；接口约定修订建议 **6 条**；原型 release **`runtime-v0.2.0`** | ✅ **09-20 完成** | 手册 `../prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`；修订建议 `../prototype/docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`；release `../prototype/RELEASE_NOTES_v0.2.0.md` |
 | 4 | **上报渠道待确认**：直连昆仑芯支持，还是经总组转达 | ⏳ 待定 | STATUS「阻塞与需要协调」已登记 |
 
 **本次为执行做的准备（2026-09-20）**
 
-- `prototype/runtime/proto/proto_infer_leg.py` → **后端无关化 V2**：路径/模型走 `DC_*` 环境变量、
+- `../prototype/runtime/proto/proto_infer_leg.py` → **后端无关化 V2**：路径/模型走 `DC_*` 环境变量、
   设备串取 `runtime.current().device_type`、同步走 `runtime.synchronize()`、真实异常注入替代伪造错误码、
   补 p50/p90 时延；`DC_MODEL` 支持 hub 的 `models--xxx` 目录（自动解析 snapshot）。
-- `prototype/runtime/proto/proto_error_recovery_loop.py` → 补 `DC_BACKEND` 环境变量（与另两条腿一致）。
+- `../prototype/runtime/proto/proto_error_recovery_loop.py` → 补 `DC_BACKEND` 环境变量（与另两条腿一致）。
 - 新增 `probes/F_infer_leg.sh`、`probes/G_error_loop.sh`（超时兜底 + 挂死快照 + 用卡复查，沿用 battery 体例）。
 
 **环境核对结论（2026-09-20 只读实测）**：容器 `hliu553-device-context-p800` Up 5 天；

@@ -63,25 +63,49 @@
 
 ## 4. 文档索引（本目录）
 
-**设备上下文与多流（核心）**
+> **效力分层与全量文档说明见主看板 §6.4.1**；本节列出本实例的文档与证据，均为**实测记录**性质，
+> 其中标注 ⚠️ 的条目**属于本实例专属结论，不迁移**给新芯片。
 
-| 文档 | 内容 |
+**核心：设备上下文与多流**
+
+| 文档 | 一句话说明 |
 |---|---|
-| `ACL_ERROR_MAP_20260901.md` | 108 条 ACL 错误码映射表（L1–L4 分级依据）—— **不迁移**给新芯片 |
-| `ASCEND_910C_DC_STREAM_MAPPING_20260902.md` | 910C 设备上下文 × Stream 双侧全景（职责映射与实测） |
-| `DC_STAGE_SUMMARY_20260909.md` | 设备上下文阶段性总结（两条腿证据并入） |
-| `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环，含归因核查推翻的两条"发现" |
-| `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练镜像与 NPU 可见性诊断 |
+| `ACL_ERROR_MAP_20260901.md` | ACL 错误码映射表建设记录（D10）：108 条码 → L1–L4 分级依据。⚠️ **不迁移** |
+| `ASCEND_910C_DC_STREAM_MAPPING_20260902.md` | 设备上下文 × Stream 双侧全景（职责映射与实测）；**含 S-1～S-16 编号基线**（多流验收基线口径来源） |
+| `DC_STAGE_SUMMARY_20260909.md` | 阶段性总结：两条腿证据并入 |
+| `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
+| `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
-| 文档 | 内容 |
+| 文档 | 一句话说明 |
 |---|---|
-| `DEVICE_CONTEXT_PLAN_20260827.md` | 设备上下文计划 |
-| `PROGRESS_20260822.md` | 8-22 进展快照 |
-| `910C-env-issue-report.md` | 环境问题报告 |
-| `O3_getlasterror_fix.md` / `O4_socket_seq_guard.md` | FlagCX O3/O4 缺陷修复 |
+| `DEVICE_CONTEXT_PLAN_20260827.md` | 设备执行上下文方案定稿（8 月版） |
+| `PROGRESS_20260822.md` | 8-22 阶段进度快照 |
+| `910C-env-issue-report.md` | 容器内 `aclInit` 返 500000 记录（**根因 = DrvMng 容器上限 3**，已解决）⚠️ 环境专属 |
+| `O3_getlasterror_fix.md` ｜ `O4_socket_seq_guard.md` | FlagCX O3/O4 缺陷修复设计与实现 |
 | `PR_DEV_1_0_20260902.md` | PR #11 合入 dev-1.0 记录（157 文件） |
+
+**训练 / 推理既有工作（旧代码路径，非统一原型）**
+
+| 目录 | 一句话说明 |
+|---|---|
+| `distributed_training/docs/` | 5 份：训练 × 设备上下文映射与验收评估、FlagCX 核心缺陷修复（死锁 P2 / 数据错乱 P6 / OOM P7）、net.cc chunk 竞态调研、A 线验证、4090 报告 |
+| `distributed_inference/docs/` | 5 份：推理 × 设备上下文映射与验收依据、实现方案、P0/P1 执行记录、P3 服务化 × 状态/错误恢复（A8–A10）、Qwen3-4B TP 数值等价性（⚠️ 须 greedy） |
+
+**证据（`probes/`）**
+
+| 证据 | 内容 |
+|---|---|
+| `recheck_conformance_13_ascend_20260922.json` | 一致性判据 13 例（含 `backend`） |
+| `recheck_conformance_infer6_ascend_20260922.json` | 一致性判据 推理 6 例 |
+| `recheck_stream_semantics_ascend_20260922.json` | 执行语义基线 8/8（后端无关 V2 探针**首跑 ascend**） |
+| `recheck_error_loop_ascend_20260922.json` | 错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
+| `recheck_infer_leg_ascend_20260922.json` | 推理腿前向 **14/14**（含 `backend` + `env` + p50/p90） |
+| `recheck_train_leg_ascend_20260922_rank{0,1}.json` | 训练腿 2 卡 **6/6**（含 `backend`/`dist_backend`；loss 15.4497→11.1515 与历史逐位吻合） |
+| `L_serve_standard_910c_20260920.log` | 《组内服务启动标准》脚本真机验证日志（`SERVE_STANDARD_PASS ready=1 smoke=1`） |
+
+> 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
 
 **分支看板**
 
