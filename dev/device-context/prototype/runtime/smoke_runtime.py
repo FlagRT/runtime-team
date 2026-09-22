@@ -299,9 +299,21 @@ def main(argv=None):
                                     location="smoke")
             check("translate_error 返回统一类型", isinstance(fe, FlagosError))
             check("translate_error 回填后端名", fe.backend == name, fe.backend)
+            # 2026-09-22 修正（910C 对称复跑暴露）：本注入消息**不含厂商错误码**，
+            # 却要求声明了 error_map 的后端必须走 code_map —— 判据不公平
+            # （ascend 对无码消息正确地走了 message_hint，被误判失败）。
+            # 改为两条诚实判据：①无码消息不得伪称 code_map；②含厂商码样例必须走 code_map
+            # （样例由各家后端自带 SAMPLE_CODED_ERROR，无样例则如实 SKIP 正向检查）。
+            sample = getattr(bk, "SAMPLE_CODED_ERROR", None)
             if bk.supports("error_map"):
-                check("声明 error_map → 分级来源为 code_map",
-                      fe.graded_by == "code_map", f"graded_by={fe.graded_by}")
+                check("声明 error_map → 无码消息不伪称 code_map（诚实）",
+                      fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                if sample:
+                    fe_c = bk.translate_error(RuntimeError(sample), location="smoke")
+                    check("声明 error_map → 含厂商码样例必走 code_map",
+                          fe_c.graded_by == "code_map", f"graded_by={fe_c.graded_by}")
+                else:
+                    print("  [SKIP] 该后端未提供 SAMPLE_CODED_ERROR，正向 code_map 检查跳过（如实）")
             else:
                 check("未声明 error_map → 分级来源非 code_map（如实）",
                       fe.graded_by != "code_map", f"graded_by={fe.graded_by}")

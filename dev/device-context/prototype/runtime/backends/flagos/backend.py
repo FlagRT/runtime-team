@@ -238,10 +238,16 @@ class FlagosBackend(RuntimeBackend):
             backend=self.name,
         )
 
+    # 复用 conformance/errors.py 的 ACL 码表（与 ascend 同源），样例码同 ascend
+    SAMPLE_CODED_ERROR = "device reset failed, error code is 507015"
+
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
         errors = self._load_errors()
         fe = errors.translate_error(exc, location=location)
-        return self._to_unified(fe)
+        u = self._to_unified(fe)
+        # 2026-09-22：与 ascend/kunlun 对齐，后端侧回填 backend 名（此前缺失）
+        u.backend = self.name
+        return u
 
     # ───────────── 恢复 ─────────────
     def recover_device(self, ordinal: int, mode: str = "probe",

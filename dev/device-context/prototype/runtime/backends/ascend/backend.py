@@ -199,6 +199,10 @@ class AscendBackend(RuntimeBackend):
 
     # ─────────────── 错误码翻译（职责 D10）──────────────
 
+    # 供 smoke/conformance 做"含厂商码必走 code_map"的正向验证（各家自带样例；
+    # 无样例的后端不设此属性，判据会如实 SKIP 正向检查，只验诚实性）
+    SAMPLE_CODED_ERROR = "device reset failed, error code is 507015"
+
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
         """翻译为**统一** FlagosError。
 
@@ -208,7 +212,12 @@ class AscendBackend(RuntimeBackend):
         """
         self._load_conformance()
         fe = self._errors.translate_error(exc, location=location)
-        return self._to_unified(fe)
+        u = self._to_unified(fe)
+        # 2026-09-22（对称复跑暴露的不对称）：kunlun 在后端侧回填 backend 名，
+        # ascend 此前只靠 api 层 translate_via_backend 回填 —— 直接调后端方法时
+        # fe.backend 为 None。FlagosError.backend 是文档化字段，后端侧必须回填。
+        u.backend = self.name
+        return u
 
     @staticmethod
     def _to_unified(fe) -> FlagosError:

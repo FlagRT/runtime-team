@@ -33,9 +33,11 @@
 把此前 910C / P800 **各自维护的两套启动脚本收敛为一套**，跨芯片只改 `DC_BACKEND`，
 并明确各方向不再自建启动脚本；**两实例真机均已实测 `SERVE_STANDARD_PASS`**
 （910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 维度 1024 范数 1.000000）。
-未完成项：组件下游反馈收集、全组联合 demo 合稿；**复核层缺口**——第一实例两腿证据需按统一判据复跑
-（判据项数少 3–4 项、结果 JSON 缺自证字段），**已被容器并发名额阻塞**，详见
-`prototype/docs/VERIFICATION_MANIFEST_20260920.md`（含 9 条复核命令与缺口清单 G1–G8）。
+**两实例已在当前代码上完成全量复核（2026-09-22）**：smoke 51/0（ascend）与 42/0（kunlun）、
+conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（ascend，含自证字段）、
+训练腿 6/6（loss 与历史逐位吻合）、错误闭环双侧 5/0/0 —— 复核缺口 G1/G2 已关闭，
+证据 `910C/probes/recheck_*_20260922.json`（7 份）+ `P800/probes/recheck_*_20260922.json`（4 份）。
+未完成项：组件下游反馈收集、全组联合 demo 合稿、第三家芯片接入（寒武纪，≤5 人天）。
 
 ## 已有量化结果（实跑）
 
@@ -72,6 +74,7 @@
 | **阶段 3 补 · vLLM 服务化（09-20）** | **`SERVE_LEG_PASS 10/10`**：维度 **1024**、区分度 **0.4102**（910C 0.4123）、**30.70 句/s**、p50 **96.4 ms**、超长输入（6001 tokens > 4096）→ HTTP 400 → **L2_PARAM/raise** + 业务继续；服务与设备上下文同卡共存不冲突（跨流计算 = 3.0）。⚠️ 硬前置：`PYTHONPATH=/env/FlagGems/src`（否则 vllm-plugin-FL 报 `Failed to infer device type`）|
 | **阶段 4 · 错误闭环两设置对照（09-20）** | 两组均 **`ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）**，且**逐字节一致**（除时间戳）⇒ **关闭 `XPU_EVENT_KL3_ENABLE` 不损失错误诊断能力**；同时说明该厂商缺陷**不影响单进程设备上下文路径** |
 | **框架缺陷第 4 例（09-20，已修）** | 错误对象**跨模块类不相等**（`conformance/errors.py` 被 importlib 动态加载为独立模块，其 `ErrorCategory` 是 IntEnum）→ `FlagosError.disposition` 取 `DISPOSITION[cat]` **KeyError**。修在**框架层**（新增 `coerce_category` / `normalize_error`，并在 `translate_via_backend` 加归一化兜底）+ `kunlun.translate_error` 显式归一 |
+| **框架缺陷第 5 例（09-22，已修）** | **后端侧错误对象回填不对称**：`kunlun.translate_error` 回填 `backend=self.name`（9-20 修复时引入），而 ascend/flagos 未回填（`FlagosError.backend` 是文档化字段，直调后端方法时为 None）；同一复跑还暴露 smoke 判据不公平（给声明 error_map 的后端注入**无厂商码**消息却断言必须 code_map）。修：ascend/flagos 补回填 + 判据改两条诚实断言（无码不伪称 code_map / 含码样例必走 code_map，样例由后端自带 `SAMPLE_CODED_ERROR`）。修复后 ascend smoke **51/0**、P800 **42/0**，conformance 13+6 双侧回归通过 |
 | **镜像等价性验证（09-20）** | 在**上游官方推荐镜像** `harbor.baai.ac.cn/...:202608-base`（digest `sha256:ea6d797a…`，33.8 GB）上重跑全套：conformance **13+6 逐用例一致**、smoke **42/0**、训练腿 **6/6（loss 逐位相同 15.4488→11.1481）**、推理腿 **13/13**（`detail` **14/14 逐字相同**）、服务化 **10/10**（区分度 0.4102 一致）、**KL3 挂死一致重现（A 组 3/3 挂死、B 组 2/2 通过且 `2^120` 真值精密匹配）** ⇒ **两镜像结论等价**；**KL3 缺陷与镜像无关**，归属厂商运行时/驱动层 |
 | ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
 | **多流 Stream 16 项基线（09-20）** | **14 项通过 / 1 项如实标注不支持 / 1 项不适用**：探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；S-16 补测 **2000 流无限制**；唯一差异 **S-12 流优先级不支持**（上游上报非法优先级区间 → 触发 PyTorch INTERNAL ASSERT；本层主动拦截不透传、不声明该能力） |
@@ -163,13 +166,6 @@
 
 ## 阻塞与需要协调的事项
 
-- **🟠 第一实例对称复跑被并发名额阻塞（2026-09-20 实测）**：为补齐"两实例证据格式对称"这一复核缺口
-  （第一实例两腿结果 JSON 缺 `backend`/`env`，判据项数比第二实例少 3–4 项），本方向需在第一实例上
-  用后端无关化脚本复跑两腿。**代码与脚本已同步到位**（目标机器 `/mnt/raid/hliu553/dc_full/`，模型已在本地，
-  预计数分钟级），但**"带卡容器并发上限 3"的名额已被其他使用者的 3 个容器占满**
-  （实测 `docker ps` 计数 = 3：`x-benchmark` / `flagos-910c-train-850`（今日由他人启动）/ `flaggems-cann9.0.0`）。
-  本方向**不抢占他人容器**，也**不能超限启动**（超限会导致设备不可见）⇒ 需任一可用窗口。
-  完整缺口清单见 `prototype/docs/VERIFICATION_MANIFEST_20260920.md`。
 - **🔴 P800 镜像入锁（新增诉求，2026-09-20）**：P800 阶段 0–4 结论目前建立在**未入锁**镜像上
   （`flaggems-main-dev:202608`，无归档、未入锁），纪律上缺锁定基座背书。
   **本方向建议以官方 `-base` 为准**：`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`
