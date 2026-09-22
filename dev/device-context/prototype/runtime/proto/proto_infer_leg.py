@@ -22,11 +22,13 @@
 
 用法（昆仑芯 P800）：
   # 用卡前先 `xpu-smi` 挑**空闲**的卡；共享机上被他人占用的卡会触发设备侧报错
+  # ⚠️ 同训练腿：`DC_MODEL` 必须给到 `snapshots/<hash>`（给缓存根目录会报 Unrecognized model）；
+  #    脚本路径是 `runtime/proto/proto_infer_leg.py`。
   CUDA_VISIBLE_DEVICES=6 DC_BACKEND=kunlun \
   DC_ROOT=/workspace/prototype \
-  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B \
+  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
   DC_OUT_DIR=/workspace/out_infer \
-  python3 proto_infer_leg.py
+  python3 runtime/proto/proto_infer_leg.py
 
 用法（910C，保持原口径）：
   DC_BACKEND=ascend python3 proto_infer_leg.py

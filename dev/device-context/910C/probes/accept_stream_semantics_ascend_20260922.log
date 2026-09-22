@@ -1,0 +1,23 @@
+[W922 09:24:36.055805880 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== probe_stream_semantics_full.py: 多流 Stream 职责子项全量核查（后端无关 V2）===
+[env] backend=ascend dev_api=npu devices=16 torch=2.11.0+cu130 runtime=n/a
+[S1] 流内顺序: 5.000000（期望 5.0）✅
+[S2] 无隐式同步: A=7.0000 B=11.0000 ✅
+[S8] 默认流 vs 命名流: 2.0000/4.0000；跨流分配器安全(record_stream)=10.0000 ✅
+[S9] 流错误隔离(API级): 流A rc=107015 流B=6.0000 ✅  ⚠️设备级错误为语义推断
+[S10] 生命周期: 1000 次创建销毁（0.25s）后新流仍可用 ✅
+[S11] 跨流内存: 6.0000（期望6）✅
+[S12] 流优先级: 支持 | range=(7, 0, 0) | 并发 hi=5.0000 lo=8.0000 ✅
+[S13] 多设备流绑定: [2.0, 3.0]（期望 [2,3]）✅
+
+STREAM_SEMANTICS_PASS: 8/8 子项通过
+  S1_stream_order                  ✅ 流内 4 个 op 按序执行 → 5.000000（期望 5.0）
+  S2_no_implicit_sync              ✅ 流A均值=7.0000(期望7) 流B均值=11.0000(期望11)
+  S8_default_vs_named_stream       ✅ 默认流=2.0000(期望2) 命名流=4.0000(期望4)；跨流内存安全：record_stream 后复用结果=10.0000(期望10)。注：PyTorch 缓存分配器跨流
+  S9_stream_error_isolation        ✅ 【API 调用级隔离·已实测】流A 注入 107015（rc=107015，期望107015）后流B 仍正常执行 → 6.0000(期望6)。⚠️【设备级错误·语义推断未实测】芯片
+  S10_stream_event_lifecycle       ✅ 1000 次创建销毁（0.25s）后仍可正常创建使用新流（新流结果=9.0000，期望9）
+  S11_cross_stream_memory          ✅ 流A分配内存在流B使用（依赖后）→ 6.0000（期望6）
+  S12_stream_priority              ✅ 优先级：支持 —— leastPriority=7, greatestPriority=0（值越小优先级越高，范围 0~7）；多流并发结果正确 hi=5.0000(期望5) lo=
+  S13_multidevice_stream_bind      ✅ 双设备各创建独立流，结果=[2.0, 3.0]（期望 [2.0, 3.0]）
+
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/prototype/probes/stream_semantics_full_result.json

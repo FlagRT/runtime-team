@@ -1,0 +1,12 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+后端: kunlun | 设备数: 1
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(码表内他厂码·诚实降级负向测试)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /workspace/P800/probes/accept_errorloop_kunlun_20260922.json

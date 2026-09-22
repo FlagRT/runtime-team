@@ -50,8 +50,19 @@ N = int(os.environ.get("DC_QUOTA_N", "2000"))
 def resolve_dev_api() -> str:
     try:
         import runtime  # noqa: E402
-        runtime.use(BACKEND)
-        dt = getattr(runtime.current(), "device_type", "")
+        bk = runtime.use(BACKEND)
+        # ⚠️ **必须先经后端触碰设备，再取设备命名空间**（2026-09-22 验收实测暴露）：
+        #   厂商扩展是**懒加载**的 —— 容器若设 `TORCH_DEVICE_BACKEND_AUTOLOAD=0`，
+        #   仅 `use()` 之后 `hasattr(torch, "<ns>")` 仍为 **False**，
+        #   随后模块级 `getattr(torch, DEV_API)` 直接 AttributeError（本文件因此曾整轮崩）。
+        #   实测：触碰设备后即就绪（`device_count()` 返回 16）。
+        #   最小触碰 = `device_count()`（走统一抽象，**不写厂商模块名**）。
+        #   （同源：conformance runner 的"拼设备串前先触碰"、训练腿脚本的"拼集合通信后端名前先触碰"。）
+        try:
+            bk.device_count()
+        except Exception as _exc:
+            print(f"[env] 设备触碰失败（{type(_exc).__name__}），仍按后端声明的 device_type 继续")
+        dt = getattr(bk, "device_type", "")
         if dt:
             return dt
     except Exception as exc:

@@ -1,0 +1,20 @@
+=========== 统一推理服务启动 开始 Tue Sep 22 09:32:57 UTC 2026 ===========
+backend=ascend dev=4 port=8100 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /usr/local/python3.11.15/bin/vllm ｜ python3 = /usr/local/python3.11.15/bin/python3（Python 3.11.15）
+--- 用卡前 ---
+  [torch.npu:0] free=60.89GiB / total=61.27GiB
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=516  日志: /tmp/dc_serve_infer2/vllm_serve.log
+  ✅ 服务就绪 t=35s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  维度=1024 范数=1.000000
+
+############ 验证模式：停机 ############
+scripts/serve_standard.sh: line 192:   516 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+  [torch.npu:0] free=60.89GiB / total=61.27GiB
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=========== 结束 Tue Sep 22 09:33:58 UTC 2026 ===========

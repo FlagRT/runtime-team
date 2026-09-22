@@ -62,6 +62,10 @@
 #
 # 【环境变量】
 #   DC_BACKEND      后端名（ascend | kunlun | cambricon），默认 ascend
+#   SERVE_FORM      服务形态 `embed` | `generate`（留空=按后端默认：
+#                   ascend→generate 沿用 910C 既有口径，kunlun/cambricon→embed。
+#                   2026-09-22 补：验收模型统一为 Qwen3-Embedding-0.6B 后，
+#                   三实例需能起**同形态**服务才能横向比对，故加此覆盖开关）
 #   MODEL           模型路径（**须给到 snapshots/<hash>**，给缓存根目录会报 Unrecognized model）
 #   SERVED_NAME     服务暴露的模型名（默认按后端给）
 #   PORT            端口（8100）
@@ -245,9 +249,17 @@ cleanup
 # ─────────────────────────────────────────────────────────────────────────────
 # 3) 启动（服务参数统一口径）
 # ─────────────────────────────────────────────────────────────────────────────
+# 形态覆盖（SERVE_FORM）：留空则保持各后端分支的既有默认 ⇒ 本开关**零行为变更**
+case "${SERVE_FORM:-}" in
+  embed)    SKIP_EXTRA=0; echo "  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）" ;;
+  generate) SKIP_EXTRA=1; echo "  [SERVE_FORM] 强制生成形态（不传 --runner pooling）" ;;
+  "")       : ;;
+  *) echo "❌ 未知 SERVE_FORM=$SERVE_FORM（支持 embed | generate）"; exit 2 ;;
+esac
+
 ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
        --max-model-len "$MAX_MODEL_LEN" --tensor-parallel-size "$TP" )
-# embedding 服务形态（两实例同口径）：--runner pooling --convert embed
+# embedding 服务形态（三实例同口径）：--runner pooling --convert embed
 [ "$SKIP_EXTRA" = "0" ] && ARGS+=( --runner pooling --convert embed )
 [ -n "$GPU_MEM_UTIL" ] && ARGS+=( --gpu-memory-utilization "$GPU_MEM_UTIL" )
 [ "$EAGER" = "1" ] && ARGS+=( --enforce-eager )
