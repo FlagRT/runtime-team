@@ -70,6 +70,23 @@
 
 ## 4. 请总组裁定的三件事
 
+### 4.0 三实例镜像清单（**供总组入锁直接取用**，2026-09-22 更新）
+
+> 所有 digest 均为 `docker image inspect` 的 `RepoDigests` **实机复核值**（非转抄）。
+> 括号内为镜像层大小（`image inspect Size`）；磁盘占用另计（约 2.8 倍）。
+
+| 实例 | 用途 | 镜像 tag | digest | 来源 | 状态 |
+|---|---|---|---|---|---|
+| **910C**（第 1 家） | 训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | **无 registry**（靠 `docker save` + 重建配方） | 组内自建（官方镜像不含 FlagCX） | ✅ 已入锁 |
+| **910C** | 推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7` | 华为昇腾官方（quay.io） | ✅ 已入锁 |
+| **P800**（第 2 家） | 两腿 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（38.3 GB） | `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`（**2026-09-22 实机复核更正**：tag 无 registry 前缀但 digest **确实存在**） | 同系列 FlagGems dev 变体（本机已有） | ⚠️ 在位、**未归档未入锁**（现用） |
+| **P800** | 两腿（**建议入锁**） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（33.8 GB） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` | **BAAI Harbor**（官方手册推荐，血统 `maintainer: huangyun@kunlunxin.com`） | ✅ 等价性验证已完成，**待入锁** |
+| **MLU590**（第 3 家） | 两腿 | **待寒武纪方给确切 tag**（目标档：`torch2.11.0` + `torchmlu1.33.1` + `ubuntu22.04` + `py312`） | **未取得**（私仓需鉴权，无法列 tag ⇒ 不臆造） | 寒武纪官方渠道：社区 `developer.cambricon.com` / 私仓 `docker.cambricon.com`·`docker-user.cambricon.com:30080`·`docker-user.extrotec.com:30080`（**三处实测 401 需鉴权**） | 🔴 **待申请** |
+
+**请总组注意第 3 家的特殊性**：910C 与 P800 的镜像都能从**公开上游**取得（华为 quay / BAAI Harbor），
+**寒武纪必须走官方渠道申请**（FlagTree 无寒武纪手册，详见 §5.1 与
+`MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`）⇒ 这是第 3 家接入的**头号环境风险**。
+
 | # | 事项 | 我们的诉求 | 依据 |
 |---|---|---|---|
 | 1 | **P800 镜像入锁** | **建议以官方 `-base` 为准**（`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`，digest `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34`，33.8 GB），**并在配方里写明补齐步骤**（`pip install flagtree===0.7.0rc3+xpu3.6`）。备选：把现用 `flaggems-main-dev:202608`（digest `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`）入锁 | ① P800 阶段 0–4 与镜像等价性验证均已完成，但**结论建立在一个未入锁的镜像上**（910C 有锁定基座背书，P800 没有）；② **官方 `-base` 上已重跑出全套等价证据**（conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、KL3 对照一致），可直接作为入锁验证材料；③ 官方 `-base` 有 digest、血统清晰（`maintainer: huangyun@kunlunxin.com`）、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB）。⚠️ 若采用 `-base`，配方**必须**含 H4① 的 `flagtree` 补齐步骤，否则推理腿服务化不可复现 |
@@ -91,5 +108,19 @@
    → 把 §4 式的四项材料提给总组入锁
 ```
 
+### 5.1 ①② 的核查结果（2026-09-22 完成，详见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`）
+
+| 项 | 结论 | 依据 |
+|---|---|---|
+| ① FlagTree 是否有寒武纪 User Manual | ❌ **没有** | FlagTree wiki 全部 **26 页**逐页列出，有 `User-manual-for-xpu / ascend / nvidia / amd / ppu / metax / mthreads / iluvatar / aipu / cpu / hcu / enflame / tsingmicro / sunrise / spacemit / rpu / tileir` 等，**无 cambricon / mlu 条目**；而 User Manual 索引页正文明确"最佳实践是用各后端文档里给的镜像" ⇒ **寒武纪这一支没有官方推荐镜像** |
+| ② 厂商是否提供官方镜像 | ✅ **有**，但**全部需鉴权、走官方渠道** | 寒武纪开发者社区 `developer.cambricon.com`（`torch_mlu` README 的"版本配套关系"表把镜像链接指向此处）；三个官方/渠道 registry 实测：`docker.cambricon.com`（自建 distribution，401 → `Bearer realm=https://docker.cambricon.com:5001/auth`）、`docker-user.cambricon.com:30080`（**Harbor**，401）、`docker-user.extrotec.com:30080`（**Harbor**，401） |
+
+**⇒ 第 3 家的镜像获取路径与前两家不同**：前两家可从公开上游（BAAI Harbor / 华为 quay）拿到；
+寒武纪必须**走官方渠道申请**（社区账号或镜像 tarball / 私仓凭据）。
+
 **必须提前确认的分叉点**：寒武纪的 vLLM 支持形态 —— 是"厂商移植版 vLLM"（像昇腾 `vllm-ascend`，可直接 `vllm serve`）
 还是"社区 vLLM + 平台插件"（像昆仑芯需要 vllm-plugin-FL，且要额外注意 H4 那类依赖完整性）。
+
+**该分叉点已有答案（2026-09-22）**：寒武纪**有厂商移植版** —— 官方开源仓库 `Cambricon/vllm-mlu`（★120），
+官方文档明确"使用寒武纪 SDK 提供的镜像 **Cambricon vLLM Container**"（`docker load -i cambricon_vllm_container.tar.gz`）。
+⇒ 形态与昇腾同类（厂商移植版），**不是**昆仑芯那种"社区 vLLM + 第三方平台插件"。

@@ -14,7 +14,7 @@
 | | **现用**（所有既有结论的来源） | **官方推荐**（本次对照 / 建议入锁） |
 |---|---|---|
 | tag | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base` |
-| digest | **无**（本地导入，只能靠 `docker save` 流转） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` |
+| digest | **有**：`flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev@sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`<br>（2026-09-22 实机复核：`docker image inspect` 的 `RepoDigests` 确有此项——**tag 里没有 registry 前缀，但 digest 存在**，可凭 digest 精确锁定） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04@sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` |
 | 磁盘占用 / 镜像层 | 107 GB / 38.3 GB（`38 316 770 646` B） | **94.2 GB / 33.8 GB（`33 817 700 693` B）** |
 | 创建时间 | 2026-08（5 周前） | 2026-09-09 |
 | 来源标注 | 无 | `maintainer: huangyun <huangyun07@kunlunxin.com>`、`description: xvllm_ubuntu2204_torch29 环境` |

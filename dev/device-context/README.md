@@ -300,6 +300,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 文档 | 回答什么 |
 |---|---|
 | `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属证据链 · MLU 栈版本组合（torch-mlu 1.33.1 + torch 2.11.0）· root 权限开通需求 · 探测边界 |
+| `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研**：FlagTree 无寒武纪手册 · 官方渠道与三私仓实测（均 401 需鉴权）· 目标版本档 · 申请清单 · **三家实例镜像获取路径对照** |
 
 ### 6.5 原始证据目录（复核用，勿只读结论）
 

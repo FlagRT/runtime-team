@@ -82,6 +82,13 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 
 ⚠️ **待实机复核**（进容器后）：`import torch_mlu` → `torch.mlu.device_count() == 8`。
 
+**镜像从哪来 → 见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`**（2026-09-22 调研结论）：
+- ❌ **FlagTree 没有寒武纪 User Manual / 推荐镜像**（wiki 26 页无 cambricon 条目；寒武纪只存在于编译器侧 `triton_v3.2.x` 分支）
+- ✅ 寒武纪**有**官方镜像，但**必须走官方渠道申请**：开发者社区 `developer.cambricon.com`（`torch_mlu` README 的镜像链接指向此处）+ 私仓三处（`docker.cambricon.com`、`docker-user.cambricon.com:30080`、`docker-user.extrotec.com:30080`，**实测均 401 需鉴权**，且已在本机 `daemon.json` 的 `insecure-registries` 中）
+- 目标版本档：`torch2.11.0` + `torchmlu1.33.1` + `ubuntu22.04` + `py312`（**确切 tag 待厂商给**）
+- ✅ **推理形态与昇腾同类**：寒武纪有厂商移植版 vLLM（官方开源 `Cambricon/vllm-mlu`）
+- ⚠️ **与前两家最大不同**：910C/P800 可从公开上游拿镜像，**寒武纪必须申请** ⇒ 头号环境风险
+
 ---
 
 ## 4. 阻塞与需要协调的事项
@@ -90,7 +97,7 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 |---|---|---|---|
 | **1** | 建 **`/srv/hliu553`** 并 chown 给 `hliu553`（两台） | root / 机器管理员 | 🔴 **阻塞** |
 | **2** | 把 `hliu553` 加入 **`docker` 组**（两台，需重新登录） | root / 机器管理员 | 🔴 **阻塞** |
-| **3** | 确认**容器镜像名与获取方式**（宿主无 NeuWare，必须用官方镜像） | 寒武纪方 / 管理员 | 🟠 待确认 |
+| **3** | **镜像获取**（宿主无 NeuWare，必须用官方镜像）：**FlagTree 无寒武纪手册（已确认）**；寒武纪官方镜像**只能走官方渠道**（社区 / 私仓凭据 / tarball），三私仓实测 **401 需鉴权** ⇒ 需申请**凭据或 tarball + 确切 tag** | 寒武纪方 / 管理员 | 🔴 **阻塞**（见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §4） |
 | 4 | 两机**无共享目录**：数据需分别放置；若需共享需另配 NFS | 管理员（可选） | ⚪ 已知 |
 
 root 执行命令（两台各一次）：
@@ -107,6 +114,7 @@ sudo usermod -aG docker hliu553
 | 路径 | 内容 |
 |---|---|
 | `docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属的证据链 · 版本组合 · 开通需求 · 探测边界 |
+| `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研**：FlagTree 无寒武纪手册（26 页证据）· 官方渠道与三私仓实测（DNS/端口/401/鉴权类型）· 官方镜像命名规律 · 目标版本档 · 申请清单 · 三家实例获取路径对照 |
 | `docs/`（后续） | 接入方案、根因核对、阶段验证报告（对齐 `../P800/docs/` 体例） |
 | `probes/preflight_env_mlu1_20260922.log` | **Mlu-1 环境普查原始日志**（`preflight_env.sh` 首跑产出） |
 | `probes/preflight_env_mlu2_20260922.log` | **Mlu-2 环境普查原始日志** |

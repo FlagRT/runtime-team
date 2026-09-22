@@ -176,7 +176,7 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 |---|---|---|---|
 | 1 | **建 `/srv/hliu553` 并 chown 给 `hliu553`** | `/srv` 属主 `root:root 755`；实测 `mkdir: cannot create directory '/srv/hliu553': Permission denied`；虽在 `sudo` 组但 `sudo -n` 不可用（需密码） | ✅ 硬需求（否则数据只能放 `/home`，仅 208G/220G 且两机不共享） |
 | 2 | **把 `hliu553` 加入 `docker` 组** | 现有成员 `gpfs, liangfan1, daizijian, huangxiang, qiyiyan, leihuhu`；我们 `id -nG` = `hliu553 sudo`；`docker.sock` 属 `root:docker` | ✅ 硬需求（本方向验证流程全部在带卡容器内） |
-| 3 | 确认**容器镜像名与获取方式** | 宿主**无 `/usr/local/neuware`**（无 MLU 软件栈）⇒ 必须用寒武纪官方镜像；`daemon.json` 已配私有仓 `docker.cambricon.com` / `docker-user.cambricon.com:30080` | 需寒武纪方或管理员确认 |
+| 3 | **镜像获取（已调研，仍阻塞）**：① **FlagTree 无寒武纪 User Manual / 推荐镜像**（wiki 全 26 页无 cambricon 条目；寒武纪只在编译器侧 `triton_v3.2.x` 分支）；② 寒武纪**有**官方镜像但**只能走官方渠道**（开发者社区 `developer.cambricon.com`，或 tarball）；③ 三个私仓**实测均 401 需鉴权**：`docker.cambricon.com`（自建，realm `https://docker.cambricon.com:5001/auth`）、`docker-user.cambricon.com:30080`（Harbor）、`docker-user.extrotec.com:30080`（Harbor）——三处已在本机 `daemon.json` 的 `insecure-registries` 中；④ 宿主**无 `/usr/local/neuware`** ⇒ 必须用容器。⇒ 需申请**凭据或镜像 tarball + 确切 tag** | 寒武纪方 / 管理员 | 🔴 **阻塞**（详见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`） |
 
 **顺带澄清一条（无需任何人动作）**：docker 的镜像数据**本来就在 11T 盘上**——
 `/var/lib/docker` 是 **→ `/srv/var/lib/docker` 的符号链接**（`readlink -f` 实证），
