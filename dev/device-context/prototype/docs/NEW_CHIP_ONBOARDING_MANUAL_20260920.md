@@ -43,6 +43,18 @@
 P800 实测曾因误用被他人占用的卡（观察到他人卡 1 占用 166→502 MiB / 100%），
 把现象误判为"通信库适配缺陷"——换成空闲的卡 6/7 后三类通信全通过，该结论已撤销。
 
+**一键执行上面 7 项**（拿到机器就先跑这一条，产出报告可直接作为环境报告证据）：
+
+```bash
+bash prototype/scripts/preflight_env.sh              # 自动探测；输出到 /tmp/dc_preflight/
+OUT=/srv/<user>/preflight bash prototype/scripts/preflight_env.sh   # 指定输出目录
+```
+
+脚本只读、不装任何东西；缺项**如实打印「未取得 / 不可用」，不猜测、不补零**。
+其中两处是踩过的坑：第 4 项必须看 **docker 数据目录的真实挂载点**（`findmnt -T $(docker info --format '{{.DockerRootDir}}')`，
+P800 曾因 `du -x` 跨文件系统即停而误判根分区容量）；第 2 项的芯片信息在**容器内通常拿不到厂商工具**
+（`npu-smi` / `xpu-smi` / `cnmon` 都是宿主工具）⇒ 脚本自动降级为 torch 侧查询。
+
 ---
 
 ## 2. 第 1 步：判别厂商 PyTorch 栈（决定走哪条路）

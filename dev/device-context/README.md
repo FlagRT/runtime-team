@@ -54,6 +54,7 @@
 | Backend 抽象与接入规范 | ✅ | 13 个 `@abstractmethod` 对应五域；`registry._KNOWN_BACKENDS` 已含 `ascend` / `flagos` / `kunlun` |
 | **《新芯片接入手册》** | ✅ | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`：判别路径 · 13 抽象清单 · 8 步流程 · **验收清单** · 跨芯片坑 · 上报模板 |
 | **《组内服务启动标准》** | ✅ | `prototype/scripts/serve_standard.sh`（**下游起服务唯一入口**，跨芯片只改 `DC_BACKEND`）+ `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`；**两实例真机均 `SERVE_STANDARD_PASS`**（910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 冒烟维度 1024） |
+| **环境普查脚本** | ✅ | `prototype/scripts/preflight_env.sh`（接入手册 §1 的 7 项可执行化）；第 3 家接入的第 0 步，产出即环境报告 |
 | **《两实例验证复核清单》** | ✅ | `prototype/docs/VERIFICATION_MANIFEST_20260920.md`：9 条"声明 → 命令 → 判据"最小复现表 · 证据索引（含"当前结论 = 哪一份"）· **缺口 G1–G8** · 复跑阻塞项 · 证据命名规范 |
 | conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，三个后端结果并列可比 |
 | 组件打包 | ✅ | Git tag **`runtime-v0.2.0`** + `prototype/RELEASE_NOTES_v0.2.0.md`（第二实例接入版；上一版 `runtime-v0.1.0`） |
@@ -206,6 +207,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`（368 行） | **新芯片怎么接进来**：第 0 步环境风险前置 7 项 → 第 1 步厂商栈判别 4 条路径 → 第 2 步镜像就绪 5 条判据 → 第 3 步 13 个抽象方法清单 → 第 4 步 conformance → 第 5 步两条腿 → 第 6 步错误闭环 → **可勾选验收清单 13 项** + 跨芯片坑 9 条 + 厂商缺陷上报模板 |
 | `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（133 行） | **怎么复核**：9 条「声明 → 命令 → 判据」最小复现表 · 两实例证据索引（含"当前结论 = 哪一份"）· 缺口 G1–G8 · **证据命名规范** |
 | `prototype/scripts/serve_standard.sh`（208 行） | **服务启动唯一入口**：`DC_BACKEND` 切芯片；流程 = 服务入口就绪 → 设环境 → 清残留 → 用卡快照 → 启动 → 就绪轮询 → 功能冒烟 → 停机复查；verdict = `ready=1 且 smoke=1` |
+| `prototype/scripts/preflight_env.sh`（195 行） | **环境普查一键脚本**（= 接入手册 §1「环境风险前置 7 项」的可执行版）：只读、不装东西；含 docker 数据目录真实挂载点、torch 侧降级查询、网络源可达性、拓扑；缺项如实标注「未取得」，输出可直接作为环境报告 |
 | `prototype/docs/RUNTIME_PROTOTYPE_DESIGN_20260904.md`（314 行） | **原型怎么设计的**：五域划分、13 个抽象方法的来由、目录结构、验证方式（v0.1） |
 | `prototype/docs/RUNTIME_DC_STREAM_PLAN_20260907.md`（177 行） | **本层职责边界与方法**：设备抽象 / 多流 Stream / 错误码翻译 / 状态恢复的职责划分，与上下游分工，**多流验收基线 16 项的出处** |
 | `prototype/docs/RUNTIME_LAYER_MONTHLY_PLAN_20260908.md`（150 行） | **月度里程碑与交付物口径**（运行时层 9 月聚焦版） |

@@ -24,7 +24,7 @@ prototype/
 │   ├── demos/                   # 设备无关演示
 │   └── smoke_runtime.py         # 接入自检
 ├── probes/                      # 跨后端验证探针（目前：多流 16 项基线探针，后端无关 V2）
-├── scripts/                     # **组内服务启动标准脚本**（serve_standard.sh —— 下游起服务唯一入口）
+├── scripts/                     # **标准化脚本**（serve_standard.sh 起服务唯一入口；preflight_env.sh 环境普查）
 └── docs/                        # 标准说明文档
 ```
 
@@ -162,6 +162,7 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` | **新芯片怎么接进来**：8 步流程 + **可勾选验收清单 13 项** + 跨芯片坑 9 条 + 厂商上报模板 |
 | `docs/VERIFICATION_MANIFEST_20260920.md` | **怎么复核**：9 条「声明 → 命令 → 判据」+ 证据索引 + 缺口 G1–G8 + 证据命名规范 |
 | `scripts/serve_standard.sh` | **服务启动唯一入口**：`DC_BACKEND` 切芯片；verdict = `ready=1 且 smoke=1` |
+| `scripts/preflight_env.sh` | **环境普查一键脚本**（接入手册 §1 那 7 项的可执行版）：只读、不装东西，缺项如实标注；输出可直接作为环境报告 |
 | `docs/RUNTIME_PROTOTYPE_DESIGN_20260904.md` | **原型怎么设计的**：五域划分、13 个抽象方法的来由、目录结构、验证方式 |
 | `docs/RUNTIME_DC_STREAM_PLAN_20260907.md` | **本层职责边界与方法**：设备抽象 / 多流 / 错误翻译 / 状态恢复的划分与上下游分工；**多流 16 项基线出处** |
 | `docs/RUNTIME_LAYER_MONTHLY_PLAN_20260908.md` | **月度里程碑与交付物口径** |
