@@ -1,0 +1,17 @@
+########## ⑩ graph 入口真实名称 ##########
+torch.mlu 中 graph 相关: ['MLUGraph', 'graph', 'graph_pool_handle', 'graphs', 'make_graphed_callables']
+torch.mlu.graph 类型: type
+torch_mlu.mlu 中 graph 相关: ['MLUGraph', 'graph', 'graph_pool_handle', 'graphs', 'make_graphed_callables']
+torch.mlu.MLUStream 存在: False
+大写候选（图对象类名）: ['MLUGraph']
+
+########## ⑩b 图捕获实测 ##########
+使用图对象类: MLUGraph
+GRAPH_CAPTURE: 5/5 成功
+
+########## ⑪ 集合通信后端名（2 进程）##########
+--- 试 backend=cncl
+  [OK] backend=cncl world=2 all_reduce=错误 结果sum=12.0
+--- 试 backend=cpu:gloo,mlu:cncl
+  [OK] backend=cpu:gloo,mlu:cncl world=2 all_reduce=错误 结果sum=12.0
+########## 完成 ##########

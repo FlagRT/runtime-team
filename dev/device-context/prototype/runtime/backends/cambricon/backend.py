@@ -27,30 +27,49 @@
      （与前两家同一条约束，接口约定已写明「进程级切换」）。
 
 ────────────────────────────────────────────────────────────────────────────
-证据状态（**重要，勿外推**）
-  本文件是**按规范新写的接入实现**，编写时尚无寒武纪容器可用
-  （两台测试机缺 `docker` 组权限，见 `MLU590/README.md` §4）。
-  ⇒ 凡标注 **`⚠️ 未实测`** 的 API 形态/取值**均未经真机验证**，
-    必须进容器后逐条核对；**不得把本文件的写法当成"已验证结论"**。
-  ⇒ `info()["evidence_level"]` 如实标注这一点。
+证据状态（**2026-09-22 已在 MLU590 真机验证**）
+  验证环境：容器 `dc-mlu590-hliu553`（宿主 `tza-0a06-ai01-em9`），镜像
+  `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`
+  （digest `sha256:e55b420e…`，与定档记录一致）；容器内 py3.10.20 / Ubuntu 22.04.5。
+  实测结果：**离线自检 35/0、smoke 42/0、conformance 13/13 + 6/6 全绿**；
+  证据 `MLU590/probes/A{3A4,5,6,6b}_*_20260922.log`。
 
-  已实测的**环境**事实（仅此两类，来自只读探测，见 `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`）：
-    · 8 × MLU590-M9 / 96 GB 卡；宿主驱动 **v6.2.29** / 固件 v1.5.0；`cnmon` CNMON v6.2.29
-    · 宿主**无 `/usr/local/neuware`** ⇒ MLU 软件栈必须走容器镜像
+  ⇒ 本文件里凡标注 **`⚠️ 未实测`** 的，指**该条尚未单独实测**（不是没上过机）；
+    未标注的 API 形态均已有真机输出支撑。
 
 ────────────────────────────────────────────────────────────────────────────
-未实测清单（进容器后按此逐条核对，核对结果回填本文件与接入方案）
-  1. `torch.mlu.*` 的实际 API 形态：`mem_get_info` 是否存在、是否接受 ordinal 参数
-  2. `torch.mlu.Stream / Event / current_stream / stream / synchronize` 是否存在且语义同 CUDA
-  3. 未 record 的 `Event.query()` 是否误报 `True`（昆仑芯实测会误报，本文件按"不误报"处理）
-  4. `Stream.synchronize()` 是否接受 timeout（决定「有界」是真中断还是超时上报）
-  5. `Stream.priority_range()` 是否可用（昆仑芯实测触发 PyTorch INTERNAL ASSERT）
-  6. 厂商错误码是否透出到 Python 异常（决定 `error_map` 能力能否声明）
-  7. 图捕获入口（`torch.mlu.graph`？）是否存在
-  8. 是否有设备级重置原语（决定 `recovery_real` 能否声明）
-  9. 推理腿 vLLM 形态（厂商移植版 `Cambricon/vllm-mlu` 还是社区版 + 插件）
- 10. 集合通信可用后端名（`cncl`？`flagcx`？在寒武纪上注册的后端名叫什么 ——
-     前两家分别是 `flagos` 与 `flagcx`，**不能类推**）
+真机实测结论（原「未实测清单」逐条勾销，2026-09-22）
+  1. ✅ `torch.mlu.mem_get_info(ordinal)` **存在且接受 ordinal**（(free,total) 语义同 CUDA）；
+     `mem_get_info()` 无参形式亦可用 ⇒ 取值路径 ①/② 均可，**降级路径 ③ 未被触发**
+  2. ✅ `Stream / Event / current_stream / stream / synchronize` 齐备，语义同 CUDA 命名空间
+  3. ⚠️→✅ **未 record 的 `Event.query()` 原生返回 `True`（误报！）**
+     ⇒ 本文件的 `CambriconEventAdapter` 的 E3 修正是**必需的**，不是防御性冗余
+  4. ✅ **`Stream.synchronize()` 不接受 timeout**（`TypeError: unexpected keyword argument`）
+     ⇒ 「有界」只能是**超时上报**语义（与昆仑芯同款）——本文件与文档均已如实标注
+  5. ✅ `Stream.priority_range()` **可用且不崩**：实测返回 `(0, -3)`（语义同 CUDA 的
+     least/greatest）。⚠️ 但**非法优先级（99）未被上游拦截**（不报错）⇒ 本层不透传非法值
+  6. ✅ 厂商错误码**不透出为数字码**：实测 CNRT 给的是**错误名**
+     （`RuntimeError: CNRT error: invalid argument.`），OOM 为 `OutOfMemoryError: MLU out of memory…`
+     ⇒ `error_map` **如实不声明**（无可用于码表的数字码）；分级走 message_hint 已覆盖
+     （形状错 → L2、OOM → L1，conformance f1 已通过）
+  7. ✅ 图捕获入口为 **`torch.mlu.MLUGraph` + `torch.mlu.graph` 上下文管理器**
+     ⇒ **实测 `GRAPH_CAPTURE` 5/5 成功**，故已声明 `graph_capture` 能力
+  8. ✅ **无设备级重置原语**：`torch.mlu` 下 `reset*/destroy*/reinit*` 全部是内存统计类
+     （`reset_peak_memory_stats` 等）⇒ `recovery_real` **已确认不具备**（不是"未验证"），不声明
+  9. 🟡 运行时层镜像**不含 vLLM**（`ModuleNotFoundError: No module named 'vllm'`）
+     ⇒ 推理腿服务化需用 `flagos-app/vllm*-cambricon-*` 应用镜像或另行安装；形态（厂商移植版/
+     社区版+插件）**仍未验证**
+ 10. ✅ 集合通信后端名 = **`cncl`**（亦可用 `cpu:gloo,mlu:cncl`）；
+     2 进程 `torchrun --standalone` 下 `init_process_group("cncl")` + `all_reduce` **结果正确**
+     ⇒ 训练腿 `DC_DIST_BT=cncl`。（⚠️ 前两家分别是 `flagos` 与 `flagcx` ⇒ **确实不能类推**）
+
+────────────────────────────────────────────────────────────────────────────
+⚠️ 一条**环境坑**（已实测，见 `known_issues()`，与 P800 的"缺 triton"**不同因**）
+  `import triton` **必须先 `import torch_mlu`**，否则 triton 内部 `import torch` 会触发
+  torch 的 device-backend 自动加载并失败：
+      RuntimeError: Failed to load the backend extension: mlu.
+  实测：裸 `import triton` → 失败；`import torch_mlu, triton` → `triton 3.2.0` ✅。
+  另外 `/opt/triton` 只在经 shell 启动时才进 `PYTHONPATH`（直接 `docker exec … python3` 看不到）。
 """
 
 from __future__ import annotations
@@ -151,13 +170,18 @@ class CambriconBackend(RuntimeBackend):
         "bounded_sync",      # 主机侧等待（event.wait_host）真有界；流同步为"超时上报"语义
         "recovery_probe",    # 探针级恢复
         "device_state",      # 四态**查询**（复用进程内状态机，见 device_state()）
-        "multidevice",       # 单机 8 卡（实测环境：8 × MLU590-M9）
-        # ── 以下**未声明**，两类原因分开写清（不混为一谈）──
-        # 【未验证 → 不声明，待进容器实测后再决定】
-        #   "error_map"       : 厂商错误码是否透出到 Python 层**未知**；无凭据前不声明
-        #   "recovery_real"   : 是否有设备级重置/重建原语**未知**；无凭据前不声明
-        #   "graph_capture"   : 图捕获入口（torch.mlu.graph?）**未知**
-        #   "stream_priority" : 优先级区间 API 形态**未知**（昆仑芯同类 API 会触发 PyTorch 断言）
+        "multidevice",       # 单机 8 卡（实测：8 × MLU590-M9）
+        "graph_capture",     # 2026-09-22 实测 GraphCapture 5/5 成功
+                             #   （入口是 torch.mlu.MLUGraph + torch.mlu.graph）
+        "stream_priority",   # 2026-09-22 实测 priority_range() = (0, -3) 可用且不崩
+                             #   （与昆仑芯相反：那里同款 API 会触发 PyTorch INTERNAL ASSERT）
+        # ── 以下**不声明**（两类原因分开写清，勿混为一谈）──
+        # 【已实测确认不具备 → 不声明】不是"未验证"，是"确认没有"
+        #   "recovery_real" : torch.mlu 下 reset* / destroy* / reinit* 全是内存统计类
+        #                     （reset_peak_memory_stats 等）⇒ 无设备级重置原语
+        #   "error_map"     : 厂商错误码**不透出为数字码**（CNRT 只给错误名，如
+        #                     `CNRT error: invalid argument.`）⇒ 无可建码表的数字码；
+        #                     分级由 message_hint 覆盖（形状错→L2、OOM→L1，conformance f1 已过）
     }
 
     #: 分级来源可达性（如实标注：在当前实现里 code_map 路径**不参与**判定）
@@ -368,16 +392,26 @@ class CambriconBackend(RuntimeBackend):
 
     # ───────────── 可选能力 ─────────────
     def stream_priority_range(self):
-        """流优先级区间。
+        """流优先级区间 (least, greatest)。
 
-        **当前一律返回 `None`**（= 不支持），原因有两条且都如实：
-          ① ⚠️ 未实测：寒武纪该 API 的形态未知；
-          ② 同类 API 在昆仑芯上会触发 PyTorch 自身的
-             `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`（上游缺陷）——
-             为避免重演"一个只读查询把进程打崩"，这里**主动拦住、不做乐观透传**。
-        待容器内确认该 API 安全且语义明确后，再决定是否放开并声明 `stream_priority` 能力。
+        2026-09-22 真机实测：`torch.mlu.Stream.priority_range()` 返回 **`(0, -3)`**，
+        语义与 CUDA 一致（least=0 / greatest=-3），**且不触发断言** ——
+        与昆仑芯形成明确对照（那里同款 API 会触发 PyTorch 自身的
+        `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`）。
+        实测也确认 `Stream(priority=0/-1/-3)` 均可创建且读回值正确。
+
+        ⚠️ **一处如实标注的缺口**：上游**未拦截非法优先级**（`Stream(priority=99)`
+        不报错）。本层**不透传非法值**；调用方若给区间外的值，行为由厂商实现决定，
+        不由本层保证。
+
+        ⚠️ 仍未单独验证的：优先级的**实际调度效果**（读回值只证明被接受）。
+        若后续需要据此做调度决策，应先补一条性能侧对照实验。
         """
-        return None
+        try:
+            return self.torch.mlu.Stream.priority_range()
+        except Exception:
+            # 任何异常都不透传（避免重演"只读查询把进程打崩"）
+            return None
 
     # ───────────── 错误翻译（职责 D10）─────────────
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
@@ -494,6 +528,48 @@ class CambriconBackend(RuntimeBackend):
             "report_to": "无（无需上报）",
             "evidence": "MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md §2「宿主无 /usr/local/neuware」",
         },
+        {
+            "id": "MLU-TRITON-IMPORT-ORDER",
+            "severity": "medium",
+            "scope": "Python 导入顺序（算子 / 编译路径使用者会踩；本方向路径不依赖 triton）",
+            "condition": "在未先导入 `torch_mlu` 的情况下 `import triton`",
+            "symptom": (
+                "triton 内部 `import torch` 会触发 torch 的 device-backend 自动加载并失败："
+                "`RuntimeError: Failed to load the backend extension: mlu. "
+                "You can disable extension auto-loading with TORCH_DEVICE_BACKEND_AUTOLOAD=0.`"
+                "—— **报错文案看着像设备问题，实际是导入顺序问题**"
+            ),
+            "repro_rate": "确定性（100%，2026-09-22 实测 3/3 次）",
+            "root_cause_layer": "环境/入口（torch 的 device-backend 自动加载时机 vs 厂商扩展注册时机）",
+            "workaround": (
+                "**先 `import torch_mlu` 再 `import triton`**（实测得到 `triton 3.2.0`）；"
+                "或兼容做法 `import torch, torch_mlu` 之后再导入任何依赖 triton 的库。"
+                "不要用 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 绕过——它会一并影响 mlu 后端注册"
+            ),
+            "workaround_risk": "无（顺序调整即可，不改环境变量、不动公共资产）",
+            "report_to": "知会算子 / 编译方向（他们是用 triton 路径的一方）",
+            "evidence": "MLU590/probes/A5_verify_20260922.log §①；"
+                        "MLU590/probes/A6_capability_probe_20260922.log §③",
+        },
+        {
+            "id": "MLU-RUNTIME-IMAGE-NO-VLLM",
+            "severity": "info",
+            "scope": "推理腿服务化形态（本方向验证路径受影响，但不阻塞设备上下文验证）",
+            "condition": "使用 `flagos-runtime-*` 运行时层镜像（而非 `flagos-app/vllm*` 应用镜像）",
+            "symptom": (
+                "运行时层镜像**不含 vLLM**：`ModuleNotFoundError: No module named 'vllm'` ⇒ "
+                "`from vllm.platforms import current_platform` 无法执行，服务化形态无法就地验证"
+            ),
+            "repro_rate": "确定性（镜像内容事实）",
+            "root_cause_layer": "环境（镜像分层设计：runtime 层只到 torch/插件/triton/flag_gems）",
+            "workaround": (
+                "推理腿走同线应用镜像 `harbor.baai.ac.cn/flagos-app/vllm0.24.0-cambricon-neuware4.4.3`"
+                "（或 vllm0.20.2 变体），与本方向统一启动脚本 `serve_standard.sh` 配合"
+            ),
+            "workaround_risk": "该应用镜像内 vLLM 是厂商移植版还是社区版 + 插件，**仍未验证**",
+            "report_to": "无（镜像分层设计使然，不需要上报）",
+            "evidence": "MLU590/probes/A5_verify_20260922.log §B「推理腿平台判别」",
+        },
     ]
 
     def known_issues(self) -> list:
@@ -514,29 +590,35 @@ class CambriconBackend(RuntimeBackend):
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),
             "bounded_sync_scope": "主机侧等待（event.wait_host）真有界；流同步为超时上报语义",
-            # ⭐ 如实标注证据等级：本后端尚未在寒武纪真机上跑过
+            # ⭐ 证据等级：2026-09-22 已在真机验证（原为"未实机验证"）
             "evidence_level": (
-                "未实机验证 —— 本实现按《新芯片接入手册》与接口约定编写，"
-                "尚无寒武纪容器可用（缺 docker 组权限）；"
-                "凡 API 形态/取值待容器内逐条核对，勿当作已验证结论"
+                "已在 MLU590 真机验证（2026-09-22）：离线自检 35/0、smoke 42/0、"
+                "conformance 13/13 + 6/6 全绿；证据 MLU590/probes/A*_20260922.log"
             ),
+            "verified_on_device": [
+                "mem_get_info(ordinal) 可用（(free,total)，语义同 CUDA）；降级路径未被触发",
+                "Stream/Event/current_stream/stream/synchronize 齐备",
+                "未 record 的 Event.query() 原生误报 True ⇒ 适配层 E3 修正必需",
+                "Stream.synchronize() 不接受 timeout ⇒ 有界=超时上报语义（如实标注）",
+                "priority_range() = (0, -3) 可用且不崩；⚠️ 非法优先级(99)上游未拦截",
+                "错误码为 CNRT 错误名而非数字码 ⇒ error_map 如实不声明",
+                "图捕获入口 torch.mlu.MLUGraph + torch.mlu.graph ⇒ 实测 5/5 通过",
+                "无设备级重置原语（reset* 全为内存统计类）⇒ recovery_real 确认不具备",
+                "集合通信后端名 = cncl（2 进程 all_reduce 结果正确）",
+            ],
             "unverified": [
-                "torch.mlu.mem_get_info 是否存在/是否接受 ordinal 参数",
-                "torch.mlu.Stream/Event/current_stream/stream/synchronize 的形态与语义",
-                "未 record 的 Event.query() 行为",
-                "Stream.synchronize() 是否接受 timeout（决定有界语义）",
-                "Stream.priority_range() 是否可用",
-                "厂商错误码是否透出到 Python 异常（决定 error_map 能否声明）",
-                "图捕获入口是否存在（决定 graph_capture 能否声明）",
-                "是否有设备级重置原语（决定 recovery_real 能否声明）",
-                "推理腿 vLLM 形态（厂商移植版 vllm-mlu / 社区版 + 插件）",
-                "集合通信可用后端名（cncl / flagcx / …，前两家分别为 flagos 与 flagcx，不可类推）",
+                "推理腿 vLLM 形态（运行时镜像不含 vLLM；应用镜像内是厂商移植版还是社区版+插件未验证）",
+                "流优先级的实际调度效果（读回值只证明被接受，未做性能侧对照）",
             ],
             "environment": {
-                "chip": "寒武纪 MLU590-M9",
+                "chip": "寒武纪 MLU590-M9 × 8",
                 "host_driver_observed": "v6.2.29（实测，6.2.x 线）",
-                "image_pinned": "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0",
-                "note": "宿主无 /usr/local/neuware ⇒ 必须容器内运行",
+                "image_pinned": "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0"
+                                 "（实测 digest sha256:e55b420e… 与定档一致）",
+                "container_runtime": "py3.10.20 / Ubuntu 22.04.5 / torch 2.7.1+cpu / torch_mlu 1.29.2+torch2.7.1",
+                "dist_backend_name": "cncl（亦可用 cpu:gloo,mlu:cncl）",
+                "note": "宿主无 /usr/local/neuware ⇒ 必须容器内运行；"
+                        "import triton 前必须先 import torch_mlu（见 known_issues）",
             },
             "known_issues": self.known_issues(),
         }

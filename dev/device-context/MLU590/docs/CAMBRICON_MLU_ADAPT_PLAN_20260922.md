@@ -10,27 +10,49 @@
 
 ## 0. 当前进度（结论先行）
 
+**⭐ 2026-09-22：真机环境已打通并完成接入验证 —— conformance 13/13 + 6/6 全绿。**
+
 | 手册步骤 | 内容 | 状态 |
 |---|---|---|
-| 第 0 步 | 环境普查（7 项前置风险） | ✅ **09-22 完成** —— `CAMBRICON_MLU_ENV_REPORT_20260922.md` |
-| — | 镜像渠道调研与**定档** | ✅ **09-22 完成** —— `CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` |
-| 第 1 步 | 厂商 PyTorch 栈判别（A/B/C/D 四路径） | ⏳ **待容器**（预期路径 **C：PrivateUse1**，见 §2） |
-| 第 2 步 | 镜像就绪 5 条判据（含依赖链完整自检） | ⏳ 待容器 |
-| 第 3 步 | **实现 backend（13 抽象）** | ✅ **09-22 完成（代码层）** —— `prototype/runtime/backends/cambricon/` |
-| 第 3.5 步 | **离线契约自检**（无设备） | ✅ **35 通过 / 0 失败**（新增工具，见 §4.2） |
-| 第 4 步 | conformance 13 例 + 推理 6 例 | ⏳ 待容器 |
-| 第 5 步 | 两条腿（2 卡训练 / 单卡推理 + 服务化） | ⏳ 待容器 |
-| 第 6 步 | 错误闭环（四类注入） | ⏳ 待容器 |
-| 第 7 步 | 多流 16 项基线逐项比对 | ⏳ 待容器 |
-| 第 8 步 | 证据归档 + 验收清单 13 项 | ⏳ |
+| — | 环境普查 + 镜像渠道调研与**定档** | ✅ **09-22** —— `CAMBRICON_MLU_ENV_REPORT_20260922.md` / `…IMAGE_CHANNEL…` |
+| — | **环境开通**（`sudo` + `docker` 组 + `/srv/hliu553`） | ✅ **09-22 打通**（`hliu553` 已入 `docker` 组；Docker 25.0.3） |
+| A1 | 拉定档镜像 + 起带卡容器 | ✅ **09-22** —— digest 实测 `sha256:e55b420e…` **与定档记录一致** |
+| A2–A4 | 厂商栈判别 + 镜像就绪 5 条判据 | ✅ **09-22** —— `torch_mlu` 可导入、`torch.mlu.device_count() = 8` |
+| 第 3 步 | **实现 backend（13 抽象）** | ✅ **09-22** —— `prototype/runtime/backends/cambricon/` |
+| 第 3.5 步 | **离线契约自检** | ✅ **35/0**（声明 `stream_priority` 后为 **34/0** —— 那条"未声明则须返回 None"的检查被如实跳过，非失败） |
+| A5 | smoke 自检 | ✅ **42 通过 / 0 失败** |
+| 第 4 步 | **conformance 13 例 + 推理 6 例** | ✅ **13/13 + 6/6 全绿（`CONFORMANCE_PASS`）** |
+| A5b | 集合通信后端名探测 | ✅ **`cncl`**（2 进程 `all_reduce` 结果正确） |
+| 第 5 步 | 两条腿（2 卡训练 / 单卡推理 + 服务化） | ⏳ 下一步（前置已全部就绪） |
+| 第 6 步 | 错误闭环（四类注入） | ⏳ |
+| 第 7 步 | 多流 16 项基线逐项比对 | ⏳ |
+| 第 8 步 | 证据归档 + 验收清单 13 项 | 🟡 证据已入库 4 份 |
 
-**⇒ 当前唯一硬阻塞：`docker` 组权限**（+ `/srv/hliu553`）。
-镜像侧、代码侧均**已不阻塞**（镜像定档且实测可匿名拉取；后端已落地并通过离线自检）。
+**⇒ 接入完成的判定线（手册第 5 步 = conformance 13+6）已达成。**
+剩余为两条腿 / 错误闭环 / 多流 16 项，**前置全部就绪、无阻塞**。
 
-**⚠️ 一句话边界**：上表的"完成"指**代码层完成**。
-本实例**尚未在任何寒武纪设备上跑过一次** ——
-`torch.mlu` 的真实 API 形态、conformance 是否通过、两条腿能否跑通，
-**全部必须到容器内实测才能下结论**。
+### 0.1 真机实测结果汇总（2026-09-22，证据 `probes/A*_20260922.log`）
+
+| 项 | 实测结果 | 对实现/声明的影响 |
+|---|---|---|
+| Python / OS | **3.10.20 / Ubuntu 22.04.5** | 与 `neuware4.4.3` 档文档一致 |
+| torch / torch_mlu | **2.7.1+cpu / 1.29.2+torch2.7.1** | 与定档一致 |
+| 设备可见 | `torch.mlu.device_count() = 8`，MLU590-M9，**94.8 GiB/卡** | 判据 1+2 通过 |
+| 显存查询 | `mem_get_info(ordinal)` **可用**（(free,total) 同 CUDA 语义） | 后端取值路径 ① 即可，**降级路径 ③ 未被触发** |
+| **未 record 的 `Event.query()`** | **原生返回 `True`（误报）** | ⇒ 适配层 E3 修正**是必需的**，不是防御性冗余 |
+| **`Stream.synchronize(timeout_ms=…)`** | **不接受**（`TypeError`） | ⇒ 「有界」只能是**超时上报**语义（同昆仑芯口径，已如实标注） |
+| `priority_range()` | **`(0, -3)`**，可用且**不崩** | ⇒ 已**声明** `stream_priority`（昆仑芯同款 API 会触发 PyTorch 断言，二者相反） |
+| 图捕获 | 入口 `torch.mlu.MLUGraph` + `torch.mlu.graph`；**实测 5/5 成功** | ⇒ 已**声明** `graph_capture` |
+| 设备级重置原语 | `reset*/destroy*/reinit*` **全是内存统计类** | ⇒ `recovery_real` **已确认不具备**（从"未验证"升级为结论） |
+| 厂商错误码 | **不透出为数字码**：`CNRT error: invalid argument.`；OOM 为 `OutOfMemoryError: MLU out of memory…` | ⇒ `error_map` **如实不声明**；分级由 message_hint 覆盖（形状错→L2、OOM→L1，f1 已过） |
+| 集合通信后端名 | **`cncl`**（`cpu:gloo,mlu:cncl` 亦可） | ⇒ 训练腿 `DC_DIST_BT=cncl` |
+| 选卡变量 | `MLU_VISIBLE_DEVICES=2` → `device_count()` 由 8 变 1 ✅ | 统一启动脚本的 cambricon 分支写法得到验证 |
+| `import triton` | **必须先 `import torch_mlu`**，否则 torch 的 device-backend 自动加载失败 | ⇒ 记为环境坑（`known_issues()` 已收录），**与 P800 的"缺 triton"不同因** |
+| vLLM | 运行时层镜像**不含 vLLM** | ⇒ 推理腿服务化须用 `flagos-app/vllm*-cambricon-*` 应用镜像 |
+
+**⚠️ 一处自我更正（方法论）**：集合通信探测首轮我把 `all_reduce` 判为"错误"（sum=12.0），
+**是我判据公式写错了**——2×2 张量 × 两 rank（值 1 与 2）求和后每元素 = 3，
+**总和应为 3×4 个元素 = 12.0**，即结果**本来就是正确的**。已更正，未把错误判断留在结论里。
 
 ---
 
@@ -69,7 +91,13 @@ digest sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2  
 
 ## 2. 厂商栈判别（第 1 步，已给出**预期**与判别命令）
 
-**预期路径：C —— 厂商私有命名空间（PrivateUse1）**
+**✅ 实测结论（2026-09-22）：判定为「路径 C —— 厂商私有命名空间（PrivateUse1）」。**
+证据：`torch_mlu` 导入 OK 且 `torch.mlu.device_count() = 8`；
+`torch_npu` / `torch_fl` 均 `ModuleNotFoundError`（预期）；
+`torch.cuda.is_available() = False`、`torch.cuda.device_count() = 0`（确认不是复用 cuda 命名空间）。
+证据文件：`probes/A3A4_stack_probe_20260922.log` §B。
+
+**原预测路径（现已被实测确认）：C —— 厂商私有命名空间（PrivateUse1）**
 `torch_mlu` 把 MLU 注册为 PyTorch 的 PrivateUse1，设备串前缀 **`mlu`**：
 
 ```python
@@ -117,10 +145,10 @@ python3 -c "from vllm.platforms import current_platform; print(current_platform)
 | `bounded_sync` | ✅ | 主机侧 `wait_host` 真有界（轮询实现）；流同步为**超时上报**语义（同前两家口径，已如实标注） |
 | `recovery_probe` | ✅ | 探针级探活 |
 | `device_state` | ✅ | 复用芯片无关的四态机（进程内状态机，不依赖厂商原语） |
-| `error_map` | ❌ | **厂商错误码是否透出到 Python 层未实测** ⇒ 无凭据不声明；分级只走 `message_hint` / `default`，且**若底层骨架意外给出 `code_map` 一律如实降级标注**，不冒充码表命中 |
-| `recovery_real` | ❌ | **是否有设备级重置/重建原语未实测** ⇒ 不写一条猜的重建序列（写了会制造"看起来支持"的假象） |
-| `graph_capture` | ❌ | 图捕获入口是否存在未验证 |
-| `stream_priority` | ❌ | 该 API 形态未验证；且同类 API 在昆仑芯上会触发 PyTorch 自身 `INTERNAL ASSERT`，故 `stream_priority_range()` **主动返回 None、不乐观透传** |
+| `error_map` | ❌ **已实测确认不具备** | 错误码**不透出为数字码**：实测 CNRT 给错误名（`CNRT error: invalid argument.`）、OOM 给 `OutOfMemoryError: MLU out of memory…` ⇒ **无可建码表的数字码**。分级走 `message_hint` 已覆盖（形状错→L2、OOM→L1，conformance f1 通过）；若底层骨架意外给出 `code_map` 一律如实降级标注 |
+| `recovery_real` | ❌ **已实测确认不具备** | `torch.mlu` 下 `reset*/destroy*/reinit*` **全部是内存统计类**（`reset_peak_memory_stats` 等）⇒ 无设备级重置原语。**不写猜的重建序列**（写了会制造"看起来支持"的假象） |
+| `graph_capture` | ✅ **已声明（09-22 实测）** | 入口为 `torch.mlu.MLUGraph` + `torch.mlu.graph`；**实测 `GRAPH_CAPTURE` 5/5 成功** |
+| `stream_priority` | ✅ **已声明（09-22 实测）** | `priority_range()` 实测返回 **`(0, -3)`**，可用且**不崩**（昆仑芯同款 API 会触发 PyTorch `INTERNAL ASSERT`，二者相反）。⚠️ 上游**未拦截非法优先级**（`priority=99` 不报错）⇒ 本层不透传非法值；优先级**实际调度效果未单独验证** |
 
 ### 3.3 框架侧改动（都是"登记"，未改任何接口签名）
 
@@ -151,9 +179,27 @@ python3 -c "from vllm.platforms import current_platform; print(current_platform)
 
 ---
 
-## 4. 本地已验证（**不是真机结论**）
+## 4. 验证记录（本地离线 + 真机 A5）
 
-### 4.1 静态检查与回归
+### 4.0 ⭐ 真机 A5 结果（2026-09-22，本节最重要）
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 离线契约自检（容器内） | **34 通过 / 0 失败** | `probes/A5_verify_20260922.log` §④ |
+| smoke（真实后端通用自检） | **42 通过 / 0 失败**；选中后端 `cambricon (device_type=mlu)`，`device_count=8` | 同上 §⑤ |
+| **conformance 13 例** | **13/13 通过 · `CONFORMANCE_PASS`** | 同上 §⑥ |
+| **conformance 推理 6 例** | **6/6 通过 · `CONFORMANCE_PASS`** | 同上 §⑦ |
+| 集合通信后端名 | **`cncl`**（2 进程 `all_reduce` 结果正确，见 §0.1 的自我更正） | `probes/A6b_graph_dist_20260922.log` |
+| 图捕获 | **5/5 成功** | 同上 |
+| 能力声明实测核对 | `priority_range()=(0,-3)`；`graph_capture`/`stream_priority`=True；`error_map`/`recovery_real`=False | 同上 |
+
+> 13 例逐项（全部 PASS）：e1 事件 record/wait、e2 未 record 主机侧超时、e2 边界、e3 未 record query、
+> f1 统一错误对象（`L2_PARAM` / `graded_by=message_hint`）、r 恢复契约、s1 流内顺序（相对误差 0.00e+00）、
+> s2 显式依赖、s3 结果可见性、s4 显式传递、t1 pinned 异步拷贝、t2 在途保护、t3 拓扑路径。
+> 推理 6 例：i1 上下文、i2 多轮前向一致（误差 0.00e+00）、i3 KV 跨流可见性、i4 D2H 回传、
+> i5 长驻 20 轮无 NaN/Inf、i6 流水线依赖链（末轮 rel_err=1.03e-07）。
+
+### 4.1 本地静态检查与回归（接入期，无设备）
 
 | 项 | 结果 |
 |---|---|
@@ -194,12 +240,20 @@ python3 prototype/scripts/backend_offline_check.py --backend cambricon
 
 ---
 
-## 5. 真机执行手册（拿到 `docker` 权限后**按序执行**）
+## 5. 真机执行手册（**A1–A5b 已于 2026-09-22 执行完成**，A6–A10 待执行）
+
+> **实际执行信息（供复现）**：
+> · 机器 **Mlu-1**（10.1.1.21 / `tza-0a06-ai01-em9`），数据目录 `/srv/hliu553`
+> · 镜像 `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`，
+>   实测 digest `sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2`（**与定档记录一致**）
+> · 容器名 `dc-mlu590-hliu553`（起容器脚本 `/srv/hliu553/start_container_mlu590.sh`，传入 18 个设备节点）
+> · 用卡：宿主**卡 0 被他人占（37748 MiB / 96%）**、卡 1 有残留 ⇒ **单卡用 2、双卡用 2,3**
+>   （`MLU_VISIBLE_DEVICES=2` 实测把 `device_count()` 从 8 变 1）
 
 > 纪律：**每一步的原始输出都要落盘归档**（`probes/`，`.log` 已加 `!*.log` 例外）。
 > **共享机用卡**：先 `cnmon` 看占用，挑**空闲**卡并在记录里写明用了哪张。
 
-### A1 拉镜像 + 起容器
+### A1 拉镜像 + 起容器 ✅ 已完成
 
 ```bash
 IMG=harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
@@ -229,15 +283,15 @@ docker exec -it "$CT" bash
 `FlagGems/.github/configs/weekly/MLU590-M9DE.yml`（该配置跑的正是 **MLU590-M9** 这台卡型）。
 ⚠️ 寒武纪**无容器 toolkit**（不像昇腾 `Ascend-docker-runtime`）⇒ 直接给设备节点，不用 `--runtime`。
 
-### A2 环境普查（第 0 步复跑，作正式证据）
+### A2 环境普查（第 0 步复跑，作正式证据）🟡 待补（第 0 步报告已覆盖）
 
 ```bash
 OUT=/work/preflight bash /work/prototype/scripts/preflight_env.sh
 ```
 
-### A3 厂商栈判别（§2 的五条命令，逐条留输出）
+### A3 厂商栈判别 ✅ 已完成（`probes/A3A4_stack_probe_20260922.log`）
 
-### A4 镜像就绪 5 条判据（含**依赖链完整**自检）
+### A4 镜像就绪 5 条判据 ✅ 已完成（判据 1+2 通过；5 见 `known_issues` 的 triton 条目）
 
 ```bash
 python3 -c "import torch, torch_mlu; print('devs', torch.mlu.device_count())"      # 判据 1+2：预期 8
@@ -247,7 +301,7 @@ python3 -c "import torch.distributed as d; print('dist ok')"                    
 cnmon | head -30                                                                   # 看卡与占用
 ```
 
-### A5 放入原型 + 运行时代码层验证
+### A5 放入原型 + 运行时代码层验证 ✅ 已完成（离线自检 34/0 · smoke 42/0 · conformance 13/13 + 6/6）
 
 ```bash
 # 方式一（有出网）：git clone 分支
@@ -264,7 +318,7 @@ python3 runtime/conformance/runner.py --backend cambricon --cases infer_cases   
 
 **这一步是接入完成的判定线**：13/13 + 6/6 全绿，或未支持项有**如实 stub-skip 说明**。
 
-### A5b ⚠️ 先探测集合通信后端名（**训练腿的前置**，不可跳）
+### A5b 集合通信后端名探测 ✅ 已完成 → **`cncl`**
 
 ```bash
 python3 - <<'PY'
@@ -283,13 +337,13 @@ PY
 把可用者写进 `DC_DIST_BT`（形如 `cpu:gloo,mlu:<backend>`）后再跑训练腿；
 **探测结果回填本文档与 `runtime/backends/cambricon/backend.py` 顶部「未实测清单」第 10 条**。
 
-### A6 多流 16 项基线
+### A6 多流 16 项基线 ⏳ 待执行
 
 ```bash
 DC_BACKEND=cambricon python3 prototype/probes/probe_stream_semantics_full.py   # 期望 STREAM_SEMANTICS_PASS 8/8
 ```
 
-### A7 训练腿（2 卡，50 步；门禁档）
+### A7 训练腿（2 卡，50 步；门禁档）⏳ 待执行（`DC_DIST_BT=cncl`，用卡 2,3）
 
 ```bash
 DC_BACKEND=cambricon MLU_VISIBLE_DEVICES=0,1 \
@@ -304,7 +358,7 @@ python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/p
 参考锚点：910C `15.4497 → 11.15` / 2117 tok/s；P800 `15.4488 → 11.1481` / 3482 tok/s。
 **50 步不是随便定的**（挂死类缺陷往往在第 n 次通信才出现）。
 
-### A8 推理腿（前向 + 服务化）
+### A8 推理腿（前向 + 服务化）⏳ 待执行（服务化需 `flagos-app` 应用镜像，见 §0.1）
 
 ```bash
 # 前向
@@ -320,7 +374,7 @@ MODEL=<同上 snapshot 路径> bash prototype/scripts/serve_standard.sh
 参考锚点：910C 区分度 0.4123 / 108 句·s⁻¹；P800 0.4102 / 30.70 句·s⁻¹。
 ⚠️ 停机必须连 `EngineCore` 子进程一起 `kill -9`（P800 实测残留占卡 73850 MiB）。
 
-### A9 错误闭环（四类注入）
+### A9 错误闭环（四类注入）⏳ 待执行
 
 ```bash
 DC_BACKEND=cambricon python3 runtime/proto/proto_error_recovery_loop.py
@@ -329,7 +383,7 @@ DC_BACKEND=cambricon python3 runtime/proto/proto_error_recovery_loop.py
 判据：四类注入（参数/资源/执行/致命）分级与处置正确、业务继续。
 ⚠️ 调用纪律：传**完整原始异常/服务错误消息，不得截断**（截断会把参数错退化成无意义重放）。
 
-### A10 归档 + 回填
+### A10 归档 + 回填 🟡 证据已入库 4 份，余待补
 
 - 原始日志/JSON → `MLU590/probes/`（`.log` 已有 `!*.log` 例外；**写"已入库"前必须 `git ls-files` 实测确认**）
 - 回填：本文档 §0 进度表、§6 验收清单、`backend.py` 的「未实测清单」与 `_capabilities`
@@ -339,21 +393,21 @@ DC_BACKEND=cambricon python3 runtime/proto/proto_error_recovery_loop.py
 
 ## 6. 验收清单（手册 §8 的 13 项，逐项标当前状态）
 
-| # | 项 | 判据 | 当前状态 |
+| # | 项 | 判据 | 当前状态（2026-09-22） |
 |---|---|---|---|
-| 1 | 环境打通 | 连得上 / 有权限 / 有可写目录 / 会挑空闲卡 | 🟡 SSH ✅、资源 ✅、**`docker` 组 ⛔** |
-| 2 | 厂商栈判别 | 明确落 A/B/C/D 哪条路径并记录证据 | 🟡 预期 **C（PrivateUse1 / `mlu`）**，⏳ 待实测确认 |
-| 3 | 镜像就绪 | 5 条判据全过（含依赖链完整自检） | 🟡 镜像**已定档 + 实测可匿名拉取**；5 条判据 ⏳ 待容器 |
-| 4 | backend 落地 | 13 抽象 + `build()` + `supports()` 如实声明 | ✅ **代码层完成**（+ 离线自检 35/0） |
-| 5 | conformance 13 例 | 全绿或如实 stub-skip | ⏳ |
-| 6 | conformance 推理 6 例 | 全绿 | ⏳ |
-| 7 | smoke 自检 | 全通过 / 0 失败 | ⏳（本机 28/0 是无 torch 环境的回归，不算） |
-| 8 | 训练腿 | 两 rank `TRAIN_LEG_PASS 6/6` | ⏳（前置：A5b 集合通信后端名） |
-| 9 | 推理腿（前向） | 维度 / 范数 / 区分度 / 时延 / 异常分级 | ⏳ |
-| 10 | 推理腿（服务化） | 含超长输入防御与同卡共存 | ⏳ |
-| 11 | 错误闭环 | 四类注入分级处置正确、业务继续 | ⏳ |
-| 12 | 已知问题如实声明 | `known_issues()` 结构化 + 开跑前告警 | ✅ 已实现（当前仅环境约束 2 条，**无厂商缺陷结论**） |
-| 13 | 证据归档 | 原始日志/JSON 入版本库 + `git ls-files` 实测 | 🟡 第 0 步证据已入库；本轮 ⏳ |
+| 1 | 环境打通 | 连得上 / 有权限 / 有可写目录 / 会挑空闲卡 | ✅ **已打通**（`docker` 组 + `/srv/hliu553`；Docker 25.0.3；共享机用卡纪律照办） |
+| 2 | 厂商栈判别 | 明确落 A/B/C/D 哪条路径并记录证据 | ✅ **路径 C（PrivateUse1 / `mlu`）**，证据 `A3A4_stack_probe` §B |
+| 3 | 镜像就绪 | 5 条判据全过（含依赖链完整自检） | ✅ 判据 1、2、4 通过；判据 5「依赖链」以 `known_issues` 的 **triton 导入顺序**条目如实登记（本方向路径不依赖 triton） |
+| 4 | backend 落地 | 13 抽象 + `build()` + `supports()` 如实声明 | ✅ 完成，且**能力声明已按真机证据更新**（新增 `graph_capture`/`stream_priority`；`error_map`/`recovery_real` 由"未验证不声明"升为"已确认不具备"） |
+| 5 | conformance 13 例 | 全绿或如实 stub-skip | ✅ **13/13 全绿 · `CONFORMANCE_PASS`** |
+| 6 | conformance 推理 6 例 | 全绿 | ✅ **6/6 全绿 · `CONFORMANCE_PASS`** |
+| 7 | smoke 自检 | 全通过 / 0 失败 | ✅ **42 通过 / 0 失败**（选中 `cambricon`，`device_count=8`） |
+| 8 | 训练腿 | 两 rank `TRAIN_LEG_PASS 6/6` | ⏳ 待执行（前置已就绪：`DC_DIST_BT=cncl`、空闲卡 2,3） |
+| 9 | 推理腿（前向） | 维度 / 范数 / 区分度 / 时延 / 异常分级 | ⏳ 待执行 |
+| 10 | 推理腿（服务化） | 含超长输入防御与同卡共存 | ⏳ 待执行（**需 `flagos-app/vllm*-cambricon-*` 应用镜像**——运行时层镜像不含 vLLM） |
+| 11 | 错误闭环 | 四类注入分级处置正确、业务继续 | ⏳ 待执行 |
+| 12 | 已知问题如实声明 | `known_issues()` 结构化 + 开跑前告警 | ✅ 已实现，**4 条**：驱动档位约束 / 宿主无 NeuWare / **triton 导入顺序** / **运行时镜像不含 vLLM**；**仍无厂商缺陷结论**（不凑数） |
+| 13 | 证据归档 | 原始日志/JSON 入版本库 + `git ls-files` 实测 | 🟡 本轮 **4 份**证据已入 `MLU590/probes/`（待 `git ls-files` 复核） |
 
 ---
 
@@ -361,13 +415,13 @@ DC_BACKEND=cambricon python3 runtime/proto/proto_error_recovery_loop.py
 
 | # | 风险 | 应对 |
 |---|---|---|
-| 1 | **`torch.mlu` API 形态与预期不符**（`mem_get_info` 缺失/参数不同、`Stream.synchronize` 不收 timeout） | 后端已按**多条兜底链**写（显存三条取值路径、`synchronize` 两种调用形态），并把每条标为「未实测」；实测后回填 |
-| 2 | **推理腿形态未知**（厂商移植版 vs 社区版 + 插件） | `current_platform` 一跑即知；`serve_standard.sh` 的 cambricon 分支**刻意不预设任何厂商专用环境变量**（前两家变量互不通用，手册 §9 坑 5） |
-| 3 | **集合通信后端名不同** | 已用"不给就报错"拦住静默退化；A5b 专门探测 |
+| 1 | ~~`torch.mlu` API 形态与预期不符~~ → ✅ **已澄清**：`mem_get_info(ordinal)` 可用、`Stream.synchronize` 确实不收 timeout（后端的多条兜底链中，显存降级路径未被触发，超时上报语义正好落在预期分支上） | 无需再应对；结论已回填 backend 与本文档 |
+| 2 | **推理腿形态仍未知**（运行时层镜像**不含 vLLM** ⇒ `current_platform` 跑不了） | 改用 `flagos-app/vllm0.24.0-cambricon-neuware4.4.3`（或 0.20.2 变体）应用镜像后再判定；`serve_standard.sh` 的 cambricon 分支仍**刻意不预设任何厂商专用环境变量** |
+| 3 | ~~集合通信后端名不同~~ → ✅ **已探测：`cncl`**（2 进程 `all_reduce` 结果正确） | 「不给 `DC_DIST_BT` 就报错」的拦截保留（防静默退化）；训练腿按 `DC_DIST_BT=cncl` 跑 |
 | 4 | **共享机误用他人占用的卡** | P800 曾因此撤销一个"缺陷"结论 ⇒ 用卡前 `cnmon` 挑空闲卡、记录用卡、异常先换卡复测 |
 | 5 | **老档位（4.4.3）相关问题** | 不得凭版本号升级宿主驱动；走 `CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.2 的四条门槛 + 上报模板 |
 | 6 | 停机残留占卡 | `serve_standard.sh` 已含 `pkill -9` EngineCore 清理 |
-| 7 | 结论被外推 | 所有产出标注取得时的**档位/条件**（同 P800 的「KL3 未设置条件下取得」纪律） |
+| 7 | 结论被外推 | 所有产出标注取得时的**档位/条件**（同 P800 的「KL3 未设置条件下取得」纪律）；本次已标注：**`neuware4.4.3` / py3.10 / torch 2.7.1 / torch-mlu 1.29.2 档**，用卡 2（单卡）；共享机卡 0 有他人负载，**吞吐类指标不可与独占环境直接对比** |
 
 ---
 

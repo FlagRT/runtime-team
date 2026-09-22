@@ -1,0 +1,49 @@
+2026-09-22 14:30:46.430349: [cnrtError] [1343] [Card: NONE] Failed to find the device by ordinal 99
+======================================================================
+③ triton 导入顺序
+======================================================================
+  [A] 裸 `import triton` → 失败: ModuleNotFoundError: No module named 'triton'
+  [B] 先 torch_mlu 再 triton → 仍失败: ModuleNotFoundError: No module named 'triton'
+  [C] 仍失败: ModuleNotFoundError: No module named 'triton'
+
+torch=2.7.1+cpu  torch_mlu=1.29.2+torch2.7.1  devices=1
+
+======================================================================
+⑥ 厂商错误码是否透出到 Python 异常（决定 error_map 能否声明）
+======================================================================
+  非法设备序号                 RuntimeError: CNRT error: invalid argument.
+                         → 提取到的数字码: （无）
+  形状不匹配 matmul           RuntimeError: mat1 and mat2 shapes cannot be multiplied (3x4 and 5x6)
+                         → 提取到的数字码: （无）
+  非法 dtype               未报错（跳过）
+  超大分配（应报 OOM 类）         OutOfMemoryError: MLU out of memory. Tried to allocate 3725.29 GiB. MLU 0 has a total capacity of 94.78 GiB of which 92.12 GiB is free. Including non-PyTorch memory, this process has 1.20 MiB memory in use. Of the allo
+                         → 提取到的数字码: （无）
+
+======================================================================
+⑦ 图捕获（决定 graph_capture）
+======================================================================
+  入口不可用: AttributeError: module 'torch_mlu.mlu' has no attribute 'CUDAGraph'
+
+======================================================================
+⑤ 流优先级是否真生效（决定 stream_priority）
+======================================================================
+  priority_range() = (0, -3)
+  Stream(priority= 0) → 读出 priority=0
+  Stream(priority=-1) → 读出 priority=-1
+  Stream(priority=-3) → 读出 priority=-3
+  Stream(priority=99) 未报错（非法区间未被拦截）
+
+======================================================================
+⑧ 设备级重置原语复核（决定 recovery_real）
+======================================================================
+  候选: ['reset_accumulated_host_memory_stats', 'reset_accumulated_memory_stats', 'reset_max_memory_allocated', 'reset_max_memory_cached', 'reset_peak_host_memory_stats', 'reset_peak_memory_stats']
+  是否有非内存统计类的设备重置: （无）
+
+======================================================================
+⑨ 集合通信后端名（单进程内注册名探测，不做初始化）
+======================================================================
+  dist.is_available() = True
+  torch.mlu 上是否注册了私有 CCL: ['cncl', 'cncl_stream', 'default_pg_cncl_timeout']
+  Backend 枚举不可用: TypeError
+
+完成

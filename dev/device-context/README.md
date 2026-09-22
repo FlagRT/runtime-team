@@ -111,7 +111,7 @@
 
 ---
 
-### 2.5 MLU590 实例（第三个接入实例，🔄 环境普查 ✅ · 镜像定档 ✅ · 后端落地（代码层）✅ · 真机验证待 `docker` 组权限）
+### 2.5 MLU590 实例（第三个接入实例，✅ **接入阶段完成**：conformance 13/13 + 6/6 全绿 · 2026-09-22）
 
 | 项 | 状态 | 结果 |
 |---|---|---|
@@ -121,7 +121,11 @@
 | 环境版本组合（间接确认） | 🟨 **已被定档取代** | 他人脚本给的是 `torch 2.11.0+cpu` + `torch-mlu 1.33.1` 组合 —— 那属 **`neuware4.7.2` 档**（需驱动 6.5.48）；**我们走 4.4.3 档 ⇒ 实际组合为 py3.10 / torch 2.7.1 / torch-mlu 1.29.2 / triton 3.2.0+mlu1.7.2**，待进容器实机复核 `torch.mlu.device_count() == 8` |
 | **backend 落地（代码层）** | ✅ **09-22 完成** | 新增 `prototype/runtime/backends/cambricon/`：**13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`**；`name="cambricon"` / `device_type="mlu"`（PrivateUse1）。**能力如实不声明** 4 项：`error_map`（厂商码是否透出未实测）、`recovery_real`（无重置原语凭据）、`graph_capture`、`stream_priority` |
 | 离线契约自检（无设备） | ✅ **35 通过 / 0 失败** | 新增 `prototype/scripts/backend_offline_check.py`（stub 厂商命名空间空跑 8 组 35 条判据，逐条对应接口约定 / conformance 同口径）；本机 `smoke_runtime.py` **28/0**，新增后端**未造成回归**。⚠️ **这只证明实现逻辑与契约形态，不是真机结论** |
-| 阶段 1–5 真机验证 | ⛔ **待环境开通** | 现在唯一阻塞 = **root 权限**（`/srv` 不可写建不了 `hliu553`；不在 `docker` 组）—— **镜像与代码侧均已解除** |
+| **环境开通 + 起容器** | ✅ **09-22 完成** | `hliu553` 入 `docker` 组 + `/srv/hliu553` 可写；拉定档镜像（**digest 实测 `sha256:e55b420e…` 与定档一致**）并起容器 `dc-mlu590-hliu553` |
+| **smoke 自检** | ✅ **42 通过 / 0 失败** | 选中后端 `cambricon (device_type=mlu)`，`device_count=8`；`memory_stats` 走 `mem_get_info` 真实取值 |
+| **conformance 13 例 + 推理 6 例** | ✅ **13/13 + 6/6 全绿** | **接入完成的判定线已达成**（`CONFORMANCE_PASS`）；13 例含事件语义、错误翻译、恢复契约、流内顺序、跨流依赖、结果可见性、显式传输、pinned 异步拷贝、在途保护、拓扑路径 |
+| **能力声明按真机证据更新** | ✅ | 新增声明 `graph_capture`（图捕获实测 **5/5**）、`stream_priority`（`priority_range()=(0,-3)` 且不崩）；`error_map` / `recovery_real` 由「未验证不声明」**升级为「已确认不具备」** |
+| 剩余（两条腿 / 错误闭环 / 多流 16 项） | ⏳ **前置已全部就绪** | 集合通信后端名已探测 = **`cncl`**；空闲卡 2,3；推理腿服务化需 `flagos-app/vllm*-cambricon-*` 应用镜像（运行时层镜像不含 vLLM） |
 
 **两处实测要点**（详见 `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`）：
 1. **建不了 `/srv/hliu553`** —— `/srv` 属主 `root:root 755`，实测 `mkdir: Permission denied`；虽在 `sudo` 组但 sudo 需密码 ⇒ 需 root 开通；
@@ -199,7 +203,8 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 16 | **修第 5 个「跨后端不对称」缺陷**（对称复跑挖出）：`ascend`/`flagos` 未回填错误对象的 `backend` 字段（`kunlun` 已回填）+ smoke 判据对声明 `error_map` 的后端**不公平**（给无厂商码消息却要求走 `code_map`） | ✅ |
 | 17 | **第 3 家（寒武纪 MLU590）环境普查 + 镜像定档**：两台测试机资源盘点、MLU 栈版本取得、**验收模型在共享 HF 缓存**；建立 `MLU590/`；镜像**定档 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（实测可匿名拉取） | ✅ **本轮** |
 | 18 | **第 3 家接入 · 后端落地（代码层）**：新增 `backends/cambricon/`（13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`）；登记注册表；统一启动脚本补 `cambricon` 分支；训练腿加"不给集合通信后端名就报错"的拦截；**新增《离线契约自检》工具并回写接入手册 §4.4** | ✅ **本轮**（离线自检 35/0） |
-| 19 | **第 3 家接入 · 真机验证**（conformance 13+6 → 多流 16 项 → 训练腿 → 推理腿 → 错误闭环） | ⛔ **待 `docker` 组权限**（`/srv/hliu553` + 容器）；镜像与代码均已不阻塞。按 `MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` §5 的 A1–A10 执行 |
+| 19 | **第 3 家接入 · 环境打通 + 真机验证**：`docker` 组与数据目录开通 → 拉定档镜像（digest 核对一致）→ 起带卡容器 → 厂商栈判别（**路径 C：PrivateUse1 / `mlu`**）→ 离线自检 34/0 + smoke **42/0** + **conformance 13/13 + 6/6 全绿**；能力声明按真机证据更新（新增 `graph_capture` 5/5、`stream_priority`；`error_map`/`recovery_real` 确认不具备）；集合通信后端名 = **`cncl`** | ✅ **本轮** |
+| 20 | 第 3 家 · 两条腿 / 错误闭环 / 多流 16 项（前置已全部就绪） | 🔲 下一步 |
 
 ---
 

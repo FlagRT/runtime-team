@@ -1,0 +1,67 @@
+================ A 基本信息 ================
+python3 : /flagos/bin/python3  Python 3.10.20
+用户     : root  组: root
+工作目录 : /work
+OS       : Ubuntu 22.04.5 LTS
+NEUWARE_HOME = /usr/local/neuware
+/usr/local/neuware
+  /usr/local/neuware 存在
+设备节点 : /dev/cambricon_ctl /dev/cambricon_dev0 /dev/cambricon_dev1 /dev/cambricon_dev2 /dev/cambricon_dev3 /dev/cambricon_dev4 /dev/cambricon_dev5 /dev/cambricon_dev6 /dev/cambricon_dev7 /dev/cambricon_gdr /dev/cambricon_ipcm0 /dev/cambricon_ipcm1 /dev/cambricon_ipcm2 /dev/cambricon_ipcm3 /dev/cambricon_ipcm4 /dev/cambricon_ipcm5 /dev/cambricon_ipcm6 /dev/cambricon_ipcm7 
+
+================ B 厂商栈判别（手册 §2 五条命令）================
+torch.__version__ = 2.7.1+cpu
+torch.build USE_CUDA=None  (cuda 顶层: False, device_count=0)
+
+torch_mlu 导入 OK   : torch.mlu.device_count() = 8
+torch_npu 导入失败 : ModuleNotFoundError: No module named 'torch_npu'
+torch_fl  导入失败 : ModuleNotFoundError: No module named 'torch_fl'
+--- 推理腿平台判别（决定服务化形态）---
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'vllm'
+
+================ C 镜像就绪 5 条判据（手册 §3）================
+--- 判据 1+2：设备可见 + 厂商 torch 栈可导入 ---
+torch.mlu.device_count() = 8   ✅ 通过
+  mlu:0  MLU590-M9  total=94.8GiB
+  mlu:1  MLU590-M9  total=94.8GiB
+  mlu:2  MLU590-M9  total=94.8GiB
+  mlu:3  MLU590-M9  total=94.8GiB
+  mlu:4  MLU590-M9  total=94.8GiB
+  mlu:5  MLU590-M9  total=94.8GiB
+  mlu:6  MLU590-M9  total=94.8GiB
+  mlu:7  MLU590-M9  total=94.8GiB
+--- 判据 5：依赖链完整自检（对照 P800 踩过的坑）---
+RuntimeError: Failed to load the backend extension: mlu. You can disable extension auto-loading with TORCH_DEVICE_BACKEND_AUTOLOAD=0.
+flag_gems OK 5.4.0rc2.post3
+torch_mlu 1.29.2+torch2.7.1
+
+================ D 设备上下文预备能力（我方五域相关）================
+--- 显存查询（决定 memory_stats 走哪条路径）---
+  mem_get_info(ordinal)    OK  -> (62189993984, 101771640832)
+  mem_get_info()           OK  -> (62189993984, 101771640832)
+--- 流 / 事件 API 形态 ---
+  torch.mlu.Stream()           OK  -> Stream
+  torch.mlu.current_stream()   OK  -> Stream
+  torch.mlu.Event()            OK  -> Event
+--- 未 record 的 Event.query() 行为（E3 契约：是否误报已完成）---
+  未 record query() = True   （True 表示原生误报，需适配层修正）
+--- Stream.synchronize 是否接受 timeout（决定「有界」语义）---
+  不接受 timeout（TypeError）⇒ 只能做「超时上报」语义： Stream.synchronize() got an unexpected keyword argument 'tim
+--- Stream.priority_range()（昆仑芯上会触发 PyTorch 断言，寒武纪待验）---
+  priority_range() = (0, -3)
+--- 图捕获入口是否存在 ---
+  hasattr(torch.mlu, 'graph') = True
+--- 设备级重置原语是否存在（决定 recovery_real）---
+  torch.mlu 中 reset/destroy/reinit 相关: ['reset_accumulated_host_memory_stats', 'reset_accumulated_memory_stats', 'reset_max_memory_allocated', 'reset_max_memory_cached', 'reset_peak_host_memory_stats', 'reset_peak_memory_stats']
+--- 真机小张量运算（探针同款）---
+  zeros/add/sum/sync OK  sum=16.0
+
+================ E 集合通信后端探测（训练腿前置，手册 §9 坑 3）================
+[W922 14:24:33.454310139 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:24:51.472337131 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:25:09.633251330 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:25:27.644576390 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:25:45.688847147 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:26:03.707328931 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+/flagos/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py:420: UserWarning: Device capability of flagcx unknown, assuming `cpu` and `cuda`. You can specify it in `device:backend` format in `init_process_group` call.
+  warnings.warn(

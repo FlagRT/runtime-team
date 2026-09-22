@@ -5,7 +5,10 @@
 寒武纪镜像来源结论更正 + 档位定档 `neuware4.4.3`（驱动同 6.2.x 线，镜像阻塞已解除）；
 910C 官方对应物已登记进基座草稿 `candidates:`；P800 KL3 缺陷获官方印证**
 　　**同日追加（09-22 傍晚）：第 3 家寒武纪「接入」阶段启动 —— 后端落地（代码层）完成 +
-新增《离线契约自检》工具（35/0）；真机验证待 `docker` 组权限**
+新增《离线契约自检》工具（35/0）**
+　　**同日追加（09-22 晚）：第 3 家环境打通并完成接入验证 —— `docker` 组与数据目录开通 →
+定档镜像拉取（digest 核对一致）→ 起容器 → 厂商栈判别 → smoke 42/0 → **conformance 13/13 + 6/6 全绿**；
+能力声明按真机证据更新；集合通信后端名 = `cncl`**
 　｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
@@ -43,22 +46,26 @@
 conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（ascend，含自证字段）、
 训练腿 6/6（loss 与历史逐位吻合）、错误闭环双侧 5/0/0 —— 复核缺口 G1/G2 已关闭，
 证据 `910C/probes/recheck_*_20260922.json`（7 份）+ `P800/probes/recheck_*_20260922.json`（4 份）。
-**第 3 家（寒武纪 MLU590）已进入「接入」阶段**：
-① **环境普查 ✅**（两台测试机各 **8 × MLU590-M9** / 96 GB 卡 / 11T 盘挂 `/srv`；**验收模型已在共享 HF 缓存**，无需下载）；
-② **镜像定档 ✅** `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（实测可匿名拉取）；
-③ **后端落地（代码层）✅** —— 新增 `prototype/runtime/backends/cambricon/`（**13 抽象 + `build()` +
-`supports()` 如实声明 + `known_issues()`**；`name="cambricon"` / `device_type="mlu"`），
-并新增**《离线契约自检》工具**（`prototype/scripts/backend_offline_check.py`，**35 通过 / 0 失败**）
-且回写进《新芯片接入手册》**§4.4**；本机 `smoke_runtime.py` **28/0** ⇒ 新增后端未造成回归。
-④ **真机验证 ⛔ 待 `docker` 组权限**（`/srv` 不可写、不在 `docker` 组）——
-**镜像与代码侧均已不阻塞**，剩余步骤（conformance 13+6 → 多流 16 项 → 训练腿 → 推理腿 → 错误闭环）
-按 [`MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §5 的 A1–A10 执行。
+**第 3 家（寒武纪 MLU590）—— 接入阶段完成（2026-09-22 真机）**：
+① **环境普查 + 环境开通 ✅**（两台测试机各 **8 × MLU590-M9** / 94.8 GiB 卡；验收模型已在共享 HF 缓存）；
+② **镜像定档并已拉取 ✅** `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`
+   —— 实测 digest `sha256:e55b420e…` **与定档记录一致**；容器 `dc-mlu590-hliu553`（Mlu-1）；
+③ **厂商栈判别 ✅ —— 路径 C（PrivateUse1 / `mlu`）**：`torch_mlu` 可导入、`torch.mlu.device_count() = 8`、
+   `torch.cuda.is_available() = False`（确认不是复用 cuda 命名空间）；
+④ **后端落地 + 真机验证 ✅**：新增 `prototype/runtime/backends/cambricon/`（13 抽象 + `build()` +
+   `supports()` 如实声明 + `known_issues()`）；**离线自检 34/0、smoke 42/0、
+   conformance 13/13 + 6/6 全绿（`CONFORMANCE_PASS`）** ⇒ **接入完成的判定线已达成**；
+⑤ **能力声明已按真机证据更新**：新增声明 `graph_capture`（图捕获实测 **5/5**）、
+   `stream_priority`（`priority_range() = (0,-3)` 可用且不崩，与昆仑芯相反）；
+   `error_map` / `recovery_real` 由「未验证不声明」**升级为「已确认不具备」**
+   （CNRT 抛错误名而非数字码；`torch.mlu` 无设备级重置原语）；
+⑥ **集合通信后端名已探测 = `cncl`**（2 进程 `all_reduce` 结果正确）⇒ 训练腿 `DC_DIST_BT=cncl`。
 
-> ⚠️ **口径边界（必读）**：上表 ③ 的"完成"指**代码层完成**。
-> 本实例**尚未在任何寒武纪设备上跑过一次** —— `torch.mlu` 的真实 API 形态、conformance 是否通过、
-> 两条腿能否跑通，**全部必须到容器内实测才能下结论**；离线自检**只证明实现逻辑与契约形态**。
+**剩余（前置已全部就绪、无阻塞）**：多流 16 项基线 → 训练腿 2 卡 → 推理腿前向/服务化 → 错误闭环。
+⚠️ 推理腿服务化需改用 `flagos-app/vllm*-cambricon-*` 应用镜像（**运行时层镜像不含 vLLM**，已登记入 `known_issues`）。
+完整方案与实测汇总见 [`MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §0.1。
 
-未完成项：组件下游反馈收集、全组联合 demo 合稿、**第 3 家真机验证（待 `docker` 组权限）**。
+未完成项：组件下游反馈收集、全组联合 demo 合稿、第 3 家剩余验证项（两条腿 / 错误闭环 / 多流 16 项）。
 
 ## 已有量化结果（实跑）
 
@@ -100,6 +107,24 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 | ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
 | **多流 Stream 16 项基线（09-20）** | **14 项通过 / 1 项如实标注不支持 / 1 项不适用**：探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；S-16 补测 **2000 流无限制**；唯一差异 **S-12 流优先级不支持**（上游上报非法优先级区间 → 触发 PyTorch INTERNAL ASSERT；本层主动拦截不透传、不声明该能力） |
 | **统一启动脚本**（组内服务启动标准 v1.1，09-20） | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **25 s**；embedding 冒烟 **维度 1024 / 范数 1.000000**；停机后**无残留进程**、卡 6 释放至 **0 MiB**。⚠️ 需先激活 conda 环境（vLLM 不在默认 `PATH`，脚本按 `DC_CONDA_ENV=python310_torch29_cuda` 自动处理） |
+
+### MLU590 实例（第三个实例，寒武纪；接入阶段，2026-09-22）
+
+| 项 | 结果 |
+|---|---|
+| 厂商栈判别 | ✅ **路径 C（PrivateUse1 / `mlu`）**：`torch.mlu.device_count() = 8`；`torch.cuda.is_available() = False` |
+| 环境 | 容器内 **py3.10.20 / Ubuntu 22.04.5 / torch 2.7.1+cpu / torch_mlu 1.29.2+torch2.7.1**；8 × MLU590-M9，**94.8 GiB/卡** |
+| 镜像 | `flagos-runtime-cambricon-neuware4.4.3:2.2.0`，实测 digest `sha256:e55b420e…` **与定档一致** |
+| 组件自检（smoke） | ✅ **42 通过 / 0 失败**（选中 `cambricon`；`memory_stats` 走 `mem_get_info` 真实取值，读到他人占用 37748 MiB） |
+| **conformance 设备上下文与多流** | ✅ **13/13**（含 e1 事件语义、f1 统一错误对象 `L2_PARAM`/`message_hint`、r 恢复契约、s1–s4 流语义、t1–t3） |
+| **conformance 推理 6 例** | ✅ **6/6**（i2 多轮前向误差 0.00e+00、i5 长驻 20 轮无 NaN/Inf、i6 流水线 rel_err=1.03e-07） |
+| 离线契约自检（无设备工具） | ✅ **34 通过 / 0 失败**（共用工具，已回写接入手册 §4.4） |
+| 能力声明（真机实测后） | 声明 10 项；`graph_capture` **实测 5/5**、`stream_priority` **(0,-3) 可用且不崩**；`error_map`/`recovery_real` **已确认不具备**（如实不声明） |
+| 集合通信后端名 | ✅ **`cncl`**（2 进程 `all_reduce` 结果正确） |
+| 已知问题（`known_issues`） | 4 条：驱动档位约束 / 宿主无 NeuWare / **triton 导入顺序**（须先 `import torch_mlu`）/ 运行时镜像不含 vLLM。**仍无厂商缺陷结论**（不凑数） |
+
+> ⚠️ **结论条件标注**：以上均在 **`neuware4.4.3` 档（py3.10 / torch 2.7.1 / torch-mlu 1.29.2）**、
+> **单卡（`MLU_VISIBLE_DEVICES=2`）**、**共享机**上取得（宿主卡 0 有他人负载 ⇒ 吞吐类指标不可与独占环境直接对比）。
 
 **诚实标注**：P800 训练腿证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得；
 该变量开启时本环境概率性挂死（厂商缺陷），**不能代表开启时的行为**。
