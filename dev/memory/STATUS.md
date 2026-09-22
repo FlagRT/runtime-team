@@ -1,7 +1,13 @@
 # memory · STATUS
 
 > 总组速览入口（战略文档 §8.2 格式）｜ 详细看板见 [PROGRESS.md](PROGRESS.md) / [README.md](README.md)
-> 最近更新：2026-09-11
+> 最近更新：2026-09-22
+
+## 设备接入路线
+
+- **当前路线：Route A**。memory 不走 `torch_fl` 设备层；统一基于各芯片厂商官方设备插件接入，再使用 FlagGems、FlagCX 与 vllm-plugin-FL 等 FlagOS 组件。
+- 路线变更依据：[FlagOS 设备层路线变更指南](docs/common/policy_设备层路线变更指南.md)。该文档明确 2026-08-22 起生产交付由 B 切换为 A，2026-09-03 起 `torch_fl` 设备层路线冻结。
+- `docs/goals/legacy-2.4-910c/` 下的 `torch_fl` 内容仅作历史验证资产，不作为 memory 当前开发基线。
 
 ## 当前阶段
 
