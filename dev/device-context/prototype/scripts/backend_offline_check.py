@@ -49,6 +49,17 @@ from pathlib import Path
 PASS, FAIL = 0, 0
 
 
+#: 被 stub 能力边界跳过（非失败）的检查计数
+SKIPPED = 0
+
+
+def skip(name, reason):
+    """显式跳过：**stub 无法真实模拟**时才用，必须写清原因，不得用来掩盖失败。"""
+    global SKIPPED
+    SKIPPED += 1
+    print(f"  [SKIP] {name} —— {reason}")
+
+
 def check(name, cond, detail=""):
     global PASS, FAIL
     if cond:
@@ -59,18 +70,28 @@ def check(name, cond, detail=""):
         print(f"  [FAIL] {name} {detail}")
 
 
-# ═════════════════════════ stub：厂商命名空间 ═════════════════════
-def _stub_cambricon(mode="full"):
-    """寒武纪 `torch.mlu`（PrivateUse1）stub。
+# ═════════════════════ stub：厂商命名空间 ═════════════════════
+def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
+    """构造一个"厂商设备命名空间"stub —— 四家后端共用同一套实现。
 
-    mode 控制显存查询能力的三种情形，用于验证后端的取值兜底链：
-      'full'   → `mem_get_info(ordinal)` 可用
-      'noarg'  → 只接受无参 `mem_get_info()`
-      'absent' → 没有 `mem_get_info`（须降级到 total_memory - memory_allocated）
+    ns_name        设备命名空间名（`mlu` / `cuda` / `npu` / `flagos`）→ 挂成 `torch.<ns_name>`
+    vendor_modules 需一并伪造的**顶层厂商模块**名（`torch_mlu` / `torch_npu` / `torch_fl`）
+                   —— 后端里的 `import torch_mlu` 这类语句靠它们才能通过
+    mem_mode       显存查询能力，用于验证后端的取值兜底链：
+                     'full'   → `mem_get_info(ordinal)` 可用
+                     'noarg'  → 只接受无参 `mem_get_info()`
+                     'absent' → 没有 `mem_get_info`（须降级到 total_memory - memory_allocated）
+
+    ⚠️ **stub 刻意做得"坏"一点**（见 `Event`）：未 record 的 `query()` 无条件返回 True。
+    只有让底层"坏"，才能验出适配层有没有在真的做修正。
+
+    2026-09-22 通用化：原先只有 `_stub_cambricon` 一家，导致 P800 / 910C 上
+    `--backend kunlun|ascend` 直接被拒（工具自称通用却只能用一家）；四家共用本函数后
+    同一份自检可在四实例上跑，新增厂商也只需一行注册。
     """
     torch = types.ModuleType("torch")
     torch.__version__ = "0.0.0+stub"
-    mlu = types.ModuleType("torch.mlu")
+    ns = types.ModuleType(f"torch.{ns_name}")
     state = {"current": 0, "stream_query": True}
 
     class Stream:
@@ -115,37 +136,84 @@ def _stub_cambricon(mode="full"):
         def item(self):
             return self._v
 
-    mlu.device_count = lambda: 8
-    mlu.set_device = lambda o: state.__setitem__("current", o)
-    mlu.current_device = lambda: state["current"]
-    mlu.Stream = Stream
-    mlu.Event = Event
-    mlu.current_stream = lambda: Stream()
-    mlu.stream = lambda s: _Ctx()
-    mlu.synchronize = lambda *a, **k: None
-    mlu.get_device_properties = lambda o: Props()
-    mlu.memory_allocated = lambda o: 1 * 1024 ** 3
-    if mode == "full":
-        mlu.mem_get_info = lambda ordinal=None: (80 * 1024 ** 3, 96 * 1024 ** 3)
-    elif mode == "noarg":
-        mlu.mem_get_info = lambda: (80 * 1024 ** 3, 96 * 1024 ** 3)
+    class _Dev:
+        """设备串对象：`flagos` 后端用 `torch.flagos.device(ordinal)` 取设备。"""
+        def __init__(self, idx):
+            self.type = ns_name
+            self.index = idx
+        def __str__(self):
+            return f"{ns_name}:{self.index}"
+
+    ns.device_count = lambda: 8
+    ns.set_device = lambda o: state.__setitem__("current", o)
+    ns.current_device = lambda: state["current"]
+    ns.is_available = lambda: True
+    # `flagos` 后端的 memory_stats() 直接读命名空间上的 `memory_stats()`
+    ns.memory_stats = lambda: {"total_bytes": 96 * 1024 ** 3,
+                               "allocated_bytes": 1 * 1024 ** 3}
+    ns.Stream = Stream
+    ns.Event = Event
+    ns.current_stream = lambda: Stream()
+    ns.stream = lambda s: _Ctx()
+    ns.synchronize = lambda *a, **k: None
+    ns.get_device_properties = lambda o: Props()
+    ns.memory_allocated = lambda o: 1 * 1024 ** 3
+    ns.device = lambda o=0: _Dev(o)
+    if mem_mode == "full":
+        ns.mem_get_info = lambda ordinal=None: (80 * 1024 ** 3, 96 * 1024 ** 3)
+    elif mem_mode == "noarg":
+        ns.mem_get_info = lambda: (80 * 1024 ** 3, 96 * 1024 ** 3)
     # 'absent'：不设该属性
 
     torch.zeros = lambda *a, **k: _T(0.0)
-    torch.mlu = mlu
-    return torch, {"torch_mlu": types.ModuleType("torch_mlu")}, state
+    setattr(torch, ns_name, ns)
+    mods = {name: types.ModuleType(name) for name in vendor_modules}
+    return torch, mods, state
 
 
-#: 厂商 stub 注册表 —— 新厂商在这里加一项即可
+def _stub_cambricon(mode="full"):
+    """寒武纪 `torch.mlu`（PrivateUse1）—— 需伪造顶层 `torch_mlu`。"""
+    return _vendor_stub("mlu", ("torch_mlu",), mode)
+
+
+def _stub_kunlun(mode="full"):
+    """昆仑芯走 `torch.cuda` 兼容层（XPytorch）—— 无额外顶层厂商模块。"""
+    return _vendor_stub("cuda", (), mode)
+
+
+def _stub_ascend(mode="full"):
+    """昇腾 `torch.npu` —— 需伪造顶层 `torch_npu`。"""
+    return _vendor_stub("npu", ("torch_npu",), mode)
+
+
+def _stub_flagos(mode="full"):
+    """FlagOS `torch.flagos`（PrivateUse1）—— 需伪造顶层 `torch_fl`。"""
+    return _vendor_stub("flagos", ("torch_fl",), mode)
+
+
+#: 厂商 stub 注册表 —— 新厂商在这里加一项即可（四家已内置）
+#:
+#: 每项 = (stub_fn, device_type_期望, caps)。**caps 是"这个 stub 能真实验到什么"的声明**：
+#: 语义空间的 stub 无法模拟真实算子与厂商运行时，凡是 stub 不能真实覆盖的判据，
+#: 一律按 caps 走 `skip()` 显式跳过 —— **不得**因为"stub 不支持"而判 FAIL（那是误报），
+#: 也**不得**因为跳过而把该后端说成"已通过"（跳过会单独计数）。
+#:   stub_real_ops          能否真实跑 `probe_device`（需要在设备上做真计算）
+#:   stub_bounded_sync      能否真实模拟"任务未完成 + timeout"（需要厂商超时原语）
+#:   stub_mem_stats_shape   stub 的原始显存返回形状是否与真实厂商栈一致
+#:   stub_vendor_extension  该后端是否有**独立可缺失的厂商扩展模块**（缺了才谈得上报错）
 _STUBS = {
-    "cambricon": (_stub_cambricon, "mlu"),
+    "cambricon": (_stub_cambricon, "mlu", {}),
+    "kunlun": (_stub_kunlun, "cuda", {"stub_vendor_extension": False}),
+    "ascend": (_stub_ascend, "npu", {"stub_real_ops": False, "stub_bounded_sync": False}),
+    "flagos": (_stub_flagos, "flagos", {"stub_mem_stats_shape": False,
+                                        "stub_bounded_sync": False}),
 }
 
 
 def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True):
     """清干净再导入：确保每次都是"全新发现"（注册表单例会跨用例残留）。"""
     for m in [k for k in list(sys.modules)
-              if k.startswith("runtime") or k in ("torch", "torch_mlu", "torch_npu")]:
+              if k.startswith("runtime") or k in ("torch", "torch_mlu", "torch_npu", "torch_fl")]:
         del sys.modules[m]
     if proto_dir not in sys.path:
         sys.path.insert(0, proto_dir)
@@ -161,10 +229,13 @@ def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True):
 
 
 def run(proto_dir, backend):
-    stub_fn, dev_ns = _STUBS[backend]
+    stub_fn, dev_ns, caps = _STUBS[backend]
     print("=" * 74)
     print(f"后端离线契约自检：backend={backend}（device_type 期望={dev_ns}）")
     print("⚠️ 无真实设备：只验实现逻辑与契约形态，不验厂商 API 真实行为")
+    if caps:
+        print(f"ℹ️ 本家 stub 的能力边界（以下判据会被显式 SKIP）："
+              f"{', '.join(f'{k}=False' for k in sorted(caps) if caps[k] is False)}")
     print("=" * 74)
 
     # ── 1. 发现 / 实例化（ABC 会在实例化时强制 13 个抽象方法齐全）──
@@ -182,13 +253,23 @@ def run(proto_dir, backend):
     bk.set_device(3)
     check("set_device 生效", state["current"] == 3)
     mem = bk.memory_stats(0)
-    check("memory_stats 结构 = {total_mb,used_mb,free_mb}",
-          set(mem) == {"total_mb", "used_mb", "free_mb"}, str(mem))
-    check("memory_stats 值有效（>0 且 total=used+free 近似）",
-          mem["total_mb"] > 0 and abs(mem["total_mb"] - mem["used_mb"] - mem["free_mb"]) <= 1,
-          str(mem))
+    if caps.get("stub_mem_stats_shape", True):
+        check("memory_stats 结构 = {total_mb,used_mb,free_mb}",
+              set(mem) == {"total_mb", "used_mb", "free_mb"}, str(mem))
+        check("memory_stats 值有效（>0 且 total=used+free 近似）",
+              mem["total_mb"] > 0 and abs(mem["total_mb"] - mem["used_mb"] - mem["free_mb"]) <= 1,
+              str(mem))
+    else:
+        skip("memory_stats 结构/取值",
+             "该后端从厂商命名空间原样透传原始字段；stub 造的原始返回形状与真实厂商栈不一致，"
+             "据此判定等于用假数据判真实现 —— 须真机跑 smoke 判定（smoke 已含同口径判据）")
     check("memory_stats 用完还原当前设备（不产生隐式副作用）", state["current"] == 3)
-    check("probe_device 返回 True（真值路径）", bk.probe_device(0) is True)
+    if caps.get("stub_real_ops", True):
+        check("probe_device 返回 True（真值路径）", bk.probe_device(0) is True)
+    else:
+        skip("probe_device 真值路径",
+             "该后端的探活走 conformance/recovery 的真实设备计算，stub 无真实算子可跑；"
+             "真机 conformance / smoke 已覆盖（r_recovery 用例）")
 
     # ── 3. 流 / 事件域（D4/D5）+ 有界同步 ──
     print("\n[3] 流 / 事件域 + 有界同步（接口约定 §1.3）")
@@ -203,26 +284,31 @@ def run(proto_dir, backend):
     check("synchronize(timeout_ms=None) 原生阻塞路径不抛错", True)
     bk.synchronize(0, timeout_ms=0)
     check("已完成任务 + timeout_ms=0 → 正常返回（不误判超时）", True)
-    state["stream_query"] = False
-    try:
-        bk.synchronize(0, timeout_ms=0)
-        check("未完成任务 + timeout_ms=0 → 应抛 TimeoutError", False)
-    except TimeoutError:
-        check("未完成任务 + timeout_ms=0 → 抛 TimeoutError（有界成立）", True)
-    try:
-        bk.synchronize_stream(st, 0)
-        check("synchronize_stream(timeout_ms=0) → 应抛 TimeoutError", False)
-    except TimeoutError:
-        check("synchronize_stream(timeout_ms=0) → 抛 TimeoutError（有界成立）", True)
-    state["stream_query"] = False
-    t0 = time.monotonic()
-    try:
-        bk.synchronize(0, timeout_ms=200)
-    except TimeoutError:
-        pass
-    dt = (time.monotonic() - t0) * 1000
-    check("有界同步真的按时返回（非永久阻塞）", 180 <= dt <= 900, f"{dt:.0f} ms")
-    state["stream_query"] = True
+    if caps.get("stub_bounded_sync", True):
+        state["stream_query"] = False
+        try:
+            bk.synchronize(0, timeout_ms=0)
+            check("未完成任务 + timeout_ms=0 → 应抛 TimeoutError", False)
+        except TimeoutError:
+            check("未完成任务 + timeout_ms=0 → 抛 TimeoutError（有界成立）", True)
+        try:
+            bk.synchronize_stream(st, 0)
+            check("synchronize_stream(timeout_ms=0) → 应抛 TimeoutError", False)
+        except TimeoutError:
+            check("synchronize_stream(timeout_ms=0) → 抛 TimeoutError（有界成立）", True)
+        state["stream_query"] = False
+        t0 = time.monotonic()
+        try:
+            bk.synchronize(0, timeout_ms=200)
+        except TimeoutError:
+            pass
+        dt = (time.monotonic() - t0) * 1000
+        check("有界同步真的按时返回（非永久阻塞）", 180 <= dt <= 900, f"{dt:.0f} ms")
+        state["stream_query"] = True
+    else:
+        skip("有界同步三项（未完成抛 Timeout / 按时返回）",
+             "该后端的有界同步走厂商超时原语（如昇腾 acl），stub 无法产生'任务未完成'状态；"
+             "真机经 conformance e2/e2-b 与错误闭环已覆盖")
 
     # ── 4. 事件语义契约（E3 / E2-v2）──
     print("\n[4] 事件语义契约（conformance E3 / E2-v2）")
@@ -270,16 +356,45 @@ def run(proto_dir, backend):
               fe_shape.graded_by != "code_map", fe_shape.graded_by)
         check("未声明 error_map ⇒ mapped 必须为 False（F1 判据要求）",
               fe_shape.mapped is False, str(fe_shape.mapped))
+        # ⭐ 2026-09-22 新增（第 6 个跨后端缺陷的防回归判据）
+        #   背景：底层共享翻译器 `conformance/errors.py` 的码表是**单一厂商（昇腾 ACL）码表**，
+        #   抽取规则却很通用（`ret=<数字>` / `error code is <数字>`）。于是只要异常消息里
+        #   恰好出现一个**码表内的数字**，它就会返回 `graded_by="code_map"` 且 `mapped=True`。
+        #   对**没有厂商码表**的后端（kunlun / cambricon），这不是本厂商的码表命中 ⇒
+        #   `graded_by` / `mapped` / `error_code` 必须**一起**降级。只改 `graded_by` 会留下
+        #   「`mapped=True` 但 `graded_by≠code_map`」的自相矛盾，而 `mapped=True` 的契约含义是
+        #   **确定分级** ⇒ 等于把保守推断冒充成定论（违反 I2）。
+        #   本判据**只用消息文本、不碰设备** —— 正是"无设备先自查"该发挥作用的场合：
+        #   该缺陷首次是在真机错误闭环里被发现的，而它本可以在上机前就被这里拦住。
+        #   样例用 507015（共享码表内 → 会触发 code_map 路径），文案与错误闭环的注入一致。
+        _foreign_code_msg = "AICORE exception, error code is 507015"
+        ff = bk.translate_error(RuntimeError(_foreign_code_msg), location="self-check")
+        check("码表内码串入 ⇒ graded_by 不得为 code_map",
+              ff.graded_by != "code_map", ff.graded_by)
+        check("码表内码串入 ⇒ mapped 必须为 False（否则=把保守推断冒充成确定分级）",
+              ff.mapped is False, f"mapped={ff.mapped} graded_by={ff.graded_by}")
+        check("码表内码串入 ⇒ error_code 必须为 None（该码非本厂商码）",
+              ff.error_code is None, str(ff.error_code))
 
     # ── 6. 恢复与设备状态（R1-R5）──
     print("\n[6] 恢复与设备状态（conformance R1-R5）")
     rec = bk.recover_device(0, mode="probe")
     check("recover_device 返回 dict 且含 recovered（统一契约）",
           isinstance(rec, dict) and "recovered" in rec, str(rec)[:70])
-    ds = bk.device_state(0)
-    check("device_state 返回四态之一",
-          str(ds).split(".")[-1].lower() in
-          ("available", "degraded", "isolated", "destroyed"), str(ds))
+    # 2026-09-22：原先这里直接调 `bk.device_state(0)`，若后端**声明了 device_state 却没实现**
+    # 会抛 AttributeError 把整轮自检中斷（只留 traceback，连汇总都打不出来）——
+    # 那正好把"声明与实现不符"这类**最重要**的缺陷变成一次崩溃。
+    # 现改为捕获 AttributeError 并判 FAIL（flagos 的缺陷即由此暴露）。
+    try:
+        ds = bk.device_state(0)
+        check("device_state 返回四态之一",
+              str(ds).split(".")[-1].lower() in
+              ("available", "degraded", "isolated", "destroyed"), str(ds))
+    except AttributeError as e:
+        check("device_state 可调用（声明了该能力就必须有实现）", False,
+              f"AttributeError: {e} —— 能力声明与实现不符（与 kunlun 2026-09-20 同类）")
+    except Exception as e:
+        check("device_state 可调用", False, f"{type(e).__name__}: {str(e)[:110]}")
     if not bk.supports("recovery_real"):
         rec2 = bk.recover_device(0, mode="real")
         check("未声明 recovery_real ⇒ real 模式如实说明不支持（不伪造重建）",
@@ -290,6 +405,20 @@ def run(proto_dir, backend):
     info = bk.info()
     bad = sorted(k for k in info.get("capabilities", []) if not bk.supports(k))
     check("info.capabilities 与 supports() 自洽", not bad, str(bad))
+    # 2026-09-22 新增：smoke 已有"info.supports 的各项取值与 supports() 一致"判据，
+    # 但**键名漂移**不在其覆盖内 —— 若 info() 手写了第二份键名清单，两边都取 False，
+    # 取值一致性照样成立，而读者从 info() 会看到"已声明能力全是 False"。
+    # 故这里额外要求**键集合 == 能力全集**（有 `_CAPABILITY_KEYS` 用它，否则用 `_capabilities`）。
+    _sup_keys = info.get("supports")
+    if isinstance(_sup_keys, dict) and _sup_keys:
+        _universe = getattr(bk, "_CAPABILITY_KEYS", None) or tuple(sorted(bk._capabilities))
+        _missing = sorted(set(_universe) - set(_sup_keys))
+        _extra = sorted(set(_sup_keys) - set(_universe))
+        check("info()['supports'] 键集合 == 能力全集（防键名漂移）",
+              not _missing and not _extra,
+              f"缺 {_missing} / 多 {_extra}" if (_missing or _extra)
+              else f"{len(_sup_keys)} 键")
+
     sup = info.get("supports")
     if isinstance(sup, dict):
         mism = sorted(k for k, v in sup.items() if bool(v) != bk.supports(k))
@@ -310,18 +439,24 @@ def run(proto_dir, backend):
 
     # ── 8. 缺厂商扩展时不得静默降级 ──
     print("\n[8] 缺厂商扩展时的行为（应报错并给出下一步，不得静默降级）")
-    runtime2, loaded2, _ = fresh_import(proto_dir, backend, stub_fn, with_vendor=False)
-    bk2 = runtime2.get(backend)
-    try:
-        bk2.device_count()
-        check("缺厂商扩展时应报错", False, "未报错 —— 会静默降级，必须修")
-    except Exception as e:
-        msg = str(e)
-        check("缺厂商扩展时抛错且文案可操作",
-              len(msg) > 20 and ("torch" in msg.lower()), f"{type(e).__name__}: {msg[:60]}")
+    if caps.get("stub_vendor_extension", True):
+        runtime2, loaded2, _ = fresh_import(proto_dir, backend, stub_fn, with_vendor=False)
+        bk2 = runtime2.get(backend)
+        try:
+            bk2.device_count()
+            check("缺厂商扩展时应报错", False, "未报错 —— 会静默降级，必须修")
+        except Exception as e:
+            msg = str(e)
+            check("缺厂商扩展时抛错且文案可操作",
+                  len(msg) > 20 and ("torch" in msg.lower()), f"{type(e).__name__}: {msg[:60]}")
+    else:
+        skip("缺厂商扩展时应报错",
+             "该后端没有**独立可缺失的厂商扩展模块** —— 它的'扩展'是被替换过的 torch 本身"
+             "（如昆仑芯 XPytorch），摘掉模块这一步在本语义空间下无法构造；"
+             "真机上表现为 device_count()==0，由 registry/smoke 的 device_count 判据覆盖")
 
     print("\n" + "=" * 74)
-    print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败")
+    print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败 / {SKIPPED} 跳过（stub 能力边界，非失败）")
     print("⚠️ 结论边界：本结果只证明实现逻辑与契约形态。")
     print("   厂商 API 真实形态 / 错误码 / 集合通信后端名 / conformance 通过与否，")
     print("   一律必须在真机容器内实测（见《新芯片接入手册》第 5 步）。")

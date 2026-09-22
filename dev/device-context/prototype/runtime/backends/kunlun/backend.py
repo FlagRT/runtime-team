@@ -339,7 +339,16 @@ class KunlunBackend(RuntimeBackend):
         fe = errors.translate_error(exc, location=location)
         graded_by = getattr(fe, "graded_by", "default")
         # 如实降级：昆仑芯无错误码 → code_map 不可达，只有 message_hint / default 可信
-        if graded_by == "code_map":
+        #
+        # ⚠️ 2026-09-22 修（第 6 个跨后端缺陷，寒武纪实例暴露后回修本处）：
+        #   底层共享翻译器的码表是**昇腾 ACL 码表**。若消息里恰好出现形如昇腾错误码的数字
+        #   （例如 `error code is 507015`），它会返回 `graded_by="code_map"` 且 `mapped=True`。
+        #   昆仑芯没有厂商码表 ⇒ 这不是本厂商的码表命中，`graded_by` / `mapped` / `error_code`
+        #   必须**一起**降级。原写法只改 `graded_by`，留下「`mapped=True` 但
+        #   `graded_by≠code_map`」的自相矛盾；而契约里 `mapped=True` = **确定分级** ⇒
+        #   等于把保守推断冒充成定论（违反 I2 禁止伪造）。
+        degraded = graded_by == "code_map"
+        if degraded:
             graded_by = "message_hint_unexpected"
         return FlagosError(
             # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
@@ -350,8 +359,8 @@ class KunlunBackend(RuntimeBackend):
             category=coerce_category(getattr(fe, "category", None)) or _l3(),
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
-            error_code=getattr(fe, "error_code", None),
-            mapped=bool(getattr(fe, "mapped", False)),
+            error_code=None if degraded else getattr(fe, "error_code", None),
+            mapped=False if degraded else bool(getattr(fe, "mapped", False)),
             graded_by=graded_by,
             # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
             is_grade_confident=(graded_by == "message_hint"),

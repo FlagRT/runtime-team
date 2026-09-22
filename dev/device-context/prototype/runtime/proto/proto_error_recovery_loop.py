@@ -7,15 +7,28 @@
 
 监控方向负责"何时注入、注入什么、恢复编排"；本脚本提供设备侧证据。
 
+四类注入（2026-09-22 起，第 4 类**按后端分化**，见 `l4_injection_plan()`）：
+  ① 形状不匹配 → 期望 L2_PARAM（参数类，raise）          ② 显存超限 → 期望 L1_RESOURCE（资源类，retry）
+  ③ 流同步超时 → 期望 L3_EXECUTION（执行类，replay）      ④ 码串入 → 期望见下
+      · 声明 `error_map` 的后端：用它**自己的**码样例，期望 `mapped=True` / `graded_by=code_map`
+      · **未声明**的后端（kunlun / cambricon）：注入**共享码表（昇腾 ACL）内的数字码**，
+        期望 `mapped=False` / `error_code=None` —— 这是一次**诚实性负向测试**：
+        不得把他厂数字码当成本厂商的码表命中。
+  ⚠️ 本期修正了一处**假证据**：③ 的文案原先硬编码「真实 507046」，而 507046 是**昇腾**码，
+     在无厂商码的后端上并不产生 ⇒ 改为从异常本身如实提取码（有则带出，无则明说）。
+
 用法：
-  python3 proto_error_recovery_loop.py --backend flagos    # 训练腿（torch_fl）
-  python3 proto_error_recovery_loop.py --backend ascend    # 推理腿（torch_npu）
+  python3 proto_error_recovery_loop.py --backend flagos      # 训练腿（torch_fl）
+  python3 proto_error_recovery_loop.py --backend ascend      # 推理腿（torch_npu）
+  python3 proto_error_recovery_loop.py --backend kunlun      # P800
+  python3 proto_error_recovery_loop.py --backend cambricon   # 寒武纪 MLU
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 
@@ -91,7 +104,13 @@ def inject_timeout(b):
     try:
         b.synchronize_stream(s.native, timeout_ms=1)
     except TimeoutError as e:
-        note = "进程内捕获 TimeoutError（真实 507046），进程存活"
+        # ⚠️ 2026-09-22 修：原实现把「真实 507046」**硬编码在文案里** —— 507046 是**昇腾**错误码，
+        #   在无厂商码的后端（昆仑芯 / 寒武纪）上会制造一条**假证据**（本实例根本不产生该码，
+        #   只是恰好能触发 TimeoutError）。改为从异常本身如实提取：有码就带出，无码就明说。
+        _m = re.search(r"(?:ret\s*=|error code is)\s*(\d+)", str(e))
+        note = ("进程内捕获 TimeoutError，进程存活；"
+                + (f"异常消息内厂商码={_m.group(1)}" if _m
+                   else "异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）"))
         # 重放前置：等待流上剩余任务落地、设备归零
         try:
             b.synchronize(0)
@@ -104,9 +123,33 @@ def inject_timeout(b):
     return None, "未触发超时（任务在 1ms 内完成）"
 
 
-def inject_l4_by_code():
-    """已知错误码触发 L4 分级路径（说明：按码表触发，非真实芯片故障）。"""
-    raise RuntimeError("AICORE exception, error code is 507015")
+def l4_injection_plan(b):
+    """决定 L4 注入用哪条消息，并给出**期望**（写进结果 JSON，使记录自描述）。
+
+    之所以要分后端，是因为这条注入在不同后端上**验证的是完全不同的东西**：
+
+    - 后端声明 `error_map`（有本厂商码表）→ 用**它自己的**码样例（`SAMPLE_CODED_ERROR`）
+      触发码表路径，期望 `mapped=True` / `graded_by="code_map"`。
+    - **未声明**（kunlun / cambricon：厂商码不透出为数字码）→ 注入一条携带**共享码表内数字码**
+      的消息。共享码表（`conformance/errors.py` 的 `ACL_ERR_TO_CATEGORY`）是**昇腾 ACL 码表**，
+      对这个后端而言该数字属**他厂码** ⇒ 这条注入实际是一次**诚实性负向测试**：
+      期望 `mapped=False` / `graded_by≠code_map` / `error_code=None`，
+      即**不得**把他厂数字码当成本厂商的码表命中。
+
+    ⚠️ 2026-09-22 修（第 6 个跨后端缺陷）：原实现对所有后端统一标为「按码表触发」，
+    对无码表后端是**错误描述**；而当时后端只降级了 `graded_by`、没降级 `mapped`，
+    于是产出 `mapped=true` + `graded_by=message_hint_unexpected` 的自相矛盾记录
+    （`mapped=True` 的契约含义是**确定分级**）。
+    """
+    sample = getattr(b, "SAMPLE_CODED_ERROR", None)
+    if b.supports("error_map") and sample:
+        return ("l4_by_code(本厂商码表触发)", sample,
+                {"mapped": True, "graded_by": "code_map"},
+                "期望：本厂商码表命中（mapped=True / graded_by=code_map）")
+    return ("l4_by_code(码表内他厂码·诚实降级负向测试)",
+            "AICORE exception, error code is 507015",
+            {"mapped": False, "error_code": None},
+            "期望：如实降级（mapped=False / error_code=None；不得声称码表命中）")
 
 
 def handle(exc, backend, tag: str) -> dict:
@@ -117,6 +160,9 @@ def handle(exc, backend, tag: str) -> dict:
     rec["disposition"] = getattr(fe, "disposition", None)
     rec["mapped"] = getattr(fe, "mapped", None)
     rec["graded_by"] = getattr(fe, "graded_by", None)
+    # 2026-09-22 新增：把 error_code 也记进证据（否则"该码非本厂商码 ⇒ 必须为 None"
+    # 这条期望在结果 JSON 里无从核对）
+    rec["error_code"] = getattr(fe, "error_code", None)
 
     # ② 按 disposition 执行处置（设备侧能做的部分）
     action = "none"
@@ -180,11 +226,16 @@ def main() -> None:
         results.append({"inject": "baseline", "ok": False, "error": str(e)[:100]})
         print(f"[基线] 异常: {e}")
 
+    l4_tag, l4_msg, l4_expect, l4_expect_note = l4_injection_plan(b)
+
+    def inject_l4():
+        raise RuntimeError(l4_msg)
+
     injections = [
         ("shape_mismatch(L2_PARAM 期望)", inject_shape_mismatch, {}),
         ("oom(L1_RESOURCE 期望)", inject_oom, {}),
         ("stream_timeout(L3_EXECUTION 期望)", None, {"timeout": not args.no_timeout}),
-        ("l4_by_code(device_recovery 路径)", inject_l4_by_code, {}),
+        (l4_tag, inject_l4, {"expect": l4_expect, "expect_note": l4_expect_note}),
     ]
 
     for tag, fn, meta in injections:
@@ -211,9 +262,22 @@ def main() -> None:
             print(f"[{tag}] 未触发异常")
             continue
         rec = handle(exc, b, tag)
+        # 按后端的期望核对（2026-09-22 新增）：期望不符 ⇒ 本条**判失败**，
+        # 不能只看"业务还在跑"就放过 —— 那正是"看起来通过"的来源。
+        exp = meta.get("expect")
+        if exp:
+            rec["expectation"] = meta.get("expect_note", "")
+            bad = sorted(k for k, v in exp.items() if rec.get(k) != v)
+            rec["expect_matched"] = not bad
+            if bad:
+                rec["ok"] = False
+                rec["expect_failed_on"] = bad
         results.append(rec)
         print(f"[{tag}] {rec['category']} / {rec['disposition']} / "
-              f"action={rec['action']} / 业务继续={rec.get('business_continues')}")
+              f"action={rec['action']} / 业务继续={rec.get('business_continues')}"
+              + (f" / 期望核对={'✅' if rec.get('expect_matched') else '❌'}"
+                 f"{'' if rec.get('expect_matched') else ' 未达项=' + str(rec.get('expect_failed_on'))}"
+                 if exp else ""))
 
     closed = [r for r in results if r.get("ok") is True]
     skipped = [r for r in results if r.get("skipped")]

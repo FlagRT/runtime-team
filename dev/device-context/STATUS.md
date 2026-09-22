@@ -6,6 +6,11 @@
 910C 官方对应物已登记进基座草稿 `candidates:`；P800 KL3 缺陷获官方印证**
 　　**同日追加（09-22 傍晚）：第 3 家寒武纪「接入」阶段启动 —— 后端落地（代码层）完成 +
 新增《离线契约自检》工具（35/0）**
+　　**同日追加（09-22 晚）：第 3 家「接入」正式完成** —— 环境打通 → 真机验证全绿 →
+**多流 16 项（15 通过 / 1 不适用）** → **训练腿 6/6（2957.8 tok/s）** → **错误闭环 5/0/0**；
+收口期另做**跨后端对称性审计**，挖出 **3 个跨后端缺陷 + 2 处证据污染**
+（含 **910C 第一实例**的 `flagos` 能力撒谎与 `info()` 键名漂移）
+⇒ 新增阻塞：**910C 主机当日 SSH 不可达，flagos 侧真机复验待网络恢复**
 　　**同日追加（09-22 晚）：第 3 家环境打通并完成接入验证 —— `docker` 组与数据目录开通 →
 定档镜像拉取（digest 核对一致）→ 起容器 → 厂商栈判别 → smoke 42/0 → **conformance 13/13 + 6/6 全绿**；
 能力声明按真机证据更新；集合通信后端名 = `cncl`**
@@ -53,7 +58,7 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 ③ **厂商栈判别 ✅ —— 路径 C（PrivateUse1 / `mlu`）**：`torch_mlu` 可导入、`torch.mlu.device_count() = 8`、
    `torch.cuda.is_available() = False`（确认不是复用 cuda 命名空间）；
 ④ **后端落地 + 真机验证 ✅**：新增 `prototype/runtime/backends/cambricon/`（13 抽象 + `build()` +
-   `supports()` 如实声明 + `known_issues()`）；**离线自检 34/0、smoke 42/0、
+   `supports()` 如实声明 + `known_issues()`）；**离线自检 38/0、smoke 46/0、
    conformance 13/13 + 6/6 全绿（`CONFORMANCE_PASS`）** ⇒ **接入完成的判定线已达成**；
 ⑤ **能力声明已按真机证据更新**：新增声明 `graph_capture`（图捕获实测 **5/5**）、
    `stream_priority`（`priority_range() = (0,-3)` 可用且不崩，与昆仑芯相反）；
@@ -61,8 +66,24 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
    （CNRT 抛错误名而非数字码；`torch.mlu` 无设备级重置原语）；
 ⑥ **集合通信后端名已探测 = `cncl`**（2 进程 `all_reduce` 结果正确）⇒ 训练腿 `DC_DIST_BT=cncl`。
 
-**剩余（前置已全部就绪、无阻塞）**：多流 16 项基线 → 训练腿 2 卡 → 推理腿前向/服务化 → 错误闭环。
+⑦ **多流 Stream 16 项基线 ✅（09-22）**：**15 通过 / 1 不适用 / 0 不支持**；
+   探针 `STREAM_SEMANTICS_PASS 8/8`（双卡含 S-13）、图捕获 `GRAPH_CAPTURE_PASS 5/5`、
+   S-16 配额 `STREAM_QUOTA_PASS 3/3`（2000 流 0.02 s）⇒ 报告 `MLU590/docs/CAMBRICON_MLU_STREAM_BASELINE_16_20260922.md`；
+⑧ **训练腿 2 卡 ✅（09-22）**：`TRAIN_LEG_PASS 6/6`、loss **15.4498 → 11.1479**、**2957.8 tok/s**、
+   三类通信对照全对（`DC_DIST_BT=cncl`）；⚠️ 走 `MLU_LINK`、**非 RDMA**（见上文条件标注）；
+⑨ **错误闭环 ✅（09-22）**：四类注入 `ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）。
+
+**第 3 家接入完成后的收口产出（09-22）**：**跨后端对称性审计**挖出 **3 个跨后端缺陷 + 2 处证据污染**，
+其中**两个在 910C 第一实例上长期存在**（`flagos` 声明 `device_state` 却无实现；`info()["supports"]`
+手写第二份键名清单与 `_capabilities` 对不上 ⇒ 已声明能力恒显 False）；
+根因是**离线自检工具此前只为一家内置 stub** ⇒ 其余三家从未被自检过。
+已把工具扩到**四家可用** + 加**显式 SKIP 机制**（stub 覆盖不到的判据不误报也不混入"通过"）+
+**4 条防回归判据**（均做过非空转验证）。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md`；
+接口约定修订建议随之升级到 **v1.1（9 条）**。
+
+**剩余（无阻塞）**：推理腿前向/服务化 → 证据归档复核。
 ⚠️ 推理腿服务化需改用 `flagos-app/vllm*-cambricon-*` 应用镜像（**运行时层镜像不含 vLLM**，已登记入 `known_issues`）。
+⚠️ **有阻塞**：`flagos` 侧本轮修复的**真机复验**待 910C 网络恢复（见「阻塞与需要协调的事项」🔴 条）。
 完整方案与实测汇总见 [`MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §0.1。
 
 未完成项：组件下游反馈收集、全组联合 demo 合稿、第 3 家剩余验证项（两条腿 / 错误闭环 / 多流 16 项）。
@@ -118,13 +139,19 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 | 组件自检（smoke） | ✅ **42 通过 / 0 失败**（选中 `cambricon`；`memory_stats` 走 `mem_get_info` 真实取值，读到他人占用 37748 MiB） |
 | **conformance 设备上下文与多流** | ✅ **13/13**（含 e1 事件语义、f1 统一错误对象 `L2_PARAM`/`message_hint`、r 恢复契约、s1–s4 流语义、t1–t3） |
 | **conformance 推理 6 例** | ✅ **6/6**（i2 多轮前向误差 0.00e+00、i5 长驻 20 轮无 NaN/Inf、i6 流水线 rel_err=1.03e-07） |
-| 离线契约自检（无设备工具） | ✅ **34 通过 / 0 失败**（共用工具，已回写接入手册 §4.4） |
+| 离线契约自检（无设备工具） | ✅ **38 通过 / 0 失败**（共用工具；工具本轮扩到**四家可用**，已回写接入手册 §4.4） |
+| **多流 Stream 16 项基线** | ✅ **15 通过 / 1 不适用 / 0 不支持**；探针 **`STREAM_SEMANTICS_PASS 8/8`**（双卡含 S-13）、图捕获 **`GRAPH_CAPTURE_PASS 5/5`**、S-16 配额 **2000 流 `STREAM_QUOTA_PASS 3/3`**（0.02 s）。⚠️ **S-12 流优先级 MLU590 支持（`(0,-3)`）而 P800 不支持** ⇒ 同一 API 跨芯片相反 |
+| **训练腿（2 卡 DDP）** | ✅ **`TRAIN_LEG_PASS 6/6`**（两 rank）：loss **15.4498 → 11.1479**（50 步，无 NaN）、**2957.8 tok/s**、`all_reduce` 3.0/3.0 · `all_gather` [0.0,1.0] · P2P 一致；集合通信后端名 **`cncl`** |
+| **错误闭环（四类注入）** | ✅ **`ERROR_RECOVERY_LOOP_PASS`：闭环 5 / 跳过 0 / 失败 0**；记录自带 `expectation`/`expect_matched` |
 | 能力声明（真机实测后） | 声明 10 项；`graph_capture` **实测 5/5**、`stream_priority` **(0,-3) 可用且不崩**；`error_map`/`recovery_real` **已确认不具备**（如实不声明） |
 | 集合通信后端名 | ✅ **`cncl`**（2 进程 `all_reduce` 结果正确） |
 | 已知问题（`known_issues`） | 4 条：驱动档位约束 / 宿主无 NeuWare / **triton 导入顺序**（须先 `import torch_mlu`）/ 运行时镜像不含 vLLM。**仍无厂商缺陷结论**（不凑数） |
 
 > ⚠️ **结论条件标注**：以上均在 **`neuware4.4.3` 档（py3.10 / torch 2.7.1 / torch-mlu 1.29.2）**、
-> **单卡（`MLU_VISIBLE_DEVICES=2`）**、**共享机**上取得（宿主卡 0 有他人负载 ⇒ 吞吐类指标不可与独占环境直接对比）。
+> **共享机**（`tza-0a06-ai01-em9`，卡 0/2 空闲）上取得 ⇒ 吞吐类指标**不可与独占环境直接对比**。
+> 另有一条**必须连同结论一起引用**的限制：**CNCL 未加载 `libibverbs`/`libmlx5`**
+> （日志：`Failed to open libibverbs.so[.1] … Failed to load libibverbs.so!`），
+> 集合通信实际走 **`MLU_LINK` 片间互联**拓扑 ⇒ **训练腿数据仅代表单机 2 卡，跨机/RDMA 路径未验证**。
 
 **诚实标注**：P800 训练腿证据在 `XPU_EVENT_KL3_ENABLE` **未设置**下取得；
 该变量开启时本环境概率性挂死（厂商缺陷），**不能代表开启时的行为**。
@@ -254,7 +281,27 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 7. **通信接口约定**：与分布式方向确认 flagcx 路线（`prototype/docs/DESIGN_DIST_COMM_20260908.md`）。
 
 ## 阻塞与需要协调的事项
-### 🟠 第 3 家（寒武纪 MLU590）环境开通（2026-09-22 实测登记）
+
+### 🔴 910C 主机当日不可达（2026-09-22 晚实测登记）→ **影响一处缺陷的真机复验**
+
+| 事项 | 实测依据 | 影响 |
+|---|---|---|
+| **910C 主机（10.120.72.27）SSH 不通** | `ssh: connect to host 10.120.72.27 port 22: Operation timed out`（同一时段 P800 / Mlu-1 / Mlu-2 均正常） | **`flagos` 后端本轮修复无法在真机验证** —— 该修复动了 **910C 训练腿所用后端**（补 `device_state` 实现 + 修 `info()` 键名漂移） |
+
+**需要谁协调**：910C 机器/网络管理员（恢复该主机网络或告知替代入口）。
+
+**恢复后须补跑（已列入下一步）**：
+```bash
+# 容器内（910C 训练腿镜像）
+python3 prototype/scripts/backend_offline_check.py --backend flagos   # 无设备自检（本机已过 31/0/2 跳过）
+python3 prototype/runtime/smoke_runtime.py --backend flagos           # 真机：含 device_state 与 4 条新判据
+python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend flagos
+```
+
+> ⚠️ **在此之前，`flagos` 的 `device_state` 结论一律标注为「代码层已修、真机未验证」**，
+> 不得作为"已通过"引用。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` §2.2。
+
+### 🟢 第 3 家（寒武纪 MLU590）环境开通 —— **已解决（2026-09-22 当天）**
 
 两台测试机（`Mlu-1` = 10.1.1.21、`Mlu-2` = 10.1.1.22）已可 SSH 免密登录，硬件与环境均具备
 （各 **8 × MLU590-M9**，96 GB/卡；驱动 v6.2.29 / 固件 v1.5.0；11T 盘挂 `/srv`；

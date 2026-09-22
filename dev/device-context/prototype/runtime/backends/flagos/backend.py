@@ -13,6 +13,7 @@ torch_fl 的 flagos（镜像明确禁止 torch_npu 与 Torch-FL 运行时共存�
 from __future__ import annotations
 
 import contextlib
+import sys
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -100,6 +101,7 @@ class FlagosBackend(RuntimeBackend):
         self._torch = None
         self._mod = None          # torch.flagos
         self._errors_mod = None
+        self._device_state = None  # 共享的四态机（标准 import，见 _load_device_state）
         self._loaded = False
 
     # ───────────── 延迟加载 ─────────────
@@ -262,12 +264,55 @@ class FlagosBackend(RuntimeBackend):
         }
 
     # ───────────── 能力声明 ─────────────
+    #: 设备四态查询（2026-09-22 补实现，第 7 个跨后端缺陷）
+    def _load_device_state(self):
+        """按需加载 `conformance/device_state` 资产（进程内设备四态机）。
+
+        ⚠️ **必须用标准 `import`（共享 `sys.modules`），不能用 importlib 独立模块名加载**
+        —— 与 `kunlun` / `cambricon` 同一纪律。`device_state` 是**有状态单例**
+        （模块级 `_ensure(ordinal)` 持有每台设备的四态、转换事件与订阅者）；
+        若像本类的 `_load_errors()` 那样用 `spec_from_file_location("dc_xxx", ...)` 加载，
+        会得到**两份状态机** —— conformance/上层设置的状态后端查不到，反之亦然。
+        （`errors` 是无状态纯函数，两份无所谓；但那正是「第 4 个跨后端框架缺陷」的成因，
+        **不应效仿**。）
+        """
+        if self._device_state is None:
+            sys.path.insert(0, str(_CONFORMANCE_DIR))
+            import device_state as _device_state
+            self._device_state = _device_state
+        return self._device_state
+
+    def device_state(self, ordinal: int):
+        """查询设备四态：`available` / `degraded` / `isolated` / `destroyed`。
+
+        **2026-09-22 补实现（第 7 个跨后端缺陷）**：本类原先在 `_capabilities` 里
+        **声明了 `device_state` 却没有对应方法** —— 与 2026-09-20 在 `kunlun` 上发现的
+        「声明与实现不符」是**同一类**问题。处置口径与当时一致：**补实现，不是删声明**
+        （四态机是芯片无关的共享资产，本后端复用它与另三家同一份实现、同一套语义）。
+
+        暴露路径：`backend_offline_check.py --backend flagos` 第 [6] 组
+        （此前该工具只为 cambricon 内置 stub，flagos 从未被自检过 ⇒ 该缺陷一直未被拦到）。
+
+        边界（如实标注）：本后端只声明 `recovery_probe`；四态**转换**由上层/监控方向驱动，
+        本方法只负责**查询**，恢复执行走 `recover_device(mode="probe")`。
+        """
+        return self._load_device_state().query_device_state(ordinal)
+
     # 能力声明：与 ascend 后端同一套键名（此前键名不一致，已统一）
+    #: 能力**全集**（已知能力名，`info()["supports"]` 按此逐项 True/False 呈现；
+    #: 与 kunlun / cambricon 同一份清单 —— 清单本身是"已知能力"，不代表本后端支持）
+    _CAPABILITY_KEYS = (
+        "device", "memory", "stream", "event", "bounded_sync",
+        "error_map", "recovery_probe", "recovery_real",
+        "device_state", "graph_capture", "stream_priority", "multidevice",
+    )
+
+    #: 本后端**声明支持**的能力（不支持/未验证的一律不写进来 —— 如实声明，不伪造）
     _capabilities = {
         "device", "memory", "stream", "event",
         "error_map",            # 复用 conformance/errors.py 错误码映射
         "recovery_probe",       # probe 级恢复
-        "device_state",
+        "device_state",         # 2026-09-22 补实现后声明成立
         "multidevice",
         # 不支持：bounded_sync（原生同步为阻塞式）/ recovery_real / stream_priority
     }
@@ -283,9 +328,15 @@ class FlagosBackend(RuntimeBackend):
             "framework": "torch_fl(flagos)",
             "torch": self._torch.__version__,
             "device_count": self.device_count(),
-            "supports": {k: self.supports(k) for k in (
-                "stream_priority", "device_rebuild_real", "device_rebuild_probe",
-                "error_code_map", "bounded_sync")},
+            # 2026-09-22 修（同一次自检暴露的第二处）：原先这里手写了一份键名清单
+            # （"stream_priority" / "device_rebuild_real" / "device_rebuild_probe" /
+            #   "error_code_map" / "bounded_sync"），与 `_capabilities` 里的键名
+            # （"stream_priority" / "recovery_real" / "recovery_probe" / "error_map" / …）
+            # **对不上** ⇒ `info()["supports"]` 对已声明能力恒报 False，读者会得出
+            # 完全相反的结论。
+            # 改为与 kunlun / cambricon **同款**：按 `_CAPABILITY_KEYS` 全集逐项呈现，
+            # 清单不再是手写的第二份真相 ⇒ 从结构上杜绝再次漂移。
+            "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
         }
 
 

@@ -319,6 +319,21 @@ def main(argv=None):
             else:
                 check("未声明 error_map → 分级来源非 code_map（如实）",
                       fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                check("未声明 error_map → mapped 必须为 False（诚实性）",
+                      fe.mapped is False, f"mapped={fe.mapped}")
+                # ⭐ 2026-09-22 新增（第 6 个跨后端缺陷的真机防回归判据）
+                #   共享翻译器的码表是单一厂商（昇腾 ACL）码表，抽取规则却通用（`ret=`/`error code is`）。
+                #   消息里出现一个**码表内**的数字时，它会给出 graded_by=code_map + mapped=True。
+                #   无码表后端必须把 graded_by / mapped / error_code **一起**降级，
+                #   否则 mapped=True（=确定分级）与 graded_by≠code_map 自相矛盾，把保守推断冒充成定论。
+                _fc = bk.translate_error(
+                    RuntimeError("AICORE exception, error code is 507015"), location="smoke")
+                check("码表内码串入 → graded_by 不得为 code_map",
+                      _fc.graded_by != "code_map", _fc.graded_by)
+                check("码表内码串入 → mapped 必须为 False（否则=冒充确定分级）",
+                      _fc.mapped is False, f"mapped={_fc.mapped}")
+                check("码表内码串入 → error_code 必须为 None（非本厂商码）",
+                      _fc.error_code is None, str(_fc.error_code))
 
             # info() 与 supports() 自洽
             info = bk.info()

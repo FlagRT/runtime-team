@@ -1,0 +1,46 @@
+################################################################
+########## [A9] 错误闭环（四类注入）—— 补控制台日志 ##########
+################################################################
+后端: cambricon | 设备数: 1
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(码表内他厂码·诚实降级负向测试)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /work/probes/error_recovery_loop_cambricon.json
+A9 exit=0
+
+################################################################
+########## [S-7] graph capture 流语义（后端无关 V2）##########
+################################################################
+/flagos/lib/python3.10/site-packages/torch_mlu/mlu/graphs.py:79: UserWarning: The MLU Graph is empty. This usually means that the graph was attempted to be captured on wrong device or stream. (Triggered internally at /torch_mlu/torch_mlu/csrc/framework/graphs/MLUGraph.cpp:204.)
+  super().capture_end()
+=== probe_graph_capture_stream_v2.py: graph capture 流语义（后端无关 V2）===
+[env] backend=cambricon dev_api=mlu devices=1 torch=2.7.1+cpu
+[env] 图对象类: MLUGraph
+[G1] capture vs eager: val=-78073.406250 ref=-78073.406250 rel_err=0.00e+00 ✅
+[G2] replay 确定性: val1=-78073.406250 val2=-78073.406250 差=0.00e+00 ✅
+[G3] 输入更新后 replay: val3=40362.023438 eager3=40362.023438 rel_err=0.00e+00 ✅
+[G4] capture 内 stream 切换: val=-30229.386719 ref=-30229.386719 rel_err=0.00e+00 ✅
+[G5] capture 显式 stream 参数: rel_err=0.00e+00 ✅
+
+GRAPH_CAPTURE_PASS: graph capture 流语义 5 项：5/5 通过（capture/replay/输入更新/流切换/显式流）
+结果已写入 /work/probes/graph_capture_stream_result_mlu590.json
+S7 exit=0
+
+################################################################
+########## [S-16] 流数量配额 ##########
+################################################################
+=== probe_stream_quota.py: S-16 流数量配额（后端无关）===
+[env] backend=cambricon dev_api=mlu devices=1 torch=2.7.1+cpu N=2000
+[Q1] 连续创建 2000 个流：实际成功 2000 个，耗时 0.02s ✅
+[Q2] 第 1 个流仍可执行：结果=192.0000（期望 192.0）✅
+[Q3] 释放 2000 个流后再建新流：结果=32.0000（期望 32.0）✅
+
+STREAM_QUOTA_PASS: 3/3 子项通过
+结果已写入 /work/probes/stream_quota_result_mlu590.json
+S16 exit=0
+
+########## 全部完成 ##########

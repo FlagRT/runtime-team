@@ -417,15 +417,27 @@ class CambriconBackend(RuntimeBackend):
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
         """厂商错误 → 统一 `FlagosError`。
 
-        分级来源如实限定为 **`message_hint`（消息规则）/ `default`（兜底）**：
-        厂商错误码是否透出到 Python 层**未实测**，故本后端**不声明 `error_map` 能力**，
-        且若底层骨架意外给出 `code_map`（例如消息里恰好出现形如昇腾错误码的数字），
-        一律**如实降级标注**，不冒充"码表命中"（P800 同款处理，见其 backend 注释）。
+        分级来源如实限定为 **`message_hint`（消息规则）/ `default`（兜底）**。
+        2026-09-22 真机实测：**厂商错误码不透出为数字码** —— CNRT 抛的是错误名
+        （`CNRT error: invalid argument.`），OOM 抛 `OutOfMemoryError: MLU out of memory…`
+        ⇒ 无可用于码表的数字码，故**不声明 `error_map` 能力**（是"确认不具备"，不是"未验证"）。
+
+        ⚠️ **诚实降级必须三个字段一起动**（2026-09-22 修，第 6 个跨后端缺陷）：
+        底层共享翻译器 `conformance/errors.py` 的码表是**昇腾 ACL 码表**；若异常消息里
+        恰好出现形如昇腾错误码的数字（例如 `error code is 507015`），它会返回
+        `graded_by="code_map"` **且 `mapped=True`**。本后端没有厂商码表，这不是本厂商的
+        码表命中 ⇒ `graded_by` / `mapped` / `error_code` 必须**一起**降级。
+        只改 `graded_by`（原写法）会留下「`mapped=True` 但 `graded_by≠code_map`」的
+        **自相矛盾**，而契约里 `mapped=True` 的含义是**确定分级**（见
+        `conformance/errors.py` 的 `FlagosError` 字段说明）—— 等于把保守推断冒充成定论，
+        违反不变式 I2（禁止伪造）。**实测暴露路径**：错误闭环四类注入中
+        `l4_by_code` 一条即为此形态（`mapped=true` + `graded_by=message_hint_unexpected`）。
         """
         self._load_assets()
         fe = self._errors.translate_error(exc, location=location)  # type: ignore[union-attr]
         graded_by = getattr(fe, "graded_by", "default")
-        if graded_by == "code_map":
+        degraded = graded_by == "code_map"
+        if degraded:
             graded_by = "message_hint_unexpected"
         return FlagosError(
             # `errors.ErrorCategory` 是 IntEnum（L1=1..L4=4），与 api 层枚举**不是同一个类对象**；
@@ -434,8 +446,8 @@ class CambriconBackend(RuntimeBackend):
             category=coerce_category(getattr(fe, "category", None)) or ErrorCategory.L3_EXECUTION,
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
-            error_code=getattr(fe, "error_code", None),
-            mapped=bool(getattr(fe, "mapped", False)),
+            error_code=None if degraded else getattr(fe, "error_code", None),
+            mapped=False if degraded else bool(getattr(fe, "mapped", False)),
             graded_by=graded_by,
             # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
             is_grade_confident=(graded_by == "message_hint"),
