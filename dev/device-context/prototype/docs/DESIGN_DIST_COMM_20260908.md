@@ -15,7 +15,7 @@
 | ~~训练腿锁定镜像走 **flagos（torch_fl）**，且**禁止 torch_npu 共存**~~ ⇒ **2026-09-22 口径统一：训练腿改走 `npu`（torch_npu）**，与推理腿一致 | 该镜像的 `verify_flagcx_runtime.py` 禁止的是**同一解释器内** torch_npu 与 Torch-FL 共存；改用容器内**只装 torch_npu 的解释器**（`venv-infer-a`）即物理隔离，不触发该校验。实测 2 卡/50 步：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**（torch_fl 线 15.4497→11.1515）、吞吐 **+79~99%**（3954–4402 vs 2212.9 tok/s） |
 | 训练腿镜像自带 **flagcx 0.13.0**（多芯片统一通信库） | `pip list`：`flagcx 0.13.0`；`import flagcx` 成功，含 `dist` 能力 |
 | 带卡容器并发上限 **3** | 4 个并发时 `acl.init()`=500000，降到 3 个后=0（已写入 stack.lock 置顶规则） |
-| 我们的原型已支持**双设备后端** | `ascend`（torch_npu）13/13 + 6/6；`flagos`（torch_fl）13/13 |
+| 我们的原型已支持**多家厂商设备后端** | `ascend`（torch_npu）13/13 + 6/6；`kunlun`（XPytorch 兼容层）13/13 + 6/6；`cambricon`（torch_mlu）13/13 + 6/6 |
 
 **一个直接结论（2026-09-22 更新）**：训练腿当初用 flagos **不是路线选择，而是该锁定镜像的环境约束**。
 统一基座定为 Qwen3-0.6B 训推 + 厂商 torch 插件路线后，我们**已把训练腿统一切到 `npu`（torch_npu）**，

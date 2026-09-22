@@ -46,7 +46,6 @@
 |---|---|
 | 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
 | 昇腾后端（torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10**、smoke **52/0** |
-| FlagOS 后端（torch_fl）**—— 2026-09-22 起不再是训练腿口径** | ✅ conformance **13/13**（保留为**备用 / 历史复现**，不再默认使用） |
 | 训练腿 2 卡分布式微调（Qwen3-Embedding-0.6B） | ✅ **现口径 = torch_npu + HCCL**：loss **15.4498 → 11.1479**（50 步）、**3954–4402 tok/s**、三类通信对照全对<br>⏹ torch_fl 线（历史）同模型同步数：**2212.9 tok/s**、loss 15.4497→11.1515 ⇒ 同口径下 torch_npu **+79~99%** |
 | 推理腿单卡 · 前向形态 | ✅ 向量区分度 **0.638**、66–79 句/s、无 NaN |
 | 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms） |
@@ -75,7 +74,7 @@
 | `DC_STAGE_SUMMARY_20260909.md` | 阶段性总结：两条腿证据并入 |
 | `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
 | `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
-| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，`flagos` 权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
+| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
@@ -127,7 +126,8 @@
   不触发镜像那条"禁止共存"校验）；`DC_BACKEND=ascend DC_DIST_BT=hccl`。
   ⚠️ **必须在 `init_process_group` 之前先经后端触碰一次设备**，否则 `hccl` 未注册，
   报 `AssertionError: Unknown backend type hccl`（审计台账第 15 条）。
-  ⏹ 原 torch_fl 走法（`AUTOLOAD=0` + 先 `import torch_fl`）**仅在使用 `flagos` 后端时需要**，已保留可用。
+  ⏹ 原路线 B 走法（`AUTOLOAD=0` + 先导入该插件）**已随路线 B 归档**：原型里的该后端已删除，
+  当前口径不需要它，也不再提供该路径。
 - **推理镜像** `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` → 后端 **npu（torch_npu）**。**两腿现已同后端**。
 - 选卡变量：`ASCEND_RT_VISIBLE_DEVICES`。
 - **容器内没有 `npu-smi`**（实测 `npu-smi: command not found`）——它是**宿主工具**。

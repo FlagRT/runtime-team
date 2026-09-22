@@ -93,6 +93,8 @@ class _VendorRuntimeBlocker:
     `sys.modules` 优先于 `sys.meta_path`，故我们**注入的假模块仍然生效**（如 ascend 的假 `acl`）。
     """
 
+    # 注：`torch_fl` 属路线 B（已归档删除），此处**仍然保留在阻断清单里** ——
+    # 阻断清单的语义是"厂商运行时一个都不许碰"，多列一家只会更安全（防误引入）。
     VENDOR_ROOTS = ("acl", "torch_npu", "torch_fl", "torch_mlu", "torch_npu_ops",
                     "torch_mlu_ops", "torch_xmlir", "torch_xray", "flagcx", "cncl")
 
@@ -165,8 +167,8 @@ def _make_fake_acl(init_rc=0):
 def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     """构造一个"厂商设备命名空间"stub —— 四家后端共用同一套实现。
 
-    ns_name        设备命名空间名（`mlu` / `cuda` / `npu` / `flagos`）→ 挂成 `torch.<ns_name>`
-    vendor_modules 需一并伪造的**顶层厂商模块**名（`torch_mlu` / `torch_npu` / `torch_fl`）
+    ns_name        设备命名空间名（`mlu` / `cuda` / `npu`）→ 挂成 `torch.<ns_name>`
+    vendor_modules 需一并伪造的**顶层厂商模块**名（`torch_mlu` / `torch_npu`）
                    —— 后端里的 `import torch_mlu` 这类语句靠它们才能通过
     mem_mode       显存查询能力，用于验证后端的取值兜底链：
                      'full'   → `mem_get_info(ordinal)` 可用
@@ -177,8 +179,8 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     只有让底层"坏"，才能验出适配层有没有在真的做修正。
 
     2026-09-22 通用化：原先只有 `_stub_cambricon` 一家，导致 P800 / 910C 上
-    `--backend kunlun|ascend` 直接被拒（工具自称通用却只能用一家）；四家共用本函数后
-    同一份自检可在四实例上跑，新增厂商也只需一行注册。
+    `--backend kunlun|ascend` 直接被拒（工具自称通用却只能用一家）；三家共用本函数后
+    同一份自检可在三个芯片实例上跑，新增厂商也只需一行注册。
     """
     torch = types.ModuleType("torch")
     torch.__version__ = "0.0.0+stub"
@@ -228,7 +230,7 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
             return self._v
 
     class _Dev:
-        """设备串对象：`flagos` 后端用 `torch.flagos.device(ordinal)` 取设备。"""
+        """设备串对象：命名空间的 `device(ordinal)` 工厂返回它。"""
         def __init__(self, idx):
             self.type = ns_name
             self.index = idx
@@ -239,7 +241,7 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     ns.set_device = lambda o: state.__setitem__("current", o)
     ns.current_device = lambda: state["current"]
     ns.is_available = lambda: True
-    # `flagos` 后端的 memory_stats() 直接读命名空间上的 `memory_stats()`
+    # 部分后端的 memory_stats() 会直接读命名空间上的 `memory_stats()`
     ns.memory_stats = lambda: {"total_bytes": 96 * 1024 ** 3,
                                "allocated_bytes": 1 * 1024 ** 3}
     ns.Stream = Stream
@@ -285,12 +287,7 @@ def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
     return torch, mods, state
 
 
-def _stub_flagos(mode="full"):
-    """FlagOS `torch.flagos`（PrivateUse1）—— 需伪造顶层 `torch_fl`。"""
-    return _vendor_stub("flagos", ("torch_fl",), mode)
-
-
-#: 厂商 stub 注册表 —— 新厂商在这里加一项即可（四家已内置）
+#: 厂商 stub 注册表 —— 新厂商在这里加一项即可（三家已内置）
 #:
 #: 每项 = (stub_fn, device_type_期望, caps)。**caps 是"这个 stub 能真实验到什么"的声明**：
 #: 语义空间的 stub 无法模拟真实算子与厂商运行时，凡是 stub 不能真实覆盖的判据，
@@ -304,8 +301,6 @@ _STUBS = {
     "cambricon": (_stub_cambricon, "mlu", {}),
     "kunlun": (_stub_kunlun, "cuda", {"stub_vendor_extension": False}),
     "ascend": (_stub_ascend, "npu", {"stub_real_ops": False, "stub_bounded_sync": False}),
-    "flagos": (_stub_flagos, "flagos", {"stub_mem_stats_shape": False,
-                                        "stub_bounded_sync": False}),
 }
 
 
@@ -319,7 +314,7 @@ def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True, **s
     _install_blocker()
     for m in [k for k in list(sys.modules)
               if k.startswith("runtime")
-              or k.split(".")[0] in ("torch", "torch_mlu", "torch_npu", "torch_fl", "acl")]:
+              or k.split(".")[0] in ("torch", "torch_mlu", "torch_npu", "torch_fl", "acl")]:  # torch_fl 同属阻断清单，见 VENDOR_ROOTS 注释
         del sys.modules[m]
     if proto_dir not in sys.path:
         sys.path.insert(0, proto_dir)
@@ -550,7 +545,9 @@ def run(proto_dir, backend):
     # 2026-09-22：原先这里直接调 `bk.device_state(0)`，若后端**声明了 device_state 却没实现**
     # 会抛 AttributeError 把整轮自检中斷（只留 traceback，连汇总都打不出来）——
     # 那正好把"声明与实现不符"这类**最重要**的缺陷变成一次崩溃。
-    # 现改为捕获 AttributeError 并判 FAIL（flagos 的缺陷即由此暴露）。
+    # 现改为捕获 AttributeError 并判 FAIL（**该判据的来由**：路线 B 后端曾声明
+    # `device_state` 却无实现、整轮自检直接 traceback —— 该后端已随路线 B 删除，
+    # 判据保留，防同类问题在任何厂商后端上复现）。
     try:
         ds = bk.device_state(0)
         check("device_state 返回四态之一",
@@ -591,7 +588,7 @@ def run(proto_dir, backend):
         check("info.supports 与 supports() 一致", not mism, str(mism))
     else:
         skip("info()['supports'] 一致性/键集合",
-             "本后端的 info() 未提供 supports 映射（四家中仅个别如此）—— "
+             "本后端的 info() 未提供 supports 映射（三家中仅个别如此）—— "
              "下游「读后端即知能力」的统一体验在这家不成立，建议补齐"
              "（2026-09-22 已为 ascend 补齐该缺口）")
     ki = bk.known_issues()
@@ -639,7 +636,8 @@ def symmetry(proto_dir):
     动机：本方向的核心主张是"统一 API，换芯片只改一行"。**这条主张的敌人是不对称** ——
     某一家少了方法、少了字段、字段语义不同，都属于"统一 API"名不副实。
     2026-09-22 第 3 家接入的收口期，正是靠这一类对比挖出三处缺陷
-    （`flagos` 声明 `device_state` 却无实现、`info()` 键名漂移、`ascend` 的 `info()` 缺 `supports`）。
+    （历史实例：某后端声明 `device_state` 却无实现、`info()` 键名漂移、`ascend` 的 `info()` 缺 `supports`；
+    前两者所在的后端已随路线 B 删除，判据保留以守护现役三家）。
 
     两类输出：
       · **硬判据**（计入 通过/失败）：所有后端都必须成立的不变式
@@ -693,7 +691,7 @@ def symmetry(proto_dir):
     if not ok_rows:
         check("至少有一家后端可加载", False, str({k: v.get("error") for k, v in rows.items()}))
     else:
-        check("四家全部可加载（无异常）", len(ok_rows) == len(rows),
+        check("三家全部可加载（无异常）", len(ok_rows) == len(rows),
               str({k: v.get("error") for k, v in rows.items() if "error" in v}))
 
         # ① 对外必需方法齐备

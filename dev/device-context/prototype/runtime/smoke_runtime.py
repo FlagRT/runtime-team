@@ -247,11 +247,11 @@ def main(argv=None):
     try:
         from runtime.backends.registry import _KNOWN_BACKENDS as _known
     except Exception:
-        _known = ("ascend", "flagos", "kunlun", "cambricon")
+        _known = ("ascend", "kunlun", "cambricon")
     loaded = runtime.discover(names=_known, verbose=False)
     # 挑选优先级：先试"当前机器最可能装的那家"。顺序只影响"先试谁"，
     # 依赖缺失 / device_count=0 都会被如实 SKIP 后继续试下一个。
-    order = [args.backend] if args.backend else ["cambricon", "kunlun", "ascend", "flagos"]
+    order = [args.backend] if args.backend else ["cambricon", "kunlun", "ascend"]
     picked = None
     for name in order:
         if name not in loaded:

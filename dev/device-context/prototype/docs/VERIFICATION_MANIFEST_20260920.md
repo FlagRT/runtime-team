@@ -8,7 +8,7 @@
 
 ## 1. 复核最小可执行清单（9 条）
 
-在**容器内**、目标实例的 `prototype/` 目录下执行；`$B` = 后端名（`ascend` | `flagos` | `kunlun`）。
+在**容器内**、目标实例的 `prototype/` 目录下执行；`$B` = 后端名（`ascend` | `kunlun` | `cambricon`）。
 
 | # | 声明 | 命令 | 通过判据 |
 |---|---|---|---|
@@ -82,7 +82,7 @@
 
 **两实例均已在当前 HEAD 代码上完成全量复核，全部通过：**
 
-| 项 | 第一实例（ascend / flagos） | 第二实例（kunlun） |
+| 项 | 第一实例（ascend） | 第二实例（kunlun） |
 |---|---|---|
 | smoke | **51 通过 / 0 失败**（修复后） | **42 通过 / 0 失败**（修复后回归） |
 | conformance 13 例 | `CONFORMANCE_PASS 13/13` | `CONFORMANCE_PASS 13/13` |
@@ -99,9 +99,9 @@
   ②"声明 error_map → 分级来源为 code_map"（对无码消息被误判）
 - 根因（两个独立问题）：
   ① **后端不对称**：`kunlun.translate_error` 在 9-20 修复时加了 `backend=self.name` 回填，
-     而 **ascend / flagos 没回填**（`FlagosError.backend` 是文档化字段，直调后端方法时为 None）；
+     而 **ascend 没回填**（当时路线 B 后端同款；`FlagosError.backend` 是文档化字段，直调后端方法时为 None）；
   ② **判据不公平**：smoke 给声明了 `error_map` 的后端注入**不含厂商错误码**的消息，却断言必须走 `code_map`
-- 修复：① ascend/flagos 补回填（与 kunlun 对齐）；② 判据改为两条诚实断言——
+- 修复：① ascend 补回填（与 kunlun 对齐；路线 B 后端同期一并补，该后端现已删除）；② 判据改为两条诚实断言——
   "无码消息不得伪称 code_map" + "含厂商码样例必走 code_map"（样例由各后端自带
   `SAMPLE_CODED_ERROR`，无样例则如实 SKIP 正向检查）
 - 修复后：ascend smoke **51/0**（样例码 507015 → `graded_by=code_map`、L4_FATAL；无码消息 → `message_hint`）；

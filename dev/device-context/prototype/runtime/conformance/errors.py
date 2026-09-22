@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-torch_fl 统一错误对象与三维翻译（flagos/errors.py）
+统一错误对象与三维翻译（**芯片无关的共享资产**）
+
+本文件由设备上下文方向自研维护，三个芯片实例（ascend / kunlun / cambricon）共用同一份；
+码表以昇腾 ACL 为主段（唯一可得的完整厂商码表），其余厂商走消息规则并如实标注
+`mapped=False` / `graded_by="message"`，不冒充码表命中。
 
 对应设备执行上下文职责（细项21·错误码翻译）与统一行为契约 F1-F4：
   - F1 三维翻译：类别（L1-L4）/ 位置（流/事件/任务）/ 根因（厂商原始信息）三投影
@@ -10,7 +14,8 @@ torch_fl 统一错误对象与三维翻译（flagos/errors.py）
   - F5 分级可观测：区分「确定分级」与「保守兜底」，避免上层把兜底当定论
 
 用法：
-    from torch_fl.flagos.errors import FlagosError, translate_error, ErrorCategory
+    import sys; sys.path.insert(0, "<prototype>/runtime/conformance")
+    from errors import FlagosError, translate_error, ErrorCategory
     try:
         ...
     except Exception as e:
@@ -286,7 +291,7 @@ def _extract_acl_retcode(msg: str) -> Optional[int]:
     """从错误消息提取 ACL 错误码。
 
     兼容两种厂商错误形态：
-      - torch_fl/aclnn 直调：aclnnMatmulGetWorkspaceSize failed, ret=161002
+      - aclnn 直调（aclnnMatmulGetWorkspaceSize）：... failed, ret=161002
       - torch_npu/op-plugin：NPU function error: call aclnnMatmul failed, error code is 161002
     """
     m = re.search(r"ret\s*=\s*(\d+)", msg)

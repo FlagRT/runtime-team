@@ -5,6 +5,15 @@
 > **Git tag**：`runtime-v0.1.0`
 > **接口状态**：**v0.1 原型期** —— 允许破坏性变更（会提前知会），稳定承诺在 v1.0（计划 2027.06）
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 ---
 
 ## 1. 这是什么
@@ -26,7 +35,7 @@
 | 统一运行时 API | 后端选择 / 设备 / 流与事件 / 错误翻译 / 状态恢复 |
 | Backend 插件机制 | 抽象基类 + 注册表 + 自动发现 |
 | **ascend 后端** | torch_npu，推理腿使用 |
-| **flagos 后端** | torch_fl 适配（依锁定训练镜像约束新建）。⚠️ **2026-09-22 起 910C 训练腿已统一 `npu`（torch_npu）**，本后端转为**备用/历史复现**用途 |
+| **路线 B 后端** | torch_fl 适配（依锁定训练镜像约束新建）。⚠️ **2026-09-22 起 910C 训练腿已统一 `npu`（torch_npu）**，该后端随后**已从原型整体删除**（不再是备用路径） |
 | 统一 conformance | 13 例 + 推理 6 例，跨后端可跑；`supports()` 声明能力边界，未支持项如实跳过 |
 | 接口约定文档 | `docs/INTERFACE_CONTRACT_DC_20260908.md` |
 | 阶段性总结 | `docs/DC_STAGE_SUMMARY_20260909.md`（两条腿证据 + 已知缺口） |
@@ -40,7 +49,7 @@
 import sys; sys.path.insert(0, "<path-to>/prototype")
 import runtime
 
-runtime.use("ascend")          # 或 "flagos"；切换芯片只改这一行
+runtime.use("ascend")          # 或 "kunlun" / "cambricon"；切换芯片只改这一行
 runtime.set_device(0)
 s = runtime.create_stream()    # 统一 Stream 对象
 ```

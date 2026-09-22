@@ -59,7 +59,7 @@ def _setup_backend(backend_name: str):
     device = backend.device_type
 
     # ⚠️ 必须先**经后端**触发厂商扩展加载，再构造裸设备串。
-    #    torch 只有在厂商扩展被 import 之后才认识 "npu:0" / "flagos:0" / "mlu:0"；
+    #    torch 只有在厂商扩展被 import 之后才认识 "npu:0" / "cuda:0" / "mlu:0"；
     #    而本方向容器明确关掉自动加载（`TORCH_DEVICE_BACKEND_AUTOLOAD=0`），
     #    `use()` 本身**不**触发加载（后端是懒加载，见各 backend 的 torch/mod 属性）。
     #    实测（2026-09-22，910C 真机）：

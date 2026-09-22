@@ -58,7 +58,7 @@ def resolve_dev_api() -> str:
         print(f"[env] runtime 不可用（{type(exc).__name__}），回退环境变量/默认映射")
     if os.environ.get("DC_DEV_API"):
         return os.environ["DC_DEV_API"]
-    return {"ascend": "npu", "flagos": "npu", "kunlun": "cuda",
+    return {"ascend": "npu", "kunlun": "cuda",
             "cambricon": "mlu"}.get(BACKEND, "cuda")
 
 

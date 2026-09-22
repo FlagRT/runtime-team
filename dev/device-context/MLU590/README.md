@@ -10,7 +10,7 @@
 ## 0. 状态
 
 > 状态：✅ **接入阶段完成** —— 环境打通 ✅ / 镜像定档 ✅ / 后端落地 ✅ / **conformance 13/13 + 6/6 全绿**（2026-09-22 真机）；
-> 剩余：训练腿 / 推理腿 / 错误闭环 / 多流 16 项（前置已全部就绪，无阻塞）。
+> 剩余：**推理腿（前向 + 服务化）**未做（前置已就绪，无阻塞）。
 > 完整方案与真机执行手册：**[`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)**
 
 | 阶段 | 状态 | 结果 |
@@ -18,7 +18,7 @@
 | 阶段 0 · 环境普查 | ✅ **完成（09-22）** | 两台测试机：各 **8 × MLU590-M9（96 GB/卡）**、128 核 / 2 TB 内存、11T 数据盘挂在 `/srv`；**验收模型已在共享 HF 缓存**（`Qwen3-Embedding-0.6B` 快照 `97b0c614…`，只读复用） |
 | 阶段 0b · 镜像渠道与定档 | ✅ **完成（09-22）** | 定档 `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（digest `sha256:e55b420e…`）；**实测可匿名拉取** |
 | 阶段 0c · **环境开通 + 起容器** | ✅ **完成（09-22）** | `hliu553` 入 `docker` 组、`/srv/hliu553` 可写；拉定档镜像（**digest 实测与定档一致**）并起容器 `dc-mlu590-hliu553` |
-| 阶段 1 · 接入（`backends/cambricon/`） | ✅ **完成（09-22）** | 13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`；**离线自检 34/0、smoke 42/0**；能力声明已按真机证据更新 |
+| 阶段 1 · 接入（`backends/cambricon/`） | ✅ **完成（09-22）** | 13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`；**离线自检 39/0（按当前原型复跑；落地时为 34/0）、smoke 42/0**；能力声明已按真机证据更新 |
 | 阶段 2 · conformance | ✅ **完成（09-22）** | **13/13 + 6/6 全绿（`CONFORMANCE_PASS`）** —— 接入完成的判定线已达成 |
 | 阶段 3 · **多流 16 项基线** | ✅ **完成（09-22）** | **15 通过 / 1 不适用 / 0 不支持**；探针 **`STREAM_SEMANTICS_PASS 8/8`**（双卡，含 S-13）、图捕获 **5/5**、S-16 配额 **2000 流 3/3** ⇒ 报告 `docs/CAMBRICON_MLU_STREAM_BASELINE_16_20260922.md` |
 | 阶段 4 · **训练腿** | ✅ **完成（09-22）** | 2 卡 DDP + **`cncl`** + 三类通信对照：**`TRAIN_LEG_PASS 6/6`**、loss **15.4498 → 11.1479**（50 步，无 NaN）、**2957.8 tok/s**（卡 0,2）。⚠️ CNCL 未加载 `libibverbs`/`libmlx5` ⇒ 走 **MLU_LINK 片间互联**，**非 RDMA**（已如实标注） |
@@ -171,9 +171,9 @@ sudo usermod -aG docker hliu553
 ## 6. 下一步
 
 **已完成（代码层）**：`backends/cambricon/` 已落地（13 抽象 + `build()` + `supports()` 如实声明 +
-`known_issues()`），并新增**离线契约自检**工具（35/0 通过）。
+`known_issues()`），并新增**离线契约自检**工具（当前原型 **39/0** 通过）。
 
-**剩余（真机，全部待 `docker` 组权限）** —— 按 [`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §5 的 A1–A10 执行：
+**剩余（真机；权限已开通，剩推理腿两形态）** —— 按 [`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §5 的 A1–A10 执行：
 
 ```text
 ① 拿到 root 开通（§4 第 1、2 条）→ 复核 /srv/hliu553 与 docker 组

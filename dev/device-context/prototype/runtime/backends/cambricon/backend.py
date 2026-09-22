@@ -3,7 +3,7 @@
 
 定位：统一运行时原型的**第三个接入实例**（前两家：昇腾 910C、昆仑芯 P800）。
       按《运行时层接口约定》§2 的 Backend 插件接入规范**新建**；
-      **不迁移**前两家的实现与结论（`ascend|flagos` 绑定、108 条 ACL 错误码表、
+      **不迁移**前两家的实现与结论（`ascend` 的绑定方式、108 条 ACL 错误码表、
       CANN 约束、XPytorch 结论、并发上限 3、选卡变量名等一律不迁移）。
 
 ⛔ **本文件是新写的实现，不复制任何既有芯片的 backend 代码。**
@@ -23,7 +23,7 @@
             `device_type = "mlu"`（真实可用的设备串前缀，按命名空间）
 
   ⚠️ **PrivateUse1 是进程级单例**：同一进程内只能激活一家。
-     故本后端**不得与 `torch_npu` / `torch_fl` 在同进程混用**
+     故本后端**不得与 `torch_npu` 等占用 PrivateUse1 的插件在同进程混用**
      （与前两家同一条约束，接口约定已写明「进程级切换」）。
 
 ────────────────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@
      社区版+插件）**仍未验证**
  10. ✅ 集合通信后端名 = **`cncl`**（亦可用 `cpu:gloo,mlu:cncl`）；
      2 进程 `torchrun --standalone` 下 `init_process_group("cncl")` + `all_reduce` **结果正确**
-     ⇒ 训练腿 `DC_DIST_BT=cncl`。（⚠️ 前两家分别是 `flagos` 与 `flagcx` ⇒ **确实不能类推**）
+     ⇒ 训练腿 `DC_DIST_BT=cncl`。（⚠️ 前两家分别是 `hccl` 与 `flagcx` ⇒ **确实不能类推**）
 
 ────────────────────────────────────────────────────────────────────────────
 ⚠️ 一条**环境坑**（已实测，见 `known_issues()`，与 P800 的"缺 triton"**不同因**）
@@ -85,7 +85,7 @@ from ..base import RuntimeBackend
 
 logger = logging.getLogger(__name__)
 
-#: 芯片无关的共享资产目录（消息规则 / 设备四态机），与 ascend / flagos / kunlun 同一份
+#: 芯片无关的共享资产目录（消息规则 / 设备四态机），与 ascend / kunlun 同一份
 _CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
 
 
@@ -154,7 +154,7 @@ class CambriconBackend(RuntimeBackend):
     name = "cambricon"
     device_type = "mlu"
 
-    #: 规范能力键全集（与 ascend / flagos / kunlun 同一套键名，便于跨实例同口径比对）
+    #: 规范能力键全集（与 ascend / kunlun 同一套键名，便于跨实例同口径比对）
     _CAPABILITY_KEYS = (
         "device", "memory", "stream", "event", "bounded_sync",
         "error_map", "recovery_probe", "recovery_real",
@@ -595,7 +595,7 @@ class CambriconBackend(RuntimeBackend):
             "device_type": self.device_type,
             "framework": "torch_mlu（PyTorch PrivateUse1 厂商扩展）",
             "torch": self._torch.__version__ if self._torch is not None else None,
-            "device_namespace": "mlu（torch.mlu.*；PrivateUse1，进程内与 torch_npu/torch_fl 互斥）",
+            "device_namespace": "mlu（torch.mlu.*；PrivateUse1，进程内与其他厂商插件互斥）",
             "device_count": self.device_count(),
             "capabilities": sorted(self._capabilities),
             # 与 _capabilities 同一套键名（自洽，避免 A 键声明 / B 键查询的口径漂移）

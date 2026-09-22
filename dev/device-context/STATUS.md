@@ -15,12 +15,18 @@
 　　**同日追加（09-22 晚）：第 3 家「接入」正式完成** —— 环境打通 → 真机验证全绿 →
 **多流 16 项（15 通过 / 1 不适用）** → **训练腿 6/6（2957.8 tok/s）** → **错误闭环 5/0/0**；
 收口期另做**跨后端对称性审计**，挖出 **3 个跨后端缺陷 + 2 处证据污染**
-（含 **910C 第一实例**的 `flagos` 能力撒谎与 `info()` 键名漂移）
-⇒ 新增阻塞：**910C 主机当日 SSH 不可达，flagos 侧真机复验待网络恢复**
+（含 **910C 第一实例**的能力撒谎与 `info()` 键名漂移；涉事后端属路线 B，已随路线 B 整体删除，判据保留以守护现役三家）
+⇒ 该阻塞**已消解**：910C 网络已恢复，涉及的后端随后随**路线 B 整体删除**（见下方 09-22 收口追加行）
 　　**同日追加（09-22 晚）：第 3 家环境打通并完成接入验证 —— `docker` 组与数据目录开通 →
 定档镜像拉取（digest 核对一致）→ 起容器 → 厂商栈判别 → smoke 42/0 → **conformance 13/13 + 6/6 全绿**；
 能力声明按真机证据更新；集合通信后端名 = `cncl`**
-　｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
+　　　**同日追加（09-22 收口）：路线 B（torch_fl）整体退出** —— 原型里的该后端已**删除**，
+注册表 / 自检工具 / 文档 / 复跑命令一并清理；910C 训练腿此前已统一 `npu`（torch_npu）。
+⇒ **三家芯片实例（910C / P800 / MLU590）当前一律走厂商官方 torch 插件路线**
+（`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`），原型内**不再有该路线的活跃路径**。
+历史落地资产按「**保留 + 归档横幅**」处理（不删证据，保住 A/B 选型结论的可追溯性），
+索引见 `prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
 > 结论性环境依据见 `dev/stack.lock.910c.v2.yaml`（总组定稿，位于 **`dev-1.0` 分支**；本方向只消费不自建）。
@@ -80,7 +86,7 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 ⑨ **错误闭环 ✅（09-22）**：四类注入 `ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）。
 
 **第 3 家接入完成后的收口产出（09-22）**：**跨后端对称性审计**挖出 **3 个跨后端缺陷 + 2 处证据污染**，
-其中**两个在 910C 第一实例上长期存在**（`flagos` 声明 `device_state` 却无实现；`info()["supports"]`
+其中**两个在 910C 第一实例上长期存在**（某后端声明 `device_state` 却无实现；`info()["supports"]`
 手写第二份键名清单与 `_capabilities` 对不上 ⇒ 已声明能力恒显 False）；
 根因是**离线自检工具此前只为一家内置 stub** ⇒ 其余三家从未被自检过。
 已把工具扩到**四家可用** + 加**显式 SKIP 机制**（stub 覆盖不到的判据不误报也不混入"通过"）+
@@ -123,14 +129,16 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
    并把"捕获区内切流"从判据**降为宽容度观察项**（MLU590 容忍、P800 不容忍 ⇒ **非能力差异**）。
 
 **四家自检结果（本机 / 910C 容器内，无设备）**：
-cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · ascend **35/0/1 跳过**
+cambricon **39/0/0** · kunlun **39/0/1 跳过** · ascend **35/0/1 跳过**
+（离线自检按**当前原型**复跑，2026-09-22；路线 B 后端已删除，故不再有该项）
 
 **真机复验**：P800 全量 ✅（离线 39/0 · 对称性 5/0 · smoke **46/0** · conformance **13+6** ·
 错误闭环 **5/0/0** · 图捕获契约内 **4/4** · 配额 3/3）；**910C 与 MLU590 的真机复验被外部条件阻塞**（见下）。
 
 **剩余（无阻塞）**：推理腿前向/服务化 → 证据归档复核。
 ⚠️ 推理腿服务化需改用 `flagos-app/vllm*-cambricon-*` 应用镜像（**运行时层镜像不含 vLLM**，已登记入 `known_issues`）。
-⚠️ **有阻塞**：`flagos` 侧本轮修复的**真机复验**待 910C 网络恢复（见「阻塞与需要协调的事项」🔴 条）。
+⚠️ **本项已随路线 B 归档**：本轮修复涉事的路线 B 后端已从原型整体删除，故其"真机复验"不再需要；
+**`ascend` / `kunlun` / `cambricon` 三家的对应判据均已在真机复验通过**（见第 26 条与各芯片目录）。
 完整方案与实测汇总见 [`MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §0.1。
 
 未完成项：组件下游反馈收集、全组联合 demo 合稿、第 3 家剩余验证项（两条腿 / 错误闭环 / 多流 16 项）。
@@ -170,7 +178,7 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
 | **阶段 3 补 · vLLM 服务化（09-20）** | **`SERVE_LEG_PASS 10/10`**：维度 **1024**、区分度 **0.4102**（910C 0.4123）、**30.70 句/s**、p50 **96.4 ms**、超长输入（6001 tokens > 4096）→ HTTP 400 → **L2_PARAM/raise** + 业务继续；服务与设备上下文同卡共存不冲突（跨流计算 = 3.0）。⚠️ 硬前置：`PYTHONPATH=/env/FlagGems/src`（否则 vllm-plugin-FL 报 `Failed to infer device type`）|
 | **阶段 4 · 错误闭环两设置对照（09-20）** | 两组均 **`ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）**，且**逐字节一致**（除时间戳）⇒ **关闭 `XPU_EVENT_KL3_ENABLE` 不损失错误诊断能力**；同时说明该厂商缺陷**不影响单进程设备上下文路径** |
 | **框架缺陷第 4 例（09-20，已修）** | 错误对象**跨模块类不相等**（`conformance/errors.py` 被 importlib 动态加载为独立模块，其 `ErrorCategory` 是 IntEnum）→ `FlagosError.disposition` 取 `DISPOSITION[cat]` **KeyError**。修在**框架层**（新增 `coerce_category` / `normalize_error`，并在 `translate_via_backend` 加归一化兜底）+ `kunlun.translate_error` 显式归一 |
-| **框架缺陷第 5 例（09-22，已修）** | **后端侧错误对象回填不对称**：`kunlun.translate_error` 回填 `backend=self.name`（9-20 修复时引入），而 ascend/flagos 未回填（`FlagosError.backend` 是文档化字段，直调后端方法时为 None）；同一复跑还暴露 smoke 判据不公平（给声明 error_map 的后端注入**无厂商码**消息却断言必须 code_map）。修：ascend/flagos 补回填 + 判据改两条诚实断言（无码不伪称 code_map / 含码样例必走 code_map，样例由后端自带 `SAMPLE_CODED_ERROR`）。修复后 ascend smoke **51/0**、P800 **42/0**，conformance 13+6 双侧回归通过 |
+| **框架缺陷第 5 例（09-22，已修）** | **后端侧错误对象回填不对称**：`kunlun.translate_error` 回填 `backend=self.name`（9-20 修复时引入），而 ascend（及当时在册的路线 B 后端）未回填（`FlagosError.backend` 是文档化字段，直调后端方法时为 None）；同一复跑还暴露 smoke 判据不公平（给声明 error_map 的后端注入**无厂商码**消息却断言必须 code_map）。修：ascend 补回填（路线 B 后端同期一并补，该后端现已删除）+ 判据改两条诚实断言（无码不伪称 code_map / 含码样例必走 code_map，样例由后端自带 `SAMPLE_CODED_ERROR`）。修复后 ascend smoke **51/0**、P800 **42/0**，conformance 13+6 双侧回归通过 |
 | **镜像等价性验证（09-20）** | 在**上游官方推荐镜像** `harbor.baai.ac.cn/...:202608-base`（digest `sha256:ea6d797a…`，33.8 GB）上重跑全套：conformance **13+6 逐用例一致**、smoke **42/0**、训练腿 **6/6（loss 逐位相同 15.4488→11.1481）**、推理腿 **13/13**（`detail` **14/14 逐字相同**）、服务化 **10/10**（区分度 0.4102 一致）、**KL3 挂死一致重现（A 组 3/3 挂死、B 组 2/2 通过且 `2^120` 真值精密匹配）** ⇒ **两镜像结论等价**；**KL3 缺陷与镜像无关**，归属厂商运行时/驱动层 |
 | ⚠️ 官方镜像的补齐前提（09-20） | 官方 `-base`（及 `-base-ssh`）**开箱不含 `triton`** → `vllm_fl → flag_gems → triton` 断链，服务化报 `Failed to infer device type`。须按官方手册 1.2 节 `python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`（实测源 HTTP 200、wheel 3.3 GB、约 2.5 分钟），装后 `triton 3.6.0` 与现用变体**版本号一致** |
 | **多流 Stream 16 项基线（09-20）** | **14 项通过 / 1 项如实标注不支持 / 1 项不适用**：探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首次实测 `GRAPH_CAPTURE_PASS 5/5`**（据此为 `kunlun` 补上 `graph_capture` 能力声明）；S-16 补测 **2000 流无限制**；唯一差异 **S-12 流优先级不支持**（上游上报非法优先级区间 → 触发 PyTorch INTERNAL ASSERT；本层主动拦截不透传、不声明该能力） |
@@ -211,14 +219,14 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
 
 - **设备注册路线**：遵循 v1 的 Route A 原则。**2026-09-22 口径统一**：全组统一基座为
   Qwen3-0.6B **训推** + 原型接入的**厂商 torch 插件路线** ⇒ 910C **两条腿均为 `npu`（torch_npu）**，
-  训练腿由 `flagos`（torch_fl）切到 `npu`，**v1 登记的「权宜例外」已取消**。
+  训练腿由路线 B（torch_fl）切到 `npu`，**v1 登记的「权宜例外」已取消**。
   实测（2 卡/50 步）：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**（torch_fl 线同为 50 步 **15.4497→11.1515**，曲线几乎重合；
   差 0.03% 属集合通信归约顺序差异带来的浮点非确定性，非逻辑差异）、
   **3954–4402 tok/s**（torch_fl 线 **2212.9** ⇒ **+79~99%**）；证据 `910C/probes/train_npu_20260922.log`、
   `910C/probes/unified_verify_20260922.log`。已写入 `dev/stack.lock.910c.yaml` 的 `per_leg.train`。
 - **⚠️ 镜像本身未切换**（`lock.train.image` 未变）：本次只改**用哪个解释器/后端跑训练腿** ——
   用容器内带 torch_npu 的 `venv-infer-a`（该解释器**无 torch_fl**，**物理隔离**，
-  故不触发镜像的"禁止共存"校验）；原 `AUTOLOAD=0 + 先 import torch_fl` 仅在用 `flagos` 后端时才需要。
+  故不触发镜像的"禁止共存"校验）；原路线 B 的 `AUTOLOAD=0 + 先导入插件` 写法已随路线 B 归档。
 - **⚠️ 切换时踩到并已修的新缺陷（审计台账第 15 条）**：`hccl` 集合通信后端名**要厂商扩展被 import 后
   才在 c10d 注册**，而统一 API 后端是懒加载 ⇒ `init_process_group("hccl")` 报
   `AssertionError: Unknown backend type hccl`。修法：**初始化进程组之前先经后端触碰一次设备**。
@@ -257,7 +265,7 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
    `internal_v2` 并列，**仅登记、不生效、不切换**），并出专项对照
    [`910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md`](910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md)。
    ⚠️ **两处缺口须注意**：① 该镜像**设备后端为 `npu`（torch_npu，即 Route A）**，
-   与**我们现已统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，`flagos` 权宜例外**已取消**）；
+   与**我们现已统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外**已取消**）；
    ⇒ 本候选与现网口径的差异**只剩镜像血统**，不再涉及设备后端路线；
    ② 但**官方 runtime 镜像不含 FlagCX**（`flagcx-ascend` 镜像线最后 push 2026-02-02，陈旧不可用）
    ⇒ **训练腿缺口未解、不可直接切换**，与「官方推荐镜像不含 FlagCX」是同一个已登记诉求。
@@ -358,16 +366,14 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
 ```bash
 # ① 缺陷修复的真机复验（910C，容器内）
 python3 prototype/runtime/smoke_runtime.py --backend ascend            # 含 4 条 rc 分级新判据
-python3 prototype/runtime/smoke_runtime.py --backend flagos            # 含 device_state 与 4 条新判据
 python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend ascend
-python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend flagos
 # ② 三个后端无关探针在 910C 上的复验（验证「换芯片不改代码」）
 DC_BACKEND=ascend python3 prototype/probes/probe_stream_semantics_full.py --rounds 5
 DC_BACKEND=ascend python3 prototype/probes/probe_graph_capture_stream_v2.py
 DC_BACKEND=ascend python3 prototype/probes/probe_stream_quota.py
 ```
 
-> ⚠️ **在此之前**：`flagos` 的 `device_state`、`ascend` 的 rc 分级修复、
+> ⚠️ **在此之前**：`ascend` 的 rc 分级修复、
 > 以及 `FlagosError` 可抛性，在 910C 上一律标注「**代码层已修 + 离线自检已覆盖、真机未验证**」，
 > 不得作为"已通过"引用。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` §2.2/§2.4/§2.5/§5.1。
 
@@ -498,7 +504,7 @@ sudo usermod -aG docker hliu553        # 执行后需重新登录 SSH 生效
     —— `nccl` 挂死、`xccl` 未编译（`Distributed package doesn't have XCCL built in`）、`kccl` 无响应，
     **可用路径只有 `flagcx`**：`import flagcx` + `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx`
     （与 xliu969 已验证的 Route A 一致）。
-    **a) 又一条接入手册级别的坑**：同一个 FlagCX，在 910C 上注册的后端名是 `flagos`，
+    **a) 又一条接入手册级别的坑**：同一集合通信库在不同芯片注册的后端名不同（910C 现为 `hccl`，P800 为 `flagcx`，MLU590 为 `cncl`），
       **在 P800 上是 `flagcx`** —— 换芯片不只换设备命名空间，连集合通信后端名也变。
     **b) 卡 6,7 复测：通信三类对照全通过**
       （`all_reduce got=[1.0,3.0,5.0,7.0]` / `all_gather [0.0,1.0]` / `p2p OK`，EXIT_CODE=0）。
@@ -636,7 +642,7 @@ sudo usermod -aG docker hliu553        # 执行后需重新登录 SSH 生效
   1. **910C 新增「FlagOS 官方对应物」候选血统**：`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0`
      （digest `sha256:1048d622…`，5.4 GiB，官方标宿主驱动前置 **26.0.rc1**）。
      与我们锁定栈**逐项一致**；**设备后端为 `npu`（Route A）** —— 与**我们现已统一的口径一致**
-     （训练腿 `flagos` 权宜例外已于 2026-09-22 取消），故本候选与现网差异只剩镜像血统；
+     （训练腿的路线 B 权宜例外已于 2026-09-22 取消），故本候选与现网差异只剩镜像血统；
      ⚠️ **但官方 runtime 不含 FlagCX**（`flagcx-ascend` 镜像线最后 push 2026-02-02，陈旧）
      ⇒ **训练腿缺口未解、不可直接切换**。是否切换请总组裁定。
   2. **建议把「宿主驱动前置（Host driver）」吸收进 `dev/images/<name>/v<N>/lock.yaml`**：

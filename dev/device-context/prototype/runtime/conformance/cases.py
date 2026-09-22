@@ -30,7 +30,7 @@ def case_s1_stream_order(ctx):
     y = torch.nn.functional.relu(x @ x).sum()
     ctx["sync"]()
     ref = torch.nn.functional.relu((x.cpu() @ x.cpu())).sum()
-    # 相对容差比较：flagos(aclnnMatmul) 与 CPU matmul 的数值实现差异（相对 ~2e-5），
+    # 相对容差比较：厂商算子实现（aclnnMatmul）与 CPU matmul 的数值差异（相对 ~2e-5），
     # S1 验证的是顺序正确性而非逐位一致
     ok = abs(y.cpu().item() - ref.item()) / max(abs(ref.item()), 1.0) < 1e-3
     return ok, f"流内顺序近似：链式运算结果与逐 CPU 参考相对误差 {abs(y.cpu().item()-ref.item())/max(abs(ref.item()),1.0):.2e}（<1e-3）"
@@ -108,7 +108,7 @@ def case_f1_error_translation(ctx):
         → 不因缺码判 FAIL，改为要求 `mapped=False` 且类别/根因正确
 
     本用例原先硬要求 `fe.error_code is not None`，但其自称只考「类别/位置/根因」三投影，
-    断言**超出自身契约**，且把昇腾/flagos 的 `ret=XXXX` 特性当成了通用前提 ——
+    断言**超出自身契约**，且把昇腾侧的 `ret=XXXX` 特性当成了通用前提 ——
     对无厂商码的后端恒 FAIL，与实现质量无关。
     见接入方案 §7.3 修订建议 ③ 与 §7.4.2。
     """

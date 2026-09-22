@@ -42,7 +42,7 @@ probe_graph_capture_stream_v2.py — graph capture 流语义验证（**后端无
   ⇒ 本脚本刻意**不在** `with dev.graph(g):` 内部做任何同步。
 
 【环境变量】
-  DC_BACKEND  运行时后端名（ascend / flagos / kunlun / cambricon）
+  DC_BACKEND  运行时后端名（ascend / kunlun / cambricon）
   DC_DEV_API  设备 API 前缀兜底（无 runtime 时可用 "npu"/"cuda"/"mlu"）
   DC_OUT_DIR  结果输出目录（默认本目录）
   DC_TAG      结果文件名后缀（多后端对照时分离，如 "_mlu590"）
@@ -88,7 +88,7 @@ def resolve_dev_api() -> str:
         print(f"[env] runtime 不可用（{type(exc).__name__}），回退环境变量/默认映射")
     if os.environ.get("DC_DEV_API"):
         return os.environ["DC_DEV_API"]
-    return {"ascend": "npu", "flagos": "npu", "kunlun": "cuda",
+    return {"ascend": "npu", "kunlun": "cuda",
             "cambricon": "mlu"}.get(BACKEND, "cuda")
 
 

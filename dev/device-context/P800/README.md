@@ -55,7 +55,7 @@ P800/
 |---|---|---|
 | **1** | **设备 API 走 `torch.cuda`，`torch.xpu` 不可用** | `torch.xpu.is_available() = False`（AssertionError: Torch not compiled with XPU enabled）；`torch.cuda.device_count() = 8`；编译标志 **`USE_XPU=OFF`**；官方 xpu3.6 单测 `conftest.py` 的 `--device` 默认值即 `'cuda'`。机制为 XPytorch + `torch_xray` 符号重写 |
 | **2** | **选卡变量是 `CUDA_VISIBLE_DEVICES`** | 实测 `=2` → `device_count()=1`；`=2,5` → `2`。它才是 910C `ASCEND_RT_VISIBLE_DEVICES` 的对应物，**不是** XPU 侧变量 |
-| **3** | **同一 FlagCX，两芯片后端名不同** | 910C 注册为 **`flagos`**；P800 注册为 **`flagcx`**，且**必须显式 `import flagcx`** 才会注册；用法 `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx` |
+| **3** | **同一 FlagCX，两芯片后端名不同** | 910C 为 **`hccl`**（路线 B 时期曾注册为 `flagos`）；P800 注册为 **`flagcx`**，且**必须显式 `import flagcx`** 才会注册；用法 `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx` |
 | **4** | **只有 `flagcx` 这一条通信路径可用** | `nccl` 挂死；`xccl` 未编译（`Distributed package doesn't have XCCL built in`）；`kccl` 无响应 |
 | **5** | **HF cache 要指向 `snapshots/<hash>`** | 传仓库根目录报 `Unrecognized model ... Should have a model_type key`（根目录只有 `blobs/`、`refs/`、`snapshots/`） |
 | **6** | **镜像本机已有，无需联网** | `flagtree-xpu3.6-...-flaggems-main-dev:202608`（38.3 GB）已在本地镜像库 → 官方手册的 59.9 GB `pull` 与 32 GB `load` 全部跳过；FlagGems 源码亦已在容器内 `/env/FlagGems` |

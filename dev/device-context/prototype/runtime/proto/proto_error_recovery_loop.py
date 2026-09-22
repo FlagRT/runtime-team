@@ -18,7 +18,7 @@
      在无厂商码的后端上并不产生 ⇒ 改为从异常本身如实提取码（有则带出，无则明说）。
 
 用法：
-  python3 proto_error_recovery_loop.py --backend flagos      # 训练腿（torch_fl）
+  python3 proto_error_recovery_loop.py --backend ascend       # 训练腿（torch_npu）
   python3 proto_error_recovery_loop.py --backend ascend      # 推理腿（torch_npu）
   python3 proto_error_recovery_loop.py --backend kunlun      # P800
   python3 proto_error_recovery_loop.py --backend cambricon   # 寒武纪 MLU
@@ -79,7 +79,7 @@ def inject_oom():
     #    旧写法只在本调用抛异常时才回退默认值；而后端如实降级（如拿不到设备总量）
     #    时返回的是 `total_mb=0`（**不抛异常**）⇒ `n = 0` ⇒ `torch.empty(0)`：
     #    既不报错也不占显存，**OOM 注入被静默跳过**，而记录里仍写着"已注入"。
-    #    实测：910C 上 flagos 因 `acl.init rc=100002` 误降级 ⇒ total_mb=0 ⇒
+    #    实测：910C 上某后端因 `acl.init rc=100002` 被误判为不可用 ⇒ 降级 ⇒ total_mb=0 ⇒
     #    错误闭环出现「oom(L1_RESOURCE 期望) 未触发异常」——**看起来像后端缺陷，
     #    实际是测试工具的证据污染**（同"硬编码昇腾错误码"那次的同类问题）。
     if total <= 0:

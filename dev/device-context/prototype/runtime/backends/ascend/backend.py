@@ -41,7 +41,7 @@ class AscendBackend(RuntimeBackend):
     _capabilities = {
         "device", "memory", "stream", "event",
         "sync_timeout",            # pyACL synchronize_*_with_timeout（历史键名）
-        "bounded_sync",           # 统一键名：有界同步（与 flagos 对齐）
+        "bounded_sync",           # 统一键名：有界同步（与 kunlun / cambricon 对齐）
         "error_map",               # 109 条 ACL 错误码映射（2026-09-22 增补通用段 500000）
         "recovery_probe", "recovery_real",  # 探针重试 + 真实重建
         "device_state",            # 四态机
@@ -350,7 +350,7 @@ class AscendBackend(RuntimeBackend):
                        reason: str = "") -> dict:
         """设备重建。mode: probe / real / hybrid（与 recovery.rebuild_mode 一致）。
 
-        统一返回 dict，recovered 语义 = **设备当前可用**（与 flagos 后端一致）。
+        统一返回 dict，recovered 语义 = **设备当前可用**（与另两家后端一致）。
 
         2026-09-09 修正：底层 recovery.recover_device 仅在设备处于 ISOLATED
         状态时才执行恢复，否则直接 return False —— 这会让「设备本来就正常、

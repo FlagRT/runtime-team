@@ -20,7 +20,7 @@
 | 训练腿 Python | `/usr/local/python3.11.15/bin/python3` | conda env `python310_torch29_cuda`（Python 3.10.18） |
 | 推理腿镜像 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 与训练腿同容器 |
 | **训练框架** | `transformers`（`AutoModelForCausalLM`）+ `AdamW` + `torch.distributed` | 同一个脚本 |
-| **训练设备后端 / 通信后端** | `runtime.use("flagos")`（torch_fl）／通信后端 `flagos` | `runtime.use("kunlun")`／通信后端 `cpu:gloo,cuda:flagcx` |
+| **训练设备后端 / 通信后端** | `runtime.use("ascend")`（torch_npu）／通信后端 `hccl` | `runtime.use("kunlun")`／通信后端 `cpu:gloo,cuda:flagcx` |
 | **推理框架（服务化）** | vLLM 0.20.2（昇腾官方镜像自带） | vLLM 0.13.0 + vllm-plugin-FL（`VLLM_FL_PLATFORM=kunlunxin`） |
 | 模型 | `Qwen/Qwen3-Embedding-0.6B` | 同一模型（走共享缓存快照路径） |
 | 训练超参 | 50 步 / batch 4 / seq 128 / world_size 2 | 同上 |
@@ -28,7 +28,7 @@
 | 训练结果（2 卡） | **2117.4 tok/s**、24.18 s、6/6 PASS | **3482.2 tok/s**、14.7 s、6/6 PASS |
 | 推理（单卡前向） | 66.32 句/s、平均 45.24 ms、10/10 PASS | 53.12 句/s、p50 56.17 ms、13/13 PASS |
 | 推理（服务化） | **108.35 句/s**、p50 27.4 ms、10/10 PASS | 30.70 句/s、p50 96.4 ms、10/10 PASS |
-| 错误注入 → 恢复闭环 | `ascend`、`flagos` 两个后端各自跑通 | 设 / 不设 `XPU_EVENT_KL3_ENABLE` 两组均跑通且结果一致 |
+| 错误注入 → 恢复闭环 | `ascend` 后端跑通（5 闭环 / 0 跳过 / 0 失败） | 设 / 不设 `XPU_EVENT_KL3_ENABLE` 两组均跑通且结果一致 |
 
 ---
 
@@ -38,7 +38,7 @@
 
 | 实例 | 配置 | 为什么这么定 | 实测依据 |
 |---|---|---|---|
-| 910C 训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 全组统一基座，由总组裁定；各方向只消费不自建。它是**唯一的结论性环境依据**——日常调试容器里跑出的结果不作为验收依据 | 镜像内已内置通信库（FlagCX 0.13.0）与算子库，`transformers` 需容器内补装；标注为 `release.stage=candidate`，属"torch_fl 例外线"，华为昇腾官方主线是 `torch_npu`。可凭仓内 `Dockerfile.repro` + assets 重建，并已用 `docker save` 落盘备份 |
+| 910C 训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 全组统一基座，由总组裁定；各方向只消费不自建。它是**唯一的结论性环境依据**——日常调试容器里跑出的结果不作为验收依据 | 镜像内已内置通信库（FlagCX 0.13.0）与算子库，`transformers` 需容器内补装；标注为 `release.stage=candidate`，属历史"torch_fl 例外线"标注（**该例外已于 2026-09-22 取消**），华为昇腾官方主线是 `torch_npu`。可凭仓内 `Dockerfile.repro` + assets 重建，并已用 `docker save` 落盘备份 |
 | 910C 推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 华为昇腾官方推理镜像，vLLM 0.20.2 与该镜像自带的 triton-ascend 插件成套发布，避免自建组合 | 已验证可从上游拉取，digest 为 `sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7` |
 | P800 | 现用 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`；**建议入锁** `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（digest `sha256:ea6d797a…`） | ① 接入当时选现用变体，是因为它**在本机镜像库里已经存在**，可零下载开工；② 但"结论性验证要落在有 digest 的基座上"是全组规矩，而现用变体**没有 digest**（只能靠 `docker save` 流转），官方 `-base` 则是 FlagTree 官方手册 §1.1 明确推荐的那一只 ⇒ 在两者**等价性验证通过**后，建议以官方 `-base` 入锁 | 见 **§2.1.1**（两侧逐项对照、官方镜像的补齐步骤、容器启动参数对照） |
 
@@ -177,10 +177,10 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 | 规模 | 2 卡（world_size = 2） | 设备方向只负责**最小正确规模（≤2 卡）**；8 卡到多机属分布式方向，避免各方向挤在同一规模重复验证 | 两实例都是 2 卡 DDP，且三项集合通信对照（all_reduce / all_gather / P2P）在两实例上都全对 |
 | 超参 | 50 步 / batch 4 / seq 128 | 步数要足够多，让集合通信**反复触发**——挂死类缺陷往往在第 n 次通信才出现，短跑测不出来 | P800 实测挂死点游走在第 3–4 次、第 41–50 次、第 101–120 次通信之间；同一次实验里单次 2.38 GB 大通信 0.336 s 能过，但反复调用会非确定性挂住。50 步是能稳定覆盖该区间的档位 |
 | 学习率 | 环境变量 `LR`，默认 `1e-5` | 0.6B 小模型微调的稳定区间 | 两实例各 50 步 loss 均单调下降无 NaN：910C `15.4497 → 11.15`，P800 `15.4488 → 11.1481`。**⚠️ 两次实际使用的 LR 取值未记录**（脚本默认 1e-5，运行时是否覆盖未留痕）——后续跑请顺手记环境变量 |
-| 910C 设备后端 | **`npu`（即 torch_npu）—— 两条腿一致** | **2026-09-22 口径统一**：统一基座定为 Qwen3-0.6B 训推 + 厂商 torch 插件路线 ⇒ 训练腿由 `flagos`（torch_fl）切到 `npu`，v1 的**权宜例外已取消** | 用容器内带 torch_npu 的解释器（`/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`）——该解释器**无 torch_fl**，**物理隔离**，故不触发镜像那条"禁止共存"校验；`DC_BACKEND=ascend DC_DIST_BT=hccl`。原 `AUTOLOAD=0` + 先 `import torch_fl` 的写法**仅在用 `flagos` 后端时才需要**（该后端保留为备用/历史复现）。实测 2 卡/50 步：**6/6**、loss **15.4498→11.1479**（torch_fl 线 15.4497→11.1515，曲线几乎重合）、**3954–4402 tok/s**（torch_fl 线 2212.9 ⇒ **+79~99%**） |
+| 910C 设备后端 | **`npu`（即 torch_npu）—— 两条腿一致** | **2026-09-22 口径统一**：统一基座定为 Qwen3-0.6B 训推 + 厂商 torch 插件路线 ⇒ 训练腿由 `flagos`（torch_fl）切到 `npu`，v1 的**权宜例外已取消** | 用容器内带 torch_npu 的解释器（`/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`）——该解释器**无 torch_fl**，**物理隔离**，故不触发镜像那条"禁止共存"校验；`DC_BACKEND=ascend DC_DIST_BT=hccl`。原路线 B 的 `AUTOLOAD=0` + 先导入该插件的写法**已随路线 B 归档**（该后端已从原型删除）。实测 2 卡/50 步：**6/6**、loss **15.4498→11.1479**（torch_fl 线 15.4497→11.1515，曲线几乎重合）、**3954–4402 tok/s**（torch_fl 线 2212.9 ⇒ **+79~99%**） |
 | P800 设备后端 | `kunlun` | 昆仑芯的设备 API 走 `torch.cuda` 命名空间，因此后端按 `cuda` 命名空间实现 | 四条独立证据：① `torch.xpu.is_available()` 返回 False（`AssertionError: Torch not compiled with XPU enabled`）；② `torch.cuda.device_count()` 返回 8；③ 编译标志为 `USE_XPU=OFF`；④ 官方 xpu3.6 单测的 `--device` 默认值就是 `'cuda'`。机制为 XPytorch 兼容层 + `torch_xray` 符号重写 |
 | P800 通信后端 | `cpu:gloo,cuda:flagcx`，另设 `FLAGCX_ADAPTOR=klx` | 实测**只有 flagcx 这一条路可用**，其余三种后端都不可用 | `nccl` 挂死；`xccl` 未编译，报 `Distributed package doesn't have XCCL built in`；`kccl` 无响应。可用路径要求**显式 `import flagcx`**（否则 `cuda:flagcx` 未注册），CPU 侧用 gloo |
-| 通信后端名差异 | 910C 注册为 `flagos`；P800 注册为 `flagcx` | 同一份 FlagCX 在不同芯片上注册的后端名不同——换芯片不只换设备命名空间，连集合通信后端名也要换 | 910C 训练腿镜像里 flagcx 注册名为 `flagos`；P800 上必须用 `flagcx` 且先 `import flagcx`。这一条是接入时最容易踩的坑之一，已列入接入检查清单 |
+| 通信后端名差异 | 910C 走**原生 `hccl`**（torch_npu 2.11.0 实测可用后端：gloo / nccl / xccl / ucc / mpi / hccl / lccl）；P800 注册为 `flagcx` | **换芯片不只换设备命名空间，连集合通信后端名也要换**，且互不可类推 | P800 上必须用 `flagcx` 且先 `import flagcx`；MLU590 实测为 `cncl`。这一条是接入时最容易踩的坑之一，已列入接入检查清单 |
 
 ### 2.4 推理形态与参数
 
@@ -212,7 +212,7 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 
 | 决策 | 结论 | 支撑它的实测事实 |
 |---|---|---|
-| 设备注册路线 | **Route A：各芯片厂商官方 torch 插件为主线**；**910C 两条腿现已全部落在 Route A（torch_npu）**，原训练腿 torch_fl 例外已于 2026-09-22 取消 | 上层框架（vllm / sglang / Megatron / TransformerEngine / verl / FlagScale）**对 torch_fl 零引用**，各芯片设备层现状都是厂商插件；Megatron-LM-FL 等框架的多芯片适配也全部构建在厂商 torch 插件之上，自建等价实现为人月级。全组已把 Route A 定为主线，torch_fl 降为预研支线、不承担交付 |
+| 设备注册路线 | **Route A：各芯片厂商官方 torch 插件为主线**；**910C 两条腿现已全部落在 Route A（torch_npu）**，原训练腿 torch_fl 例外已于 2026-09-22 取消 | 上层框架（vllm / sglang / Megatron / TransformerEngine / verl / FlagScale）**对 torch_fl 零引用**（该路线已退出本方向；此结论为其历史依据），各芯片设备层现状都是厂商插件；Megatron-LM-FL 等框架的多芯片适配也全部构建在厂商 torch 插件之上，自建等价实现为人月级。全组已把 Route A 定为主线，torch_fl 降为预研支线、不承担交付 |
 | 910C 推理为何不用 vllm-plugin-FL | 该插件**无 ascend 后端**，一旦启用即破坏 platform 选择 | 启用后 `current_platform.device_type` 为空 → `RuntimeError: Device string must not be empty`；插件自述 currently CUDA only。故 910C 推理腿脚本固定 `unset VLLM_PLUGINS` |
 | P800 推理为何用 vllm-plugin-FL | 昆仑芯**需要**它提供 FL platform，否则 vLLM 认不出设备 | 加载后 platform 为 `<vllm_fl.platform.PlatformFL>`；不加载则 vLLM 报 `Failed to infer device type`（另需 `PYTHONPATH` 见 §2.6） |
 | P800 通信为何只有 flagcx | 其余三种后端在本环境都不可用 | `nccl` 挂死；`xccl` 报 `Distributed package doesn't have XCCL built in`；`kccl` 无响应。唯一可用路径需 `import flagcx` + `init_process_group("cpu:gloo,cuda:flagcx")` + `FLAGCX_ADAPTOR=klx` |
@@ -239,7 +239,7 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 | # | 坑 | 适用 | 实测现象 / 触发条件 |
 |---|---|---|---|
 | 1 | 带卡容器并发 ≤3，两条腿串行 | 910C | 4 个并发时 `acl.init()` 返回 500000、`torch.npu.device_count()=0`，设备"凭空消失"；降到 3 个即恢复 |
-| 2 | `AUTOLOAD=0` 且**先 `import torch_fl` 再 `import torch`** | 910C，**仅在使用 `flagos`（torch_fl）后端时** | 该镜像禁止 `torch_npu` 与 Torch-FL **在同一解释器**共存，自带校验脚本直接报错。**2026-09-22 起训练腿已改走 `npu`（torch_npu）**，用只装 torch_npu 的解释器即物理隔离，**本坑对训练腿默认路径不再适用**（仅 `flagos` 备用路径需要） |
+| 2 | **同一解释器内只能有一个占用 PrivateUse1 的插件** | 910C（锁定训练镜像） | 该镜像自带的校验脚本会拒绝"两个插件同进程共存"。**2026-09-22 起训练腿已统一 `npu`（torch_npu）**，用只装 torch_npu 的解释器即**物理隔离**，本坑已不适用 |
 | 3 | 服务化推理 `unset VLLM_PLUGINS` | 910C 推理腿 | 设 `VLLM_PLUGINS=fl` → `current_platform.device_type` 为空 → `RuntimeError: Device string must not be empty` |
 | 4 | 推理服务化要求依赖链完整：**镜像须含 `triton`**，且 `PYTHONPATH=/env/FlagGems/src` 不可省 | P800 推理服务化 | 两层断链**都表现为同一句 `Failed to infer device type`**（看着像设备问题，其实是 Python 包问题）：① 官方 `-base`（及 `-base-ssh`）的 site-packages **既无 `triton` 目录、pip 也无记录** → `vllm_fl/utils.py:8 import flag_gems` → `flag_gems/runtime/configloader.py:4 import triton` 断链，须装 `flagtree===0.7.0rc3+xpu3.6` 补齐；② 即便 `triton` 就位，`flag_gems.runtime.backend.device` 仍须靠 `PYTHONPATH=/env/FlagGems/src` 才能导入（site-packages 里那份子模块不完整） |
 | 5 | HF 缓存路径必须到 `snapshots/<hash>` | 两实例（P800 强制） | 传缓存根目录报 `Unrecognized model ... Should have a model_type key`。⚠️ 两脚本处理方式不同：`proto_infer_leg.py` 内置 `resolve_model()` 可自动把 `models--xxx` 解析到快照，而 **`proto_train_leg.py` 没有该函数，必须手给快照路径**（实测传缓存根目录时训练腿直接 `ChildFailedError` 退出） |
@@ -263,11 +263,11 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 # 设备自检 / conformance
 python3 runtime/smoke_runtime.py
 python3 runtime/conformance/runner.py --backend ascend
-TORCH_DEVICE_BACKEND_AUTOLOAD=0 python3 runtime/conformance/runner.py --backend flagos
+python3 runtime/conformance/runner.py --backend ascend     # 910C 当前口径（torch_npu）
 python3 runtime/conformance/runner.py --backend ascend --cases infer_cases
 
 # 训练腿（2 卡）
-DC_BACKEND=flagos torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
+DC_BACKEND=ascend DC_DIST_BT=hccl torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 
 # 推理腿（服务化：先起服务，再验证）
 vllm serve <model> --runner pooling --convert embed --port 8100
@@ -276,7 +276,7 @@ python3 runtime/proto/proto_infer_leg.py   --backend ascend
 
 # 错误注入 → 恢复闭环（两后端）
 python3 runtime/proto/proto_error_recovery_loop.py --backend ascend
-python3 runtime/proto/proto_error_recovery_loop.py --backend flagos
+python3 runtime/proto/proto_error_recovery_loop.py --backend ascend
 ```
 
 **P800（容器内；`DEV` 换成本次挑中的空闲卡）**

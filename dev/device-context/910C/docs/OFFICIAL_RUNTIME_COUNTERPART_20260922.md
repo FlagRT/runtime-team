@@ -36,13 +36,13 @@
 | numpy / torchvision / torchaudio | — | — | 1.26.4 / 0.25.0+cpu / 2.10.0+cpu |
 | FlagCX | ✅ 镜像内（训练腿必需） | — | ❌ **不含**（见 §4） |
 | vLLM | — | 0.20.2 | runtime 层不含；**应用镜像另有**（见 §3.3） |
-| 设备后端 | `flagos`（torch_fl，权宜例外） | `npu`（torch_npu） | **`npu`（torch_npu 2.10.0，即 Route A）** |
+| 设备后端 | ~~`flagos`（torch_fl，权宜例外）~~ **已取消**（2026-09-22） | `npu`（torch_npu） | **`npu`（torch_npu 2.10.0，即 Route A）** |
 | **宿主驱动前置** | —（现网在用） | — | **26.0.rc1**（官方 `runtime/ascend-cann9.0.0-910c.md` 明示） |
 | 容器工具链前置 | — | — | `Ascend-docker-runtime >= 6.0.RC3`（可选） |
 | 起容器（官方给法） | — | — | `docker run --rm -it -e ASCEND_VISIBLE_DEVICES=0,1 <image> bash`（无 toolkit 时给全 `--device /dev/davinci*` 等） |
 
 > **⇒ 关键观察**：官方 runtime 镜像的设备后端是 **`npu`（torch_npu）**，
-> 即与我们**推理腿**同路线（Route A）；而我们**训练腿**因锁定镜像约束走 `flagos`（torch_fl）——
+> 即与我们**两条腿**同路线（Route A）；原**训练腿**因锁定镜像约束走路线 B（torch_fl）的权宜例外，**已于 2026-09-22 取消**——
 > 后者在 `stack.lock.910c.v2.yaml` 中登记为 **「权宜例外」**，并有「10 月起评估切回 Route A」的 TODO。
 > **官方镜像天然是 Route A** ⇒ 若切到它，**训练腿的 flagos 例外可以取消**，TODO 随之关闭。
 > 但前提是解决 §4 的 FlagCX 缺口。

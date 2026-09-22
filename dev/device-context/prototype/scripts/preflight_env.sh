@@ -98,7 +98,7 @@ except Exception as e:
     print("导入失败:", type(e).__name__, e); raise SystemExit
 
 # 厂商插件候选（按《新芯片接入手册》§2 的四条路径）
-for mod in ("torch_mlu", "torch_npu", "torch_xla", "torch_fl"):
+for mod in ("torch_mlu", "torch_npu", "torch_xla"):
     try:
         m = importlib.import_module(mod); print(f"插件 {mod}: 可导入 -> {getattr(m,'__file__','?')}")
     except Exception as e:

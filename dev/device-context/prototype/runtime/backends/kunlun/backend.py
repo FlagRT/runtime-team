@@ -112,7 +112,7 @@ class KunlunBackend(RuntimeBackend):
     name = "kunlun"
     device_type = "cuda"   # 见模块 docstring：设备串按命名空间，不按厂商
 
-    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend/flagos 对齐）
+    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend / cambricon 对齐）
     _CAPABILITY_KEYS = (
         "device", "memory", "stream", "event", "bounded_sync",
         "error_map", "recovery_probe", "recovery_real",

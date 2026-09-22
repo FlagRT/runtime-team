@@ -71,7 +71,7 @@ def resolve_dev_api() -> str:
         print(f"[env] runtime 不可用（{type(exc).__name__}），回退环境变量/默认映射")
     if os.environ.get("DC_DEV_API"):
         return os.environ["DC_DEV_API"]
-    return {"ascend": "npu", "flagos": "npu", "kunlun": "cuda"}.get(BACKEND, "cuda")
+    return {"ascend": "npu", "kunlun": "cuda"}.get(BACKEND, "cuda")
 
 
 DEV_API = resolve_dev_api()
@@ -179,7 +179,7 @@ def main():
     #             该次调用失败是否影响其他流
     s9_detail = {}
     try:
-        if BACKEND in ("ascend", "flagos"):
+        if BACKEND == "ascend":
             import acl
             acl.init()
             acl.rt.set_device(0)
@@ -299,7 +299,7 @@ def main():
             rng_src += f"（调用异常：{type(exc).__name__}）"
         # 昇腾侧额外用 pyACL 查权威 range（昆仑芯无此 API，跳过）
         acl_range = None
-        if BACKEND in ("ascend", "flagos"):
+        if BACKEND == "ascend":
             try:
                 import acl
                 acl.init()

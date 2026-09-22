@@ -16,9 +16,9 @@ prototype/
 │   ├── backends/
 │   │   ├── base.py              # RuntimeBackend 抽象（接口规范）
 │   │   ├── registry.py          # 注册表（register / use / discover）
-│   │   ├── ascend/              # 昇腾后端（torch_npu，推理腿）
-│   │   ├── flagos/              # FlagOS 后端（torch_fl，训练腿）
-│   │   └── kunlun/              # 昆仑芯后端（torch.cuda / xpytorch，P800）
+│   │   ├── ascend/              # 第 1 家 昇腾 910C（torch_npu，训推两腿）
+│   │   ├── cambricon/           # 第 3 家 寒武纪 MLU590（torch_mlu）
+│   │   └── kunlun/              # 第 2 家 昆仑芯 P800（torch.cuda / XPytorch）
 │   ├── conformance/             # 验收用例 13 例 + 推理 6 例 + runner（含资产模块）
 │   ├── proto/                   # 两条腿自验证脚本与结果
 │   ├── demos/                   # 设备无关演示
@@ -35,6 +35,8 @@ prototype/
 > ——唯一入口 `scripts/serve_standard.sh`，跨芯片只改 `DC_BACKEND`，**不要各自维护启动脚本**。
 > **要复核我们说过的话？** 走 **《两实例验证复核清单》** `docs/VERIFICATION_MANIFEST_20260920.md`
 > ——逐条声明 → 证据文件 → 复跑命令 → 当前缺口，9 条命令即可自行判定 ✅/❌。
+> **要查路线选型与归档？** 走 **《路线 B 退出归档 · 三实例厂商分支核验》**
+> `docs/ROUTE_B_ARCHIVED_20260922.md` —— 删了什么 / 保留什么 / 三家为何都走厂商分支 / 残留全量清单 / 复跑清单。
 > 组件版本 `runtime-v0.2.0`（第二实例接入版，见 `RELEASE_NOTES_v0.2.0.md`）。
 
 ---
@@ -55,21 +57,22 @@ prototype/
 
 ---
 
-## 3. 验证状态（两实例实跑）
+## 3. 验证状态（三实例实跑）
 
-**同一套 conformance 判据、同一份两条腿脚本**，在两个芯片实例上分别跑通：
+**同一套 conformance 判据、同一份两条腿脚本**，在三个芯片实例上分别跑通：
+（三实例一律走**厂商官方 torch 插件**路线：`npu` / `cuda`（XPytorch）/ `mlu`）
 
-| 验证 | 910C（第一实例，昇腾） | P800（第二实例，昆仑芯） |
-|---|---|---|
-| 冒烟自检 | **51 通过 / 0 失败**（09-22 对称复跑；此前 48/2 的两项失败已修，见 §3.2） | **42 通过 / 0 失败** |
-| conformance（设备上下文与多流 13 例） | 13/13（`ascend`）+ 13/13（`flagos`） | **13/13**（`kunlun`） |
-| conformance（推理 6 例） | 6/6 | **6/6** |
-| 执行语义基线（多流 16 项中的 8 项探针） | **8/8**（09-22 后端无关 V2 探针**首跑 ascend**） | **8/8**（与 910C 逐项一致） |
-| 训练腿 2 卡微调 | **6/6**（09-22：loss 15.4497→11.1515、2212.9 tok/s；与历史 15.4497→11.15 / 2117 tok/s 一致） | **6/6**（loss 15.4488→11.1481、3482 tok/s） |
-| 推理腿（单卡前向） | **14/14**（09-22：区分度 0.6380、79.39 句/s、p50 37.73 ms） | **13/13 + 1 如实跳过**（0.6392、53.12 句/s、p50 56.17 ms） |
-| 推理腿（vLLM 服务化） | 10/10（区分度 0.4123、108 句/s、p50 27.4 ms） | **10/10**（0.4102、30.70 句/s、p50 96.4 ms） |
-| 错误注入 → 恢复闭环（设备侧） | 推理腿 **5 闭环 / 0 失败**（含真实超时 → L3 重放；09-22 复跑同为 5/0/0）；训练腿 **4 闭环 / 1 跳过**（无有界同步，如实跳过）。详见 `../910C/docs/ERROR_RECOVERY_LOOP_20260909.md`（含归因核查：此前两条"发现"已推翻） | 设/不设 `XPU_EVENT_KL3_ENABLE` 两组**各 5 闭环 / 0 失败**，结果**逐字节一致** |
-| 官方镜像等价性（换镜像后结论是否成立） | — | ✅ 全部结论在**官方 `-base` 镜像**上复现（conformance 逐用例一致、推理腿 `detail` **14/14 逐字相同**、KL3 挂死一致重现） |
+| 验证 | 910C（第 1 家，昇腾） | P800（第 2 家，昆仑芯） | MLU590（第 3 家，寒武纪） |
+|---|---|---|---|
+| 冒烟自检 | **51 通过 / 0 失败**（09-22 对称复跑；此前 48/2 的两项失败已修，见 §3.2） | **42 通过 / 0 失败** | **42 通过 / 0 失败**（09-22 真机） |
+| conformance（设备上下文与多流 13 例） | 13/13（`ascend`） | **13/13**（`kunlun`） | **13/13**（`cambricon`） |
+| conformance（推理 6 例） | 6/6 | **6/6** | **6/6** |
+| 执行语义基线（多流 16 项中的 8 项探针） | **8/8**（09-22 后端无关 V2 探针**首跑 ascend**） | **8/8**（与 910C 逐项一致） | **8/8**（双卡，含 S-13；另 S-7 图捕获 5/5） |
+| 训练腿 2 卡微调 | **6/6**（09-22 **口径统一后**：loss **15.4498→11.1479**、**3954–4402 tok/s**、`dist=hccl`；路线 B 线历史值 2212.9 tok/s） | **6/6**（loss 15.4488→11.1481、3482 tok/s） | **6/6**（loss 15.4498→11.1479、**2957.8 tok/s**、`dist=cncl`） |
+| 推理腿（单卡前向） | **14/14**（09-22：区分度 0.6380、79.39 句/s、p50 37.73 ms） | **13/13 + 1 如实跳过**（0.6392、53.12 句/s、p50 56.17 ms） | ⏳ **未做**（前置已就绪） |
+| 推理腿（vLLM 服务化） | 10/10（区分度 0.4123、108 句/s、p50 27.4 ms） | **10/10**（0.4102、30.70 句/s、p50 96.4 ms） | ⏳ **未做**（前置已就绪） |
+| 错误注入 → 恢复闭环（设备侧） | 推理腿 **5 闭环 / 0 失败**（含真实超时 → L3 重放）；训练腿（`ascend`）**5 闭环 / 0 跳过 / 0 失败**（2026-09-22 口径统一后；09-09 路线 B 线为 4 闭环 / 1 跳过，详见 `../910C/docs/ERROR_RECOVERY_LOOP_20260909.md`） | 设/不设 `XPU_EVENT_KL3_ENABLE` 两组**各 5 闭环 / 0 失败**，结果**逐字节一致** | **5 闭环 / 0 跳过 / 0 失败**（四类注入） |
+| 官方镜像等价性（换镜像后结论是否成立） | — | ✅ 全部结论在**官方 `-base` 镜像**上复现（conformance 逐用例一致、推理腿 `detail` **14/14 逐字相同**、KL3 挂死一致重现） | — |
 
 > 表中标注 09-22 的数字来自**两实例对称复跑**（当前代码、同一组命令），证据见
 > `../910C/probes/recheck_*_20260922.json` 与 `../P800/probes/recheck_*_20260922.json`；
@@ -81,10 +84,11 @@ prototype/
 
 - **现象**：ascend 冒烟 **48/2** —— ①`translate_error 回填后端名` 失败（`fe.backend` 为 `None`）；
   ②"声明 `error_map` → 分级来源为 `code_map`"失败（对**不含厂商错误码**的消息误判）
-- **根因**：① **后端不对称**——`kunlun.translate_error` 回填了 `backend=self.name`，`ascend`/`flagos` 未回填
+- **根因**：① **后端不对称**——`kunlun.translate_error` 回填了 `backend=self.name`，`ascend`
+  （以及当时仍在册的路线 B 后端）未回填
   （`FlagosError.backend` 是文档化字段，直调后端方法时为 `None`）；
   ② **判据不公平**——给声明了 `error_map` 的后端注入无厂商码消息，却要求必须走 `code_map`
-- **修复**：`ascend`/`flagos` 补回填；判据改为两条诚实断言——"无码消息不得伪称 `code_map`"
+- **修复**：`ascend` 补回填（路线 B 后端同期一并补；该后端现已删除）；判据改为两条诚实断言——"无码消息不得伪称 `code_map`"
   +"含厂商码样例必走 `code_map`"（样例由各后端自带 `SAMPLE_CODED_ERROR`，无样例则如实 SKIP 正向检查）
 - **修后**：ascend 冒烟 **51/0**（样例码 507015 → `code_map`/L4_FATAL；无码 → `message_hint`，双向均正确）；
   P800 **42/0** 回归通过；两实例 conformance 13+6 回归全绿
@@ -99,12 +103,12 @@ prototype/
 
 | 腿 | 脚本 | 910C（后端 → 结果） | P800（后端 → 结果） |
 |---|---|---|---|
-| 训练腿 2 卡微调 | `runtime/proto/proto_train_leg.py` | `flagos` → 6/6：loss 15.45 → 11.15（50 步）、2117 tok/s、通信三类对照全对 | `kunlun` → **6/6**：loss 15.4488 → 11.1481、3482 tok/s |
+| 训练腿 2 卡微调 | `runtime/proto/proto_train_leg.py` | `ascend` → 6/6（**当前口径，2026-09-22 口径统一后**）：loss **15.4498 → 11.1479**、**3954–4402 tok/s**、`dist=hccl`、通信三类对照全对；09-09 路线 B 线历史值为 15.45→11.15、2117 tok/s | `kunlun` → **6/6**：loss 15.4488 → 11.1481、3482 tok/s |
 | 推理腿单卡（前向） | `runtime/proto/proto_infer_leg.py` | `ascend` → 10/10：向量区分度 0.638、66–79 句/s、无 NaN | `kunlun` → **13/13**：区分度 0.6392、53.12 句/s、p50 56.17 ms |
 | 推理腿单卡（服务化） | `runtime/proto/proto_infer_serve.py` | `ascend` → **10/10 SERVE_LEG_PASS**：vLLM OpenAI 兼容服务，维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms）、超长输入 → L2_PARAM/raise 且业务继续 | `kunlun` → **10/10**：区分度 0.4102、30.70 句/s、p50 96.4 ms、超长输入 → L2_PARAM/raise |
-| 错误注入→恢复闭环 | `runtime/proto/proto_error_recovery_loop.py` | 双后端通用 → 推理腿 5 闭环 / 训练腿 4 闭环（1 项因无有界同步如实跳过） | `kunlun` → 设/不设 `XPU_EVENT_KL3_ENABLE` 两组**各 5 闭环 / 0 失败**且逐字节一致 |
+| 错误注入→恢复闭环 | `runtime/proto/proto_error_recovery_loop.py` | 后端通用 → 推理腿 5 闭环 / 0 失败；训练腿（`ascend`，口径统一后）**5 闭环 / 0 跳过 / 0 失败** | `kunlun` → 设/不设 `XPU_EVENT_KL3_ENABLE` 两组**各 5 闭环 / 0 失败**且逐字节一致 |
 
-> **换芯片只改一行**：同一条命令，只把 `--backend` / `DC_BACKEND` 从 `flagos`／`ascend` 换成 `kunlun`
+> **换芯片只改一行**：同一条命令，只把 `--backend` / `DC_BACKEND` 在 `ascend`／`kunlun`／`cambricon` 之间换
 > （设备串、选卡变量、通信后端名由后端各自封装，见 §5 两实例配置手册）。
 
 **与历史资产的关系（易混淆，务必看清）**：本原型跑的是**验收模型的新验证**；
@@ -123,8 +127,7 @@ Qwen3-4B vLLM+TP）是**旧代码路径**（直接 import 厂商扩展，不经�
 # ── 910C ──
 python3 runtime/smoke_runtime.py
 python3 runtime/conformance/runner.py --backend ascend [--cases infer_cases]
-python3 runtime/conformance/runner.py --backend ascend      # 910C（训推统一 torch_npu，2026-09-22 起）
-python3 runtime/conformance/runner.py --backend flagos      # torch_fl 备用/历史复现（AUTOLOAD=0 + 先 import torch_fl）
+                                    # 910C（训推统一 torch_npu，2026-09-22 起）
 python3 runtime/proto/proto_infer_leg.py
 torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 

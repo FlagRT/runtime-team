@@ -310,7 +310,7 @@ cd /work && git clone -b kistich/device-context git@github.com:FlagRT/runtime-te
 #   scp -r dev/device-context/prototype Mlu-1:/srv/hliu553/
 
 cd /work/rt/dev/device-context/prototype
-python3 scripts/backend_offline_check.py --backend cambricon     # 期望 35/0（与本地一致）
+python3 scripts/backend_offline_check.py --backend cambricon     # 期望 39/0（当前原型；落地时为 35/0）
 python3 runtime/smoke_runtime.py --backend cambricon             # 接入自检
 python3 runtime/conformance/runner.py --backend cambricon                       # 13 例
 python3 runtime/conformance/runner.py --backend cambricon --cases infer_cases    # 推理 6 例

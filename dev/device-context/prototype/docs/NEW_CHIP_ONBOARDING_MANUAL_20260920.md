@@ -77,15 +77,17 @@ python -c "from vllm.platforms import current_platform; print(current_platform)"
 |---|---|---|---|
 | **A. 厂商官方 PyTorch 扩展**（首选） | 能 `import torch_<vendor>` 且 `device_count() > 0` | 直接按其命名空间实现 backend | 昇腾 `torch_npu`（`npu`） |
 | **B. 复用 `torch.cuda` 命名空间** | `torch.cuda.device_count() > 0`，但设备实际是国产芯片 | 按 `device_type="cuda"` 实现；**必须靠 `vendor` 字段区分厂商**（见 §5 修订建议 1） | 昆仑芯 P800（XPytorch + `torch_xray` 符号重写，编译标志 `USE_XPU=OFF`） |
-| **C. 私有命名空间（PrivateUse1）** | `import torch_xxx` 后设备串是自有前缀 | 可用；但**同一进程只能激活一家**（PrivateUse1 是单例），接口约定须写明"进程级切换" | `torch_npu`→`npu`、`torch_fl`→`flagos`、`torch_mlu`→`mlu` |
-| **D. 无 PyTorch 集成，只有底层 C API** | 上述全部失败 | 需自研薄桥接层，或确认 `torch_fl` 是否已为该厂商编译 backend —— **成本最高，须先评估再动手** | 未遇到 |
+| **C. 私有命名空间（PrivateUse1）** | `import torch_xxx` 后设备串是自有前缀 | 可用；但**同一进程只能激活一家**（PrivateUse1 是单例），接口约定须写明"进程级切换" | `torch_npu`→`npu`、`torch_mlu`→`mlu`、`torch.cuda` 兼容层（XPytorch）→`cuda` |
+| **D. 无 PyTorch 集成，只有底层 C API** | 上述全部失败 | 需自研薄桥接层，或先确认该厂商是否已有官方 PyTorch 插件未纳入考虑 —— **成本最高，须先评估再动手** | 未遇到 |
 
-**⚠️ 关于 `torch_fl` 的定位（常见误解）**：`torch_fl` **不是**"没有标准命名空间时的兜底"。
+**⚠️ 关于路线 B（torch_fl）的定位（常见误解；且本方向已不采用该路线）**：
+`torch_fl` **不是**"没有标准命名空间时的兜底"，且自 2026-09-22 起**本方向已整体退出该路线**
+（原型里的对应后端已删除）。以下两点保留为**调研结论**，供判别"为什么不能走"时引用。
 它是**编译期绑定单一加速器**的（编译时传 `ACCELERATOR=<vendor>`，换厂商要重编译），
 平台矩阵只覆盖特定几家（`cuda / metax / ascend / ppu / dcu / gcu / musa / bpu / tsingmicro`，
 **没有 cambricon、没有 biren**）。它的定位是"设备接入层的**参照实现**"与全组预研 B 线，
 主线是 **Route A：各芯片厂商官方插件**。
-对昇腾实测：必须 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`，
+对昇腾实测（**路线 B 时期，现已不适用**）：必须 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先导入该插件再 `import torch`，
 **禁止与 `torch_npu` 共存**（镜像自带校验脚本直接报错）。
 
 **推理腿的服务化判据（决定要不要额外补环境）**：
@@ -240,7 +242,6 @@ stub 已通用化为 `_vendor_stub(ns_name, vendor_modules, mem_mode)`，**新�
 |---|---|---|---|
 | `cambricon` | `torch.mlu` | `torch_mlu` | **38 通过 / 0 失败 / 0 跳过** |
 | `kunlun` | `torch.cuda`（XPytorch） | — | 38 / 0 / **1 跳过** |
-| `flagos` | `torch.flagos` | `torch_fl` | 31 / 0 / **2 跳过** |
 | `ascend` | `torch.npu` | `torch_npu` | 28 / 0 / **2 跳过** |
 
 > ⚠️ **沉痛教训（第 3 家接入的收口产出）**：本工具**原先只为 `cambricon` 一家内置 stub**，
@@ -385,7 +386,7 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 |---|---|---|---|
 | 1 | **依赖链不完整伪装成设备问题** | `Failed to infer device type`（看着像设备问题） | 先跑 §3 的自检命令；缺 `triton` 就补 `flagtree`，缺子模块就设 `PYTHONPATH` |
 | 2 | **共享机上误用被占用的卡** | 设备侧报错，看起来像通信库缺陷 | 用卡前 `xpu-smi` 挑空闲卡；出现异常先换卡复测再下结论（P800 曾因此撤销一个"缺陷"结论） |
-| 3 | **同一 FlagCX 在不同芯片注册的后端名不同** | 910C 是 `flagos`；P800 是 `flagcx` 且需显式 `import flagcx` | 不要照搬；探测可用后端再写进配置 |
+| 3 | **同一集合通信库在不同芯片注册的后端名不同** | 910C 是 `hccl`；P800 是 `flagcx`（且需显式 `import flagcx`）；MLU590 是 `cncl` | 不要照搬；探测可用后端再写进配置 |
 | 4 | **`timeout` 杀不掉挂死进程** | 挂死点持 GIL 自旋，SIGTERM 被推迟（实测存活 73 分钟） | 必须 `kill -9` 按 PID 强杀，再 `xpu-smi` 复查卡释放 |
 | 5 | **同一插件跨芯片可用性相反** | `vllm-plugin-FL` 在昆仑芯**必需**、在昇腾**必须禁用** | 逐个实测，不类推 |
 | 6 | **HF 缓存路径层级** | 传缓存根目录报 `Unrecognized model ... Should have a model_type key` | 必须给到 `snapshots/<hash>`；注意有的脚本自带 `resolve_model()`、有的没有 |
