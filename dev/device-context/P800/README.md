@@ -88,9 +88,18 @@ P800/
 | **规避的代价** | 该变量是 **FlagGems kunlunxin 后端的官方推荐变量**（`tools/env.sh`、`src/flag_gems/backends.yaml`、CI `P800.yml` 三处均设 1），且**厂商文档与镜像里对它的说明为零** ⇒ 关闭是否损失设备异常上报**须上游确认**。本方向**不擅自改锁定镜像口径、不改公共资产** |
 | **机器可读声明** | `kunlun` 后端 `info()["known_issues"]`（12 字段结构化，含复现率/责任层/规避/上报对象）；其他子方向接入时**读到后端即可获知** |
 | **开跑前告警** | `proto_train_leg.py` 的 `_preflight_env_check()`：设该变量时明确告警（不设时不误报） |
+| **⭐ 官方印证（2026-09-22 新增）** | FlagOS 官方镜像构建仓 `flagos-ai/build-infra` 的 `configs.yaml` 里，昆仑芯 vLLM 应用层环境变量原文：<br>`# XPU_EVENT_KL3_ENABLE deliberately NOT set: it is the P1 fake-hang trigger (device timeout) on this XRE stack — default env is clean, keep it so.`<br>⇒ **官方明确不设该变量、并称之为「P1 假挂死触发器」**，与本方向独立定位一致 ⇒ **上报时可引用作「上游已承认该触发器」的旁证** |
 
 > **统一措辞**：根本原因在厂商 CUDA 兼容运行时 `libxpucuda.so`（KL3 事件机制与设备事件同步原语的交互），
 > **需上报芯片厂商适配**；我方已按上述方式规避以不阻塞本方向验证，并如实标注条件。
+>
+> **⚠️ 补充（2026-09-22）：P800 存在两条镜像血统，方向侧不自行切换** ——
+> ① 现用 **FlagTree 线** `flagtree-xpu3.6-…:202608-base`（= FlagTree 手册给 P800 的唯一镜像，
+> 与类脑 x-benchmark 指向同一条 xpu3.6 线，**镜像本身无需调整**）；
+> ② **FlagOS 官方线** `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-kunlunxin-xre5.37.1:2.2.0`
+> （flagtree 0.7.0rc2+xpu3.6，但**底层 SDK 换代到 XRE 5.37.1**，前置要求宿主驱动 **5.37.1**，
+> 而我们实测宿主为 **5.0.21.47**）。
+> **建议总组明确走哪条**；完整对照见 `../prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
 
 ---
 

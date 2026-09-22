@@ -35,15 +35,28 @@ python -c "import vllm; from vllm.platforms import current_platform; print('plat
 
 ## 2. 来源优先级（按可复现性从高到低）
 
+> **2026-09-22 补充**：FlagOS 官方镜像体系（`flagos-ai/build-infra` 构建，
+> registry 前缀 `flagos-base` / `flagos-runtime` / `flagos-dev` / `flagos-app`，当前版本 **2.2.0**）
+> 覆盖 **14 个后端**（含**寒武纪**，这是 FlagTree 手册覆盖不到的一家），**是首选的官方对齐口径**。
+> **判据：同一芯片既有 FlagTree 线又有 FlagOS 官方线时，先在 STATUS.md 里问总组要哪条，
+> 不要方向侧自行切换**（两条线的底层 SDK 可能换代，例如昆仑芯 FlagTree 线是 XRE 0.x 命名、
+> FlagOS 官方线已到 **XRE 5.37.1**）。
+
 | 优先级 | 来源 | 特征 | 已有先例 |
 |---|---|---|---|
+| **0（新增，最优先）** | **FlagOS 官方镜像体系**（`harbor.baai.ac.cn/flagos-{base,runtime,app}/…`） | 由 `flagos-ai/build-infra` 的 `configs.yaml` 统一生成（文档站 `flagos-ai.github.io/release-info/` 自动同步，不会漂移）；**覆盖含寒武纪在内的 14 后端**；每个 `base|runtime/<backend>.md` 明确写出**宿主驱动前置**；实测可匿名拉取 | `flagos-runtime-kunlunxin-xre5.37.1:2.2.0`（digest `sha256:0f488c7b…`）、`flagos-runtime-ascend-cann9.0.0-910c:2.2.0`（`sha256:1048d622…`）、`flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`sha256:e55b420e…`） |
 | **1** | **厂商官方发布镜像** | 有 registry、有可拉取 digest、厂商持续维护 | 910C 推理腿 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（digest `sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7`） |
-| **2** | **组内 harbor 镜像** | 有 digest、组内可拉；本机可能已有同名系列 | P800 同系列在 BAAI harbor：`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base-ssh`（94.5 GB，本机已存在） |
+| **2** | **FlagTree 手册镜像 / 组内 harbor 镜像** | 有 digest、组内可拉；本机可能已有同名系列 | P800 `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（94.5 GB，本机已存在） |
 | **3** | **本机已有镜像（无 registry）** | 靠 `docker save` 备份 + 配方重建保证可复现 | 910C 训练腿 `flagrt/ascend-operator-runtime-comm:0.1.3-…`；P800 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608` |
 | **4** | 自建 | **原则不允许**——各方向只消费不自建（镜像的确定与调整由总组裁定） | — |
 
-> 优先级 1、2 的好处是"拿到 digest 就等于拿到环境"；优先级 3 必须补齐**可重建配方**（`Dockerfile.repro` + assets）
+> 优先级 0–2 的好处是"拿到 digest 就等于拿到环境"；优先级 3 必须补齐**可重建配方**（`Dockerfile.repro` + assets）
 > 或至少有 `docker save` 离线归档，否则镜像一丢就无法复现结论。
+>
+> ⚠️ **宿主要求是优先级 0 的硬前置，别只看 Python 包版本**：`flagos-*/<backend>.md` 里有一行
+> **Host driver**（例：`cambricon-neuware4.7.2` → `6.5.48`，`cambricon-neuware4.4.3` → `6.2.15`，
+> `kunlunxin-xre5.37.1` → `5.37.1`，`ascend-cann9.0.0-910c` → `26.0.rc1`）。
+> **寒武纪就是被这一行卡住的**：两台测试机驱动 6.2.29，只能用 4.4.3 档，4.7.2 要 6.5.48。
 
 ---
 
@@ -138,18 +151,30 @@ python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 \
 
 ## 6. 第三家芯片（寒武纪）的镜像选择建议
 
+> **2026-09-22 已定案，替换原下表**：寒武纪**不需要走寒武纪官方渠道申请凭据** ——
+> FlagOS 官方在 BAAI Harbor 上已有寒武纪三代镜像（`flagos-base` / `flagos-runtime` / `flagos-app`）
+> 与 FlagGems 周测镜像，**实测可匿名拉取**（Registry v2 匿名 token 取 manifest 成功，已取得 digest）。
+> 唯一分叉点是**档位由宿主驱动决定**：
+
+| 档位 | Python | torch / torch-mlu / triton | 官方标注宿主驱动前置 | 我们（实测 v6.2.29） |
+|---|---|---|---|---|
+| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **同 6.2.x 线，选它** |
+| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 不满足（要升宿主驱动） |
+
+**三步判据**：
+
 | 步 | 动作 | 判据 |
 |---|---|---|
-| 1 | 找**寒武纪官方**镜像（含 `torch_mlu` + NeuWare/CNRT；若官方也有 vLLM 移植版更好） | 有可拉取 digest 即可申请使用 |
+| 1 | **先查宿主驱动**，再按驱动选档；用 `harbor.baai.ac.cn/flagos-runtime/…-cambricon-neuware4.x.x` | 宿主驱动 ≥ 该档 `base/<backend>.md` 的 **Host driver** 行 |
 | 2 | 起容器后先跑 §1 两条判据 | 设备可见 + `torch_mlu` 可导入；`current_platform` 不是 `UnspecifiedPlatform` |
-| 3 | 若官方无镜像 → 用组内/队友已有的寒武纪环境镜像 | 必须能给出 digest 或 `docker save` 归档 + 重建配方 |
-| 4 | 归档 + 验证 + 提诉求 | 同 §4 |
+| 3 | 归档 + 验证 + 提诉求 | 同 §4 |
 
-**一个必须提前确认的分叉点**：寒武纪的 vLLM 支持形态。
-- 若寒武纪提供**厂商移植版 vLLM**（像昇腾 `vllm-ascend`）→ 推理腿可照 910C 的走法，直接 `vllm serve`
-- 若只有社区 vLLM + 平台插件（像昆仑芯依赖 vllm-plugin-FL）→ 需要确认插件是否在镜像内、是否需要额外 `PYTHONPATH` 之类的环境前提
+**寒武纪的 vLLM 支持形态**：官方已有 `flagos-app/vllm0.24.0-cambricon-neuware4.7.2:2.2.0-0.3.0rc2.post2`
+等应用镜像 ⇒ **推理腿预计"一条命令起服务"**（与昇腾同类），但**「厂商移植版 vs 社区版 + 插件」
+仍未落实** —— 落地时解开镜像确认即可，不必问厂商。
 
-这决定了推理腿是"一条命令起服务"还是"要先补环境"，直接影响接入人天。
+**⚠️ 两个仍待实测的点（不要凭版本号下结论）**：① 驱动 6.2.29 能否跑标注 6.2.15 的 `neuware4.4.3`
+（同 minor 线属**推断**）；② 带卡机能否出网拉 `harbor.baai.ac.cn`。
 
 ---
 

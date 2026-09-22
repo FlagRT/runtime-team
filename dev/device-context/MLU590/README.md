@@ -82,12 +82,22 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 
 ⚠️ **待实机复核**（进容器后）：`import torch_mlu` → `torch.mlu.device_count() == 8`。
 
-**镜像从哪来 → 见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`**（2026-09-22 调研结论）：
+**镜像从哪来 → 见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`**（09-22 调研 + **同日下午更正**）：
 - ❌ **FlagTree 没有寒武纪 User Manual / 推荐镜像**（wiki 26 页无 cambricon 条目；寒武纪只存在于编译器侧 `triton_v3.2.x` 分支）
-- ✅ 寒武纪**有**官方镜像，但**必须走官方渠道申请**：开发者社区 `developer.cambricon.com`（`torch_mlu` README 的镜像链接指向此处）+ 私仓三处（`docker.cambricon.com`、`docker-user.cambricon.com:30080`、`docker-user.extrotec.com:30080`，**实测均 401 需鉴权**，且已在本机 `daemon.json` 的 `insecure-registries` 中）
-- 目标版本档：`torch2.11.0` + `torchmlu1.33.1` + `ubuntu22.04` + `py312`（**确切 tag 待厂商给**）
-- ✅ **推理形态与昇腾同类**：寒武纪有厂商移植版 vLLM（官方开源 `Cambricon/vllm-mlu`）
-- ⚠️ **与前两家最大不同**：910C/P800 可从公开上游拿镜像，**寒武纪必须申请** ⇒ 头号环境风险
+- ✅ **但 FlagOS 官方在 BAAI Harbor 上已有寒武纪镜像**（`flagos-base` / `flagos-runtime` / `flagos-app` 共 12 个仓
+  + FlagGems 周测 2 个仓），且**实测可匿名拉取**（Registry v2 匿名 token 取 manifest 成功，digest 已取得）
+  ⇒ **不需要寒武纪私仓凭据**
+- ⭐ **档位按宿主驱动选，不按 torch 版本选**（实测驱动 **v6.2.29**，落 6.2.x 线）：
+
+  | 档位 | py | torch / torch-mlu / triton | 官方标注宿主驱动 | 我们 |
+  |---|---|---|---|---|
+  | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **选它** |
+  | `…/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 需升宿主驱动 |
+
+- ✅ **推理形态与昇腾同类**：寒武纪有厂商移植版 vLLM（官方开源 `Cambricon/vllm-mlu`）；
+  官方应用镜像 `flagos-app/vllm0.24.0-cambricon-neuware4.x.x:2.2.0-0.3.0rc2.post2` 亦已存在
+- ⚠️ **仍需实测（不臆断）**：① 驱动 6.2.29 能否跑标 6.2.15 的 4.4.3；② 带卡机能否出网拉 `harbor.baai.ac.cn`；
+  ③ 应用镜像内 vLLM 是厂商移植版还是社区版 + 插件
 
 ---
 
@@ -97,7 +107,7 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 |---|---|---|---|
 | **1** | 建 **`/srv/hliu553`** 并 chown 给 `hliu553`（两台） | root / 机器管理员 | 🔴 **阻塞** |
 | **2** | 把 `hliu553` 加入 **`docker` 组**（两台，需重新登录） | root / 机器管理员 | 🔴 **阻塞** |
-| **3** | **镜像获取**（宿主无 NeuWare，必须用官方镜像）：**FlagTree 无寒武纪手册（已确认）**；寒武纪官方镜像**只能走官方渠道**（社区 / 私仓凭据 / tarball），三私仓实测 **401 需鉴权** ⇒ 需申请**凭据或 tarball + 确切 tag** | 寒武纪方 / 管理员 | 🔴 **阻塞**（见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §4） |
+| **3** | ~~**镜像获取**~~ → **已解除**（2026-09-22）：FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像 + 周测镜像，**实测可匿名拉取**（digest 已取得），**不需要私仓凭据**。**现在待裁定的是「走哪一档」**：驱动 6.2.29 → `neuware4.4.3`（标 6.2.15）；`neuware4.7.2` 标 **6.5.48**，需先升宿主驱动 | 总组 / 管理员 | 🟢 **降级为档位裁定**（见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0） |
 | 4 | 两机**无共享目录**：数据需分别放置；若需共享需另配 NFS | 管理员（可选） | ⚪ 已知 |
 
 root 执行命令（两台各一次）：

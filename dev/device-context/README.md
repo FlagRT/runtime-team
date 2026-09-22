@@ -235,8 +235,9 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 文档 | 回答什么 |
 |---|---|
 | `prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md`（335 行） | **两实例配置与依据**：镜像 / 模型 / 训推框架 / 参数逐项对照 + **为什么这么定**（依据写成可独立阅读的实测事实）+ §4 结果可比性说明 + §5 坑清单 + §6 可复现命令 + §7 未覆盖项。**主线汇报材料** |
-| `prototype/docs/IMAGE_SELECTION_GUIDE_20260920.md`（178 行） | 镜像怎么选：需求画像（5 条可执行判据）· 来源优先级 · **入档/入锁两道门槛**（含"谁定"）· 实操五步 |
+| `prototype/docs/IMAGE_SELECTION_GUIDE_20260920.md`（178 行） | 镜像怎么选：需求画像（5 条可执行判据）· 来源优先级（**2026-09-22 起 FlagOS 官方 `flagos-base`/`runtime`/`app` 体系列为最高优先级**）· **入档/入锁两道门槛**（含"谁定"）· 实操五步 |
 | `prototype/docs/IMAGE_REQUIREMENT_SPEC_20260920.md`（95 行） | **向上游要什么**：可查验的官方文档清单 · 我们镜像与官方推荐的差异 · 硬性 H1–H6 / 期望 E1–E5 / 可协商 N1–N3 三级需求 · **请总组裁定的三件事** |
+| `prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`（新建） | **镜像血统对齐核查（三家对照）**：类脑（x-benchmark）只覆盖 FlagTree 算子线（4 家、**无寒武纪**）· **FlagOS 官方镜像体系**（`flagos-base`/`runtime`/`app`，14 后端含寒武纪，匿名可拉实测）· **宿主驱动是选档第一判据**（寒武纪 6.2.29 → 只能 4.4.3）· 昆仑芯两条血统（FlagTree xpu3.6 vs FlagOS XRE 5.37.1）· **官方对 KL3 缺陷的印证** |
 | `prototype/docs/DESIGN_DIST_COMM_20260908.md`（66 行） | 2 卡分布式微调的通信路线思考备忘（**状态：思考结论，尚未实跑**）；与分布式方向的接口约定**待回复** |
 | `prototype/README.md`（150 行） | 原型分支看板：统一 API 面、目录结构、两实例验证状态、文档索引 |
 | `prototype/RELEASE_NOTES_v0.2.0.md`（155 行） | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
@@ -295,12 +296,12 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `KUNLUN_P800_STREAM_BASELINE_16_20260920.md`（169 行） | **多流 16 项逐项比对**：14 通过 / 1 如实声明不支持 / 1 不适用；S-7 图捕获首测 5/5；含一处自我纠错与证据形态差异说明 |
 | `PROGRESS_REPORT_20260914.md`（850 行） | 全量进度报告（910C 回顾 + P800 主体 + **待办按"谁来做"四分类** + 证据索引） |
 
-**6.4.4 `MLU590/docs/`（寒武纪，第三实例）**
+**6.4.5 `MLU590/docs/`（寒武纪，第三实例）**
 
 | 文档 | 回答什么 |
 |---|---|
 | `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属证据链 · MLU 栈版本组合（torch-mlu 1.33.1 + torch 2.11.0）· root 权限开通需求 · 探测边界 |
-| `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研**：FlagTree 无寒武纪手册 · 官方渠道与三私仓实测（均 401 需鉴权）· 目标版本档 · 申请清单 · **三家实例镜像获取路径对照** |
+| `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研 + 当日更正**：§0 更正段（**FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像、实测可匿名拉取**；**档位由宿主驱动决定**：6.2.29 → `neuware4.4.3`，`neuware4.7.2` 需 6.5.48）· FlagTree 无寒武纪手册 · 官方渠道与三私仓实测（均 401 需鉴权）· 申请清单 · **三家实例镜像获取路径对照** |
 
 ### 6.5 原始证据目录（复核用，勿只读结论）
 

@@ -3,21 +3,67 @@
 > 日期：2026-09-22 ｜ 负责人：Kistich（hliu553）｜ 方向：设备抽象与执行上下文
 > 目的：回答"寒武纪这一支的镜像从哪来、怎么选"，供**组内基座确定**与**向寒武纪申请资源**使用
 > 方式：官方文档核查（FlagTree wiki 全页 / 寒武纪开源仓库）+ 两台测试机上的**只读网络探测**
+> 　　**+ 2026-09-22 追加：FlagOS 官方镜像构建仓 `flagos-ai/build-infra` 核查 + BAAI Harbor 接口级实测**
 
 ---
 
-## 1. 结论速览
+## 0. ⚠️ 2026-09-22 更正（当日追加，优先级高于下文 §1）
+
+本文 §1 原结论「**寒武纪必须走官方渠道申请、无公开上游**」**不成立**，已更正。更正依据两条：
+
+1. **FlagOS 官方在 BAAI Harbor 上有完整的寒武纪镜像**（三代 + 周测），来源仓 `flagos-ai/build-infra`
+   （`configs.yaml` 为 source of truth）：
+
+   | 层 | 镜像仓 |
+   |---|---|
+   | 基座 | `flagos-base/flagos-base-cambricon-neuware4.4.3`、`…-neuware4.7.2` |
+   | 运行时 | `flagos-runtime/flagos-runtime-cambricon-neuware4.4.3`、`…-neuware4.7.2` |
+   | 应用 | `flagos-app/{vllm0.20.2,vllm0.24.0,sglang0.5.18,megatron_training0.17.1}-cambricon-{neuware4.4.3,neuware4.7.2}`（8 个仓） |
+   | 周测 | `flaggems/cambricon-flaggems-test-mlu590-m9de-triton3-2-1`（`maintainer=cambricon`） |
+
+2. **实测可匿名拉取**（Docker Registry v2 标准鉴权路径，**未使用任何凭据**；
+   `/v2/` 裸访问返 401 是 Registry 正常 challenge，不代表私有）：
+
+   ```text
+   flagos-runtime/flagos-runtime-cambricon-neuware4.7.2:2.2.0
+     digest sha256:a37f46e331d638f5901c1ae30ac10b79fb41d76451822eee40c470be712a5e20
+   flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+     digest sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2
+   ```
+
+   ⇒ **寒武纪私仓凭据不再是接入硬前置**（不需要 `docker.cambricon.com` 等三处私仓的账号/tarball）。
+
+3. **⭐ 档位由宿主驱动决定（本文原 §3.4 缺失的硬前置）**：
+
+   | 档位 | Python | torch / torch-mlu | triton | 官方标注**宿主驱动前置** |
+   |---|---|---|---|---|
+   | `cambricon-neuware4.4.3` | 3.10 | 2.7.1+cpu / 1.29.2+torch2.7.1 | 3.2.0+mlu1.7.2 | **6.2.15** |
+   | `cambricon-neuware4.7.2` | 3.12 | 2.11.0+cpu / 1.33.1+torch2.11.0 | 3.4.0+mlu2.1.1 | **6.5.48** |
+
+   我们两台测试机实测驱动 **v6.2.29** ⇒ 落 **6.2.x 线**，与 `neuware4.4.3` 同线；
+   **`neuware4.7.2` 要求 6.5.48，我们不满足**。原 §3.4 锚的 `torch2.11.0 / torchmlu1.33.1 / py312`
+   正是 4.7.2 档 —— 方向对，但**缺这条驱动门槛**。
+   ⇒ 处置二选一：**A**（推荐先走）直接用 `neuware4.4.3`；**B** 请管理员把驱动升到 6.5.48 再用 4.7.2。
+   ⚠️ 6.2.29 能否跑 `neuware4.4.3`（官方标 6.2.15）**未实测**，属推断，须起容器实测确认。
+
+> 更正细节、证据链与三家对照见 `../../prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
+> 下文 §1–§7 为 2026-09-22 上午版原文（保留以留痕），其中**镜像来源结论以本段为准**。
+
+---
+
+## 1. 结论速览（原文，⚠️ 第 2/3/5 行已被 §0 更正）
 
 | 问题 | 结论 |
 |---|---|
-| FlagTree 有寒武纪的官方 User Manual / 推荐镜像吗？ | ❌ **没有**（wiki 全部 26 页里无 cambricon/mlu 条目；其他 17 个后端都有） |
-| 寒武纪有官方镜像吗？ | ✅ **有**，但**必须走官方渠道申请**（社区账号 / 镜像 tarball / 私仓凭据） |
-| 官方镜像仓可达吗？ | ✅ 三处**均可从测试机访问**，但**都返回 401 需鉴权**，且都已列入本机 `daemon.json` 的 `insecure-registries` |
-| 推理形态（与昇腾/昆仑芯哪个同类）？ | **与昇腾同类** —— 寒武纪有**厂商移植版 vLLM**（官方开源 `Cambricon/vllm-mlu`），不是"社区 vLLM + 第三方平台插件" |
-| 我们现在能自己拉吗？ | ❌ **不能** —— 无仓凭据、且不在 `docker` 组（两道都需开通） |
+| FlagTree 有寒武纪的官方 User Manual / 推荐镜像吗？ | ❌ **没有**（wiki 全部 26 页里无 cambricon/mlu 条目；其他 17 个后端都有）——**此条仍然成立** |
+| 寒武纪有官方镜像吗？ | ~~✅ **有**，但**必须走官方渠道申请**（社区账号 / 镜像 tarball / 私仓凭据）~~ → **更正见 §0：FlagOS 官方 BAAI Harbor 已有，且实测可匿名拉取** |
+| 官方镜像仓可达吗？ | ✅ 三处**均可从测试机访问**，但**都返回 401 需鉴权**（**这条描述的是寒武纪私仓，不是 FlagOS 官方仓**） |
+| 推理形态（与昇腾/昆仑芯哪个同类）？ | **与昇腾同类** —— 寒武纪有**厂商移植版 vLLM**（官方开源 `Cambricon/vllm-mlu`） |
+| 我们现在能自己拉吗？ | ~~❌ **不能**~~ → **更正：FlagOS 官方仓可匿名拉；需要 `docker` 组权限才能实际起容器** |
 
-**⇒ 与前两家最大的不同：**910C 与 P800 的镜像都能从**公开上游**拿到（华为 quay / BAAI Harbor），
-**寒武纪必须走官方渠道**。这是第 3 家接入的**头号环境风险**，应在申请机器时一并提出。
+**⇒ 与前两家的差异（已更正）**：910C 与 P800 从公开上游拿到（华为 quay / BAAI Harbor）；
+**寒武纪也能从 BAAI Harbor（FlagOS 官方线）拿到** —— 真正的差异不在「能不能拿到」，
+而在 **① 寒武纪没有 FlagTree 线（只有 FlagOS 官方线）；② 档位受宿主驱动硬约束**。
 
 ---
 
@@ -107,12 +153,14 @@ NEUWARE_HOME     /usr/local/neuware
 
 ## 4. 需要向寒武纪 / 管理员申请的事项（与机器开通一并提出）
 
+> **2026-09-22 更正**：原第 1、2 项（要私仓凭据 / 要确切 tag）**已不需要** —— FlagOS 官方 BAAI Harbor
+> 上的寒武纪镜像**实测可匿名拉取**，tag 与 digest 均已取得（见 §0）。现清单收敛为下面两条。
+
 | # | 事项 | 用途 | 备注 |
 |---|---|---|---|
-| 1 | **镜像仓凭据**（`docker.cambricon.com` 或 `docker-user.cambricon.com:30080` 的账号）**或** 直接提供镜像 tarball | 拿到含 `torch_mlu` + NeuWare 的容器 | 两选一即可；tarball 更省事（无需凭据） |
-| 2 | **确切镜像 tag**（对齐 `torch2.11.0` / `torchmlu1.33.1` / `py312` 档） | 归档与入锁材料要写 tag+digest | 我们列不出私仓 tag，需厂商给 |
-| 3 | **容器内是否含 vLLM 移植版**（`Cambricon vLLM Container`） | 推理腿形态（对齐昇腾 `vllm-ascend` 的做法） | 若没有，则推理腿退化为"社区 vLLM + 手工装 `vllm-mlu`" |
-| 4 | 与已登记的 root 权限需求配套：`/srv/hliu553` + `docker` 组 | 落数据、起带卡容器 | 见 `../README.md` §4 |
+| 1 | **确认使用哪一档**：`neuware4.4.3`（驱动 6.2.15，与我们 6.2.29 同线）还是 `neuware4.7.2`（需驱动 **6.5.48**） | 决定接入镜像 | 选 4.7.2 则**附带要求升级两台机器宿主驱动到 6.5.48**，会影响他人，须协调 |
+| 2 | **与已登记的 root 权限需求配套**：`/srv/hliu553` + `docker` 组 | 落数据、起带卡容器（镜像可匿名拉，但没有 `docker` 组仍起不了容器） | 见 `../README.md` §4 |
+| 3 | （可选，仍建议问）寒武纪应用镜像 `flagos-app/vllm0.24.0-cambricon-neuware4.x.x` 的 vLLM 是**厂商移植版还是社区版 + 插件** | 推理腿形态（对齐昇腾 `vllm-ascend` 的做法） | 也可自行解开镜像确认，不必问厂商 |
 
 ---
 
@@ -120,11 +168,11 @@ NEUWARE_HOME     /usr/local/neuware
 
 | | 第 1 家 昇腾 910C | 第 2 家 昆仑芯 P800 | **第 3 家 寒武纪 MLU590** |
 |---|---|---|---|
-| 公开上游推荐镜像 | ✅ **有**：FlagTree `User-manual-for-ascend` | ✅ **有**：FlagTree `User-manual-for-xpu` | ❌ **无**（FlagTree 无寒武纪手册） |
-| 推荐镜像所在仓 | BAAI Harbor（`harbor.baai.ac.cn/flagtree/...`）；推理另有华为 `quay.io/ascend/vllm-ascend` | BAAI Harbor（`harbor.baai.ac.cn/flagtree/...:202608-base`） | 寒武纪私仓（`docker.cambricon.com` / `docker-user.cambricon.com:30080`）+ 开发者社区 |
-| 获取难度 | 低（公开可拉） | 低（公开可拉，本机已有） | **高（需申请凭据或 tarball）** |
-| 推理形态 | 厂商移植版 vLLM（`vllm-ascend`） | 社区 vLLM + 第三方平台插件（`vllm-plugin-FL`） | **厂商移植版 vLLM**（`Cambricon/vllm-mlu`）—— 与昇腾同类 |
-| 本方向现状 | 已入锁（训练腿 + 推理腿各一） | 在位、有 digest，**建议以官方 `-base` 入锁** | **待申请** |
+| 公开上游推荐镜像 | ✅ **有**：FlagTree `User-manual-for-ascend` | ✅ **有**：FlagTree `User-manual-for-xpu` | ❌ **无 FlagTree 手册**；✅ **但 FlagOS 官方线有**（见 §0） |
+| 推荐镜像所在仓 | BAAI Harbor（`harbor.baai.ac.cn/flagtree/...`）；推理另有华为 `quay.io/ascend/vllm-ascend` | BAAI Harbor（`harbor.baai.ac.cn/flagtree/...:202608-base`） | **BAAI Harbor（`harbor.baai.ac.cn/flagos-{base,runtime,app}/...-cambricon-neuware4.{4.3,7.2}`）**，实测可匿名拉 |
+| 获取难度 | 低（公开可拉） | 低（公开可拉，本机已有） | **低**（公开可拉；但**档位受宿主驱动约束**：6.2.29 → 4.4.3） |
+| 推理形态 | 厂商移植版 vLLM（`vllm-ascend`） | 社区 vLLM + 第三方平台插件（`vllm-plugin-FL`） | 应用镜像已有（`flagos-app/vllm0.24.0-cambricon-…`）；**移植版 vs 插件版待确认** |
+| 本方向现状 | 已入锁（训练腿 + 推理腿各一） | 在位、有 digest，**建议以官方 `-base` 入锁** | **镜像已选定（4.4.3 档），待 `docker` 组权限开通后实拉实测** |
 
 ---
  

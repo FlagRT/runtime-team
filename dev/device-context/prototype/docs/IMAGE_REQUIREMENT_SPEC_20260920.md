@@ -81,11 +81,19 @@
 | **910C** | 推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7` | 华为昇腾官方（quay.io） | ✅ 已入锁 |
 | **P800**（第 2 家） | 两腿 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（38.3 GB） | `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`（**2026-09-22 实机复核更正**：tag 无 registry 前缀但 digest **确实存在**） | 同系列 FlagGems dev 变体（本机已有） | ⚠️ 在位、**未归档未入锁**（现用） |
 | **P800** | 两腿（**建议入锁**） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（33.8 GB） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` | **BAAI Harbor**（官方手册推荐，血统 `maintainer: huangyun@kunlunxin.com`） | ✅ 等价性验证已完成，**待入锁** |
-| **MLU590**（第 3 家） | 两腿 | **待寒武纪方给确切 tag**（目标档：`torch2.11.0` + `torchmlu1.33.1` + `ubuntu22.04` + `py312`） | **未取得**（私仓需鉴权，无法列 tag ⇒ 不臆造） | 寒武纪官方渠道：社区 `developer.cambricon.com` / 私仓 `docker.cambricon.com`·`docker-user.cambricon.com:30080`·`docker-user.extrotec.com:30080`（**三处实测 401 需鉴权**） | 🔴 **待申请** |
+| **MLU590**（第 3 家） | 两腿 | **`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（**2026-09-22 更正定档**；py3.10 / torch 2.7.1+cpu / torch-mlu 1.29.2+torch2.7.1 / triton 3.2.0+mlu1.7.2）<br>备选 `…-neuware4.7.2:2.2.0`（py3.12 / torch 2.11.0 / torch-mlu 1.33.1，**需宿主驱动 6.5.48**） | `sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2`（4.4.3）<br>`sha256:a37f46e331d638f5901c1ae30ac10b79fb41d76451822eee40c470be712a5e20`（4.7.2） | **FlagOS 官方 BAAI Harbor**（`flagos-ai/build-infra` 构建；**实测可匿名拉取**） | 🟡 **已定档，待 `docker` 组权限开通后实拉实测** |
 
-**请总组注意第 3 家的特殊性**：910C 与 P800 的镜像都能从**公开上游**取得（华为 quay / BAAI Harbor），
-**寒武纪必须走官方渠道申请**（FlagTree 无寒武纪手册，详见 §5.1 与
-`MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`）⇒ 这是第 3 家接入的**头号环境风险**。
+**⚠️ 2026-09-22 更正（原结论「寒武纪必须走官方渠道申请」不成立）**：
+910C、P800 与**寒武纪**的镜像**都能从公开上游取得**（华为 quay / BAAI Harbor）。
+寒武纪在 FlagOS 官方镜像体系里是完整的一等公民（`flagos-base` / `flagos-runtime` / `flagos-app`
+共 12 个仓 + FlagGems 周测 2 个仓），**实测可匿名拉取**（Registry v2 匿名 token 取 manifest 成功，digest 已取得），
+**不需要寒武纪私仓凭据**。
+**真正的特殊性在于：档位由宿主驱动决定，而我们的宿主驱动不满足最新档** ——
+测试机驱动 **v6.2.29**（6.2.x 线）⇒ 只能走 `neuware4.4.3`（官方标 6.2.15）；
+`neuware4.7.2` 官方标**宿主驱动 6.5.48**。⇒ 待总组/管理员裁定：走 A（4.4.3，同驱动线）
+还是 B（先升驱动到 6.5.48 再用 4.7.2）。
+详见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0 与
+`prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
 
 | # | 事项 | 我们的诉求 | 依据 |
 |---|---|---|---|
@@ -112,11 +120,14 @@
 
 | 项 | 结论 | 依据 |
 |---|---|---|
-| ① FlagTree 是否有寒武纪 User Manual | ❌ **没有** | FlagTree wiki 全部 **26 页**逐页列出，有 `User-manual-for-xpu / ascend / nvidia / amd / ppu / metax / mthreads / iluvatar / aipu / cpu / hcu / enflame / tsingmicro / sunrise / spacemit / rpu / tileir` 等，**无 cambricon / mlu 条目**；而 User Manual 索引页正文明确"最佳实践是用各后端文档里给的镜像" ⇒ **寒武纪这一支没有官方推荐镜像** |
-| ② 厂商是否提供官方镜像 | ✅ **有**，但**全部需鉴权、走官方渠道** | 寒武纪开发者社区 `developer.cambricon.com`（`torch_mlu` README 的"版本配套关系"表把镜像链接指向此处）；三个官方/渠道 registry 实测：`docker.cambricon.com`（自建 distribution，401 → `Bearer realm=https://docker.cambricon.com:5001/auth`）、`docker-user.cambricon.com:30080`（**Harbor**，401）、`docker-user.extrotec.com:30080`（**Harbor**，401） |
+| ① FlagTree 是否有寒武纪 User Manual | ❌ **没有** | FlagTree wiki 全部 **26 页**逐页列出，有 `User-manual-for-xpu / ascend / nvidia / amd / ppu / metax / mthreads / iluvatar / aipu / cpu / hcu / enflame / tsingmicro / sunrise / spacemit / rpu / tileir` 等，**无 cambricon / mlu 条目**；而 User Manual 索引页正文明确"最佳实践是用各后端文档里给的镜像" ⇒ **寒武纪这一支没有 FlagTree 推荐镜像**（**注意：这只是说 FlagTree 线没有，不等于没有镜像可用** —— FlagOS 官方线有，见下条） |
+| ② 厂商是否提供官方镜像 | ✅ **有**，且 **FlagOS 官方在 BAAI Harbor 上已有寒武纪三代镜像 + 周测镜像，实测可匿名拉取**（**2026-09-22 更正**；原写「全部需鉴权、走官方渠道」指的是寒武纪私仓，不是 FlagOS 官方仓） | **FlagOS 官方**：`flagos-base` / `flagos-runtime` / `flagos-app` 的 `…-cambricon-neuware4.4.3` 与 `…-neuware4.7.2`（12 个仓）+ `flaggems/cambricon-flaggems-test-mlu590-m9de*`（2 个仓）；来源仓 `flagos-ai/build-infra`（`configs.yaml` 为 source of truth）。**匿名可拉实测**：`flagos-runtime-cambricon-neuware4.4.3:2.2.0` → `sha256:e55b420e…`；`…-neuware4.7.2:2.2.0` → `sha256:a37f46e3…`。另：寒武纪私仓 `docker.cambricon.com`（自建 distribution）/ `docker-user.cambricon.com:30080` / `docker-user.extrotec.com:30080`（均 Harbor）三处实测 401，**已不再是硬前置** |
 
-**⇒ 第 3 家的镜像获取路径与前两家不同**：前两家可从公开上游（BAAI Harbor / 华为 quay）拿到；
-寒武纪必须**走官方渠道申请**（社区账号或镜像 tarball / 私仓凭据）。
+**⇒ 更正（2026-09-22）**：第 3 家的镜像**与前两家一样可从公开上游（BAAI Harbor）拿到**，
+**不需要**申请寒武纪私仓凭据或 tarball。
+**真正的特殊性在别处**：① 寒武纪**没有 FlagTree 线**（只有 FlagOS 官方线）；
+② **档位由宿主驱动硬约束**（见上表），我们驱动 6.2.29 ⇒ 只能 4.4.3 档；③ **`docker` 组权限仍是硬前置**
+（镜像能拉，但起不了容器）。
 
 **必须提前确认的分叉点**：寒武纪的 vLLM 支持形态 —— 是"厂商移植版 vLLM"（像昇腾 `vllm-ascend`，可直接 `vllm serve`）
 还是"社区 vLLM + 平台插件"（像昆仑芯需要 vllm-plugin-FL，且要额外注意 H4 那类依赖完整性）。

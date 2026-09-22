@@ -1,6 +1,8 @@
 # device-context · 当前状态
 
-更新：2026-09-22（第 3 家寒武纪 MLU590 环境普查完成；**新增阻塞项：root 权限开通**）｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
+更新：2026-09-22（第 3 家寒武纪 MLU590 环境普查完成；**新增阻塞项：root 权限开通**）
+　　**同日追加（09-22 下午）：镜像血统对齐核查 —— 发现 FlagOS 官方镜像体系（含寒武纪），
+寒武纪镜像来源结论更正、档位受宿主驱动硬约束** ｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
 > 结论性环境依据见 `dev/stack.lock.910c.v2.yaml`（总组定稿，位于 **`dev-1.0` 分支**；本方向只消费不自建）。
@@ -115,6 +117,39 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
   ⇒ 本方向已在统一启动脚本内消化（自动激活环境 / 快照降级）；**建议总组在基座层明确"镜像须自带可用服务入口"**，
   否则第三家接入者会各自踩一遍。
 - 本轮仓库整理与验证**未新增或升级公共依赖**；容器内按需补装 `transformers`（v1 已登记）。
+- **⭐ 基座层新发现（2026-09-22 追加）：FlagOS 官方镜像体系**（`flagos-ai/build-infra` 构建，
+  registry 前缀 `flagos-base` / `flagos-runtime` / `flagos-dev` / `flagos-app`，当前版本 **2.2.0**）。
+  **覆盖 14 个后端、含寒武纪**（FlagTree 手册覆盖不到的一家）；`configs.yaml` 是唯一 source of truth，
+  文档站由它自动生成。**对我们的意义**：
+  ① **910C 有官方对应物**：`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0`
+   —— py3.11 / torch 2.10.0+cpu / torch-npu 2.10.0 / **flagtree 0.7.0rc2+ascend3.5** / triton 3.5.0(+triton_ascend 3.2.1)，
+   与我们锁定栈（CANN 9.0 / torch 2.10 / triton 3.5 / ascend3.5）**逐项一致**，只是来源不同
+   （我们 = 组内 `flagrt` 镜像 + 华为 `vllm-ascend`）。**建议总组评估它作为训练腿候选新血统的官方对应物**；
+   ② **每个 `base|runtime/<backend>.md` 都写明「Host driver」前置**，这是选镜像的**第一判据**（见下条）；
+  ③ 建议将本体系列为《镜像选择与确定指南》的**最高优先级来源**（各方向已在按该口径对齐）。
+- **⭐ 寒武纪档位受宿主驱动硬约束（2026-09-22 实测 + 官方口径）**：寒武纪在 FlagOS 官方体系里有**两档**，
+  **不是按 torch 版本选，而是按宿主驱动选**：
+
+  | 档位 | py | torch / torch-mlu / triton | 官方标注宿主驱动前置 |
+  |---|---|---|---|
+  | `flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** |
+  | `flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** |
+
+  两台测试机实测驱动 **v6.2.29** ⇒ 落 **6.2.x 线**，**只能用 4.4.3 档**；
+  4.7.2 档需宿主驱动升至 **6.5.48**（会动宿主、影响他人）。
+  **⇒ 请总组/管理员裁定走哪条**：A 直接用 4.4.3（同驱动线，风险最低）；B 升驱动到 6.5.48 后用 4.7.2。
+  ⚠️ 6.2.29 能否跑标 6.2.15 的 4.4.3 **未实测**（同 minor 属推断），须起容器实测定论。
+- **⭐ P800 存在两条血统，不要方向侧自行切换（2026-09-22）**：我们现用 FlagTree 线的
+  `flagtree-xpu3.6-…:202608-base`（= FlagTree 手册给 P800 的唯一镜像，与类脑指向同一条 xpu3.6 线，
+  **镜像本身无需调整**）；FlagOS 官方线则是 `flagos-runtime-kunlunxin-xre5.37.1:2.2.0`
+  （flagtree 0.7.0rc2+xpu3.6，但**底层 SDK 换代到 XRE 5.37.1**，前置要求宿主驱动 **5.37.1**，
+  而我们实测宿主为 **5.0.21.47**）。**⇒ 建议总组明确 P800 走哪条**，方向侧不自行切换。
+- **⭐ 对昆仑芯 KL3 缺陷的官方印证（2026-09-22）**：FlagOS 官方 `configs.yaml` 的昆仑芯 vLLM 应用层原文——
+  `# XPU_EVENT_KL3_ENABLE deliberately NOT set: it is the P1 fake-hang trigger (device timeout) on this XRE stack`
+  —— 即**官方明确不设该变量**并称其为「P1 假挂死触发器」。这与本方向独立定位的结论一致，
+  **可作为上报时「上游已承认该触发器」的旁证**。
+- **⚠️ 一处待核对差异（不臆断）**：类脑 P800 记录 `Triton 3.5.0`，我们 P800 基线实测 `triton 3.6.0`
+  （两者 `flagtree` 均为 `0.6.1+xpu3.6`）。未查明原因，只影响算子编译路径，**不影响本方向结论**。
 
 ## 下一步（拟在下次周会前推进）
 
@@ -176,7 +211,29 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 |---|---|---|---|
 | 1 | **建 `/srv/hliu553` 并 chown 给 `hliu553`** | `/srv` 属主 `root:root 755`；实测 `mkdir: cannot create directory '/srv/hliu553': Permission denied`；虽在 `sudo` 组但 `sudo -n` 不可用（需密码） | ✅ 硬需求（否则数据只能放 `/home`，仅 208G/220G 且两机不共享） |
 | 2 | **把 `hliu553` 加入 `docker` 组** | 现有成员 `gpfs, liangfan1, daizijian, huangxiang, qiyiyan, leihuhu`；我们 `id -nG` = `hliu553 sudo`；`docker.sock` 属 `root:docker` | ✅ 硬需求（本方向验证流程全部在带卡容器内） |
-| 3 | **镜像获取（已调研，仍阻塞）**：① **FlagTree 无寒武纪 User Manual / 推荐镜像**（wiki 全 26 页无 cambricon 条目；寒武纪只在编译器侧 `triton_v3.2.x` 分支）；② 寒武纪**有**官方镜像但**只能走官方渠道**（开发者社区 `developer.cambricon.com`，或 tarball）；③ 三个私仓**实测均 401 需鉴权**：`docker.cambricon.com`（自建，realm `https://docker.cambricon.com:5001/auth`）、`docker-user.cambricon.com:30080`（Harbor）、`docker-user.extrotec.com:30080`（Harbor）——三处已在本机 `daemon.json` 的 `insecure-registries` 中；④ 宿主**无 `/usr/local/neuware`** ⇒ 必须用容器。⇒ 需申请**凭据或镜像 tarball + 确切 tag** | 寒武纪方 / 管理员 | 🔴 **阻塞**（详见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`） |
+| 3 | **镜像获取（✅ 2026-09-22 已解除，不再阻塞）**：见下方更正段 | 寒武纪方 / 管理员 | 🟢 **已解除 → 降级为「档位裁定」** |
+
+> **⚠️ 2026-09-22 更正：原第 3 项「寒武纪镜像只能走官方渠道、需申请凭据或 tarball」不成立。**
+> 实测 + 官方核对结论：
+> ① FlagTree 确实**没有**寒武纪手册（wiki 26 页无 cambricon，17 个 `User-manual-for-*` 无 cambricon）
+> —— 此条仍成立；但「因此镜像只能走寒武纪渠道」是**错误的推论**；
+> ② **FlagOS 官方在 BAAI Harbor 上已有寒武纪三代镜像 + FlagGems 周测镜像**
+> （`flagos-base` / `flagos-runtime` / `flagos-app` 共 12 个仓 + `flaggems/cambricon-flaggems-test-mlu590-m9de-*` 2 个仓）；
+> ③ **实测可匿名拉取**（Docker Registry v2 匿名 token 取 manifest 成功，digest 已取得；
+> `harbor.baai.ac.cn/api/v2.0/projects` 匿名可读、相关项目 `public=true`）；
+> ⇒ **不需要寒武纪私仓凭据**（`docker.cambricon.com` 等三处私仓不再是硬前置）。
+>
+> **⇒ 现在真正的待裁定项（请总组/管理员定）**：**走哪一档**。
+> 测试机驱动 **v6.2.29** 落在 **6.2.x 线** ⇒ 只能用 `neuware4.4.3`（官方标 6.2.15）；
+> `neuware4.7.2` 官方标**宿主驱动 6.5.48**，我们**不满足**，需先升宿主驱动（影响他人）。
+> **本方向建议：先走 A（4.4.3）解除阻塞，4.7.2 作为后续按需升级项**。
+>
+> **⚠️ 仍未验证（不臆断）**：① 6.2.29 能否跑标 6.2.15 的 4.4.3（同 minor 属推断）；
+> ② 两台测试机能否出网拉 `harbor.baai.ac.cn`（本次只做了接口级验证，**未在带卡机 `docker pull`**）；
+> ③ 应用镜像内 vLLM 是厂商移植版还是社区版 + 插件。
+>
+> 完整证据链见 [`prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`](prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md)，
+> 寒武纪专项更正见 [`MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`](MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md) §0。
 
 **顺带澄清一条（无需任何人动作）**：docker 的镜像数据**本来就在 11T 盘上**——
 `/var/lib/docker` 是 **→ `/srv/var/lib/docker` 的符号链接**（`readlink -f` 实证），
