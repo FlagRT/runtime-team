@@ -75,8 +75,10 @@ for t in cnmon cnmoninfo mlu-smi npu-smi xpu-smi nvidia-smi; do
   if have "$t"; then echo "   ✅ $t -> $(command -v $t)"; "$t" 2>/dev/null | head -12 | sed 's/^/       /'; fi
 done
 echo "-- 设备节点 / 驱动模块:"
-ls -l /dev/*mlu* /dev/*davinci* /dev/*npu* /dev/xpu* 2>/dev/null | head -10 || echo "   （未发现常见设备节点）"
-lsmod 2>/dev/null | grep -iE 'mlu|cnrt|davinci|drv|xpu|nvidia' | head -8 || echo "   （lsmod 无匹配 / 不可用）"
+# 各厂商节点命名不同（寒武纪：/dev/cambricon_dev{N} / cambricon_ctl / cambricon_gdr / cambricon_ipcm{N}）
+ls -l /dev/*mlu* /dev/*cambricon* /dev/*davinci* /dev/*npu* /dev/xpu* 2>/dev/null | head -12 || echo "   （未发现常见设备节点）"
+ls /dev/cambricon 2>/dev/null | head -8 | sed 's/^/   /dev/cambricon\/: /'
+lsmod 2>/dev/null | grep -iE 'mlu|cambricon|cnrt|davinci|drv|xpu|nvidia' | head -8 || echo "   （lsmod 无匹配 / 不可用）"
 echo "-- 驱动 / SDK 版本（按厂商候选路径）:"
 for d in /usr/local/neuware /usr/local/cambricon /usr/local/Ascend /opt/neuware; do
   [ -d "$d" ] && { echo "   ✔ $d"; ls "$d" 2>/dev/null | head -8 | sed 's/^/       /'; cat "$d/version.txt" 2>/dev/null | head -3 | sed 's/^/       version: /'; }
@@ -146,7 +148,11 @@ echo "-- 文件系统总览:"; df -h 2>/dev/null | head -12 | sed 's/^/   /'
 echo "-- docker 数据目录的真实挂载点:"
 if have docker; then
   ROOT=$(docker info --format '{{.DockerRootDir}}' 2>/dev/null)
-  echo "   DockerRootDir = ${ROOT:-未取得}"
+  echo "   DockerRootDir = ${ROOT:-未取得（通常是当前用户不在 docker 组）}"
+  # 兜底：无 docker 权限时，仍可用 readlink 判出 data-root 落在哪块盘
+  # （本机实测：/var/lib/docker 是 → /srv/var/lib/docker 的符号链接 ⇒ 镜像本就在数据盘）
+  LINK=$(readlink -f /var/lib/docker 2>/dev/null)
+  [ -n "${LINK:-}" ] && echo "   readlink -f /var/lib/docker = $LINK$([ "$LINK" != "/var/lib/docker" ] && echo '  ← 是符号链接，data-root 已落在该路径所在磁盘')"
   [ -n "${ROOT:-}" ] && { echo "   findmnt -T $ROOT:"; findmnt -T "$ROOT" 2>/dev/null | sed 's/^/     /' || echo "     （findmnt 不可用）"; }
 fi
 echo "-- 逐目录可用空间（P800 教训：du -x 跨文件系统即停，不可用于判断容量）:"

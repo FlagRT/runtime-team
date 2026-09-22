@@ -1,0 +1,159 @@
+=========== 新芯片接入 · 环境普查 2026-09-22 10:22:56 ===========
+host=tza-0a06-ai02-em9  user=hliu553  vendor_arg=（未指定）
+输出：/home/hliu553/dc_preflight/preflight_env_20260922.log
+
+------------------------------------------------------------------------
+## 1. 基础环境（OS / 内核 / python / 容器）
+------------------------------------------------------------------------
+-- uname:
+Linux tza-0a06-ai02-em9 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+-- os-release:
+NAME="Ubuntu"
+VERSION="20.04.6 LTS (Focal Fossa)"
+-- CPU / 内存:
+   核数: 128
+   内存: 2003.9 GiB
+-- python（多解释器并列）：
+   python3      Python 3.8.10  (/usr/bin/python3)
+   python       Python 2.7.18  (/usr/bin/python)
+   python3.8    Python 3.8.10  (/usr/bin/python3.8)
+-- conda / venv 环境:
+   未安装 conda
+-- 容器可见性:
+   docker: Docker version 25.0.3, build 4debf41
+permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.24/containers/json": dial unix /var/run/docker.sock: connect: permission denied
+   Up 容器数: 0
+   本用户是否在 docker 组: 否（需 sudo 或加组）
+-- sudo: 需密码 / 不可用
+
+------------------------------------------------------------------------
+## 2. 芯片与驱动（厂商工具 + torch 侧双路取证）
+------------------------------------------------------------------------
+-- 厂商工具（容器内通常没有，属正常）：
+   ✅ cnmon -> /usr/bin/cnmon
+       Tue Sep 22 10:22:57 2026
+       +------------------------------------------------------------------------------+
+       | CNMON v6.2.29                                                 Driver v6.2.29 |
+       +-------------------------------+----------------------+-----------------------+
+       | Card  VF  Name       Firmware |               Bus-Id | Util        Ecc-Error |
+       | Module-Id Temp  Pwr:Usage/Cap |         Memory-Usage | Mode     Compute-Mode |
+       |===============================+======================+=======================|
+       | 0     /   MLU590-M9    v1.5.0 |         0000:4F:00.0 | 0%                  0 |
+       | 1         37C    103 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+       +-------------------------------+----------------------+-----------------------+
+       | 1     /   MLU590-M9    v1.5.0 |         0000:53:00.0 | 0%                  0 |
+       | 0         34C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+-- 设备节点 / 驱动模块:
+crw-rw-rw- 1 root root 508,   0 9月   9 11:57 /dev/cambricon_ctl
+crw-rw-rw- 1 root root 507,   0 9月   9 11:58 /dev/cambricon_dev0
+crw-rw-rw- 1 root root 507,   1 9月   9 11:58 /dev/cambricon_dev1
+crw-rw-rw- 1 root root 507,   2 9月   9 11:58 /dev/cambricon_dev2
+crw-rw-rw- 1 root root 507,   3 9月   9 11:58 /dev/cambricon_dev3
+crw-rw-rw- 1 root root 507,   4 9月   9 11:58 /dev/cambricon_dev4
+crw-rw-rw- 1 root root 507,   5 9月   9 11:58 /dev/cambricon_dev5
+crw-rw-rw- 1 root root 507,   6 9月   9 11:58 /dev/cambricon_dev6
+crw-rw-rw- 1 root root 507,   7 9月   9 11:58 /dev/cambricon_dev7
+crw-rw-rw- 1 root root  10, 122 9月   9 11:57 /dev/cambricon_gdr
+crw-rw-rw- 1 root root 504,   0 9月   9 11:57 /dev/cambricon_ipcm0
+crw-rw-rw- 1 root root 504,   1 9月   9 11:57 /dev/cambricon_ipcm1
+sed: -e expression #1, char 9: unknown option to `s'
+cambricon_peermem      20480  0
+cambricon_gdrdrv       24576  0
+cambricon_drv        4288512  5 cambricon_peermem,cambricon_gdrdrv
+-- 驱动 / SDK 版本（按厂商候选路径）:
+-- torch 侧（同一段代码依次尝试各命名空间，如实报告哪个可用）:
+   torch: 导入失败: ModuleNotFoundError No module named 'torch'
+
+------------------------------------------------------------------------
+## 3. 集合通信可用性（训练腿前置）
+------------------------------------------------------------------------
+   flagcx: 不可导入（ModuleNotFoundError）
+   torch.distributed: 不可导入（ModuleNotFoundError）
+   torch_mlu: 不可导入（ModuleNotFoundError）
+   torch_npu: 不可导入（ModuleNotFoundError）
+-- 通信库文件（按厂商候选）:
+   /home/gpfs/ansible_tool/lib64/libcncl.so.1
+
+------------------------------------------------------------------------
+## 4. 磁盘与 docker 数据目录（★ P800 曾误判根分区，必须看真实挂载点）
+------------------------------------------------------------------------
+-- 文件系统总览:
+   Filesystem      Size  Used Avail Use% Mounted on
+   udev           1002G     0 1002G   0% /dev
+   tmpfs           201G  7.0M  201G   1% /run
+   /dev/sdb5       437G  196G  220G  48% /
+   tmpfs          1002G     0 1002G   0% /dev/shm
+   tmpfs           5.0M     0  5.0M   0% /run/lock
+   tmpfs          1002G     0 1002G   0% /sys/fs/cgroup
+   /dev/loop0      128K  128K     0 100% /snap/bare/5
+   /dev/loop1       64M   64M     0 100% /snap/core20/2866
+   /dev/loop3       50M   50M     0 100% /snap/snapd/26865
+   /dev/loop5       13M   13M     0 100% /snap/snap-store/1113
+   /dev/loop6      350M  350M     0 100% /snap/gnome-3-38-2004/143
+-- docker 数据目录的真实挂载点:
+   DockerRootDir = 未取得（通常是当前用户不在 docker 组）
+   readlink -f /var/lib/docker = /srv/var/lib/docker  ← 是符号链接，data-root 已落在该路径所在磁盘
+-- 逐目录可用空间（P800 教训：du -x 跨文件系统即停，不可用于判断容量）:
+   /                  220G 可用 / 437G 总 (48% 已用)
+   /var/lib/docker    9.6T 可用 / 11T 总 (4% 已用)
+   /srv               9.6T 可用 / 11T 总 (4% 已用)
+   /data              220G 可用 / 437G 总 (48% 已用)
+   /mnt               220G 可用 / 437G 总 (48% 已用)
+   /home              220G 可用 / 437G 总 (48% 已用)
+-- 现有镜像（体积口径：docker images 显示磁盘占用，inspect Size 是镜像层）:
+-- 共享目录判定（本机是否有 NFS/共享挂载）:
+
+------------------------------------------------------------------------
+## 5. 网络可达性（镜像 / whl 源；决定能否在线补依赖）
+------------------------------------------------------------------------
+   https://resource.flagos.net/repository/flagos-pypi-hosted/simple         HTTP 404
+   https://pypi.org/simple                                                  HTTP 000
+   https://mirrors.aliyun.com/pypi/simple                                   HTTP 301
+-- 代理环境变量: env | grep -i proxy
+-- 网卡与 RoCE/IB 设备（训练腿拓扑参考）:
+   lo 127.0.0.1/8
+   lo 1.1.1.2/32
+   roce3 192.168.3.12/24
+   roce4 192.168.4.12/24
+   roce1 192.168.1.12/24
+   roce2 192.168.2.12/24
+   roce7 192.168.7.12/24
+   roce8 192.168.8.12/24
+sed: -e expression #1, char 11: unknown option to `s'
+   （无 /sys/class/infiniband）
+
+------------------------------------------------------------------------
+## 6. 拓扑（多卡实验的用卡选择依据）
+------------------------------------------------------------------------
+-- NUMA 与设备亲和（有 lspci 时按 PCI 归属推断；无则如实标注）:
+   4f:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   53:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   6f:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   73:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   af:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   b3:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   cf:00.0 Processing accelerators [1200]: Device [cabc:0590]
+   d3:00.0 Processing accelerators [1200]: Device [cabc:0590]
+-- NUMA 节点:
+   available: 8 nodes (0-7)
+   node 0 cpus: 0 1 2 3 4 5 6 7 64 65 66 67 68 69 70 71
+   node 1 cpus: 8 9 10 11 12 13 14 15 72 73 74 75 76 77 78 79
+   node 2 cpus: 16 17 18 19 20 21 22 23 80 81 82 83 84 85 86 87
+   node 3 cpus: 24 25 26 27 28 29 30 31 88 89 90 91 92 93 94 95
+   node 4 cpus: 32 33 34 35 36 37 38 39 96 97 98 99 100 101 102 103
+-- 共享机提醒：用卡前务必确认目标卡空闲（厂商工具或 torch 查询），并记录用卡号
+
+------------------------------------------------------------------------
+## 7. 结论与待补（如实标注，不猜测）
+------------------------------------------------------------------------
+   请逐项核对并填入「已取得 / 待确认」：
+     [ ] 1 连接：SSH 端口、认证方式（密钥/密码）、是否需跳板
+     [ ] 2 权限：docker 组、（如需改 docker data-root 则需）sudo
+     [ ] 3 镜像：目标镜像是否已在位；不在位则 pull 来源与体积
+     [ ] 4 共享用户：是否共享机、并发上限（P800/910C 均实测有上限）
+     [ ] 5 磁盘：数据目录与 docker 数据目录各自的可用空间
+     [ ] 6 网络：whl / 镜像源可达性（决定能否在线补依赖）
+     [ ] 7 拓扑：NUMA 归属与组内/跨组链路，2 卡实验的取卡建议
+   缺失项照实写「未取得」——不猜、不补零（本方向证据规范）。
+
+=========== 普查结束 2026-09-22 10:23:14  报告：/home/hliu553/dc_preflight/preflight_env_20260922.log ===========

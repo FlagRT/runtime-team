@@ -15,16 +15,17 @@
 
 ---
 
-## 1. 目录结构：**一份原型 + 两个芯片实例**
+## 1. 目录结构：**一份原型 + 三个芯片实例**
 
 | 目录 | 定位 | 内容 |
 |---|---|---|
 | **`prototype/`** | **芯片无关的统一标准**（我们制定的规范、实现与判据） | 统一运行时 API、Backend 注册表与后端实现（`ascend` / `flagos` / **`kunlun`**）、conformance 用例与 runner、两条腿自验证脚本、**接口约定与事件语义契约**、原型设计、月度计划 |
 | **`910C/`** | **第一个落地实例（昇腾）** —— ✅ 已完成 | 分布式训练与推理既有工作、910C 专属文档（ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断） |
-| **`P800/`** | **第二个接入实例（昆仑芯）** —— 🔄 进行中 | 环境汇总、五域基线、接入方案、根因核对、全量进度报告、**探针脚本与原始证据** |
+| **`P800/`** | **第二个接入实例（昆仑芯）** —— ✅ 阶段 0–5 完成 | 环境汇总、五域基线、接入方案、根因核对、阶段 3/4 与镜像等价性验证、全量进度报告、**探针脚本与原始证据** |
+| **`MLU590/`** | **第三个接入实例（寒武纪）** —— 🔄 第 0 步环境普查完成，接入待环境开通 | 环境报告、探针脚本与原始证据（`docs/`、`probes/`） |
 
 顶层保留：`README.md`（本看板）、`STATUS.md`（方向状态）、`.env.example`
-各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`
+各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`、`MLU590/README.md`
 
 > **划分原则：原型与规范是芯片无关的，放在外面；芯片专属的落地实例资产按芯片分目录。**
 > 新芯片接入 = 在 `prototype/` 下**新建一个 backend** + 跑通 conformance，
@@ -110,6 +111,21 @@
 
 ---
 
+### 2.5 MLU590 实例（第三个接入实例，🔄 第 0 步完成 · 接入待环境开通）
+
+| 项 | 状态 | 结果 |
+|---|---|---|
+| 阶段 0 环境普查 | ✅ **09-22 完成** | 两台测试机：各 **8 × MLU590-M9（96 GB/卡）**、128 核 / 2 TB 内存、**11T 数据盘挂在 `/srv`**、驱动 v6.2.29 / 固件 v1.5.0、`cnmon` CNMON v6.2.29 可用；**宿主无 NeuWare ⇒ MLU 栈走容器** |
+| docker 镜像落盘位置 | ✅ 已确认 | `/var/lib/docker` 是 **→ `/srv/var/lib/docker` 的符号链接** ⇒ 镜像本就在 11T 盘上，**无需改 `daemon.json`** |
+| 环境版本组合（间接确认） | 🟨 | 由他人脚本确认：`torch 2.11.0+cpu` + `torch-mlu 1.33.1+torch2.11.0` + `torch-mlu-ops 1.12.1` + `triton 3.4.0+mlu2.1.1`（python 3.12）；**待进容器实机复核 `torch.mlu.device_count() == 8`** |
+| 阶段 1–5 接入 | ⛔ **待环境开通** | 唯一阻塞 = **root 权限**（`/srv` 不可写建不了 `hliu553`；不在 `docker` 组） |
+
+**两处实测要点**（详见 `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`）：
+1. **建不了 `/srv/hliu553`** —— `/srv` 属主 `root:root 755`，实测 `mkdir: Permission denied`；虽在 `sudo` 组但 sudo 需密码 ⇒ 需 root 开通；
+2. **不在 `docker` 组** —— 而我们的验证流程全部在带卡容器内 ⇒ 与第 1 条并列的硬阻塞。
+
+→ 详见 `MLU590/README.md`
+
 ## 3. 快速入口
 
 ```bash
@@ -170,6 +186,8 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 | 13 | **多流 Stream 16 项验收基线**对 P800 逐项比对（探针 8/8、S-7 图捕获首测 5/5、S-16 补测 2000 流） | ✅ **本轮**（内容随 10 月提交） |
 | 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用；**两实例真机均验证通过**（v1.1 补服务入口就绪 / 生成形态冒烟 / 容器内卡快照降级） | ✅ |
+| 15 | **第 3 家（寒武纪 MLU590）环境普查**：两台测试机资源盘点、docker 数据盘归属确认、MLU 栈版本组合取得；建立第三实例目录 `MLU590/`（README + 环境报告 + 探针日志） | ✅ **本轮** |
+| 16 | 第 3 家接入（`backends/cambricon/` + conformance + 多流 16 项 + 训练腿） | ⛔ 待 root 开通（`/srv/hliu553` + docker 组） |
 | 15 | **两实例全量对称复核**（当前代码上跑）：smoke 51/0（ascend）· 42/0（kunlun）、conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14、训练腿 6/6（**loss 与历史逐位吻合**）、错误闭环 5/0/0 ⇒ **复核缺口 G1/G2 关闭**，11 份自证证据入库 | ✅ **本轮** |
 | 16 | **修第 5 个「跨后端不对称」缺陷**（对称复跑挖出）：`ascend`/`flagos` 未回填错误对象的 `backend` 字段（`kunlun` 已回填）+ smoke 判据对声明 `error_map` 的后端**不公平**（给无厂商码消息却要求走 `code_map`） | ✅ **本轮** |
 | 17 | **第三家芯片接入**（寒武纪，`torch_mlu`，私有命名空间路径）—— 前序两实例已全部收口，可按手册开工 | 🔲 下一步 |
@@ -188,8 +206,8 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 |---|---|---|
 | **我要按统一接口对接**（显存/分布式/监控/精度/算子/调度方向） | ① `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` → ② `prototype/docs/event_semantics_contract.md` → ③ 修订建议（了解将变项） | ①②③ |
 | **我要起推理服务** | ① `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md` → ② 脚本 `prototype/scripts/serve_standard.sh` | ①② |
-| **我要接入新芯片** | ① `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` → ② 参考实例（`P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md`） | ①② |
-| **我要复核我们说过的话** | ① `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（9 条命令） → ② 原始证据 `910C/probes/`、`P800/probes/` | ①② |
+| **我要接入新芯片** | ① `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` → ② 参考实例（`P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md`，已完成的第 2 家）→ ③ 第 0 步环境报告范例（`MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`，进行中的第 3 家） | ①②③ |
+| **我要复核我们说过的话** | ① `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（9 条命令） → ② 原始证据 `910C/probes/`、`P800/probes/`、`MLU590/probes/` | ①② |
 
 ### 6.1 规范 / 效力文件（**下游必须遵守**；变更需走流程）
 
@@ -275,6 +293,12 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md`（288 行） | **官方 `-base` 镜像等价性验证**：§0 镜像速查（tag/digest/大小/获取与补齐三步）· 全部结论逐项复现 · **缺陷与镜像无关**（排除"是我们镜像的问题"）· 入锁建议 |
 | `KUNLUN_P800_STREAM_BASELINE_16_20260920.md`（169 行） | **多流 16 项逐项比对**：14 通过 / 1 如实声明不支持 / 1 不适用；S-7 图捕获首测 5/5；含一处自我纠错与证据形态差异说明 |
 | `PROGRESS_REPORT_20260914.md`（850 行） | 全量进度报告（910C 回顾 + P800 主体 + **待办按"谁来做"四分类** + 证据索引） |
+
+**6.4.4 `MLU590/docs/`（寒武纪，第三实例）**
+
+| 文档 | 回答什么 |
+|---|---|
+| `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属证据链 · MLU 栈版本组合（torch-mlu 1.33.1 + torch 2.11.0）· root 权限开通需求 · 探测边界 |
 
 ### 6.5 原始证据目录（复核用，勿只读结论）
 

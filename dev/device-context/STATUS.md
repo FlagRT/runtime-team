@@ -1,6 +1,6 @@
 # device-context · 当前状态
 
-更新：2026-09-20（P800 阶段 3/4 + **官方 `-base` 镜像等价性验证** + **阶段 5 收敛三件套完成**）｜上次例行更新 2026-09-10 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
+更新：2026-09-22（第 3 家寒武纪 MLU590 环境普查完成；**新增阻塞项：root 权限开通**）｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。
 > 结论性环境依据见 `dev/stack.lock.910c.v2.yaml`（总组定稿，位于 **`dev-1.0` 分支**；本方向只消费不自建）。
@@ -37,7 +37,8 @@
 conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（ascend，含自证字段）、
 训练腿 6/6（loss 与历史逐位吻合）、错误闭环双侧 5/0/0 —— 复核缺口 G1/G2 已关闭，
 证据 `910C/probes/recheck_*_20260922.json`（7 份）+ `P800/probes/recheck_*_20260922.json`（4 份）。
-未完成项：组件下游反馈收集、全组联合 demo 合稿、第三家芯片接入（寒武纪，≤5 人天）。
+**第 3 家（寒武纪 MLU590）已启动**：两台测试机（各 **8 × MLU590-M9** / 96 GB 卡 / 11T 数据盘挂 `/srv`）已完成**第 0 步环境普查**，环境报告见 `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`；**当前阻塞 = root 权限**（`/srv` 不可写、不在 `docker` 组），解除后按《新芯片接入手册》8 步接入（口径 ≤5 人天）。
+未完成项：组件下游反馈收集、全组联合 demo 合稿、第 3 家接入的 8 步流程（待环境开通）。
 
 ## 已有量化结果（实跑）
 
@@ -165,6 +166,30 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 7. **通信接口约定**：与分布式方向确认 flagcx 路线（`prototype/docs/DESIGN_DIST_COMM_20260908.md`）。
 
 ## 阻塞与需要协调的事项
+### 🟠 第 3 家（寒武纪 MLU590）环境开通（2026-09-22 实测登记）
+
+两台测试机（`Mlu-1` = 10.1.1.21、`Mlu-2` = 10.1.1.22）已可 SSH 免密登录，硬件与环境均具备
+（各 **8 × MLU590-M9**，96 GB/卡；驱动 v6.2.29 / 固件 v1.5.0；11T 盘挂 `/srv`；
+`cnmon` CNVMON v6.2.29 可用），但**接入动作被 root 权限阻塞**：
+
+| # | 事项 | 实测依据 | 是硬需求吗 |
+|---|---|---|---|
+| 1 | **建 `/srv/hliu553` 并 chown 给 `hliu553`** | `/srv` 属主 `root:root 755`；实测 `mkdir: cannot create directory '/srv/hliu553': Permission denied`；虽在 `sudo` 组但 `sudo -n` 不可用（需密码） | ✅ 硬需求（否则数据只能放 `/home`，仅 208G/220G 且两机不共享） |
+| 2 | **把 `hliu553` 加入 `docker` 组** | 现有成员 `gpfs, liangfan1, daizijian, huangxiang, qiyiyan, leihuhu`；我们 `id -nG` = `hliu553 sudo`；`docker.sock` 属 `root:docker` | ✅ 硬需求（本方向验证流程全部在带卡容器内） |
+| 3 | 确认**容器镜像名与获取方式** | 宿主**无 `/usr/local/neuware`**（无 MLU 软件栈）⇒ 必须用寒武纪官方镜像；`daemon.json` 已配私有仓 `docker.cambricon.com` / `docker-user.cambricon.com:30080` | 需寒武纪方或管理员确认 |
+
+**顺带澄清一条（无需任何人动作）**：docker 的镜像数据**本来就在 11T 盘上**——
+`/var/lib/docker` 是 **→ `/srv/var/lib/docker` 的符号链接**（`readlink -f` 实证），
+`/proc/mounts` 中 overlay2 的 `lowerdir/upperdir` 全部位于 `/srv/var/lib/docker/overlay2/`。
+⇒ **不需要改 `daemon.json` 的 `data-root`**（改动需重启 docker，风险大于收益）。
+
+请求 root 在两台各执行一次：
+
+```bash
+sudo mkdir -p /srv/hliu553 && sudo chown -R hliu553:hliu553 /srv/hliu553 && sudo chmod 750 /srv/hliu553
+sudo usermod -aG docker hliu553        # 执行后需重新登录 SSH 生效
+```
+
 
 - **🔴 P800 镜像入锁（新增诉求，2026-09-20）**：P800 阶段 0–4 结论目前建立在**未入锁**镜像上
   （`flaggems-main-dev:202608`，无归档、未入锁），纪律上缺锁定基座背书。
