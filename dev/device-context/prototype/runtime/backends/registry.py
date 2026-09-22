@@ -31,7 +31,8 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 _CURRENT: Optional[str] = None
 
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
-_KNOWN_BACKENDS = ("ascend", "flagos", "kunlun")
+#: 2026-09-22：新增 cambricon（寒武纪 MLU，第三个接入实例）
+_KNOWN_BACKENDS = ("ascend", "flagos", "kunlun", "cambricon")
 
 
 class BackendNotFound(RuntimeError):

@@ -21,6 +21,12 @@
 #           GEMS_VENDOR=kunlunxin / KLX_USE_AUTOTUNE=0
 #         · 选卡 CUDA_VISIBLE_DEVICES
 #         · 停机必须连带清理 EngineCore 残留（实测占卡 73850 MiB / 96 GiB）
+#   MLU590（寒武纪，2026-09-22 新增，⚠️ 尚未真机验证）：
+#         · 设备 API 走 torch.mlu（PrivateUse1），选卡 MLU_VISIBLE_DEVICES
+#         · 镜像定档 flagos-runtime-cambricon-neuware4.4.3:2.2.0（宿主驱动 v6.2.29 同 6.2.x 线）
+#         · 推理形态**待实测**：寒武纪有厂商移植版 vLLM（Cambricon/vllm-mlu），
+#           但是否需要在社区 vLLM 之外额外装插件、--runner pooling 是否被支持，均未验证
+#           ⇒ 首次跑请保留本脚本日志，按实际报错回填本节
 #
 # 【统一的服务参数口径】（两实例同口径，便于横向比对）
 #     --runner pooling --convert embed --max-model-len 4096 --port 8100
@@ -28,7 +34,7 @@
 #      （写 --task embed 会报 `vllm: error: unrecognized arguments: --task embed`）。
 #
 # 【功能冒烟（两形态都有，且纳入 verdict）】
-#     embedding 形态（kunlun）→ POST /v1/embeddings，校验维度与范数
+#     embedding 形态（kunlun / cambricon）→ POST /v1/embeddings，校验维度与范数
 #     生成形态     （ascend）→ POST /v1/completions，校验产出非空且 completion_tokens>0
 #   ⚠️ "就绪" ≠ "可用"：只看 /v1/models 返回 200 会掩盖"服务起来了但算不出"的情况。
 #      2026-09-20 补齐（此前生成形态只验就绪，与 embedding 形态强度不对等）。
@@ -50,13 +56,17 @@
 #   # 910C（容器内）
 #   DC_BACKEND=ascend MODEL=/mnt/raid/hliu553/models/Qwen3-4B SERVED_NAME=qwen3-4b \
 #     bash prototype/scripts/serve_standard.sh
+#   # MLU590（寒武纪，容器内；首次建议 STOP_AFTER=1 起完即停）
+#   DC_BACKEND=cambricon DEV=0 STOP_AFTER=1 MODEL=/srv/hliu553/models/Qwen3-Embedding-0.6B \
+#     bash prototype/scripts/serve_standard.sh
 #
 # 【环境变量】
-#   DC_BACKEND      后端名（ascend | kunlun），默认 ascend
+#   DC_BACKEND      后端名（ascend | kunlun | cambricon），默认 ascend
 #   MODEL           模型路径（**须给到 snapshots/<hash>**，给缓存根目录会报 Unrecognized model）
 #   SERVED_NAME     服务暴露的模型名（默认按后端给）
 #   PORT            端口（8100）
-#   DEV             选卡（ascend 用 ASCEND_RT_VISIBLE_DEVICES，kunlun 用 CUDA_VISIBLE_DEVICES）
+#   DEV             选卡（ascend→ASCEND_RT_VISIBLE_DEVICES / kunlun→CUDA_VISIBLE_DEVICES
+#                   / cambricon→MLU_VISIBLE_DEVICES）
 #   TP              tensor parallel（1）
 #   MAX_MODEL_LEN   （4096）
 #   GPU_MEM_UTIL    （留空则不传；P800 实测共享机建议 0.25）
@@ -127,8 +137,20 @@ case "$BACKEND" in
     SKIP_EXTRA=0
     DEV_API=cuda
     ;;
+  cambricon)
+    # ⚠️ 本分支 2026-09-22 按规范新写，**尚未真机验证**（寒武纪机器当时缺 docker 组权限）。
+    #    首次在 MLU 容器内跑时，请把实际报错回填到本分支与《寒武纪接入方案》。
+    MODEL=${MODEL:-/srv/hliu553/models/Qwen3-Embedding-0.6B}
+    SERVED_NAME=${SERVED_NAME:-qwen3-embedding-0.6b}
+    # 选卡：torch_mlu 认 MLU_VISIBLE_DEVICES（⚠️ 待容器内实测确认）
+    [ -n "$DEV" ] && export MLU_VISIBLE_DEVICES="$DEV"
+    # 暂不设任何厂商专用算子/插件环境变量 —— 未实测前不臆造（前两家的变量互不通用，
+    # 手册 §9 坑 5 明确「同一插件跨芯片可用性可以完全相反，须逐个实测」）
+    SKIP_EXTRA=0        # 本方向的验收模型是 embedding 模型 ⇒ 走 embedding 服务形态
+    DEV_API=mlu         # 供 card_snapshot 的 torch 侧降级查询使用
+    ;;
   *)
-    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun）"; exit 2 ;;
+    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon）"; exit 2 ;;
 esac
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -171,22 +193,34 @@ cleanup() {
   sleep 3
 }
 
-# 用卡现状（便于前后对比；两芯片工具名不同）
-#   ⚠️ npu-smi / xpu-smi 是**宿主工具**，容器内通常不存在
+# 用卡现状（便于前后对比；各家工具名不同）
+#   ⚠️ npu-smi / xpu-smi / cnmon 都是**宿主工具**，容器内通常不存在
 #      （910C 的 vllm-ascend 镜像实测 `npu-smi: command not found`），
-#      故补一层 torch 侧查询（按后端取 torch.npu / torch.cuda），保证容器内日志也有卡状态。
+#      故补一层 torch 侧查询（按后端取 torch.npu / torch.cuda / torch.mlu），
+#      保证容器内日志也有卡状态。
 card_snapshot() {
   if command -v npu-smi >/dev/null 2>&1; then
     npu-smi info 2>/dev/null | grep -E "^\| [0-9]+" | head -8
   elif command -v xpu-smi >/dev/null 2>&1; then
     xpu-smi 2>/dev/null | awk '/MiB \//{print}' | head -8
+  elif command -v cnmon >/dev/null 2>&1; then
+    # 寒武纪：cnmon 的显存行形如 "Used(MiB)：xxx / Total(MiB)：xxx"
+    # ⚠️ 输出格式未在容器内验证过，故两种常见形态都抓一遍，抓不到就走下面的 torch 侧降级
+    cnmon 2>/dev/null | grep -iE "MiB" | head -8
   else
     python3 - "$DEV_API" <<'PY' 2>/dev/null || echo "  (无 smi 工具，torch 侧查询亦不可用)"
 import sys, torch
 name = sys.argv[1]
-if name == "npu" and not hasattr(torch, "npu"):     # torch_npu 需显式导入才会注册 torch.npu
+# 厂商扩展需显式导入才会注册对应的 torch 命名空间
+# （torch_npu→torch.npu / torch_mlu→torch.mlu；cuda 无需导入）
+if name == "npu" and not hasattr(torch, "npu"):
     try:
         __import__("torch_npu")
+    except Exception:
+        pass
+if name == "mlu" and not hasattr(torch, "mlu"):
+    try:
+        __import__("torch_mlu")
     except Exception:
         pass
 api = getattr(torch, name, None)

@@ -62,11 +62,11 @@ bash prototype/scripts/serve_standard.sh
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `DC_BACKEND` | `ascend` | `ascend` \| `kunlun` |
+| `DC_BACKEND` | `ascend` | `ascend` \| `kunlun` \| `cambricon`（⚠️ 寒武纪分支 2026-09-22 新写，**尚未真机验证**） |
 | `MODEL` | 按后端给默认值 | 模型路径。⚠️ **必须给到 `snapshots/<hash>`**（给 HF 缓存根目录会报 `Unrecognized model ... Should have a model_type key`） |
 | `SERVED_NAME` | `qwen3-4b` / `qwen3-embedding-0.6b` | 服务暴露的模型名 |
 | `PORT` | `8100` | 服务端口 |
-| `DEV` | 全部可见卡 | 选卡。**ascend 走 `ASCEND_RT_VISIBLE_DEVICES`、kunlun 走 `CUDA_VISIBLE_DEVICES`** ——由脚本按后端选择，不要自己 export |
+| `DEV` | 全部可见卡 | 选卡。**ascend→`ASCEND_RT_VISIBLE_DEVICES`、kunlun→`CUDA_VISIBLE_DEVICES`、cambricon→`MLU_VISIBLE_DEVICES`** ——由脚本按后端选择，不要自己 export |
 | `TP` | `1` | tensor parallel |
 | `MAX_MODEL_LEN` | `4096` | 与两实例保持一致，便于"超长输入"用同一判据比对 |
 | `GPU_MEM_UTIL` | 空 | 空则不传。共享机上建议给（P800 实测用 `0.25`） |
@@ -149,6 +149,7 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 |---|---|---|
 | **910C** | `DC_BACKEND=ascend DEV=0 STOP_AFTER=1` | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 **free=60.91GiB / total=61.27GiB，停机前后一致**（确认释放）；旧容器内**无残留 vllm 进程**、宿主 `ss` 显示 **8100 端口已释放**。证据：`910C/probes/L_serve_standard_910c_20260920.log` |
 | **P800** | `DC_BACKEND=kunlun DEV=6 PORT=8200 GPU_MEM_UTIL=0.25 STOP_AFTER=1` | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **25 s**；embedding 冒烟 **维度=1024 范数=1.000000**；停机后**无残留进程**且卡 6 释放至 **0 MiB**。证据：`P800/probes/L_serve_standard_p800_v2_20260920.log` |
+| **MLU590**（寒武纪） | `DC_BACKEND=cambricon DEV=0 STOP_AFTER=1` | ⏳ **尚未真机验证**（2026-09-22 新增分支，机器当时缺 `docker` 组权限）。已知差异只有选卡变量（`MLU_VISIBLE_DEVICES`）；**未设任何厂商专用算子/插件环境变量** —— 前两家的变量互不通用，手册 §9 坑 5 明确「同一插件跨芯片可用性可以完全相反，须逐个实测」。首次跑请把实际报错回填脚本内该分支 |
 
 **910C 侧补跑的历史**（如实记录，供追溯）：
 1. 首轮（脚本 v1.0）：`SERVE_STANDARD_PASS`，就绪 **45 s** —— 但发现**生成形态没有功能冒烟**（与 embedding 形态强度不对等）⇒ 补冒烟并把冒烟纳入 verdict；

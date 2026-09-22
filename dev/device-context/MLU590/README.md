@@ -9,20 +9,28 @@
 
 ## 0. 状态
 
-> 状态：🔄 **进行中**（**第 0 步环境普查已完成 ✅；接入动作待环境开通** —— 见 §4）
+> 状态：🔄 **进行中** —— **第 0 步环境普查 ✅ + 镜像定档 ✅ + 后端落地（代码层）✅**；
+> **真机验证待 `docker` 组权限开通**（见 §4）。
+> 完整方案与真机执行手册：**[`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)**
 
 | 阶段 | 状态 | 结果 |
 |---|---|---|
-| 阶段 0 · 环境普查 | ✅ **完成（09-22）** | 两台测试机：各 **8 × MLU590-M9（96 GB/卡）**、128 核 / 2 TB 内存、11T 数据盘挂在 `/srv`；**唯一阻塞是 root 权限** |
-| 阶段 1 · 接入（`backends/cambricon/`） | ⛔ 待环境开通 | 目标：13 抽象 + `build()` + `supports()` + `known_issues()`；**单芯片 ≤5 人天** |
-| 阶段 2 · conformance | ⏳ | 13 例 + 推理 6 例（全绿或如实 stub-skip） |
-| 阶段 3 · 多流 16 项基线 | ⏳ | 探针 `../prototype/probes/probe_stream_semantics_full.py`（后端无关 V2） |
-| 阶段 4 · 训练腿 | ⏳ | 2 卡 DDP + FlagCX(CNCL) + 三类通信对照 |
+| 阶段 0 · 环境普查 | ✅ **完成（09-22）** | 两台测试机：各 **8 × MLU590-M9（96 GB/卡）**、128 核 / 2 TB 内存、11T 数据盘挂在 `/srv`；**验收模型已在共享 HF 缓存**（`Qwen3-Embedding-0.6B` 快照 `97b0c614…`，只读复用） |
+| 阶段 0b · 镜像渠道与定档 | ✅ **完成（09-22）** | 定档 `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（digest `sha256:e55b420e…`）；**实测可匿名拉取** |
+| 阶段 1 · 接入（`backends/cambricon/`） | ✅ **代码层完成（09-22）** | 13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`；**离线契约自检 35 通过 / 0 失败**；⏳ **尚未在任何寒武纪设备上跑过** |
+| 阶段 2 · conformance | ⏳ 待容器 | 13 例 + 推理 6 例（全绿或如实 stub-skip） |
+| 阶段 3 · 多流 16 项基线 | ⏳ 待容器 | 探针 `../prototype/probes/probe_stream_semantics_full.py`（后端无关 V2） |
+| 阶段 4 · 训练腿 | ⏳ 待容器 | 2 卡 DDP + 集合通信 + 三类通信对照。**前置：先探测集合通信后端名**（不可类推，见方案 §5 A5b） |
 | 阶段 5 · 收敛 | ⏳ | 产出并入接入手册 SOP + 接口修订建议 |
 
 **预期收益**：`device_type="mlu"` 是**第三种设备命名空间**（前两种为 `npu` / `cuda`），
-是接口约定修订建议**第 1 条（`device_type` 与 `vendor` 分离）的首次真实验证场景**；
-且寒武纪有**真正的厂商错误码体系（CNRT）**，预期可做出比 P800 更完整的 `error_map`。
+是接口约定修订建议**第 1 条（`device_type` 与 `vendor` 分离）的首次真实验证场景**。
+
+> ⚠️ **一处需要更正的原预期（09-22）**：本文档原写「寒武纪有真正的厂商错误码体系（CNRT），
+> **预期可做出比 P800 更完整的 `error_map`**」—— 这是**推测，不是实测**。
+> 后端实现时**刻意未声明 `error_map`**：厂商错误码是否透出到 Python 异常**尚未实测**，
+> 无凭据不声明（如实测可得，再补码表并在 `_capabilities` 中声明）。
+> 这也正好与前两家的对比口径一致：**先如实不声明，拿到证据再声明。**
 
 ---
 
@@ -146,8 +154,9 @@ sudo usermod -aG docker hliu553
 | 路径 | 内容 |
 |---|---|
 | `docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属的证据链 · 版本组合 · 开通需求 · 探测边界 |
-| `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研**：FlagTree 无寒武纪手册（26 页证据）· 官方渠道与三私仓实测（DNS/端口/401/鉴权类型）· 官方镜像命名规律 · 目标版本档 · 申请清单 · 三家实例获取路径对照 |
-| `docs/`（后续） | 接入方案、根因核对、阶段验证报告（对齐 `../P800/docs/` 体例） |
+| `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像渠道调研 + 更正 + 定档**：§0 更正段（FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像、实测可匿名拉取）· §0.1 **定档 `neuware4.4.3`** · §0.2 **驱动升级上报预案**（四条门槛 + 上报模板）· FlagTree 无寒武纪手册（26 页证据）· 三私仓实测 |
+| `docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表 · 厂商栈判别（预期路径 C）· 已完成的代码层动作与能力声明理由 · 本地验证（离线自检 35/0）· **A1–A10 真机执行序列（含确切命令）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
+| `docs/`（后续） | 根因核对、阶段验证报告（对齐 `../P800/docs/` 体例） |
 | `probes/preflight_env_mlu1_20260922.log` | **Mlu-1 环境普查原始日志**（`preflight_env.sh` 首跑产出） |
 | `probes/preflight_env_mlu2_20260922.log` | **Mlu-2 环境普查原始日志** |
 | `probes/.gitignore` | `!*.log` 例外（否则根 `.gitignore` 的 `*.log` 会让证据静默不入库） |
@@ -156,13 +165,19 @@ sudo usermod -aG docker hliu553
 
 ## 6. 下一步
 
+**已完成（代码层）**：`backends/cambricon/` 已落地（13 抽象 + `build()` + `supports()` 如实声明 +
+`known_issues()`），并新增**离线契约自检**工具（35/0 通过）。
+
+**剩余（真机，全部待 `docker` 组权限）** —— 按 [`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md) §5 的 A1–A10 执行：
+
 ```text
 ① 拿到 root 开通（§4 第 1、2 条）→ 复核 /srv/hliu553 与 docker 组
-② 确认镜像（§4 第 3 条）→ 起第一个带卡容器
-③ 容器内确认：torch_mlu 可导入 + torch.mlu.device_count() == 8
-④ 落实 backends/cambricon/（name="cambricon" / device_type="mlu" / vendor="cambricon"）
-⑤ conformance 13 + 6 → 多流 16 项逐项比对 → 训练腿 2 卡 DDP（FlagCX + CNCL）
-⑥ 产出并入接入手册 SOP + 接口约定修订建议
+② docker pull 定档镜像 → 起带卡容器（A1，参数已给全）
+③ 环境普查复跑（A2）→ 厂商栈判别（A3）→ 镜像就绪 5 条判据（A4）
+④ 容器内离线自检 + smoke + conformance 13 + 6（A5）
+⑤ ⚠️ 先探测集合通信后端名（A5b）→ 多流 16 项（A6）→ 训练腿 2 卡（A7）
+⑥ 推理腿前向 + 服务化（A8）→ 错误闭环（A9）→ 归档回填（A10）
+⑦ 产出并入接入手册 SOP + 接口约定修订建议
 ```
 
-**复用现有资产**：`../prototype/scripts/preflight_env.sh`（环境普查）· `../prototype/probes/probe_stream_semantics_full.py`（多流 16 项探针，后端无关 V2）· `../prototype/scripts/serve_standard.sh`（服务启动）· `../prototype/runtime/conformance/`（判据集，三后端共用同一套）
+**复用现有资产**：`../prototype/scripts/preflight_env.sh`（环境普查）· `../prototype/scripts/backend_offline_check.py`（**离线契约自检，无设备可用**）· `../prototype/probes/probe_stream_semantics_full.py`（多流 16 项探针，后端无关 V2）· `../prototype/scripts/serve_standard.sh`（服务启动，`DC_BACKEND=cambricon`）· `../prototype/runtime/conformance/`（判据集，三后端共用同一套）

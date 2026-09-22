@@ -22,7 +22,7 @@
 | **`prototype/`** | **芯片无关的统一标准**（我们制定的规范、实现与判据） | 统一运行时 API、Backend 注册表与后端实现（`ascend` / `flagos` / **`kunlun`**）、conformance 用例与 runner、两条腿自验证脚本、**接口约定与事件语义契约**、原型设计、月度计划 |
 | **`910C/`** | **第一个落地实例（昇腾）** —— ✅ 已完成 | 分布式训练与推理既有工作、910C 专属文档（ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断） |
 | **`P800/`** | **第二个接入实例（昆仑芯）** —— ✅ 阶段 0–5 完成 | 环境汇总、五域基线、接入方案、根因核对、阶段 3/4 与镜像等价性验证、全量进度报告、**探针脚本与原始证据** |
-| **`MLU590/`** | **第三个接入实例（寒武纪）** —— 🔄 第 0 步环境普查完成、**镜像来源已定档（FlagOS 官方 `neuware4.4.3`）**，接入待环境开通 | 环境报告、镜像渠道调研与更正、探针脚本与原始证据（`docs/`、`probes/`） |
+| **`MLU590/`** | **第三个接入实例（寒武纪）** —— 🔄 环境普查 ✅、镜像定档 ✅、**后端落地（代码层）✅**；真机验证待 `docker` 组权限 | 环境报告、镜像渠道调研与更正、**接入方案 + 真机执行手册**、探针脚本与原始证据（`docs/`、`probes/`） |
 
 顶层保留：`README.md`（本看板）、`STATUS.md`（方向状态）、`.env.example`
 各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`、`MLU590/README.md`
@@ -111,7 +111,7 @@
 
 ---
 
-### 2.5 MLU590 实例（第三个接入实例，🔄 第 0 步完成 · 镜像已定档 · 接入待环境开通）
+### 2.5 MLU590 实例（第三个接入实例，🔄 环境普查 ✅ · 镜像定档 ✅ · 后端落地（代码层）✅ · 真机验证待 `docker` 组权限）
 
 | 项 | 状态 | 结果 |
 |---|---|---|
@@ -119,12 +119,16 @@
 | docker 镜像落盘位置 | ✅ 已确认 | `/var/lib/docker` 是 **→ `/srv/var/lib/docker` 的符号链接** ⇒ 镜像本就在 11T 盘上，**无需改 `daemon.json`** |
 | **镜像来源与定档** | ✅ **09-22 完成** | **FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像**（`flagos-base`/`flagos-runtime`/`flagos-app` 12 仓 + 周测 2 仓），**实测可匿名拉取**（无需私仓凭据）。**已定档走 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（driver 6.2.15，与我们实测 v6.2.29 同 6.2.x 线）；4.7.2 档（需 driver **6.5.48**）列为**上报预案**、非当前诉求 |
 | 环境版本组合（间接确认） | 🟨 **已被定档取代** | 他人脚本给的是 `torch 2.11.0+cpu` + `torch-mlu 1.33.1` 组合 —— 那属 **`neuware4.7.2` 档**（需驱动 6.5.48）；**我们走 4.4.3 档 ⇒ 实际组合为 py3.10 / torch 2.7.1 / torch-mlu 1.29.2 / triton 3.2.0+mlu1.7.2**，待进容器实机复核 `torch.mlu.device_count() == 8` |
-| 阶段 1–5 接入 | ⛔ **待环境开通** | 现在唯一阻塞 = **root 权限**（`/srv` 不可写建不了 `hliu553`；不在 `docker` 组）—— 镜像阻塞已解除 |
+| **backend 落地（代码层）** | ✅ **09-22 完成** | 新增 `prototype/runtime/backends/cambricon/`：**13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`**；`name="cambricon"` / `device_type="mlu"`（PrivateUse1）。**能力如实不声明** 4 项：`error_map`（厂商码是否透出未实测）、`recovery_real`（无重置原语凭据）、`graph_capture`、`stream_priority` |
+| 离线契约自检（无设备） | ✅ **35 通过 / 0 失败** | 新增 `prototype/scripts/backend_offline_check.py`（stub 厂商命名空间空跑 8 组 35 条判据，逐条对应接口约定 / conformance 同口径）；本机 `smoke_runtime.py` **28/0**，新增后端**未造成回归**。⚠️ **这只证明实现逻辑与契约形态，不是真机结论** |
+| 阶段 1–5 真机验证 | ⛔ **待环境开通** | 现在唯一阻塞 = **root 权限**（`/srv` 不可写建不了 `hliu553`；不在 `docker` 组）—— **镜像与代码侧均已解除** |
 
 **两处实测要点**（详见 `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`）：
 1. **建不了 `/srv/hliu553`** —— `/srv` 属主 `root:root 755`，实测 `mkdir: Permission denied`；虽在 `sudo` 组但 sudo 需密码 ⇒ 需 root 开通；
 2. **不在 `docker` 组** —— 而我们的验证流程全部在带卡容器内 ⇒ 与第 1 条并列的硬阻塞。
 
+> **完整方案与真机执行手册**：[`MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)（含 A1–A10 真机步骤与确切命令、验收清单 13 项当前状态、风险与应对）。
+>
 > **⭐ 一条方法学教训（已写进指南）**：**选镜像档位的第一判据是宿主驱动，不是 Python 包版本。**
 > 本次先按 `torch-mlu 1.33.1` 锚档，核查后发现那是 4.7.2 档、而它要求宿主驱动 6.5.48（我们只有 6.2.29）
 > ⇒ 已按驱动修正为 4.4.3 档。判据与三实例对照见 `prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
@@ -191,11 +195,11 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
 | 13 | **多流 Stream 16 项验收基线**对 P800 逐项比对（探针 8/8、S-7 图捕获首测 5/5、S-16 补测 2000 流） | ✅ **本轮**（内容随 10 月提交） |
 | 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用；**两实例真机均验证通过**（v1.1 补服务入口就绪 / 生成形态冒烟 / 容器内卡快照降级） | ✅ |
-| 15 | **第 3 家（寒武纪 MLU590）环境普查**：两台测试机资源盘点、docker 数据盘归属确认、MLU 栈版本组合取得；建立第三实例目录 `MLU590/`（README + 环境报告 + 探针日志） | ✅ **本轮** |
-| 16 | 第 3 家接入（`backends/cambricon/` + conformance + 多流 16 项 + 训练腿）—— **镜像已定档**（`flagos-runtime-cambricon-neuware4.4.3:2.2.0`） | ⛔ 待 root 开通（`/srv/hliu553` + docker 组），镜像已不阻塞 |
-| 15 | **两实例全量对称复核**（当前代码上跑）：smoke 51/0（ascend）· 42/0（kunlun）、conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14、训练腿 6/6（**loss 与历史逐位吻合**）、错误闭环 5/0/0 ⇒ **复核缺口 G1/G2 关闭**，11 份自证证据入库 | ✅ **本轮** |
-| 16 | **修第 5 个「跨后端不对称」缺陷**（对称复跑挖出）：`ascend`/`flagos` 未回填错误对象的 `backend` 字段（`kunlun` 已回填）+ smoke 判据对声明 `error_map` 的后端**不公平**（给无厂商码消息却要求走 `code_map`） | ✅ **本轮** |
-| 17 | **第三家芯片接入**（寒武纪，`torch_mlu`，私有命名空间路径）—— 前序两实例已全部收口，可按手册开工 | 🔲 下一步 |
+| 15 | **两实例全量对称复核**（当前代码上跑）：smoke 51/0（ascend）· 42/0（kunlun）、conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14、训练腿 6/6（**loss 与历史逐位吻合**）、错误闭环 5/0/0 ⇒ **复核缺口 G1/G2 关闭**，11 份自证证据入库 | ✅ |
+| 16 | **修第 5 个「跨后端不对称」缺陷**（对称复跑挖出）：`ascend`/`flagos` 未回填错误对象的 `backend` 字段（`kunlun` 已回填）+ smoke 判据对声明 `error_map` 的后端**不公平**（给无厂商码消息却要求走 `code_map`） | ✅ |
+| 17 | **第 3 家（寒武纪 MLU590）环境普查 + 镜像定档**：两台测试机资源盘点、MLU 栈版本取得、**验收模型在共享 HF 缓存**；建立 `MLU590/`；镜像**定档 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（实测可匿名拉取） | ✅ **本轮** |
+| 18 | **第 3 家接入 · 后端落地（代码层）**：新增 `backends/cambricon/`（13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`）；登记注册表；统一启动脚本补 `cambricon` 分支；训练腿加"不给集合通信后端名就报错"的拦截；**新增《离线契约自检》工具并回写接入手册 §4.4** | ✅ **本轮**（离线自检 35/0） |
+| 19 | **第 3 家接入 · 真机验证**（conformance 13+6 → 多流 16 项 → 训练腿 → 推理腿 → 错误闭环） | ⛔ **待 `docker` 组权限**（`/srv/hliu553` + 容器）；镜像与代码均已不阻塞。按 `MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` §5 的 A1–A10 执行 |
 
 ---
 
@@ -307,6 +311,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 文档 | 回答什么 |
 |---|---|
 | `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属证据链 · MLU 栈版本组合 · root 权限开通需求 · 探测边界。⚠️ **其中「torch-mlu 1.33.1 + torch 2.11.0」属 `neuware4.7.2` 档（需驱动 6.5.48）**，已被本方向定档 `neuware4.4.3`（py3.10 / torch 2.7.1 / torch-mlu 1.29.2）取代，见 `CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1 |
+| `MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表（第 0/0b/1/2/3 步状态）· 厂商栈判别（预期 **路径 C：PrivateUse1 / `mlu`**）· 已完成的代码层动作与**能力声明逐条理由**（为什么 `error_map`/`recovery_real`/`graph_capture`/`stream_priority` **如实不声明**）· 本地验证（**离线自检 35/0**）· **A1–A10 真机执行序列（含确切命令与出处）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
 | `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研 + 当日更正**：§0 更正段（**FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像、实测可匿名拉取**；**档位由宿主驱动决定**：6.2.29 → `neuware4.4.3`，`neuware4.7.2` 需 6.5.48）· FlagTree 无寒武纪手册 · 官方渠道与三私仓实测（均 401 需鉴权）· 申请清单 · **三家实例镜像获取路径对照** |
 
 ### 6.5 原始证据目录（复核用，勿只读结论）

@@ -48,6 +48,28 @@ _DIST_BT_DEFAULT = {
     "kunlun": "cpu:gloo,cuda:flagcx",
 }
 DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT.get(BACKEND, "gloo")
+
+# ⚠️ 寒武纪（cambricon）：**刻意不给默认值，且不给就报错退出**。
+#    理由（手册 §9 坑 3「同一 FlagCX 在不同芯片注册的后端名不同」）：
+#      910C = `flagos`、P800 = `flagcx`，同一套代码在两家芯片上后端名就不同 ⇒ **不可类推**；
+#      而 `_DIST_BT_DEFAULT.get(BACKEND, "gloo")` 的兜底是 `gloo`，那会**静默退化为纯 CPU
+#      集合通信**：训练脚本照样跑完、loss 照样下降，但**设备侧集合通信根本没被验证**
+#      —— 这类"看起来通过"的结果比失败更糟，故此处显式拦住。
+if BACKEND == "cambricon" and not os.environ.get("DC_DIST_BT"):
+    print(
+        "[cambricon] 未设置 DC_DIST_BT，拒绝以兜底值 `gloo` 继续（那会静默退化为纯 CPU\n"
+        "  集合通信，训练脚本仍会跑完，但设备侧通信未被验证）。\n"
+        "  寒武纪的集合通信后端名**必须实测后显式指定**，不能从 910C(`flagos`) / P800(`flagcx`) 类推。\n"
+        "  探测方法（容器内，只读）：\n"
+        "    python3 -c \"import torch_mlu, torch; print(torch.mlu.is_available(), torch.mlu.device_count())\"\n"
+        "    # 逐个尝试进程组后端，记录可用者（设备侧通常写作 <dev>:<backend>，如 mlu:cncl）\n"
+        "    #   候选：cncl（寒武纪 CCL） / flagcx（若镜像内已装 flagcx-ascend 之外的 mlu 适配）\n"
+        "  探测结果请回填《寒武纪接入方案》与\n"
+        "    runtime/backends/cambricon/backend.py 顶部「未实测清单」第 10 条。\n"
+        "  确认后按 DC_DIST_BT=\"cpu:gloo,mlu:<backend>\" 重跑。",
+        flush=True,
+    )
+    raise SystemExit(2)
 ROOT = os.environ.get("DC_ROOT", "/mnt/raid/hliu553/runtime-team/dev/device-context")
 MODEL = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
 OUT_DIR = os.environ.get("DC_OUT_DIR", "/mnt/raid/hliu553/runtime-team/scratch")
