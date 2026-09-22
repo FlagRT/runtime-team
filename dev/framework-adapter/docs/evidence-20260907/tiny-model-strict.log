@@ -1,0 +1,243 @@
+can not use command: npu-smi info
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00, 238.00it/s]
+INFO 09-07 14:40:11 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 09-07 14:40:11 [__init__.py:46] - fl -> vllm_fl:register
+INFO 09-07 14:40:11 [__init__.py:49] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+INFO 09-07 14:40:15 [__init__.py:238] Platform plugin fl is activated
+WARNING 09-07 14:40:18 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+INFO 09-07 14:40:18 [nixl_utils.py:20] Setting UCX_RCACHE_MAX_UNRELEASED to '1024' to avoid a rare memory leak in UCX when using NIXL.
+WARNING 09-07 14:40:18 [nixl_utils.py:34] NIXL is not available
+WARNING 09-07 14:40:18 [nixl_utils.py:44] NIXL agent config is not available
+WARNING 09-07 14:40:18 [registry.py:945] Model architecture DeepseekV4ForCausalLM is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4:DeepseekV4ForCausalLM.
+WARNING 09-07 14:40:18 [registry.py:945] Model architecture DeepSeekV4MTPModel is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4_mtp:DeepSeekV4MTP.
+INFO 09-07 14:40:18 [utils.py:233] non-default args: {'tokenizer': '/workspace/tiny-random-llama', 'dtype': 'float16', 'max_model_len': 64, 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.05, 'max_num_seqs': 1, 'disable_log_stats': True, 'enforce_eager': True, 'model': '/workspace/tiny-random-llama'}
+[2026-09-07 14:40:18] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched HybridAttentionMambaModelConfig for Ascend
+WARNING 09-07 14:40:18 [envs.py:1830] Unknown vLLM environment variable detected: VLLM_FL_DISPATCH_DEBUG
+WARNING 09-07 14:40:18 [envs.py:1830] Unknown vLLM environment variable detected: VLLM_FL_CONFIG
+INFO 09-07 14:40:18 [model.py:555] Resolved architecture: LlamaForCausalLM
+INFO 09-07 14:40:18 [model.py:1680] Using max model len 64
+INFO 09-07 14:40:18 [scheduler.py:239] Chunked prefill is enabled with max_num_batched_tokens=64.
+INFO 09-07 14:40:18 [vllm.py:840] Asynchronous scheduling is enabled.
+WARNING 09-07 14:40:18 [vllm.py:896] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+WARNING 09-07 14:40:18 [vllm.py:914] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+INFO 09-07 14:40:18 [kernel.py:205] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'])
+INFO 09-07 14:40:18 [vllm.py:1089] Cudagraph is disabled under eager mode
+[2026-09-07 14:40:18] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Block size is set to 128 if prefix cache or chunked prefill is enabled.
+INFO 09-07 14:40:18 [compilation.py:303] Enabled custom fusions: norm_quant, act_quant
+can not use command: npu-smi info
+INFO 09-07 14:40:25 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 09-07 14:40:25 [__init__.py:46] - fl -> vllm_fl:register
+INFO 09-07 14:40:25 [__init__.py:49] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+INFO 09-07 14:40:29 [__init__.py:238] Platform plugin fl is activated
+(EngineCore pid=5986) WARNING 09-07 14:40:30 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [nixl_utils.py:34] NIXL is not available
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [nixl_utils.py:44] NIXL agent config is not available
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [registry.py:945] Model architecture DeepseekV4ForCausalLM is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4:DeepseekV4ForCausalLM.
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [registry.py:945] Model architecture DeepSeekV4MTPModel is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4_mtp:DeepSeekV4MTP.
+(EngineCore pid=5986) INFO 09-07 14:40:31 [core.py:109] Initializing a V1 LLM engine (v0.20.2) with config: model='/workspace/tiny-random-llama', speculative_config=None, tokenizer='/workspace/tiny-random-llama', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.float16, max_seq_len=64, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, quantization_config=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=npu, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False), seed=0, served_model_name=/workspace/tiny-random-llama, enable_prefix_caching=False, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [64], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 0, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native']), enable_flashinfer_autotune=True, moe_backend='auto')
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5986) WARNING 09-07 14:40:31 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched HybridAttentionMambaModelConfig for Ascend
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.impl.attention] NPU compatibility enabled: torch.Event -> torch.npu.Event
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched causal_conv1d ops for Ascend (pure-PyTorch)
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched FLA ops for Ascend NPU (proper recurrent chunk_gated_delta_rule)
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched MMEncoderAttention for NPU (matmul attention)
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched fused_moe for Ascend
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Disabled GDN prefill kernel warmup for Ascend NPU
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched all GDN Triton kernels with pure-PyTorch for Ascend NPU
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched GDN _forward_core ssm_state gather for Ascend (index_select).
+(EngineCore pid=5986) `Qwen2VLImageProcessorFast` is deprecated. The `Fast` suffix for image processors has been removed; use `Qwen2VLImageProcessor` instead.
+(EngineCore pid=5986) [2026-09-07 14:40:31] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Forced native ViT pos-embed interpolation for Ascend.
+(EngineCore pid=5986) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5986) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5986) INFO 09-07 14:40:31 [parallel_state.py:1402] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://172.17.0.2:35513 backend=hccl
+(EngineCore pid=5986) INFO 09-07 14:40:31 [parallel_state.py:1715] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=5986) /usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/ops/lift_fresh.py:71: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+(EngineCore pid=5986)   out = torch.empty_like(x_contig, memory_format=torch.contiguous_format)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch] Registering vendor backends for current platform: ascend
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] OpManager initialized: 35 ops with 69 implementations
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) ================================================================================
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] VLLM-FL Dispatch: Registered Operators
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] ================================================================================
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: attention_backend]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: bf16_mqa_logits]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: combine_topk_swa_indices]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: compute_global_topk_indices_and_lens]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: cp_gather_indexer_k_quant_cache]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: deepseek_v4_fp8_einsum]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✗ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: dequantize_and_gather_k_cache]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: flash_mla_sparse_fwd]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: flash_mla_with_kvcache]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_indexer_q_rope_quant]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_inv_rope_fp8_quant]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_marlin_moe]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_q_kv_rmsnorm]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: fused_topk_bias]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: gather_bf16_kv_from_pages]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: gelu_and_mul]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: grouped_topk]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: hc_head_fused_kernel]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: indexer_k_quant_and_cache]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: invoke_fused_moe_triton_kernel]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: mhc_post]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: mhc_pre]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: moe_align_block_size]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: moe_sum]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: pack_seq_triton]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: rms_norm]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: rotary_embedding]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: router_gemm_bf16_fp32]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: silu_and_mul]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: silu_and_mul_with_clamp]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: top_k_per_row_decode]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: top_k_per_row_prefill]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: topk_softmax]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ vendor.ascend (kind=vendor, priority=100, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) [Operator: unpack_seq_triton]
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ default.flagos (kind=flagos, priority=150)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager]   ✓ reference.torch (kind=reference, priority=50)
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] 
+(EngineCore pid=5986) ================================================================================
+(EngineCore pid=5986) 
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.policy] Using custom config from '/workspace/tiny-smoke-strict.yaml'
+(EngineCore pid=5986) [2026-09-07 14:40:33] [INFO] [vllm_fl.dispatch.manager] Op 'attention_backend' using 'vendor.ascend' (kind=vendor, vendor=ascend)
+(EngineCore pid=5986) INFO 09-07 14:40:34 [weight_utils.py:904] Filesystem type for checkpoints: EXT4. Checkpoint size: 0.00 GiB. Available RAM: 1950.90 GiB.
+(EngineCore pid=5986) INFO 09-07 14:40:34 [weight_utils.py:927] Auto-prefetch is disabled because the filesystem (EXT4) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=5986) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(EngineCore pid=5986) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00, 121.62it/s]
+(EngineCore pid=5986) 
+(EngineCore pid=5986) INFO 09-07 14:40:34 [default_loader.py:384] Loading weights took 0.01 seconds
+(EngineCore pid=5986) INFO 09-07 14:40:35 [interface.py:489] Setting kv cache block size to 128 for CUSTOM backend.
+(EngineCore pid=5986) INFO 09-07 14:40:35 [kv_cache_utils.py:1708] GPU KV cache size: 677,888 tokens
+(EngineCore pid=5986) INFO 09-07 14:40:35 [kv_cache_utils.py:1709] Maximum concurrency for 64 tokens per request: 10592.00x
+(EngineCore pid=5986) INFO 09-07 14:40:35 [core.py:306] init engine (profile, create kv cache, warmup model) took 0.59 s
+(EngineCore pid=5986) INFO 09-07 14:40:36 [vllm.py:840] Asynchronous scheduling is enabled.
+(EngineCore pid=5986) WARNING 09-07 14:40:36 [vllm.py:896] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(EngineCore pid=5986) WARNING 09-07 14:40:36 [vllm.py:914] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=5986) INFO 09-07 14:40:36 [kernel.py:205] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'])
+(EngineCore pid=5986) INFO 09-07 14:40:36 [vllm.py:1089] Cudagraph is disabled under eager mode
+(EngineCore pid=5986) INFO 09-07 14:40:36 [compilation.py:303] Enabled custom fusions: norm_quant, act_quant
+Rendering prompts:   0%|          | 0/1 [00:00<?, ?it/s]Rendering prompts: 100%|██████████| 1/1 [00:00<00:00, 62.75it/s]
+Processed prompts:   0%|          | 0/1 [00:00<?, ?it/s, est. speed input: 0.00 toks/s, output: 0.00 toks/s](EngineCore pid=5986) [2026-09-07 14:40:36] [INFO] [vllm_fl.dispatch.manager] Op 'rms_norm' using 'vendor.ascend' (kind=vendor, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:36] [INFO] [vllm_fl.dispatch.manager] Op 'rotary_embedding' using 'vendor.ascend' (kind=vendor, vendor=ascend)
+(EngineCore pid=5986) [2026-09-07 14:40:36] [INFO] [vllm_fl.dispatch.manager] Op 'silu_and_mul' using 'default.flagos' (kind=flagos, vendor=None)
+Processed prompts: 100%|██████████| 1/1 [00:00<00:00,  1.89it/s, est. speed input: 7.56 toks/s, output: 7.56 toks/s]Processed prompts: 100%|██████████| 1/1 [00:00<00:00,  1.89it/s, est. speed input: 7.56 toks/s, output: 7.56 toks/s]Processed prompts: 100%|██████████| 1/1 [00:00<00:00,  1.89it/s, est. speed input: 7.56 toks/s, output: 7.56 toks/s]
+(EngineCore pid=5986) INFO 09-07 14:40:36 [core.py:1238] Shutdown initiated (timeout=0)
+(EngineCore pid=5986) INFO 09-07 14:40:36 [core.py:1261] Shutdown complete
+TINY_RANDOM_MODEL_SMOKE {"generated_token_ids": [112, 56, 1, 35], "scope": "random weights, single NPU, prefill and decode; no quality claim"}

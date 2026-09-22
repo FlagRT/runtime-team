@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "backend": "flagos (FlagCX implementation in locked training image)",
+  "rank": 1,
+  "world_size": 2,
+  "device": "flagos:1",
+  "torch_version": "2.10.0+cpu",
+  "iterations": 20,
+  "dtypes": [
+    "float32",
+    "bfloat16"
+  ],
+  "calls_per_operation": {
+    "all_reduce": 40,
+    "all_gather": 40,
+    "p2p": 40,
+    "async_all_reduce": 40
+  },
+  "total_calls": 160,
+  "passed_calls": 160,
+  "failed_calls": 0,
+  "immediate_is_completed_true": {
+    "float32": 20,
+    "bfloat16": 20
+  },
+  "elapsed_s": 8.828,
+  "failures": [],
+  "verdict": "PASS"
+}

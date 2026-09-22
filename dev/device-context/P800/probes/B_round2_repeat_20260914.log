@@ -1,0 +1,454 @@
+=========== 第二轮开始 Mon Sep 14 15:49:52 CST 2026 ===========
+
+##### A 组：KL3=1（预期挂死）重复 3 次 #####
+
+############ A1_KL3on | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死/异常  完成到: rep=20
+  --- 现场 CPU 时间 ---
+    pid=8473 utime=0 stime=0
+    pid=8476 utime=776 stime=45
+    pid=8543 utime=7216 stime=76
+    pid=8544 utime=7220 stime=75
+  --- 现场 gdb（含模块映射，用于算偏移）---
+    ============ gdb pid=8473 ============
+[Thread debugging using libthread_db enabled]
+#0  0x00007ca591fb57dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005a2571f56f5e in ?? ()
+#2  0x00007ca591f9cd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ca591f9ce40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00005a2571f57195 in ?? ()
+    ============ gdb pid=8476 ============
+[Thread debugging using libthread_db enabled]
+#0  0x000075e41375a6ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000061be7216c79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x000061be7206c53a in cfunction_vectorcall_O (func=0x75e4133ebc40, args=0x75e197a10bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x000061be72061a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x75e197a10bf8, callable=0x75e4133ebc40, tstate=0x61be771ba350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x75e197a10bf8, callable=0x75e4133ebc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc3cb13040, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x75e197a10a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x000061be7206d0ec in _PyEval_EvalFrame (throwflag=0, f=0x75e197a10a40, tstate=0x61be771ba350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x75e197abba40, tstate=0x61be771ba350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x75e197abba30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x000061be7205d7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x75e197a109d8, callable=0x75e197abba30, tstate=0x61be771ba350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x75e197a109d8, callable=0x75e197abba30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc3cb131f0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      0x75e195600000     0x75e19579b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75e19579b000     0x75e19599b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75e19599b000     0x75e19599e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75e19599e000     0x75e1959a0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75e23f400000     0x75e23f602000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e23f602000     0x75e23f802000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e23f802000     0x75e23f804000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e23f804000     0x75e23f80c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e24060f000     0x75e24080e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e24080e000     0x75e240bea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75e240d76000     0x75e240ed0000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75e240ed0000     0x75e241032000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x75e241032000     0x75e24109d000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75e24109d000     0x75e24109e000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75e24109e000     0x75e2410ad000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x75e40fe00000     0x75e40ff9d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75e40ff9d000     0x75e41019c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75e41019c000     0x75e41019f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75e41019f000     0x75e4101a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75e4119a0000     0x75e4119b4000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75e4119b4000     0x75e4119ed000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75e4119ed000     0x75e4119fc000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75e4119fc000     0x75e4119fe000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75e4119fe000     0x75e4119ff000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75e411a00000     0x75e411a3e000    0x3e000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.12.9.1.kunlun
+    ============ gdb pid=8543 ============
+[Thread debugging using libthread_db enabled]
+0x00007d2078294080 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x00007d2078294080 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007d207828b1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007d2078276d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007d20782438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007d2078243937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007d2078270a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007d2078270b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007d2078242203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007d20782425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007d207822a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007d20782eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x00007d2077e169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#12 0x00007d20780ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#13 0x00007d20683a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      0x7d1e98e00000     0x7d1e98f9b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7d1e98f9b000     0x7d1e9919b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7d1e9919b000     0x7d1e9919e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7d1e9919e000     0x7d1e991a0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7d1f42e00000     0x7d1f43002000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f43002000     0x7d1f43202000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f43202000     0x7d1f43204000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f43204000     0x7d1f4320c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f4400f000     0x7d1f4420e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f4420e000     0x7d1f445ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7d1f446b5000     0x7d1f4480f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7d1f4480f000     0x7d1f44971000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x7d1f44971000     0x7d1f449dc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7d1f449dc000     0x7d1f449dd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7d1f449dd000     0x7d1f449ec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x7d2075e00000     0x7d2075f9d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7d2075f9d000     0x7d207619c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7d207619c000     0x7d207619f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7d207619f000     0x7d20761a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7d2077982000     0x7d2077996000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7d2077996000     0x7d20779cf000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7d20779cf000     0x7d20779de000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7d20779de000     0x7d20779e0000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7d20779e0000     0x7d20779e1000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+    ============ gdb pid=8544 ============
+[Thread debugging using libthread_db enabled]
+0x0000723fd56a4dbc in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x0000723fd56a4dbc in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x0000723fd56a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x0000723fd56a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x0000723fd567017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x0000723fd5670917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x0000723fd5670b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x0000723fd5642203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x0000723fd56425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x0000723fd562a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x0000723fd56eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x0000723fd52169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x0000723fd51ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#12 0x0000723fc57a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#13 0x000061d800a9a902 in cfunction_vectorcall_NOARGS (func=0x723fd551bab0, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      0x723df6200000     0x723df639b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x723df639b000     0x723df659b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x723df659b000     0x723df659e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x723df659e000     0x723df65a0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x723ea0200000     0x723ea0402000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea0402000     0x723ea0602000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea0602000     0x723ea0604000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea0604000     0x723ea060c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea140f000     0x723ea160e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea160e000     0x723ea19ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x723ea1ab5000     0x723ea1c0f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x723ea1c0f000     0x723ea1d71000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x723ea1d71000     0x723ea1ddc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x723ea1ddc000     0x723ea1ddd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x723ea1ddd000     0x723ea1dec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x723fd307f000     0x723fd3093000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x723fd3093000     0x723fd30cc000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x723fd30cc000     0x723fd30db000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x723fd30db000     0x723fd30dd000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x723fd30dd000     0x723fd30de000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x723fd3200000     0x723fd339d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x723fd339d000     0x723fd359c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x723fd359c000     0x723fd359f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x723fd359f000     0x723fd35a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+/workspace/probe_battery2.sh: line 12:  8473 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+############ A2_KL3on | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死/异常  完成到: rep=40
+  --- 现场 CPU 时间 ---
+    pid=10194 utime=0 stime=0
+    pid=10196 utime=774 stime=47
+    pid=10264 utime=7230 stime=76
+    pid=10265 utime=7227 stime=84
+  --- 现场 gdb（含模块映射，用于算偏移）---
+    ============ gdb pid=10194 ============
+[Thread debugging using libthread_db enabled]
+#0  0x00007f80419b47dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x000058a82047ef5e in ?? ()
+#2  0x00007f804199bd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007f804199be40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x000058a82047f195 in ?? ()
+    ============ gdb pid=10196 ============
+[Thread debugging using libthread_db enabled]
+#0  0x000076dc078516ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00005fc2bf1cc79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x00005fc2bf0cc53a in cfunction_vectorcall_O (func=0x76dc074e7c40, args=0x76d98ba1cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x00005fc2bf0c1a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x76d98ba1cbf8, callable=0x76dc074e7c40, tstate=0x5fc2dbdb4350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x76d98ba1cbf8, callable=0x76dc074e7c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7fff3e5e3d40, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x76d98ba1ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x00005fc2bf0cd0ec in _PyEval_EvalFrame (throwflag=0, f=0x76d98ba1ca40, tstate=0x5fc2dbdb4350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x76d98bcc3a40, tstate=0x5fc2dbdb4350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x76d98bcc3a30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00005fc2bf0bd7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x76d98ba1c9d8, callable=0x76d98bcc3a30, tstate=0x5fc2dbdb4350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x76d98ba1c9d8, callable=0x76d98bcc3a30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7fff3e5e3ef0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      0x76d989800000     0x76d98999b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x76d98999b000     0x76d989b9b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x76d989b9b000     0x76d989b9e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x76d989b9e000     0x76d989ba0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x76da33600000     0x76da33802000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da33802000     0x76da33a02000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da33a02000     0x76da33a04000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da33a04000     0x76da33a0c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da3480f000     0x76da34a0e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da34a0e000     0x76da34dea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x76da34f76000     0x76da350d0000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x76da350d0000     0x76da35232000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x76da35232000     0x76da3529d000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x76da3529d000     0x76da3529e000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x76da3529e000     0x76da352ad000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x76dc03e44000     0x76dc03e58000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x76dc03e58000     0x76dc03e91000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x76dc03e91000     0x76dc03ea0000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x76dc03ea0000     0x76dc03ea2000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x76dc03ea2000     0x76dc03ea3000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x76dc04000000     0x76dc0419d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x76dc0419d000     0x76dc0439c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x76dc0439c000     0x76dc0439f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x76dc0439f000     0x76dc043a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x76dc05c00000     0x76dc05c3e000    0x3e000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.12.9.1.kunlun
+    ============ gdb pid=10264 ============
+[Thread debugging using libthread_db enabled]
+0x00007a47d808b190 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x00007a47d808b190 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007a47d8076d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007a47d80438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007a47d8043937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007a47d8070a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007a47d8070b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007a47d8042203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007a47d80425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007a47d802a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007a47d80eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007a47d7c169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#11 0x00007a47d7aad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#12 0x00007a47c81a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#13 0x0000576b7dc0f902 in cfunction_vectorcall_NOARGS (func=0x7a47d7b1b880, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      0x7a45f8c00000     0x7a45f8d9b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7a45f8d9b000     0x7a45f8f9b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7a45f8f9b000     0x7a45f8f9e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7a45f8f9e000     0x7a45f8fa0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7a46a2a00000     0x7a46a2c02000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a2c02000     0x7a46a2e02000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a2e02000     0x7a46a2e04000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a2e04000     0x7a46a2e0c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a3c0f000     0x7a46a3e0e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a3e0e000     0x7a46a41ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7a46a43b5000     0x7a46a450f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7a46a450f000     0x7a46a4671000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x7a46a4671000     0x7a46a46dc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7a46a46dc000     0x7a46a46dd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7a46a46dd000     0x7a46a46ec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x7a47d5a71000     0x7a47d5a85000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7a47d5a85000     0x7a47d5abe000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7a47d5abe000     0x7a47d5acd000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7a47d5acd000     0x7a47d5acf000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7a47d5acf000     0x7a47d5ad0000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7a47d5c00000     0x7a47d5d9d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7a47d5d9d000     0x7a47d5f9c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7a47d5f9c000     0x7a47d5f9f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7a47d5f9f000     0x7a47d5fa1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+    ============ gdb pid=10265 ============
+[Thread debugging using libthread_db enabled]
+0x00007e5fd9a94080 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x00007e5fd9a94080 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007e5fd9a8b1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007e5fd9a76d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007e5fd9a438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007e5fd9a43937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007e5fd9a70a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007e5fd9a70b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007e5fd9a42203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#8  0x00007e5fd9a425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#9  0x00007e5fd9a2a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#10 0x00007e5fd9aeb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#11 0x00007e5fd96169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#12 0x00007e5fd98ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#13 0x00007e5fc9ba9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      0x7e5dfa600000     0x7e5dfa79b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7e5dfa79b000     0x7e5dfa99b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7e5dfa99b000     0x7e5dfa99e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7e5dfa99e000     0x7e5dfa9a0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7e5ea4600000     0x7e5ea4802000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea4802000     0x7e5ea4a02000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea4a02000     0x7e5ea4a04000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea4a04000     0x7e5ea4a0c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea580f000     0x7e5ea5a0e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea5a0e000     0x7e5ea5dea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7e5ea5eb5000     0x7e5ea600f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7e5ea600f000     0x7e5ea6171000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x7e5ea6171000     0x7e5ea61dc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7e5ea61dc000     0x7e5ea61dd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7e5ea61dd000     0x7e5ea61ec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x7e5fd74a0000     0x7e5fd74b4000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7e5fd74b4000     0x7e5fd74ed000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7e5fd74ed000     0x7e5fd74fc000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7e5fd74fc000     0x7e5fd74fe000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7e5fd74fe000     0x7e5fd74ff000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7e5fd7600000     0x7e5fd779d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7e5fd779d000     0x7e5fd799c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7e5fd799c000     0x7e5fd799f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7e5fd799f000     0x7e5fd79a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+/workspace/probe_battery2.sh: line 12: 10194 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+############ A3_KL3on | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死/异常  完成到: rep=70
+  --- 现场 CPU 时间 ---
+    pid=11955 utime=0 stime=0
+    pid=11958 utime=775 stime=45
+    pid=12025 utime=7202 stime=79
+    pid=12026 utime=7207 stime=88
+  --- 现场 gdb（含模块映射，用于算偏移）---
+    ============ gdb pid=11955 ============
+[Thread debugging using libthread_db enabled]
+#0  0x00007c2999d177dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x0000586e48bbaf5e in ?? ()
+#2  0x00007c2999cfed90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007c2999cfee40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x0000586e48bbb195 in ?? ()
+    ============ gdb pid=11958 ============
+[Thread debugging using libthread_db enabled]
+#0  0x0000732814d636ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00006353ac71679f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+#2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+#3  0x00006353ac61653a in cfunction_vectorcall_O (func=0x7328149fbc40, args=0x73259900cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+#4  0x00006353ac60ba65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x73259900cbf8, callable=0x7328149fbc40, tstate=0x6353d34fa350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x73259900cbf8, callable=0x7328149fbc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7fff46620190, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x73259900ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#8  0x00006353ac6170ec in _PyEval_EvalFrame (throwflag=0, f=0x73259900ca40, tstate=0x6353d34fa350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+#9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7325990bba40, tstate=0x6353d34fa350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+#10 _PyFunction_Vectorcall (func=0x7325990bba30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+#11 0x00006353ac6077b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x73259900c9d8, callable=0x7325990bba30, tstate=0x6353d34fa350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x73259900c9d8, callable=0x7325990bba30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7fff46620340, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      0x732596c00000     0x732596d9b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x732596d9b000     0x732596f9b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x732596f9b000     0x732596f9e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x732596f9e000     0x732596fa0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x732640a00000     0x732640c02000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732640c02000     0x732640e02000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732640e02000     0x732640e04000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732640e04000     0x732640e0c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732641c0f000     0x732641e0e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732641e0e000     0x7326421ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x732642376000     0x7326424d0000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7326424d0000     0x732642632000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x732642632000     0x73264269d000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x73264269d000     0x73264269e000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x73264269e000     0x7326426ad000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x732811400000     0x73281159d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x73281159d000     0x73281179c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x73281179c000     0x73281179f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x73281179f000     0x7328117a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x732812fa0000     0x732812fb4000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x732812fb4000     0x732812fed000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x732812fed000     0x732812ffc000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x732812ffc000     0x732812ffe000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x732812ffe000     0x732812fff000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x732813000000     0x73281303e000    0x3e000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.12.9.1.kunlun
+    ============ gdb pid=12025 ============
+[Thread debugging using libthread_db enabled]
+0x000075c3f2470b76 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x000075c3f2470b76 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x000075c3f2442203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x000075c3f24425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x000075c3f242a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x000075c3f24eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x000075c3f20169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#6  0x000075c3f22ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#7  0x000075c3e25a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#8  0x000055d192442902 in cfunction_vectorcall_NOARGS (func=0x75c3f2317970, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+#9  0x000055d192439a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x75c2bcd96d80, callable=0x75c3f2317970, tstate=0x55d1cced8600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#10 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x75c2bcd96d80, callable=0x75c3f2317970) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#11 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7fff2417d880, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+#12 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x75c2bcd96c00, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+#13 0x000055d1924450ec in _PyEval_EvalFrame (throwflag=0, f=0x75c2bcd96c00, tstate=0x55d1cced8600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      0x75c213000000     0x75c21319b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75c21319b000     0x75c21339b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75c21339b000     0x75c21339e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75c21339e000     0x75c2133a0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x75c2bd000000     0x75c2bd202000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2bd202000     0x75c2bd402000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2bd402000     0x75c2bd404000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2bd404000     0x75c2bd40c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2be20f000     0x75c2be40e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2be40e000     0x75c2be7ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x75c2be8b5000     0x75c2bea0f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75c2bea0f000     0x75c2beb71000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x75c2beb71000     0x75c2bebdc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75c2bebdc000     0x75c2bebdd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x75c2bebdd000     0x75c2bebec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x75c3efea0000     0x75c3efeb4000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75c3efeb4000     0x75c3efeed000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75c3efeed000     0x75c3efefc000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75c3efefc000     0x75c3efefe000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75c3efefe000     0x75c3efeff000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x75c3f0000000     0x75c3f019d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75c3f019d000     0x75c3f039c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75c3f039c000     0x75c3f039f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x75c3f039f000     0x75c3f03a1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+    ============ gdb pid=12026 ============
+[Thread debugging using libthread_db enabled]
+0x00007bccb206fc03 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#0  0x00007bccb206fc03 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#1  0x00007bccb207099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#2  0x00007bccb2070b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#3  0x00007bccb2042203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#4  0x00007bccb20425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#5  0x00007bccb202a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#6  0x00007bccb20eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+#7  0x00007bccb1c169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+#8  0x00007bccb1ead0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+#9  0x00007bcca21a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+#10 0x00005df064459902 in cfunction_vectorcall_NOARGS (func=0x7bccb1f1bab0, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+#11 0x00005df064450a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7bcb7c99ad80, callable=0x7bccb1f1bab0, tstate=0x5df090528600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+#12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7bcb7c99ad80, callable=0x7bccb1f1bab0) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+#13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd0f1cdaa0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      0x7bcad2c00000     0x7bcad2d9b000   0x19b000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7bcad2d9b000     0x7bcad2f9b000   0x200000   0x19b000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7bcad2f9b000     0x7bcad2f9e000     0x3000   0x19b000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7bcad2f9e000     0x7bcad2fa0000     0x2000   0x19e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun
+      0x7bcb7cc00000     0x7bcb7ce02000   0x202000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7ce02000     0x7bcb7d002000   0x200000   0x202000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7d002000     0x7bcb7d004000     0x2000   0x202000  r--p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7d004000     0x7bcb7d00c000     0x8000   0x204000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7de0f000     0x7bcb7e00e000   0x1ff000  0x120f000  ---p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7e00e000     0x7bcb7e3ea000   0x3dc000   0x20e000  rw-p   /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl/so/libbkcl.so
+      0x7bcb7e4b5000     0x7bcb7e60f000   0x15a000        0x0  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7bcb7e60f000     0x7bcb7e771000   0x162000   0x15a000  r-xp   /env/FlagCX/build/lib/libflagcx.so
+      0x7bcb7e771000     0x7bcb7e7dc000    0x6b000   0x2bc000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7bcb7e7dc000     0x7bcb7e7dd000     0x1000   0x326000  r--p   /env/FlagCX/build/lib/libflagcx.so
+      0x7bcb7e7dd000     0x7bcb7e7ec000     0xf000   0x327000  rw-p   /env/FlagCX/build/lib/libflagcx.so
+      0x7bccafaa0000     0x7bccafab4000    0x14000        0x0  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7bccafab4000     0x7bccafaed000    0x39000    0x14000  r-xp   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7bccafaed000     0x7bccafafc000     0xf000    0x4d000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7bccafafc000     0x7bccafafe000     0x2000    0x5b000  r--p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7bccafafe000     0x7bccafaff000     0x1000    0x5d000  rw-p   /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      0x7bccafc00000     0x7bccafd9d000   0x19d000        0x0  r-xp   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7bccafd9d000     0x7bccaff9c000   0x1ff000   0x19d000  ---p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7bccaff9c000     0x7bccaff9f000     0x3000   0x19c000  r--p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+      0x7bccaff9f000     0x7bccaffa1000     0x2000   0x19f000  rw-p   /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun
+/workspace/probe_battery2.sh: line 12: 11955 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+##### B 组：不设 KL3（预期通过）重复 3 次 #####
+
+############ B1_KL3unset | cards=6,7 mode=ar env=[] ############
+  >>> ✅ 完成(未挂死)  完成到: rep=120
+/workspace/probe_battery2.sh: line 12: 13676 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+############ B2_KL3unset | cards=6,7 mode=ar env=[] ############
+  >>> ✅ 完成(未挂死)  完成到: rep=120
+/workspace/probe_battery2.sh: line 12: 13783 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+############ B3_KL3unset | cards=6,7 mode=ar env=[] ############
+  >>> ✅ 完成(未挂死)  完成到: rep=120
+
+##### C 组：显式 KL3=0（排除「未定义 vs 0」差异）#####
+
+############ C_KL3zero | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=0] ############
+  >>> ✅ 完成(未挂死)  完成到: rep=120
+
+##### D 组：KL3=1 但无通信（纯设备计算）→ 判断是否只需 KL3 #####
+
+############ D_KL3on_devonly | 单进程纯设备计算（无通信，10万次同步/1000次点）env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ✅ 完成
+
+##### E 组：KL3=1 + 每次都同步（加重条件）#####
+
+############ E_syncEvery | cards=6,7 mode=ar_sync1 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ✅ 完成(未挂死)  完成到: rep=120
+/workspace/probe_battery2.sh: line 12: 14178 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/r2_${tag}.log 2>&1
+
+=========== 第二轮结束 Mon Sep 14 15:55:39 CST 2026 ===========

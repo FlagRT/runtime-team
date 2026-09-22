@@ -1,0 +1,88 @@
+# ascend-operator-runtime —— 路径 B（功能等价，可从代码仓 + 回收资产复现）
+# 参照 dev/images/ascend-operator-runtime/v1/Dockerfile（history 还原，byte 级目标）。
+# 路径 B 的替代点：
+#   1) CPython 3.11.15 从 python.org 源码构建（owner 私有构建上下文里是 opaque COPY）
+#   2) FlagGems / Torch-FL 用代码仓内 checkout 的 pin commit（git archive 进 src/）
+#   3) verify_runtime.py --static 非致命（需 NPU driver 挂载才全绿，见 assets/provenance）
+# 产物：功能等价、provenance 可追、非 bit 一致。
+
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev
+FROM ${BASE_IMAGE}
+
+ARG TORCH_FL_COMMIT=af50297463d59ca4bb3aca59f51724afb5f6723a
+ARG FLAG_GEMS_COMMIT=f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+ARG MPICH_VERSION=4.1.3
+ARG PYVER=3.11.15
+
+LABEL org.opencontainers.image.title="FlagRT Ascend operator runtime (repro-B)" \
+      org.opencontainers.image.version="0.2.0-reproB" \
+      io.flagrt.cann.version="9.0.0" \
+      io.flagrt.python.version="3.11.15" \
+      io.flagrt.torch.version="2.10.0+cpu" \
+      io.flagrt.triton_ascend.version="3.2.1" \
+      io.flagrt.mpi.version="4.1.3" \
+      io.flagrt.torch_fl.commit="${TORCH_FL_COMMIT}" \
+      io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}" \
+      io.flagrt.repro="path-B functional; base sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# --- CPython 3.11.15 源码构建（路径 B 替代 owner 上下文的 COPY） ---
+# 需构建期网络（docker build --network=host）：apt 依赖 + python.org 源码。
+# 离线场景：改为 docker cp 现有 flagrt/ascend-operator-runtime 镜像的 /usr/local/python3.11.15。
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+        libssl-dev libffi-dev zlib1g-dev libbz2-dev libreadline-dev liblzma-dev libsqlite3-dev uuid-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# 注：make install 默认 compileall -j0（=CPU 数）在高负载共享机上会死锁，锁死 COMPILEALL_OPTS="-j 4"；
+# 构建并行也压到 8，做共享机的好邻居。
+RUN curl -sL -o /tmp/Python-${PYVER}.tgz https://www.python.org/ftp/python/${PYVER}/Python-${PYVER}.tgz \
+    && cd /tmp && tar xzf Python-${PYVER}.tgz && cd Python-${PYVER} \
+    && ./configure --prefix=/usr/local/python${PYVER} --with-ensurepip=install \
+    && make -j8 \
+    && make install COMPILEALL_OPTS="-j 4" \
+    && cd / && rm -rf /tmp/Python-${PYVER}*
+
+ENV PATH=/usr/local/python${PYVER}/bin:/usr/local/mpich/bin:${PATH} \
+    LD_LIBRARY_PATH=/usr/local/python${PYVER}/lib:/usr/local/mpich/lib:${LD_LIBRARY_PATH} \
+    GEMS_VENDOR=ascend \
+    TRITON_ENABLE_TASKQUEUE=false \
+    DO_NOT_TRACK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# --- 离线 wheel + 运行时依赖（断言无 torch_npu） ---
+COPY wheelhouse/ /opt/flagrt/wheelhouse/
+COPY requirements-runtime.txt /opt/flagrt/requirements-runtime.txt
+RUN python3 -m ensurepip --upgrade \
+    && python3 -m pip install --no-index --find-links=/opt/flagrt/wheelhouse -r /opt/flagrt/requirements-runtime.txt \
+    && ! python3 -m pip list --format=freeze | grep -E '^torch[-_]npu=='
+
+# --- MPICH 4.1.3 源码编译 ---
+COPY mpich-${MPICH_VERSION}.tar.gz /opt/flagrt/src/
+RUN mkdir -p /opt/flagrt/src/mpich \
+    && tar -xzf /opt/flagrt/src/mpich-${MPICH_VERSION}.tar.gz -C /opt/flagrt/src/mpich --strip-components=1 \
+    && cd /opt/flagrt/src/mpich && ./configure --prefix=/usr/local/mpich --disable-fortran \
+    && make -j8 && make install \
+    && rm -rf /opt/flagrt/src/mpich /opt/flagrt/src/mpich-${MPICH_VERSION}.tar.gz
+
+# --- FlagGems + Torch-FL（代码仓 pin commit） ---
+COPY src/FlagGems/ /opt/flagrt/src/FlagGems/
+COPY src/Torch-FL/ /opt/flagrt/src/Torch-FL/
+COPY FlagGems-DSA-__init__.py /opt/flagrt/src/FlagGems/src/flag_gems/fused/DSA/__init__.py
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_FLAG_GEMS=0.0.0+${FLAG_GEMS_COMMIT:0:12} \
+       python3 -m pip install --no-index --find-links=/opt/flagrt/wheelhouse --no-build-isolation --no-deps /opt/flagrt/src/FlagGems \
+    && ACCELERATOR=ascend ASCEND_KERNEL=1 CUDA_KERNEL=0 FLAGGEMS_KERNEL=0 FLAGGEMS_PYTHON=1 FLAGOS_BUILD_JOBS="$(nproc)" \
+       python3 -m pip install --no-index --find-links=/opt/flagrt/wheelhouse --no-build-isolation --no-deps /opt/flagrt/src/Torch-FL \
+    && python3 /opt/flagrt/src/Torch-FL/scripts/patch_triton_ascend.py \
+    && rm -rf /root/.cache/pip /root/.triton/cache /opt/flagrt/src
+
+# --- triton-ascend 3.2.1 二次补丁 + hccl_test 编译 + 自检 ---
+COPY verify_runtime.py /opt/flagrt/verify_runtime.py
+COPY patch_triton_ascend_3_2_1.py /opt/flagrt/patch_triton_ascend_3_2_1.py
+RUN python3 /opt/flagrt/patch_triton_ascend_3_2_1.py --triton-path /usr/local/python${PYVER}/lib/python3.11/site-packages/triton \
+    && source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && make -C /usr/local/Ascend/ascend-toolkit/latest/tools/hccl_test MPI_HOME=/usr/local/mpich ASCEND_DIR=/usr/local/Ascend/ascend-toolkit/latest \
+    && (python3 /opt/flagrt/verify_runtime.py --static || echo "[repro-B] verify_runtime --static 非致命失败（缺 driver 挂载，正常，见 provenance）")
+
+WORKDIR /workspace/FlagPerf/base

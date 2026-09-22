@@ -1,150 +1,179 @@
 # performance — 性能评测与诊断
 
-本目录是 runtime-team 中性能方向的协作入口，说明如何使用独立的 FlagPerf 仓库、采用哪套运行环境，以及怎样解释验证结果。它不复制 FlagPerf 源码，也不在 runtime-team 中维护另一套执行器或容器编排。
+> 分支：`dev-zkm` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-16
+> 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
+> 职责：统一国产设备的算子与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
 
-## 1. 仓库与职责边界
+本目录是 runtime-team 的性能方向协作入口。正式代码在独立的
+[FlagRT/FlagPerf](https://github.com/FlagRT/FlagPerf) 仓库维护；本仓只同步阶段进展、环境约束、验证边界和后续任务，
+不复制 FlagPerf 源码或实验产物。
 
-| 位置 | 职责 | 是否在本仓库维护 |
-| --- | --- | --- |
-| `dev/performance/README.md` | 团队入口、环境约束、执行流程、验证边界和后续任务 | 是 |
-| `FlagPerf/base/` | Benchmark、Toolkit、监控、报告及 Ascend 适配的正式代码 | 否；在独立 FlagPerf 仓库通过其分支和 PR 维护 |
-| `FlagPerf/base/result/` | 单次运行的原始日志、状态、配置快照和报告 | 否；运行产物，不提交到 runtime-team |
+## 1. 当前进展
 
-runtime-team 的 `dev-1.0` 只接收上述协作信息。FlagPerf 的代码变更、运行时锁文件和硬件证据应进入 FlagPerf 仓库，而不是把 `FlagPerf_advance` 或其他本地检出目录纳入本仓库。
+| 能力 | 当前状态 | 已验证范围 | 交付状态 |
+| --- | --- | --- | --- |
+| Base Benchmark | Ascend CANN 9/Torch-FL 适配和统一宿主入口已形成 | 保留原 Case 配置、warmup、计时和结果语义；现有实机证据以具体 Case、设备和报告为准，不外推为全 Case 稳定基线 | 已发布至 `FlagPerf/dev-zkm@3e7c558b`，未进入 `main` |
+| Base Toolkit | 厂商工具执行、选卡、证据链和人类可读报告已形成 | MindCluster ToolBox、DMI、`npu-smi`、HCCL；测量、诊断、监控和健康状态独立记录 | 同上 |
+| FlagCX P2P | 声明范围内已完成资格验证 | 单机双 rank、NPU6/NPU7、SIO/HCCS_SW、4/16/64/256 MiB；C0–C5 与 30-run compact formal 矩阵 | 公开内容已进入 `FlagPerf/dev-zkm`；不外推到反向、多机或长稳 |
+| Operation 公开基线 | 52 Case 已接入厂商中立 CLI | 最新历史矩阵：308 个适用组合中 277 passed、24 blocked、5 failed、2 partial；420 个不适用项单列 | 公开基线来自 `FlagPerf/dev-zkm@8ded0d74` |
+| Operation V3 | 公共诊断、报告、进度、日常指标和可选 Profiling 已实现 | 代表算子硬件验证 + 锁定镜像离线回归；范围见下文 | 仅在 `FlagPerf_advance/dev-zkm@ad326754`，尚未同步到独立 FlagPerf |
+| 两段 Demo 统一验收报告 | 未完成 | Operation/Base 是支撑能力，尚未完成训练吞吐、推理吞吐/时延与跨方向证据的统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
-当前入口覆盖 Ascend 910C/CANN 9 单宿主的基础规格评测：
+当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
+Operation V3 不能仅凭 `ad326754` 的存在被视为 FlagPerf 已发布能力，也不能替代两段 Demo 的最终验收。
 
-- Benchmark：保留原 Base Case 的配置、warmup、计时和结果语义；
-- Toolkit：执行 MindCluster ToolBox、DMI、`npu-smi` 或 HCCL 的厂商测量与诊断；
-- report：从已有证据确定性重建 Markdown/SVG 报告，不重跑硬件。
+## 2. Operation V2/V3 新进展
 
-精度差分、模型级 Profiling、故障恢复和热加载属于后续能力，不应由当前基础规格评测结果代替。
+### 2.1 从一次运行到可复核结论
 
-## 2. 执行架构
+当前工具不是简单执行算子后打印耗时，而是把原任务、补充检查和事后阅读分开：
 
 ```text
-runtime-team 宿主
-  └─ FlagPerf/base/run.py
-       ├─ BenchmarkExecutor -> 锁定容器 -> 原 Base Case
-       ├─ ToolkitExecutor   -> 锁定容器 -> DMI/npu-smi/HCCL
-       └─ report            -> 已保存证据 -> Markdown/SVG
+run
+ ├─ 正确性、路由和日常测量
+ ├─ failed / partial 时按条件自动补采公共诊断
+ └─ 封存 task/result/summary/artifacts → report
+
+封存的单个任务
+ └─ diagnose
+     ├─ 默认：离线校验和整理已有证据，不启动 Docker/NPU
+     └─ --replay：原输入/原镜像上的参考检查 + 一次原路径 probe
+        └─ 写入独立 diagnosis-* 目录，不覆盖原结论
 ```
 
-Benchmark 与 Toolkit 只共享运行时锁、设备选择、preflight、资源 lease 和外层证据约定；二者的权限、计时公式、Case 执行和结果 schema 保持独立。
+`run --diagnostics failures` 默认开启。数值失败补查保存输入、模块状态、CPU 参考和误差分布；仅路由 `partial`
+时至多补采一次 CPU profiler 调用链；初始化、OOM、执行异常只整理已有证据，避免在设备状态不确定时重复执行。
+`--diagnostics off` 只关闭附加检查，不关闭原正确性、路由、错误和健康门禁。
 
-这里不新增 `docker-compose.yml`。FlagPerf 已由宿主入口按锁文件启动实际测量容器；再套一层开发容器会引入 Docker socket、宿主设备路径和结果目录的双重映射，反而模糊实际运行身份。
+公共 `diagnose` 默认服务所有 Case/dtype/路径，而非只服务 MM。检查完成表示工具流程完成，不表示原算子通过；
+CPU 调用链只是路径线索，不能证明设备 kernel，也不能把 `partial` 提升为 `passed`。当前入口不执行数学模式干预、
+专项根因归因、自动修复、重试或节点隔离。
 
-## 3. 环境基线和已验证边界
+### 2.2 报告、实时进度与终端查询
 
-| 类型 | 运行时 | 当前边界 |
+- 运行报告按“本次结论 → 判断依据 → 异常与下一步 → 性能怎么读 → 输入/计时配置 → 证据附录”组织。
+  只有 probe/measurement 正确性、目标路由、无测量回退和中位耗时同时满足时，数据才进入通过性能表；其余耗时标为仅供诊断。
+- `run`、Profiling、自动失败补采和 `diagnose` 向 stderr 输出当前组合、阶段、已完成数、任务耗时和累计耗时；
+  心跳不进入算子测量窗口，`completed` 表示执行结束数，不是通过数。
+- `list` 保留默认完整 JSON，并增加 `--names-only` 和 `--case CASE` 两种 shell 友好查询；查询只读取 catalog，
+  不初始化厂商、Docker、NPU 或 legacy SSH。
+- `report` 只从封存证据重建 Markdown，不补跑缺失检查，也不修改原 JSON、哈希或状态。
+
+### 2.3 日常指标和 Ascend Profiling
+
+默认 `--workload daily --profiling off`。日常测量新增轮间统计、中位数置信区间、逻辑有效带宽和独立分配器显存窗口；
+主指标仍是同步主机批次耗时除以调用次数后取轮次中位数，不是纯设备 kernel 时间。
+
+`--profiling timeline|full` 使用独立复放，不污染日常计时。timeline 通过 CANN HostToDevice 关系把 MSTX 目标窗口关联到
+设备任务；full 再分组采集 ArithmeticUtilization、PipeUtilization、Memory、MemoryL0、MemoryUB 和资源冲突计数器。
+累计时间、并集时间和首尾跨度分别保存，不能互相替代，也不能用“主机时间减 kernel 累计时间”直接推断提交开销。
+
+性能对比只支持同一次 `--oplib both` 中、共享输入和身份且双方完整门禁通过的 nativetorch/FlagGems 配对。
+不支持跨运行拼接、历史基线自动比较或仅凭路径名称判断底层 kernel 不同。
+
+## 3. 验证结论与边界
+
+### 3.1 52 Case 历史矩阵
+
+- 52/52 个 Case 至少有一个输入类型和注册路径实测通过；这不表示完整矩阵全部通过。
+- 最新历史汇总为 308 个适用组合：277 passed、24 blocked、5 failed、2 partial；另有 420 个类型组合不适用。
+- 相比上一版的 277 passed、18 blocked、11 failed、2 partial，有 6 个 SPLIT_K/标量 mul 组合从 failed 改为 blocked。
+  这是依赖错误分类更准确，不是底层执行能力提升或 kernel 修复。
+- FP32 数值失败仍集中在 nativetorch 的 `addmm`、`bmm`、`linear`、`mm`、`mv`；当前证据不能确认唯一根因，
+  也没有为得到通过结果而放宽原阈值。
+- Torch-FL 注册缺口、FlagGems 注册/RNG/重载问题及 Triton `SPLIT_K` 问题继续保留原始错误；测试层不以 CPU 回退或自动切换路径伪装通过。
+
+### 3.2 V3 验证
+
+- 性能与 Profiling 验收在标准 0.2.0 CANN 9 镜像、逻辑 Device14 上覆盖 abs 双路径 daily/full、
+  mm/relu 双路径 FP16 timeline 和默认 daily/off/native；相关 99 项回归通过。该范围不是全部 52 Case 的新增硬件验收。
+- 当前完整 Operation 文档记录的最终离线回归为 134 项通过，覆盖公共诊断、报告、进度、异常/中断和历史兼容；
+  测试使用只读代码、无网络、未映射 NPU，因此只证明工具机制，不证明设备执行。
+- 公共诊断曾对历史失败、blocked、partial、随机/离散输出及缺证据任务做离线检查；尚未新增公共 replay 的 NPU、
+  多服务器或第二厂商验收。
+- 最新报告样例中的合成成功不是硬件结果；历史失败副本和离线诊断只用于检查表达、链接、确定性和兼容性。
+
+### 3.3 尚不能宣称的能力
+
+- 尚无 NVIDIA—国产设备的逐层中间结果差分、误差传播和唯一根因归因闭环。
+- 已有 Operation 级设备时间线和计数器，不等于模型图节点、Backend、通信与运行时状态的完整跨层 Profiling。
+- 公共诊断不包含任务自动重试、节点隔离、模型热加载、灰度切换或长期稳定性保障。
+- 单机 Device14 的结果不能外推到 16 个逻辑 Device、多机或其他国产设备。
+
+## 4. 环境和设备范围
+
+| 类型 | 锁定或验证身份 | 用途与边界 |
 | --- | --- | --- |
-| 标准 operator runtime | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64` | CANN 9.0.0、Python 3.11.15、PyTorch 2.10、Torch-FL、Triton Ascend、FlagGems；标准 Benchmark/Toolkit 基线 |
-| FlagCX communication candidate | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 仅用于明确允许的单机双 rank P2P Case；仍是 candidate，不具备生产资格 |
-| 宿主工具 | MindCluster ToolBox 26.1.0 | 通过宿主路径只读挂载，路径必须按执行机器配置 |
+| Operation 研发/验证 runtime | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`，本机 ID `sha256:d9484109...d397` | CANN 9、Python 3.11、PyTorch 2.10、Torch-FL、Triton Ascend、FlagGems；用于当前 Operation 证据，不是两段 Demo 的替代验收镜像 |
+| 生效训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 以 `dev/stack.lock.910c.v2.yaml` 的 `lock.train` 为准；候选 1.0.0 血统尚未生效 |
+| 生效推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 以 `dev/stack.lock.910c.v2.yaml` 的 `lock.infer` 为准 |
+| 宿主工具 | MindCluster ToolBox 26.1.0 | 通过配置的宿主路径只读挂载；版本门禁与容器镜像身份相互独立 |
 
-以上镜像 tag 是 FlagPerf 仓库锁文件声明的运行身份，不等于镜像已发布到团队可访问的 registry。2026-09-02 检查时，当前 Docker daemon 中没有这些镜像，registry 发布状态和可拉取 digest 也尚未验证；执行者必须在正式运行前补做拉取/构建与镜像身份核验，不能把本地 image ID 当作 registry digest。
+Operation 历史实机验收限定为主机 `npu1-27`、逻辑 Device14、物理 NPU7 chip0；P2P 使用 NPU6/NPU7。
+本机 image ID 不是 registry digest。结论性 Demo 验证必须遵循当前生效的 `dev/stack.lock.910c.v2.yaml`，
+不能把 Operation 研发镜像或候选血统混入最终验收。
 
-现有标准 runtime 和 communication candidate 的验证状态均为 `partial`。已有证据只覆盖声明设备上的静态检查及有限硬件路径；它不代表 16 个逻辑 Device、全部 Case、异常恢复、跨机通信、长稳或正式性能基线已验收。CANN 8.5 不属于本方向当前开发和证据范围。
+## 5. 使用入口
 
-权威细节以 FlagPerf 中以下文件为准：
-
-- `base/vendors/ascend/torch_fl_2.10/stack.lock.yaml`
-- `base/vendors/ascend/torch_fl_2.10/image-manifest.json`
-- `base/vendors/ascend/torch_fl_2.10/validation-summary.json`
-- `base/vendors/ascend/torch_fl_2.10_flagcx/validation-summary.json`
-
-## 4. 宿主准备
-
-正式运行前逐项确认：
-
-1. Docker daemon 可用，目标镜像已按锁文件构建或拉取并核验身份；
-2. `npu-smi info` 能看到本轮获授权的 NPU，并确认目标 Device 空闲；
-3. 宿主驱动、固件、DMI、ToolBox 26.1.0 和设备节点存在；
-4. 只选择本轮被授权的物理 NPU 或逻辑 Device；
-5. 已审查 privileged 容器以及 Toolkit 命令对共享机器的影响。
-
-不要为本机路径修改并提交 FlagPerf 的共享配置。可复制一份运行配置到仓库外：
+Operation V3 尚未同步到独立 FlagPerf，以下命令从 `FlagPerf_advance` 根目录执行：
 
 ```bash
-cp FlagPerf/base/configs/ascend910_cann9_local.yaml /tmp/flagperf-ascend910c.json
-# 按执行宿主修改 /tmp/flagperf-ascend910c.json 中的 toolbox_host_path、host_mounts 等字段。
-```
+# 终端友好地查看 Case 和支持类型；不访问 Docker/NPU
+python3 operation/run.py list --names-only
+python3 operation/run.py list --case mm
 
-该源文件虽然以 `.yaml` 结尾，当前内容和解析契约为 JSON；复制为 `.json` 是为了明确本地配置格式。`/tmp` 文件不进入任何仓库。
-
-## 5. 推荐执行流程
-
-所有命令从 FlagPerf 仓库根目录执行。以下 NPU 7 只是示例，必须替换成本轮获授权且空闲的设备。
-
-先检查入口并生成静态计划：
-
-```bash
-cd FlagPerf
-python3 base/run.py --help
-
-python3 base/run.py benchmark run \
-  --config /tmp/flagperf-ascend910c.json \
-  --case computation-FP16 \
-  --npu-ids 7 \
-  --monitor on \
+# 查看默认 52 Case 计划；dry-run 不证明镜像或设备可用
+python3 operation/run.py run \
+  --vendor ascend \
+  --device-ids 14 \
   --dry-run
 
-python3 base/run.py toolkit run \
-  --config /tmp/flagperf-ascend910c.json \
-  --case computation-FP16 \
-  --npu-ids 7 \
-  --dry-run
-```
-
-`--dry-run` 只检查仓库配置并打印静态计划，不检查 Docker、NPU 占用或物理到逻辑 Device 映射。正式运行前仍必须完成 preflight。
-
-确认静态计划、设备空闲和权限后，再运行实际测量：
-
-```bash
-python3 base/run.py benchmark run \
-  --config /tmp/flagperf-ascend910c.json \
-  --case computation-FP16 \
-  --npu-ids 7 \
-  --nproc-per-node 2 \
-  --monitor on \
+# 同次双路径日常测试，并单独采集设备 timeline
+python3 operation/run.py run \
+  --vendor ascend \
+  --device-ids 14 \
+  --case abs \
+  --oplib both \
+  --workload daily \
+  --profiling timeline \
   --allow-privileged-root
 
-python3 base/run.py toolkit run \
-  --config /tmp/flagperf-ascend910c.json \
-  --case computation-FP16 \
-  --npu-ids 7 \
-  --allow-privileged-root \
-  --allow-disruptive-dmi
+# 默认离线检查一个封存的单任务目录
+python3 operation/run.py diagnose \
+  --source-task operation/result/<run-id>/<task-dir>
+
+# 显式同输入复放；开始前重新确认原镜像、权限和空闲设备
+python3 operation/run.py diagnose \
+  --source-task operation/result/<run-id>/<task-dir> \
+  --replay \
+  --device-ids 14 \
+  --allow-privileged-root
+
+# 从现有封存证据重建报告，不重跑硬件
+python3 operation/run.py report --run-dir operation/result/<run-or-diagnosis-id>
 ```
 
-Toolkit 的 DMI/HCCL 命令具有独立授权边界。容量/OOM 等高风险 Case 还需显式使用 `--allow-high-risk-case`；communication candidate 还需 `--allow-candidate-runtime`。不能把这些开关写进默认配置以绕过逐次审查。
+正式执行前必须核验镜像身份、获授权且空闲的物理设备、逻辑 Device 映射、设备租约和 privileged 容器影响。
+`nativetorch` 在 Ascend 上对应 Torch-FL；`torch-fl` 不是当前 `--oplib` 的合法取值。
+独立 FlagPerf 当前仍使用其仓内公开基线 README；在 V3 同步完成前，不能直接复制上述新参数到旧入口。
 
-结果默认位于 `FlagPerf/base/result/<RUN_ID>/`。离线重建报告示例：
-
-```bash
-python3 base/run.py report --run-id benchmark-YYYYMMDDTHHMMSSZ
-```
-
-## 6. 结果解释与证据要求
+## 6. 结果解释
 
 | 状态 | 含义 |
 | --- | --- |
-| `execution_status` | 执行器和容器生命周期是否正常完成 |
-| `measurement_status` | workload 或厂商工具是否产生有效测量 |
-| `monitoring_status` | 请求的同窗监控证据是否完整；`--monitor off` 为 `not-run` |
-| `postflight_status` | 运行后设备和宿主检查是否完成 |
-| `report_status` | 报告是否从已保存证据成功生成 |
+| `passed` | 当前输入、运行身份和固定门禁下，测量及所需证据通过 |
+| `partial` | 主测量可能有效，但监控、路由或其他所需证据不完整 |
+| `blocked` | 已确认的底层注册、依赖或环境能力缺口阻止执行 |
+| `failed` | 执行、正确性或明确门禁失败 |
+| `not-applicable` | 该 Case 与输入类型组合不适用，不计为通过或失败 |
 
-这些状态必须独立记录。监控不完整不能被写成测量失败，也不能把成功测量包装成完整验收。退出码 `2` 表示配置/授权错误，或主测量通过但所请求证据不完整而得到 `partial`。
+性能比较前必须对齐物理设备、workload、输入、rank、warmup、计时边界、软件栈和计算公式。
+诊断的 `completed`、进程退出码 0 或一次 replay 通过都不能覆盖原任务的正确性/路由结论。
 
-性能比较前必须对齐物理设备范围、workload、并发 rank、warmup、计时边界、软件栈和计算公式。Toolkit microbenchmark 与 Benchmark Case 未完成上述对齐时，只能分别报告事实，不能直接相除或据此声称唯一根因。
+## 7. 下一步
 
-一次可审计运行至少应保留：`summary.json`、`resolved-plan.json`、领域结果 manifest、原始 stdout/stderr、配置快照、pre/postflight、报告和 SHA-256 索引。
-
-## 7. 后续协作任务
-
-- 为两个 runtime 建立可访问的 registry 发布流程并记录不可变 digest；
-- 将宿主 ToolBox 路径等机器差异参数化，在 FlagPerf 独立仓库提交最小 PR；
-- 明确 FlagPerf 的共享开发分支和 PR 规则，避免以本地 `FlagPerf_advance` 目录代替正式变更；
-- 在授权资源上补齐标准 runtime 全 Case、candidate 异常恢复、跨机、长稳和正式性能验收；
-- 在基础规格证据稳定后，再逐步接入精度差分、模型级 Profiling、故障恢复与热加载接口。
+1. 审查 `FlagPerf_advance@ad326754` 相对公开 Operation 基线的最小增量，将 V3 选择性同步到 FlagPerf 个人分支并通过独立 PR 交付。
+2. 在锁定身份和空闲设备上补代表性公共 replay、timeline/full Profiling 复验；新增证据继续与历史矩阵分开记录。
+3. 按生效训练/推理镜像采集两段 Demo 的吞吐和时延，统一预热、并发、计时及状态口径。
+4. 汇总 device-context、communication、memory、调度和监控证据，生成战略 §3 第 5 条要求的统一验收报告。
+5. 基础验收稳定后，再逐步推进 Oracle—Device 逐层差分、完整跨层 Profiling、故障恢复和长稳/热加载能力。
