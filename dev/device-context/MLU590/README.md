@@ -64,7 +64,7 @@
 
 ---
 
-## 3. 环境版本组合（由他人脚本间接确认，待实机复核）
+## 3. 环境版本组合（⚠️ 本节的版本号**不是**我们的目标档，见下）
 
 `/srv/data/build_base_venv.sh`（他人资产，只读）给出了"寒武纪 MLU 基础 venv"的确切组合：
 
@@ -80,7 +80,17 @@ NEUWARE_HOME  /usr/local/neuware
 FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 ```
 
-⚠️ **待实机复核**（进容器后）：`import torch_mlu` → `torch.mlu.device_count() == 8`。
+> **⚠️ 重要更正（2026-09-22）**：该组合属 **`cambricon-neuware4.7.2` 档**
+> （脚本注释原文即 "neuware472 需 py3.12"），而该档官方标注**宿主驱动前置 6.5.48**，
+> 我们两台机器实测 **v6.2.29** ⇒ **不满足**。
+> **本方向已定档走 `neuware4.4.3` 档**，实际组合为
+> **py3.10 / torch 2.7.1+cpu / torch-mlu 1.29.2+torch2.7.1 / torch-mlu-ops 1.8.0 / triton 3.2.0+mlu1.7.2**
+> （官方标注驱动前置 6.2.15，与我们同 6.2.x 线）。
+> 本节的**价值仍在于**：证明依赖获取是「厂商私有源 + 通用源混合」，不是裸 `pip install torch-mlu`。
+> 依据：`docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1。
+
+⚠️ **待实机复核**（进容器后）：`import torch_mlu` → `torch.mlu.device_count() == 8`，
+并核对实际栈版本是否与 `neuware4.4.3` 档一致。
 
 **镜像从哪来 → 见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`**（09-22 调研 + **同日下午更正**）：
 - ❌ **FlagTree 没有寒武纪 User Manual / 推荐镜像**（wiki 26 页无 cambricon 条目；寒武纪只存在于编译器侧 `triton_v3.2.x` 分支）
@@ -89,10 +99,21 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
   ⇒ **不需要寒武纪私仓凭据**
 - ⭐ **档位按宿主驱动选，不按 torch 版本选**（实测驱动 **v6.2.29**，落 6.2.x 线）：
 
-  | 档位 | py | torch / torch-mlu / triton | 官方标注宿主驱动 | 我们 |
-  |---|---|---|---|---|
-  | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **选它** |
-  | `…/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 需升宿主驱动 |
+| 档位 | py | torch / torch-mlu / triton | 官方标注宿主驱动 | 我们 |
+|---|---|---|---|---|
+| **`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`** | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **已定档（2026-09-22）：先走它解除阻塞** |
+| `…/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 需升宿主驱动；列为**上报预案**（见下） |
+
+**定档理由**：4.4.3 的驱动前置 6.2.15 与我们实测 **v6.2.29 同属 6.2.x 线** ⇒ 起容器风险最低、可立即推进；
+4.7.2 需动**两台共享机的宿主驱动**（影响他人），且非当前瓶颈。
+**代价如实标注**：4.4.3 是旧档（torch-mlu 1.29.2 vs 1.33.1 / py3.10 vs 3.12）；
+本方向对 torch-mlu 小版本不敏感，故代价可接受。
+
+⚠️ **驱动升级（→ 6.5.48 走 4.7.2）为预案、非当前诉求**：**不凭版本号要求升级，只凭证据要求升级**；
+只有当原型接入 / 设备上下文验证出现「疑与旧档强相关、且已排除我方五域」的不可解问题时才启动，
+且上报须写清**问题**与**原因**（四条门槛 + 模板见
+`docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.2）。
+**纪律**：设备上下文结论必须标注取得时所处的档位（同 P800 的「KL3 未设置条件下取得」）。
 
 - ✅ **推理形态与昇腾同类**：寒武纪有厂商移植版 vLLM（官方开源 `Cambricon/vllm-mlu`）；
   官方应用镜像 `flagos-app/vllm0.24.0-cambricon-neuware4.x.x:2.2.0-0.3.0rc2.post2` 亦已存在
@@ -107,8 +128,9 @@ FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
 |---|---|---|---|
 | **1** | 建 **`/srv/hliu553`** 并 chown 给 `hliu553`（两台） | root / 机器管理员 | 🔴 **阻塞** |
 | **2** | 把 `hliu553` 加入 **`docker` 组**（两台，需重新登录） | root / 机器管理员 | 🔴 **阻塞** |
-| **3** | ~~**镜像获取**~~ → **已解除**（2026-09-22）：FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像 + 周测镜像，**实测可匿名拉取**（digest 已取得），**不需要私仓凭据**。**现在待裁定的是「走哪一档」**：驱动 6.2.29 → `neuware4.4.3`（标 6.2.15）；`neuware4.7.2` 标 **6.5.48**，需先升宿主驱动 | 总组 / 管理员 | 🟢 **降级为档位裁定**（见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0） |
-| 4 | 两机**无共享目录**：数据需分别放置；若需共享需另配 NFS | 管理员（可选） | ⚪ 已知 |
+| **3** | **镜像获取** → ✅ **09-22 已解除并定档**：走 `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（digest `sha256:e55b420e…`）；FlagOS 官方仓**实测可匿名拉取**，不需要私仓凭据。4.7.2 档（需驱动 6.5.48）列为**上报预案**、非当前诉求 | 本方向自定 | 🟢 **已定档** |
+| **4** | **起带卡容器**（镜像能拉但仍起不了）：宿主**无 `/usr/local/neuware`** ⇒ 必须用容器；而 `hliu553` 不在 `docker` 组 | root / 机器管理员 | 🔴 **阻塞中**（见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1） |
+| 5 | 两机**无共享目录**：数据需分别放置；若需共享需另配 NFS | 管理员（可选） | ⚪ 已知 |
 
 root 执行命令（两台各一次）：
 

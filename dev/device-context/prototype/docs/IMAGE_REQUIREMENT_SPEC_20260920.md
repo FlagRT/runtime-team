@@ -81,7 +81,8 @@
 | **910C** | 推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7` | 华为昇腾官方（quay.io） | ✅ 已入锁 |
 | **P800**（第 2 家） | 两腿 | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（38.3 GB） | `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`（**2026-09-22 实机复核更正**：tag 无 registry 前缀但 digest **确实存在**） | 同系列 FlagGems dev 变体（本机已有） | ⚠️ 在位、**未归档未入锁**（现用） |
 | **P800** | 两腿（**建议入锁**） | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（33.8 GB） | `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34` | **BAAI Harbor**（官方手册推荐，血统 `maintainer: huangyun@kunlunxin.com`） | ✅ 等价性验证已完成，**待入锁** |
-| **MLU590**（第 3 家） | 两腿 | **`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（**2026-09-22 更正定档**；py3.10 / torch 2.7.1+cpu / torch-mlu 1.29.2+torch2.7.1 / triton 3.2.0+mlu1.7.2）<br>备选 `…-neuware4.7.2:2.2.0`（py3.12 / torch 2.11.0 / torch-mlu 1.33.1，**需宿主驱动 6.5.48**） | `sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2`（4.4.3）<br>`sha256:a37f46e331d638f5901c1ae30ac10b79fb41d76451822eee40c470be712a5e20`（4.7.2） | **FlagOS 官方 BAAI Harbor**（`flagos-ai/build-infra` 构建；**实测可匿名拉取**） | 🟡 **已定档，待 `docker` 组权限开通后实拉实测** |
+| **MLU590**（第 3 家） | 两腿 | **`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`**（**2026-09-22 定档**；py3.10 / torch 2.7.1+cpu / torch-mlu 1.29.2+torch2.7.1 / triton 3.2.0+mlu1.7.2）<br>备选 `…-neuware4.7.2:2.2.0`（py3.12 / torch 2.11.0 / torch-mlu 1.33.1，**需宿主驱动 6.5.48**，列为上报预案） | `sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2`（4.4.3）<br>`sha256:a37f46e331d638f5901c1ae30ac10b79fb41d76451822eee40c470be712a5e20`（4.7.2） | **FlagOS 官方 BAAI Harbor**（`flagos-ai/build-infra` 构建；**实测可匿名拉取**） | 🟡 **已定档走 4.4.3**；待 `docker` 组权限开通后实拉实测（**镜像侧已不阻塞**） |
+| **910C** | 训练腿（**候选，非诉求**） | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0` | `sha256:1048d622c928e86dd004ddb58b8b88602d91dc3c15458fda0262ca091e3ffb35` | **FlagOS 官方 BAAI Harbor**（与我方锁定栈逐项一致；设备后端为 `npu`/Route A） | 🔵 **仅登记候选**（已入基座草稿 `candidates.train.official`）；⚠️ **不含 FlagCX** ⇒ 训练腿不可直接切换 |
 
 **⚠️ 2026-09-22 更正（原结论「寒武纪必须走官方渠道申请」不成立）**：
 910C、P800 与**寒武纪**的镜像**都能从公开上游取得**（华为 quay / BAAI Harbor）。
@@ -90,8 +91,9 @@
 **不需要寒武纪私仓凭据**。
 **真正的特殊性在于：档位由宿主驱动决定，而我们的宿主驱动不满足最新档** ——
 测试机驱动 **v6.2.29**（6.2.x 线）⇒ 只能走 `neuware4.4.3`（官方标 6.2.15）；
-`neuware4.7.2` 官方标**宿主驱动 6.5.48**。⇒ 待总组/管理员裁定：走 A（4.4.3，同驱动线）
-还是 B（先升驱动到 6.5.48 再用 4.7.2）。
+`neuware4.7.2` 官方标**宿主驱动 6.5.48**。⇒ ~~待总组/管理员裁定~~ **✅ 本方向已于 2026-09-22 定档走 4.4.3**（同驱动线、风险最低、可立即解除阻塞）；
+升级驱动到 6.5.48 走 4.7.2 档**列为上报预案、非当前诉求**（**不凭版本号要求升级，只凭证据要求升级**；
+启动门槛与上报模板见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1/§0.2）。
 详见 `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0 与
 `prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
 
@@ -99,7 +101,7 @@
 |---|---|---|---|
 | 1 | **P800 镜像入锁** | **建议以官方 `-base` 为准**（`harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`，digest `sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34`，33.8 GB），**并在配方里写明补齐步骤**（`pip install flagtree===0.7.0rc3+xpu3.6`）。备选：把现用 `flaggems-main-dev:202608`（digest `sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975`）入锁 | ① P800 阶段 0–4 与镜像等价性验证均已完成，但**结论建立在一个未入锁的镜像上**（910C 有锁定基座背书，P800 没有）；② **官方 `-base` 上已重跑出全套等价证据**（conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、KL3 对照一致），可直接作为入锁验证材料；③ 官方 `-base` 有 digest、血统清晰（`maintainer: huangyun@kunlunxin.com`）、镜像层小 4.5 GB（33.8 GB vs 38.3 GB；磁盘占用 94.2 GB vs 107 GB）。⚠️ 若采用 `-base`，配方**必须**含 H4① 的 `flagtree` 补齐步骤，否则推理腿服务化不可复现 |
 | 2 | **`XPU_EVENT_KL3_ENABLE` 口径冲突** | 请总组明确"锁定口径是设还是不设"，并支持向昆仑芯上报该冲突（官方手册要求设 1，实测该组合 89 %–100 % 挂死） | 见 E1；**该缺陷已在两个不同镜像上一致重现**（现用 16/18、官方 `-base` 3/3），排除了镜像因素，是本条上报最有力的证据；需权威渠道提交 |
-| 3 | **910C 训练腿镜像血统** | 官方推荐镜像不含 FlagCX，而训练腿必需；请裁定：① 官方镜像 + 叠加 FlagCX（需可复现配方），还是 ② 维持组内自建镜像并补齐重建配方 | 见 E5 与 §2；当前训练腿镜像无 registry，靠 `docker save` + `docker.repro` 保证可复现 |
+| 3 | **910C 训练腿镜像血统** | 官方镜像不含 FlagCX，而训练腿必需；请裁定：① 官方镜像 + 叠加 FlagCX（需可复现配方），还是 ② 维持组内自建镜像并补齐重建配方 | 见 E5 与 §2；当前训练腿镜像无 registry，靠 `docker save` + `docker.repro` 保证可复现。**2026-09-22 补充：FlagOS 官方 runtime 镜像**`flagos-runtime-ascend-cann9.0.0-910c:2.2.0`（digest `sha256:1048d622…`）与我方锁定栈**逐项一致**且**设备后端为 `npu`（Route A）**，但**同样不含 FlagCX**（`flagcx-ascend` 镜像线最后 push 2026-02-02，陈旧）⇒ **本诉求对官方线同样适用**，已登记为基座草稿 `candidates.train.official` |
 
 ---
 

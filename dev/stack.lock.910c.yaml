@@ -99,6 +99,50 @@ per_leg:
   concurrency: "两条腿串行；确需并行时须确保带卡容器总数 ≤3"
 
 # ---------------------------------------------------------------
+# 候选血统（2026-09-22 新增）—— 仅登记，不生效，不改变上面 lock: 的结论性验证依据
+# 依据：镜像血统对齐核查（device-context/prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md）
+# ---------------------------------------------------------------
+candidates:
+  train:
+    status: "candidate-not-effective（现网仍以 lock.train.image 为准；本段仅供总组评估切换用）"
+
+    # 候选 ①：组内自建（与总组 v2 的 candidates 同源）
+    internal_v2:
+      images:
+        operator_runtime: "flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64"
+        operator_runtime_comm: "flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
+      lineage: "按 BAAI·FlagTree ascend3.5 手册路径重建（官方预构建基座 + triton_v3.5.x 现场编译）"
+      registry_status: "组内镜像，无 registry；docker save 归档见 dev/images/ascend-train-comm/v2"
+      device_backend: "flagos（torch_fl）—— 仍是权宜例外"
+      gap: "无缺口（镜像内含 FlagCX，训练腿可直接用）"
+
+    # 候选 ②：FlagOS 官方对应物（2026-09-22 新增登记）
+    # 官方体系：flagos-ai/build-infra 构建，configs.yaml 为唯一 source of truth
+    # 文档站 https://flagos-ai.github.io/release-info/（由 configs.yaml 自动生成，不漂移）
+    official:
+      image: "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0"
+      digest: "sha256:1048d622c928e86dd004ddb58b8b88602d91dc3c15458fda0262ca091e3ffb35"
+      size: "5.4 GiB（镜像层）"
+      lineage: "flagos-ai/build-infra 官方构建；base 层 harbor.baai.ac.cn/flagos-base/flagos-base-ascend-cann9.0.0-910c:2.2.0"
+      arch: "aarch64"
+      stack: "py3.11 / torch 2.10.0+cpu / torch-npu 2.10.0 / triton 3.5.0(+triton_ascend 3.2.1) / flagtree 0.7.0rc2+ascend3.5 / flag_gems 5.4.0-rc2.post3 / CANN Toolkit 9.0.0 + CANN 910C Ops 9.0.0(Ascend-cann-A3-ops) + NNAL 9.0.0"
+      host_driver_prereq: |
+        26.0.rc1 —— 官方 runtime/ascend-cann9.0.0-910c.md 明示。
+        ⚠️ 我们现网 910C 宿主驱动版本本次未采集，切换前须实测（npu-smi info / driver/version.info）。
+      device_backend: "npu（torch_npu）⇒ 属 Route A。若切它，上面 per_leg.train 的 flagos 权宜例外可一并取消"
+      convenience: "镜像内含 compiler 命令，可切 FlagTree/Triton 两套编译器"
+      registry_status: "上游镜像，有可拉取 digest；2026-09-22 实测匿名可拉（Registry v2 token 流程，无需凭据）"
+      gap: |
+        ⚠️ **不含 FlagCX**（官方列出的 major packages 无 flagcx），而训练腿必需。
+        Harbor 上 flagcx-ascend 镜像线最后 push 为 2026-02-02（tag latest），明显陈旧于我们用的 0.13.0 线
+        ⇒ 不构成可用替代。此缺口与「官方推荐镜像不含 FlagCX」是同一个已登记诉求。
+      action_required: |
+        ① 补齐 FlagCX：官方出 910C+FlagCX 变体，或由我方提供可复现的叠加配方（二者均需总组裁定）；
+        ② 确认宿主驱动满足 26.0.rc1；
+        ③ 若总组决定切换，切换后须重跑 VERIFICATION_MANIFEST 的 9 条复核命令。
+      detail_doc: "dev/device-context/910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md"
+
+# ---------------------------------------------------------------
 # 变更记录
 # ---------------------------------------------------------------
 changelog:
@@ -110,3 +154,11 @@ changelog:
     what: |
       置顶新增「带卡容器并发上限 3」规则（实测：4 个并发时 acl.init()=500000，
       降到 3 个后立即恢复）；补充两条腿的设备后端差异与串行要求
+  - date: "2026-09-22"
+    who: "device-context"
+    what: |
+      新增 candidates: 段（仅登记、不生效），登记两组训练腿候选血统：
+      ① internal_v2（组内自建，含 FlagCX，无缺口）；
+      ② official（FlagOS 官方 flagos-runtime-ascend-cann9.0.0-910c:2.2.0，设备后端为 npu/Route A，
+         但**不含 FlagCX** ⇒ 训练腿缺口未解，不可直接切换）。
+      lock: / rules: / per_leg: 段**未改动** —— 未发生任何镜像切换。

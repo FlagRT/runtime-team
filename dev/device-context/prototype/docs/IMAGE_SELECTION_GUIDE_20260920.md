@@ -158,8 +158,8 @@ python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 \
 
 | 档位 | Python | torch / torch-mlu / triton | 官方标注宿主驱动前置 | 我们（实测 v6.2.29） |
 |---|---|---|---|---|
-| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **同 6.2.x 线，选它** |
-| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 不满足（要升宿主驱动） |
+| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0` | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **已定档（2026-09-22）：同 6.2.x 线，走它解除阻塞** |
+| `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 不满足（要升宿主驱动）⇒ **列为上报预案，非当前诉求**（见下） |
 
 **三步判据**：
 

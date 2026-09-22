@@ -92,6 +92,19 @@ FlagGems          codeload 拉 master 源码 → /opt/FlagGems，`--no-deps -e` 
 ② 依赖获取是**厂商私有源 + 通用源混合**，不是裸 `pip install torch-mlu`。
 ⚠️ 该脚本里出现 `/workspace/volume/data/...` 这类**容器内路径** ⇒ 它是在容器里执行的，与"环境走容器镜像"一致。
 
+> **⚠️ 2026-09-22 追加更正（重要）：该版本组合属于 `neuware4.7.2` 档，不是我们要用的档。**
+> 脚本注释原文即为 **"neuware472 需 py3.12"** ⇒ 它对应官方 **`cambricon-neuware4.7.2`** 档，
+> 而该档官方标注**宿主驱动前置 6.5.48**，我们两台测试机实测是 **v6.2.29**（6.2.x 线）⇒ **不满足**。
+> 本方向已据此**定档走 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`**
+> （py3.10 / torch 2.7.1+cpu / torch-mlu **1.29.2**+torch2.7.1 / torch-mlu-ops 1.8.0 / triton 3.2.0+mlu1.7.2；
+> 官方标注驱动前置 **6.2.15**，与我们同 6.2.x 线）。
+> ⇒ 本节 §3.2 的内容**仍然有效**（它证明了「依赖获取是厂商私有源 + 通用源混合」），
+> 但**不要再把它的版本号当作我们的目标组合**。
+> 完整依据：`CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1/§0.2 与
+> `../../prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
+> **方法学教训**：选档第一判据是**宿主驱动**，不是 Python 包版本 —— 本次先按 `torch-mlu 1.33.1` 锚档，
+> 核查后才按驱动修正。
+
 ### 3.3 `/srv` 下现有内容属他人，不得触碰
 
 `/srv` 下有 `data/`（**仅 Mlu-1 有**）、`dragonfly/`、`faster-storage/`、`mist/`、`var/`（docker/containerd/kubelet 在用）、`lost+found/`。

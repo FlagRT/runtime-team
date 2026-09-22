@@ -75,6 +75,7 @@
 | `DC_STAGE_SUMMARY_20260909.md` | 阶段性总结：两条腿证据并入 |
 | `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
 | `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
+| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** ⇒ 若切它，训练腿的 `flagos` 权宜例外可取消；⚠️ **官方 runtime 不含 FlagCX**，训练腿缺口不解决不能切。**仅登记，未切换** |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
@@ -124,6 +125,12 @@
 - **容器内没有 `npu-smi`**（实测 `npu-smi: command not found`）——它是**宿主工具**。
   容器内查卡请退回 torch 侧（`torch.npu.mem_get_info`）；要看整机 16 卡全貌在宿主执行 `npu-smi info`。
   统一启动脚本已按此降级（`[torch.npu:0] free=… / total=…`）。
+- **⭐ FlagOS 官方已有 910C 专用镜像（2026-09-22 登记，未切换）**：
+  `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0`
+  （digest `sha256:1048d622…`，5.4 GiB，官方标**宿主驱动前置 26.0.rc1**，实测可匿名拉取）。
+  与我们锁定栈**逐项一致**，但**不含 FlagCX** ⇒ 训练腿不能直接替代；
+  见 `docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md`（含逐项对照与切换前置条件）。
+  另：其 `base|runtime/<backend>.md` **明示宿主驱动前置**，建议我们 `dev/images/<name>/v<N>/lock.yaml` 吸收该字段。
 - **起服务统一走《组内服务启动标准》**：`../prototype/scripts/serve_standard.sh`（唯一入口，
   `DC_BACKEND=ascend`）。本目录的 `distributed_inference/inference/start_vllm_serve_910c.sh`
   含 D10/D11 集成（错误翻译包装器 + 设备状态监控），**保留但仅供该集成场景**，下游新需求请走统一脚本。
