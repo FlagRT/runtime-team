@@ -6,6 +6,12 @@
 910C 官方对应物已登记进基座草稿 `candidates:`；P800 KL3 缺陷获官方印证**
 　　**同日追加（09-22 傍晚）：第 3 家寒武纪「接入」阶段启动 —— 后端落地（代码层）完成 +
 新增《离线契约自检》工具（35/0）**
+　　**同日追加（09-22 深夜）：910C 网络恢复后做「跨后端缺陷与原型问题的复核与自检修复」** ——
+910C 真机暴露 **2 个新缺陷**（`acl.init()` 返回值未检查 ⇒ **把 ACL/参数错误冒充成"同步超时"**；
+统一错误对象 `FlagosError` **跨层类型不一致、根本不能 `raise`**）+ **2 个自检工具自身的问题**
+（"离线"自检其实没离线、未预期异常让整轮崩掉），全部已修并加防回归判据；
+接口约定修订建议随之升级到 **v1.1（9 条）**。
+⚠️ 两处真机复验仍**被外部条件阻塞**：910C 带卡容器**并发名额被他人占满**、寒武纪两台主机**网络中断**。
 　　**同日追加（09-22 晚）：第 3 家「接入」正式完成** —— 环境打通 → 真机验证全绿 →
 **多流 16 项（15 通过 / 1 不适用）** → **训练腿 6/6（2957.8 tok/s）** → **错误闭环 5/0/0**；
 收口期另做**跨后端对称性审计**，挖出 **3 个跨后端缺陷 + 2 处证据污染**
@@ -80,6 +86,47 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 已把工具扩到**四家可用** + 加**显式 SKIP 机制**（stub 覆盖不到的判据不误报也不混入"通过"）+
 **4 条防回归判据**（均做过非空转验证）。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md`；
 接口约定修订建议随之升级到 **v1.1（9 条）**。
+
+**第二轮（09-22 深夜）：910C 复核暴露的缺陷与原型内部自检修复**
+
+910C 网络恢复后按其既有纪律做"用同一套判据在三实例上复核"，暴露并修复：
+
+① **`ascend` 有界同步的整条错误归因链**（真机实测）：
+   宿主带卡容器并发名额用尽 → `acl.init()` 返回 **500000**（`ACL_ERROR_INTERNAL_ERROR`）
+   → 后端**未检查该返回值**、把未初始化句柄当可用 → `set_device` 得 107002（CONTEXT_NULL）
+   → 同步得 107000（**PARAM_INVALID**）→ 后端却 **`raise TimeoutError("设备同步超时")`**。
+   ⇒ **环境/参数错误被冒充成"超时"**：下游会按 L3 去 `replay`，而正确动作是 L2 的 `raise`（**动作反了**）。
+   修复：检查 `acl.init()` / `get_device_count()` / `set_device` 的 rc；**只有已知超时码
+   （107019/107020/507046/507047）才映射 `TimeoutError`**，其余按码表如实分级；
+   错误码表增补 **`500000`**（注明来源是 `acl_base_rt.h`，本表此后跨两个头文件）；
+   为 `ascend` 登记首条 `known_issues`（宿主资源约束，附"`npu-smi` 报 Health OK ≠ 名额有空"）。
+
+② **统一错误对象 `FlagosError` 跨层类型不一致**：`api` 层是纯 `@dataclass`（**不能 `raise`**），
+   `conformance` 层是 `Exception` ⇒ `raise fe` 报 `TypeError`。修复：API 层继承 `Exception`
+   （既有 `isinstance`/字段用法全部兼容）。**这条是修 ① 时才暴露的**。
+
+③ **自检工具自身两处问题**（都会伪装成"后端没问题"）：
+   · **"离线"自检并不离线** —— stub 只替换 `torch`，真机 `PYTHONPATH` 上的真实 `acl`
+     会被后端 import 并访问硬件 ⇒ 在 910C 上自检**直接 traceback**。
+     已加**真实厂商运行时阻断器** + 为 ascend 注入**可控 rc 的假 pyACL**，
+     并把"未以真实文件形式加载任何厂商运行时"设为**判据**。
+   · **未预期异常让整轮无汇总地崩掉**（踩到两次）⇒ 入口统一兜底（判 1 条失败 + 照常输出汇总）。
+
+④ **新增 `--all` 跨后端对称性自检**（"统一 API"这句话的可执行检验）：
+   硬判据 5 条（必需方法齐备 / `info()` 均提供 `supports` / 声明能力 ⊆ 能力全集 /
+   声明 `error_map` 必备码样例 / 全部可加载）+ 差异清单。当前 **5 通过 / 0 失败**。
+   顺带补齐 `ascend` 的 `_CAPABILITY_KEYS` + `info()`（它此前是四家中**唯一没有 `supports` 映射**的）。
+
+⑤ **一处验证资产口径更正**：P800 报告 §3.1 的"S-7 按 910C 同口径 5/5"**不成立** ——
+   当时那 5 项与 910C 脚本的 G1–G5 **不是同一组判据**，且**脚本与 JSON 均未归档**（不可复现）。
+   已按归档口径复跑：P800 = **契约内 4/4 通过** + 1 项**上游契约外用法**不容忍；
+   并把"捕获区内切流"从判据**降为宽容度观察项**（MLU590 容忍、P800 不容忍 ⇒ **非能力差异**）。
+
+**四家自检结果（本机 / 910C 容器内，无设备）**：
+cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · ascend **35/0/1 跳过**
+
+**真机复验**：P800 全量 ✅（离线 39/0 · 对称性 5/0 · smoke **46/0** · conformance **13+6** ·
+错误闭环 **5/0/0** · 图捕获契约内 **4/4** · 配额 3/3）；**910C 与 MLU590 的真机复验被外部条件阻塞**（见下）。
 
 **剩余（无阻塞）**：推理腿前向/服务化 → 证据归档复核。
 ⚠️ 推理腿服务化需改用 `flagos-app/vllm*-cambricon-*` 应用镜像（**运行时层镜像不含 vLLM**，已登记入 `known_issues`）。
@@ -282,24 +329,48 @@ conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14（asce
 
 ## 阻塞与需要协调的事项
 
-### 🔴 910C 主机当日不可达（2026-09-22 晚实测登记）→ **影响一处缺陷的真机复验**
+### 🔴 910C 真机复验被「带卡容器并发名额」阻塞（2026-09-22 深夜实测登记）→ **需协调**
+
+**网络已恢复**（SSH 可达、`npu-smi` 正常），但**我们的容器拿不到设备**：
+
+| 项 | 实测 |
+|---|---|
+| 现象 | 容器内 `acl.init()` → **500000**（`ACL_ERROR_INTERNAL_ERROR`）；`acl.rt.get_device_count()` → **(0, 507899)**；`acl.rt.set_device(0)` → **107002**；控制台提示 `Different containers share the same device` |
+| 芯片健康 | 全部 **`Health: OK`** ⇒ **健康 ≠ 名额有空**（这条已写进 `ascend.known_issues`） |
+| 根因 | 宿主上**他人容器占满名额**：5 个带卡容器 Up —— `temp-cp-pcp2`、`temp-cp-dev`（owner **jliu171**）、`x-benchmark` 与 `flaggems-cann9.0.0`（owner **kangkai**），外加我们自己的；本方向记录的**并发上限是 3** |
+| 已排除 | 停止并重启我们自己的容器 ⇒ **同样失败**，与自身残留会话无关 |
+
+**需要谁协调**：请 **jliu171 / kangkai**（或 `temp-cp-*` 的使用者）**各停一个容器**
+释放名额，或由管理员介入调整；也可换用其他 910C 节点（10.120.72.23/25/31/32 若可用）。
+
+**名额恢复后须补跑（已列入下一步）**：
+
+```bash
+# ① 缺陷修复的真机复验（910C，容器内）
+python3 prototype/runtime/smoke_runtime.py --backend ascend            # 含 4 条 rc 分级新判据
+python3 prototype/runtime/smoke_runtime.py --backend flagos            # 含 device_state 与 4 条新判据
+python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend ascend
+python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend flagos
+# ② 三个后端无关探针在 910C 上的复验（验证「换芯片不改代码」）
+DC_BACKEND=ascend python3 prototype/probes/probe_stream_semantics_full.py --rounds 5
+DC_BACKEND=ascend python3 prototype/probes/probe_graph_capture_stream_v2.py
+DC_BACKEND=ascend python3 prototype/probes/probe_stream_quota.py
+```
+
+> ⚠️ **在此之前**：`flagos` 的 `device_state`、`ascend` 的 rc 分级修复、
+> 以及 `FlagosError` 可抛性，在 910C 上一律标注「**代码层已修 + 离线自检已覆盖、真机未验证**」，
+> 不得作为"已通过"引用。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` §2.2/§2.4/§2.5/§5.1。
+
+### 🟠 寒武纪两台主机网络中断（2026-09-22 深夜实测登记）→ **需协调**
 
 | 事项 | 实测依据 | 影响 |
 |---|---|---|
-| **910C 主机（10.120.72.27）SSH 不通** | `ssh: connect to host 10.120.72.27 port 22: Operation timed out`（同一时段 P800 / Mlu-1 / Mlu-2 均正常） | **`flagos` 后端本轮修复无法在真机验证** —— 该修复动了 **910C 训练腿所用后端**（补 `device_state` 实现 + 修 `info()` 键名漂移） |
+| **`Mlu-1`(10.1.1.21) 与 `Mlu-2`(10.1.1.22) SSH 均超时** | `ssh: connect to host 10.1.1.21 port 22: Operation timed out`（同一时段 **910C / P800 均正常**；同一台机器在 15:0x 还可正常 `rsync`+`docker exec`） | 判据口径调整后的**新鲜证据无法补跑**（S-7 图捕获新口径、smoke 46 项后的复跑） |
 
-**需要谁协调**：910C 机器/网络管理员（恢复该主机网络或告知替代入口）。
+**需要谁协调**：寒武纪机器/网络管理员（或告知替代入口）。
 
-**恢复后须补跑（已列入下一步）**：
-```bash
-# 容器内（910C 训练腿镜像）
-python3 prototype/scripts/backend_offline_check.py --backend flagos   # 无设备自检（本机已过 31/0/2 跳过）
-python3 prototype/runtime/smoke_runtime.py --backend flagos           # 真机：含 device_state 与 4 条新判据
-python3 prototype/runtime/proto/proto_error_recovery_loop.py --backend flagos
-```
-
-> ⚠️ **在此之前，`flagos` 的 `device_state` 结论一律标注为「代码层已修、真机未验证」**，
-> 不得作为"已通过"引用。明细见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` §2.2。
+**恢复后须补跑**：MLU590 的 `smoke_runtime.py`（46 项含 4 条新判据）、
+`probe_graph_capture_stream_v2.py`（新口径：契约内 4/4 + 观察项）、以及 **`FlagosError` 可抛性**实测。
 
 ### 🟢 第 3 家（寒武纪 MLU590）环境开通 —— **已解决（2026-09-22 当天）**
 

@@ -182,9 +182,9 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 
 | 文档 | 回答什么 |
 |---|---|
-| `probes/probe_graph_capture_stream_v2.py` | **图捕获探针（后端无关 V2）**：G1–G5 五项判据；设备 API 前缀由统一运行时给出、图对象类**动态发现**（`CUDAGraph` / `NPUGraph` / `MLUGraph`）。910C 原版（硬编码 `torch_npu`）**保留不删**作历史归档 |
+| `probes/probe_graph_capture_stream_v2.py` | **图捕获探针（后端无关 V2）**：**契约内 4 项判据**（G1/G2/G3/G5）+ **1 项宽容度观察项**（G4「捕获区内切流」= **上游契约外用法**，不计判定；MLU590 容忍 / P800 不容忍）；设备 API 前缀由统一运行时给出、图对象类**动态发现**；**观察项放最后 + 条目失败后清理状态**（失败捕获会污染后续条目）。910C 原版（硬编码 `torch_npu`）**保留不删**作历史归档 |
 | `probes/probe_stream_quota.py` | **S-16 流数量配额探针**（后端无关）：连续创建 2000 流 / 首流仍可用 / 释放后重建，三项判据 |
-| `scripts/backend_offline_check.py` | **无设备离线契约自检**（**四家内置 stub** + 显式 SKIP 机制）：cambricon 38/0 · kunlun 38/0/1 跳过 · flagos 31/0/2 跳过 · ascend 28/0/2 跳过 |
+| `scripts/backend_offline_check.py` | **无设备离线契约自检**：**四家内置 stub** + **显式 SKIP 机制** + **真实厂商运行时阻断器**（保证"离线"名副其实）+ **入口兜底**（未预期异常不再整轮崩掉）+ **可控 rc 的假 pyACL**（把 `ascend` 的有界同步从 SKIP 变实测）。`--backend <名>` 单跑：cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · ascend **35/0/1 跳过**；`--all` 跨后端对称性自检：**5/0** |
 | `docs/BACKEND_SYMMETRY_AUDIT_20260922.md` | **跨后端对称性审计台账**（第 6/7/8 条缺陷 + 2 处证据污染 + 防回归判据 + 非空转验证） |
 | `../910C/docs/ASCEND_910C_DC_STREAM_MAPPING_20260902.md` | 设备上下文 × Stream 双侧全景（**含 S-1～S-16 编号基线**） |
 | `../910C/docs/DC_STAGE_SUMMARY_20260909.md` | 阶段性总结（两条腿证据并入） |

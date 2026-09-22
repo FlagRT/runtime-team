@@ -12,11 +12,29 @@ probe_graph_capture_stream_v2.py — graph capture 流语义验证（**后端无
   由统一运行时给出 —— 于是同一份逻辑可在 910C / P800 / MLU590 / 第 4 家起复用。
 
 【判据（对齐《多流 Stream 验收基线》S-7「图捕获流语义」）】
+  **契约内判据（计入 PASS/FAIL）**
   G1 capture 正确性：捕获 matmul → replay 结果与 eager 一致（rel_err < 1e-3）
   G2 replay 确定性：同输入两次 replay 结果**逐位一致**（rel_err == 0）
   G3 输入更新：写回同一地址后 replay 使用新值（rel_err < 1e-3）
-  G4 流语义：capture 内切换到命名流不破坏捕获，replay 结果仍正确
   G5 显式 stream 参数：`graph(g, stream=s)` 形式可用且结果正确
+  **宽容度观察项（不计入 PASS/FAIL）**
+  G4* capture 区内**切换到未纳入捕获的流**（`with graph(g): with stream(s): …`）
+
+【⚠️ 为什么 G4 降级为观察项（2026-09-22 实证，P800 上挖出）】
+  G4 这种写法**本身在上游契约之外**：捕获区内的所有工作都应留在捕获流上，
+  若要用副流，必须经 `graph(g, stream=s)`（= G5）或显式 fork/join 把它**纳入捕获**；
+  只是在捕获区内 `with stream(s)` 切过去，该副流并未进入捕获状态。
+  ⇒ 它失败**不是厂商缺陷**，也不该算"图捕获流语义"不支持；通过也不代表能力更强，
+  只代表该运行时**更宽松**。实测三家：npu ✅ / mlu ✅（容忍） / XPytorch ❌
+  （`AcceleratorError: CUDA error: unrecognized error code`，稳定复现）。
+  与此前"捕获区内调 synchronize"是同一类：**先核调用方用法，再怀疑芯片**。
+
+【条目隔离（踩过的坑）】
+  一次**失败**的捕获会把分配器/捕获状态搞脏，导致后续条目**连带失败**
+  （实测：P800 上 G4 失败后，本可单独通过的 G5 报
+  `Offset increment outside graph capture encountered unexpectedly`）。
+  ⇒ 本脚本：① 观察项 G4 **放在最后**跑；② 每个条目失败后做状态清理（synchronize + gc）。
+  条目是否与顺序无关，用"逐项独立进程"复验过（见探针说明与各实例报告）。
 
 【一条必须遵守的用法约束（P800 首测踩过，见 `P800/docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` §3.2）】
   **捕获区内不得调用 synchronize / 任何同步原语**。CUDA Graph 语义要求捕获期所有工作留在
@@ -79,6 +97,16 @@ dev = getattr(torch, DEV_API)
 DEV = DEV_API
 
 
+def _cleanup(dev) -> None:
+    """失败捕获后的状态清理：同步 + 回收，避免弄脏后续条目（实测必要性见模块 docstring）。"""
+    import gc
+    try:
+        dev.synchronize()
+    except Exception:
+        pass
+    gc.collect()
+
+
 def pick_graph_class():
     """按优先级寻找图对象类。
 
@@ -107,8 +135,10 @@ def main() -> int:
     print(f"[env] 图对象类: {gname or '未找到'}")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    result: dict = {"verdict": "FAIL", "checks": {}, "note": "",
-                    "backend": BACKEND, "dev_api": DEV_API,
+    #: 宽容度观察项（不计入 verdict）—— 见模块 docstring 的 G4 说明
+    INFORMATIONAL = ("G4_capture_stream_swap",)
+    result: dict = {"verdict": "FAIL", "checks": {}, "informational": list(INFORMATIONAL),
+                    "note": "", "backend": BACKEND, "dev_api": DEV_API,
                     "graph_class": gname, "torch": torch.__version__}
     n = 1024
 
@@ -166,33 +196,7 @@ def main() -> int:
     except Exception as e:
         print(f"[G1-G3] 异常: {type(e).__name__}: {str(e)[:200]}")
         result["checks"]["G1_capture_correct"] = {"ok": False, "detail": f"{type(e).__name__}: {str(e)[:150]}"}
-
-    # ══════════ G4：capture 内流切换语义 ══════════
-    g4_ok = False
-    try:
-        g4 = GCls()
-        s_cap = dev.Stream()
-        x4 = torch.randn(n, n, device=DEV)
-        w4 = torch.randn(n, n, device=DEV)
-        y4_ref = (x4 @ w4).sum().item()
-        (x4 @ w4).sum()                        # 预热
-        dev.synchronize()
-        with dev.graph(g4):
-            with dev.stream(s_cap):            # 捕获期内切到命名流（仍不同步）
-                y4 = (x4 @ w4).sum()
-        dev.synchronize()
-        g4.replay()
-        dev.synchronize()
-        val4 = y4.item()
-        rel4 = abs(val4 - y4_ref) / max(abs(y4_ref), 1.0)
-        g4_ok = rel4 < 1e-3
-        print(f"[G4] capture 内 stream 切换: val={val4:.6f} ref={y4_ref:.6f} rel_err={rel4:.2e} "
-              f"{'✅' if g4_ok else '❌'}")
-        result["checks"]["G4_capture_stream_semantics"] = {"ok": g4_ok, "detail": f"rel_err={rel4:.2e}"}
-    except Exception as e:
-        print(f"[G4] 异常: {type(e).__name__}: {str(e)[:200]}")
-        result["checks"]["G4_capture_stream_semantics"] = {"ok": False,
-                                                          "detail": f"{type(e).__name__}: {str(e)[:150]}"}
+        _cleanup(dev)   # 失败的捕获会弄脏状态 ⇒ 清理后再跑后续条目（否则会连带失败）
 
     # ══════════ G5：capture 显式 stream 参数 ══════════
     g5_ok = False
@@ -217,14 +221,52 @@ def main() -> int:
         print(f"[G5] 异常: {type(e).__name__}: {str(e)[:200]}")
         result["checks"]["G5_capture_explicit_stream"] = {"ok": False,
                                                          "detail": f"{type(e).__name__}: {str(e)[:150]}"}
+        _cleanup(dev)
 
-    all_ok = g1_g2_g3_ok and g4_ok and g5_ok
-    passed = sum(1 for v in result["checks"].values() if v.get("ok"))
+    # ══════════ G4*：capture 区内切流（**宽容度观察项，不计入 verdict，放最后跑**）══════════
+    #   理由见模块 docstring：该写法在上游契约之外；且失败的捕获会污染后续条目状态 ⇒ 必须最后跑。
+    g4_ok = False
+    try:
+        g4 = GCls()
+        s_cap = dev.Stream()
+        x4 = torch.randn(n, n, device=DEV)
+        w4 = torch.randn(n, n, device=DEV)
+        y4_ref = (x4 @ w4).sum().item()
+        (x4 @ w4).sum()                        # 预热
+        dev.synchronize()
+        with dev.graph(g4):
+            with dev.stream(s_cap):            # 捕获期内切到命名流（仍不同步）
+                y4 = (x4 @ w4).sum()
+        dev.synchronize()
+        g4.replay()
+        dev.synchronize()
+        val4 = y4.item()
+        rel4 = abs(val4 - y4_ref) / max(abs(y4_ref), 1.0)
+        g4_ok = rel4 < 1e-3
+        print(f"[G4*] capture 内切流（**契约外用法**，观察项）: val={val4:.6f} ref={y4_ref:.6f} "
+              f"rel_err={rel4:.2e} {'容  忍' if g4_ok else '不容忍'}")
+        result["checks"]["G4_capture_stream_swap"] = {
+            "ok": g4_ok, "informational": True,
+            "detail": f"契约外用法；本运行时{'容忍' if g4_ok else '不容忍'}（rel_err={rel4:.2e}）"}
+    except Exception as e:
+        print(f"[G4*] capture 内切流（**契约外用法**，观察项）: 不容忍 —— "
+              f"{type(e).__name__}: {str(e)[:120]}")
+        result["checks"]["G4_capture_stream_swap"] = {
+            "ok": False, "informational": True,
+            "detail": f"契约外用法；本运行时不支持：{type(e).__name__}: {str(e)[:120]}"}
+
+    all_ok = g1_g2_g3_ok and g5_ok
+    judged = {k: v for k, v in result["checks"].items() if not v.get("informational")}
+    passed = sum(1 for v in judged.values() if v.get("ok"))
+    obs = result["checks"].get("G4_capture_stream_swap", {})
     result["verdict"] = "GRAPH_CAPTURE_PASS" if all_ok else "GRAPH_CAPTURE_FAIL"
     result["passed"] = passed
-    result["total"] = 5
-    result["note"] = (f"graph capture 流语义 5 项：{passed}/5 通过"
-                      f"（capture/replay/输入更新/流切换/显式流）")
+    result["total"] = len(judged)
+    result["observed_contract_violating_usage"] = {
+        "ok": bool(obs.get("ok")), "detail": obs.get("detail", "")}
+    result["note"] = (f"graph capture 流语义（契约内）{passed}/{len(judged)} 通过"
+                      f"（capture / replay 确定性 / 输入更新 / 显式 stream）；"
+                      f"另附宽容度观察项 1 项（契约外用法，不计入判定）")
     print(f"\n{result['verdict']}: {result['note']}")
     _dump(result)
     return 0 if all_ok else 1

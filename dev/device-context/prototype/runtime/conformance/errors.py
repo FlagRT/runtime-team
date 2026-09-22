@@ -52,10 +52,20 @@ class ErrorCategory(enum.IntEnum):
 #     规则建议分级 → 人工审核后录入。覆盖率与分级差异可用
 #     benchmarks/inference/audit_error_map_coverage.py 复算。
 #   · ACL 基础段（161xxx）：沿用实测样本，尚未接入头文件提取（待补）。
+#   · **通用段（500000）**：2026-09-22 **按需增补** —— 来源是 CANN 另一个头文件
+#     `acl/acl_base_rt.h`（不是 rt_error_codes.h）。触发路径实测：宿主带卡容器并发名额用尽时
+#     `acl.init()` 返回该码。此后本表**跨两个头文件**，新增条目必须注明出处。
 #   · 标注「实测裁决」的条目：规则置信度不足，但经真实触发实验定性。
 #
 # 实测样本：aclnnMatmulGetWorkspaceSize failed, ret=161002 → L2（参数非法）
 ACL_ERR_TO_CATEGORY = {
+    # ── ACL 通用段（来源：CANN acl/acl_base_rt.h，2026-09-22 按需增补）──
+    # 实测：宿主带卡容器并发名额用尽 ⇒ acl.init() 返回 500000；
+    # 此时 set_device 得 107002（CONTEXT_NULL）、有界同步得 107000（PARAM_INVALID）。
+    # 归 L3 而非 L4：这是"环境/资源当下不可用"，**不等于设备硬件损坏**
+    # （实测：释放一个名额后立即恢复，无需任何设备重建）⇒ 不应触发 device_recovery 流程。
+    500000: ErrorCategory.L3_EXECUTION, # ACL_ERROR_INTERNAL_ERROR  acl 内部错误（通用）
+
     # ── ACL 基础段（161xxx，实测样本，待接入头文件提取）──
     161001: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_DEVICE 设备非法
     161002: ErrorCategory.L2_PARAM,    # ACL_ERROR_INVALID_PARAM 参数非法

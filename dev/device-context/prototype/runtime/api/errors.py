@@ -67,8 +67,19 @@ def coerce_category(value) -> Optional["ErrorCategory"]:
 
 
 @dataclass
-class FlagosError:
+class FlagosError(Exception):
     """统一错误对象：厂商错误经后端翻译后的标准形态。
+
+    ⚠️ **2026-09-22 修（第 10 个原型缺陷）：必须继承 `Exception`。**
+    本类此前是**纯 dataclass**（不带 `Exception` 基类），而同名类在
+    `conformance/errors.py` 里**是** `Exception` ⇒ **跨层类型不一致**，且带来两个后果：
+      ① `raise fe` 直接报 `TypeError: exceptions must derive from BaseException`
+         —— 而本类的角色就是"统一**错误**对象"，不能抛是反直觉的雷；
+      ② 调用方无法 `except FlagosError` 捕获统一错误（只能靠 isinstance 判断值）。
+    触发路径：为修「非超时码被冒充成同步超时」而在后端里 `raise self.translate_error(...)`
+    时立刻暴露 —— 详见 `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md`。
+    兼容性：现有用法只有 `isinstance(fe, FlagosError)` 与字段访问，**均不受影响**；
+    dataclass 语义（`__init__`/`__eq__`/字段）保持不变，`__str__` 仍由本类自定义。
 
     Attributes:
         category: 统一分级（L1-L4）

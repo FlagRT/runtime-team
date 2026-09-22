@@ -43,6 +43,7 @@ import argparse
 import os
 import sys
 import time
+import traceback
 import types
 from pathlib import Path
 
@@ -68,6 +69,96 @@ def check(name, cond, detail=""):
     else:
         FAIL += 1
         print(f"  [FAIL] {name} {detail}")
+
+
+# ═════════════════════ 离线性保障：阻断真实厂商运行时 ═════════════════════
+#: 被阻断的真实厂商运行时导入（同时也是"本自检确实离线"的证据）
+_BLOCKED_IMPORTS: list = []
+
+
+class _VendorRuntimeBlocker:
+    """阻断**真实**厂商运行时绑定的导入，保证本自检真的"离线"。
+
+    ⚠️ **为什么必须有它（2026-09-22 实测教训）**：本脚本的 stub 只替换了 **torch 命名空间**，
+    但真机上厂商绑定常常**本来就在 `PYTHONPATH` 上**（实测 910C 容器里 CANN 的 `acl` 可直接 import）。
+    于是 `--backend ascend` 会走到**真实 pyACL**路径，进而访问硬件：
+
+        acl.init() → 500000（宿主带卡容器并发名额用尽）
+        set_device → 107002（CONTEXT_NULL）
+        synchronize_device_with_timeout → 107000（PARAM_INVALID）
+        ⇒ 后端抛 TimeoutError ⇒ 自检**直接 traceback、连汇总都打不出**
+
+    三个后果都很坏：① 自检在真机上根本用不了；② 结论被真实环境状态污染（假阴性）；
+    ③ "离线"这个前提是假的。
+    `sys.modules` 优先于 `sys.meta_path`，故我们**注入的假模块仍然生效**（如 ascend 的假 `acl`）。
+    """
+
+    VENDOR_ROOTS = ("acl", "torch_npu", "torch_fl", "torch_mlu", "torch_npu_ops",
+                    "torch_mlu_ops", "torch_xmlir", "torch_xray", "flagcx", "cncl")
+
+    def find_spec(self, name, path=None, target=None):
+        if name.split(".")[0] in self.VENDOR_ROOTS:
+            _BLOCKED_IMPORTS.append(name)
+            raise ImportError(
+                f"[offline-check] 已阻断真实厂商运行时 `{name}` 的导入（本自检必须离线运行）")
+        return None
+
+
+def _install_blocker() -> None:
+    if not any(isinstance(f, _VendorRuntimeBlocker) for f in sys.meta_path):
+        sys.meta_path.insert(0, _VendorRuntimeBlocker())
+
+
+def _host_vendor_bindings() -> list:
+    """探测宿主 `sys.path` 上**真实存在**的厂商绑定模块名。
+
+    用 `PathFinder` 直接搜 `sys.path`（**绕过 `sys.modules`**），这样才能区分两种情形：
+      · "本机没有厂商绑定" —— 与
+      · "本机有，但已被我们注入的假模块/阻断器挡在门外"
+    这两者的含义完全不同，**不能混为一谈**（2026-09-22 实测：910C 容器里真实 `acl` 确实在
+    `PYTHONPATH` 上，而当时提示语写成"本机无厂商绑定"，是错的）。
+    """
+    from importlib.machinery import PathFinder
+    found = []
+    for root in _VendorRuntimeBlocker.VENDOR_ROOTS:
+        try:
+            if PathFinder.find_spec(root) is not None:
+                found.append(root)
+        except Exception:
+            pass
+    return sorted(found)
+
+
+def _real_vendor_modules() -> list:
+    """返回**以真实文件形式**加载的厂商运行时模块（我们的假模块没有 `__file__`）。"""
+    out = []
+    for name, mod in list(sys.modules.items()):
+        if name.split(".")[0] in _VendorRuntimeBlocker.VENDOR_ROOTS:
+            if getattr(mod, "__file__", None):
+                out.append(name)
+    return sorted(out)
+
+
+def _make_fake_acl(init_rc=0):
+    """假 pyACL —— 用**可控的返回码**离线驱动 ascend 的有界同步路径。
+
+    这是第 9 个原型缺陷（"把 ACL 初始化/参数错误冒充成同步超时"）的回归判据载体：
+    没有真机也能验证"非超时码不得被报成 TimeoutError"。
+    返回 (假模块, 可变 rc 状态)。
+    """
+    rc = {"sync": 0, "set_device": 0}
+    acl = types.ModuleType("acl")
+    acl.__offline_stub__ = True
+    acl.init = lambda: init_rc
+    acl.finalize = lambda: 0
+    acl.rt = types.SimpleNamespace(
+        set_device=lambda o: rc["set_device"],
+        synchronize_device_with_timeout=lambda ms: rc["sync"],
+        synchronize_stream_with_timeout=lambda h, ms: rc["sync"],
+        get_device_count=lambda: (8, 0),
+        device_get_stream_priority_range=lambda: (0, -1),
+    )
+    return acl, rc
 
 
 # ═════════════════════ stub：厂商命名空间 ═════════════════════
@@ -181,9 +272,17 @@ def _stub_kunlun(mode="full"):
     return _vendor_stub("cuda", (), mode)
 
 
-def _stub_ascend(mode="full"):
-    """昇腾 `torch.npu` —— 需伪造顶层 `torch_npu`。"""
-    return _vendor_stub("npu", ("torch_npu",), mode)
+def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
+    """昇腾 `torch.npu` —— 需伪造顶层 `torch_npu`，并注入**假 pyACL**。
+
+    `acl_init_rc` 可控：用 `acl_init_rc=500000` 验证"init 非 0 必须视为不可用"这条判据。
+    """
+    torch, mods, state = _vendor_stub("npu", ("torch_npu",), mode)
+    if with_fake_acl:
+        acl_mod, rc = _make_fake_acl(init_rc=acl_init_rc)
+        mods["acl"] = acl_mod
+        state["acl_rc"] = rc
+    return torch, mods, state
 
 
 def _stub_flagos(mode="full"):
@@ -210,14 +309,21 @@ _STUBS = {
 }
 
 
-def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True):
-    """清干净再导入：确保每次都是"全新发现"（注册表单例会跨用例残留）。"""
+def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True, **stub_kwargs):
+    """清干净再导入：确保每次都是"全新发现"（注册表单例会跨用例残留）。
+
+    · 装 **真实厂商运行时阻断器**（保证"离线"名副其实，见 `_VendorRuntimeBlocker`）
+    · 清掉上轮残留（**含 `acl`** —— 真机上它可能已被真实加载过）
+    · `**stub_kwargs` 透传给 stub（如 ascend 的 `acl_init_rc`）
+    """
+    _install_blocker()
     for m in [k for k in list(sys.modules)
-              if k.startswith("runtime") or k in ("torch", "torch_mlu", "torch_npu", "torch_fl")]:
+              if k.startswith("runtime")
+              or k.split(".")[0] in ("torch", "torch_mlu", "torch_npu", "torch_fl", "acl")]:
         del sys.modules[m]
     if proto_dir not in sys.path:
         sys.path.insert(0, proto_dir)
-    torch, vendor_mods, state = stub_fn(mode)
+    torch, vendor_mods, state = stub_fn(mode, **stub_kwargs)
     sys.modules["torch"] = torch
     if with_vendor:
         sys.modules.update(vendor_mods)
@@ -237,6 +343,22 @@ def run(proto_dir, backend):
         print(f"ℹ️ 本家 stub 的能力边界（以下判据会被显式 SKIP）："
               f"{', '.join(f'{k}=False' for k in sorted(caps) if caps[k] is False)}")
     print("=" * 74)
+
+    # ── 0. 离线性（本自检不得触碰真实厂商运行时）──
+    print("\n[0] 离线性保障（真实厂商运行时必须被阻断）")
+    _real = _real_vendor_modules()
+    check("未以真实文件形式加载任何厂商运行时", not _real, str(_real))
+    _host = _host_vendor_bindings()
+    if _host:
+        print(f"  [INFO] 本机 sys.path 上**存在**真实厂商绑定：{_host}"
+              f" —— 已挡在门外（见下行），故本自检确实是离线的")
+    else:
+        print("  [INFO] 本机 sys.path 上未发现厂商绑定（本机天然离线）")
+    if _BLOCKED_IMPORTS:
+        print(f"  [INFO] 已被阻断器拦截的真实导入 {len(set(_BLOCKED_IMPORTS))} 处："
+              f"{sorted(set(_BLOCKED_IMPORTS))}")
+    if "acl" in sys.modules and getattr(sys.modules["acl"], "__offline_stub__", False):
+        print("  [INFO] 已注入**假 pyACL**（ascend 的有界同步走它，真实 acl 不会被触及）")
 
     # ── 1. 发现 / 实例化（ABC 会在实例化时强制 13 个抽象方法齐全）──
     print("\n[1] 发现 / 实例化 / 抽象方法完整性")
@@ -305,9 +427,53 @@ def run(proto_dir, backend):
         dt = (time.monotonic() - t0) * 1000
         check("有界同步真的按时返回（非永久阻塞）", 180 <= dt <= 900, f"{dt:.0f} ms")
         state["stream_query"] = True
+    elif "acl_rc" in state:
+        # 该家的有界同步走 pyACL —— stub 提供了**可控 rc 的假 acl**，于是可以**离线**验证
+        # 「rc 分类」这条最关键的判据。这是第 9 个原型缺陷（把 acl.init/参数错误冒充成同步超时）
+        # 的回归守卫：真机暴露的那个 bug，本可以在这里被拦下。
+        rc_state = state["acl_rc"]
+
+        rc_state["sync"] = 507046            # ACL_ERROR_RT_STREAM_SYNC_TIMEOUT（真超时码）
+        try:
+            bk.synchronize(0, timeout_ms=50)
+            check("真超时码(507046) ⇒ 必须抛 TimeoutError", False)
+        except TimeoutError:
+            check("真超时码(507046) ⇒ TimeoutError（有界语义成立）", True)
+        except Exception as e:
+            check("真超时码(507046) ⇒ TimeoutError", False, f"{type(e).__name__}: {str(e)[:70]}")
+
+        rc_state["sync"] = 107000            # ACL_ERROR_RT_PARAM_INVALID（L2，非超时）
+        try:
+            bk.synchronize(0, timeout_ms=50)
+            check("非超时码(107000) ⇒ 必须抛错", False)
+        except TimeoutError:
+            check("非超时码(107000) ⇒ **不得**冒充 TimeoutError", False,
+                  "被误报为超时 ⇒ 下游会按 L3 去 replay，正确动作是 L2 的 raise")
+        except Exception as e:
+            _cat = getattr(getattr(e, "category", None), "name", None)
+            check("非超时码(107000) ⇒ 按错误码表分级为 L2_PARAM（不冒充超时）",
+                  _cat == "L2_PARAM",
+                  f"{type(e).__name__}: category={_cat} "
+                  f"disposition={getattr(e, 'disposition', None)}")
+
+        rc_state["sync"] = 0
+        check("rc=0 ⇒ 正常返回（不误判）", bk.synchronize(0, timeout_ms=50) is None)
+
+        # set_device 的 rc 也必须分级（实测：上下文无效时它先返回 107002）
+        rc_state["set_device"] = 107002      # ACL_ERROR_RT_CONTEXT_NULL
+        try:
+            bk.synchronize(0, timeout_ms=50)
+            check("set_device rc≠0 ⇒ 必须抛错", False)
+        except TimeoutError:
+            check("set_device rc≠0 ⇒ **不得**冒充 TimeoutError", False)
+        except Exception as e:
+            _cat = getattr(getattr(e, "category", None), "name", None)
+            check("set_device rc≠0 ⇒ 按错误码表分级（L2_PARAM）", _cat == "L2_PARAM",
+                  f"{type(e).__name__}: category={_cat}")
+        rc_state["set_device"] = 0
     else:
         skip("有界同步三项（未完成抛 Timeout / 按时返回）",
-             "该后端的有界同步走厂商超时原语（如昇腾 acl），stub 无法产生'任务未完成'状态；"
+             "该后端的有界同步不支持可控 rc 的假原语，stub 无法产生'任务未完成'状态；"
              "真机经 conformance e2/e2-b 与错误闭环已覆盖")
 
     # ── 4. 事件语义契约（E3 / E2-v2）──
@@ -424,7 +590,10 @@ def run(proto_dir, backend):
         mism = sorted(k for k, v in sup.items() if bool(v) != bk.supports(k))
         check("info.supports 与 supports() 一致", not mism, str(mism))
     else:
-        print("  [SKIP] info() 无 supports 映射（非必须，跳过一致性检查）")
+        skip("info()['supports'] 一致性/键集合",
+             "本后端的 info() 未提供 supports 映射（四家中仅个别如此）—— "
+             "下游「读后端即知能力」的统一体验在这家不成立，建议补齐"
+             "（2026-09-22 已为 ascend 补齐该缺口）")
     ki = bk.known_issues()
     _req = ("id", "severity", "scope", "condition", "symptom",
             "root_cause_layer", "workaround", "report_to", "evidence")
@@ -464,14 +633,124 @@ def run(proto_dir, backend):
     return 0 if FAIL == 0 else 1
 
 
+def symmetry(proto_dir):
+    """`--all`：**跨后端对称性自检** —— 把各家的"对外可观测形态"摆在一起比对。
+
+    动机：本方向的核心主张是"统一 API，换芯片只改一行"。**这条主张的敌人是不对称** ——
+    某一家少了方法、少了字段、字段语义不同，都属于"统一 API"名不副实。
+    2026-09-22 第 3 家接入的收口期，正是靠这一类对比挖出三处缺陷
+    （`flagos` 声明 `device_state` 却无实现、`info()` 键名漂移、`ascend` 的 `info()` 缺 `supports`）。
+
+    两类输出：
+      · **硬判据**（计入 通过/失败）：所有后端都必须成立的不变式
+      · **差异清单**（不计失败）：允许存在但**必须能说清理由**的差异（如 `device_type` 本就不同）
+    """
+    print("=" * 74)
+    print("跨后端对称性自检（--all）：硬判据 + 差异清单")
+    print(f"参与后端：{sorted(_STUBS)}")
+    print("=" * 74)
+
+    rows: dict = {}
+    for backend, (stub_fn, dev_ns, caps) in _STUBS.items():
+        try:
+            runtime, loaded, state = fresh_import(proto_dir, backend, stub_fn)
+            bk = runtime.get(backend)
+            if bk is None:
+                rows[backend] = {"error": "discover 未发现"}
+                continue
+            info = bk.info() or {}
+            rows[backend] = {
+                "device_type": bk.device_type,
+                "capabilities": set(getattr(bk, "_capabilities", set())),
+                "cap_keys": set(getattr(bk, "_CAPABILITY_KEYS", ()) or ()),
+                "info_keys": sorted(info),
+                "supports_keys": set(info.get("supports") or {}),
+                "methods": {m: callable(getattr(bk, m, None)) for m in
+                            ("info", "supports", "known_issues", "device_state",
+                             "stream_priority_range", "recover_device", "translate_error")},
+                "n_issues": len(bk.known_issues() or []),
+                "sample_coded": getattr(bk, "SAMPLE_CODED_ERROR", None) is not None,
+                "declares_error_map": bool(bk.supports("error_map")),
+                "_bk": bk,
+            }
+        except Exception as e:
+            rows[backend] = {"error": f"{type(e).__name__}: {str(e)[:90]}"}
+
+    ok_rows = {k: v for k, v in rows.items() if "error" not in v}
+    print("\n[表] 各家可观测形态")
+    hdr = f"  {'后端':<11}{'device_type':<12}{'能力数':<7}{'info 键':<9}{'supports 键':<11}{'known_issues':<13}{'码样例':<7}"
+    print(hdr)
+    for k in sorted(rows):
+        v = rows[k]
+        if "error" in v:
+            print(f"  {k:<11}[加载失败] {v['error']}")
+            continue
+        print(f"  {k:<11}{v['device_type']:<12}{len(v['capabilities']):<7}"
+              f"{len(v['info_keys']):<9}{len(v['supports_keys']):<11}"
+              f"{v['n_issues']:<13}{'有' if v['sample_coded'] else '-':<7}")
+
+    print("\n[硬判据] 所有后端都必须成立")
+    if not ok_rows:
+        check("至少有一家后端可加载", False, str({k: v.get("error") for k, v in rows.items()}))
+    else:
+        check("四家全部可加载（无异常）", len(ok_rows) == len(rows),
+              str({k: v.get("error") for k, v in rows.items() if "error" in v}))
+
+        # ① 对外必需方法齐备
+        req = ("info", "supports", "known_issues", "device_state", "recover_device", "translate_error")
+        miss = {k: [m for m in req if not v["methods"][m]] for k, v in ok_rows.items()}
+        check("对外必需方法齐备（info/supports/known_issues/device_state/recover/translate）",
+              all(not m for m in miss.values()),
+              str({k: m for k, m in miss.items() if m}))
+
+        # ② info() 必须提供 supports 映射（"读后端即知能力"的统一体验）
+        nosup = [k for k, v in ok_rows.items() if not v["supports_keys"]]
+        check("info() 均提供 supports 映射", not nosup, str(nosup))
+
+        # ③ 声明的能力必须落在那家的能力全集内（防键名拼错）
+        bad = {k: sorted(v["capabilities"] - v["cap_keys"])
+               for k, v in ok_rows.items() if v["cap_keys"] and v["capabilities"] - v["cap_keys"]}
+        check("声明能力 ⊆ 能力全集（防键名拼错）", not bad, str(bad))
+
+        # ④ 声明 error_map 的家必须提供码样例（否则正向 code_map 检查无从下手）
+        need = [k for k, v in ok_rows.items() if v["declares_error_map"] and not v["sample_coded"]]
+        check("声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR", not need, str(need))
+
+        # ⑤ 同一能力在不同家的"声明与否"必须能解释 —— 这里只报差异，不判失败
+        all_caps = sorted(set().union(*[v["capabilities"] for v in ok_rows.values()])) if ok_rows else []
+        print("\n[差异清单] 允许存在，但每处都应有理由（不计失败）")
+        for c in all_caps:
+            holders = sorted(k for k, v in ok_rows.items() if c in v["capabilities"])
+            if 0 < len(holders) < len(ok_rows):
+                print(f"  · 能力 {c:<18} 仅 {holders} 声明")
+        dts = sorted({v["device_type"] for v in ok_rows.values()})
+        if len(dts) > 1:
+            print(f"  · device_type 不同：{dts} —— **这是设计而非缺陷**"
+                  f"（设备串按命名空间，不按厂商；见接口约定修订建议第 1 条）")
+        sup_sets = {k: tuple(sorted(v["supports_keys"])) for k, v in ok_rows.items()}
+        if len(set(sup_sets.values())) > 1:
+            print("  · supports 键集合不一致（各家的「已知能力全集」略有差异，"
+                  "如 ascend 保留历史键名 sync_timeout）")
+
+    print("\n" + "=" * 74)
+    print(f"对称性自检结果: {PASS} 通过 / {FAIL} 失败")
+    print("⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。")
+    print("=" * 74)
+    return 0 if FAIL == 0 else 1
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="后端离线契约自检（无设备）")
-    ap.add_argument("--backend", required=True,
+    ap.add_argument("--backend", default=None,
                     help=f"后端名；当前已内置 stub 的厂商：{sorted(_STUBS)}")
+    ap.add_argument("--all", action="store_true",
+                    help="跨后端对称性自检（比对四家的可观测形态，含硬判据）")
     ap.add_argument("--proto", default=None,
                     help="prototype 目录（默认取本脚本上一级）")
     args = ap.parse_args(argv)
-    if args.backend not in _STUBS:
+    if not args.all and not args.backend:
+        ap.error("需给出 --backend <名字> 或 --all")
+    if args.backend and args.backend not in _STUBS:
         print(f"❌ 没有为 '{args.backend}' 内置 stub。已内置：{sorted(_STUBS)}")
         print("   加一家厂商 = 在 _STUBS 里加一个 stub 函数（见文件头说明）。")
         return 2
@@ -479,7 +758,34 @@ def main(argv=None):
     if not os.path.isdir(os.path.join(proto, "runtime")):
         print(f"❌ {proto} 下没有 runtime/，请用 --proto 指定 prototype 目录")
         return 2
-    return run(proto, args.backend)
+    if args.all:
+        return _guarded(symmetry, proto)
+    return _guarded(run, proto, args.backend)
+
+
+def _guarded(fn, *a):
+    """兜底：**未预期异常不得让整轮自检无汇总地崩掉**。
+
+    2026-09-22 实测教训（两次）：① `device_state` 未实现 ⇒ AttributeError 整轮崩；
+    ② 910C 真机上真实 `acl` 被 import ⇒ 后端抛 TimeoutError 整轮崩。
+    两次都只留下 traceback、**连汇总都打不出**，等于把最重要的缺陷变成一次崩溃。
+    ⇒ 统一在入口兜底：判 1 条失败 + 打印异常与末帧 + **照常输出汇总**。
+    """
+    global FAIL
+    try:
+        return fn(*a)
+    except Exception as e:
+        FAIL += 1
+        tb = traceback.format_exc().strip().splitlines()
+        print("\n[FATAL] 自检本身抛出未预期异常（已判 1 条失败；以下为定位信息）")
+        print(f"        {type(e).__name__}: {str(e)[:220]}")
+        print(f"        末帧: {tb[-2].strip() if len(tb) >= 2 else '(无)'}")
+        print("\n" + "=" * 74)
+        print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败 / {SKIPPED} 跳过"
+              f"（含 1 条因未预期异常判失败）")
+        print("⚠️ 结论边界：本结果只证明实现逻辑与契约形态。")
+        print("=" * 74)
+        return 1
 
 
 if __name__ == "__main__":
