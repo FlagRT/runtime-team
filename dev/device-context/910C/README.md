@@ -43,12 +43,13 @@
 ## 3. 关键成果（实跑证据）
 
 | 项 | 结果 |
-|---|---|
+|---|---|---|
+| ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿**：离线自检 **35/0** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8** + 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（**4075.4 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`** · 服务化 **`SERVE_STANDARD_PASS`** · 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0** ⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
 | 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
 | 昇腾后端（torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10**、smoke **52/0** |
 | 训练腿 2 卡分布式微调（Qwen3-Embedding-0.6B） | ✅ **现口径 = torch_npu + HCCL**：loss **15.4498 → 11.1479**（50 步）、**3954–4402 tok/s**、三类通信对照全对<br>⏹ torch_fl 线（历史）同模型同步数：**2212.9 tok/s**、loss 15.4497→11.1515 ⇒ 同口径下 torch_npu **+79~99%** |
 | 推理腿单卡 · 前向形态 | ✅ 向量区分度 **0.638**、66–79 句/s、无 NaN |
-| 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms） |
+| 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms）<br>✅ **统一脚本同形态验收（09-22）**：`SERVE_FORM=embed` + `Qwen3-Embedding-0.6B` ⇒ **`SERVE_STANDARD_PASS`**（35 s 就绪、维度 1024、范数 1.000000），与 P800 **同形态可比** |
 | **错误注入 → 恢复闭环** | ✅ 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放）；训练腿（torch_npu）**5 闭环 / 0 跳过 / 0 失败**；⏹ torch_fl 线（历史）4 闭环 / 1 跳过（无有界同步，如实跳过） |
 | **统一启动脚本**（组内服务启动标准 v1.1，09-20） | ✅ **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 `free=60.91GiB / total=61.27GiB`（停机前后一致）；宿主侧 8100 端口已释放。证据：`probes/L_serve_standard_910c_20260920.log` |
 | 组件打包 | ✅ Git tag `runtime-v0.1.0` + Release note（`../prototype/RELEASE_NOTES_v0.1.0.md`） |
@@ -107,6 +108,7 @@
 | `unified_verify_20260922.log` | ⭐ **统一口径完整复核**：离线自检 35/0 · smoke **52/0** · conformance **13/13 + 6/6** · 训练腿 **6/6**（3954.0 tok/s） · 错误闭环 **5/0/0** · `--all` 5/0 |
 | `ev_matrix_20260922.log` / `ev_matrix2_20260922.log` | torch_fl `Event.query()` 语义缺口实测矩阵（审计台账第 13 条的证据） |
 | `L_serve_standard_910c_20260920.log` | 《组内服务启动标准》脚本真机验证日志（`SERVE_STANDARD_PASS ready=1 smoke=1`） |
+| ⭐ `accept_*_20260922.{log,json}`（15 份） | **三芯片职责验收全套证据**（09-22 傍晚）：离线自检 · 对称性 · 冒烟 · conformance 13/13 与推理 6/6 · 三个多流探针 · 训练腿（`accept_train_npu_20260922/`，含两 rank JSON）· 推理腿前向 · 服务化 · 错误闭环；另有 `accept_probe_results_910c_20260922/`（探针原始 JSON） |
 
 > 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
 
@@ -120,6 +122,13 @@
 
 - **带卡容器并发上限 3**（`dev/stack.lock.910c.v2.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
   表现为 `device_count=0`；出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
+- ⚠️ **另一条独立的约束：训练容器与推理容器不能同时持卡**（2026-09-22 验收实测）。
+  二者都挂**全部 16 个 davinci 设备**，同时 Up 时后起的一方报
+  `Failed to obtain the console log level` + `Different containers share the same device` ⇒
+  `terminate called after throwing an instance of 'std::logic_error'` → `Engine core initialization failed`。
+  **这与"并发上限 3"是两件事**（本轮仅 2 个带卡容器、名额没超）⇒ **两条腿串行**：先 `docker stop` 一方释放设备。
+  另：**训练容器自带 `vllm` 入口但缺包**（`command -v vllm` 有、`import vllm` 报 `ModuleNotFoundError`）
+  ⇒ 服务化**必须用推理容器** `flagos-infer-910c`；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）
   ⇒ **2026-09-22 起训练腿改走 `npu`（torch_npu）**：用容器内**带 torch_npu 的解释器**
   `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（该解释器**无 torch_fl** ⇒ **物理隔离**，

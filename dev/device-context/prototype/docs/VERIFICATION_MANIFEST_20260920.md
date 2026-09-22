@@ -6,7 +6,7 @@
 
 ---
 
-## 1. 复核最小可执行清单（9 条）
+## 1. 复核最小可执行清单（10 条）
 
 在**容器内**、目标实例的 `prototype/` 目录下执行；`$B` = 后端名（`ascend` | `kunlun` | `cambricon`）。
 
@@ -21,6 +21,7 @@
 | 7 | 训练腿 · 2 卡 | `DC_BACKEND=$B torchrun --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py` | `TRAIN_LEG_PASS 6/6`，并记录 loss 与 tok/s |
 | 8 | 错误注入 → 恢复闭环 | `python3 runtime/proto/proto_error_recovery_loop.py --backend $B` | `ERROR_RECOVERY_LOOP_PASS`，记录 闭环/跳过/失败 |
 | 9 | 契约不变式（**待补判据**） | `python3 runtime/conformance/runner.py --backend $B --cases contract_invariants` | I1–I4 全绿 —— ⬜ **尚未实现，见 §3 G8** |
+| 10 | ⭐ **逐芯片职责验收（发布判定）** | 见 `PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` §6（10 条命令；或直接跑上表 1–8） | 10 项判定全绿（含多流 3 探针与两条腿）。**09-22 傍晚实测：910C 10/10 · P800 10/10 ⇒ 可发布**；MLU590 主机不可达，未参与 |
 
 > 统一服务启动见 `docs/SERVICE_STARTUP_STANDARD_20260920.md`；接入流程见 `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`。
 
