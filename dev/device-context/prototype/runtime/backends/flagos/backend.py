@@ -157,15 +157,79 @@ class FlagosBackend(RuntimeBackend):
             self.torch.flagos.device(ordinal)
 
     def memory_stats(self, ordinal: int) -> dict:
-        raw = self.mod.memory_stats() or {}
-        # 归一化：同时给出统一字段与框架原字段
-        total = raw.get("total_bytes") or raw.get("total_mb", 0) * 1024 * 1024
-        alloc = raw.get("allocated_bytes", raw.get("allocated_mb", 0) * 1024 * 1024)
+        """显存统计。**统一字段必须含 `total_mb` / `used_mb` / `free_mb`**（接口约定 §1.2）。
+
+        数据来源分两层，**如实分层**（2026-09-22 真机暴露后修）：
+
+          ① `torch.flagos.memory_stats()` —— 只有**进程级**计数
+             （`allocated_bytes` / `reserved_bytes` / 各类 call 计数），
+             **不含设备总量**。实测 torch_fl 的 `get_device_properties(0).total_memory`
+             恒为 **0**（该字段未填充）⇒ 框架侧拿不到总量。
+          ② **pyACL** `acl.rt.get_mem_info(ordinal)` —— **设备级** `(free, total)`，
+             与 `ascend` / `kunlun` 两个后端**同口径**（能反映同卡上他人占用）。
+             实测 910C：free 60.9 GiB / total 61.3 GiB，与 `npu-smi` 一致。
+
+        ⇒ 统一字段取 **②（设备级）**，原始字段保留 **①（进程级）**；
+          pyACL 不可用时**降级为进程级**并如实标注（不冒充设备级）。
+
+        说明：本后端仍**不以 torch_npu 为依赖**（与 Torch-FL 互斥那条约束照旧）；
+        pyACL 是 CANN 的 C 层 Python 绑定，与 torch 设备后端无关（`ascend` 后端也用它）。
+        """
+        raw = dict(self.mod.memory_stats() or {})
         out = dict(raw)
-        if total:
+
+        # ── ② 设备级（首选口径）──
+        free_b, total_b, reason = self._acl_mem_info(ordinal)
+        if total_b:
+            out["total_mb"] = int(total_b / 1024 / 1024)
+            out["free_mb"] = int(free_b / 1024 / 1024)
+            out["used_mb"] = max(0, out["total_mb"] - out["free_mb"])
+            out["memory_scope"] = "device"          # 与 ascend / kunlun 同口径
+        else:
+            # ── ① 降级：只能用进程级 reserved 顶 used；总量给不出来（通常为 0）──
+            total = raw.get("total_bytes") or raw.get("total_mb", 0) * 1024 * 1024
+            used_b = raw.get("reserved_bytes", raw.get("allocated_bytes", 0))
             out["total_mb"] = int(total / 1024 / 1024)
-        out["used_mb"] = int(alloc / 1024 / 1024)
+            out["used_mb"] = int(used_b / 1024 / 1024)
+            out["free_mb"] = max(0, out["total_mb"] - out["used_mb"])
+            out["memory_scope"] = "process"         # ⚠️ 口径降级，如实标注
+            out["memory_degraded_reason"] = reason
         return out
+
+    def _acl_mem_info(self, ordinal: int):
+        """经 pyACL 取**设备级** `(free_bytes, total_bytes, reason)`。
+
+        失败时返回 `(0, 0, 原因)` —— **不抛异常、不静默**：调用方据此如实降级。
+        注意：必须先 `set_device(ordinal)`，否则 `get_mem_info` 返回
+        `107002 = ACL_ERROR_RT_CONTEXT_NULL`（2026-09-22 实测）。
+        """
+        try:
+            import acl  # 延迟导入：无 CANN 环境时本后端仍可用（降级为进程级）
+        except Exception as e:
+            return 0, 0, f"pyACL 不可导入（{type(e).__name__}）"
+        try:
+            rc = acl.init()
+            # ⚠️ `100002 = ACL_ERROR_REPEAT_INITIALIZE`（CANN `acl/acl_base.h`，2026-09-22 查证）
+            #    是「**重复初始化**」，**不是错误**：本进程里 torch_fl 已经初始化过 ACL，
+            #    此处再 init 必然返回该码。
+            #    实测教训：把它当失败 ⇒ memory_stats 降级为进程级、`total_mb=0` ⇒
+            #    连带把错误闭环的 OOM 注入退化成 `torch.empty(0)`（见 F14）。
+            #    ⇒ 纪律：**非零 rc 的语义必须逐码确认，不能一律当失败**。
+            #      （与第 9 条缺陷同源：那里是把 rc≠0 一律当"超时"。）
+            if rc not in (0, 100002):
+                return 0, 0, f"acl.init rc={rc}"
+            rc = acl.rt.set_device(ordinal)
+            if rc != 0:
+                return 0, 0, f"acl.rt.set_device({ordinal}) rc={rc}"
+            r = acl.rt.get_mem_info(ordinal)
+            if isinstance(r, tuple) and len(r) >= 2:
+                free_b, total_b = int(r[0]), int(r[1])
+                if total_b > 0:
+                    return free_b, total_b, ""
+                return 0, 0, "acl.rt.get_mem_info 返回 total=0"
+            return 0, 0, f"acl.rt.get_mem_info 返回形态异常：{r!r}"
+        except Exception as e:
+            return 0, 0, f"pyACL 调用异常（{type(e).__name__}: {str(e)[:60]}）"
 
     def probe_device(self, ordinal: int) -> bool:
         try:
@@ -209,6 +273,48 @@ class FlagosBackend(RuntimeBackend):
                 return False
             time.sleep(0.001)
         return False
+
+    # ───────────── 已知问题（上游/环境）─────────────
+    def known_issues(self) -> list:
+        """本后端已知的上游问题（须已实测，注明复现率与证据）。
+
+        2026-09-22 新增第 1 条：910C 真机上按变体矩阵实测到的 torch_fl 事件语义缺口。
+        """
+        return [
+            {
+                "id": "FLAGOS-EVENT-QUERY-SEMANTICS",
+                "severity": "high",
+                "scope": "统一 Event 契约的 `query()` / `wait_host()`（事件完成判定）",
+                "condition": "事件被 record 到一个**其上已有工作**的流之后（含默认流），"
+                             "或 record 到显式流上时",
+                "symptom": (
+                    "`Event.query()` **不反映完成状态**：流上有工作时恒返回 `False`（实测 4/4），"
+                    "且**在 `ev.synchronize()` 成功返回之后仍然返回 `False`**（语义自相矛盾）；"
+                    "空流场景下时真时假（实测 3 次中 1 次全 False）。"
+                    "⇒ 依赖 `query()` 的 `wait_host()` 会**假超时**（返回 False 而实际已完成）"
+                ),
+                "repro_rate": (
+                    "流上有工作：**确定性 100%**（4/4，含同步后）；空显式流：**不稳定**"
+                    "（3 轮中 1 轮全 False）。矩阵与原始输出见 "
+                    "`910C/probes/ev_matrix_20260922.log`、`ev_matrix2_20260922.log`"
+                ),
+                "root_cause_layer": "厂商运行时（torch_fl 的 Event 实现 / 与 CANN event 语义映射）",
+                "workaround": (
+                    "① **不要用 `query()` 判定完成**；需要等完成时用阻塞式 `Event.synchronize()`；"
+                    "② 本方向的统一 `wait_host()` 保持**有界不阻塞**（行为正确），但必须把它的 "
+                    "`False` 读作「**未确认完成**」而非「确认未完成」—— 在 flagos 上存在假阴性；"
+                    "③ 依赖事件完成判定的流水线请改用「流同步 + 显式依赖」（S-2 路径），"
+                    "该路径在 flagos 上已验证通过"
+                ),
+                "workaround_risk": (
+                    "`Event.synchronize()` 是**阻塞式无限等待**，会丢失统一契约的「有界」语义 ⇒ "
+                    "只能由调用方按场景自行取舍，运行时不代做"
+                ),
+                "report_to": "上报 torch_fl / FlagOS 厂商（属跨芯片共性问题，非寒武纪/昇腾特有）",
+                "evidence": "910C/probes/ev_matrix_20260922.log、910C/probes/ev_matrix2_20260922.log；"
+                            "smoke 第 [6] 节 `Event.record + wait_host 有界返回` 项不稳定复现",
+            },
+        ]
 
     # ───────────── 错误翻译 ─────────────
     _INT_TO_CATEGORY = {
@@ -336,6 +442,12 @@ class FlagosBackend(RuntimeBackend):
             # 完全相反的结论。
             # 改为与 kunlun / cambricon **同款**：按 `_CAPABILITY_KEYS` 全集逐项呈现，
             # 清单不再是手写的第二份真相 ⇒ 从结构上杜绝再次漂移。
+            # 显存统计的口径（统一字段取自设备级；降级时如实标注）
+            "memory_stats_scope": (
+                "device —— pyACL `acl.rt.get_mem_info`，与 ascend / kunlun 同口径；"
+                "pyACL 不可用时降级为 process（返回值内 `memory_scope` 与"
+                "`memory_degraded_reason` 同步标注）"
+            ),
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
         }
 

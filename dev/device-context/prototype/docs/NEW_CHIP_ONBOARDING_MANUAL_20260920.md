@@ -392,6 +392,10 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 7 | **镜像大小有两套口径** | `docker images`（磁盘占用，含共享层）vs `image inspect Size`（镜像层之和），差近 3 倍 | 引用时必须注明口径，否则被误读成版本差异 |
 | 8 | **多环境对照不能只看总数** | 只看"N/N 通过"会漏掉语义差异 | 按**逐用例状态**与**逐条 `detail` 字符串**比对；共享机上的**单次吞吐不可直接对比**，须交替复测 |
 | 9 | **vLLM 停机残留占卡** | EngineCore 子进程残留（实测 73850 MiB / 96 GiB） | 停机连子进程一起 `kill -9` |
+| 10 | ⭐ **拼厂商专有字符串前没先加载厂商扩展** | 两种表象，**都像"框架/环境不支持"，实则是我方调用顺序问题**：① 拼设备串 `"npu:0"` → `RuntimeError: Expected one of cpu, cuda, … : npu`（**conformance 整轮 ABORT**，不是某条用例失败）；② 拼集合通信后端名 `init_process_group("hccl")` → `AssertionError: Unknown backend type hccl` | **凡构造厂商专有字符串的调用点，之前必须先经后端触碰一次设备**（如 `backend.device_count()`）。统一 API 的 `use()` **不保证**厂商命名空间已注册（后端是懒加载；容器常设 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 关掉自动注册）。⚠️ 只在**部分**后端暴露（`cuda` 属 torch 内置命名空间故不踩），**别因为别家没报错就以为自己的路径没问题** |
+| 11 | **非零 rc / 非零返回值一律当失败** | 把"重复初始化"当成错误：ACL `acl.init()` 返回 **`100002 = ACL_ERROR_REPEAT_INITIALIZE`**（厂商扩展已初始化过），被误判为不可用 ⇒ 能力静默降级、`memory_stats` 退化成 `total_mb=0` | **非零码必须逐码确认语义**（查厂商头文件，如 CANN `acl/acl_base.h`）。同类：把"参数错误码"当超时上报（见第 12 条） |
+| 12 | **验证脚本在参数退化时静默跳过** | OOM 注入按 `memory_stats["total_mb"]` 算"3 倍显存"，该值为 **0** 时变成 `torch.empty(0)`：**不报错、不占显存，却仍记"已注入"** ⇒ **假证据**（记录显示"未触发异常"，看着像后端缺陷） | 测试工具在关键参数退化时**必须回退默认值并打印提示**，不得静默；`expectation` 必须参与判定 |
+| 13 | **厂商缺陷不可"改判据变绿"** | 真实厂商缺陷（如某 `query()` 语义不成立）若把判据放宽/改判 SKIP，下游会误以为能力可用 | 正确做法：登记 `known_issues`（复现率 + 矩阵证据 + 规避路径 + 上报对象）+ **如实保留红灯**。**该降的要整组降，该红的要留着红** |
 
 ### 已知厂商缺陷的结构化声明（模板）
 

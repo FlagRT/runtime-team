@@ -45,12 +45,12 @@
 | 项 | 结果 |
 |---|---|
 | 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
-| 昇腾后端（torch_npu，推理腿） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10** |
-| FlagOS 后端（torch_fl，训练腿） | ✅ conformance **13/13**（锁定训练镜像） |
-| 训练腿 2 卡分布式微调（Qwen3-Embedding-0.6B） | ✅ loss **15.4497 → 11.15**（50 步）、**2117 tok/s**、通信三类对照全对 |
+| 昇腾后端（torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10**、smoke **52/0** |
+| FlagOS 后端（torch_fl）**—— 2026-09-22 起不再是训练腿口径** | ✅ conformance **13/13**（保留为**备用 / 历史复现**，不再默认使用） |
+| 训练腿 2 卡分布式微调（Qwen3-Embedding-0.6B） | ✅ **现口径 = torch_npu + HCCL**：loss **15.4498 → 11.1479**（50 步）、**3954–4402 tok/s**、三类通信对照全对<br>⏹ torch_fl 线（历史）同模型同步数：**2212.9 tok/s**、loss 15.4497→11.1515 ⇒ 同口径下 torch_npu **+79~99%** |
 | 推理腿单卡 · 前向形态 | ✅ 向量区分度 **0.638**、66–79 句/s、无 NaN |
 | 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms） |
-| **错误注入 → 恢复闭环** | ✅ 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放）；训练腿 **4 闭环 / 1 跳过 / 0 失败** |
+| **错误注入 → 恢复闭环** | ✅ 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放）；训练腿（torch_npu）**5 闭环 / 0 跳过 / 0 失败**；⏹ torch_fl 线（历史）4 闭环 / 1 跳过（无有界同步，如实跳过） |
 | **统一启动脚本**（组内服务启动标准 v1.1，09-20） | ✅ **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 `free=60.91GiB / total=61.27GiB`（停机前后一致）；宿主侧 8100 端口已释放。证据：`probes/L_serve_standard_910c_20260920.log` |
 | 组件打包 | ✅ Git tag `runtime-v0.1.0` + Release note（`../prototype/RELEASE_NOTES_v0.1.0.md`） |
 
@@ -75,7 +75,7 @@
 | `DC_STAGE_SUMMARY_20260909.md` | 阶段性总结：两条腿证据并入 |
 | `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
 | `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
-| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** ⇒ 若切它，训练腿的 `flagos` 权宜例外可取消；⚠️ **官方 runtime 不含 FlagCX**，训练腿缺口不解决不能切。**仅登记，未切换** |
+| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，`flagos` 权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
@@ -103,7 +103,10 @@
 | `recheck_stream_semantics_ascend_20260922.json` | 执行语义基线 8/8（后端无关 V2 探针**首跑 ascend**） |
 | `recheck_error_loop_ascend_20260922.json` | 错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
 | `recheck_infer_leg_ascend_20260922.json` | 推理腿前向 **14/14**（含 `backend` + `env` + p50/p90） |
-| `recheck_train_leg_ascend_20260922_rank{0,1}.json` | 训练腿 2 卡 **6/6**（含 `backend`/`dist_backend`；loss 15.4497→11.1515 与历史逐位吻合） |
+| `recheck_train_leg_ascend_20260922_rank{0,1}.json` | 训练腿 2 卡 **6/6** —— ⚠️ 该次 `backend=flagos`（torch_fl），**属切换前的旧口径证据**（loss 15.4497→11.1515、**2212.9 tok/s**） |
+| `train_npu_20260922.log` | ⭐ **切换后**训练腿（**torch_npu + HCCL**）：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**、**4402.3 tok/s** |
+| `unified_verify_20260922.log` | ⭐ **统一口径完整复核**：离线自检 35/0 · smoke **52/0** · conformance **13/13 + 6/6** · 训练腿 **6/6**（3954.0 tok/s） · 错误闭环 **5/0/0** · `--all` 5/0 |
+| `ev_matrix_20260922.log` / `ev_matrix2_20260922.log` | torch_fl `Event.query()` 语义缺口实测矩阵（审计台账第 13 条的证据） |
 | `L_serve_standard_910c_20260920.log` | 《组内服务启动标准》脚本真机验证日志（`SERVE_STANDARD_PASS ready=1 smoke=1`） |
 
 > 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
@@ -118,9 +121,14 @@
 
 - **带卡容器并发上限 3**（`dev/stack.lock.910c.v2.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
   表现为 `device_count=0`；出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
-- **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3` → 后端 **flagos（torch_fl）**：
-  禁止 `torch_npu` 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`。
-- **推理镜像** `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` → 后端 **npu（torch_npu）**。
+- **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）
+  ⇒ **2026-09-22 起训练腿改走 `npu`（torch_npu）**：用容器内**带 torch_npu 的解释器**
+  `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（该解释器**无 torch_fl** ⇒ **物理隔离**，
+  不触发镜像那条"禁止共存"校验）；`DC_BACKEND=ascend DC_DIST_BT=hccl`。
+  ⚠️ **必须在 `init_process_group` 之前先经后端触碰一次设备**，否则 `hccl` 未注册，
+  报 `AssertionError: Unknown backend type hccl`（审计台账第 15 条）。
+  ⏹ 原 torch_fl 走法（`AUTOLOAD=0` + 先 `import torch_fl`）**仅在使用 `flagos` 后端时需要**，已保留可用。
+- **推理镜像** `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` → 后端 **npu（torch_npu）**。**两腿现已同后端**。
 - 选卡变量：`ASCEND_RT_VISIBLE_DEVICES`。
 - **容器内没有 `npu-smi`**（实测 `npu-smi: command not found`）——它是**宿主工具**。
   容器内查卡请退回 torch 侧（`torch.npu.mem_get_info`）；要看整机 16 卡全貌在宿主执行 `npu-smi info`。

@@ -209,10 +209,19 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
 
 ## 基座与约束（本方向实测）
 
-- **设备注册路线**：遵循 v1 的 Route A 原则；训练腿因锁定镜像约束本月走 flagos（torch_fl），
-  为 v1 中登记的**权宜例外**，不代表路线变更。
-- **训练腿镜像禁止 torch_npu 与 Torch-FL 共存**（自带校验脚本直接报错），
-  必须 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`。
+- **设备注册路线**：遵循 v1 的 Route A 原则。**2026-09-22 口径统一**：全组统一基座为
+  Qwen3-0.6B **训推** + 原型接入的**厂商 torch 插件路线** ⇒ 910C **两条腿均为 `npu`（torch_npu）**，
+  训练腿由 `flagos`（torch_fl）切到 `npu`，**v1 登记的「权宜例外」已取消**。
+  实测（2 卡/50 步）：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**（torch_fl 线同为 50 步 **15.4497→11.1515**，曲线几乎重合；
+  差 0.03% 属集合通信归约顺序差异带来的浮点非确定性，非逻辑差异）、
+  **3954–4402 tok/s**（torch_fl 线 **2212.9** ⇒ **+79~99%**）；证据 `910C/probes/train_npu_20260922.log`、
+  `910C/probes/unified_verify_20260922.log`。已写入 `dev/stack.lock.910c.yaml` 的 `per_leg.train`。
+- **⚠️ 镜像本身未切换**（`lock.train.image` 未变）：本次只改**用哪个解释器/后端跑训练腿** ——
+  用容器内带 torch_npu 的 `venv-infer-a`（该解释器**无 torch_fl**，**物理隔离**，
+  故不触发镜像的"禁止共存"校验）；原 `AUTOLOAD=0 + 先 import torch_fl` 仅在用 `flagos` 后端时才需要。
+- **⚠️ 切换时踩到并已修的新缺陷（审计台账第 15 条）**：`hccl` 集合通信后端名**要厂商扩展被 import 后
+  才在 c10d 注册**，而统一 API 后端是懒加载 ⇒ `init_process_group("hccl")` 报
+  `AssertionError: Unknown backend type hccl`。修法：**初始化进程组之前先经后端触碰一次设备**。
 - **带卡容器并发上限 3**（已写入 v1 规则置顶）：超限 `acl.init()` 返回 500000、设备不可见。
 - **同一个 FL 插件在两家芯片上可用性相反**（第三家选型须逐个确认，不能类推）：
   `vllm-plugin-FL` 在**昆仑芯必需**（社区 vLLM 的 `vllm/platforms/` 无 kunlun，靠它提供 FL platform
@@ -247,8 +256,9 @@ cambricon **39/0/0** · kunlun **39/0/1 跳过** · flagos **32/0/2 跳过** · 
    ✅ **已在工作草稿 `dev/stack.lock.910c.yaml` 的 `candidates.train.official` 登记**（与既有组内自建候选
    `internal_v2` 并列，**仅登记、不生效、不切换**），并出专项对照
    [`910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md`](910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md)。
-   ⚠️ **两处缺口须注意**：① 该镜像**设备后端为 `npu`（torch_npu，即 Route A）**
-   ⇒ 若切它，训练腿的 `flagos`（torch_fl）**权宜例外可一并取消**（V2 里 10 月 TODO 随之关闭）；
+   ⚠️ **两处缺口须注意**：① 该镜像**设备后端为 `npu`（torch_npu，即 Route A）**，
+   与**我们现已统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，`flagos` 权宜例外**已取消**）；
+   ⇒ 本候选与现网口径的差异**只剩镜像血统**，不再涉及设备后端路线；
    ② 但**官方 runtime 镜像不含 FlagCX**（`flagcx-ascend` 镜像线最后 push 2026-02-02，陈旧不可用）
    ⇒ **训练腿缺口未解、不可直接切换**，与「官方推荐镜像不含 FlagCX」是同一个已登记诉求。
    **是否切换由总组裁定，本方向不自行切换**；
@@ -444,8 +454,11 @@ sudo usermod -aG docker hliu553        # 执行后需重新登录 SSH 生效
 - **训练腿镜像未发布到 registry**（v1 标注 repro_status 🟡、临时机器绑定资产）：
   当前仅 npu1-27 可用，其他机器需向镜像 owner 取 `docker save` 包 → **请总组/镜像 owner 推进发布**，
   否则其他机器无法按锁定基座复现。
-- **训练腿 torch_fl 例外的退出口径**：v1 记有 TODO「10 月起评估训练腿切回 Route A 的成本」，
-  请总组给出时间表与责任方（涉及镜像是否需出带 torch_npu 的版本）。
+- ~~**训练腿 torch_fl 例外的退出口径**：v1 记有 TODO「10 月起评估训练腿切回 Route A 的成本」~~
+  ⇒ **2026-09-22 已闭环**：训练腿已统一切到 `npu`（torch_npu），无需总组出带 torch_npu 的新镜像
+  （用容器内既有 `venv-infer-a` 解释器即可，与锁定镜像的共存校验不冲突）。
+  **遗留一项**：该解释器的 torch 为 **2.11.0+cu130 / torch_npu 2.11.0**，
+  与"统一基座 torch 2.10"档位**存在版本差**，是否要拉平请总组裁定（见「阻塞与需要协调的事项」）。
 - **通信接口约定**待分布式方向回复（启动方式 / flagcx 接口形态 / 对照用例归属 / 训练镜像是否换版）。
 - **昆仑芯 P800：按接入规范新建「第二个芯片实例」（2026-09-14）**：阻塞已全部解除
   （连接 26008 / `docker` 组 / `/data2/hliu553`），容器 `hliu553-device-context-p800` 运行中。
@@ -622,7 +635,8 @@ sudo usermod -aG docker hliu553        # 执行后需重新登录 SSH 生效
 - 本周是否有需提总组的基座更新：**有 2 项（均为登记性质，不改变现网）**
   1. **910C 新增「FlagOS 官方对应物」候选血统**：`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-ascend-cann9.0.0-910c:2.2.0`
      （digest `sha256:1048d622…`，5.4 GiB，官方标宿主驱动前置 **26.0.rc1**）。
-     与我们锁定栈**逐项一致**；**设备后端为 `npu`（Route A）**，若切它可取消训练腿的 `flagos` 权宜例外；
+     与我们锁定栈**逐项一致**；**设备后端为 `npu`（Route A）** —— 与**我们现已统一的口径一致**
+     （训练腿 `flagos` 权宜例外已于 2026-09-22 取消），故本候选与现网差异只剩镜像血统；
      ⚠️ **但官方 runtime 不含 FlagCX**（`flagcx-ascend` 镜像线最后 push 2026-02-02，陈旧）
      ⇒ **训练腿缺口未解、不可直接切换**。是否切换请总组裁定。
   2. **建议把「宿主驱动前置（Host driver）」吸收进 `dev/images/<name>/v<N>/lock.yaml`**：

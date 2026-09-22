@@ -129,7 +129,12 @@ class AscendBackend(RuntimeBackend):
             try:
                 import acl
                 rc = acl.init()
-                if rc != 0:
+                # ⚠️ `100002 = ACL_ERROR_REPEAT_INITIALIZE`（CANN `acl/acl_base.h`）：
+                #    torch_npu / Torch-FL 等先初始化过 ACL 时，本处再 init 会返回它。
+                #    **它不是错误**；若当失败，会把「pyACL 可用」误判为不可用，
+                #    于是有界同步静默降级为普通同步（能力凭空丢失）。
+                #    ⇒ 与第 9 条缺陷同源：**非零 rc 必须逐码确认语义**。
+                if rc not in (0, 100002):
                     self._acl = False
                     extra = ("；ACL_ERROR_INTERNAL_ERROR —— 宿主带卡容器并发超限时的典型码"
                              if rc == 500000 else "")

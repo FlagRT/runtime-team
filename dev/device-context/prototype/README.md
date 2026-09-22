@@ -123,7 +123,8 @@ Qwen3-4B vLLM+TP）是**旧代码路径**（直接 import 厂商扩展，不经�
 # ── 910C ──
 python3 runtime/smoke_runtime.py
 python3 runtime/conformance/runner.py --backend ascend [--cases infer_cases]
-python3 runtime/conformance/runner.py --backend flagos      # 训练腿镜像（AUTOLOAD=0 + 先 import torch_fl）
+python3 runtime/conformance/runner.py --backend ascend      # 910C（训推统一 torch_npu，2026-09-22 起）
+python3 runtime/conformance/runner.py --backend flagos      # torch_fl 备用/历史复现（AUTOLOAD=0 + 先 import torch_fl）
 python3 runtime/proto/proto_infer_leg.py
 torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py
 

@@ -26,7 +26,7 @@
 | 统一运行时 API | 后端选择 / 设备 / 流与事件 / 错误翻译 / 状态恢复 |
 | Backend 插件机制 | 抽象基类 + 注册表 + 自动发现 |
 | **ascend 后端** | torch_npu，推理腿使用 |
-| **flagos 后端** | torch_fl 适配，训练腿使用（依锁定训练镜像约束新建） |
+| **flagos 后端** | torch_fl 适配（依锁定训练镜像约束新建）。⚠️ **2026-09-22 起 910C 训练腿已统一 `npu`（torch_npu）**，本后端转为**备用/历史复现**用途 |
 | 统一 conformance | 13 例 + 推理 6 例，跨后端可跑；`supports()` 声明能力边界，未支持项如实跳过 |
 | 接口约定文档 | `docs/INTERFACE_CONTRACT_DC_20260908.md` |
 | 阶段性总结 | `docs/DC_STAGE_SUMMARY_20260909.md`（两条腿证据 + 已知缺口） |

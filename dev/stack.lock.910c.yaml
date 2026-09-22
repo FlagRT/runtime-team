@@ -87,12 +87,29 @@ rules:
 # ---------------------------------------------------------------
 per_leg:
   train:
-    device_backend: "flagos（torch_fl）"
+    device_backend: "npu（torch_npu）"
     note: |
-      该镜像禁止 torch_npu 与 Torch-FL 运行时共存（自带校验脚本会直接报错）；
-      必须 TORCH_DEVICE_BACKEND_AUTOLOAD=0 且先 import torch_fl 再 import torch。
-      我们的原型通过 runtime/backends/flagos 后端接入。
-    python: "/usr/local/python3.11.15/bin/python3"
+      **2026-09-22 口径统一（本次变更）**：全组统一基座定的是 Qwen3-0.6B **训推**，且原型接入走
+      **厂商 torch 插件路线** ⇒ 训练腿由 `flagos`(torch_fl) 切到 `npu`(torch_npu)，
+      **原「权宜例外」正式取消**（原例外的唯一成因是锁定训练镜像"禁止 torch_npu 与 Torch-FL 共存"）。
+
+      调用方式（实测可用）：
+        · 解释器：带 torch_npu 的那个 —— 容器内 `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`
+          （该解释器内**没有 torch_fl**，两者**物理隔离**，故不会触发镜像的共存校验）；
+        · 环境：`DC_BACKEND=ascend DC_DIST_BT=hccl`，选卡 `ASCEND_RT_VISIBLE_DEVICES`；
+        · ⚠️ **集合通信后端名必须显式给 `hccl`**（脚本已内置默认），且 `init_process_group` **之前**
+          必须先经后端触碰一次设备（`runtime.use()` + `device_count()`）——否则 `hccl` 未注册，
+          报 `AssertionError: Unknown backend type hccl`（2026-09-22 实测踩到，审计台账第 15 条）。
+
+      实测证据（2026-09-22，2 卡 / 50 步 / Qwen3-Embedding-0.6B）：
+        `TRAIN_LEG_PASS 6/6`；loss **15.4498 → 11.1479**（torch_fl 线同为 50 步 **15.4497 → 11.1515**，
+        曲线几乎重合 —— 0.03% 的差属集合通信归约顺序差异引入的浮点非确定性，**不是逻辑差异**）；
+        吞吐 **3954–4402 tok/s**（两卡合计；**同模型同步数**下 torch_fl 线为 **2212.9** ⇒ **+79~99%**）。
+        `910C/probes/train_npu_20260922.log`、`910C/probes/unified_verify_20260922.log`
+
+      ⚠️ 原 torch_fl 线的 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` + `先 import torch_fl 再 import torch`
+         **仅在仍使用 `flagos` 后端时才需要**；`flagos` 后端保留可用（备用/历史复现），不再是训练腿默认路径。
+    python: "/mnt/raid/hliu553/venvs/venv-infer-a/bin/python"
   infer:
     device_backend: "npu（torch_npu）"
     note: "镜像自带 torch_npu，我们的原型通过 runtime/backends/ascend 后端接入"
@@ -113,7 +130,9 @@ candidates:
         operator_runtime_comm: "flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
       lineage: "按 BAAI·FlagTree ascend3.5 手册路径重建（官方预构建基座 + triton_v3.5.x 现场编译）"
       registry_status: "组内镜像，无 registry；docker save 归档见 dev/images/ascend-train-comm/v2"
-      device_backend: "flagos（torch_fl）—— 仍是权宜例外"
+      device_backend: |
+        flagos（torch_fl）—— ⚠️ **2026-09-22 起不再是训练腿口径**（训练腿已统一 torch_npu）。
+        本候选若启用，将把训练腿重新拉回 torch_fl，**与统一口径冲突** ⇒ 评估时须重新说明理由。
       gap: "无缺口（镜像内含 FlagCX，训练腿可直接用）"
 
     # 候选 ②：FlagOS 官方对应物（2026-09-22 新增登记）
@@ -129,7 +148,10 @@ candidates:
       host_driver_prereq: |
         26.0.rc1 —— 官方 runtime/ascend-cann9.0.0-910c.md 明示。
         ⚠️ 我们现网 910C 宿主驱动版本本次未采集，切换前须实测（npu-smi info / driver/version.info）。
-      device_backend: "npu（torch_npu）⇒ 属 Route A。若切它，上面 per_leg.train 的 flagos 权宜例外可一并取消"
+      device_backend: |
+        npu（torch_npu）⇒ 属 Route A，**与 per_leg.train 现已统一的口径一致**。
+        （2026-09-22 前：切它才可取消训练腿的 flagos 权宜例外；该例外现已取消，
+          本候选与现网口径的差异只剩「镜像血统」，不再涉及设备后端路线。）
       convenience: "镜像内含 compiler 命令，可切 FlagTree/Triton 两套编译器"
       registry_status: "上游镜像，有可拉取 digest；2026-09-22 实测匿名可拉（Registry v2 token 流程，无需凭据）"
       gap: |
@@ -162,3 +184,13 @@ changelog:
       ② official（FlagOS 官方 flagos-runtime-ascend-cann9.0.0-910c:2.2.0，设备后端为 npu/Route A，
          但**不含 FlagCX** ⇒ 训练腿缺口未解，不可直接切换）。
       lock: / rules: / per_leg: 段**未改动** —— 未发生任何镜像切换。
+  - date: "2026-09-22"
+    who: "device-context"
+    what: |
+      **训练腿设备后端口径统一（per_leg.train 变更）**：由 `flagos`(torch_fl) 改为 `npu`(torch_npu)，
+      与推理腿一致，**取消 v1 登记的「权宜例外」**。
+      依据：全组统一基座为 Qwen3-0.6B 训推 + 原型接入的厂商 torch 插件路线；
+      原例外仅由锁定训练镜像的"禁止 torch_npu 与 Torch-FL 共存"造成，现以**解释器物理隔离**
+      （专用 venv，内有 torch_npu、无 torch_fl）满足该约束的意图。
+      ⚠️ **镜像本身未切换**（lock.train.image 未变），本变更只涉及**用哪个解释器/后端跑训练腿**。
+      实测（2 卡/50 步）：6/6 通过、loss 与 torch_fl 线逐位一致、4402.3 tok/s（+48.8%）。

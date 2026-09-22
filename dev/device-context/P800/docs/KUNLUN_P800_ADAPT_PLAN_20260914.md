@@ -126,7 +126,7 @@
 ```
 prototype/runtime/backends/
 ├── ascend/     # 910C 推理腿（torch_npu）——已验证 13/13 + 6/6
-├── flagos/     # 910C 训练腿（torch_fl）——已验证 13/13
+├── flagos/     # torch_fl 后端（⚠️ 2026-09-22 起 910C 训练腿已统一 torch_npu，本后端转备用）——已验证 13/13
 └── kunlun/     # 【本次新建】昆仑芯 P800 —— 第二个芯片实例
 ```
 

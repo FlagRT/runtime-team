@@ -72,8 +72,19 @@ def inject_oom():
     dev = f"{b.device_type}:0"
     try:
         stats = runtime.memory_stats(0)
-        total = int(stats.get("total_mb", 60000))
+        total = int(stats.get("total_mb", 0) or 0)
     except Exception:
+        total = 0
+    # ⚠️ 2026-09-22 修（证据卫生）：`total_mb` 为 0 或缺失时**不能照用**。
+    #    旧写法只在本调用抛异常时才回退默认值；而后端如实降级（如拿不到设备总量）
+    #    时返回的是 `total_mb=0`（**不抛异常**）⇒ `n = 0` ⇒ `torch.empty(0)`：
+    #    既不报错也不占显存，**OOM 注入被静默跳过**，而记录里仍写着"已注入"。
+    #    实测：910C 上 flagos 因 `acl.init rc=100002` 误降级 ⇒ total_mb=0 ⇒
+    #    错误闭环出现「oom(L1_RESOURCE 期望) 未触发异常」——**看起来像后端缺陷，
+    #    实际是测试工具的证据污染**（同"硬编码昇腾错误码"那次的同类问题）。
+    if total <= 0:
+        print(f"  [工具提示] memory_stats 未给出 total_mb（={total}）⇒ OOM 注入回退默认估值 "
+              f"60000 MiB；若后端确实拿不到设备总量，请在后端侧修（勿在本工具里掩盖）")
         total = 60000
     # 2026-09-09 核查：一次性 3 倍显存申请**不会**拖死进程
     # （独立实验中正常抛 OutOfMemoryError 且后续业务正常，用时 9s；

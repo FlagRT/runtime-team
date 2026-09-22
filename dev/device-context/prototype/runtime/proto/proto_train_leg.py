@@ -14,13 +14,26 @@
   4. 集合通信正确性对照：all_reduce / all_gather / P2P 各一组证据
   5. 全程无死锁、无数据错乱；记录吞吐
 
-环境变量（括号内为默认值 = 910C 训练腿原口径）
-  DC_BACKEND   运行时后端名（`flagos`；昆仑芯用 `kunlun`）
-  DC_DIST_BT   进程组后端（`flagos`；昆仑芯见 --help 探测结果，如 `xccl`）
+环境变量（括号内为默认值 = **910C 训练腿当前口径**）
+  DC_BACKEND   运行时后端名（`ascend` = torch_npu；昆仑芯用 `kunlun`；`flagos` = torch_fl 备用）
+  DC_DIST_BT   进程组后端（910C=`hccl`；昆仑芯见 --help 探测结果，如 `xccl`）
   DC_ROOT      device-context 根路径（`/mnt/raid/hliu553/runtime-team/dev/device-context`）
   DC_MODEL     模型路径（`/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B`）
   DC_OUT_DIR   结果输出目录（`/mnt/raid/hliu553/runtime-team/scratch`）
   MAX_STEPS / BATCH / SEQ / LR   训练超参（20 / 4 / 128 / 1e-5）
+
+⚠️ **910C 口径变更（2026-09-22）**：全组统一基座定的是 Qwen3-0.6B **训推**、
+且原型接入走**厂商 torch 插件路线** ⇒ 910C 两条腿**统一 `torch_npu`**（`DC_BACKEND=ascend`）。
+原先训练腿走 `flagos`（torch_fl）只是**被锁定训练镜像的"禁止 torch_npu 与 Torch-FL 共存"逼出来的权宜例外**，
+该例外**已取消**。`flagos` 后端保留可用（备用/历史复现），但**不再作为 910C 训练腿的默认路径**。
+
+用法（910C，训推统一 torch_npu）：
+  # 解释器必须是有 torch_npu 的那个（容器内：/mnt/raid/hliu553/venvs/venv-infer-a/bin/python）
+  # 该解释器内**没有 torch_fl**（物理隔离，同进程不会触发镜像的共存校验）
+  ASCEND_RT_VISIBLE_DEVICES=0,1 DC_BACKEND=ascend DC_DIST_BT=hccl \
+  DC_ROOT=/mnt/raid/hliu553/runtime-team/dev/device-context/prototype \
+  DC_MODEL=/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B \
+  python -m torch.distributed.run --standalone --nproc_per_node=2 proto_train_leg.py
 
 用法（昆仑芯 P800）：
   # 用卡前先 `xpu-smi` 挑**空闲且连续同组**的卡；共享机上被他人占用的卡会触发设备侧报错
@@ -38,13 +51,16 @@ import time
 from datetime import timedelta
 
 # ── 后端无关化：全部由环境变量驱动，默认值 = 910C 训练腿原口径 ──
-BACKEND = os.environ.get("DC_BACKEND", "flagos")
+BACKEND = os.environ.get("DC_BACKEND", "ascend")   # 2026-09-22：910C 训推统一 torch_npu
 #: 进程组后端默认映射 —— **注意同一集合通信库在不同芯片上注册的后端名不同**：
 #:   910C：flagcx 被镜像注册为 `flagos`（单后端名即可）
 #:   P800：flagcx 注册为 `flagcx`，且需显式 `import flagcx`；设备走 flagcx、CPU 走 gloo
 #:   （P800 侧路径与 xliu969 已验证的 Route A 一致）
 _DIST_BT_DEFAULT = {
     "flagos": "flagos",
+    # 910C 统一 torch_npu（2026-09-22）⇒ 集合通信走 torch_npu 原生 **HCCL**。
+    # 实测可用后端（torch_npu 2.11.0）：gloo / nccl / xccl / ucc / mpi / **hccl** / lccl
+    "ascend": "hccl",
     "kunlun": "cpu:gloo,cuda:flagcx",
 }
 DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT.get(BACKEND, "gloo")
@@ -89,6 +105,17 @@ if BACKEND == "flagos":
     import torch_fl  # noqa: F401,E402
 
 import runtime  # noqa: E402  —— 我们的统一运行时原型
+
+# ⚠️ **必须在 init_process_group 之前经后端触发厂商扩展加载**（2026-09-22 实测踩到，审计台账第 15 条）：
+#   `hccl` / `flagcx` 这类**集合通信后端名**只有厂商扩展被 import 后才在 c10d 里注册，
+#   而统一 API 的后端是**懒加载**的（`use()` 本身不触发厂商扩展导入）。
+#   实测 910C（torch_npu 2.11.0，容器关 `TORCH_DEVICE_BACKEND_AUTOLOAD=0`）：
+#     直接 `init_process_group("hccl")` → `AssertionError: Unknown backend type hccl`；
+#     先 `use(BACKEND)` + 触碰一次设备后即通过。
+#   ⇒ 纪律：**凡要用厂商设备串或厂商集合通信后端名之前，先经后端触碰一次设备**。
+#     （与 conformance runner 那处同源：第 11 条 = 拼设备串、本条 = 拼集合通信后端名。）
+runtime.use(BACKEND)
+runtime.current().device_count()
 
 STEPS = int(os.environ.get("MAX_STEPS", "20"))
 BATCH = int(os.environ.get("BATCH", "4"))

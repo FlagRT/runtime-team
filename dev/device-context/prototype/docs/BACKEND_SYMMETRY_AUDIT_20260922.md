@@ -3,6 +3,9 @@
 > 负责人：Kistich（hliu553）｜ 触发：第三实例（寒武纪 MLU590）接入后的收口阶段
 > **2026-09-22 晚补记（第二轮）**：本节新增 **第 9、10 条**（910C 真机暴露）与 **工具/资产类问题**，
 > 并把第 8 条一并纳入"少被自检过的后端必有缺陷"这条主线。
+> **2026-09-22 深夜补记（第三轮）**：910C 网络恢复 + 并发名额释放后做完整复核，再新增
+> **第 11–15 条**；其中**第 11 条是此前"910C 上 conformance 跑不通"的真因**（不是环境问题，是我方原型缺陷）；
+> 第 15 条由**训练腿切 `torch_npu`** 时暴露。
 > **性质**：**审计 / 复核记录**（不是规范、不是操作手册）。规范正文见 `INTERFACE_CONTRACT_DC_20260908.md`，
 > 修订建议见 `INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`。
 > **写法**：每条缺陷给"现象 / 复现路径 / 归属 / 处置 / 防回归判据 / 各实例验证状态"。
@@ -23,12 +26,24 @@
 | **第 10** | 统一错误对象**跨层类型不一致**：`api` 层是纯 `@dataclass`（**不能 `raise`**），`conformance` 层是 `Exception` | 框架类型契约（`api/errors.py`） | 全部 | 让 `FlagosError` 继承 `Exception` | `raise fe` / `except FlagosError` 可用性 |
 | **工具 A** | 离线自检**并不离线**：只替换了 `torch`，真机 `PYTHONPATH` 上的**真实厂商绑定（`acl`）会被后端 import 到**并访问硬件 ⇒ 真机上自检**直接 traceback** | 验证资产（`backend_offline_check.py`） | **910C** | 新增**真实厂商运行时阻断器** + 为 ascend 注入**假 pyACL**；并把"离线性"设为**判据** | `未以真实文件形式加载任何厂商运行时` + `_host_vendor_bindings()` 如实报告 |
 | **工具 B** | **未预期异常会让整轮自检崩掉、连汇总都打不出**（两次踩到） | 验证资产 | 910C（`device_state`）、910C（真实 `acl`） | 入口统一兜底：判 1 条失败 + 打印末帧 + **照常输出汇总** | `_guarded()` 包装 |
+| **第 11** | **`use()` ≠ "设备命名空间就绪"**：后端懒加载 + 容器关 `TORCH_DEVICE_BACKEND_AUTOLOAD` ⇒ 拼 `"npu:0"` 报 `Expected one of cpu, cuda, …` ⇒ **conformance 整轮 ABORT**（不是用例失败） | 框架路径（`conformance/runner.py` 的 warm-up） | **910C**（此前 conformance 跑不通的**真因**） | warm-up **之前**先经后端触碰一次设备（`backend.device_count()`） | warm-up 路径可跑（910C conformance **13/13 + 6/6**） |
+| **第 12** | `acl.init()` 的 **`100002`＝`ACL_ERROR_REPEAT_INITIALIZE`（重复初始化）被当成失败** ⇒ pyACL 被误判不可用；`flagos` 侧连带把 `memory_stats` 降级为进程级（`total_mb=0`） | 后端适配层（`flagos` + `ascend`） | 910C | 接受 `rc ∈ {0, 100002}`；其余非零按码表分级 | `memory_stats` 返回 **`memory_scope='device'`** 且 `total_mb>0` |
+| **第 13** | **torch_fl `Event.query()` 语义缺口**：流上有工作时**恒 False**、**`ev.synchronize()` 成功后仍 False**、空流时真时假 ⇒ `wait_host()` **假超时** | **厂商运行时**（torch_fl，非我方缺陷） | 910C | 登记 `known_issues: FLAGOS-EVENT-QUERY-SEMANTICS` + 全变体实测矩阵；`wait_host()` 的 `False` 须读作「**未确认完成**」 | smoke 该项仍如实 **FAIL**（**不掩盖**）；已推荐改用阻塞 `synchronize()` / 显式依赖 |
+| **第 14** | **OOM 注入在 `memory_stats["total_mb"]=0` 时静默退化成 `torch.empty(0)`**：不报错、不占显存，**却仍记"已注入"** ⇒ 假证据 | 验证资产（`proto_error_recovery_loop.py`） | 910C（第 12 条的连带后果） | `total<=0` 时**回退默认估值并打印提示** | 错误闭环 `oom` 项由「未触发异常」恢复为 `L1_RESOURCE` |
+| **第 15** | **`init_process_group("hccl")` 早于 `use()`** ⇒ `hccl` 后端未注册 ⇒ `AssertionError: Unknown backend type hccl`（**厂商集合通信后端名也要先加载扩展才注册**） | 验证资产（`proto_train_leg.py`） | 910C（**训练腿切 torch_npu** 时暴露） | 初始化进程组**之前**先 `use()` + 触碰设备；并给 `ascend` 补默认 `DC_DIST_BT=hccl` | 训练腿 `TRAIN_LEG_PASS 6/6`（`dist=hccl`） |
 
 **一句话（第二轮补充）**：第 9 条是**错误归因**里最坏的一种 —— 把"环境/初始化失败"报成
 "设备同步超时"，下游会按 L3 去 `replay`，而正确动作是 L2 的 `raise`（**动作反了**）。
 第 10 条则是**类型层面的雷**：名字叫"统一**错误**对象"却不能 `raise`。
 工具 A/B 说明：**自检工具自身的质量问题会伪装成"后端没问题"**（跑不动 = 没结论，而"跑不动"很
 容易被当成"不需要跑"）。
+
+**一句话（第三轮补充）**：第 11/15 条是**同一根因的两种表现** ——
+「**厂商扩展是懒加载的**」⇒ 凡是**要拼厂商专有字符串**（设备串 `"npu:0"`、集合通信后端名 `"hccl"`）的地方，
+**都必须先经后端触碰一次设备**，否则框架根本不认识那个名字。
+这类缺陷的表象极具误导性：`Expected one of cpu, cuda, …`、`Unknown backend type hccl`
+**看着像"框架不支持/环境缺包"，实则是我方调用顺序问题**。
+第 13 条则相反：那是**真的厂商缺陷**，唯一正确的处理是**如实登记并保留红灯**，不是改判据让它变绿。
 
 **一句话**：第 6 条是**"看起来通过"的最危险形态**——记录里字段齐全、业务继续、五项闭环全绿，
 只有交叉核对 `mapped` 与 `graded_by` 才发现两字段互相矛盾。第 7、8 条则说明
@@ -291,6 +306,127 @@ ABC 实例化时不会拦（实例化检查只能拦抽象方法）；② `smoke
 
 ---
 
+### 2.8 第 11–15 条（第三轮，910C 完整复核暴露）
+
+#### 第 11 条：`use()` 之后设备命名空间并未就绪 ⇒ conformance **整轮 ABORT**
+
+**现象**（910C，2026-09-22）：
+
+```text
+CONFORMANCE_ABORT: 后端 'ascend' 初始化失败: Expected one of cpu, cuda, ipu, xpu, ... :
+device type at start of device string: npu
+```
+
+`flagos` 同样（`… device string: flagos`）。**注意形态**：不是某条用例失败，而是**后端初始化阶段就崩**
+（`CONFORMANCE_ABORT`），所以看起来像"这个后端根本不可用"。
+
+**根因链**（逐段实测）：
+
+| 步 | 实测 |
+|---|---|
+| 容器环境 | `TORCH_DEVICE_BACKEND_AUTOLOAD=0` ⇒ torch **不自动注册**厂商后端 |
+| 裸 `import torch` | `hasattr(torch, "npu") == False` |
+| `runtime.use("ascend")` 之后 | 仍为 `False` —— **`use()` 不触发厂商扩展导入**（后端是懒加载） |
+| 调一次 `backend.device_count()` 之后 | 变为 `True` ✅ |
+| `conformance/runner.py` 的 warm-up | `torch.zeros(1, device=f"{device}:0")` —— 恰好在**任何触发加载的调用之前** |
+
+**为什么以前没暴露**：`kunlun` 的 `device_type` 是 `"cuda"`，属 torch **内置**命名空间，无需注册 ⇒
+P800 一直正常。**这是"跨后端不对称"的又一例**：只有部分后端会踩到。
+
+**处置**：`_setup_backend()` 在 warm-up 前插入 `_ = backend.device_count()`，
+并把"**凡拼设备串前必须先经后端触碰一次设备**"写成纪律（记入手册）。
+
+**验证**：910C conformance **13/13 + 6/6 全绿**（修复前为整轮 ABORT）。
+
+#### 第 12 条：`100002` 是「重复初始化」，不是错误
+
+`flagos` 的 `memory_stats` 最初降级为进程级，`memory_degraded_reason` 给出真因：
+
+```text
+'... total_mb': 0, 'memory_scope': 'process', 'memory_degraded_reason': 'acl.init rc=100002'
+```
+
+查 CANN 头文件确认语义（`acl/acl_base.h`）：
+
+```c
+static const int ACL_ERROR_NONE = 0;
+static const int ACL_ERROR_REPEAT_INITIALIZE = 100002;
+```
+
+⇒ **torch_fl 已初始化过 ACL**，此处再 `init` 必然返回该码，**它不是失败**。
+原先"非零即失败"的写法把 pyACL 判成不可用 ⇒ `memory_stats` 降级 ⇒ `total_mb=0`。
+**同一处缺陷在 `ascend` 的 `acl` 属性也存在**（同类风险：把"可用"误判为"不可用"，
+使有界同步静默降级、能力凭空丢失），已一并修正。
+
+> **与第 9 条同源**：第 9 条是"非零 rc 一律当超时"，本条是"非零 rc 一律当失败" ——
+> 共同纪律：**非零 rc 的语义必须逐码确认，不能一律套一个结论**。
+
+**验证**：`memory_stats` 现返回 **`memory_scope='device'`**、`total_mb=62740` / `free_mb=62363` /
+`used_mb=377`（设备级，与 `ascend`/`kunlun` 同口径），smoke 该项由 FAIL 转 PASS。
+
+#### 第 13 条：torch_fl `Event.query()` 语义缺口（**厂商问题，如实保留红灯**）
+
+**实测矩阵**（每个变体独立进程，见 `910C/probes/ev_matrix_20260922.log`、`ev_matrix2_20260922.log`）：
+
+| 变体 | 结果 |
+|---|---|
+| 空流 / 默认流 上 record | `query()` 返回 `True`（**但 3 轮里有 1 轮全 False ⇒ 不稳定**） |
+| **流上有工作**时 record | **恒 `False`（4/4）** |
+| 流上有工作 + `torch.flagos.synchronize()` 后 | **仍恒 `False`** |
+| 流上有工作 + **`ev.synchronize()` 成功返回后** | **仍 `False`（语义自相矛盾）** |
+| 未 record 的事件 | `False` ✅（与契约一致） |
+
+⇒ 该 `query()` **不能作为"是否完成"的判据**；依赖它的 `wait_host()` 会**假超时**。
+
+**处置（刻意不"修绿"）**：登记进后端 `known_issues`（`FLAGOS-EVENT-QUERY-SEMANTICS`，severity=high，
+含复现率、根因层、规避方式、上报对象、证据位置）；统一 `wait_host()` 的 `False` 必须读作
+「**未确认完成**」而非「确认未完成」；建议等完成用阻塞 `synchronize()` 或`显式依赖`路径。
+**smoke 该项保持 FAIL**（`42 通过 / 1 失败`）——**这是当前唯一未消除的红灯，且它是厂商缺陷**。
+
+#### 第 14 条：OOM 注入在参数退化时**静默跳过**（假证据）
+
+`inject_oom()` 用 `runtime.memory_stats(0)["total_mb"]` 算"3 倍显存"：
+
+```python
+total = int(stats.get("total_mb", 60000))   # 旧写法：只有"抛异常"时才回退默认值
+n = int(total * 1024 * 1024 * 3)
+return torch.empty(n, dtype=torch.uint8, device=dev)
+```
+
+第 12 条导致 `total_mb = 0`（**不抛异常**）⇒ `n = 0` ⇒ `torch.empty(0)`：
+**既不报错也不占显存**，而错误闭环记录里仍写着"已注入" ⇒ 记录显示
+`[oom(L1_RESOURCE 期望)] 未触发异常`，**看起来像后端缺陷，实为测试工具的证据污染**
+（与"硬编码昇腾错误码"属同类问题）。
+
+**处置**：`total <= 0` 时回退默认估值 **并打印提示**（提示中说明"若后端确实拿不到设备总量，
+应在后端侧修，勿在工具里掩盖"）。
+
+**验证**：修复后错误闭环 `oom` 项恢复为 `L1_RESOURCE / retry`，
+910C 训练腿（`ascend`）错误闭环达 **5 闭环 / 0 跳过 / 0 失败**。
+
+#### 第 15 条：`init_process_group("hccl")` 早于厂商扩展加载 ⇒ `Unknown backend type hccl`
+
+**背景**：910C 训推统一 `torch_npu` 后首次跑训练腿即踩到：
+
+```text
+raise AssertionError(f"Unknown backend type {backend}")
+AssertionError: Unknown backend type hccl
+```
+
+**根因**：`proto_train_leg.py` 里 `dist.init_process_group(DIST_BT)` 在第 124 行，
+而触发 `torch_npu` 导入的 `runtime.use(BACKEND)` 在第 135 行 ——
+**`hccl` 这个后端名要厂商扩展被 import 后才在 c10d 注册**，此时还不认识它。
+
+⇒ **与第 11 条同根**：厂商扩展懒加载 ⇒ **凡是拼厂商专有字符串（设备串 / 集合通信后端名）之前，
+都必须先经后端触碰一次设备**。已把这条写进脚本注释与手册。
+
+**处置**：① `use(BACKEND)` + 触碰设备提前到 `init_process_group` 之前；
+② 给 `ascend` 补默认 `DC_DIST_BT=hccl`（原本没有默认值，会落到 `gloo` ⇒ **静默退化为纯 CPU 集合通信**）。
+
+**验证**：训练腿 `TRAIN_LEG_PASS 6/6`、`dist=hccl`，三类通信对照全对。
+
+---
+
 ## 3. 判据非空转验证（新增判据必须能真的失败）
 
 | 判据 | 非空转证据 |
@@ -339,9 +475,22 @@ ABC 实例化时不会拦（实例化检查只能拦抽象方法）；② `smoke
 |---|---|---|---|---|
 | **P800**（kunlun） | ✅ 39/0/1 跳过 | ✅ 5/0 | ✅ smoke **46/0** · conformance **13/13 + 6/6** · 错误闭环 **5/0/0** · 图捕获**契约内 4/4** · 配额 3/3 | 第 6 条复验 `mapped=False`/`error_code=None`；第 10 条 `raise`/`except` 可用 |
 | **MLU590**（cambricon） | ✅ 39/0/0 | ✅（本机） | ⏳ **本轮真机复跑未做** —— 2026-09-22 晚间两台寒武纪主机 SSH 均超时（P800/910C 同刻正常，属该站点网络问题） | 判据口径变更后需重跑 smoke + 图捕获（旧 JSON 可**复算**为"契约内 4/4 + G4 容忍"，但新判据的**新鲜证据待补**） |
-| **910C**（ascend / flagos） | ✅ ascend **35/0/1** · flagos **32/0/2**（**在 910C 容器内**实跑，无设备） | ✅ 5/0 | ⛔ **未做** —— 宿主带卡容器并发名额被占满（见 §5.1） | 第 7/8/9/10 条的真机复验仍待补 |
+| **910C**（ascend） | ✅ **35/0/1**（容器内实跑） | ✅ **5/0** | ✅ **smoke 52/0** · **conformance 13/13 + 6/6** · **训练腿 6/6**（torch_npu + HCCL，2 卡/50 步）· **错误闭环 5/0/0** | **第 7/8/9/10/11/12/14/15 条均已真机复验**；第 13 条为**厂商缺陷**，如实保留红灯 |
+| **910C**（flagos，**已转为备用**） | ✅ 32/0/2 | ✅ 5/0 | ✅ conformance 13/13 · 错误闭环 4/0/0 · smoke **42/1**（唯一 FAIL＝第 13 条厂商缺陷） | 2026-09-22 起**训练腿不再走本后端**（口径统一为 torch_npu），保留用于备用/历史复现 |
 
-### 5.1 ⛔ 910C 真机验证被"并发名额"阻塞（需协调，非代码问题）
+### 5.1 ✅ 910C"并发名额"阻塞已解除（2026-09-22）
+
+> **结论**：清空宿主全部带卡容器后，`acl.init()` 立即返回 **0**、`get_device_count()` = **(16, 0)**、
+> `set_device(0)` = 0 ⇒ **全部 16 chip 可用**。此前的卡点确为**他人容器占的名额**，与我们容器自身配置无关。
+>
+> **口径细化（新实测）**：该约束**按"挂载设备的容器数"计，与是否有活跃计算无关** ——
+> 停容器前实测 16 个 chip **全部** `No process in device`（全场零计算）时 `acl.init()` 仍为 **500000**；
+> 且**起容器本身不被拦**（已有 5 个 Up 时仍能起第 6 个），**只有设备 init 失败**。
+> ⇒ 判定"能否上机"看 `docker ps` 里挂 davinci 的容器数，不要看 `npu-smi` 的进程列或 `Health`。
+
+#### 原始记录（保留）
+
+
 
 | 项 | 实测 |
 |---|---|
@@ -393,3 +542,15 @@ CUDA_VISIBLE_DEVICES=2 DC_BACKEND=kunlun python3 prototype/probes/probe_graph_ca
    （只在"第一次真的 `raise` 它"时炸）。建议规范里明确其基类，并加一条最小判据（`raise`/`except` 可用）。
 7. **自检工具必须证明自己"离线"**：stub 只替换部分命名空间时，真机上的厂商绑定会漏进来。
    建议把"未加载真实厂商运行时"作为工具自身的**判据**，而不是靠假设。
+8. **厂商扩展是"懒加载"，凡拼厂商专有字符串前必须先加载**（第 11、15 条）：
+   设备串（`"npu:0"`）与**集合通信后端名**（`"hccl"` / `"flagcx"`）都只有厂商扩展被 import 后才被
+   框架认识。建议在接口约定里明确：**"统一 API 的 `use()` 不保证厂商命名空间已注册；
+   任何构造厂商专有字符串的调用点，必须先经后端触碰一次设备"**，并提供 `backend.device_count()`
+   这类"最小触碰"约定。这条对**接入脚本/示例代码**尤其重要 —— 它们最容易直接拼字符串。
+9. **厂商集合通信后端名必须有默认值**（第 15 条）：缺默认值时会落到 `gloo`，
+   造成**静默退化为纯 CPU 集合通信**（训练照样跑完、loss 照样降，但设备侧通信没验到）。
+   建议：**未探测过的芯片，宁可报错退出，也不给兜底**（本项目已对 `cambricon` 采用该做法）。
+10. **厂商缺陷不可"改判据变绿"**（第 13 条）：遇到真实厂商缺陷时，正确做法是
+    **登记 `known_issues` + 保留红灯 + 给出规避路径与上报对象**。
+    把判据放宽（或把该项改判 SKIP）会让下游误以为能力可用 —— 与"降级必须整组一致"是同一原则的对偶面：
+    **该降的要整组降，该红的要留着红。**

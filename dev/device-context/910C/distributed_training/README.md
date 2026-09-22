@@ -58,6 +58,8 @@ distributed_training/
 ## 4. 运行注意
 
 - 训练腿锁定镜像的设备后端是 **flagos（torch_fl）**，禁止 torch_npu 共存；需 `AUTOLOAD=0` 且先 `import torch_fl`
+  > ⚠️ **2026-09-22 口径已变更**：训练腿统一改走 **`npu`（torch_npu）**，原权宜例外取消；
+  > 本节描述仅适用于**仍使用 `flagos` 后端**的场合。见 `dev/stack.lock.910c.yaml` 的 `per_leg.train`。
 - 容器内需补装 `transformers`
 - 带卡容器并发上限 3；与推理腿串行
 - 2 卡启动示例：
