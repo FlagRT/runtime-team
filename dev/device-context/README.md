@@ -1,22 +1,40 @@
 # 设备上下文（device-context）· 主看板
 
-> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-09-09
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-09-23**
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
-> 统一基座配置：**`dev/stack.lock.910c.yaml`**（锁定镜像、使用规则、两条腿约束）
+> 统一基座配置：**`dev/stack.lock.910c.v2.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
+> 本方向状态文件：**`dev/device-context/STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
+> 基座工作草稿：**`dev/stack.lock.910c.yaml`**（本方向工作副本，留在特性分支不直接 PR；
+> **每周三**按设备上下文与多流 Stream 进展评估：无更新以总组 v1 为准，有更新写入草稿并同步 STATUS.md）
+>
+> 📖 **下游子方向请先读 §6「文档总目录」**——按效力分层（规范/效力 · 操作手册 · 参考记录）给出每份文档的一句话说明
+> 与四条阅读路径；**要按统一接口对接读 §6.1，要起服务 / 接新芯片 / 做复核读 §6.2**。
+>
+> 当前状态：**两实例（昇腾 910C / 昆仑芯 P800）阶段 0–5 全部完成，并已通过职责验收（10 项全绿）** ——
+> 在**厂商 torch 插件统一原型**下逐项重跑：离线 35/0 与 39/0 · 对称性 5/0 · 冒烟 52/0 与 46/0 ·
+> conformance 13/13 + 6/6 双侧 · 多流 8/8 + 4/4 + 3/3 · 训练腿 6/6 与 6/6（**4075.4** / **3533.5** tok/s）·
+> 推理腿 14/14 与 13/13（+1 如实跳过）· 服务化 `SERVE_STANDARD_PASS` 双侧 · 错误闭环 5/0/0。
+> 路线 B（torch_fl）已**整体退出原型**（后端删除，`use("flagos")` 如实报 `BackendNotFound`）。
 
 ---
 
-## 1. 目录结构（三部分）
+## 1. 目录结构：**一份原型 + 两个芯片实例**
 
 | 目录 | 定位 | 内容 |
 |---|---|---|
-| **`prototype/`** | **我们制定的统一标准**（基座/接口/实现/验证） | 统一运行时 API、Backend 注册表与后端实现（ascend / flagos）、conformance 用例与 runner、两条腿自验证脚本与结果、接口约定与设计文档 |
-| **`distributed_training/`** | 分布式训练既有工作 | 训练侧 conformance 与探针资产、训练脚本与通信工具、通信缺陷补丁、训练映射与报告 |
-| **`distributed_inference/`** | 分布式推理既有工作 | 推理侧 conformance、探针、错误码工具、TP 对照、推理映射与阶段报告 |
+| **`prototype/`** | **芯片无关的统一标准**（我们制定的规范、实现与判据） | 统一运行时 API、Backend 注册表与后端实现（`ascend` / **`kunlun`**）、conformance 用例与 runner、两条腿自验证脚本、**接口约定与事件语义契约**、原型设计、月度计划、**职责验收报告**（`docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`） |
+| **`910C/`** | **第一个落地实例（昇腾）** —— ✅ 已完成 | 分布式训练与推理既有工作、910C 专属文档（ACL 错误码表、双侧映射、阶段总结、错误闭环、镜像诊断） |
+| **`P800/`** | **第二个接入实例（昆仑芯）** —— ✅ 阶段 0–5 完成 | 环境汇总、五域基线、接入方案、根因核对、阶段 3/4 与镜像等价性验证、全量进度报告、**探针脚本与原始证据** |
 
-顶层保留：`README.md`（本看板）、`docs/`（通用与历史文档）、`probes/`
-（`docker-compose.yml` 与 `dev/memory` 目录已由组内于 2026-09-09 删除）
-三个目录各有分支看板：`prototype/README.md`、`distributed_training/README.md`、`distributed_inference/README.md`
+顶层保留：`README.md`（本看板）、`STATUS.md`（方向状态）、`.env.example`
+各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`
+
+> **划分原则：原型与规范是芯片无关的，放在外面；芯片专属的落地实例资产按芯片分目录。**
+> 新芯片接入 = 在 `prototype/` 下**新建一个 backend** + 跑通 conformance，
+> **不复制任何既有芯片的实现**（详见 `910C/README.md` §1 铁律）。
+>
+> 注：原型注册表**在册后端多于本分支展开的实例目录** —— `prototype/runtime/backends/` 另含 1 个厂商后端，
+> 其**接入实例目录未随本分支提供**；后端代码与 `--backend <名>` 命令均可用，只是实例文档不在此处。
 
 ---
 
@@ -25,76 +43,120 @@
 | 项 | 状态 |
 |---|---|
 | PR #11 | 已于 **2026-09-02 合入 dev-1.0**（157 文件），当时为旧扁平结构（`benchmarks/`） |
-| 本分支在此后 | ① 仓库重组为三部分 ② 新增统一原型 `prototype/`（统一 API + Backend 注册表）③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 |
-| 当前相对 dev-1.0 | **领先 45 提交**（+5653 / −7） |
-| 下一轮合入 | 按 `dev/stack.lock.910c.yaml` 的**合入把关五条**走流程 |
-
+| 本分支在此后 | ① 仓库重组 ② 新增统一原型 `prototype/` ③ 基于原型的训推复跑 ④ 错误注入→恢复闭环 ⑤ **P800 第二实例接入** ⑥ **按芯片重组目录（原型 + `910C/` + `P800/`）** —— ⑤⑥ 已随 **PR #19** 合入 |
+| **PR #19** | 已于 **2026-09-17 合入 dev-1.0**：**P800 第二实例接入 + 按芯片重组目录**（一份原型 + 两个芯片实例），241 文件（+6591/−179，GitHub 重命名识别后口径） |
+| **本轮已合入 dev-1.0（2026-09-23）** | `prototype/`、`910C/`、`P800/` 三个子树按当前形态**整体同步进 dev-1.0**（181 文件 +14854 / −507），并**删除 dev-1.0 上残留的路线 B 后端**（`prototype/runtime/backends/flagos/`）；`README.md`（本看板）与 `STATUS.md` 同步更新为**两实例口径** |
+| 当前相对 dev-1.0 | 本方向**未合入**的内容：第三个芯片实例目录（按约定**不随本分支推送**）、基座工作草稿 `dev/stack.lock.910c.yaml`（按约定不 PR）、以及本分支上的历史批次记录 |
+| 下一轮合入 | 按 `dev/stack.lock.910c.v2.yaml` 的**合入把关五条**走流程 |
 
 ---
 
-## 2. 当前状态总览（910C 实跑证据）
+## 2. 当前状态总览
+
+### 2.1 原型（芯片无关）
 
 | 项 | 状态 | 证据 |
 |---|---|---|
-| 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37 |
-| 昇腾后端（torch_npu，推理腿） | ✅ | conformance **13/13 + 6/6**、推理腿自验证 **10/10** |
-| FlagOS 后端（torch_fl，训练腿） | ✅ | conformance **13/13**（锁定训练镜像） |
-| 训练腿 2 卡分布式微调（验收模型） | ✅ | loss **15.45 → 11.15**（50 步）、2117 tok/s、通信三类对照（all_reduce / all_gather / P2P）全对 |
-| 推理腿单卡推理 · 前向形态 | ✅ | 向量区分度 **0.638**、66–79 句/s、无 NaN |\n| 推理腿单卡推理 · **服务化形态** | ✅ | vLLM OpenAI 兼容服务，**10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4ms）、超长输入 → **L2_PARAM/raise** 且业务继续 |
-| 通信栈 | ✅ | 上层 `torch.distributed(flagos)`，底层 `flagcx`（镜像 canary 两 rank passed） |
-| **错误注入 → 恢复闭环**（验收标准 3） | ✅ 两条腿均通过 | 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放，业务继续）；训练腿 **4 闭环 / 1 跳过 / 0 失败**（超时因后端无有界同步，如实跳过）。归因核查已推翻此前两条"发现"（详见 `prototype/docs/ERROR_RECOVERY_LOOP_20260909.md` §3） |
+| 统一运行时 API + Backend 注册表 | ✅ | `prototype/runtime/`，真机 37/37（910C）/ 42/0（P800） |
+| Backend 抽象与接入规范 | ✅ | 13 个 `@abstractmethod` 对应五域；`registry._KNOWN_BACKENDS` 含 `ascend` / `kunlun`（另有 1 个厂商后端在册，见 §1 注） |
+| **《新芯片接入手册》** | ✅ | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`：判别路径 · 13 抽象清单 · 8 步流程 · **验收清单** · 跨芯片坑 · 上报模板 |
+| **《组内服务启动标准》** | ✅ | `prototype/scripts/serve_standard.sh`（**下游起服务唯一入口**，跨芯片只改 `DC_BACKEND`）+ `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`；**910C / P800 真机均 `SERVE_STANDARD_PASS`**（910C 就绪 30 s + 生成冒烟 8 tokens；P800 就绪 25 s + 冒烟维度 1024）；**09-22 两实例同形态验收**（新增 `SERVE_FORM=embed`）—— 910C 35 s、P800 25 s 就绪，均 PASS |
+| **环境普查脚本** | ✅ | `prototype/scripts/preflight_env.sh`（接入手册 §1 的 7 项可执行化）；新芯片接入的第 0 步，产出即环境报告 |
+| **《两实例验证复核清单》** | ✅ | `prototype/docs/VERIFICATION_MANIFEST_20260920.md`：**10 条**"声明 → 命令 → 判据"最小复现表 · 证据索引（含"当前结论 = 哪一份"）· **缺口 G1–G8** · 复跑阻塞项 · 证据命名规范 |
+| conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，各后端结果并列可比 |
+| 组件打包 | ✅ | Git tag **`runtime-v0.2.0`** + `prototype/RELEASE_NOTES_v0.2.0.md`（第二实例接入版；上一版 `runtime-v0.1.0`） |
 
----
+### 2.2 910C 实例（第一个落地实例，✅ 已完成）
 
-## 2.1 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+| 项 | 状态 | 证据 |
+|---|---|---|
+| 后端（`ascend` = torch_npu，**两条腿统一**） | ✅ | conformance **13/13 + 6/6**；冒烟 **52/0** |
+| 训练腿 2 卡分布式微调 | ✅ | **现口径 torch_npu + HCCL**：loss **15.4498 → 11.1479**（50 步）、**3954–4402 tok/s**（本轮验收复跑 **4075.4**）；⏹ 路线 B 历史线 2212.9 tok/s |
+| 推理腿（单卡前向） | ✅ | **14/14 `INFER_LEG_PASS`**：维度 1024、区分度 0.6391、77.49 句/s、p50 38.31 ms |
+| 推理腿（服务化） | ✅ | **`SERVE_STANDARD_PASS`**（统一脚本，embedding 形态 35 s 就绪、维度 1024、范数 1.000000）；另有历史逐项自验证 **10/10** |
+| **错误注入 → 恢复闭环** | ✅ | 推理腿 **5 闭环 / 0 失败**；训练腿（`ascend`）**5 闭环 / 0 跳过 / 0 失败** |
+| ⭐ **职责验收（09-22 傍晚）** | ✅ **10 项全绿** | 离线 35/0 · 对称性 5/0 · 冒烟 52/0 · conformance 13/13+6/6 · 多流 8/8+4/4+3/3 · 训练腿 6/6 · 推理腿 14/14 · 服务化 PASS · 错误闭环 5/0/0 ⇒ 见 `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
 
-本轮在 910C 上跑的两条腿，**都是基于本目录的统一原型**（经 `runtime.use(...)` 接入设备）：
+→ 详见 `910C/README.md`
 
-| 腿 | 脚本 | 接入方式 | 模型 | 形态 |
-|---|---|---|---|---|
-| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | `runtime.use("flagos")` + `set_device(local_rank)` | Qwen3-Embedding-0.6B | 2 卡 torchrun 微调（底层 flagcx） |
-| 推理腿 | `prototype/runtime/proto/proto_infer_leg.py` | `runtime.use("ascend")` + `set_device(0)` | Qwen3-Embedding-0.6B | 单卡 transformers 前向 |
+### 2.3 P800 实例（第二个接入实例，✅ **阶段 0–5 完成** + 镜像等价性已验证，09-22 验收 10 项全绿）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| ⭐ **职责验收（09-22 傍晚）** | ✅ **10 项全绿** | 离线 39/0 · 对称性 5/0 · 冒烟 **46/0** · conformance **13/13+6/6** · 多流 **8/8**（S12 如实不支持）+ 图捕获 4/4 + 配额 3/3 · 训练腿 **6/6**（**3533.5 tok/s**）· 推理腿前向 **13/13+1 跳过**（53.28 句/s、p50 56.12 ms）· 服务化 **`SERVE_STANDARD_PASS`**（25 s 就绪）· 错误闭环 **5/0/0** ⇒ 见 `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
+| 阶段 0 环境与基线 | ✅ | 8× P800（96 GB/卡，全空闲）、1.5 TiB 内存；五域基线 + 接入路线调研 |
+| 阶段 1 单卡接入 | ✅ | `kunlun` backend 落地；conformance **13/13 + 6/6**；smoke **42/0** |
+| 阶段 2 训练腿（多卡） | ✅（**标注条件**） | 两 rank **TRAIN_LEG_PASS 6/6**；loss **15.4488 → 11.1481**；**3482 tok/s**（09-14 首测；**09-22 验收复跑 3533.5**） |
+| 阶段 3 推理腿（单卡前向） | ✅ | **INFER_LEG_PASS 13/13**（1 项如实跳过 `vendor_code_map`）：维度 **1024**、区分度 **0.6392**、**53.12 句/s**、p50 **56.17 ms**、真实参数异常 → **L2_PARAM/raise** 且业务继续 |
+| 阶段 3 补 推理腿（vLLM 服务化） | ✅ | **SERVE_LEG_PASS 10/10**：区分度 **0.4102**、**30.70 句/s**、p50 96.4 ms、超长输入（6001 tokens）→ HTTP 400 → **L2_PARAM/raise** |
+| 阶段 4 错误闭环（两设置对照） | ✅ | 设/不设 `XPU_EVENT_KL3_ENABLE` 两组均 **闭环 5 / 跳过 0 / 失败 0**，结果**逐字节一致**（除时间戳）⇒ 关闭该变量不损失诊断能力 |
+| **官方 `-base` 镜像等价性验证** | ✅ **09-20** | 全部结论在官方推荐镜像上复现：conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、推理腿 `detail` **14/14 逐字相同**、**KL3 挂死一致重现（A 组 3/3）** ⇒ **建议以官方 `-base` 入锁**（配方须含 `flagtree` 补齐步骤） |
+| **多流 Stream 16 项基线** | ✅ **09-20** | **14 通过 / 1 如实标注不支持（S-12 流优先级，上游缺陷）/ 1 不适用**；探针 **`STREAM_SEMANTICS_PASS 8/8`**（与 910C **逐项一致**）；**S-7 图捕获首测 `5/5`**、S-16 补测 2000 流无限制 ⇒ 据此为 `kunlun` 补上 `graph_capture` 能力声明 |
+| 阶段 5 收敛 | ✅ **09-20 完成** | 《新芯片接入手册》+ 接口约定修订建议 + 原型 release **`runtime-v0.2.0`**，见 `P800/README.md` §0 |
+| **已知厂商缺陷** | ⚠️ 已定性 | KL3 事件同步概率性挂死（现用镜像 16/18 ≈89%；**官方镜像上 A 组 3/3**），归属**厂商运行时层**（算子层与编译层已硬证据排除，**镜像因素亦已排除**） |
+| **框架缺陷（第 4 例）** | ✅ 已修复 | 错误对象**跨模块类不相等** → `FlagosError.disposition` 取 `KeyError`；修在**框架层**（新增 `coerce_category` / `normalize_error`），后续接入不会重犯 |
+
+→ 详见 `P800/README.md`
+
+### 2.4 关于"基于统一原型的训推复跑"（易混淆点，务必看清）
+
+两条腿**都是基于 `prototype/` 的统一原型**（经 `runtime.use(...)` 接入设备）：
+
+| 腿 | 脚本 | 接入方式 | 形态 |
+|---|---|---|---|
+| 训练腿 | `prototype/runtime/proto/proto_train_leg.py` | **后端无关化**（`DC_BACKEND` 环境变量驱动） | 910C → `use("ascend")`；P800 → `use("kunlun")` |
+| 推理腿（前向） | `prototype/runtime/proto/proto_infer_leg.py` | **后端无关化 V2**（`DC_BACKEND` 驱动；设备串取 `runtime.current().device_type`，同步走 `runtime.synchronize()`） | 单卡 `transformers` 前向 + 真实异常注入（910C / P800 同一份脚本） |
+| 推理腿（服务化） | `prototype/runtime/proto/proto_infer_serve.py` | 同上 | vLLM OpenAI 兼容服务（910C 108 句/s / P800 30.70 句/s，两实例均 10/10） |
+| 错误闭环 | `prototype/runtime/proto/proto_error_recovery_loop.py` | 同上（补 `DC_BACKEND`） | 910C 两后端各自跑通；P800 两设置对照均跑通 |
 
 但**不是**把历史那两套训推用统一原型重跑了一遍：
 
-- `distributed_training/` 的 910C 双卡 DDP（Qwen2.5-1.5B，2481 步 loss 1.95）是**旧代码路径**
+- `910C/distributed_training/` 的双卡 DDP（Qwen2.5-1.5B，loss 1.95）是**旧代码路径**
   ——直接 `import torch_npu` + `torch.distributed`，`runtime.use` 出现 **0 次**；
-- `distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
+- `910C/distributed_inference/` 的 vLLM + TP（Qwen3-4B）同样是旧路径。
 
-**如实标注的缺口**：
-
-1. ~~推理腿尚未做 vLLM 服务化~~ → **已于 2026-09-09 补齐**（见上表服务化形态，10/10）；
-2. 历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
-
+**如实标注的缺口**：历史模型（Qwen2.5-1.5B / Qwen3-4B）尚未在统一原型上复跑。
 
 ---
 
 ## 3. 快速入口
 
 ```bash
+# 原型自检与 conformance（任一后端）
 cd dev/device-context/prototype
-python3 runtime/smoke_runtime.py                                    # 冒烟自检
-python3 runtime/conformance/runner.py --backend ascend               # 昇腾后端（推理腿镜像）
-python3 runtime/conformance/runner.py --backend ascend --cases infer_cases
-python3 runtime/conformance/runner.py --backend flagos               # FlagOS 后端（训练腿镜像）
-python3 runtime/proto/proto_infer_leg.py                             # 推理腿自验证
-torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练腿 2 卡微调
+python3 runtime/smoke_runtime.py                          # 冒烟自检（不传 --backend 则自动挑选可用后端）
+python3 runtime/conformance/runner.py --backend ascend    # 昇腾后端
+python3 runtime/conformance/runner.py --backend kunlun    # 昆仑芯后端（P800）
+
+# 两条腿（后端由环境变量决定）
+torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py     # 训练腿
+python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 ```
+
+**P800 侧**：探针与原始证据见 `P800/probes/`；**可复现命令统一入口**见
+`prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` §6（含镜像补齐、conformance、两条腿、KL3 对照）；
+根因取证见 `P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`。
+
+> ⚠️ **若在官方 `-base` 镜像上跑**，开工前须先补齐 `triton`（否则推理腿服务化报
+> `Failed to infer device type`）：`pip install flagtree===0.7.0rc3+xpu3.6 --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple`，
+> 并设 `PYTHONPATH=/env/FlagGems/src`（两条均为实测硬前置，详见
+> `prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` §2.1.1 C）。
 
 ---
 
 ## 4. 关键约束（务必先读）
 
-**`dev/stack.lock.910c.yaml` 置顶规则：带卡容器并发上限 3。**
+**`dev/stack.lock.910c.v2.yaml` 置顶规则：带卡容器并发上限 3（910C）。**
+（P800 无此限制，但**用卡前必须 `xpu-smi` 挑「连续且空闲」的卡并记录用卡**）
 
 - 超限后 `acl.init()` 返回 **500000**（`ACL_ERROR_INTERNAL_ERROR`），表现为 `device_count=0`、设备"消失"
 - 出现该现象**第一时间核查并发容器数**，不要先怀疑镜像/驱动/代码
-- 两条腿**串行**执行（跑完一条停掉再起下一条）
 
-| 腿 | 锁定镜像 | 设备后端 | 额外约束 |
-|---|---|---|---|
-| 训练 | `flagrt/ascend-operator-runtime-comm:0.1.3` | **flagos（torch_fl）** | 禁止 torch_npu 共存；`AUTOLOAD=0` 且先 `import torch_fl` 再 `import torch`；容器内补装 `transformers` |
-| 推理 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | — |
+| 腿 | 芯片 | 镜像 | 设备后端 | 额外约束 |
+|---|---|---|---|---|
+| 训练 | 910C | `flagrt/ascend-operator-runtime-comm:0.1.3` | **`npu`（torch_npu）** | 训练腿 2026-09-22 已统一 torch_npu；用容器内只装 torch_npu 的解释器即物理隔离（**镜像未切换**） |
+| 推理 | 910C | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | **npu（torch_npu）** | 选卡 `ASCEND_RT_VISIBLE_DEVICES` |
+| 训练／推理 | P800 | 现用 `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`；**建议入锁** `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base`（等价性已验证） | **kunlun（`torch.cuda`）** | 选卡 `CUDA_VISIBLE_DEVICES`；需 `FLAGCX_ADAPTOR=klx` + 显式 `import flagcx`；**不设 `XPU_EVENT_KL3_ENABLE`**（见 `P800/README.md` §3）；若用官方 `-base` 须先补 `triton` 并设 `PYTHONPATH=/env/FlagGems/src` |
 
 ---
 
@@ -102,22 +164,160 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 
 | # | 动作 | 状态 |
 |---|---|---|
-| 1 | 仓库重组为三部分 + 看板重写 | ✅ 本轮完成 |
-| 2 | **错误注入 → 恢复闭环**（验收标准 3，设备侧原语 + 真实证据） | ✅ 两条腿均通过 |
-| 3 | 组件 v0.1 打包下发（README / 接口约定 / 自验证脚本） | 🔲 下一步 |
-| 4 | 与分布式方向对齐通信接口约定（见 `prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |\n| 5 | **补推理腿 vLLM 服务化形态**（验收标准 2） | ✅ 10/10 SERVE_LEG_PASS |
-
+| 1 | 仓库重组 + 看板重写 | ✅ |
+| 2 | 错误注入 → 恢复闭环（910C 两条腿） | ✅ |
+| 3 | 组件 v0.1.0 打包（Git tag + Release note） | ✅ |
+| 4 | **P800 第二实例接入**（`kunlun` backend + conformance 13/13 + 6/6） | ✅ |
+| 5 | **P800 训练腿**（多卡，标注条件） | ✅ |
+| 6 | **按芯片重组目录**（原型 + `910C/` + `P800/`） | ✅ |
+| 7 | **P800 推理腿**：单卡前向 13/13 + vLLM 服务化 10/10 | ✅ |
+| 8 | **P800 错误闭环**：设/不设 `XPU_EVENT_KL3_ENABLE` 两设置对照，结果逐字节一致 | ✅ |
+| 9 | **吞吐差异拆解**（服务化 vs 前向：约 70% 在 vLLM 引擎路径、30% 在 HTTP；`--enforce-eager` 非瓶颈） | ✅ |
+| 10 | **官方 `-base` 镜像等价性验证 + 镜像选型**（全部结论复现、KL3 缺陷与镜像无关） | ✅ |
+| 11 | **P800 阶段 5 收敛三件套**：《新芯片接入手册》（8 步流程 + 验收清单 13 项）+ 接口约定修订建议（6 条）+ 原型 **release** `runtime-v0.2.0` | ✅ **本轮** |
+| 12 | 与分布式方向对齐通信接口约定（`prototype/docs/DESIGN_DIST_COMM_20260908.md`） | 🔲 待回复 |
+| 13 | **多流 Stream 16 项验收基线**对 P800 逐项比对（探针 8/8、S-7 图捕获首测 5/5、S-16 补测 2000 流） | ✅ **本轮**（内容随 10 月提交） |
+| 14 | **《组内服务启动标准》**：把 910C/P800 两套启动脚本收敛为**一套**（`prototype/scripts/serve_standard.sh`），供各方向统一复用；**两实例真机均验证通过**（v1.1 补服务入口就绪 / 生成形态冒烟 / 容器内卡快照降级） | ✅ |
+| 15 | **两实例全量对称复核**（当前代码上跑）：smoke 51/0（ascend）· 42/0（kunlun）、conformance 13+6 双侧全绿、语义基线 8/8 双侧、推理腿 14/14、训练腿 6/6（**loss 与历史逐位吻合**）、错误闭环 5/0/0 ⇒ **复核缺口 G1/G2 关闭**，11 份自证证据入库 | ✅ |
+| 16 | **修第 5 个「跨后端不对称」缺陷**（对称复跑挖出）：`ascend`（及当时在册的路线 B 后端）未回填错误对象的 `backend` 字段（`kunlun` 已回填）+ smoke 判据对声明 `error_map` 的后端**不公平**（给无厂商码消息却要求走 `code_map`） | ✅ |
+| 17 | **原型侧扩展与工具补齐**：注册表 / 统一启动脚本按接入流程扩展；新增**离线契约自检工具** `prototype/scripts/backend_offline_check.py`（无设备即可跑：stub 厂商命名空间 + 真实厂商运行时阻断器，逐条对应接口约定 / conformance 同口径），并回写接入手册 §4.4 | ✅ |
+| 18 | **跨后端对称性审计**（原型侧收口产出）：挖出 **3 个跨后端缺陷 + 2 处证据污染** —— ① 无码表后端"诚实降级"只降 `graded_by`、`mapped`/`error_code` 未降 ⇒ **假"确定分级"**（`kunlun` 同款）；② **某后端声明 `device_state` 却无实现**（910C 训练腿当时所用后端，属路线 B，已删除）；③ 该后端的 `info()["supports"]` 手写第二份键名清单 ⇒ 已声明能力恒显 False。**离线自检工具扩到三家可用 + 显式 SKIP 机制 + 崩溃改判 FAIL**，并加 4 条防回归判据（均做过**非空转验证**） | ✅ |
+| 19 | **910C 复核（网络恢复后）暴露 2 个新缺陷**：④ **`ascend` 的 `acl.init()` 返回值未检查** ⇒ 把"ACL 初始化/参数错误"**冒充成"设备同步超时"**（真机链：`acl.init`=500000 → `set_device`=107002 → `sync`=107000 → 却抛 `TimeoutError`；下游会按 L3 去 `replay`，**动作反了**）。修复=按 rc 分级，**只有已知超时码**才映射 `TimeoutError`；错误码表增补 `500000`（注明来源 `acl_base_rt.h`）；为 `ascend` 登记首条 `known_issues`。⑤ **统一错误对象 `FlagosError` 跨层类型不一致**（`api` 层是纯 dataclass **不能 `raise`**、`conformance` 层是 `Exception`）⇒ 修为继承 `Exception`。**两处均由复核挖出，且 ⑤ 是修 ④ 时才暴露的** | ✅ **本轮** |
+| 20 | ⭐ **910C 训推口径统一（本轮决定项）**：全组统一基座 = Qwen3-0.6B **训推** + 原型接入的**厂商 torch 插件路线** ⇒ 训练腿由路线 B（torch_fl）切到 **`npu`（torch_npu）**，**v1 的「权宜例外」正式取消**。做法：用容器内带 torch_npu 的解释器（`venv-infer-a`，**无 torch_fl ⇒ 物理隔离**，不触发镜像"禁止共存"校验）；**镜像本身未切换**。实测（2 卡/50 步/Qwen3-Embedding-0.6B）：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**（torch_fl 线 15.4497→11.1515）、**3954–4402 tok/s**（torch_fl 线 2212.9 ⇒ **+79~99%**）；统一口径全量复核：smoke **52/0** · conformance **13/13+6/6** · 训练腿 **6/6** · 错误闭环 **5/0/0**。**过程中又挖出第 15 条缺陷**：`hccl` 后端名要厂商扩展 import 后才注册，`init_process_group("hccl")` 在 `use()` 之前会报 `Unknown backend type hccl` | ✅ **本轮** |
+| 21 | **910C 复核第二轮（网络恢复 + 名额释放后）**：挖出 **第 11–14 条缺陷** —— ⑪ **`use()` 不等于"设备命名空间就绪"**（拼 `"npu:0"` 报 `Expected one of cpu, cuda, …` ⇒ conformance **整轮 ABORT**，这是此前 910C 上 conformance 跑不通的真因）；⑫ `acl.init()` 的 **`100002`＝重复初始化**被误判为失败（连带把 `memory_stats` 降级成进程级）；⑬ **torch_fl `Event.query()` 语义缺口**（流上有工作时恒 False、`synchronize()` 成功后仍 False，已入 `known_issues`）；⑭ **OOM 注入在 `total_mb=0` 时静默退化成 `torch.empty(0)`**（假证据）。全部已修并加防回归判据；P800 侧同步回归全绿 | ✅ **本轮** |
+| 22 | **自检工具自身两处问题**（都会伪装成"后端没问题"）：⑥ **"离线"自检并不离线**（stub 只换 `torch`，真机 `PYTHONPATH` 上的真实 `acl` 被 import 并访问硬件 ⇒ 910C 上直接 traceback）⇒ 新增**真实厂商运行时阻断器** + 为 `ascend` 注入**可控 rc 的假 pyACL**，并把"未以真实文件形式加载任何厂商运行时"设为**判据**；⑦ **未预期异常让整轮无汇总地崩掉**（踩到 2 次）⇒ 入口统一兜底。另新增 **`--all` 跨后端对称性自检**（硬判据 5 条 + 差异清单，当前 **5/0**），并补齐 `ascend` 的 `_CAPABILITY_KEYS` + `info()`（它此前是唯一没有 `supports` 映射的） | ✅ **本轮** |
+| 23 | **验证资产口径更正**：P800 报告 §3.1 的"S-7 按 910C 同口径 5/5"**不成立**（那 5 项与 910C 的 G1–G5 不是同一组判据，且**脚本与 JSON 均未归档**、不可复现）。按归档口径复跑：P800 **契约内 4/4 通过** + 1 项**上游契约外用法**不容忍；把「捕获区内切流」从判据**降为宽容度观察项**（两后端表现不一致 ⇒ **非能力差异**，非能力缺失），并加**条目隔离**（失败捕获会污染后续条目） | ✅ **本轮** |
+| 24 | **P800 全量真机回归**（改动后）：离线 **39/0** · 对称性 **5/0** · smoke **46/0** · conformance **13/13 + 6/6** · 错误闭环 **5/0/0** · 图捕获契约内 **4/4** · 配额 **3/3** | ✅ **本轮** |
+| 25 | **路线 B（torch_fl）整体退出原型**：`runtime/backends/flagos/` 目录删除，注册表 / 自检 stub / 复跑命令 / 训练腿分支一并清理 ⇒ `use("flagos")` 如实报 `BackendNotFound`（**断链而非禁用**）；历史资产按「保留 + 归档横幅」处置，索引见 `prototype/docs/ROUTE_B_ARCHIVED_20260922.md` | ✅ **本轮** |
+| 26 | ⭐ **两实例职责验收（09-22 傍晚）**：910C / P800 各 **10 项全绿** —— 离线 · 对称性 · 冒烟 · conformance 13+6 · 多流 16 项 · 训练腿 · 推理腿 · 服务化 · 错误闭环 ⇒ 见 `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` | ✅ **本轮** |
+| 27 | **待协调（外部）**：① 910C 带卡容器**并发名额**会被他人容器占满（`acl.init` = 500000 而芯片仍 `Health: OK`）；② `venv-infer-a` 的 torch 为 **2.11.0**，与「统一基座 torch 2.10」档位**存在版本差**，是否拉平待总组裁定 | ⛔ **待协调** |
 ---
 
-## 6. 文档索引
+## 6. 文档总目录（**下游按此取用**）
 
-- 统一标准：`prototype/docs/`（**阶段性总结**、接口约定、原型设计、职责框架、月度计划、通信路线、双侧全景、事件契约、错误码映射、镜像诊断）
-- 训练：`distributed_training/docs/` ｜ 推理：`distributed_inference/docs/`
-- 通用与历史：`docs/`（含 `PR_DEV_1_0_20260902.md`）
+> **先看这张表判断该读哪份**：文档分三层效力——**规范/效力文件**（你**必须遵守**，我们要走变更流程）、
+> **操作手册/标准**（照做即可）、**参考/实测记录**（描述我们当时怎么做的，不含承诺）。
+> 芯片专属结论一律放 `910C/`、`P800/` 目录下，**原型与规范侧（`prototype/`）芯片无关**。
+
+### 6.0 四条阅读路径（按你的角色选）
+
+| 你的目的 | 读这几份 | 顺序 |
+|---|---|---|
+| **我要按统一接口对接**（显存/分布式/监控/精度/算子/调度方向） | ① `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` → ② `prototype/docs/event_semantics_contract.md` → ③ 修订建议（了解将变项） | ①②③ |
+| **我要起推理服务** | ① `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md` → ② 脚本 `prototype/scripts/serve_standard.sh` | ①② |
+| **我要接入新芯片** | ① `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` → ② 参考实例（`P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md`，已完成的第 2 家） | ①② |
+| **我要复核我们说过的话** | ① `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（**10 条**命令） → ② 原始证据 `910C/probes/`、`P800/probes/` | ①② |
+
+### 6.1 规范 / 效力文件（**下游必须遵守**；变更需走流程）
+
+| 文档 | 回答什么 | 读者 | 变更流程 |
+|---|---|---|---|
+| `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md`（166 行） | **我承诺什么接口语义**：统一 API 面（`use` / 设备 / 流 / 事件 / 同步含超时 / 错误翻译 / 状态与恢复）、**Backend 插件接入规范（13 个抽象方法）**、两条纪律 | 运行时层各子方向 + 上层算子/编译层对接人 | 更新文档 → **知会全部下游** → conformance 回归 |
+| `prototype/docs/event_semantics_contract.md`（57 行） | **事件语义契约 E1–E4**（昇腾实测驱动的 v2 修订）：事件/流的同步与依赖语义边界 | 同上 | 同上 |
+| `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`（237 行） | **你们必须怎么起服务**：唯一入口 `serve_standard.sh`、参数表、**六条硬纪律**、三个已知行为、与自建脚本的关系 | 所有需要在国产芯片上起服务的方向与验收方 | 改脚本 + 改文档 → **两实例各跑一次** → 知会下游 |
+| `prototype/docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`（531 行） | **接口约定修订建议 9 条**（v1.1；P800 是现行约定的首次非昇腾检验）：`device_type`/`vendor` 分离 · `device_state` 入契约 · `.native` 逃生舱约束 + `record_stream` 能力位 · **错误对象跨模块类归一** · 有界同步降级语义 · `known_issues()` 入契约（**v1.1 另增第 7–9 条**）。每条含 ①现状 ②实测依据（带源码行号）③建议条文 ④兼容性 | 接口约定评审人、全部下游 | **尚未生效**——待裁定后并入接口约定，届时按 6.1 第 1 行走流程 |
+
+### 6.2 操作手册 / 标准（照做即可）
+
+| 文档 | 回答什么 |
+|---|---|
+| `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`（449 行） | **新芯片怎么接进来**：第 0 步环境风险前置 7 项 → 第 1 步厂商栈判别 4 条路径 → 第 2 步镜像就绪 5 条判据 → 第 3 步 13 个抽象方法清单 → 第 4 步 conformance（§4.4 含**离线契约自检**，无设备即可跑）→ 第 5 步两条腿 → 第 6 步错误闭环 → **可勾选验收清单 13 项** + 跨芯片坑 13 条 + 厂商缺陷上报模板 |
+| `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（134 行） | **怎么复核**：**10 条**「声明 → 命令 → 判据」最小复现表 · 两实例证据索引（含"当前结论 = 哪一份"）· 缺口 G1–G8 · **证据命名规范** |
+| `prototype/scripts/serve_standard.sh`（352 行） | **服务启动唯一入口**：`DC_BACKEND` 切芯片、`SERVE_FORM`（`generate` / `embed`）切形态（留空 = 各后端现状）；流程 = 服务入口就绪 → 设环境 → 清残留 → 用卡快照 → 启动 → 就绪轮询 → 功能冒烟 → 停机复查；verdict = `ready=1 且 smoke=1` |
+| `prototype/scripts/preflight_env.sh`（201 行） | **环境普查一键脚本**（= 接入手册 §1「环境风险前置 7 项」的可执行版）：只读、不装东西；含 docker 数据目录真实挂载点、torch 侧降级查询、网络源可达性、拓扑；缺项如实标注「未取得」，输出可直接作为环境报告 |
+| `prototype/docs/RUNTIME_PROTOTYPE_DESIGN_20260904.md`（314 行） | **原型怎么设计的**：五域划分、13 个抽象方法的来由、目录结构、验证方式（v0.1） |
+| `prototype/docs/RUNTIME_DC_STREAM_PLAN_20260907.md`（177 行） | **本层职责边界与方法**：设备抽象 / 多流 Stream / 错误码翻译 / 状态恢复的职责划分，与上下游分工，**多流验收基线 16 项的出处** |
+| `prototype/docs/RUNTIME_LAYER_MONTHLY_PLAN_20260908.md`（150 行） | **月度里程碑与交付物口径**（运行时层 9 月聚焦版） |
+
+### 6.3 参考 / 实测记录（描述"我们当时怎么跑的"，不含承诺）
+
+| 文档 | 回答什么 |
+|---|---|
+| `prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md`（335 行） | **两实例配置与依据**：镜像 / 模型 / 训推框架 / 参数逐项对照 + **为什么这么定**（依据写成可独立阅读的实测事实）+ §4 结果可比性说明 + §5 坑清单 + §6 可复现命令 + §7 未覆盖项。**主线汇报材料** |
+| `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` | ⭐ **跨后端对称性审计台账**：**第 6/7/8 条跨后端缺陷**（诚实降级三字段不一致 ⇒ 假"确定分级"；某后端声明 `device_state` 却无实现；`info()` 能力键名漂移）+ **2 处证据污染**（硬编码昇腾码 `507046`、L4 注入描述对无码表后端是错的）；每条给"现象 / 机制 / 归属 / 处置 / **防回归判据** / 各实例验证状态"，并含**判据非空转验证**与工具侧改进 |
+| `prototype/docs/IMAGE_SELECTION_GUIDE_20260920.md`（203 行） | 镜像怎么选：需求画像（5 条可执行判据）· 来源优先级（**2026-09-22 起 FlagOS 官方 `flagos-base`/`runtime`/`app` 体系列为最高优先级**）· **入档/入锁两道门槛**（含"谁定"）· 实操五步 |
+| `prototype/docs/IMAGE_REQUIREMENT_SPEC_20260920.md`（139 行） | **向上游要什么**：可查验的官方文档清单 · 我们镜像与官方推荐的差异 · 硬性 H1–H6 / 期望 E1–E5 / 可协商 N1–N3 三级需求 · **请总组裁定的三件事** |
+| `prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md` | **镜像血统对齐核查**：类脑（x-benchmark）只覆盖 FlagTree 算子线 · **FlagOS 官方镜像体系**（`flagos-base`/`runtime`/`app`，14 后端，匿名可拉实测）· **宿主驱动是选档第一判据** · 昆仑芯两条血统（FlagTree xpu3.6 vs FlagOS XRE 5.37.1）· **官方对 KL3 缺陷的印证** |
+| `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`（179 行） | ⭐ **两实例职责验收报告**：职责口径（五域 + 多流 16 项）· 10 项判定 × 各芯片实测 · 验收过程修复的 3 处缺陷 · 并发纪律（训练容器与推理容器不能同时持卡）· 复跑命令 |
+| `prototype/docs/ROUTE_B_ARCHIVED_20260922.md`（129 行） | **路线 B（torch_fl）退出归档**：删了什么 / 保留什么 / 残留全量清单 / 复跑清单 |
+| `prototype/docs/DESIGN_DIST_COMM_20260908.md`（69 行） | 2 卡分布式微调的通信路线思考备忘（**状态：思考结论，尚未实跑**）；与分布式方向的接口约定**待回复** |
+| `prototype/README.md`（216 行） | 原型分支看板：统一 API 面、目录结构、两实例验证状态、文档索引 |
+| `prototype/RELEASE_NOTES_v0.2.0.md`（156 行） | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
+| `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
+| `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
+| `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`（仓库根） | **分支级总结**（跨目录）：路线 A/B 选择依据 + 路线 A 设计方案 + 两实例实现进度与下一步。⚠️ **在 `kistich/device-context` 分支，未随 dev-1.0 提供** |
+
+### 6.4 芯片专属文档（**结论不迁移**，新芯片按手册新建）
+
+**6.4.1 `910C/docs/`（昇腾，第一实例）**
+
+| 文档 | 一句话说明 |
+|---|---|
+| `ACL_ERROR_MAP_20260901.md`（173 行） | ACL 错误码映射表建设记录（D10）：**108 条码 → L1–L4 分级依据**。⚠️ **不迁移**给新芯片 |
+| `ASCEND_910C_DC_STREAM_MAPPING_20260902.md`（809 行） | 910C 设备上下文 × Stream 双侧全景：职责映射与实测；**含 S-1～S-16 编号基线**（多流验收基线的口径来源） |
+| `DC_STAGE_SUMMARY_20260909.md`（171 行） | 设备上下文阶段性总结：两条腿证据并入 |
+| `ERROR_RECOVERY_LOOP_20260909.md`（150 行） | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
+| `DIAG_TRAIN_IMAGE_NPU_20260908.md`（64 行） | 训练腿锁定镜像 NPU 初始化失败排查记录 |
+| `DEVICE_CONTEXT_PLAN_20260827.md`（117 行） | 设备执行上下文方案定稿（8 月版） |
+| `PROGRESS_20260822.md`（84 行） | 8-22 阶段进度快照 |
+| `PR_DEV_1_0_20260902.md`（217 行） | PR #11 描述（同构 910C 职责验收，157 文件） |
+| `910C-env-issue-report.md`（59 行） | 容器内 `aclInit` 返 500000 问题记录（**根因 = DrvMng 容器上限 3**，已解决） |
+| `O3_getlasterror_fix.md`（179 行） | FlagCX O3 缺陷（`flagcxGetLastError` 存根完善）设计与实现 |
+| `O4_socket_seq_guard.md`（151 行） | FlagCX O4 缺陷（socket 协议无 tag 匹配）暴露点分析与加固 |
+| `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方 910C 对应镜像对照**（2026-09-22 新增）：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0.0 / py3.11 / torch 2.10.0 / triton 3.5.0 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外取消）⇒ 差异只剩镜像血统；⚠️ **官方 runtime 不含 FlagCX** ⇒ 若切它需另解 FlagCX。**仅登记，未切换**（同源登记在 `dev/stack.lock.910c.yaml` 的 `candidates:`） |
+
+**6.4.2 `910C/distributed_inference/docs/`（910C 推理既有工作）**
+
+| 文档 | 一句话说明 |
+|---|---|
+| `DEVICE_CONTEXT_INFERENCE_MAPPING_20260831.md`（398 行） | 设备上下文 × 分布式推理 · 工作与验证映射（**验收依据**） |
+| `DEVICE_CONTEXT_INFERENCE_PLAN_20260831.md`（148 行） | 推理 × 设备上下文/Stream 实现方案 |
+| `INFERENCE_P0_P1_RUN_20260831.md`（170 行） | 推理 P0/P1 首轮执行记录 |
+| `INFERENCE_P3_SERVE_STATE_ERROR_20260901.md`（191 行） | P3 服务化 × 设备状态/错误恢复执行记录（A8/A9/A10，验收闭环） |
+| `INFERENCE_QWEN3_TP_COMPARE_20260901.md`（104 行） | Qwen3-4B TP 数值等价性验证（⚠️ 须 greedy，temperature=1 必然发散） |
+
+**6.4.3 `910C/distributed_training/docs/`（910C 训练既有工作）**
+
+| 文档 | 一句话说明 |
+|---|---|
+| `DEVICE_CONTEXT_TRAINING_MAPPING_20260831.md`（90 行） | 设备上下文 × 分布式训练 · 映射与验收评估 |
+| `FLAGCX_CORE_DEFECT_FIXES_20260826.md`（293 行） | FlagCX 核心库原生 allreduce 缺陷修复全过程（死锁 P2 + 数据错乱 P6 + 显存 OOM P7） |
+| `netcc_chunk_race_investigation.md`（248 行） | net.cc chunk 流水线偶发数据错：源码级调研与修复方案 |
+| `flagcx_ascend_aline_validation_20260824.md`（63 行） | 昇腾 A 线验证报告 |
+| `4090_training_report.md`（58 行） | 4090 两卡 1.5B 训练报告（FlagCX NVIDIA 适配） |
+
+**6.4.4 `P800/docs/`（昆仑芯，第二实例）**
+
+| 文档 | 一句话说明 |
+|---|---|
+| `KUNLUN_P800_ENV_REPORT_20260914.md`（297 行） | 基础环境汇总（只读探测：8 卡 / 1.5 TiB / 384 线程 / 200 Gb RoCE / 拓扑分组） |
+| `KUNLUN_P800_BASELINE_PROBE_20260914.md`（178 行） | **五域基线实测**与缺失项归属判定 |
+| `KUNLUN_P800_ADAPT_PLAN_20260914.md`（453 行） | **接入工作方案**：定位与交付边界、接入路线、验收 6 条、阶段计划、风控；**§7.5 = 接入过程暴露的 3 个「只有非昇腾实例才暴露」的框架缺陷** |
+| `KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`（240 行） | 集合通信挂死结论核对与**责任层判定**（两要素条件、函数级定位到厂商 `.so`） |
+| `KUNLUN_P800_STAGE34_VERIFY_20260920.md`（240 行） | **阶段 3/4 验证**：推理腿 13/13 与 910C 同构对照 · 错误闭环两设置对照（逐字节一致）· **§3 第 4 例框架缺陷的根因与修复** |
+| `KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md`（288 行） | **官方 `-base` 镜像等价性验证**：§0 镜像速查（tag/digest/大小/获取与补齐三步）· 全部结论逐项复现 · **缺陷与镜像无关**（排除"是我们镜像的问题"）· 入锁建议 |
+| `KUNLUN_P800_STREAM_BASELINE_16_20260920.md`（219 行） | **多流 16 项逐项比对**：14 通过 / 1 如实声明不支持 / 1 不适用；S-7 图捕获首测 5/5；含一处自我纠错与证据形态差异说明 |
+| `PROGRESS_REPORT_20260914.md`（859 行） | 全量进度报告（910C 回顾 + P800 主体 + **待办按"谁来做"四分类** + 证据索引） |
+
+### 6.5 原始证据目录（复核用，勿只读结论）
+
+| 目录 | 内容 | 约定 |
+|---|---|---|
+| `910C/probes/` | 第一实例原始证据：一致性判据 / 语义基线 / 错误闭环 / 推理腿 / 训练腿（含 2026-09-22 对称复跑 `recheck_*` 7 份）+ 统一脚本验证日志 | `.log` 需目录内 `.gitignore` 开 `!*.log` 例外 |
+| `P800/probes/` | 第二实例原始证据：接入探针、两腿、服务化、错误闭环、镜像等价性对照（含 `recheck_*` 4 份） | 同上 |
+| `prototype/probes/` | **跨后端共用探针**（多流 16 项基线） | 命名规范见复核清单 §5 |
+
+> **当前阶段主线汇报材料**：`prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md`；
+> **历史全量进度**：`P800/docs/PROGRESS_REPORT_20260914.md`；
+> **上游镜像诉求**：`prototype/docs/IMAGE_REQUIREMENT_SPEC_20260920.md`。
 
 ---
 
 # 以下为历史看板原文（2026-08 ~ 2026-09，保留备查）
+
+> ⚠️ 以下为**历史原文**（2026-08 ~ 2026-09 的逐批记录），其中的目录路径为**重组前**的旧结构，
+> 阅读时请以本文件 §1 的现行目录结构为准。
+
 
 # device-context（设备执行上下文）项目
 
@@ -152,7 +352,12 @@ torchrun --nproc_per_node=2 runtime/proto/proto_train_leg.py          # 训练�
 | 需求 2 | 统一 Stream 语义/异步传输/页锁定/双缓冲/同步/错误码翻译/状态恢复 | Torch-FL 设备 API 层（csrc/runtime 内） |
 | 需求 3+4 | 张量并行/流水线并行下的跨卡同步与执行编排 | FlagCX（通信）+ 训练侧验证（本子方向用 2 卡训练验证 1+2 正确性） |
 
-## 目录约定（本子方向，位于 dev/device-context/ 下）
+## 目录约定（**历史区块 · 2026-09-16 重组前**）
+
+> ⚠️ **本节记录的是目录重组（2026-09-16）之前的旧扁平结构，已失效**。
+> **当前结构以本文档 §1「一份原型 + 两个芯片实例」为准**（`prototype/` + `910C/` + `P800/`）；
+> 本节保留仅作历史追溯，其中的 `docs/`、`probes/`、`benchmarks/` 路径已分别迁移到
+> `910C/docs/`、`910C/probes/`、`910C/distributed_*/`。
 
 ```
 dev/device-context/
@@ -294,7 +499,7 @@ docker exec -it flagos-device-context-dev-910c bash
 **验证过程**（决定性）：
 - 5 个挂设备容器时：所有容器 aclInit 均 500000（含 memory 组员容器）
 - 停掉 2 个闲置容器（剩余 3 个 = 上限）：同一容器 aclInit 立即恢复 `ret=0`、`device_count=16`
-- torch_fl 全链路验证：`is_available=True`、16 卡枚举、`flagos` 设备上真实矩阵乘计算 OK
+- **（路线 B 历史）** torch_fl 全链路验证：`is_available=True`、16 卡枚举、真实矩阵乘计算 OK
 
 **之前误判为"CANN 9.0.0 vs 驱动 25.5.0 版本不匹配"——已纠正**。官方兼容矩阵是"官方支持的最低驱动版本"而非"能否运行"；真正版本不兼容会报明确的版本校验错误，而非 500000 通用运行时错误；且 9.0.0+25.5.0 组合在 8-17 曾真实推理成功。
 
@@ -302,6 +507,9 @@ docker exec -it flagos-device-context-dev-910c bash
 - 多卡测试前检查挂设备容器数：`docker ps` + 数一下 --device davinci 的容器
 - DrvMng 上限 ≈3：超过需先停闲置容器（停他人容器前在群里打招呼）
 - 无需升级宿主驱动（25.5.0 → 25.5.1/2 为主机级变更，按上述证据大概率白干，仅需进入官方支持矩阵时才考虑）
+
+> ⚠️ **以下为历史记录区（2026-08-20 起按批次留痕）**：其中的路径（如 `docs/`、`benchmarks/`、`probes/`）
+> 是**当时的旧扁平布局**，不是当前结构；当前结构见 §1，文档现状见 §6。历史条目**只作追溯，不构成现状描述**。
 
 ## 2026-08-22 回归与一致性基线（Kistich）
 

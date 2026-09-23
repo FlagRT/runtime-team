@@ -7,8 +7,13 @@
   2. 统一错误对象：分级 → 处置策略映射、可观测字段
   3. Mock 后端：证明"新增后端 = 实现接口 + 注册"可行（kunlun stub 同此路径）
   4. 真实后端（ascend）：若环境有 torch_npu 则一并验证，否则跳过（不算失败）
+  5. **真实后端通用自检（后端无关）**：按注册表自动挑选可用后端，跑与厂商无关的契约检查；
+     能力相关项按 `supports()` 如实 SKIP
+     （2026-09-14 新增：昆仑芯接入时暴露「smoke 只覆盖昇腾、不覆盖其他后端」的缺口）
 
-用法：python3 smoke_runtime.py
+用法：
+    python3 smoke_runtime.py                     # 第 5 节自动挑选可用真实后端
+    python3 smoke_runtime.py --backend kunlun    # 指定后端
 """
 
 import sys
@@ -106,7 +111,14 @@ class MockBackend(RuntimeBackend):
     def recover_device(self, ordinal, mode="probe", reason=""): return True
 
 
-def main():
+def main(argv=None):
+    import argparse
+
+    ap = argparse.ArgumentParser(description="运行时框架冒烟测试（本地）")
+    ap.add_argument("--backend", default=None,
+                    help="指定第 [6] 节要自检的真实后端（默认自动挑选可用者）")
+    args = ap.parse_args(argv)
+
     print("=== 运行时框架冒烟测试（本地）===\n")
 
     # ── 1. 注册表机制 ──
@@ -228,6 +240,114 @@ def main():
             check("ascend 调用异常", False, f"{type(e).__name__}: {e}")
     else:
         print("  [SKIP] 本地无 torch_npu，昇腾后端留待 910C 验证")
+
+    # ── 6. 真实后端通用自检（后端无关；能力相关项按 supports 如实 SKIP）──
+    print("\n[6] 真实后端通用自检（后端无关）")
+    clear()
+    try:
+        from runtime.backends.registry import _KNOWN_BACKENDS as _known
+    except Exception:
+        _known = ("ascend", "kunlun", "cambricon")
+    loaded = runtime.discover(names=_known, verbose=False)
+    # 挑选优先级：先试"当前机器最可能装的那家"。顺序只影响"先试谁"，
+    # 依赖缺失 / device_count=0 都会被如实 SKIP 后继续试下一个。
+    order = [args.backend] if args.backend else ["cambricon", "kunlun", "ascend"]
+    picked = None
+    for name in order:
+        if name not in loaded:
+            print(f"  [SKIP] {name}: 未发现（依赖缺失或未实现）")
+            continue
+        try:
+            bk = use(name)
+            if bk.device_count() > 0:
+                picked = (name, bk)
+                break
+            print(f"  [SKIP] {name}: device_count=0")
+        except Exception as e:
+            print(f"  [SKIP] {name}: 初始化失败（{type(e).__name__}: {e}）")
+
+    if picked is None:
+        print("  [SKIP] 无可用真实后端，本节整体跳过（不计入失败）")
+    else:
+        name, bk = picked
+        print(f"  → 选中后端: {name}  (device_type={bk.device_type})")
+        try:
+            cnt = bk.device_count()
+            check("device_count > 0", cnt > 0, f"n={cnt}")
+            bk.set_device(0)
+            m = bk.memory_stats(0)
+            check("memory_stats 结构", set(m) >= {"total_mb", "used_mb", "free_mb"}, str(m))
+            check("memory_stats total_mb > 0", m.get("total_mb", 0) > 0, str(m))
+
+            st = runtime.create_stream()
+            ev = runtime.create_event()
+            check("统一 Stream 可用", st is not None and st.backend.name == name,
+                  type(st).__name__)
+            check("统一 Event 可用", ev is not None and ev.backend.name == name,
+                  type(ev).__name__)
+            with st.context():
+                pass
+            check("Stream.context 上下文可用", True)
+            ev.record(st)
+            check("Event.record + wait_host 有界返回", ev.wait_host(timeout_ms=2000) is True)
+
+            check("probe_device(0)", bk.probe_device(0) is True)
+            rec = bk.recover_device(0, mode="probe")
+            check("recover_device 返回 dict（统一契约）",
+                  isinstance(rec, dict) and "recovered" in rec, str(rec))
+
+            # 错误翻译：厂商错误码按**能力相关**处理（见 conformance/cases.py f1 的同一修正）
+            fe = bk.translate_error(RuntimeError("CUDA error: invalid device ordinal"),
+                                    location="smoke")
+            check("translate_error 返回统一类型", isinstance(fe, FlagosError))
+            check("translate_error 回填后端名", fe.backend == name, fe.backend)
+            # 2026-09-22 修正（910C 对称复跑暴露）：本注入消息**不含厂商错误码**，
+            # 却要求声明了 error_map 的后端必须走 code_map —— 判据不公平
+            # （ascend 对无码消息正确地走了 message_hint，被误判失败）。
+            # 改为两条诚实判据：①无码消息不得伪称 code_map；②含厂商码样例必须走 code_map
+            # （样例由各家后端自带 SAMPLE_CODED_ERROR，无样例则如实 SKIP 正向检查）。
+            sample = getattr(bk, "SAMPLE_CODED_ERROR", None)
+            if bk.supports("error_map"):
+                check("声明 error_map → 无码消息不伪称 code_map（诚实）",
+                      fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                if sample:
+                    fe_c = bk.translate_error(RuntimeError(sample), location="smoke")
+                    check("声明 error_map → 含厂商码样例必走 code_map",
+                          fe_c.graded_by == "code_map", f"graded_by={fe_c.graded_by}")
+                else:
+                    print("  [SKIP] 该后端未提供 SAMPLE_CODED_ERROR，正向 code_map 检查跳过（如实）")
+            else:
+                check("未声明 error_map → 分级来源非 code_map（如实）",
+                      fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                check("未声明 error_map → mapped 必须为 False（诚实性）",
+                      fe.mapped is False, f"mapped={fe.mapped}")
+                # ⭐ 2026-09-22 新增（第 6 个跨后端缺陷的真机防回归判据）
+                #   共享翻译器的码表是单一厂商（昇腾 ACL）码表，抽取规则却通用（`ret=`/`error code is`）。
+                #   消息里出现一个**码表内**的数字时，它会给出 graded_by=code_map + mapped=True。
+                #   无码表后端必须把 graded_by / mapped / error_code **一起**降级，
+                #   否则 mapped=True（=确定分级）与 graded_by≠code_map 自相矛盾，把保守推断冒充成定论。
+                _fc = bk.translate_error(
+                    RuntimeError("AICORE exception, error code is 507015"), location="smoke")
+                check("码表内码串入 → graded_by 不得为 code_map",
+                      _fc.graded_by != "code_map", _fc.graded_by)
+                check("码表内码串入 → mapped 必须为 False（否则=冒充确定分级）",
+                      _fc.mapped is False, f"mapped={_fc.mapped}")
+                check("码表内码串入 → error_code 必须为 None（非本厂商码）",
+                      _fc.error_code is None, str(_fc.error_code))
+
+            # info() 与 supports() 自洽
+            info = bk.info()
+            caps = set(info.get("capabilities", []))
+            bad = sorted(k for k in caps if not bk.supports(k))
+            check("info.capabilities 与 supports() 自洽", not bad, str(bad))
+            sup_map = info.get("supports")
+            if isinstance(sup_map, dict):
+                mismatch = sorted(k for k, v in sup_map.items() if bool(v) != bk.supports(k))
+                check("info.supports 与 supports() 一致", not mismatch, str(mismatch))
+        except ModuleNotFoundError as e:
+            print(f"  [SKIP] {name} 依赖缺失（{e}）")
+        except Exception as e:
+            check(f"{name} 通用自检异常", False, f"{type(e).__name__}: {e}")
 
     print(f"\n=== 结果: {passed} 通过 / {failed} 失败 ===")
     return 0 if failed == 0 else 1

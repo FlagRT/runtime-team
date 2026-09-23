@@ -1,0 +1,38 @@
+{
+  "evidence_scope": "CPU/gloo host-only; NPU NOT RUN",
+  "verdict": "PASS",
+  "launcher_exit_codes": [
+    0,
+    0
+  ],
+  "world_size": 2,
+  "model_parameters": 421452,
+  "unique_gradient_tensors_checked_per_rank": 17,
+  "warmup_steps": 5,
+  "measured_steps": 50,
+  "native_vs_observed_loss_curve_max_abs_by_rank": [
+    0.0,
+    0.0
+  ],
+  "observed_gradient_communication_by_rank": [
+    {
+      "gradient_allreduce_calls": 100,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.07214783401286695,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    },
+    {
+      "gradient_allreduce_calls": 100,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.07352378596260678,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    }
+  ],
+  "oracle_update_max_abs_by_rank": [
+    1.862645149230957e-09,
+    1.862645149230957e-09
+  ],
+  "final_rank_parameter_max_abs": 0.0
+}

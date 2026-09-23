@@ -76,7 +76,7 @@ def _rebuild_real(ordinal: int) -> bool:
 def probe_device(ordinal: int, device: str = "npu", sync_fn=None, timeout_ms: int = 5000) -> bool:
     """轻量活性探针：在指定设备创建小张量、执行运算并同步（设备无关）。
 
-    - device: 设备名（"npu"/"flagos"/...）；sync_fn: 该设备的主机同步原语
+    - device: 设备名（"npu"/"cuda"/"mlu"）；sync_fn: 该设备的主机同步原语
     - 成功：设备可用（评估为可继续）；失败（异常/超时）：活性存疑（评估为需重建）
     - 注意：探针创建小张量即隐含设备上下文可用性验证；真实上下文重建
       依赖设备生命周期接口（厂商 Runtime 层），框架层最小近似为探针重试。

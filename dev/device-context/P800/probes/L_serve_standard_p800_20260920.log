@@ -1,0 +1,32 @@
+=========== 统一推理服务启动 开始 Sun Sep 20 12:48:42 CST 2026 ===========
+backend=kunlun dev=6 port=8200 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+--- 用卡前 ---
+| N/A   38C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+############ 启动 vllm serve ############
+  pid=25913  日志: /workspace/out_serve_std/vllm_serve.log
+  ✅ 服务就绪 t=25s
+--- 冒烟：/v1/embeddings ---
+  维度=1024 范数=1.000000
+
+############ 验证模式：停机 ############
+/workspace/prototype/scripts/serve_standard.sh: line 122: 25913 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+[verdict] SERVE_STANDARD_PASS
+=========== 结束 Sun Sep 20 12:49:14 CST 2026 ===========

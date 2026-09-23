@@ -3,10 +3,11 @@
 > 所有归档基座镜像的一览。详细 pin 清单以各 `<name>/v<N>/lock.yaml` 为准；本表只做索引。
 > "用途 / 使用约束" 见消费方文档（`dev/stack.lock.910c.v1.yaml`、`docs/` 阶段目标文档），本表不涉及。
 > 本文档里"官方"必须带主体名，三个主体（**华为昇腾官方** / **BAAI·FlagTree 官方** / **BAAI 内部（非发布物）**）的定义见 `README.md` §4.0。
+> 本索引按设备线分节归档，各节各自独立成谱系，不作跨设备版本对照。
 
-## 版本线：FlagTree ascend3.5
+## 版本线：FlagTree ascend3.5（昇腾 910C）
 
-> **BAAI·FlagTree 官方指南**（非华为）：**FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2 两条线，各自的 CANN / torch / triton / 基座镜像 / FlagTree 分支见手册）。
+> **BAAI·FlagTree 官方指南**：**FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2 两条线，各自的 CANN / torch / triton / 基座镜像 / FlagTree 分支见手册）。
 
 本目录归档的三个系列整套栈均落在该手册的 **ascend3.5** 线：
 
@@ -58,6 +59,24 @@ FlagCX 层改用公开 commit，不再有 `gaps` 段。详见
 |---|---|---|---|---|
 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` `@sha256:5cf8a2b6…` | **华为昇腾官方**镜像 | vLLM 0.20.2 · torch_npu · CANN · vllm_ascend | 🟢 华为昇腾官方（公共 registry，digest 锁定，已验证可拉） | `ascend-infer-vllm/v1/` |
 
+## 版本线：FlagTree xpu3.6（昆仑芯 P800）
+
+> **BAAI·FlagTree 官方指南**：**FlagTree xpu 用户手册**
+> <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu>（线号
+> xpu3.6，无 ascend 手册那样的多线分叉；手册当前展示的最新 flagtree 版本是
+> `0.7.0rc3+xpu3.6`）。
+
+本条目显式 pin 在 `flagtree 0.6.1+xpu3.6`（不跟随手册当前最新版本）——
+memory、device-context 两个子方向已各自验证过该具体组合可用，理由与实测
+证据见 `kunlun-operator-runtime/v1/lock.yaml`。
+
+## kunlun-operator-runtime 系列（昆仑芯工具链 + FlagGems 底座）
+
+| 层 | tag / 标识 | 血统 | 关键内置版本 | repro_status | 归档目录 |
+|---|---|---|---|---|---|
+| 基座 | `harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base` `@sha256:ea6d797a…` | ubuntu 22.04 | Python 3.10.18 · torch 2.9.0+cu129（CUDA 兼容层）· FlagGems `@73c5aff1`（editable，与本层运行时 pin 重合）· FlagCX `@3b43bdb2`（editable）· `vllm==0.13.0` · `transformers==4.57.1` · `vllm-plugin-fl`（editable） | 🟢 BAAI·FlagTree 官方（公开 harbor，本机已存在，digest 锁定） | `kunlun-operator-runtime/v1/lock.yaml` |
+| 运行时（**推荐默认底座**） | `flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64` (id `466ee5c61793`) | ← 上面的基座 | Python 3.10.18 · torch 2.9.0+cu129 · **flagtree 0.6.1+xpu3.6**（triton 3.6.0，pip 预编译 wheel，非源码构建）· FlagGems 4.2.1.rc.0 `@73c5aff1` | 🟢 functional-repro（训练 `TRAIN_LEG_PASS 6/6`、推理 `/v1/embeddings` 请求成功，各有一条使用前提；GEMM 编译崩溃等 4 项已知限制，见 `lock.yaml:known_issues`） | `kunlun-operator-runtime/v1/` |
+
 ## 当前生效版本
 
 | 系列 | 生效 tag | 目录 |
@@ -65,4 +84,6 @@ FlagCX 层改用公开 commit，不再有 `gaps` 段。详见
 | ascend-operator-runtime | `flagrt/ascend-operator-runtime:0.2.0-…` | `ascend-operator-runtime/v1/` |
 | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:0.1.3-…` | `ascend-train-comm/v1/` |
 | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `ascend-infer-vllm/v1/` |
-| （候选新血统，**未生效**，训练腿现网仍是上面的 v1；`dev/stack.lock.910c.v1.yaml` 未改） | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-…-flagcx0.13.0g4e0e0cb-arm64` | `ascend-train-comm/v2/` |
+| kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64` | `kunlun-operator-runtime/v1/` |
+
+> `ascend-train-comm/v2/` 是候选新血统，**未生效**（`dev/stack.lock.910c.v1.yaml` 未改，训练腿现网仍是上表的 v1），详见 §「ascend-operator-runtime-comm 系列」与「v2 候选血统」。

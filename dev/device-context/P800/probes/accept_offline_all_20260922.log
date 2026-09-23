@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/xpytorch_import_hook.py", line 78, in _custom_import
+    import torch_xmlir
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/xpytorch_import_hook.py", line 132, in _custom_import
+    module = builtins.__origin__import__(
+  File "/workspace/prototype/scripts/backend_offline_check.py", line 104, in find_spec
+    raise ImportError(
+ImportError: [offline-check] 已阻断真实厂商运行时 `torch_xmlir` 的导入（本自检必须离线运行）
+WARNING: import hook error: [offline-check] 已阻断真实厂商运行时 `torch_xmlir` 的导入（本自检必须离线运行）
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+==========================================================================
+跨后端对称性自检（--all）：硬判据 + 差异清单
+参与后端：['ascend', 'cambricon', 'kunlun']
+==========================================================================
+
+[表] 各家可观测形态
+  后端         device_type 能力数    info 键   supports 键 known_issues 码样例    
+  ascend     npu         13     10       13         1            有      
+  cambricon  mlu         10     15       12         4            -      
+  kunlun     cuda        9      13       12         1            -      
+
+[硬判据] 所有后端都必须成立
+  [PASS] 三家全部可加载（无异常） {}
+  [PASS] 对外必需方法齐备（info/supports/known_issues/device_state/recover/translate） {}
+  [PASS] info() 均提供 supports 映射 []
+  [PASS] 声明能力 ⊆ 能力全集（防键名拼错） {}
+  [PASS] 声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR []
+
+[差异清单] 允许存在，但每处都应有理由（不计失败）
+  · 能力 error_map          仅 ['ascend'] 声明
+  · 能力 recovery_real      仅 ['ascend'] 声明
+  · 能力 stream_priority    仅 ['ascend', 'cambricon'] 声明
+  · 能力 sync_timeout       仅 ['ascend'] 声明
+  · device_type 不同：['cuda', 'mlu', 'npu'] —— **这是设计而非缺陷**（设备串按命名空间，不按厂商；见接口约定修订建议第 1 条）
+  · supports 键集合不一致（各家的「已知能力全集」略有差异，如 ascend 保留历史键名 sync_timeout）
+
+==========================================================================
+对称性自检结果: 5 通过 / 0 失败
+⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。
+==========================================================================

@@ -1,0 +1,19 @@
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+[W922 09:26:05.826991242 ProcessGroupHCCL.cpp:1294] Warning: The watchdog timeout 180000ms(which is set by init_process_group) is less than or equal to HCCL execution timeout 1836000ms! The plog may not be recorded. (function ProcessGroupHCCL)
+[rank0]:[W922 09:26:08.172357541 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4075.4 tok/s(两卡合计) -> /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/accept_train_npu_20260922/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4075.5 tok/s(两卡合计) -> /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/accept_train_npu_20260922/train_leg_result_rank1.json

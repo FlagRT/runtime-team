@@ -12,6 +12,7 @@
 from runtime import use, set_device, create_stream, translate_error
 
 use("ascend")            # 选择后端（换芯片只改这一行）
+                         #   可用：ascend / kunlun / cambricon（均为厂商 torch 插件路线）
 set_device(0)            # 绑定设备
 s = create_stream()      # 统一流对象
 ```
@@ -37,7 +38,9 @@ runtime/
 ├── api/stream.py          # Stream / Event 统一封装（含 record_stream 纪律）
 ├── backends/base.py       # RuntimeBackend 抽象（接口规范，新芯片照此实现）
 ├── backends/registry.py   # 注册表（register/use/discover）
-├── backends/ascend/       # 昇腾后端（torch_npu + 已验证资产复用）
+├── backends/ascend/       # 昇腾 910C 后端（torch_npu，device_type=npu）
+├── backends/kunlun/       # 昆仑芯 P800 后端（torch.cuda 兼容层，device_type=cuda）
+├── backends/cambricon/    # 寒武纪 MLU 后端（torch_mlu，device_type=mlu）⚠️ 代码层已完成，尚未真机验证
 ├── conformance/           # 验收用例（13 例 + 6 例）与 runner
 ├── demos/demo_unified.py  # 设备无关演示
 └── smoke_runtime.py       # 接入自检（下游接入后先跑这个）

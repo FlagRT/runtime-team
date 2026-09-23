@@ -101,7 +101,7 @@ class RuntimeBackend(ABC):
                        reason: str = "") -> dict:
         """设备重建，统一返回 dict：{ordinal, mode, recovered, detail}。
 
-        2026-09-09 统一：此前 ascend 返回 bool、flagos 返回 dict，
+        2026-09-09 统一：此前不同后端返回类型不一致（有的返回 bool、有的返回 dict），
         同一接口跨后端返回类型不一致，上层无法统一处理（已按 dict 归一）。
         """
         """设备重建。
@@ -121,6 +121,18 @@ class RuntimeBackend(ABC):
     def stream_priority_range(self):
         """流优先级范围 (least, greatest)；不支持返回 None。"""
         return None
+
+    def known_issues(self) -> list:
+        """本后端已知的**上游/环境**问题清单（默认空）。
+
+        用途：接入方（其他子方向）读到后端即可获知该环境的坑与临时规避，
+        无需翻文档。每项为 dict，建议字段：
+            id / severity / scope / condition / symptom / root_cause_layer /
+            workaround / workaround_risk / report_to / evidence
+
+        纪律：只描述**已实测**的问题，须注明复现率与证据位置；不得把推测写成结论。
+        """
+        return []
 
     def supports(self, capability: str) -> bool:
         """能力查询，便于 conformance 做 stub-skip 报告。"""

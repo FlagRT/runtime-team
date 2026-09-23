@@ -1,0 +1,40 @@
+{
+  "evidence_scope": "910C/HCCL DeepFM integration; synthetic data; single run per mode",
+  "verdict": "PASS",
+  "launcher_exit_codes": {
+    "observed": 0,
+    "native": 0
+  },
+  "world_size": 2,
+  "warmup_steps": 5,
+  "measured_steps": 50,
+  "gradient_tensors_checked_per_rank": 17,
+  "gradient_reference_max_abs": 4.6566128730773926e-09,
+  "update_reference_max_abs": 3.725290298461914e-09,
+  "final_rank_parameter_max_abs": 0.0,
+  "native_vs_observed_loss_curve_max_abs_by_rank": [
+    2.384185791015625e-07,
+    2.384185791015625e-07
+  ],
+  "global_samples_per_second": {
+    "observed": 9513.507413902878,
+    "native": 10510.088185572522
+  },
+  "observed_gradient_communication_by_rank": [
+    {
+      "gradient_allreduce_calls": 100,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.02503590623382479,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    },
+    {
+      "gradient_allreduce_calls": 100,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.031347535783424973,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    }
+  ],
+  "performance_caveat": "Single diagnostic runs, not end-to-end throughput or speedup; exclude data generation and additional post-step validation collectives"
+}

@@ -31,7 +31,13 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 _CURRENT: Optional[str] = None
 
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
-_KNOWN_BACKENDS = ("ascend", "flagos", "kunlun")
+#: 2026-09-22：新增 cambricon（寒武纪 MLU，第三个接入实例）
+#:
+#: ⚠️ **2026-09-22 口径统一**：本清单只登记**厂商官方 torch 插件**路线的后端 ——
+#: `ascend`（torch_npu）/ `kunlun`（`torch.cuda` 兼容层，XPytorch）/ `cambricon`（torch_mlu）。
+#: 原路线 B 的后端已**整体删除**（不再是本原型的活跃或备用后端）；
+#: 路线 A/B 的取舍依据见 `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`。
+_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon")
 
 
 class BackendNotFound(RuntimeError):
@@ -55,7 +61,16 @@ def register(backend: RuntimeBackend, make_current: bool = False) -> RuntimeBack
     _REGISTRY[backend.name] = backend
     if make_current or _CURRENT is None:
         set_current(backend.name)
-    logger.debug("registered backend: %s", backend.info())
+    # 注意：此处**必须**避免急切求值 backend.info()。
+    # 2026-09-14 修复：原写法 `logger.debug("...: %s", backend.info())` 会无条件调用 info()，
+    # 而后端的 info() 常需加载厂商依赖（如 ascend 的 info() → `import torch_npu`）。
+    # 在缺少该依赖的环境上（如昆仑芯 P800），info() 抛 ModuleNotFoundError 会**穿透 register()
+    # 并中断整个 discover()**，违背本模块设计要点 2「发现失败仅告警、不中断」。
+    if logger.isEnabledFor(logging.DEBUG):
+        try:
+            logger.debug("registered backend: %s", backend.info())
+        except Exception as e:
+            logger.debug("registered backend: %s (info 不可用: %s)", backend.name, e)
     return backend
 
 
@@ -84,8 +99,15 @@ def discover(names=_KNOWN_BACKENDS, verbose: bool = False) -> List[str]:
             if verbose:
                 logger.warning("backend '%s' 缺少 build()/BACKEND 工厂", name)
             continue
-        backend = factory() if callable(factory) else factory
-        register(backend, make_current=False)
+        # 2026-09-14：工厂构造与注册一并纳入容错 —— 单个后端初始化失败
+        # 不得中断其他后端的发现（本模块设计要点 2）。
+        try:
+            backend = factory() if callable(factory) else factory
+            register(backend, make_current=False)
+        except Exception as e:
+            if verbose:
+                logger.warning("backend '%s' 注册失败: %s", name, e)
+            continue
         loaded.append(name)
     return loaded
 

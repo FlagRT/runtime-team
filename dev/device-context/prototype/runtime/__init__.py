@@ -5,7 +5,8 @@
 用户视角的全部入口。**同一份代码切换后端只改 use() 一行**：
 
     import runtime
-    runtime.use("ascend")            # 或 "kunlun"
+    runtime.use("ascend")            # 或 "kunlun"（昆仑芯 P800）/ "cambricon"（寒武纪 MLU590）
+                                     # 三家均为**厂商官方 torch 插件**路线（torch_npu / torch.cuda 兼容层 / torch_mlu）
     runtime.set_device(0)
     s = runtime.create_stream()
     fe = runtime.translate_error(exc, location="op:matmul")

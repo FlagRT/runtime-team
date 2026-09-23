@@ -58,6 +58,20 @@ def _setup_backend(backend_name: str):
     backend = runtime.use(backend_name)          # ← 唯一与芯片相关的调用
     device = backend.device_type
 
+    # ⚠️ 必须先**经后端**触发厂商扩展加载，再构造裸设备串。
+    #    torch 只有在厂商扩展被 import 之后才认识 "npu:0" / "cuda:0" / "mlu:0"；
+    #    而本方向容器明确关掉自动加载（`TORCH_DEVICE_BACKEND_AUTOLOAD=0`），
+    #    `use()` 本身**不**触发加载（后端是懒加载，见各 backend 的 torch/mod 属性）。
+    #    实测（2026-09-22，910C 真机）：
+    #      use("ascend") 之后 hasattr(torch, "npu") is False；
+    #      调一次 device_count() 之后变 True。
+    #    若跳过这一步直接 torch.zeros(device="npu:0")，会抛
+    #      RuntimeError: Expected one of cpu, cuda, ... : npu
+    #    ⇒ conformance **整轮 ABORT**（不是某条用例失败，而是后端初始化就崩）。
+    #    历史未暴露的原因：kunlun 的 device_type 是 "cuda"，属 torch 内置命名空间，无需注册。
+    #    ⇒ 纪律：**凡是拿到 device_type 后要自己拼设备串的地方，都必须先经后端触碰一次设备**。
+    _ = backend.device_count()
+
     # 预热：统一 API 走一次设备操作
     torch.zeros(1, device=f"{device}:0")
 
@@ -81,6 +95,9 @@ def _setup_backend(backend_name: str):
         "name": f"runtime:{backend.name}",
         "ver": getattr(runtime, "__version__", "0.1.0"),
         "count": backend.device_count,
+        # 后端能力查询：供用例区分「能力相关项」与「通用契约项」
+        # （2026-09-14 新增：昆仑芯无厂商错误码，f1 需据此放宽断言）
+        "supports": backend.supports,
     }
     return device, _sync, _event_factory, _stream_factory, _stream_ctx, _current_stream, env
 
@@ -119,6 +136,8 @@ def main():
         "stream": stream_cls,
         "stream_ctx": stream_ctx,
         "current_stream": current_stream,
+        # 能力查询（见 _setup_backend 中说明）
+        "supports": env.get("supports"),
     }
 
     mod = importlib.import_module(args.cases)

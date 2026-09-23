@@ -30,7 +30,7 @@ def case_s1_stream_order(ctx):
     y = torch.nn.functional.relu(x @ x).sum()
     ctx["sync"]()
     ref = torch.nn.functional.relu((x.cpu() @ x.cpu())).sum()
-    # 相对容差比较：flagos(aclnnMatmul) 与 CPU matmul 的数值实现差异（相对 ~2e-5），
+    # 相对容差比较：厂商算子实现（aclnnMatmul）与 CPU matmul 的数值差异（相对 ~2e-5），
     # S1 验证的是顺序正确性而非逐位一致
     ok = abs(y.cpu().item() - ref.item()) / max(abs(ref.item()), 1.0) < 1e-3
     return ok, f"流内顺序近似：链式运算结果与逐 CPU 参考相对误差 {abs(y.cpu().item()-ref.item())/max(abs(ref.item()),1.0):.2e}（<1e-3）"
@@ -100,15 +100,37 @@ def case_t2_inflight_protection(ctx):
 
 
 def case_f1_error_translation(ctx):
-    """F1 统一错误对象三维翻译：类别/位置/根因三投影（errors 独立模块）。"""
+    """F1 统一错误对象三维翻译：类别/位置/根因三投影（errors 独立模块）。
+
+    **厂商错误码按能力相关处理**（2026-09-14 修正，昆仑芯接入时暴露）：
+      - 后端声明 `error_map`（有厂商错误码映射表）→ 仍**要求** `error_code` 非空
+      - 未声明（如昆仑芯：厂商码不透出到 Python 异常，只能走消息规则）
+        → 不因缺码判 FAIL，改为要求 `mapped=False` 且类别/根因正确
+
+    本用例原先硬要求 `fe.error_code is not None`，但其自称只考「类别/位置/根因」三投影，
+    断言**超出自身契约**，且把昇腾侧的 `ret=XXXX` 特性当成了通用前提 ——
+    对无厂商码的后端恒 FAIL，与实现质量无关。
+    见接入方案 §7.3 修订建议 ③ 与 §7.4.2。
+    """
     from errors import translate_error
+    supports = ctx.get("supports") or (lambda _k: False)
     try:
         torch.randn(3, 4, device=ctx["device"]) @ torch.randn(5, 6, device=ctx["device"])
         return False, "未触发预期错误（形状不匹配应报错）"
     except Exception as e:
         fe = translate_error(e, location="stream:0/op:matmul")
-        ok = (fe.category.name in ("L2_PARAM", "L2")) and (fe.error_code is not None) and bool(fe.root_cause)
-        return ok, f"统一错误对象: {fe.category.name}(code={fe.error_code}) 位置={fe.location} 根因保留={fe.root_cause[:60]}"
+        base_ok = (fe.category.name in ("L2_PARAM", "L2")) and bool(fe.root_cause)
+        if supports("error_map"):
+            ok = base_ok and (fe.error_code is not None)
+            mode = "要求厂商错误码（后端声明 error_map）"
+        else:
+            ok = base_ok and (not fe.mapped)
+            mode = "无厂商码路径（未声明 error_map）：只考类别/位置/根因，分级来源如实"
+        return ok, (
+            f"统一错误对象: {fe.category.name}(code={fe.error_code}, "
+            f"graded_by={getattr(fe, 'graded_by', '?')}) 位置={fe.location} "
+            f"根因保留={fe.root_cause[:60]} | {mode}"
+        )
 
 
 # 契约覆盖清单（供 README 引用）
