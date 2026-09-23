@@ -1,89 +1,53 @@
 # 框架接入与算子调用适配（framework-adapter）
 
-> 负责人：顾宬（cgu135）｜当前阶段：模型来源 CPU 基线完成、NPU 初始化阻塞｜更新：2026-09-17
+负责人：顾宬 / cgu135。入口整理：2026-09-22。
 
-## 目标（一句话）
+复用框架入口和统一算子库，明确何时优先调用目标实现、何时保持原生，以及执行失败后的安全边界。本目录保存方向原型、部署配置与验证材料；正式算子内核和子库改动不搬入协调仓。
 
-复用框架已有入口和算子库，明确何时选择优化实现、何时保持同设备原生调用，以及执行失败后不能自动重试的边界。
+## 从哪里看
 
-## 当前阶段与现状
+| 你想知道什么 | 只需先看 |
+|---|---|
+| 现在做到了哪、下一步做什么 | [STATUS.md](STATUS.md)（唯一当前进度入口） |
+| 接着开发、恢复环境、运行测试 | [HANDOFF.md](HANDOFF.md) |
+| 最新模型结果及RMSNorm问题细节 | [09-22实验报告](docs/910C模型接入与安全回退-20260922.md)，RMSNorm定位见§8 |
+| 找对应日志、失败结果、版本和源码哈希 | [09-22证据目录说明](docs/evidence-model-20260922/README.md) |
 
-- 总组快速入口：[STATUS.md](STATUS.md)；开发续接：[HANDOFF.md](HANDOFF.md)；具体任务与接口草案：[9 月任务规划](docs/框架接入与安全回退-9月任务规划-20260909.md)。
-- 2026-09-16 新增：在锁定推理镜像中完成真实 0.6B 模型的 CPU FP32 对照，2 组输入、8 组模型来源算子用例通过，12 项探针控制测试通过。NPU 模型用例为 0，初始化报 507899，驱动日志为设备命名空间占用冲突。见 [本轮报告](docs/0.6B模型来源算子基线-20260916.md)。
-- 对齐 [910C 阶段目标 v1](../../docs/运行时层原型验证-战略目标-910C.v1.md) §5「调度」第 3 项：本月交框架接入与多级安全回退方案，不改变推理框架默认行为。训练编排、动态 Batch 不是本方向自动承担的任务。
-- 9 月 9 日周会后，下一步围绕 `Qwen/Qwen3-Embedding-0.6B` 梳理实际调用链和代表算子输入，先建立原生基线；额外适配探索单列，不作为统一基座验收成果。
-- 设备注册主线采用厂商官方插件，910C 推理腿为 `torch_npu`。锁定训练镜像中的 `torch_fl` 是阶段文件明示的例外；本方向不自行更换它，也不把 Torch-FL 改造作为当前前置任务。
+日常不必逐个读日志。当前结论看STATUS，核对数字再进报告和对应证据。
 
-已有验证均有范围限制，不能合称“三级安全回退完成”：
+## 代码地图与运行入口
 
-- 910C 历史实验镜像：vLLM dispatch 单测 275 项、真实 NPU 测试 74 项通过；微型随机 Llama 的 4 token 解码与 CPU 对照一致。不是 0.6B Embedding 模型验收。
-- PyTorch 独立同步原型：68 项测试通过（8 项控制/CPU、60 项 NPU）；支持作用域内 SiLU、RMSNorm 选择，不是 ATen 全局默认注册，异步互操作问题未闭环。
-- 多芯片探索：平头哥原生、FlagGems 直接调用、注册与退出恢复各 8 组通过；壁仞 BF16 原生 4 组通过、FP16 两条路径报错；昆仑芯仅完成 SSH/资源检查，尚无算子结果。
+以下路径相对本目录。统一命令从runtime-team根执行：
+`bash dev/framework-adapter/probes/run_checks.sh <模式> [参数]`。不带参数只显示帮助，不会连接服务器或启动容器。
 
-## 目录与代码归属
+| 用途 | 文件（probes/下） | 模式 |
+|---|---|---|
+| 当前模型接入逻辑 | [qwen_scoped_adapter.py](probes/qwen_scoped_adapter.py) | 被测试脚本调用；默认不准入任何算子 |
+| 原生模型与算子基线 | [qwen_embedding_baseline.py](probes/qwen_embedding_baseline.py) | `model-baseline` |
+| 接入、回退与模型对照 | [qwen_gems_validation.py](probes/qwen_gems_validation.py) | `qwen-gems`，保守示例显式准入SiLU |
+| RMSNorm同输入旁路诊断 | [qwen_rms_shadow.py](probes/qwen_rms_shadow.py) | `rms-shadow`，不替换模型输出 |
+| RMSNorm按角色分组替换 | [qwen_rms_ablation.py](probes/qwen_rms_ablation.py) | `rms-ablation`，仅实验 |
+| 控制测试 / 基线元数据测试 | [test_qwen_scoped_adapter.py](probes/test_qwen_scoped_adapter.py) / [test_qwen_probe_metadata.py](probes/test_qwen_probe_metadata.py) | `qwen-controls` / `metadata-tests` |
+| 全目录语法检查 | [run_checks.sh](probes/run_checks.sh) | `local`，不用卡、不导入torch |
 
-- `STATUS.md`：当前阶段、量化结果、阻塞、基座差异，供每周收拢。
-- `docs/`：任务规划、带日期的实验记录与原始证据；历史记录不替代当前状态。
-- `probes/`：本方向统一测试入口、独立接入原型和验证脚本。
-- `patches/`：独立子库改动的可追溯补丁，不会自动安装或应用。
-- `docker-compose*.yml`、`.env.example`：历史实验配置，保留复现，不能作为本月验收启动配置。
+硬件模式必须在准备好的环境运行，显式提供模型、runtime路径和新的结果文件名；参数及依赖见HANDOFF/报告。语法通过不等于功能通过。诊断脚本的completed/退出0不等于所有数值对照通过。
 
-正式算子内核由 FlagGems/厂商库提供，本方向不重复实现。已有 vLLM 改动位于独立仓库 `FlagRT/vllm-plugin-FL` 的 `cgu135/safe-op-fallback` 分支（`635ff6d`）；本次只向 runtime-team 提交方向入口、原型、补丁和证据，不推送该子库，也不将整个子库复制入协调仓。
+## 历史材料（按需查，不代表当前状态）
 
-## 任务看板
+| 日期 / 内容 | 报告 | 对应代码或证据 |
+|---|---|---|
+| 09-16 CPU模型基线与当时NPU阻塞 | [模型基线](docs/0.6B模型来源算子基线-20260916.md) | [证据](docs/evidence-model-20260916/)，旧[周报](docs/周报-20260916.md) |
+| 09-09 多厂商探索 | [多芯片验证](docs/多芯片环境与算子验证-20260909.md) | [cross_vendor_smoke.py](probes/cross_vendor_smoke.py)，`cross-vendor` |
+| 09-07 独立PyTorch原型 | [PyTorch接入](docs/PyTorch独立接入-20260907.md) | [pytorch_eager_adapter.py](probes/pytorch_eager_adapter.py)，`legacy-pytorch`；当前模型适配器仍复用其前置检查 |
+| 09-03 / 09-07 vLLM探索 | [最小验证](docs/安全回退最小验证-20260903.md)、[单卡联调](docs/910C单卡联调-20260907.md) | `legacy-vllm`，[子库补丁](patches/vllm-plugin-FL-safe-fallback.patch) |
+| 09-09 任务及接口草案 | [旧规划](docs/框架接入与安全回退-9月任务规划-20260909.md) | 月目标需结合09-17方案及09-21要求，不能仅据此排期 |
+| 整理前的入口全文 | [历史入口快照](docs/历史入口快照-20260922.md) | 含当时README / STATUS / HANDOFF，旧结论不作为当前事实 |
 
-| 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
-|---|---|---|---|---|
-| 既有原型、脚本与证据收拢 | 顾宬 | 已整理，按标准流程合入 dev-1.0 | 个人分支 | 统一入口可访问，历史/当前结果区分清楚 |
-| 锁定两套基座的差异核对 | 顾宬 | 推理镜像身份/版本已核对；训练腿未实测 | 总组、device-context | 记录镜像标识、包版本、后端、附加依赖 |
-| 0.6B 模型调用链与代表算子基线 | 顾宬 | CPU 2 组模型/8 组算子通过；NPU 初始化阻塞；vLLM 未运行 | 推理镜像、模型与可分配设备 | 1 份实际调用与输入记录，2 类候选算子的原生结果或明确不适用原因 |
-| 框架接入与安全回退方案 | 顾宬 | 任务/接口草案已整理，待联调完善 | 实际模型路径 | 1 份方案，覆盖选择条件、执行边界、注册恢复与后续验证 |
-| 下游接口确认 | 顾宬 | 未确认 | 总组指定对接方 | 至少 1 个下游方向 review 并留记录 |
-| 平头哥等额外适配 | 顾宬 | 探索结果保留 | 可用环境和主线进度 | 单独记结果，不冲抵本月 910C 验收 |
+`docker-compose*.yml`、`.env.example`为历史实验配置；[锁定推理容器脚本](probes/start_locked_infer_910c.sh)为已有部署复现入口，不要直接重建同名容器。所有资源与权限运行前重新检查。
 
-## 测试入口
+## 维护规则
 
-协作流程以根 README「标准提交流程」为准：在个人分支提交，快进同步本地 dev-1.0，将 dev-1.0 合入个人分支处理冲突，再将个人分支 merge 回 dev-1.0 并检查远端无分叉后 push；不走 PR。PR #16 已于 2026-09-17 关闭，main 仍须正式 PR，不直接修改其他子库。
-
-从 runtime-team 根目录运行：
-
-```bash
-# 默认仅显示帮助；local 只做语法检查，不导入 torch、不连接服务器、不用卡。
-bash dev/framework-adapter/probes/run_checks.sh
-bash dev/framework-adapter/probes/run_checks.sh local
-bash dev/framework-adapter/probes/run_checks.sh metadata-tests
-```
-
-历史 910C 重跑入口（仅在原宿主机、确认资源并人工启动自己的旧容器后执行；不是锁定环境验收）：
-
-```bash
-bash dev/framework-adapter/probes/run_checks.sh legacy-pytorch
-bash dev/framework-adapter/probes/run_checks.sh legacy-vllm
-```
-
-跨芯片探针在已准备好的容器内运行，必须显式选择设备和模式；各模式单独启动进程。镜像、物理/逻辑设备映射和超时命令见 [多芯片记录](docs/多芯片环境与算子验证-20260909.md)。
-
-```bash
-# 示例：平头哥只映射物理设备 1 时，exec 层仍须覆盖 CUDA_VISIBLE_DEVICES=0。
-bash dev/framework-adapter/probes/run_checks.sh cross-vendor --device cuda:0 --mode native
-```
-
-这些入口不会创建、启动、停止容器或安装依赖。`legacy-*` 只对历史个人容器执行已有测试，不操作其他容器。跨芯片命令必须在对应设备环境执行，不能在本机冒充真机结果。
-
-## 统一基座使用与安全边界
-
-当前基座以 [stack.lock.910c.v2.yaml](../stack.lock.910c.v2.yaml) 为准，使用总组锁定的训练/推理镜像与容器；v2 登记的新训练镜像仍为候选，不自行切换。需要补装的依赖及版本差异写入 STATUS，供总组收拢；未批准、未验证的依赖升级不进入验收结论。
-
-本轮创建的 `flagos-proto-infer-910c` 标注 `owner=cgu135`，锁定镜像未改，单设备、模型只读挂载，复现参数在 `probes/start_locked_infer_910c.sh`。CPU 对照显式选择 `--device cpu`，不是 NPU 出错后的自动回退；同名容器已存在时启动脚本拒绝覆盖。本轮未安装 FlagGems，镜像内也未查到该发行包。
-
-优先复用 [device-context 原型](../device-context/prototype/README.md) 的模型与设备入口。现有 `PreferGems` 只在历史 `torch_npu` 环境验证，不可直接套到 `torch_fl` 训练腿；也不向官方 vLLM 推理腿自动安装旧的 FL 补丁。
-
-执行前可因不兼容而选择同设备原生实现；执行异常立即上抛，不承诺自动重试、迁移设备或 CPU 回退。旧 vLLM 原型的 `runtime_fallback_safe` 为兼容既有注册仍默认 True，不能据此推断未审计实现安全；探索测试优先 strict 模式。`resolve()` 返回原始函数，不具备 `call()` / `CachedOp` 的输入检查保障。
-
-## 实验记录
-
-- [2026-09-03 安全回退最小验证](docs/安全回退最小验证-20260903.md)
-- [2026-09-07 910C 单卡联调](docs/910C单卡联调-20260907.md)
-- [2026-09-07 PyTorch 独立接入](docs/PyTorch独立接入-20260907.md)
-- [2026-09-09 多芯片环境与算子验证](docs/多芯片环境与算子验证-20260909.md)
-- [2026-09-16 0.6B 模型来源算子基线与阻塞](docs/0.6B模型来源算子基线-20260916.md)
+- README只管导航，STATUS只管当前成果/问题/下一步，HANDOFF只管环境和续接操作；不要在三处重复追加完整实验日志。
+- 同一天同主题的追加实验写进已有日期报告；原始结果留在对应evidence目录，由该目录README说明最终版、失败版和替代关系。
+- 当前代码保持稳定文件名；实验编号放结果文件名中。原始失败证据不覆盖，旧脚本/补丁不未经核对就合并删除。
+- 共享协作遵循[仓库根README](../../README.md)，提交/合并/推送及OneDrive写入以当轮授权为准。本地整理不等于已上传。

@@ -12,6 +12,10 @@ case "$mode" in
       '  local            Syntax only; no torch import, network, or device access' \
       '  metadata-tests   Model-probe control tests; no torch or device needed' \
       '  model-baseline   Explicit --model --device --dtype --out; no automatic fallback' \
+      '  qwen-controls    CPU scoped-adapter tests; requires torch/transformers/pytest' \
+      '  qwen-gems        NPU scoped replacement; explicit --model --runtime-root --out' \
+      '  rms-shadow       Same-input RMSNorm observations; not model replacement' \
+      '  rms-ablation     Experimental Q/K vs hidden RMSNorm replacement' \
       '  legacy-pytorch   Existing personal 910C container; NOT monthly acceptance' \
       '  legacy-vllm      Existing personal 910C container; NOT monthly acceptance' \
       '  cross-vendor     Container-side probe; pass --device and --mode explicitly'
@@ -50,6 +54,18 @@ PY
     ;;
   model-baseline)
     exec python3 "$probe_dir/qwen_embedding_baseline.py" "$@"
+    ;;
+  qwen-controls)
+    exec python3 -m pytest -q "$probe_dir/test_qwen_scoped_adapter.py" "$@"
+    ;;
+  qwen-gems)
+    exec python3 "$probe_dir/qwen_gems_validation.py" "$@"
+    ;;
+  rms-shadow)
+    exec python3 "$probe_dir/qwen_rms_shadow.py" "$@"
+    ;;
+  rms-ablation)
+    exec python3 "$probe_dir/qwen_rms_ablation.py" "$@"
     ;;
   cross-vendor)
     exec python3 "$probe_dir/cross_vendor_smoke.py" "$@"
