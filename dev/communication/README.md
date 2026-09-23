@@ -1,5 +1,12 @@
 # communication — 多卡通信项目
 
+本轮交付 [DeepFM 双卡训练接入](docs/DEEPFM_INTEGRATION_20260923.md)：复用公共模型、设备统一API与DDP，
+在910C/HCCL完成原生/观测模式各50步验证，17/17梯度对照通过、跨Rank参数差0。
+[本周周报](docs/WEEKLY_REPORT_20260923.md) · [当前状态](STATUS.md) · [实测摘要](results/20260923-npu/summary.json)。
+本批为开发态代码与证据交付，尚待下游确认；不修改公共镜像锁，不表示组级发布验收完成。
+
+以下为旧FlagCX路线的历史看板，不代表最新Route A的验证范围。
+
 > **状态：🟡 双卡正确性基线已完成，训练腿联合收口中（2026-09-09）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
 > 统一基座：`dev/stack.lock.910c.v1.yaml`；训练腿使用 FlagCX 0.13.0；代码主战场为独立 FlagCX 仓库。
 
