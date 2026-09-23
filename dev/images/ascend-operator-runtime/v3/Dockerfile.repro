@@ -1,0 +1,247 @@
+# ascend-operator-runtime v3 — Route A 默认血统:torch_npu 自动加载为默认设备后端,
+# FlagGems/FlagTree/torch_fl 保留但降级为"可插拔、不默认激活",新增 vLLM 推理插件层
+# 以支持"训练+推理同一镜像"(见 dev/images/TODO.md "下一期" 任务书 6 条约束)。
+#
+# 与 v2(dev/images/ascend-operator-runtime/v2)的关键区别:
+#
+#   1. 【Route A 默认生效】v2 本层其实并未在这一层强制 TORCH_DEVICE_BACKEND_AUTOLOAD=0
+#      或"先 import torch_fl"——那条强制逻辑是在下游 ascend-train-comm/v2 层的 ENV
+#      里加的。v3 的改动是:本层【明确不添加】任何压制 torch_npu autoload 的 ENV,
+#      并在 assets/verify_runtime.py 里把默认动态自检顺序反过来
+#      (先验证"什么都不 import 特殊逻辑,torch_npu 就是 PrivateUse1"),
+#      而不是 v2 那种"先 import torch_fl 才算过"的验证顺序。真正的强制开关搬迁/
+#      移除发生在 ascend-train-comm/v3(训练腿通信层),这里只是同步文档口径、
+#      确保本层不引入任何相反方向的强制。
+#   2. 【FlagGems/FlagTree triton 编译链保持不变,但明确标注"可插拔,非默认激活"】
+#      triton_v3.5.x 现场编译 + FlagGems + Torch-FL pip install 步骤与 v2 逐字
+#      相同(同一批 pinned commit)——这条链本身从不在构建期"激活"任何默认路径:
+#      GEMS_VENDOR=ascend 只是一个惰性配置值(只有显式 `with flag_gems.use_gems()`
+#      才生效);Torch-FL 装的是 wheel,从不在构建期或任何默认启动脚本里被
+#      import。v3 唯一要做的是把这一点从"事实如此"变成"显式标注"(LABEL +
+#      REBUILD.md),满足任务书第 4/5 条("保留但不默认激活")。
+#   3. 【vLLM 推理插件层(任务书第 3 条,训练+推理同一血统)——PIVOTED,2026-09-22】
+#      父镜像(BAAI·FlagTree 官方 ascend3.5 预构建基座)已经内置:torch_npu 2.10.0 +
+#      vLLM 0.20.2(上游 vllm-project/vllm 的原生 editable checkout,commit
+#      bc150f50299199599673614f80d12a196f377655)。但只有裸 vLLM 是不够的——vLLM
+#      0.20.x 的硬件分发走"out-of-tree platform 插件"机制,裸 vLLM 不会自己发现
+#      NPU,需要一个独立插件提供 Platform 注册。
+#
+#      【历史记录,不要再走这条路——PHASE 2 第一次尝试,STOP CONDITION】
+#      第一次尝试用的是华为昇腾官方 `vllm-ascend`(github.com/vllm-project/
+#      vllm-ascend,精确 pin commit 367b8e62da799870a7476ce34f5f7658589a8aad,
+#      与 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` 逐 commit 对齐,已用
+#      `docker run --rm --entrypoint pip ... show vllm-ascend` 实测核实)。
+#      `docker build --network=host` 在该层报错:
+#        ERROR: Could not find a version that satisfies the requirement
+#        triton-ascend==3.2.1 (from vllm-ascend) (from versions: 3.2.0rc2,
+#        3.2.0rc3, 3.2.0rc4, 3.2.0)
+#      根因:vllm-ascend@367b8e62d 硬性依赖 triton-ascend==3.2.1,但这个精确
+#      版本号从未发布到公开 PyPI 索引(`pip config list` 确认 base 镜像只配了
+#      `https://pypi.org/simple`,无内部镜像源)——只能从
+#      `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` 官方镜像内提取 wheel 获得。
+#      这不是版本号猜错、也不是降级能绕过的问题(会破坏 vllm-ascend 自身兼容性
+#      声明),按任务书要求未自行绕过,如实记录为 STOP CONDITION,交由项目负责人
+#      裁定,详见 `ascend-operator-runtime/v3/REBUILD.md`
+#      「vllm-ascend 在本血统下的可构建性」一节(完整错误输出、候选解法均存档于
+#      此,未删除)。
+#
+#      【PIVOT,2026-09-22:改用 vllm-plugin-FL】
+#      重新核查 BAAI·FlagTree 官方 wiki(https://github.com/flagos-ai/
+#      FlagTree/wiki/User-manual-for-ascend,ascend3.5 线自己的"Run Qwen vLLM
+#      benchmark"一节)发现:该手册自己走的路径根本不是 vllm-ascend,而是
+#      FlagGems + `vllm-plugin-FL`(github.com/flagos-ai/vllm-plugin-FL,
+#      "A vLLM plugin built on the FlagOS unified multi-chip backend")。核实
+#      其 README 的版本兼容表:分支 `release/0.2` ↔ vLLM v0.20.2(与本血统的
+#      vLLM 版本精确匹配);`main` 分支↔ vLLM v0.24.0(不匹配,不用)。核实其
+#      `pyproject.toml`:核心 `[project] dependencies` 只有 `pyyaml`,不依赖
+#      triton-ascend——不会撞上第一次尝试那堵公开 PyPI 墙。这条路径也是
+#      BAAI·FlagTree 官方手册自己为 ascend3.5 线背书的推理插件,比"硬装华为
+#      vllm-ascend 但装不上"更贴合本血统(ascend3.5 官方手册路径)的定位。
+#      入口点(`pyproject.toml` 实测确认):
+#        [project.entry-points."vllm.platform_plugins"]  fl = "vllm_fl:register"
+#        [project.entry-points."vllm.general_plugins"]    fl = "vllm_fl:register_model"
+#      精确 pin:`git ls-remote https://github.com/flagos-ai/vllm-plugin-FL.git
+#      release/0.2` 实测取得(见下方 VLLM_PLUGIN_FL_REF 与 REBUILD.md)。
+#      安装命令 `pip install --no-build-isolation .`(不设 VLLM_VENDOR——
+#      `setup.py` 里 SUPPORTED_VENDORS 只有 "cuda",NPU/昇腾走"Python-only
+#      插件,跳过原生扩展"路径,官方 README 自己写明)。
+#
+#      【FlagGems 版本决策,任务书要求"先用已 pin 的 commit 试,不要瞎猜切换"】
+#      vllm-plugin-FL 官方 README 建议单独 checkout FlagGems 到
+#      `3b2b55c8eda5de44ba3476d26566ecf134db0662`,与本文件下方已经在用的
+#      FlagGems pin(`f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4`,来自 FlagTree
+#      wiki 另一处/与 v1/v2 一脉相承)不是同一个 commit。按任务书要求,本层
+#      【不改动】已有的 FlagGems pin,先用它构建 + 实测;这条 README 建议仅供
+#      "vllm_fl 的 register()/register_model() 或 vLLM 推理烟雾测试是否真的
+#      要用到 f7ae8e6b 里没有的 FlagGems 算子"这个问题的实测参考,结论见
+#      REBUILD.md「FlagGems 版本兼容性」。
+#
+#      【已知不采用的 README 步骤,明确记录理由】README 的"Additional Steps for
+#      Ascend"一节还建议 `pip install flagtree==0.4.0+ascend3.2` (走
+#      resource.flagos.net 这个 FlagOS 自建公开 pypi 索引,非公开 PyPI,但也非
+#      owner 私有——curl 实测该索引可匿名访问)。本层【不装】——本镜像在这条
+#      RUN 之前已经从 FlagTree 上游源码现场编译出 `flagtree` 包
+#      (0.6.0+ascend.git15ec1a6c,ascend3.5 线,triton 3.5.1),README 那条
+#      pip 包是 0.4.0+ascend3.2 版本线(ascend3.2,不同线),两者共装会产生
+#      版本冲突/覆盖已验证过的 triton 编译产物,得不偿失——`vllm-plugin-FL` 的
+#      `pyproject.toml` 核心依赖并不含 `flagtree`(见上,只有 pyyaml),所以这不
+#      是它的硬性依赖,只是 README 给"从零开始没有 FlagTree"的用户的手把手步骤,
+#      本血统已有更贴合(ascend3.5、真机验证过)的 FlagTree 构建物,不需要重复
+#      装一个版本线不同的 wheel。`export TRITON_ALL_BLOCKS_PARALLEL=1`(README
+#      同一节要求的另一条)保留设置,推理需要 `enforce_eager=True`(README 明确
+#      "Ascend requires eager execution"),已体现在验证脚本里。
+#
+# 边界:BASE_IMAGE / vllm-plugin-FL 上游仓库为 official(BAAI·FlagTree 官方,
+#       github.com/flagos-ai 组织,公开可 clone,非本组私有产物;注意本机另有
+#       一个 `FlagRT/vllm-plugin-FL` 组织 fork 带有未上游化的 ascend 专属 patch
+#       ——本层刻意不用那个 fork,只用 flagos-ai 纯公开上游,见 REBUILD.md
+#       「FlagRT 私有 fork 的发现与决策」一节);FlagTree/Torch-FL/FlagGems 编译
+#       产物与本文件新增层均为 custom。
+# 网络:与 v2 相同,需要构建期网络(docker build --network=host)。
+
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
+FROM ${BASE_IMAGE}
+
+ARG FLAGTREE_COMMIT=15ec1a6cbc8d51f597f46459a500e96f3812c58f
+ARG TORCH_FL_COMMIT=162582d678e40f133924a4d3b5b6df1cb8154dc7
+ARG FLAG_GEMS_COMMIT=f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+ARG LLVM_TOOLCHAIN_URL=https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/llvm-7d5de303-ubuntu-aarch64-python311-compat_v0.6.0.tar.gz
+ARG TRITON_BUILD_DEPS_URL=https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/build-deps-triton_3.5.x-linux-aarch64.tar.gz
+ARG PYTHON_BIN=/usr/local/python3.11.15/bin/python3
+
+# --- PIVOTED（v3 phase 2 round 2）：vLLM 推理插件改用 vllm-plugin-FL
+#     （BAAI·FlagTree 官方，github.com/flagos-ai/vllm-plugin-FL，公开仓库）。
+#     REF 为 `git ls-remote https://github.com/flagos-ai/vllm-plugin-FL.git
+#     release/0.2` 实测取得的 release/0.2 分支 tip（2026-09-22）。见上方大注释
+#     与 REBUILD.md「vllm-ascend → vllm-plugin-FL pivot」。
+ARG VLLM_PLUGIN_FL_REPO=https://github.com/flagos-ai/vllm-plugin-FL.git
+ARG VLLM_PLUGIN_FL_REF=8b059122e32b9ac47b9820a9c7b1bb95077481a4
+
+LABEL org.opencontainers.image.title="FlagRT Ascend operator runtime (v3, Route A default + unified train/infer)" \
+      org.opencontainers.image.version="2.0.0" \
+      io.flagrt.cann.version="9.0.0" \
+      io.flagrt.python.version="3.11.15" \
+      io.flagrt.torch.version="2.10.0+cpu" \
+      io.flagrt.torch_npu.version="2.10.0 (base image, not built by this layer)" \
+      io.flagrt.triton.version="3.5.1" \
+      io.flagrt.flagtree.version="0.6.0+ascend.git15ec1a6c" \
+      io.flagrt.flagtree.commit="${FLAGTREE_COMMIT}" \
+      io.flagrt.flagtree.branch="triton_v3.5.x" \
+      io.flagrt.torch_fl.commit="${TORCH_FL_COMMIT}" \
+      io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}" \
+      io.flagrt.vllm_plugin_fl.repo="${VLLM_PLUGIN_FL_REPO}" \
+      io.flagrt.vllm_plugin_fl.ref="${VLLM_PLUGIN_FL_REF}" \
+      io.flagrt.vllm_plugin_fl.ref_confidence="phase-2 round-2 verified: exact commit read from 'git ls-remote https://github.com/flagos-ai/vllm-plugin-FL.git release/0.2' (see REBUILD.md 'vllm-ascend -> vllm-plugin-FL pivot')" \
+      io.flagrt.vllm_plugin_fl.origin="BAAI-FlagTree-official (github.com/flagos-ai org, public; NOT the FlagRT/vllm-plugin-FL org fork which carries un-upstreamed ascend patches -- see REBUILD.md)" \
+      io.flagrt.vllm_plugin_fl.supersedes="vllm-ascend (vllm-project/vllm-ascend@367b8e62d) -- build failed, triton-ascend==3.2.1 not on public PyPI, see REBUILD.md STOP CONDITION history" \
+      io.flagrt.device_backend.default="torch_npu (PrivateUse1='npu'), official autoload, Route A -- see verify_runtime.py" \
+      io.flagrt.torch_fl.activation="installed, NOT imported by any default path in this image; opt-in only (caller must set TORCH_DEVICE_BACKEND_AUTOLOAD=0 before importing torch_fl, and before torch_npu has claimed PrivateUse1)" \
+      io.flagrt.flag_gems.activation="installed, inert unless caller explicitly enters flag_gems.use_gems(); GEMS_VENDOR=ascend below is a dormant config value read only on explicit use" \
+      io.flagrt.lineage="flagtree-official-ascend3.5-routeA"
+
+# 与 v2 相同的惰性 ENV：GEMS_VENDOR 等只在显式使用 FlagGems 时才读取，本身不
+# 激活任何默认路径。【v3 明确点】这里刻意【不】添加 TORCH_DEVICE_BACKEND_AUTOLOAD=0
+# ——保持官方默认行为（torch_npu 通过 entry_points autoload 机制自动注册
+# PrivateUse1='npu'），这是任务书第 1 条"Route A 默认生效"的核心动作。
+# TRITON_ALL_BLOCKS_PARALLEL=1：vllm-plugin-FL 官方 README「Additional Steps
+# for Ascend」明确要求的运行期开关（与 FlagTree ascend triton 后端的 block
+# 调度相关）；同样是惰性配置，不改变本层前面已验证过的默认设备后端路径。
+ENV GEMS_VENDOR=ascend \
+    TRITON_ENABLE_TASKQUEUE=false \
+    DO_NOT_TRACK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    TRITON_ALL_BLOCKS_PARALLEL=1
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# --- official：llvm 编译工具链 + triton 编译依赖（BAAI·FlagTree 官方公开分发桶，
+#     与 v2 完全相同） ---
+RUN mkdir -p /root/.flagtree/ascend && cd /root/.flagtree/ascend \
+    && curl -fL --retry 3 -o llvm.tar.gz "${LLVM_TOOLCHAIN_URL}" \
+    && tar xzf llvm.tar.gz && rm -f llvm.tar.gz
+
+# --- official：FlagTree 上游仓库，pin 到 triton_v3.5.x 分支的公开 commit（与 v2 相同）。
+#     只读 https://github.com/flagos-ai/FlagTree.git（上游），不涉及 FlagRT 组织 fork。
+#     这条编译链保留，供后续可选启用 FlagGems/FlagTree（任务书第 4 条：可插拔，不强制）。 ---
+RUN git config --global --add safe.directory "*" \
+    && mkdir -p /root/FlagTree && cd /root/FlagTree \
+    && git init -q \
+    && git remote add origin https://github.com/flagos-ai/FlagTree.git \
+    && git fetch --depth 1 origin ${FLAGTREE_COMMIT} \
+    && git checkout -q FETCH_HEAD -b triton_v3.5.x \
+    && test "$(git rev-parse HEAD)" = "${FLAGTREE_COMMIT}"
+
+RUN curl -fL --retry 3 -o /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz "${TRITON_BUILD_DEPS_URL}" \
+    && printf '\n' | sh /root/FlagTree/python/scripts/unpack_triton_build_deps.sh /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz \
+    && rm -f /tmp/build-deps-triton_3.5.x-linux-aarch64.tar.gz
+
+# --- custom：编译 triton（FLAGTREE_BACKEND=ascend），与 v2 相同。产物仍是可插拔的
+#     triton/FlagGems 编译链——安装 triton 本身不会让任何非-torch_npu 设备后端
+#     成为默认（triton 的 ascend 后端在 backend_register.py 里对 torch_npu 也有
+#     原生 "torch_npu" category，见 assets/patch_triton_ascend_flagtree.py）。 ---
+RUN export PATH=/root/.flagtree/ascend/llvm-7d5de303-ubuntu-aarch64-python311-compat/bin:${PATH} \
+    && export FLAGTREE_BACKEND=ascend \
+    && source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && cd /root/FlagTree \
+    && MAX_JOBS=32 ${PYTHON_BIN} -m pip install . --no-build-isolation -v \
+    && rm -rf /root/.cache/pip /root/FlagTree/build
+
+# --- custom：FlagGems + Torch-FL，与 v2 相同 commit、相同装法——保留为"可选安装
+#     但不默认激活"的组件（任务书第 4/5 条）。谁都不在这里或任何默认路径里
+#     import 它们；下游若要用，需显式 `import torch_fl` / `import flag_gems`
+#     并自行处理 PrivateUse1 争用（见 io.flagrt.torch_fl.activation 标签）。 ---
+COPY src/FlagGems/ /opt/flagrt/src/FlagGems/
+COPY src/Torch-FL/ /opt/flagrt/src/Torch-FL/
+COPY assets/FlagGems-DSA-__init__.py /opt/flagrt/src/FlagGems/src/flag_gems/fused/DSA/__init__.py
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && SETUPTOOLS_SCM_PRETEND_VERSION_FOR_FLAG_GEMS=0.0.0+${FLAG_GEMS_COMMIT:0:12} \
+       ${PYTHON_BIN} -m pip install --no-build-isolation --no-deps /opt/flagrt/src/FlagGems \
+    && ACCELERATOR=ascend ASCEND_KERNEL=1 CUDA_KERNEL=0 FLAGGEMS_KERNEL=0 FLAGGEMS_PYTHON=1 FLAGOS_BUILD_JOBS=32 \
+       ${PYTHON_BIN} -m pip install --no-build-isolation --no-deps /opt/flagrt/src/Torch-FL \
+    && rm -rf /root/.cache/pip /opt/flagrt/src
+
+# --- custom：FlagTree ascend triton 后端补丁，与 v2 逐字相同（assets/ 目录未改）。
+#     该补丁对 torch_npu-only（不装/不 import torch_fl）的环境是纯 no-op：
+#     它新增的 "torch_fl" category 只有在 hasattr(torch, "flagos") 时才会被
+#     get_backend_func() 选中，torch_npu 默认路径完全不经过这段代码；唯一始终
+#     生效的是第 4 条 nvidia/driver.py 的 "2 active drivers" 误判修复，这条对
+#     两种设备后端都是纯粹的正确性修复，不偏向任何一方。保留是为了不破坏
+#     FlagGems/FlagTree 编译链的可插拔可用性（任务书第 4 条）。 ---
+COPY assets/patch_triton_ascend_flagtree.py /opt/flagrt/patch_triton_ascend_flagtree.py
+RUN ${PYTHON_BIN} /opt/flagrt/patch_triton_ascend_flagtree.py \
+      --triton-path /usr/local/python3.11.15/lib/python3.11/site-packages/triton \
+    && rm -rf /root/.triton/cache
+
+# --- official：vLLM 推理插件（vllm-plugin-FL，BAAI·FlagTree 官方公开仓库，
+#     github.com/flagos-ai/vllm-plugin-FL，release/0.2 分支，pin 见上方 ARG）。
+#     使得本镜像同时具备训练腿（下游 ascend-train-comm/v3 叠加 FlagCX）与推理腿
+#     （本层 vLLM 0.20.2 + torch_npu + vllm-plugin-FL）能力，满足任务书第 3 条
+#     "训练+推理统一同一血统"。取代了第一次尝试的 vllm-ascend（构建失败，见上方
+#     大注释里的历史记录 + REBUILD.md）。
+#
+#     安装命令对齐官方 README「Quick Start」：`pip install --no-build-isolation .`
+#     （不带 -e，非 editable；不设 VLLM_VENDOR——SUPPORTED_VENDORS 只有 "cuda"，
+#     昇腾/NPU 走"跳过原生 C++ 扩展的纯 Python 插件"路径，这是 README 自己写明
+#     的行为，不是本层的猜测）。entry points 在 pyproject.toml 里确认：
+#     vllm.platform_plugins:fl -> vllm_fl:register，
+#     vllm.general_plugins:fl -> vllm_fl:register_model。 ---
+RUN git config --global --add safe.directory "*" \
+    && mkdir -p /root/vllm-plugin-FL && cd /root/vllm-plugin-FL \
+    && git init -q \
+    && git remote add origin ${VLLM_PLUGIN_FL_REPO} \
+    && git fetch --depth 1 origin ${VLLM_PLUGIN_FL_REF} \
+    && git checkout -q FETCH_HEAD \
+    && test "$(git rev-parse HEAD)" = "${VLLM_PLUGIN_FL_REF}" \
+    && source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && ${PYTHON_BIN} -m pip install --no-build-isolation -v . \
+    && rm -rf /root/.cache/pip /root/vllm-plugin-FL
+
+# --- custom：静态自检（fail-closed）。assets/verify_runtime.py 相比 v2 改了默认
+#     动态检查顺序（不再要求"先 import torch_fl"才算过，改为验证 torch_npu 默认
+#     autoload 生效），检查项从 vllm_ascend 存在性改为 vllm_fl（vllm-plugin-FL）
+#     存在性。 ---
+COPY assets/verify_runtime.py /opt/flagrt/verify_runtime.py
+RUN ${PYTHON_BIN} /opt/flagrt/verify_runtime.py --static
+
+WORKDIR /workspace/FlagPerf/base

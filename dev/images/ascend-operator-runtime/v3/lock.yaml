@@ -1,0 +1,328 @@
+# ascend-operator-runtime / v3
+# Route A 默认血统 + 训练/推理统一基座（在 v2 之上迭代）。
+#
+# 【阶段声明，2026-09-23 ROUND 2 更新】phase 1 是"设计与起草"阶段产出（未构建）。
+# round 1 phase 2 实机执行 docker build：设计 tag 在 vllm-ascend 层失败（STOP
+# CONDITION，历史记录见下方 known_issues 与 REBUILD.md），未产出镜像实体，只
+# 建出跳过该层的诊断变体镜像。
+#
+# round 2：vLLM 推理插件从 vllm-ascend 换成 vllm-plugin-FL（BAAI·FlagTree 官方
+# wiki 自己为 ascend3.5 线背书的路径），**设计 tag 构建成功**（image id
+# `9ad551058f2f`），不再需要诊断变体。真机 Step 5（vLLM 推理烟雾测试 + 完整
+# 共存检查）本轮会话因机器带卡容器并发数持续超限（其他工程师占用，非本任务）
+# 未能执行，明确记为 PENDING，见 repro_result 与 REBUILD.md。repro_status
+# 因此仍是 🟡（构建成功但真机推理验证未完成），不是 🔴（不是"没有配方"），也
+# 不是 🟢（真机推理正确性未证实）。
+
+superseded_by: null   # v2 未被取代——三条血统（v1/v2/v3）并存，详见 image_list.md"当前生效版本"
+supersedes_candidate_status_of: null  # v3 本身也只是 candidate，不改变 v1（现网生效）或 v2（既有候选）的地位
+
+image_tag: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64"
+flagtree_line: >-
+  ascend3.5，与 v2 版本纪元相同（CANN 9.0.0 / py3.11 / torch 2.10.0 / triton
+  3.5.1）。v3 不改变基座镜像或 triton/FlagGems/Torch-FL 的编译产物本身——它们与
+  v2 逐 commit 相同——变的是"默认生效的设备后端"（v2：torch_npu 与 torch_fl 共装
+  但从未真正被用于计算；v3：torch_npu 是唯一默认路径，torch_fl 保留但降级为
+  opt-in）以及新增 vLLM 推理插件层（round 2：vllm-plugin-FL，取代 round 1 构建
+  失败的 vllm-ascend）。
+built_at: "2026-09-22 (round 2: real design-tag build, image id 9ad551058f2f -- superseded round 1's diagnostic-variant-only status)"
+builder: "runtime-team (phase 2 real-hardware validation agent)"
+repro_status: "🟡 partial-repro"   # 标准 🟢/🟡/🔴（dev/images/README.md §4.1）。
+                                   # round 2：设计 tag（含 vllm-plugin-FL）真机
+                                   # docker build 成功；round 1 已完成的部分（Route A
+                                   # 默认生效、torch_fl guard fail-loud、triton/
+                                   # FlagGems/Torch-FL 静态自检）继续有效。但 vLLM
+                                   # 推理烟雾测试的真实输出与完整训练+推理共存检查
+                                   # 因机器带卡容器并发超限（其他工程师占用）本轮
+                                   # 未能执行，PENDING，因此不能标 🟢。见
+                                   # repro_result 与
+                                   # known_issues.vllm-plugin-fl-real-hardware-validation-pending。
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方（沿用 v2 的"全新血统首次构建"惯例，非从既有镜像
+  docker history 还原）。build.sh 驱动，但 phase 1 未执行。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2"
+  note: >-
+    与 v2 相同的 BAAI·FlagTree 官方发布预构建基座镜像（未改动）。内置
+    Python 3.11.15 / torch 2.10.0+cpu / torch_npu 2.10.0 / vLLM 0.20.2
+    (vllm-project/vllm 上游 editable，commit
+    bc150f50299199599673614f80d12a196f377655) / CANN 9.0.0。**不含**
+    vllm-ascend 插件——这是 v3 新增层要补的缺口（见下方 layers）。
+  registry: "harbor.baai.ac.cn/flagtree（BAAI·FlagTree 官方公开仓库）"
+
+# --- official / custom 边界（见 README §4.0/§4.1），沿用 v2 口径 ---
+layers:
+  - name: "FlagTree ascend3.5 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2"
+    note: "与 v2 完全相同，未改动"
+  - name: "llvm 编译工具链 / triton 编译依赖包"
+    origin: official
+    pin: "同 v2（ks3-cn-beijing.ksyuncs.com/trans/ 分发桶，两个 tar.gz，见 Dockerfile.repro）"
+  - name: "FlagTree（triton_v3.5.x 分支，提供 triton 包）"
+    origin: official
+    pin:
+      repo: "https://github.com/flagos-ai/FlagTree.git（上游，未改动，与 v2 相同 commit）"
+      branch: "triton_v3.5.x"
+      commit: "15ec1a6cbc8d51f597f46459a500e96f3812c58f"
+    note: >-
+      编译链与 v2 逐字相同。v3 的立场变化：明确标注这是"可插拔"层——编译安装
+      triton/FlagGems 本身不激活任何默认设备后端（GEMS_VENDOR=ascend 是惰性
+      配置，只有显式 use_gems() 才读取）。
+  - name: "Torch-FL (torch_fl 0.1.0)"
+    origin: custom
+    pin: "git commit 162582d678e40f133924a4d3b5b6df1cb8154dc7（与 v2 相同 commit，未升级）"
+    note: >-
+      【v3 立场变化，任务书第 5 条】仍然安装（保留手动 import 的能力），但本层
+      /本镜像的任何默认路径都不 import 它。opt-in 方式：调用方需自行
+      export TORCH_DEVICE_BACKEND_AUTOLOAD=0 并在 torch_npu 抢注 PrivateUse1
+      之前手动 `import torch_fl`——顺序反了会像 v2 REBUILD.md 记录的那样收到
+      清晰的 RuntimeError（fail-loud，不静默）。assets/verify_runtime.py 新增
+      --check-torch-fl-guard 验证这一路径确实是"需要显式动作才能激活"。
+  - name: "FlagGems (flag_gems 0.0.0+f7ae8e6b934a)"
+    origin: custom
+    pin: "git commit f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4（与 v1/v2 相同 commit）"
+    note: "同上，保留可插拔安装，不默认激活。"
+  - name: "triton-ascend 后端补丁"
+    origin: custom
+    pin: "assets/patch_triton_ascend_flagtree.py（与 v2 逐字节相同文件，未修改）"
+    note: >-
+      对纯 torch_npu（不装/不 import torch_fl）环境是 no-op（它新增的
+      "torch_fl" category 只有 hasattr(torch,"flagos") 时才会被选中）；唯一
+      始终生效的第 4 条"2 active drivers"修复对两种后端都是正确性修复，不偏向
+      任何一方。保留不改，见 Dockerfile.repro 内联注释。
+  - name: "MPI 工具链"
+    origin: official
+    pin: "基座镜像自带系统 mpich 4.0-3（apt），与 v2 相同"
+  - name: "vllm-plugin-FL（round 2 PIVOTED，任务书第 3 条：训练+推理统一血统；取代 round 1 的 vllm-ascend）"
+    origin: official
+    pin:
+      repo: >-
+        https://github.com/flagos-ai/vllm-plugin-FL.git（BAAI·FlagTree 官方
+        公开仓库，与 FlagTree wiki ascend3.5 线自己文档的"Run Qwen vLLM
+        benchmark"一节推荐的插件同源，见 dev/images/README.md §4.0
+        "BAAI·FlagTree 官方"定义——不是 owner 私有资产。注意与本机另有的
+        `FlagRT/vllm-plugin-FL` 组织 fork 区分——那个 fork 带有未上游化的
+        ascend patch，本层刻意不用，见 REBUILD.md）
+      branch: >-
+        release/0.2（与本血统 vLLM 0.20.2 精确匹配，见 README 版本兼容表；
+        main 分支对应 vLLM 0.24.0，不匹配，不用）
+      ref: >-
+        8b059122e32b9ac47b9820a9c7b1bb95077481a4（round 2 `git ls-remote` 实测
+        取得的 release/0.2 分支 tip，2026-09-22）
+    note: >-
+      父镜像已有裸 vLLM 0.20.2（vllm-project/vllm 上游 editable checkout）+
+      torch_npu 2.10.0，但没有任何 vLLM Platform 插件——vLLM 0.20.x 的硬件分发走
+      out-of-tree Platform 插件机制，裸 vLLM 不会自己发现 NPU。这一层补上这个
+      缺口，使同一血统的镜像既能跑训练（下游 ascend-train-comm/v3 叠加
+      FlagCX）也能跑 vLLM 推理服务。安装命令
+      `pip install --no-build-isolation .`（不设 VLLM_VENDOR，见 REBUILD.md）。
+      **round 2 已实测构建成功**（image id `9ad551058f2f`），取代了 round 1
+      尝试的 vllm-ascend（构建失败，STOP CONDITION，见下方 known_issues 历史
+      记录）。
+
+# v3 没有 gaps 段——沿用 v2 的判断：每一个 custom 层都是从公开 commit 现场构建，
+# 没有 owner 私有资产依赖。vllm-plugin-FL 层同样是公开仓库（origin: official），
+# 不引入新的私有依赖缺口——且本层特意验证过与其平行存在的 FlagRT 私有 fork
+# （带未上游化 ascend patch）未被使用，见 REBUILD.md「FlagRT 私有 fork 的发现与
+# 决策」。
+
+# --- open_questions（任务书要求：无法从阅读确定的地方，写清楚，不要在文件里
+#     悄悄猜——这里集中列出，Dockerfile.repro 内联注释里也各自标注了指针） ---
+open_questions:
+  - id: "vllm-ascend-exact-pin (round 1, historical -- resolved but superseded)"
+    description: >-
+      【PHASE 2 ROUND 1 RESOLVED, 2026-09-22】原猜测 VLLM_ASCEND_REF=v0.20.2rc1
+      （版本线对齐推断）已被实测替换为精确 commit
+      `367b8e62da799870a7476ce34f5f7658589a8aad`（docker run --entrypoint pip
+      show vllm-ascend 实测 + git ls-remote 交叉确认）。**这个条目本身在 round 1
+      就已解决**——round 2 换用 vllm-plugin-FL 不是因为这个 pin 有问题，而是因为
+      vllm-ascend 的依赖链（triton-ascend==3.2.1）在公开 PyPI 上根本装不上，见
+      "vllm-ascend-build-compat" 条目。保留本条目作历史记录。
+  - id: "vllm-ascend-build-compat (round 1, historical -- STOP CONDITION superseded by pivot)"
+    description: >-
+      vllm-ascend@367b8e62d 的 `pip install --no-build-isolation -v .` 在本血统
+      下实测失败：硬性依赖 `triton-ascend==3.2.1`，公开 PyPI 索引从未发布过这个
+      精确版本。round 1 按任务书要求未自行绕过，如实记录为 STOP CONDITION，另建
+      了一个跳过该层的诊断变体镜像验证其余部分。**round 2 没有"解决"这个
+      STOP CONDITION**——是换了一条完全不同的路径（vllm-plugin-FL）绕开了它；
+      如果日后仍想用 vllm-ascend 本身，这个 STOP CONDITION 依然成立，未被推翻。
+    resolution_for_phase_2: "已用 docker build --network=host 实测确认失败，完整错误输出见 REBUILD.md。round 2 pivot 到 vllm-plugin-FL，见新增的 vllm-plugin-fl-* 系列条目。"
+  - id: "vllm-plugin-fl-exact-pin (round 2, resolved)"
+    description: >-
+      【PHASE 2 ROUND 2 RESOLVED, 2026-09-22】`git ls-remote
+      https://github.com/flagos-ai/vllm-plugin-FL.git release/0.2` 实测取得
+      `8b059122e32b9ac47b9820a9c7b1bb95077481a4`（本轮现场取得，未复用任何历史
+      值）。已回填 Dockerfile.repro 的 VLLM_PLUGIN_FL_REF 与本文件
+      layers.vllm-plugin-FL.pin.ref。
+  - id: "vllm-plugin-fl-build-compat (round 2, resolved)"
+    description: >-
+      vllm-plugin-FL 在"FlagTree 基座 + 已有 torch_npu 2.10.0 + CANN 9.0.0 +
+      已有 arctic_inference==0.1.1 等 vLLM 生态插件"这个具体环境组合下能否干净
+      `pip install --no-build-isolation .`——已实测：**成功**，全部 27 层构建
+      通过，无依赖冲突、无缺失系统包报错。见 REBUILD.md「静态自检」完整
+      `verify_runtime.py --static` JSON 输出（`vllm_fl_installed: true`）。
+  - id: "vllm-plugin-fl-flaggems-version-compat (round 2, static-resolved; runtime confirmed under Step 5)"
+    description: >-
+      vllm-plugin-FL 官方 README 建议单独 checkout FlagGems 到
+      `3b2b55c8eda5de44ba3476d26566ecf134db0662`，与本文件已有的 FlagGems pin
+      （`f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4`）不是同一个 commit。按任务书
+      要求，round 2 未改动已有 pin，先用它构建+跑——静态构建/装配层面完全通过
+      （见上一条）。**是否存在需要真正跑一次推理才能暴露的算子级别差异**，见
+      REBUILD.md「ROUND 2 真机验证结果」（Step 5 vLLM 推理烟雾测试的实际输出
+      文本是唯一可信的判据，构建通过不能替代它）。
+  - id: "vllm-plugin-fl-flagrt-fork-patch (round 2, decision recorded)"
+    description: >-
+      本机另有一个 `FlagRT/vllm-plugin-FL` 组织 fork（本地 checkout
+      `/home/xliu969/runtime-team/vllm-plugin-FL/`），已合并一个 PR（commit
+      `5d545c9`）修复了 PrivateUse1 后端 `bool*int64` 类型提升错误（导致 token
+      id 坍缩成 1）与 `flagcx` backend `all_reduce`/`all_gather` 异步同步问题
+      ——但该 fork 与本层用的 `flagos-ai/vllm-plugin-FL` `release/0.2` 已经
+      分叉（非祖先关系），且该 fix 的验证环境是 torch_fl（flagos）路径，不是
+      本血统默认的 torch_npu（Route A）路径。按任务书"纯公开血统"要求，本层
+      **刻意不用**这个私有 fork/patch。这两个已知 bug 是否会在 torch_npu 路径
+      上实际触发，只能靠真机推理的真实输出文本判断——见 REBUILD.md「ROUND 2
+      真机验证结果」。如果真机确认触发且导致错误推理结果，这是 STOP CONDITION
+      2，需要停下报告，不能私自 cherry-pick 这个未上游化的 fork patch。
+  - id: "flagcx-adaptor-terminology"
+    description: >-
+      本层不直接涉及 FlagCX，但与 ascend-train-comm/v3 共享的设计前提写在这里
+      存档：FlagCX 的"adaptor=ascend"（硬件目标，构建期 USE_ASCEND=1）与
+      "torch_backend=flagos 还是走 torch_npu 原生 'flagcx' c10d 后端"（消费侧
+      选择，运行期）是两个不同维度——任务书里的"HCCL adaptor"措辞对应后者，
+      不是 FlagCX 的一个独立编译期 flag。详见
+      dev/images/ascend-train-comm/v3/lock.yaml 的同名段落与 REBUILD.md。
+
+torch_npu_default_finding: |
+  v2 的实测结论（见 ascend-operator-runtime/v2/REBUILD.md「torch_npu 共存问题」）
+  已经确认：torch_fl 与 torch_npu 的冲突是"进程内 import 顺序"约束，不是"能否
+  共装"的约束。v3 只是把这一发现从"验证一个可选的安全 no-op 顺序"变成"以此为
+  依据，把 torch_npu 设为默认、torch_fl 降级为需要显式反向操作才能激活"：
+    - 默认（v3 镜像原样起一个 python 进程）：`import torch` 即可让 torch_npu
+      的 autoload 抢注 PrivateUse1="npu"，无需任何特殊 import 顺序或 ENV。
+    - opt-in（调用方显式要）：先 `export TORCH_DEVICE_BACKEND_AUTOLOAD=0`，
+      在 torch_npu 抢注之前手动 `import torch_fl`，可继续使用 flagos 路径
+      （例如仍想跑 FlagGems 的场景）——这与 v2 的默认路径完全一致，只是从
+      "本镜像的默认"变成"调用方的显式选择"。
+  assets/verify_runtime.py 的 --check-torch-fl-guard 验证反过来的失败路径
+  （torch_npu 已抢注后再 import torch_fl 必须 RuntimeError fail-loud），确保
+  它不会意外变成"静默可用"。
+
+repro_result:
+  status: >-
+    PHASE 2 ROUND 2 — 2026-09-22. 设计 tag 本身（含 vllm-plugin-FL 层）
+    **构建成功**（取代 round 1 的 vllm-ascend 尝试，见 known_issues 历史记录），
+    不再需要诊断变体——本文件的字段现在全部来自真实设计 tag 镜像。真机 Step 5
+    （vLLM 推理烟雾测试 + 完整共存检查）本轮**未能执行**：机器带卡容器并发数
+    持续保持在 5（超过 stack.lock 规定的上限 3，且是其他工程师的活跃工作负载，
+    非本任务所起），按"respect shared-machine rules"未强行起带卡容器，见
+    REBUILD.md「ROUND 2 真机验证结果」。round 1 已完成的真机验证项
+    （route_a_default_check、torch_fl_guard_check，均在诊断镜像上做的，与 vLLM
+    插件选型无关）继续有效，不需要在正式 tag 上重跑。
+  image: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64"   # round 2: 真实产出，非 null
+  image_id: "9ad551058f2f"
+  image_tag_diagnostic_superseded: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64-DIAGNOSTIC-novllm"   # round 1 遗留，image id 4bab61434602，已被正式 tag 取代，本机镜像未删除但不建议再用
+  triton_version: "3.5.1"        # 实测
+  flagtree_version: "0.6.0+ascend.git15ec1a6c"   # 实测
+  torch_fl_version: "0.1.0"      # 实测
+  flag_gems_version: "0.0.0+f7ae8e6b934a"        # 实测（round 2 未改动此 pin，见 open_questions.vllm-plugin-fl-flaggems-version-compat）
+  torch_npu_version: "2.10.0"    # 实测
+  vllm_ascend_version: null      # round 1 尝试，从未安装成功，round 2 已放弃该路径，见 known_issues 历史记录
+  vllm_fl_version: "0.0.0+g8b059122e"   # 实测（round 2，vllm-plugin-fl dist 版本，setuptools-scm 从 commit 8b059122e 生成）
+  vllm_plugin_fl_exact_commit_verified: "8b059122e32b9ac47b9820a9c7b1bb95077481a4"   # git ls-remote 实测取得的 release/0.2 分支 tip
+  verify_runtime_static: "passed (real design-tag image, not diagnostic -- vllm_fl_installed: true)"
+  verify_runtime_dynamic_route_a_default: "passed: route_a_default_check = 'passed (torch_npu claimed PrivateUse1 with no special import order)' -- 2-card container v3-validate-train-910c, 2026-09-22 (round 1, carried forward, independent of vLLM plugin choice)"
+  verify_runtime_torch_fl_guard: "passed: torch_fl_guard_check = 'passed (RuntimeError as expected ...)' -- required a script bug-fix, see REBUILD.md 'PHASE 2 脚本修复' (round 1, carried forward)"
+  vllm_inference_smoke_test: "PENDING -- blocked by sustained machine-wide device-container contention from other engineers (5 running, cap is 3), not by any technical failure of this round's build. See REBUILD.md 'ROUND 2 真机验证结果'."
+  coexistence_check: "PENDING -- same blocker as above. Static evidence only: pip freeze confirms flagcx and vllm-plugin-fl coexist in ascend-train-comm:v3's dependency tree without install-time conflict; the dynamic import-order / PrivateUse1-consistency / triton-driver check is NOT yet done."
+
+known_issues:
+  - id: "triton-2-active-drivers (carried forward from v2)"
+    description: "见 v2 lock.yaml 同名条目；本层未改动该补丁，问题与修复均照搬。PHASE 2 round 1 部分复测（不含 vllm 插件）：未复现，NPUDriver 保持 active。round 2 未重测（同一份补丁，逻辑不变）。"
+  - id: "vllm-ascend-build-failure (PHASE 2 ROUND 1 STOP CONDITION, 2026-09-22 -- SUPERSEDED by pivot to vllm-plugin-FL, not resolved)"
+    description: >-
+      `docker build --network=host` 在 vllm-ascend 安装层失败：
+      `ERROR: Could not find a version that satisfies the requirement
+      triton-ascend==3.2.1 (from vllm-ascend) (from versions: 3.2.0rc2,
+      3.2.0rc3, 3.2.0rc4, 3.2.0)`。根因：base 镜像 pip index-url 为纯公开
+      PyPI（`https://pypi.org/simple`），该索引从未发布过 triton-ascend
+      3.2.1——这个精确版本号历来只能从 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`
+      官方镜像内提取 wheel 获得（`dev/images/image_list.md` 版本线表格已记录
+      这一事实）。不是版本号猜错（vllm-ascend 的精确 commit pin 已单独核实
+      正确，见 open_questions.vllm-ascend-exact-pin 的 resolution），是这条
+      公开依赖链本身在纯 `pip install .` 场景下不可解析。**round 2 没有解决
+      这个问题**——是换用 vllm-plugin-FL 绕开了它，如果日后仍想用 vllm-ascend
+      本身，这个 STOP CONDITION 依然成立。详见 REBUILD.md 中的历史记录一节的
+      候选解法列表（均未执行，待总组裁定）。
+  - id: "vllm-ascend-pin-unverified"
+    description: "【PHASE 2 ROUND 1 RESOLVED】见 open_questions.vllm-ascend-exact-pin 的 resolution——已实测核实为 367b8e62da799870a7476ce34f5f7658589a8aad。本条目保留作为历史记录，round 2 不再涉及 vllm-ascend。"
+  - id: "vllm-plugin-fl-real-hardware-validation-pending (PHASE 2 ROUND 2, 2026-09-22)"
+    description: >-
+      vllm-plugin-FL 已实测构建成功（image id `9ad551058f2f`），但 Step 5 真机
+      vLLM 推理烟雾测试（用真实 `generate()` 输出文本确认非乱码/非 CPU 回退）
+      与训练/推理共存检查**均未执行**，原因是本轮会话观测期间机器带卡容器并发
+      数持续保持在 5（超过上限 3，是其他工程师的活跃工作负载，非本任务所起）。
+      这不是技术性失败，是共享机器资源约束——按任务书要求未强行起容器抢占
+      已在跑的设备。**在这一项完成之前，不能认为 vllm-plugin-FL 路径已经"验证
+      通过"，只能说"构建通过"**——尤其是 REBUILD.md「FlagRT 私有 fork 的发现
+      与决策」提到的两个已知 PrivateUse1 类型提升 bug（token id 坍缩成 1 /
+      flagcx backend 异步同步问题）是否会在本血统的 torch_npu 路径上实际触发，
+      仍然未知。`repro_status` 因此维持 🟡 partial-repro。见 REBUILD.md
+      「ROUND 2 真机验证结果」的待办清单。
+  - id: "verify_runtime.py torch_fl._C find_spec side-effect bug (PHASE 2 found+fixed, 2026-09-22)"
+    description: >-
+      `find_spec(\"torch_fl._C\")` 隐式 import 父包 `torch_fl`，在 PrivateUse1
+      已被 torch_npu 抢注时触发 `torch_fl.__init__.py` 的
+      `_check_privateuse1_unclaimed()` 抛出未捕获的 RuntimeError，导致
+      `verify_runtime.py` 哪怕不带 `--check-torch-fl-guard` 也会崩溃退出，从未
+      打印出预期 JSON。已在 `assets/verify_runtime.py` 修复（try/except 捕获，
+      记录为证据），已用 `docker cp` 在真机容器内验证修复生效。见 REBUILD.md
+      详述。
+
+changelog:
+  - date: "2026-09-22"
+    what: >-
+      设计起草（phase 1，无实机构建）：从 v2 分叉，Route A（torch_npu 默认）
+      取代 v2 的"共存但从未激活"，FlagGems/FlagTree/Torch-FL 保留但明确标注
+      "可插拔、opt-in"，新增 vllm-ascend 层支撑训练+推理统一血统。未改
+      dev/stack.lock.910c.v2.yaml（out of scope，validation 需先通过）。
+  - date: "2026-09-22"
+    what: >-
+      PHASE 2 实机构建+验证：核实 vllm-ascend 精确 pin（367b8e62d，回填
+      Dockerfile.repro）；设计 tag 构建在 vllm-ascend 层失败（STOP CONDITION，
+      triton-ascend==3.2.1 不在公开 PyPI），未产出镜像实体；另建诊断镜像
+      （跳过该层）验证 Route A 默认生效（route_a_default_check: passed，
+      2 卡真机容器 v3-validate-train-910c）、torch_fl guard fail-loud
+      （torch_fl_guard_check: passed，过程中发现并修复 verify_runtime.py 自身
+      一处 find_spec 副作用 bug）、triton/FlagGems/Torch-FL 静态自检全部通过。
+      vLLM 推理烟雾测试（Step 4）与完整训练+推理共存检查（Step 5）因
+      vllm-ascend 构建失败被阻塞，未执行。pip freeze 落盘
+      assets/provenance/pipfreeze-operator-runtime-v3.txt（替换 PENDING.md，
+      文件头注明诊断镜像 caveat）。repro_status 见 image_list.md。未改
+      dev/stack.lock.910c.v2.yaml。
+  - date: "2026-09-23"
+    what: >-
+      PHASE 2 ROUND 2：把 vLLM 推理插件从 vllm-ascend（round 1 构建失败）换成
+      vllm-plugin-FL（`github.com/flagos-ai/vllm-plugin-FL`，release/0.2 分支，
+      commit `8b059122e32b9ac47b9820a9c7b1bb95077481a4`，`git ls-remote` 本轮
+      现场取得）——BAAI·FlagTree 官方 wiki 自己为 ascend3.5 线背书的推理插件
+      路径，核实其 pyproject.toml 核心依赖不含 triton-ascend，不会撞上 round 1
+      那堵公开 PyPI 墙。`docker build --network=host` **设计 tag 构建成功**，
+      image id `9ad551058f2f`，`verify_runtime.py --static` 通过
+      （`vllm_fl_installed: true`）。同步重建 `ascend-train-comm:v3`（父镜像
+      换成这个新 operator-runtime，FlagCX 层本身未变，image id
+      `43f3e2f70b4c`）。发现本机另有一个 `FlagRT/vllm-plugin-FL` 组织 fork 带
+      未上游化的 ascend 专属 patch（PrivateUse1 `bool*int64` 类型提升 bug +
+      flagcx backend 异步同步 bug 的修复），按任务书"纯公开血统"要求未采用，
+      记录在案。FlagGems pin 未改动（README 建议不同 commit，按任务书要求先用
+      已 pin 的 commit 试，静态构建/装配层面完全通过）。**真机 Step 5（vLLM
+      推理烟雾测试 + 完整训练/推理共存检查）本轮会话未能执行**——机器带卡容器
+      并发数在本轮观测期间持续保持在 5（超过 stack.lock 规定的上限 3，是其他
+      工程师活跃工作负载，非本任务所起，容器名多次变化确认是持续在跑的
+      sweep），按任务书"respect shared-machine rules"要求未强行起容器抢占，
+      明确记为 PENDING，非"跳过"。pip freeze 落盘
+      `assets/provenance/pipfreeze-operator-runtime-v3.txt`（替换 round 1 的
+      诊断镜像快照）。repro_status 维持 🟡 partial-repro（不升级为 🟢，因为
+      真机推理正确性未证实）。未改 `dev/stack.lock.910c.v2.yaml`。

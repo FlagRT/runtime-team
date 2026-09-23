@@ -15,6 +15,7 @@
 | 1 | 逐字节复现（可选金标准） | 需 owner 交出 FlagCX 私有 commit `55eb2ff` + 2 个 patch + 干净 python3.11.15 构建上下文。见各 `v1/lock.yaml:gaps`。总组以 issue 形式向 owner 索取。 |
 | 2 | `ascend-infer-vllm` 离线副本（可选加固） | 按 digest `sha256:5cf8a2b6…` 存一份，防 quay rc 标签被 GC；连带留存拷出的 `triton_ascend 3.2.1` wheel。见 `ascend-infer-vllm/v1/ARCHIVE.md`。 |
 | 3 | `image_list.md` 维护 | 新镜像/新版本入档时更新索引表与"当前生效版本"。 |
+| 4 | v3 真机验证收尾（跨机器交接中） | 详见 `HANDOFF-v3-910C.md`——卡资源阻塞，FlagCX sync 假设待验证，vLLM smoke test 待跑。 |
 
 ## N1 完成（2026-09-12）——按 BAAI·FlagTree 官方手册 ascend3.5 线重建训练腿祖先镜像
 

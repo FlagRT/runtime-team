@@ -1,0 +1,240 @@
+# ascend-train-comm / v3
+# 在 ascend-operator-runtime:v3（Route A 默认血统）之上叠加 FlagCX，训练腿通信
+# 从"flagos 适配"切到"HCCL 适配"，对齐
+# dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py
+# 的实测通路。
+#
+# 【阶段声明，2026-09-22 ROUND 2 更新】phase 1 是设计/起草阶段产出（未构建）。
+# round 1 phase 2 已实机 docker build（成功，父镜像用 operator-runtime/v3 的
+# 诊断变体——本层自身不依赖 vllm-ascend，构建结果对设计 tag 同样有效）+ 真机
+# 2 卡 docker run。静态自检、verify_flagcx_runtime.py --device、
+# verify_flagcx_p2p.py 全部通过（FlagCX all_reduce/P2P send-recv 正确）。**但
+# 真实训练脚本 train_qwen_1_5b_npu.py 在 DDP 构造阶段失败——定位到 flagcx
+# backend 的 broadcast/all_gather 返回错误结果（STOP CONDITION）**，未能产出
+# 任何真实 loss/吞吐数据——这条与本轮 vLLM 插件 pivot 无关，round 2 未重新调查，
+# 结论不变，仍是开放的独立阻塞项。
+#
+# round 2：父镜像的 vLLM 插件从 vllm-ascend（构建失败）换成 vllm-plugin-FL
+# （构建成功），本层在新父镜像上重新构建（image id 43f3e2f70b4c，父镜像 image
+# id 9ad551058f2f，均为正式非诊断镜像）。FlagCX 层内容本身逐字节未变。round 2
+# 新增了 Step 5 共存检查（训练侧 FlagCX + 推理侧 vllm-plugin-FL 同镜像），结果
+# 见 coexistence_check 字段与 REBUILD.md。repro_status 维持 🟡
+# （partial-repro）——broadcast/all_gather STOP CONDITION 仍未解决，见下方
+# known_issues 与 REBUILD.md 详述。
+
+superseded_by: null   # v2 未被取代——三条血统并存，详见 image_list.md"当前生效版本"
+
+image_tag: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
+flagtree_line: >-
+  ascend3.5，随父镜像 ascend-operator-runtime/v3。本层只叠加 FlagCX（与 v2 相同
+  commit，未升级），改变的是消费侧配置（ENV 与 verify 脚本），不是 FlagCX 本体。
+built_at: "2026-09-22"
+builder: "runtime-team (phase 2 real-hardware validation agent)"
+repro_status: "🟡 partial-repro"   # 构建成功、通信原语部分验证通过（all_reduce/P2P 正确），
+                                    # 但训练脚本因 broadcast/all_gather STOP CONDITION 无法产出
+                                    # 真实 loss/吞吐数据，故不能标 🟢。见 known_issues 与 REBUILD.md。
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方。build.sh 驱动，但 phase 1 未执行。
+
+parent_image:
+  name: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64"
+  entry: "dev/images/ascend-operator-runtime/v3"
+
+# --- 相比 v2 的改动（任务书要求明确写出） ---
+improvement_over_v2: |
+  v2 的 FlagCX 层已经解决了"逐字节可复现"的问题（公开 commit，无 owner 私有
+  patch/vendor 回收件）——v3 不重复解决这个问题（FLAGCX_COMMIT 完全不变），
+  v3 解决的是任务书这次提出的新目标：训练腿的通信配置从"flagos 适配"（Torch-FL
+  的 "flagos" ProcessGroup 包装 FlagCX，torch_npu 与 torch_fl 共装但从未真正
+  用于计算）切到"HCCL 适配"（torch_npu 原生 autoload + FlagCX 自己注册的
+  "flagcx" c10d 后端），对齐
+  dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py
+  的实测通路（2481 步全程稳定，loss 1.9501，4157-5428 tok/s 区间视 hccl 原生
+  对比而定，双卡 DDP，zero torch_fl 依赖）。
+
+  【PHASE 2 实测更新，2026-09-22】上面这条"对齐"目前只在"消费路径选择正确"
+  这一层意义上成立（backend="flagcx"、PrivateUse1="npu"，均实测确认）——
+  尚未在"数值结果对齐"意义上成立：本血统实际构建出的 FlagCX commit 在
+  broadcast/all_gather 上有 bug（见 known_issues），导致
+  train_qwen_1_5b_npu.py 本身在这条血统下跑不起来，未取得可比的 loss/tok-s
+  数据。上面引用的历史数字来自另一分支（kistich/ascend-dev1.0）的验证记录，
+  不能当作本血统（FlagRT/FlagCX 公开 commit 4e0e0cbcbf7...）已经复现的结果。
+
+  具体改动：
+    - ENV 删除 TORCH_DEVICE_BACKEND_AUTOLOAD=0 与 FLAGCX_TORCH_BACKEND=flagos。
+    - verify_flagcx_runtime.py / verify_flagcx_p2p.py 的 --device 路径从
+      "torch_fl + backend='flagos'" 改为 "torch_npu + backend='flagcx'"。
+    - FlagCX 本体的 git commit、构建命令（USE_ASCEND=1 pip install .
+      --no-build-isolation）、submodule 拉取方式，逐字节未变。
+
+layers:
+  - name: "FlagCX 0.13.0（昇腾 adaptor，公开 commit，与 v2 相同）"
+    origin: custom
+    pin:
+      version: "0.13.0"
+      commit: "4e0e0cbcbf721169ca82348080f8353aebfe2c31"
+      repo: "https://github.com/FlagRT/FlagCX.git（组织仓公开主干，同步自 flagos-ai/FlagCX 公开上游，未升级）"
+      build_command: "USE_ASCEND=1 pip install --no-build-isolation .（与 v2 完全相同）"
+      submodules: "third-party/json（nlohmann/json）、third-party/googletest（google/googletest），构建期 git clone --depth 1，均为公开仓库"
+    note: "无 owner 私有 patch；FlagCX 本体构建方式未变，改变的是下面的消费侧 ENV/脚本。"
+  - name: "运行时开关 ENV（v3 改动点）"
+    origin: custom
+    pin: "HCCL_WHITELIST_DISABLE=1（与 v2 相同，保留）；TORCH_DEVICE_BACKEND_AUTOLOAD=0 与 FLAGCX_TORCH_BACKEND=flagos 均已移除（v2 有，v3 无）"
+    note: >-
+      移除这两个 ENV 是 v3 唯一真正意义上的"配置变更"——没有它们，父镜像
+      （ascend-operator-runtime:v3）的官方默认行为生效：torch_npu autoload
+      抢注 PrivateUse1="npu"。
+
+# v3 沿用 v2 的判断：没有 gaps 段——FlagCX 层未变（仍是干净公开 commit 构建），
+# 新增的消费侧配置变更也不引入任何私有资产依赖。
+
+# --- FlagCX 消费路径说明（任务书要求：不能确定的地方要明说，不能悄悄猜）---
+flagcx_adaptor_terminology: |
+  这是本次设计阶段做出的、基于阅读现有代码/文档得出的判断，**不是从 FlagCX
+  源码逐行核实过的事实**（FlagCX 源码在构建期才 git clone/archive，不在本
+  仓库里可供静态 grep）：
+
+  "adaptor=ascend"（FlagCX Dockerfile 里 USE_ASCEND=1 选的）是**硬件目标**
+  ——选择编译进 CANN/HCCL 支持，这个维度 v2 与 v3 完全相同，没有变化。
+
+  任务书里"从 flagos 适配切到 HCCL 适配"的措辞，对应的实际是**消费侧**
+  （谁在运行时使用 FlagCX、通过什么 API）的差别，不是 FlagCX 自身的一个独立
+  编译期 flag：
+    - v2（flagos 适配）：Torch-FL 先 import 拿到 PrivateUse1="flagos"，
+      `dist.init_process_group("flagos")` 用的是 Torch-FL 自己注册的
+      "flagos" ProcessGroup，这个 ProcessGroup 内部再调用 FlagCX 做实际通信
+      （见 ascend-train-comm/v2/assets/verify_flagcx_runtime.py 里那段关于
+      `dist.Backend.backend_capability["flagcx"]` 为什么不能拿来断言的详细
+      注释）。
+    - v3（HCCL 适配）：torch_npu autoload 拿到 PrivateUse1="npu"，
+      `dist.init_process_group(backend="flagcx")` 直接用 FlagCX 自己注册的
+      原生 "flagcx" c10d 后端——这条路径在
+      dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py
+      里已经真机验证过（2481 步训练闭环），且完全不涉及 Torch-FL。
+
+  这两条路径共享同一份 FlagCX 编译产物（同一个 commit，同一条
+  `USE_ASCEND=1 pip install .` 命令）——差别只在运行时"哪个包先抢注
+  PrivateUse1 + 传给 init_process_group 的 backend 字符串是什么"。**如果
+  phase 2 实机验证发现这个判断有误（比如确实存在一个被本文档忽略的 FlagCX
+  编译期 flag），需要回来修正本文件与 Dockerfile.repro，不能继续假设。**
+
+  另需注意（同样未验证，见 REBUILD.md）：train_qwen_1_5b_npu.py 并未显式
+  `import flagcx`（只 `import torch_npu`），却能成功用 backend="flagcx"——
+  暗示 `pip install .` 的构建方式让 FlagCX 注册为可自动发现的 c10d 后端。
+  dev/device-context/prototype/runtime/proto/proto_train_leg.py 对昆仑芯
+  P800 走类似 flagcx 路径时则**显式** `import flagcx`
+  （"显式导入才会把 cuda:flagcx 注册为 c10d 后端"）——两份代码对"是否需要显式
+  import" 的做法不一致，本阶段无法判断是芯片差异、安装方式差异
+  （.pth 注册法 vs pip install）、还是其中一份代码只是防御性写法。v3 的
+  verify 脚本保留了显式 `import flagcx`（防御性，无害），但明确标注这一点
+  为待确认项。
+
+repro_result:
+  status: >-
+    PHASE 2 ROUND 2 — 2026-09-22. round 1's FlagCX-specific real-hardware rows
+    below (flagcx_so_present through teardown_sigabrt_reproduces_in_v3_default_path)
+    are carried forward unchanged (FlagCX layer itself is byte-identical between
+    round 1 and round 2 -- only the parent image's vLLM plugin changed, which
+    does not affect FlagCX). round 2 rebuilt this image on the real (non-
+    diagnostic) ascend-operator-runtime:v3 parent and added the coexistence_check
+    field below (training-side FlagCX + inference-side vllm-plugin-FL in one
+    image). See known_issues.flagcx-broadcast-allgather-wrong-result (unchanged,
+    still the open blocker for real DDP loss numbers -- out of scope this round).
+  image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"   # round 2: no -DIAGNOSTIC-novllm suffix, real image id 43f3e2f70b4c, built on real operator-runtime:v3 (image id 9ad551058f2f)
+  image_id: "43f3e2f70b4c"
+  flagcx_so_present: true
+  verify_flagcx_runtime_static: "passed"
+  verify_flagcx_runtime_device_route_a: "passed: device_all_reduce_ok=true both ranks, device_backend_str='flagcx', torch_npu_default_check passed -- 2-card real hardware, container v3-validate-train-910c, 2026-09-22 (round 1, carried forward -- FlagCX layer unchanged)"
+  verify_flagcx_p2p_route_a: "passed: all 4 payload sizes (1/4/257/65536 elements) sha256-verified correct both ranks, inner_backend='name=flagcx,_get_backend_name=flagcx' (round 1, carried forward)"
+  communication_correctness_probe: "not run -- superseded by a more targeted diagnostic (see known_issues.flagcx-broadcast-allgather-wrong-result) that already isolated the exact failing collectives"
+  train_qwen_1_5b_npu_reproduction: "FAILED at DDP construction -- see known_issues.flagcx-broadcast-allgather-wrong-result. No real loss/throughput data obtained. Out of scope this round, not re-attempted."
+  teardown_sigabrt_reproduces_in_v3_default_path: true   # see known_issues below, this REVERSES the v2 hypothesis (round 1 finding, carried forward)
+  coexistence_check: "PENDING -- round 2 real-hardware Step 5, see REBUILD.md 'ROUND 2 共存检查'"
+
+known_issues:
+  - id: "flagcx-broadcast-allgather-wrong-result (PHASE 2 STOP CONDITION, 2026-09-22)"
+    description: >-
+      真机 2 卡验证发现：FlagCX 0.13.0 @ 4e0e0cbcbf721169ca82348080f8353aebfe2c31
+      的 `flagcx` c10d backend 下，`dist.broadcast(src=0)` 是静默 no-op（目标
+      rank 未收到源 rank 的数据，观测值与广播前相同），`dist.all_gather`
+      （tensor-list 形式）恒返回全零（与两个 rank 的真实输入值均不符），
+      `dist.all_gather_object` 因此级联崩溃（EOFError，pickle 反序列化在损坏
+      数据上失败）。相对地，`dist.all_reduce`（SUM）与 P2P `send`/`recv` 均
+      验证正确（见 verify_flagcx_runtime_device_route_a /
+      verify_flagcx_p2p_route_a）。直接后果：`train_qwen_1_5b_npu.py`
+      （逐字节未改动，历史上在另一分支验证通过 2481 步/loss 1.95/
+      4245-5428 tok/s 的同一份脚本）在本血统构建出的镜像里于
+      `DDP(model, device_ids=[local_rank])` 构造阶段即失败：
+      `RuntimeError: DDP expects same model across all ranks, but Rank 1 has
+      338 params, while rank 0 has inconsistent 0 params.`——根因就是
+      DDP 构造内部用于跨 rank 核对参数形状的通信调用依赖 broadcast/all_gather
+      语义，而这两个原语在本 commit 的 flagcx backend 下已损坏。**未尝试打
+      私有补丁或绕过 DDP 的形状校验**（绕过治标不治本：broadcast 本身损坏意味着
+      各 rank 初始权重不会同步，继续训练只会静默产出不可信的数值结果，属于
+      任务书 STOP CONDITION 1"产生错误的数值结果"明确要求停下的场景）。复现
+      步骤、诊断脚本输出全文见 REBUILD.md 对应章节。**这是训练腿目前唯一的
+      阻塞项，待 FlagCX 维护者或项目负责人裁定（例如换一个 FlagCX commit 重测、
+      或联系 FlagCX 上游报告这个 broadcast/all_gather bug）。**
+      【ROUND 3 追加，2026-09-23，PENDING】项目负责人指出本机
+      `FlagRT/vllm-plugin-FL` 私有 fork 的 commit `5d545c9` 提出一个"缺
+      torch.npu.synchronize()"假说（flagcx backend 异步返回，读结果前必须
+      同步）——可能是本条目的诊断脚本当年漏了同步，而不是 FlagCX 真的坏了。
+      直接验证脚本（`flagcx_sync_test.py`，对比 sync/no-sync 两种模式）已
+      写好，因机器带卡容器并发持续超限（同一阻塞源，另见
+      operator-runtime/v3 lock.yaml 的 vllm-plugin-fl-real-hardware-
+      validation-pending）本轮**未能执行，结果未知，PENDING**。本条目结论
+      在有真机证据推翻它之前继续视为真实、未解决。见 REBUILD.md「ROUND 3」
+      一节完整设计与待办。
+  - id: "teardown-sigabrt (carried forward from v2, PHASE 2 RE-VERIFIED: reproduces in v3 default path too)"
+    description: >-
+      v2 记录的已知问题：成功完成集合通信后进程退出阶段 "free(): invalid
+      pointer" SIGABRT。v2 曾推测根因是"FlagCX 与 Torch-FL 各自退出期清理顺序
+      冲突"，并推论"v3 默认路径不 import torch_fl，可能不复现"。**PHASE 2
+      实测推翻了这个推论**：`verify_flagcx_runtime.py --device` 与
+      `verify_flagcx_p2p.py` 在 v3 默认路径（完全不 import torch_fl，
+      TORCH_DEVICE_BACKEND_AUTOLOAD 未设置）下，均在成功完成真实通信、
+      结果正确之后，于进程退出阶段同样报 `free(): invalid pointer` SIGABRT。
+      **这意味着根因不是"FlagCX 与 Torch-FL 的清理顺序冲突"**（v3 路径完全
+      不触碰 torch_fl），必须是 FlagCX 自身的退出期清理逻辑问题，或 FlagCX 与
+      torch_npu（而非 torch_fl）之间的清理顺序冲突——具体是哪个，本阶段未
+      进一步定位（不在 STOP CONDITION 范围内，因为两个 verify 脚本按设计在
+      teardown 前已打印出正确结果，不影响功能性判定，只是"退出码不可信"这条
+      既有结论继续成立，且适用范围比原先认为的更广）。
+
+changelog:
+  - date: "2026-09-22"
+    what: >-
+      设计起草（phase 1，无实机构建）：从 v2 分叉，父镜像切到
+      ascend-operator-runtime:v3，移除 TORCH_DEVICE_BACKEND_AUTOLOAD=0 /
+      FLAGCX_TORCH_BACKEND=flagos，verify 脚本改为 torch_npu + backend="flagcx"
+      路径，对齐 train_qwen_1_5b_npu.py。FlagCX 本体 commit/构建命令未变。
+      未改 dev/stack.lock.910c.v2.yaml（out of scope）。
+  - date: "2026-09-22"
+    what: >-
+      PHASE 2 实机构建+验证：docker build 成功（父镜像用 operator-runtime/v3
+      诊断变体）；静态自检、verify_flagcx_runtime.py --device、
+      verify_flagcx_p2p.py 全部通过，2 卡真机确认 all_reduce/P2P send-recv
+      在 flagcx backend 下结果正确。**发现 STOP CONDITION**：同一 backend 下
+      broadcast/all_gather 返回错误结果，导致 train_qwen_1_5b_npu.py 在 DDP
+      构造阶段失败，未能产出真实 loss/吞吐数据。另确认退出期 SIGABRT 在 v3
+      默认路径（不含 torch_fl）下依然复现，推翻了"可能因不装 torch_fl 而不
+      复现"的 v2 推论。pip freeze 落盘 assets/provenance/pipfreeze-comm-v3.txt
+      （替换 PENDING.md）。repro_status 见 image_list.md。未改
+      dev/stack.lock.910c.v2.yaml。
+  - date: "2026-09-23"
+    what: >-
+      PHASE 2 ROUND 2：父镜像换成正式（非诊断）operator-runtime:v3
+      （vLLM 插件由 vllm-ascend 换成 vllm-plugin-FL 后构建成功，见该目录
+      lock.yaml/REBUILD.md）。本层（FlagCX）自身构建方式、commit、逻辑完全
+      未变，只是在新父镜像上重新构建——`docker build --network=host` 成功，
+      image id `43f3e2f70b4c`。round 1 已完成的真机验证（all_reduce/P2P 正确、
+      broadcast/all_gather STOP CONDITION、退出期 SIGABRT）全部照搬，未重新
+      调查，结论不变——这些与 vLLM 插件选型无关。**新增的 Step 5.2 共存检查
+      （训练侧 FlagCX + 推理侧 vllm-plugin-FL 同镜像）本轮会话未能执行**：机器
+      带卡容器并发数持续保持在 5（超过上限 3，是其他工程师活跃工作负载，非本
+      任务所起），按任务书要求未强行起容器，明确记为 PENDING。pip freeze 落盘
+      `assets/provenance/pipfreeze-comm-v3.txt`（替换 round 1 的诊断镜像快照，
+      确认 flagcx 与 vllm-plugin-fl 同时出现在依赖树里，无安装期冲突）。
+      repro_status 维持 🟡 partial-repro（broadcast/all_gather STOP CONDITION
+      仍未解决，且不在本轮任务范围内）。未改 dev/stack.lock.910c.v2.yaml。
