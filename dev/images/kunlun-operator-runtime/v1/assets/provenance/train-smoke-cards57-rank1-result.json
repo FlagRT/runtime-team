@@ -1,0 +1,67 @@
+{
+  "rank": 1,
+  "world_size": 2,
+  "model": "/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "backend": "kunlun",
+  "dist_backend": "cpu:gloo,cuda:flagcx",
+  "checks": {
+    "device_context": {
+      "ok": true,
+      "detail": "rank1 绑定 cuda:1；可见设备 2；统一流 <Stream backend=kunlun native=Stream>"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "加载到 cuda:1"
+    },
+    "comm_all_reduce": {
+      "ok": true,
+      "detail": "实测 3.0 / 期望 3.0"
+    },
+    "comm_all_gather": {
+      "ok": true,
+      "detail": "收集到 [0.0, 1.0]"
+    },
+    "comm_p2p": {
+      "ok": true,
+      "detail": "rank1 接收一致=True"
+    },
+    "loss_decrease": {
+      "ok": true,
+      "detail": "首 15.4488 → 末 11.2841（20 步）；无 NaN=True"
+    }
+  },
+  "device_type": "cuda",
+  "perf": {
+    "steps": 20,
+    "batch": 4,
+    "seq": 128,
+    "tokens_per_s_per_rank": 856.6,
+    "tokens_per_s_total": 1713.2,
+    "elapsed_s": 11.95
+  },
+  "loss_curve": [
+    15.4488,
+    14.1004,
+    13.2508,
+    12.9896,
+    12.4544,
+    12.2795,
+    11.9287,
+    11.933,
+    11.8712,
+    11.7267,
+    11.5892,
+    11.5864,
+    11.4964,
+    11.5498,
+    11.4052,
+    11.3755,
+    11.3779,
+    11.3174,
+    11.3372,
+    11.2841
+  ],
+  "verdict": "TRAIN_LEG_PASS",
+  "passed": 6,
+  "total": 6
+}

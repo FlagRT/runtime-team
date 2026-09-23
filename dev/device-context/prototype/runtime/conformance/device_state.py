@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-torch_fl 设备状态机（flagos/device_state.py）
+设备状态机（**芯片无关的共享资产**）
+
+本文件由设备上下文方向自研维护，三个芯片实例（ascend / kunlun / cambricon）共用同一份：
+后端只做适配，四态语义与事件订阅契约不随芯片变化。
 
 对应设备执行上下文职责（细项21·设备状态恢复）与统一行为契约 R1-R5：
   - R3 隔离保证：损坏上下文从调度池摘除（状态机 ISOLATED）
@@ -13,7 +16,8 @@ DESTROYED（已销毁）。转换全部产生可观测事件（记录 + 订阅�
 收到 AVAILABLE 恢复派发。
 
 用法：
-    from torch_fl.flagos.device_state import (
+    import sys; sys.path.insert(0, "<prototype>/runtime/conformance")
+    from device_state import (
         DeviceState, query_device_state, set_device_state,
         subscribe_device_state, device_states,
     )

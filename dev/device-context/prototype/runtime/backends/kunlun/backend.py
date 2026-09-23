@@ -41,7 +41,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from ...api.errors import FlagosError
+from ...api.errors import FlagosError, coerce_category
 from ..base import RuntimeBackend
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ class KunlunBackend(RuntimeBackend):
     name = "kunlun"
     device_type = "cuda"   # 见模块 docstring：设备串按命名空间，不按厂商
 
-    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend/flagos 对齐）
+    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend / cambricon 对齐）
     _CAPABILITY_KEYS = (
         "device", "memory", "stream", "event", "bounded_sync",
         "error_map", "recovery_probe", "recovery_real",
@@ -127,13 +127,13 @@ class KunlunBackend(RuntimeBackend):
         "event",
         "bounded_sync",      # 主机侧等待真有界；流同步为"超时上报"语义，见 synchronize_stream
         "recovery_probe",    # 探针级恢复
-        "device_state",      # 四态机
+        "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
+        "graph_capture",     # torch.cuda.graph（2026-09-20 实测 GRAPH_CAPTURE_PASS 5/5）
         "multidevice",       # 单机 8 卡
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
         # "stream_priority" : priority_range() 触发 PyTorch INTERNAL ASSERT（上游缺陷）
-        # "graph_capture"   : 未验证
     }
 
     #: 分级来源可达性（如实标注：code_map 路径在昆仑芯不可达）
@@ -142,6 +142,7 @@ class KunlunBackend(RuntimeBackend):
     def __init__(self) -> None:
         self._torch = None
         self._errors_mod = None
+        self._device_state = None
         self._loaded = False
 
     # ───────────── 延迟加载 ─────────────
@@ -178,6 +179,26 @@ class KunlunBackend(RuntimeBackend):
             spec.loader.exec_module(mod)
             self._errors_mod = mod
         return self._errors_mod
+
+    def _load_device_state(self):
+        """按需加载 conformance/device_state 资产（设备四态机）。
+
+        ⚠️ **必须用标准 `import`（与 ascend 一致、共享 `sys.modules`），
+        不能用 importlib 独立模块名加载。**
+
+        原因：`device_state` 是**有状态的进程内单例**（模块级 `_ensure(ordinal)` 持有
+        每个设备的四态、转换事件与订阅者）。若像 `_load_errors()` 那样用
+        `spec_from_file_location("dc_xxx", ...)` 加载成独立模块，就会得到**两份状态机**
+        —— conformance / 上层设置的状态，后端查不到；后端设置的状态，上层也看不到。
+
+        （`errors` 是无状态纯函数，两份无所谓——但那正是「第 4 个跨后端框架缺陷」
+        的成因，**不应效仿**。）
+        """
+        if self._device_state is None:
+            sys.path.insert(0, str(_CONFORMANCE_DIR))
+            import device_state as _device_state
+            self._device_state = _device_state
+        return self._device_state
 
     # ───────────── 设备 ─────────────
     def device_count(self) -> int:
@@ -318,14 +339,28 @@ class KunlunBackend(RuntimeBackend):
         fe = errors.translate_error(exc, location=location)
         graded_by = getattr(fe, "graded_by", "default")
         # 如实降级：昆仑芯无错误码 → code_map 不可达，只有 message_hint / default 可信
-        if graded_by == "code_map":
+        #
+        # ⚠️ 2026-09-22 修（第 6 个跨后端缺陷，寒武纪实例暴露后回修本处）：
+        #   底层共享翻译器的码表是**昇腾 ACL 码表**。若消息里恰好出现形如昇腾错误码的数字
+        #   （例如 `error code is 507015`），它会返回 `graded_by="code_map"` 且 `mapped=True`。
+        #   昆仑芯没有厂商码表 ⇒ 这不是本厂商的码表命中，`graded_by` / `mapped` / `error_code`
+        #   必须**一起**降级。原写法只改 `graded_by`，留下「`mapped=True` 但
+        #   `graded_by≠code_map`」的自相矛盾；而契约里 `mapped=True` = **确定分级** ⇒
+        #   等于把保守推断冒充成定论（违反 I2 禁止伪造）。
+        degraded = graded_by == "code_map"
+        if degraded:
             graded_by = "message_hint_unexpected"
         return FlagosError(
-            category=getattr(fe, "category", None) or _l3(),
+            # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
+            # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
+            # （L1=1..L4=4），与 api 层枚举**不是同一个类对象** —— 即使取值相同也不相等，
+            # 直接透传会让 `FlagosError.disposition` 的 `DISPOSITION[cat]` 查表 KeyError。
+            # 故经 `coerce_category` 按数值/名称归一（ascend 用的是同源 _INT_TO_CATEGORY）。
+            category=coerce_category(getattr(fe, "category", None)) or _l3(),
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
-            error_code=getattr(fe, "error_code", None),
-            mapped=bool(getattr(fe, "mapped", False)),
+            error_code=None if degraded else getattr(fe, "error_code", None),
+            mapped=False if degraded else bool(getattr(fe, "mapped", False)),
             graded_by=graded_by,
             # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
             is_grade_confident=(graded_by == "message_hint"),
@@ -355,6 +390,19 @@ class KunlunBackend(RuntimeBackend):
             "ordinal": ordinal, "mode": mode, "recovered": alive,
             "detail": f"probe 级探活：设备当前{'可用' if alive else '不可用'}",
         }
+
+    def device_state(self, ordinal: int):
+        """查询设备四态：`available` / `degraded` / `isolated` / `destroyed`。
+
+        复用 conformance 的 device_state 资产（**进程内状态机，不依赖厂商原语**），
+        与 ascend 同一份实现与同一套语义，故本后端的 `device_state` 能力声明成立。
+
+        边界（如实标注）：昆仑芯侧无设备级重置/重建原语（见 `recover_device`），
+        本后端只声明 `recovery_probe` —— 四态**转换**由上层/监控方向驱动
+        （`set_device_state`），本方法只负责**查询**；恢复执行走
+        `recover_device(mode="probe")`。
+        """
+        return self._load_device_state().query_device_state(ordinal)
 
     # ───────────── 能力声明 ─────────────
     def supports(self, capability: str) -> bool:

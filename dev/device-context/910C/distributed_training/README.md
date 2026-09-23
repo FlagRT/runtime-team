@@ -49,7 +49,7 @@ distributed_training/
 | 训练 | 路径 | 是否经统一原型 |
 |---|---|---|
 | 历史 910C 双卡 DDP（Qwen2.5-1.5B，2481 步） | `scripts/train_qwen_1_5b_npu.py` | ❌ 直接 `import torch_npu` + `torch.distributed`（`runtime.use` 出现 0 次） |
-| **本轮训练腿 2 卡微调（Qwen3-Embedding-0.6B）** | `../prototype/runtime/proto/proto_train_leg.py` | ✅ `runtime.use("flagos")` + `set_device(local_rank)` |
+| **本轮训练腿 2 卡微调（Qwen3-Embedding-0.6B）** | `../prototype/runtime/proto/proto_train_leg.py` | ✅ `runtime.use("ascend")`（torch_npu，2026-09-22 口径统一后）+ `set_device(local_rank)` |
 
 即：本目录保留的是**旧路径下的历史资产与证据**；基于统一原型的训练验证在
 `../prototype/` 下，两者不混用。**历史训练尚未用统一原型复跑**（缺口）。
@@ -57,7 +57,9 @@ distributed_training/
 
 ## 4. 运行注意
 
-- 训练腿锁定镜像的设备后端是 **flagos（torch_fl）**，禁止 torch_npu 共存；需 `AUTOLOAD=0` 且先 `import torch_fl`
+- ⏹ **（路线 B 历史，已归档）** 当时训练腿的锁定镜像设备后端走路线 B（torch_fl），且该镜像禁止两个插件同进程共存
+  > ⚠️ **2026-09-22 口径已变更**：训练腿统一改走 **`npu`（torch_npu）**，原权宜例外取消，
+  > 原型里的路线 B 后端也已删除。见 `dev/stack.lock.910c.yaml` 的 `per_leg.train`。
 - 容器内需补装 `transformers`
 - 带卡容器并发上限 3；与推理腿串行
 - 2 卡启动示例：

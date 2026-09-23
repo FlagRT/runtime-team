@@ -1,0 +1,73 @@
+########## [A] flagos smoke 全文（只看 PASS/FAIL/结果）##########
+[W922 08:09:32.125100849 OperatorEntry.cpp:208] Warning: Warning only once for all operators,  other operators may also be overridden.
+[flagos] loading backend config from /usr/local/python3.11.15/lib/python3.11/site-packages/torch_fl/configs/backends_ascend.conf
+[1] 注册表机制
+  [PASS] 初始无后端 got []
+  [PASS] 未注册时 use 抛 BackendNotFound 
+  [PASS] 注册后可见 got ['mock']
+  [PASS] use 返回后端实例 
+  [PASS] current 一致 
+  [PASS] 后端单例 
+[2] 统一 API 转发
+  [PASS] device_count 
+  [PASS] set_device 
+  [PASS] memory_stats 结构 {'total_mb': 65536, 'used_mb': 1024, 'free_mb': 64512}
+  [PASS] create_stream 返回统一 Stream Stream
+  [PASS] Stream 持有后端引用 
+  [PASS] create_event 返回统一 Event Event
+  [PASS] Event 持有后端引用 
+  [PASS] Event.record 可用 
+  [PASS] Event.wait_host 有界 
+  [PASS] 有界同步超时抛 TimeoutError 
+[3] 统一错误分级
+  [PASS] 分级为 L2_PARAM 
+  [PASS] 处置 = 上抛 raise
+  [PASS] 重试性 = False 
+  [PASS] 可观测字段 
+  [PASS] 后端名回填 mock
+  [PASS] location 透传 
+  [PASS] __str__ 可读 [L2_PARAM] @ op:matmul :: bad param
+  [PASS] L1-L4 → 处置全映射 
+[4] 能力查询
+  [PASS] supports(device) 
+  [PASS] 不支持的能力返回 False 
+  [PASS] info 含 name/device_type/capabilities {'name': 'mock', 'device_type': 'mock', 'capabilities': ['device', 'stream']}
+[5] 昇腾后端（需 torch_npu，不可用则跳过）
+  [PASS] ascend 加载 
+  [SKIP] 本地缺少依赖（No module named 'torch_npu'），昇腾后端留待 910C 真机验证
+[6] 真实后端通用自检（后端无关）
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+  → 选中后端: flagos  (device_type=flagos)
+  [PASS] device_count > 0 n=16
+  [PASS] memory_stats 结构 {'allocated_bytes': 0, 'reserved_bytes': 0, 'peak_allocated_bytes': 0, 'peak_reserved_bytes': 0, 'num_alloc_calls': 0, 'num_free_calls': 0, 'num_device_malloc': 0, 'num_device_free': 0, 'num_alloc_retries': 0, 'total_mb': 0, 'used_mb': 0, 'free_mb': 0, 'memory_scope': 'process', 'memory_degraded_reason': 'acl.init rc=100002'}
+  [FAIL] memory_stats total_mb > 0 {'allocated_bytes': 0, 'reserved_bytes': 0, 'peak_allocated_bytes': 0, 'peak_reserved_bytes': 0, 'num_alloc_calls': 0, 'num_free_calls': 0, 'num_device_malloc': 0, 'num_device_free': 0, 'num_alloc_retries': 0, 'total_mb': 0, 'used_mb': 0, 'free_mb': 0, 'memory_scope': 'process', 'memory_degraded_reason': 'acl.init rc=100002'}
+  [PASS] 统一 Stream 可用 Stream
+  [PASS] 统一 Event 可用 Event
+  [PASS] Stream.context 上下文可用 
+  [FAIL] Event.record + wait_host 有界返回 
+  [PASS] probe_device(0) 
+  [PASS] recover_device 返回 dict（统一契约） {'ordinal': 0, 'mode': 'probe', 'recovered': True, 'detail': 'flagos 后端：probe 级探活恢复（real/hybrid 暂未支持）'}
+  [PASS] translate_error 返回统一类型 
+  [PASS] translate_error 回填后端名 flagos
+  [PASS] 声明 error_map → 无码消息不伪称 code_map（诚实） graded_by=message_hint
+  [PASS] 声明 error_map → 含厂商码样例必走 code_map graded_by=code_map
+  [PASS] info.capabilities 与 supports() 自洽 []
+  [PASS] info.supports 与 supports() 一致 []
+=== 结果: 41 通过 / 2 失败 ===
+
+########## [B] flagos 元信息与显存实测 ##########
+python3: can't open file '/work/flagos_meta.py': [Errno 2] No such file or directory
+
+########## [C] flagos 错误闭环 ×2（看 OOM 注入是否稳定）##########
+--- 第 1 次
+后端: flagos | 设备数: 16
+[基线] 业务正常: 786432.0
+[oom(L1_RESOURCE 期望)] 未触发异常
+=== ERROR_RECOVERY_LOOP_PARTIAL | 闭环 3 / 跳过 1 / 失败 1 ===
+结果: /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/oom_probe_flagos_1.json
+--- 第 2 次
+后端: flagos | 设备数: 16
+[基线] 业务正常: 786432.0
+[oom(L1_RESOURCE 期望)] 未触发异常
+=== ERROR_RECOVERY_LOOP_PARTIAL | 闭环 3 / 跳过 1 / 失败 1 ===
+结果: /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/oom_probe_flagos_2.json

@@ -178,6 +178,44 @@ CUDA_CTA_PREEMPTION / CUDA_ENABLE_ABI_TRAPHANDLER / CUDA_CNP_LAUNCH_QUEUE
 | 是否影响训练腿验收 | ⚠️ 会。若上游不修，训练腿只能以「**标注缺口的证据 + 归属判定 + 最小复现**」形式验收，**不伪造通过** |
 | 已产出 | 探针与三轮原始日志（`P800/probes/`）、进度报告 §2.5、本文 |
 
+### 3.7 ⭐ 上游已承认该触发器（2026-09-22 新增官方印证）
+
+**来源**：FlagOS 官方镜像构建仓 `flagos-ai/build-infra` 的 `configs.yaml`（该文件是其镜像体系的
+唯一 source of truth，文档站 `https://flagos-ai.github.io/release-info/` 由它自动生成）。
+其 `kunlunxin.xre5.37.1.env.app.vllm` 段原文：
+
+```yaml
+          vllm:
+            # XPU_EVENT_KL3_ENABLE deliberately NOT set: it is the P1 fake-hang trigger
+            # (device timeout) on this XRE stack — default env is clean, keep it so.
+            VLLM_FL_PLATFORM: kunlunxin
+            VLLM_FL_PREFER: flagos
+            USE_FLAGGEMS: "1"
+            VLLM_FL_FLAGOS_WHITELIST: silu_and_mul,rms_norm,rotary_embedding
+```
+
+**这条注释的三层意义**：
+
+| # | 意义 |
+|---|---|
+| ① | **官方明确「不设」该变量**（`deliberately NOT set`）——与我们 §3.6 的规避动作**逐字一致**：不是我们自创的权宜手段，而是官方现行口径 |
+| ② | **官方为该现象命名并定级**：`P1 fake-hang trigger (device timeout)` —— 「P1 假挂死触发器 / 设备超时」。与我们定位的**两要素触发**（设该变量 + 存在设备侧集合通信 ⇒ 永久自旋）**方向一致**；「fake-hang」一词亦印证了我们实测的现象特征（进程 `Rsl`、`utime` 累积自旋、卡 100% 利用但显存仅 366 MiB、`timeout` 的 SIGTERM 无法中断） |
+| ③ | **作用域是 `xre5.37.1` 这一栈**（注释原文 `on this XRE stack`），说明该问题**不是某一镜像变体的偶发**，而是随 XRE 栈一起走 —— 与本方向 §「镜像无关性」的结论（在官方 `-base` 镜像上 3/3 一致重现）**相互独立地指向同一结论** |
+
+**⇒ 对上报材料的直接影响（建议采用）**：
+
+- §3.5 的**主提交**（昆仑芯 XPytorch / XRE）与**知会**（FlagGems / FlagTree）均可引用该注释，
+  作为「**上游已知该变量是挂死触发器**」的旁证，可显著降低被反问「是不是你们环境/用法的问题」的概率；
+- §3.5 第 ③ 项「请 FlagGems/FlagTree 复核 `XPU_EVENT_KL3_ENABLE: "1"` 在 xpu3.6 是否仍必要」
+  现在**有了明确的对接对象**：不是「要不要关」的开放问题，而是**FlagGems 的 `backends.yaml` 与
+  FlagOS 官方 `configs.yaml` 口径不一致**（前者设 1、后者明确不设）—— 上报时可**直接指向这条冲突**；
+- ⚠️ **一处需注意的口径差异**：官方注释针对的是 **`xre5.37.1` 栈**，而我们实测环境是
+  **FlagTree xpu3.6 线**（宿主 `xpu-smi` = 5.0.21.47）。**两者不是同一个栈**，
+  因此该注释**不能直接当作「我们的栈上也已修」的证据** —— 它证明的是「上游承认该变量是挂死触发器」，
+  而不是「我们遇到的挂死已被修复」。**我方结论（缺陷存在 + 规避有效）不受影响，但不可外推为已修复。**
+
+> 完整背景与三家镜像对照见 `../../prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md` §2.3。
+
 ---
 
 ## 4. 证据文件索引

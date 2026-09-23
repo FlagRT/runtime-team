@@ -1,0 +1,285 @@
+# kunlun-operator-runtime / v1
+# 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
+
+image_tag: "flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+image_id: "sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f"
+flagtree_line: >-
+  BAAI·FlagTree 官方 xpu 用户手册
+  （https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu），线号 xpu3.6
+  （CANN 概念不适用于昆仑芯；对应 XPU-RT 5.0.21 / driver 5.0.21.47，本机实测）。
+  手册当前展示的最新 flagtree 版本是 0.7.0rc3+xpu3.6；本条目 pin 在
+  0.6.1+xpu3.6——memory、device-context 两个子方向已各自验证过该具体组合
+  可用，不跟随手册最新版本。手册给出的安装方式是预编译 wheel：
+  `pip install flagtree===<ver>+xpu3.6 --index-url=...flagos-pypi-hosted...`，
+  无需源码编译。
+built_at: "2026-09-22"
+builder: "Docker 20.10.8 (BuildKit 未启用, DOCKER_BUILDKIT=0) / x86_64"
+repro_status: "🟢 functional-repro"   # 2026-09-22 实机构建 + pytest 真机验证，见 REBUILD.md（GEMM 已知崩溃不影响本判定，理由见下）
+
+recommended_default: >-
+  本层同时包含训练（transformers+FlagCX）与推理（vLLM+vllm-plugin-fl）所需
+  组件（见 parent_image.note），是训练/推理场景的**推荐默认底座**，无需按
+  场景再拆两个镜像。两条路径均已真机验证可用（见 `repro_result.e2e_smoke_training`
+  / `e2e_smoke_inference`），各有一条使用前提：
+  - **推理（单卡 vLLM）**：须显式设置 `VLLM_FL_PREFER=vendor`（默认 dispatch
+    在 EngineCore 初始化阶段崩溃，见 known_issues:
+    flagos-index-select-invalid-device-function）。
+  - **训练（多卡 flagcx 集合通信）**：须遵守共享机用卡纪律——`xpu-smi` 挑
+    连续且空闲的同 NUMA 组卡（本机 NUMA0=卡0-3、NUMA1=卡4-7），卡 1 历史上
+    反复被其他租户占用，应优先避开（见 REBUILD.md「GPU/机器纪律」）。
+  消费前需知晓上述两条 + GEMM 编译崩溃 + `XPU_EVENT_KL3_ENABLE` 挂死共四条
+  已知限制（见 known_issues）。
+  回退路径：本层是从 `parent_image`（官方基座）按 `Dockerfile.repro` 单向
+  构建而成，若本层不满足需求，基于 `parent_image` 自行按 `Dockerfile.repro`
+  的模式重建、更改 pin 后验证即可，不依赖本层。
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方（从官方基座直接 pip/git 安装构建，无需从既有
+  镜像 docker history 还原）。build.sh 驱动。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base"
+  digest: "sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+  note: >-
+    BAAI·FlagTree 官方发布的预构建基座镜像（公开 harbor 仓库，本机已存在，
+    非本组产物）。基座已内置 Python 3.10.18 / torch 2.9.0+cu129（CUDA 兼容层，
+    昆仑芯 xpytorch）/ torchvision 0.24.0+cu129 / torchaudio 2.9.0+cu129，
+    并已预装 FlagGems（editable，`/env/FlagGems`）与 FlagCX（editable，
+    `/env/FlagCX`），commit 分别为 73c5aff1e304c293ab525ecb03e9449644496fbb 与
+    3b43bdb237fc93736eddf3e118edf32f664b7861，与本条目的 FlagGems pin 一致。
+    基座**同时已内置 `vllm==0.13.0`、`transformers==4.57.1`、
+    `vllm-plugin-fl`（editable，`/env/xvllm-plugin-FL`，version 0.1.0）**——
+    训练（transformers+FlagCX）与推理（vLLM+vllm-plugin-fl）两条路径所需组件
+    均已在基座内，非本条目新增。基座不含 flagtree/triton（pip freeze 无相关
+    条目），是本条目唯一新增的层。
+
+# --- official / custom 边界（见 README §4.0/§4.1）。origin: official 此处
+#     严格等于"BAAI·FlagTree 官方发布/托管的公开产物"，与基座内置的 FlagGems/
+#     FlagCX 源码（FlagOS 组织公开仓库主干提交，非本组自建分支）都算 official——
+#     P800 侧目前没有任何 FlagRT/FlagOS 私有 fork 层，layers 里没有 custom 项。---
+layers:
+  - name: "FlagTree xpu3.6 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base@sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+    note: "BAAI·FlagTree 官方发布，公开 harbor，无需 BAAI 内部账号，本机已存在"
+  - name: "flagtree（提供 triton 编译器/运行时，import 名为 triton）"
+    origin: official
+    pin: "flagtree===0.6.1+xpu3.6（BAAI·FlagTree 官方 PyPI 索引 resource.flagos.net/repository/flagos-pypi-hosted，预编译 wheel，非源码构建）"
+    note: >-
+      pip dist 名为 flagtree，但安装内容落在 triton/ 顶层命名空间下（"forked
+      from triton-lang/triton"）。import 后 triton.__version__ == 3.6.0。
+      必须 --no-deps 安装，否则 pip 解析 torch 的可选依赖会额外装 PyPI 通用
+      triton==3.5.0，覆盖掉 flagtree 提供的 triton/ 目录，冲掉 xpu 编译后端
+      （见 known_issues: flaggems-kunlunxin-extras-missing）。
+  - name: "FlagGems（flag_gems 4.2.1.rc.0，即 v4.2.1.rc.0-177）"
+    origin: official
+    pin: "git commit 73c5aff1e304c293ab525ecb03e9449644496fbb（flagos-ai/FlagGems 公开上游主干，非 FlagRT/FlagOS fork）"
+    note: >-
+      基座本已内置该 commit（/env/FlagGems，editable）。本层做的是一次干净的
+      非 editable 重装（--no-deps，同 pypi.tuna.tsinghua.edu.cn 索引，源同
+      /env/FlagGems 本地 checkout），目的是让镜像不依赖一个可能被后续操作改动
+      的可变源码目录，产出结果与基座自带版本完全一致（同 commit）。该 commit
+      的 pyproject.toml **没有 kunlunxin extras 组**（仅 test/example 两组），
+      `pip install .[kunlunxin]` 会静默退化为裸装且不报错终止（仅一行
+      WARNING），这是本条目独立发现的事实性坑，见 known_issues。
+
+# 无 gaps 段：基座 = 公开 harbor 直接可拉；flagtree = 公开索引直接可装；
+# FlagGems = 公开上游仓库直接可 clone/checkout——每一层都是从公开可达源头
+# 现场安装，无 owner 私有资产依赖。
+
+# 重建验证（2026-09-22，见 REBUILD.md）
+repro_result:
+  image: "flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+  python_version: "3.10.18"
+  torch_version: "2.9.0+cu129"
+  flagtree_version: "0.6.1+xpu3.6"
+  triton_version: "3.6.0"
+  flag_gems_version: "4.2.1.rc.0"
+  pip_freeze_diff_vs_base: >-
+    与基座 pip freeze 相比仅 2 处变化：flag_gems 的安装形态从
+    `-e git+...@73c5aff1...#egg=flag_gems` 变为 `flag_gems @ file:///root/FlagGems`
+    （同 commit，非 editable 重装，见上）；新增一行 `flagtree==0.6.1+xpu3.6`。
+    其余 269 个包完全一致（含 torch/torchvision/torchaudio/pybind11 版本）。
+    判定依据见 README §5：关键包（torch/flagtree/flag_gems/triton）版本
+    逐一致，🟢 达标。基线文件见 assets/provenance/GOLDEN-pipfreeze-base-official.txt
+    与 assets/provenance/repro-pipfreeze.txt。
+  device_verify: >-
+    真机验证（P800，8× XPU，单卡 CUDA_VISIBLE_DEVICES=4，容器
+    xliu969-images-p800-repro，--net=host --privileged 等参数按
+    xpu 用户手册）：import 三件套（torch/flag_gems/triton）+
+    torch.cuda.is_available()==True + device_count==1 全部通过。
+    FlagGems pytest --mode quick 子集：test_accuracy_rmsnorm(1) /
+    test_accuracy_softmax(2) / test_apply_rotary_pos_emb(768) ——
+    **771 passed, 0 failed, 487s**（assets/provenance/verify-rmsnorm-softmax-rotary-771passed.txt）。
+    test_accuracy_mm / bmm / addmm ——**SIGABRT 崩溃复现**（见 known_issues:
+    gemm-compile-sigabrt，assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt）。
+  build_time: "约 12 分钟（flagtree wheel ~3.3GB 直连下载 ~8min + FlagGems 源码构建 ~1min + 静态自检）"
+  coexistence_check: >-
+    训练（transformers/flagcx）与推理（vllm/vllm-plugin-fl）依赖共存检查：
+    `torch`（2.9.0+cu129，`cuda_avail=True`，`device_count=8`）、
+    `triton`（flagtree 0.6.1+xpu3.6，3.6.0）、`flag_gems`（4.2.1.rc.0）、
+    `vllm`（0.13.0）、`vllm_fl`、`flagcx` 六者在同一 Python 进程内全部
+    import 成功，无命名空间覆盖或版本冲突。静态依赖检查，真机功能验证见
+    下方 `e2e_smoke_training` / `e2e_smoke_inference`。
+  e2e_smoke_training: >-
+    真机 2 卡训练 smoke（卡 5,7，同属 NUMA1 组），复用 device-context 已验证
+    的后端无关训练腿脚本
+    `dev/device-context/prototype/runtime/proto/proto_train_leg.py`
+    （`DC_BACKEND=kunlun`、`FLAGCX_ADAPTOR=klx`、
+    `dist_backend=cpu:gloo,cuda:flagcx`），模型 Qwen3-Embedding-0.6B
+    （device-context 训练腿证据 JSON 同款路径），`MAX_STEPS=20`，未设置
+    `XPU_EVENT_KL3_ENABLE`，从本条目归档镜像
+    `flagrt/kunlun-operator-runtime:1.0.0-...` 新起容器验证。
+    **结果：`TRAIN_LEG_PASS 6/6`**（device_context/model_load/comm_all_reduce/
+    comm_all_gather/comm_p2p/loss_decrease 全部 ok），loss 15.4488→11.2841
+    （20 步），1713.1 tok/s（两卡合计），两 rank 结果完全一致。证据：
+    assets/provenance/train-smoke-cards57-PASS.txt、
+    assets/provenance/train-smoke-cards57-rank{0,1}-result.json。
+    **用卡前提**：卡 1 历史上反复被共享机其他租户占用，训练场景须先
+    `xpu-smi` 确认空闲同 NUMA 组连续卡，避开卡 1；反面证据（卡 1,2 组合下
+    集合通信初始化挂死）见
+    assets/provenance/train-smoke-flagcx-initcomm-hang.txt，详见 REBUILD.md
+    「GPU/机器纪律」。
+  e2e_smoke_inference: >-
+    真机单卡推理 smoke（卡 7），模型 Qwen3-Embedding-0.6B（sentence-transformers
+    池化式 embedding 模型，vLLM 用 `--runner pooling --convert embed` 走
+    `/v1/embeddings` 端点），从本条目归档镜像新起容器验证。**结果：设置
+    `VLLM_FL_PREFER=vendor`（vllm-plugin-fl 自带的标准 dispatch 优先级配置
+    项）后 PASSED**：服务正常启动（`Application startup complete`），日志
+    确认 `Op 'attention_backend' using 'vendor.kunlunxin'`；两次
+    `/v1/embeddings` 请求均成功返回 1024 维向量（首次 0.16s，预热后第二次
+    0.091s）；`/v1/models` 正常。**前提**：须显式设置
+    `VLLM_FL_PREFER=vendor`——默认 dispatch（flagos 优先）下 rotary embedding
+    的 `index_select` 经 FlagGems OOT 路径触发
+    `torch.AcceleratorError: CUDA error: invalid device function`，EngineCore
+    初始化失败，详见 known_issues: flagos-index-select-invalid-device-function。
+    证据：assets/provenance/infer-smoke-vllm-serve-vendor-prefer.txt、
+    assets/provenance/infer-smoke-embed-requests.txt。
+
+known_issues:
+  - id: "gemm-compile-sigabrt"
+    description: >-
+      FlagGems 的 GEMM 类算子（mm/bmm/addmm）在本 pin 组合
+      （flagtree 0.6.1+xpu3.6 / triton 3.6.0 / FlagGems @73c5aff1）下
+      **实测复现** SIGABRT 崩溃，栈顶为
+      `triton/backends/xpu/compiler.py:486 make_llir`（编译期 LLIR
+      生成阶段原生崩溃），经 autotuner → libentry →
+      `flag_gems/runtime/backend/_kunlunxin/ops/mm.py:168` 触发。
+      与 memory 子方向此前在旧 dev 容器（同 triton 3.6.0 线）的独立实测
+      记录（dev/memory/docs/goals/bringup-p800/profile_P800可用性实测_p800.md:96-99,134）
+      栈完全一致——**不是环境偏差导致的偶发问题，是该 flagtree/triton
+      版本线本身对 GEMM kernel 编译路径的确定性缺陷，与 FlagGems 具体
+      pin 到哪个 commit 无关**（FlagGems 主分支当前 HEAD 的 pyproject.toml
+      锁 `flagtree==0.6.1+xpu3.6`，见 known_issues:
+      flaggems-kunlunxin-extras-missing，本条目即是该声明版本组合下的
+      直接产物）。device-context 独立发现
+      FlagGems 仓库 `backends.yaml` 仍声明 `triton==3.0.0+a48aedef`
+      （xpu3.0 时代遗留，与 xpu3.6 线不符），佐证这是上游版本声明滞后、
+      未跟随 xpu3.6 线回归测试 GEMM 路径的结果
+      （dev/device-context/P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md:170）。
+      当前无可用 workaround（官方发布栈用 triton 3.0.0 线可绕开，
+      但那是另一条不同的版本线，不在本条目复现范围内）。
+    impact: >-
+      不影响本条目 repro_status 判定为 🟢——入档门槛（README §5）要求的是
+      "配方可重建 + 关键包版本对齐基线"，GEMM 崩溃是**镜像内容本身的真实
+      运行时行为**且已被证据完整记录，不是"配方未验证"。消费方（阶段3
+      推理链路，需要 GEMM 重的模型/算子路径）在引用本镜像前必须知晓此
+      限制；是否需要等上游修复、切换 triton 版本线或寻找 workaround，
+      由消费方文档/总组裁定，不在本目录职责内。
+  - id: "flaggems-kunlunxin-extras-missing"
+    description: >-
+      FlagGems commit 73c5aff1（v4.2.1.rc.0-177）的 pyproject.toml
+      `[project.optional-dependencies]` 只有 `test`/`example` 两组，
+      **没有 `kunlunxin` extras 组**。`pip install .[kunlunxin]`
+      不会报错中止，只打一行 `WARNING: flag-gems 4.2.1rc0 does not
+      provide the extra 'kunlunxin'` 并静默退化为裸装 `pip install .`——
+      此时 pip 会正常解析 `torch>=2.2.0` 的完整依赖图，包括 torch
+      在 x86_64+cuda 平台的可选依赖 `triton==3.5.0`（PyPI 通用 triton
+      包，与 flagtree 是两个不同的 pip 发行名，但共享 `triton/` 顶层
+      导入命名空间），把它装进同一 site-packages，**物理覆盖 flagtree
+      提供的 triton/ 目录**（flagtree 540 个记录文件 vs 通用 triton
+      480 个，两者路径大量重叠）。覆盖后 `triton._C.libtriton.so`
+      变成不含 xpu 扩展的通用版本，`triton/backends/xpu/compiler.py`
+      导入即 `ImportError: cannot import name 'xpu' from
+      'triton._C.libtriton'`——flagtree 整体不可用。**必须
+      `pip install --no-deps .` 安装 FlagGems**，不能用 `[kunlunxin]`
+      写法（当前 commit 下该写法无效且有副作用）。FlagGems 主分支当前
+      HEAD 的 pyproject.toml 含 `kunlunxin` extras 组（锁定
+      `torch==2.9.0+cu129`、`flagtree==0.6.1+xpu3.6`），但该 extras 组在
+      commit 73c5aff1 尚不存在——本条目按 commit 73c5aff1 的实际文件内容
+      记录。
+    impact: "已在 Dockerfile.repro 用 --no-deps 规避，repro_result 确认 triton 命名空间未被污染（triton.__version__==3.6.0，非 3.5.0）。"
+  - id: "xpu-event-kl3-enable-hang"
+    description: >-
+      单卡单进程场景下，设置 `XPU_EVENT_KL3_ENABLE=1`（xpu 用户手册要求的
+      环境变量）后运行 FlagGems pytest（即便是最简单的 rmsnorm 单测），
+      **实测挂死**：进程长时间处于 `S`（sleeping, futex_wait_queue）状态，
+      CPU 时间不再增长，GPU 利用率归零，`timeout`/`SIGTERM` 均无法使其
+      退出，须 `SIGKILL`。去掉该环境变量后同一用例 2.82s 内 PASSED。
+      复现条件是单卡单进程、无任何集合通信，比 device-context 已定位
+      的触发条件（`XPU_EVENT_KL3_ENABLE=1` + 设备侧集合通信 flagcx，
+      libxpucuda.so 内自旋，
+      dev/device-context/P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md）
+      更宽。是否同一缺陷的更广泛触发面，还是共享机上与其他用户进程的设备
+      争用导致的另一种表现，尚未定位。
+      本条目的验证与最终镜像均在**不设置** `XPU_EVENT_KL3_ENABLE` 的
+      情况下完成；build.sh/REBUILD.md 的验证命令已注明不要设置该变量。
+    impact: >-
+      xpu 用户手册要求设该变量，但本条目验证发现在单卡场景下设置会挂死。
+      是否所有场景都不需要该变量、还是仅特定路径（如多卡集合通信）才
+      需要，尚未定论，记录为已知问题供消费方与总组决策参考。
+  - id: "flagos-index-select-invalid-device-function"
+    description: >-
+      vLLM serve 默认 dispatch 策略下（`vllm-plugin-fl` 的
+      `kunlunxin.yaml prefer=flagos, strict=false`，未显式设置
+      `VLLM_FL_PREFER`），rotary embedding 计算里的 `index_select` 算子经由
+      FlagGems（flagos）OOT 路径调用，触发
+      `torch.AcceleratorError: CUDA error: invalid device function`（栈：
+      `flag_gems/runtime/backend/_kunlunxin/ops/index_select.py` →
+      `dim_compress` → `.../ops/copy.py:copy_`），vLLM EngineCore
+      初始化直接失败，服务起不来。与 known_issues: gemm-compile-sigabrt
+      同根因家族——本 pin 组合（flagtree 0.6.1+xpu3.6）下 triton 编译产物
+      在该 P800 硬件上不止 GEMM 一类算子不可靠，`index_select` 是本条目
+      新发现的第二类受影响算子。**workaround**：设置
+      `VLLM_FL_PREFER=vendor`（`vllm-plugin-fl` 自带的标准 dispatch
+      优先级配置项，非本条目临时发明的变通），令 `attention_backend` 等
+      算子走厂商原生实现而非 FlagGems，实测服务可正常启动且请求成功返回
+      （见 `repro_result.e2e_smoke_inference`）。
+    impact: >-
+      消费方用本镜像跑 vLLM 推理时，**若使用默认 dispatch（flagos 优先）
+      会直接崩溃**；必须显式设置 `VLLM_FL_PREFER=vendor` 才能起服务。是否
+      修复 flagtree/FlagGems 使 flagos 路径在该 pin 组合下可用，不在本目录
+      职责范围内。
+  - id: "docker-save-broken-on-this-host"
+    description: >-
+      本机 Docker Engine 29.1.3 + containerd snapshotter 存储后端
+      （`docker info` 显示 `driver-type: io.containerd.snapshotter.v1`）
+      下，`docker save`（对本镜像、对未改动的基座官方镜像均如此，非本
+      镜像特有）只导出 manifest/config blob，**不导出任何 layer blob**——
+      产出的 tar 仅 ~14KB，`docker load` 该 tar 会因 blob 缺失而无法
+      正确重建镜像。本条目的离线归档改用 `docker export`（导出容器
+      展平后的 rootfs 单层 tar）+ 手工在 `docker import --change` 里
+      重放 ENV/CMD/WORKDIR/LABEL 以保留功能等价性，细节见 ARCHIVE.md。
+      这是本机 Docker 环境的缺陷，不是镜像本身的问题；换一台不用
+      containerd snapshotter 后端的机器上 `docker save`/`docker load`
+      预期正常。
+    impact: "ARCHIVE.md 的 docker load 用法一节实际是 docker import 用法，已注明差异及原因。"
+
+changelog:
+  - date: "2026-09-22"
+    what: "首次登记：pip 装 flagtree 0.6.1+xpu3.6 + FlagGems @73c5aff1，实机构建验证，repro_status → 🟢。"
+  - date: "2026-09-22"
+    what: >-
+      补记 parent_image 已内置 vllm/transformers/vllm-plugin-fl 版本；新增
+      训练推理依赖共存检查（六包同进程 import 通过）；新增 recommended_default
+      字段（推荐默认底座 + 回退路径说明）。
+  - date: "2026-09-22"
+    what: >-
+      补充端到端真机验证：2 卡训练 smoke（卡 5,7，复用 device-context 已验证的
+      proto_train_leg.py）`TRAIN_LEG_PASS 6/6`；单卡推理 smoke（vLLM serve +
+      /v1/embeddings，设 `VLLM_FL_PREFER=vendor`）PASSED。新增 known_issues:
+      flagos-index-select-invalid-device-function（推理默认 dispatch 崩溃，
+      须设 `VLLM_FL_PREFER=vendor` 规避）。`recommended_default` 按验证结果
+      定稿：训练/推理均可用，各自一条使用前提（推理需
+      `VLLM_FL_PREFER=vendor`；训练需按共享机纪律选卡、避开历史占用记录较多
+      的卡 1，见 REBUILD.md「GPU/机器纪律」）。

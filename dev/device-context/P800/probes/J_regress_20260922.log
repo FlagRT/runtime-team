@@ -1,0 +1,73 @@
+########## [0] 环境 ##########
+torch = 2.9.0+cu129 | devices = 1
+CUDA_VISIBLE_DEVICES = 2
+
+########## [1] 离线自检（含本轮新增判据）##########
+  [SKIP] 缺厂商扩展时应报错 —— 该后端没有**独立可缺失的厂商扩展模块** —— 它的'扩展'是被替换过的 torch 本身（如昆仑芯 XPytorch），摘掉模块这一步在本语义空间下无法构造；真机上表现为 device_count()==0，由 registry/smoke 的 device_count 判据覆盖
+离线自检结果: 39 通过 / 0 失败 / 1 跳过（stub 能力边界，非失败）
+
+########## [2] 跨后端对称性自检（--all）##########
+
+[硬判据] 所有后端都必须成立
+  [PASS] 四家全部可加载（无异常） {}
+  [PASS] 对外必需方法齐备（info/supports/known_issues/device_state/recover/translate） {}
+  [PASS] info() 均提供 supports 映射 []
+  [PASS] 声明能力 ⊆ 能力全集（防键名拼错） {}
+  [PASS] 声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR []
+
+[差异清单] 允许存在，但每处都应有理由（不计失败）
+  · 能力 bounded_sync       仅 ['ascend', 'cambricon', 'kunlun'] 声明
+  · 能力 error_map          仅 ['ascend', 'flagos'] 声明
+  · 能力 graph_capture      仅 ['ascend', 'cambricon', 'kunlun'] 声明
+  · 能力 recovery_real      仅 ['ascend'] 声明
+  · 能力 stream_priority    仅 ['ascend', 'cambricon'] 声明
+  · 能力 sync_timeout       仅 ['ascend'] 声明
+  · device_type 不同：['cuda', 'flagos', 'mlu', 'npu'] —— **这是设计而非缺陷**（设备串按命名空间，不按厂商；见接口约定修订建议第 1 条）
+  · supports 键集合不一致（各家的「已知能力全集」略有差异，如 ascend 保留历史键名 sync_timeout）
+
+==========================================================================
+对称性自检结果: 5 通过 / 0 失败
+⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。
+==========================================================================
+
+########## [3] ★ 第 6 条缺陷修复复验（mapped / error_code 必须一起降级）##########
+  graded_by  = message_hint_unexpected
+  mapped     = False    ← 修前为 True（假确定分级）
+  error_code = None     ← 修前为 507015（昇腾码，非本厂商）
+  可 raise   : ✅ 可被 except FlagosError 捕获（第 10 条修复生效）
+
+########## [4] smoke（kunlun，46 项起）##########
+  [PASS] info.supports 与 supports() 一致 []
+
+=== 结果: 46 通过 / 0 失败 ===
+
+########## [5] conformance 13 例 ##########
+=== 汇总: 13/13 通过 ===
+结论: CONFORMANCE_PASS
+########## [6] conformance 推理 6 例 ##########
+=== 汇总: 6/6 通过 ===
+结论: CONFORMANCE_PASS
+
+########## [7] 错误闭环（kunlun）##########
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(码表内他厂码·诚实降级负向测试)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /workspace/P800/probes/J_error_recovery_loop_kunlun_20260922.json
+
+########## [8] 后端无关探针在 kunlun 上的复验（验证「换芯片不改代码」）##########
+  S12_stream_priority              ✅ 优先级：不支持（上游缺陷，如实标注） —— **不支持**：统一 API 返回 None（昆仑芯后端已主动拦截）——实测裸调 `Stream.priority_range()` 会
+  S13_multidevice_stream_bind      ✅ 可见设备数=1 < 2，多设备流绑定不适用（单设备环境跳过）——注意：这是**可见设备数**，多卡验证需放开可见卡（如 CUDA_VISIBLE_DEVICES=6,7）
+
+结果已写入 /workspace/out_stream/stream_semantics_full_result_p800b.json
+
+GRAPH_CAPTURE_FAIL: graph capture 流语义 5 项：3/5 通过（capture/replay/输入更新/流切换/显式流）
+结果已写入 /workspace/P800/probes/graph_capture_stream_result_p800b.json
+
+STREAM_QUOTA_PASS: 3/3 子项通过
+结果已写入 /workspace/P800/probes/stream_quota_result_p800b.json
+
+########## P800 全量回归完成 ##########

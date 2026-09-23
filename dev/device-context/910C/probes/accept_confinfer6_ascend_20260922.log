@@ -1,0 +1,13 @@
+[W922 09:22:47.454956198 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== 统一运行时 conformance: backend=ascend, chip=ascend, 用例数=6 ===
+[env] runtime:ascend=0.1.0 devices=16
+  [PASS   ] i1_device_context_after_load 加载后上下文可用: logits.shape=(4, 64)
+  [PASS   ] i2_infer_forward_stream_order 多轮前向同流顺序: 固定输入逐轮一致(误差=0.00e+00) = True
+  [PASS   ] i3_kv_buffer_visibility      KV 跨流可见性: 写入流→事件→计算流, 读回全 8 = True
+  [PASS   ] i4_d2h_sample_transfer       D2H 采样回传: logits.cpu()→topk, shape=(4, 3)
+  [PASS   ] i5_longrun_device_state      长驻 20 轮: 累计 logits=4.02e+00, 无 NaN/Inf = True
+  [PASS   ] i6_pipeline_overlap          流水线依赖链: 末轮数据正确(rel_err=3.09e-07)=True | 观测: pipe=0.002s serial=0.002s 重叠率=8.5%
+
+=== 汇总: 6/6 通过 ===
+结论: CONFORMANCE_PASS
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/accept_confinfer6_ascend_20260922.json

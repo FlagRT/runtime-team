@@ -1,0 +1,40 @@
+{
+  "verdict": "GRAPH_CAPTURE_PASS",
+  "checks": {
+    "G1_capture_correct": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G2_replay_deterministic": {
+      "ok": true,
+      "detail": "两次 replay 差=0.00e+00"
+    },
+    "G3_input_update_replay": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G5_capture_explicit_stream": {
+      "ok": true,
+      "detail": "rel_err=0.00e+00"
+    },
+    "G4_capture_stream_swap": {
+      "ok": false,
+      "informational": true,
+      "detail": "契约外用法；本运行时不支持：AcceleratorError: CUDA error: unrecognized error code\nSearch for `unrecognized error code' in https://docs.nvidia.com/cuda/cuda-runtime-ap"
+    }
+  },
+  "informational": [
+    "G4_capture_stream_swap"
+  ],
+  "note": "graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）",
+  "backend": "kunlun",
+  "dev_api": "cuda",
+  "graph_class": "CUDAGraph",
+  "torch": "2.9.0+cu129",
+  "passed": 4,
+  "total": 4,
+  "observed_contract_violating_usage": {
+    "ok": false,
+    "detail": "契约外用法；本运行时不支持：AcceleratorError: CUDA error: unrecognized error code\nSearch for `unrecognized error code' in https://docs.nvidia.com/cuda/cuda-runtime-ap"
+  }
+}

@@ -4,6 +4,15 @@
 > 结果：`prototype/runtime/proto/error_recovery_loop_flagos.json`
 > 对应验收标准 3（两条腿验证中至少注入一次真实错误，观察到"统一错误识别 → 恢复处理"闭环）
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 ---
 
 ## 1. 我们在这条链路上的职责（边界）
@@ -34,6 +43,9 @@
 判定：**`ERROR_RECOVERY_LOOP_PASS`**（证据：`error_recovery_loop_ascend.json`）
 
 ### 2.2 训练腿（flagos 后端 · 锁定训练镜像）：**4 闭环 / 1 跳过 / 0 失败**
+
+> ⚠️ **口径注**：本节为当期（torch_fl）记录；**2026-09-22 起训练腿已统一 torch_npu**，
+> 现口径下为 **5 闭环 / 0 跳过 / 0 失败**（见 `../probes/unified_verify_20260922.log`）。
 
 | 注入 | 识别 | 处置 | 恢复后业务 |
 |---|---|---|---|
