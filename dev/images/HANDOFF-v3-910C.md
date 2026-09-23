@@ -132,6 +132,16 @@
    （`/mnt/raid/hliu553/models/...`），新机器大概率不一样，跑之前先改，
    具体见 `v3-pending-validation/README.md`。
 
+## 新机器上手前两件事（准备好的 prompt，直接复制粘贴用）
+
+- `dev/images/HANDOFF-v3-910C-prompt-docker-storage.md` —— home 目录空间有限，
+  docker 存储位置需要先搬到大容量盘（参考这台机器的模式：`/mnt/raid/docker`）。
+- `dev/images/HANDOFF-v3-910C-prompt-lan-sync.md` —— 局域网从这台机器
+  （`npu1-27`，IP `10.120.73.79`/`10.120.73.80`/`10.120.72.27`）同步已构建好的
+  两个 v3 镜像（合计约 31GB，走 `docker save | ssh | docker load` 流式传输）+
+  两个模型文件（约 4GB），比重新构建/重新下载快很多。**建议先做存储迁移，
+  再做同步**，不然同步过来的东西没地方放。
+
 ## 文件索引
 
 - `dev/images/ascend-operator-runtime/v3/`、`dev/images/ascend-train-comm/v3/` ——
