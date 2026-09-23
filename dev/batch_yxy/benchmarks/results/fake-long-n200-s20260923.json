@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-09-23T10:55:57",
+  "executor": "fake",
+  "model": "fake",
+  "scenario": "long",
+  "num_requests": 200,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=1024": 65,
+    "<=2048": 135
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 847.382144,
+      "requests_per_s": 236.02102241134787,
+      "e2e_ms": {
+        "p50": 847.252827,
+        "p95": 847.252827,
+        "p99": 847.252827,
+        "max": 847.252827
+      },
+      "queue_ms": {
+        "p50": 0.00998,
+        "p95": 0.00998,
+        "max": 0.00998
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 1
+    },
+    {
+      "mode": "B",
+      "wall_ms": 964.441488,
+      "requests_per_s": 207.37390758121344,
+      "e2e_ms": {
+        "p50": 510.500115,
+        "p95": 945.478459,
+        "p99": 964.335704,
+        "max": 964.335704
+      },
+      "queue_ms": {
+        "p50": 50.063762,
+        "p95": 50.063762,
+        "max": 50.063762
+      },
+      "batch_summary": {
+        "num_batches": 9,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 3,
+          "p50": 24.0,
+          "p95": 29.0,
+          "max": 29,
+          "distribution": {
+            "3": 1,
+            "22": 2,
+            "23": 1,
+            "24": 1,
+            "25": 2,
+            "27": 1,
+            "29": 1
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 9
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 50.063762,
+          "p95": 50.063762,
+          "max": 50.063762
+        },
+        "padding_ratio": {
+          "avg": 0.3291154298204866,
+          "p50": 0.310196923597025,
+          "p95": 0.4495719499300795,
+          "max": 0.4495719499300795
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 106.120102,
+        "batch-000002": 101.214531,
+        "batch-000003": 130.072647,
+        "batch-000004": 122.172246,
+        "batch-000005": 114.226053,
+        "batch-000006": 111.048456,
+        "batch-000007": 107.21003,
+        "batch-000008": 102.419543,
+        "batch-000009": 18.842524
+      },
+      "executor_calls": 10
+    },
+    {
+      "mode": "C",
+      "wall_ms": 806.742668,
+      "requests_per_s": 247.91052702817996,
+      "e2e_ms": {
+        "p50": 363.010136,
+        "p95": 754.596066,
+        "p99": 806.664455,
+        "max": 806.664455
+      },
+      "queue_ms": {
+        "p50": 163.366265,
+        "p95": 163.366265,
+        "max": 163.366265
+      },
+      "batch_summary": {
+        "num_batches": 10,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 1,
+          "p50": 21.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "1": 1,
+            "10": 1,
+            "19": 1,
+            "20": 1,
+            "21": 2,
+            "22": 2,
+            "32": 2
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 2,
+          "wait_limit": 8
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 163.366265,
+          "p95": 163.366265,
+          "max": 163.366265
+        },
+        "padding_ratio": {
+          "avg": 0.19977953577145097,
+          "p50": 0.2114603838582677,
+          "p95": 0.26528639510835356,
+          "max": 0.26528639510835356
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 77.789229,
+        "batch-000002": 77.737187,
+        "batch-000003": 12.186147,
+        "batch-000004": 89.665702,
+        "batch-000005": 97.201657,
+        "batch-000006": 101.309635,
+        "batch-000007": 97.755322,
+        "batch-000008": 99.067198,
+        "batch-000009": 93.395583,
+        "batch-000010": 52.050508
+      },
+      "executor_calls": 20
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    },
+    "C": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    }
+  }
+}

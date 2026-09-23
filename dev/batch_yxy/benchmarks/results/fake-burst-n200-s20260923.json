@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-09-23T10:56:04",
+  "executor": "fake",
+  "model": "fake",
+  "scenario": "burst",
+  "num_requests": 200,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=256": 9,
+    "<=2048": 101,
+    "<=512": 24,
+    "<=1024": 55,
+    "<=128": 7,
+    "<=64": 4
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 2094.111052,
+      "requests_per_s": 95.50591875678616,
+      "e2e_ms": {
+        "p50": 141.896548,
+        "p95": 143.402093,
+        "p99": 143.402093,
+        "max": 143.402093
+      },
+      "queue_ms": {
+        "p50": 0.00664,
+        "p95": 0.010161,
+        "max": 0.010161
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 7
+    },
+    {
+      "mode": "B",
+      "wall_ms": 2380.127054,
+      "requests_per_s": 84.02912763160415,
+      "e2e_ms": {
+        "p50": 168.679944,
+        "p95": 201.663098,
+        "p99": 202.918022,
+        "max": 202.918022
+      },
+      "queue_ms": {
+        "p50": 50.062482,
+        "p95": 50.076492,
+        "max": 50.076492
+      },
+      "batch_summary": {
+        "num_batches": 11,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 1,
+          "p50": 25.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "1": 2,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "25": 1,
+            "26": 1,
+            "31": 2,
+            "32": 2
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 9,
+          "batch_limit": 2
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 50.063032,
+          "p95": 50.076492,
+          "max": 50.076492
+        },
+        "padding_ratio": {
+          "avg": 0.3626917996191787,
+          "p50": 0.40296846011131726,
+          "p95": 0.5513892342118349,
+          "max": 0.5513892342118349
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 43.53983,
+        "batch-000002": 37.766241
+      },
+      "executor_calls": 18
+    },
+    {
+      "mode": "C",
+      "wall_ms": 2480.500578,
+      "requests_per_s": 80.62888667466378,
+      "e2e_ms": {
+        "p50": 152.953955,
+        "p95": 190.170102,
+        "p99": 201.48421,
+        "max": 211.808776
+      },
+      "queue_ms": {
+        "p50": 50.061652,
+        "p95": 50.063071,
+        "max": 50.063071
+      },
+      "batch_summary": {
+        "num_batches": 37,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 1,
+          "p50": 3.0,
+          "p95": 17.0,
+          "max": 19,
+          "distribution": {
+            "1": 10,
+            "2": 7,
+            "3": 5,
+            "4": 2,
+            "5": 1,
+            "6": 3,
+            "10": 2,
+            "11": 1,
+            "13": 1,
+            "15": 1,
+            "16": 1,
+            "17": 1,
+            "19": 2
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 37
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 50.061652,
+          "p95": 50.063071,
+          "max": 50.063071
+        },
+        "padding_ratio": {
+          "avg": 0.12635375612086752,
+          "p50": 0.14989939637826963,
+          "p95": 0.2642543859649123,
+          "max": 0.27203856749311295
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 10.219941,
+        "batch-000002": 26.881161,
+        "batch-000003": 11.725416,
+        "batch-000004": 11.477435,
+        "batch-000005": 10.534285,
+        "batch-000006": 10.153378
+      },
+      "executor_calls": 55
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    },
+    "C": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    }
+  }
+}

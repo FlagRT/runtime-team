@@ -1,15 +1,16 @@
 # Batch（batch_yxy）项目
 
-> **状态：⬜ 待启动** ｜ 本文档 = 任务看板入口，供运行时组全员维护
-> 对齐起点速查：……
+> **状态：🔄 进行中** ｜ 本文档 = 任务看板入口，供运行时组全员维护
+> 对齐起点速查：vLLM 0.20.2（vllm-ascend v0.20.2rc1-a3 镜像）· V1 引擎 · 910C 单卡
 
 ## 目标（一句话）
 
-……
+Qwen3-Embedding-0.6B 动态组批与长度感知分桶：可外部调用的 `BatchCoordinator` 决策核心 + vLLM 上层适配（`LLM.embed` 外层分组，不替换内部调度），A/B/C 对照验证。
 
 ## 现状（快照）
 
-- ……
+- 2026-09-23：核心模块 + 53 个单元测试 + fake/NPU 双执行器 bench 完成；接入路径与控制边界见 `docs/note_动态组批接入说明.md`
+- 2026-09-23：**发现 vllm-ascend 0.20.2rc1 pooling 跨调用非确定缺陷**（复现探针 `probes/qwen3_embed_nondeterminism_probe.py`），阻塞 NPU 数值一致性验收，待独立上报
 
 ## 目录约定（本子方向，位于 dev/batch_yxy/ 下）
 
@@ -25,13 +26,18 @@ dev/batch_yxy/
 └── benchmarks/         # A/B 对比与负载脚本（按需建）
 ```
 
-代码改造主战场不在本目录：**<子库路径>**（如 torch_fl `csrc/runtime/allocator/`，按需填写）
+代码改造主战场不在本目录：本任务零侵入 vLLM（组批核心独立成包 `dynamic_batching/`，仅上层调用 `LLM.embed`）
 
 ## 任务看板
 
 | # | 任务 | 负责人 | 状态 | 依赖 | 出口标准 |
 |---|------|--------|------|------|----------|
-| 1 | 示例任务 | TBD | ⬜ | — | 完成标准 |
+| 1 | T0 环境与基线核对（vLLM 0.20.2/V1/embed 入口/tokenizer/本地权重） | xianyiyuan | ✅ | — | `docs/note_动态组批接入说明.md` §1 |
+| 2 | T1 接口与配置（types/errors/config） | xianyiyuan | ✅ | 1 | 边界输入返回确定错误 |
+| 3 | T2 基础动态组批（预算/定时封口/flush/close） | xianyiyuan | ✅ | 2 | 单请求/满批/未满批/不重复发出测试 |
+| 4 | T3 长度分桶（固定桶/相邻合并/Padding 约束） | xianyiyuan | ✅ | 3 | 桶边界/低流量不饥饿测试 |
+| 5 | T4 vLLM 适配（VllmEmbedExecutor + A/B 开关） | xianyiyuan | ✅ | 4 | 结果按 ID 无错位映射 |
+| 6 | T5 对照与交付（bench A/B/C + 接入说明） | xianyiyuan | ✅ | 5 | 结果在 `benchmarks/results/`；NPU 数值验收被平台缺陷阻塞（见接入说明 §7.1，组批检测关键输入） |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 
