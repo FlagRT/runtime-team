@@ -1,0 +1,11 @@
+[W922 09:23:07.045706065 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+E0922 09:23:07.561767 38056 ../torch_npu/csrc/core/npu/NPUCachingAllocator.cpp:1331] NPU out of memory. Tried to allocate 183.81 GiB (NPU 0; 61.27 GiB total capacity; 0 bytes already allocated; 0 bytes current active; 60.87 GiB free; 0 bytes reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+后端: ascend | 设备数: 16
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(本厂商码表触发)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/accept_errorloop_ascend_20260922.json

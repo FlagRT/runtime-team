@@ -13,6 +13,15 @@
 > - **五域基线实测（缺失项清单在此）** → [`KUNLUN_P800_BASELINE_PROBE_20260914.md`](KUNLUN_P800_BASELINE_PROBE_20260914.md)
 > - 探针脚本与原始结果 → [`../../P800/probes/`](../probes/)
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 ---
 
 ## 0. 一页速览
@@ -126,7 +135,7 @@
 ```
 prototype/runtime/backends/
 ├── ascend/     # 910C 推理腿（torch_npu）——已验证 13/13 + 6/6
-├── flagos/     # 910C 训练腿（torch_fl）——已验证 13/13
+├── flagos/     # torch_fl 后端（⚠️ 2026-09-22 起 910C 训练腿已统一 torch_npu，本后端转备用）——已验证 13/13
 └── kunlun/     # 【本次新建】昆仑芯 P800 —— 第二个芯片实例
 ```
 

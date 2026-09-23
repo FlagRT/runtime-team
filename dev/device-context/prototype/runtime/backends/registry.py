@@ -31,7 +31,13 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 _CURRENT: Optional[str] = None
 
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
-_KNOWN_BACKENDS = ("ascend", "flagos", "kunlun")
+#: 2026-09-22：新增 cambricon（寒武纪 MLU，第三个接入实例）
+#:
+#: ⚠️ **2026-09-22 口径统一**：本清单只登记**厂商官方 torch 插件**路线的后端 ——
+#: `ascend`（torch_npu）/ `kunlun`（`torch.cuda` 兼容层，XPytorch）/ `cambricon`（torch_mlu）。
+#: 原路线 B 的后端已**整体删除**（不再是本原型的活跃或备用后端）；
+#: 路线 A/B 的取舍依据见 `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`。
+_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon")
 
 
 class BackendNotFound(RuntimeError):
@@ -57,7 +63,7 @@ def register(backend: RuntimeBackend, make_current: bool = False) -> RuntimeBack
         set_current(backend.name)
     # 注意：此处**必须**避免急切求值 backend.info()。
     # 2026-09-14 修复：原写法 `logger.debug("...: %s", backend.info())` 会无条件调用 info()，
-    # 而后端的 info() 常需加载厂商依赖（如 flagos 的 info() → _load() → `import torch_fl`）。
+    # 而后端的 info() 常需加载厂商依赖（如 ascend 的 info() → `import torch_npu`）。
     # 在缺少该依赖的环境上（如昆仑芯 P800），info() 抛 ModuleNotFoundError 会**穿透 register()
     # 并中断整个 discover()**，违背本模块设计要点 2「发现失败仅告警、不中断」。
     if logger.isEnabledFor(logging.DEBUG):

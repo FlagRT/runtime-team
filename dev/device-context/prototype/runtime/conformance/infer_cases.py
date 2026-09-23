@@ -9,9 +9,9 @@ conformance/infer_cases.py — 推理场景一致性用例（设备无关，机�
   验证统一设备句柄 / Stream / Event / 传输 / 状态在推理形态下语义成立。
 
 【用法】（容器内、对应后端环境激活、单进程）：
-  python runner.py --chip ascend --backend npu --cases infer_cases \
+  python runner.py --backend ascend --cases infer_cases \
       --out conformance_ascend_infer_result.json
-  B 线对照：--backend flagos --cases infer_cases
+  第三家对照：--backend cambricon --cases infer_cases
 
 【ctx 约定】同 cases.py（device/sync/event/stream/stream_ctx/current_stream）。
 【硬约束】不直接 import 厂商扩展（统一经 runtime API）；不依赖 vLLM（机制层，与推理引擎解耦）。

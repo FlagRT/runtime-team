@@ -3,8 +3,8 @@
 设备经统一运行时原型接入（`runtime.use(BACKEND)`），通信走 `torch.distributed`。
 
 **后端无关化的由来（2026-09-14，昆仑芯接入）**
-  原实现硬编码 `flagos` 后端、无条件 `import torch_fl` 与 910C 路径，只能在昇腾锁定镜像里跑。
-  现改为**由环境变量驱动，默认值保持 910C 原行为** —— 于是同一份脚本可在两处运行，
+  原实现硬编码 910C 训练腿的设备后端与容器路径（路线 B 时期），只能在昇腾锁定镜像里跑。
+  现改为**由环境变量驱动，默认值保持 910C 当前口径** —— 于是同一份脚本可在三处运行，
   这正是「统一 API：换芯片只改一行」的体现（也正是《新芯片接入手册》要收录的用法）。
 
 验证点（对应验收标准 1 训练腿）：
@@ -14,20 +14,40 @@
   4. 集合通信正确性对照：all_reduce / all_gather / P2P 各一组证据
   5. 全程无死锁、无数据错乱；记录吞吐
 
-环境变量（括号内为默认值 = 910C 训练腿原口径）
-  DC_BACKEND   运行时后端名（`flagos`；昆仑芯用 `kunlun`）
-  DC_DIST_BT   进程组后端（`flagos`；昆仑芯见 --help 探测结果，如 `xccl`）
+环境变量（括号内为默认值 = **910C 训练腿当前口径**）
+  DC_BACKEND   运行时后端名（`ascend` = torch_npu；昆仑芯用 `kunlun`；寒武纪用 `cambricon`）
+  DC_DIST_BT   进程组后端（910C=`hccl`；昆仑芯见 --help 探测结果，如 `xccl`；寒武纪必须显式给）
   DC_ROOT      device-context 根路径（`/mnt/raid/hliu553/runtime-team/dev/device-context`）
   DC_MODEL     模型路径（`/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B`）
   DC_OUT_DIR   结果输出目录（`/mnt/raid/hliu553/runtime-team/scratch`）
   MAX_STEPS / BATCH / SEQ / LR   训练超参（20 / 4 / 128 / 1e-5）
 
+⚠️ **910C 口径变更（2026-09-22）**：全组统一基座定的是 Qwen3-0.6B **训推**、
+且原型接入走**厂商 torch 插件路线** ⇒ 910C 两条腿**统一 `torch_npu`**
+（`DC_BACKEND=ascend`、`DC_DIST_BT=hccl`）。
+原训练腿走路线 B（torch_fl）只是被锁定训练镜像"禁止两个插件同进程共存"逼出来的权宜例外；
+**该例外已取消，且路线 B 后端已从原型删除** —— 本脚本不再有该路径的任何分支。
+
+用法（910C，训推统一 torch_npu）：
+  # 解释器必须是有 torch_npu 的那个（容器内：/mnt/raid/hliu553/venvs/venv-infer-a/bin/python）
+  # 该解释器内**没有其他占用 PrivateUse1 的插件**（物理隔离，不触发镜像的共存校验）
+  ASCEND_RT_VISIBLE_DEVICES=0,1 DC_BACKEND=ascend DC_DIST_BT=hccl \
+  DC_ROOT=/mnt/raid/hliu553/runtime-team/dev/device-context/prototype \
+  DC_MODEL=/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B \
+  python -m torch.distributed.run --standalone --nproc_per_node=2 proto_train_leg.py
+
 用法（昆仑芯 P800）：
   # 用卡前先 `xpu-smi` 挑**空闲且连续同组**的卡；共享机上被他人占用的卡会触发设备侧报错
+  # ⚠️ 两处易错（2026-09-22 验收实测，照旧文档抄会直接失败）：
+  #   ① `DC_MODEL` **必须给到 `snapshots/<hash>`** —— 给 HF 缓存根目录会报
+  #      `ValueError: Unrecognized model in …`（缓存根下只有 snapshots/refs/blobs，无 config.json）；
+  #   ② 脚本路径是 **`runtime/proto/proto_train_leg.py`**（不是 `proto_train_leg.py`）。
   CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=kunlun FLAGCX_ADAPTOR=klx \
-  DC_ROOT=/workspace/prototype DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B \
+  DC_DIST_BT="cpu:gloo,cuda:flagcx" \
+  DC_ROOT=/workspace/prototype \
+  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
   DC_OUT_DIR=/workspace/out \
-  python3 -m torch.distributed.run --standalone --nproc_per_node=2 proto_train_leg.py
+  python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 """
 from __future__ import annotations
 
@@ -37,17 +57,43 @@ import sys
 import time
 from datetime import timedelta
 
-# ── 后端无关化：全部由环境变量驱动，默认值 = 910C 训练腿原口径 ──
-BACKEND = os.environ.get("DC_BACKEND", "flagos")
+# ── 后端无关化：全部由环境变量驱动，默认值 = 910C 训练腿当前口径 ──
+BACKEND = os.environ.get("DC_BACKEND", "ascend")   # 2026-09-22：910C 训推统一 torch_npu
 #: 进程组后端默认映射 —— **注意同一集合通信库在不同芯片上注册的后端名不同**：
-#:   910C：flagcx 被镜像注册为 `flagos`（单后端名即可）
+#:   910C：统一 torch_npu 后走**原生 HCCL**（`hccl`）
 #:   P800：flagcx 注册为 `flagcx`，且需显式 `import flagcx`；设备走 flagcx、CPU 走 gloo
 #:   （P800 侧路径与 xliu969 已验证的 Route A 一致）
+#:   MLU590：**刻意不给默认值**（见下方 cambricon 分支）—— 后端名必须实测后显式指定
 _DIST_BT_DEFAULT = {
-    "flagos": "flagos",
+    # 910C 统一 torch_npu（2026-09-22）⇒ 集合通信走 torch_npu 原生 **HCCL**。
+    # 实测可用后端（torch_npu 2.11.0）：gloo / nccl / xccl / ucc / mpi / **hccl** / lccl
+    "ascend": "hccl",
     "kunlun": "cpu:gloo,cuda:flagcx",
 }
 DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT.get(BACKEND, "gloo")
+
+# ⚠️ 寒武纪（cambricon）：**刻意不给默认值，且不给就报错退出**。
+#    理由（手册 §9 坑 3「同一集合通信库在不同芯片注册的后端名不同」）：
+#      三家芯片各自注册的后端名互不相同（910C=`hccl`、P800=`flagcx`、MLU590 待实测）
+#      ⇒ **不可类推**；
+#      而 `_DIST_BT_DEFAULT.get(BACKEND, "gloo")` 的兜底是 `gloo`，那会**静默退化为纯 CPU
+#      集合通信**：训练脚本照样跑完、loss 照样下降，但**设备侧集合通信根本没被验证**
+#      —— 这类"看起来通过"的结果比失败更糟，故此处显式拦住。
+if BACKEND == "cambricon" and not os.environ.get("DC_DIST_BT"):
+    print(
+        "[cambricon] 未设置 DC_DIST_BT，拒绝以兜底值 `gloo` 继续（那会静默退化为纯 CPU\n"
+        "  集合通信，训练脚本仍会跑完，但设备侧通信未被验证）。\n"
+        "  寒武纪的集合通信后端名**必须实测后显式指定**，不能从 910C(`hccl`) / P800(`flagcx`) 类推。\n"
+        "  探测方法（容器内，只读）：\n"
+        "    python3 -c \"import torch_mlu, torch; print(torch.mlu.is_available(), torch.mlu.device_count())\"\n"
+        "    # 逐个尝试进程组后端，记录可用者（设备侧通常写作 <dev>:<backend>，如 mlu:cncl）\n"
+        "    #   候选：cncl（寒武纪 CCL） / flagcx（若镜像内已装 flagcx-ascend 之外的 mlu 适配）\n"
+        "  探测结果请回填《寒武纪接入方案》与\n"
+        "    runtime/backends/cambricon/backend.py 顶部「未实测清单」第 10 条。\n"
+        "  确认后按 DC_DIST_BT=\"cpu:gloo,mlu:<backend>\" 重跑。",
+        flush=True,
+    )
+    raise SystemExit(2)
 ROOT = os.environ.get("DC_ROOT", "/mnt/raid/hliu553/runtime-team/dev/device-context")
 MODEL = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
 OUT_DIR = os.environ.get("DC_OUT_DIR", "/mnt/raid/hliu553/runtime-team/scratch")
@@ -61,12 +107,18 @@ if "flagcx" in DIST_BT:
     # 显式导入才会把 `cuda:flagcx` 注册为 c10d 后端（P800 路线 A 的集合通信）
     import flagcx  # noqa: F401,E402
 
-if BACKEND == "flagos":
-    # 910C 训练镜像约束：torch_fl 与 torch_npu 运行时不可共存，需显式导入 torch_fl。
-    # 昆仑芯（kunlun）后端不需要，故按后端条件导入。
-    import torch_fl  # noqa: F401,E402
-
 import runtime  # noqa: E402  —— 我们的统一运行时原型
+
+# ⚠️ **必须在 init_process_group 之前经后端触发厂商扩展加载**（2026-09-22 实测踩到，审计台账第 15 条）：
+#   `hccl` / `flagcx` 这类**集合通信后端名**只有厂商扩展被 import 后才在 c10d 里注册，
+#   而统一 API 的后端是**懒加载**的（`use()` 本身不触发厂商扩展导入）。
+#   实测 910C（torch_npu 2.11.0，容器关 `TORCH_DEVICE_BACKEND_AUTOLOAD=0`）：
+#     直接 `init_process_group("hccl")` → `AssertionError: Unknown backend type hccl`；
+#     先 `use(BACKEND)` + 触碰一次设备后即通过。
+#   ⇒ 纪律：**凡要用厂商设备串或厂商集合通信后端名之前，先经后端触碰一次设备**。
+#     （与 conformance runner 那处同源：第 11 条 = 拼设备串、本条 = 拼集合通信后端名。）
+runtime.use(BACKEND)
+runtime.current().device_count()
 
 STEPS = int(os.environ.get("MAX_STEPS", "20"))
 BATCH = int(os.environ.get("BATCH", "4"))
@@ -193,7 +245,7 @@ def main() -> None:
         tokens_done += BATCH * SEQ
         if rank == 0 and (step % 5 == 0 or step == STEPS - 1):
             print(f"[step {step:3d}] loss={lv:.4f}", flush=True)
-    # 经统一 API 同步（后端无关；原为 torch.flagos.synchronize()）
+    # 经统一 API 同步（后端无关）
     runtime.synchronize(local_rank)
     dt = time.time() - t0
 

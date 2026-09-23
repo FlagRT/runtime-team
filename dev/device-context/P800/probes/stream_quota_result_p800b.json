@@ -1,0 +1,24 @@
+{
+  "verdict": "STREAM_QUOTA_PASS",
+  "passed": 3,
+  "total": 3,
+  "backend": "kunlun",
+  "dev_api": "cuda",
+  "n_requested": 2000,
+  "n_created": 2000,
+  "torch": "2.9.0+cu129",
+  "checks": {
+    "Q1_create_n_streams": {
+      "ok": true,
+      "detail": "成功 2000/2000，耗时 0.00s"
+    },
+    "Q2_first_stream_still_works": {
+      "ok": true,
+      "detail": "结果=192.0000（期望 192.0）"
+    },
+    "Q3_release_and_recreate": {
+      "ok": true,
+      "detail": "释放 2000 个后新流结果=32.0000"
+    }
+  }
+}

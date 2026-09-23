@@ -7,6 +7,15 @@
 >
 > **分支**：`kistich/device-context` ｜ **PR 目标**：`dev-1.0` ｜ **验收模型**：Qwen3-Embedding-0.6B
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 ---
 
 ## 0. 一屏结论
@@ -49,11 +58,11 @@
 
 | 交付项 | 内容 | 位置 |
 |---|---|---|
-| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v1.yaml`（总组定稿，本方向只消费不自建） |
+| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v2.yaml`（总组定稿，本方向只消费不自建） |
 | 统一运行时 API | 后端选择 / 设备 / 流与事件 / 错误翻译 / 状态恢复 | `prototype/runtime/api/` |
 | Backend 插件机制 | 抽象基类（13 个 `@abstractmethod`）+ 注册表 + 自动发现 | `prototype/runtime/backends/` |
 | 昇腾后端 | `torch_npu`，推理腿使用 | `backends/ascend/` |
-| FlagOS 后端 | `torch_fl`，训练腿使用 | `backends/flagos/` |
+| FlagOS 后端 | `torch_fl`，训练腿使用（⚠️ **2026-09-22 起 910C 训练腿已统一 torch_npu**，本行仅适用于 `flagos` 备用路径） | `backends/flagos/` |
 | 统一 conformance | 13 例 + 推理 6 例，跨后端可跑 | `prototype/runtime/conformance/` |
 | 接口约定（**规范本体**） | API 承诺 + **§2 Backend 插件接入规范（新芯片照此实现）** + 两条硬纪律 | `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` |
 | 组件 v0.1.0 | Release note + Git tag | tag `runtime-v0.1.0` |
@@ -94,7 +103,7 @@
 |---|---|---|
 | 1 | 组织架构 PR 同步 dev-1.0（0 冲突） | ⏳ 待评审合入（**需你手动发起或授权**） |
 | 2 | 训练腿镜像未发布到 registry（v1 标 🟡 临时机器绑定资产） | 请总组/镜像 owner 推进发布，否则其他机器无法按锁定基座复现 |
-| 3 | 训练腿 torch_fl 例外的退出口径（v1 记有 TODO：10 月起评估切回 Route A 的成本） | 请总组给时间表与责任方 |
+| 3 | ~~训练腿 torch_fl 例外的退出口径（v1 记有 TODO：10 月起评估切回 Route A 的成本）~~ ✅ **2026-09-22 已闭环**（训练腿已统一切到 torch_npu；新遗留：解释器 torch 版本 2.11 vs 统一基座 2.10 是否拉平） | 已闭环，改为版本拉平议题 |
 | 4 | 通信接口约定（启动方式 / flagcx 接口形态 / 对照用例归属） | 待分布式方向回复，备忘见 `DESIGN_DIST_COMM_20260908.md` |
 | 5 | 历史模型未在统一原型上复跑（历史 910C 双卡 DDP 与 vLLM+TP 均为旧代码路径） | 观察项，不影响本轮 |
 | 6 | 组件 v0.1.0 下游反馈待收集 | 等下游（算子/调度/显存/分布式）接入后按周迭代 `v0.1.x` |
@@ -801,7 +810,7 @@ input tensor allocation stream"* —— 它是**流序正确性所必需**，**1
 | D1 | 昆仑芯机器使用约束是否入 `stack.lock`（需 `docker` 权限 + 自有可写数据目录） |
 | D2 | **「昆仑芯设备 API 为 `torch.cuda` 而非 `torch.xpu`」** 建议写入基座说明（跨方向通用） |
 | D3 | 训练腿镜像未发布 registry（910C 遗留 #2） |
-| D4 | 训练腿 torch_fl 例外退出口径时间表（910C 遗留 #3） |
+| D4 | ~~训练腿 torch_fl 例外退出口径时间表（910C 遗留 #3）~~ ✅ 2026-09-22 已闭环 |
 
 ---
 
