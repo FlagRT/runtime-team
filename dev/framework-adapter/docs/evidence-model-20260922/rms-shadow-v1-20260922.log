@@ -1,0 +1,17 @@
+can not use command: npu-smi info
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 3823.81it/s]
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/ops/rms_norm.py:317: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  y = torch.empty_like(x)
+{"batch": 1, "variant": "gems", "calls": 113, "nonexact_calls": 4, "failing_calls": 0, "max_abs": 0.0625}
+{"batch": 1, "variant": "gems_unit_then_native_weight", "calls": 113, "nonexact_calls": 4, "failing_calls": 0, "max_abs": 0.0625}
+{"batch": 1, "variant": "gems_fp32_then_cast_weight", "calls": 113, "nonexact_calls": 4, "failing_calls": 0, "max_abs": 0.0625}
+{"batch": 3, "variant": "gems", "calls": 113, "nonexact_calls": 26, "failing_calls": 0, "max_abs": 0.0625}
+{"batch": 3, "variant": "gems_unit_then_native_weight", "calls": 113, "nonexact_calls": 26, "failing_calls": 0, "max_abs": 0.0625}
+{"batch": 3, "variant": "gems_fp32_then_cast_weight", "calls": 113, "nonexact_calls": 26, "failing_calls": 0, "max_abs": 0.0625}

@@ -1,41 +1,49 @@
 # framework-adapter · 开发续接
 
-更新：2026-09-17。这是可重读的工程记录，不代替实时资源检查。先读 [STATUS](STATUS.md)，再看日期证据；不要从聊天摘要猜环境、测试通过情况或 Git 状态。
+更新：2026-09-23。先读[STATUS](STATUS.md)，只在需要重现时读日期报告；本文件不再重复测试成绩。
 
-## 固定约定
+## 工作区与协作
 
-- 负责人顾宬 / cgu135；个人分支 `cgu135/framework-adapter`。9 月 17 日按用户确认及根 README 改为：个人分支 commit，快进同步本地 dev-1.0，dev 合入个人分支解决冲突，个人分支 merge 回 dev 后检查无分叉并 push。不走 PR，不直接在共享分支开发、不 rebase/强推共享分支；main 仍须正式 PR。
-- runtime-team 收拢方向入口、原型、探针和证据。已有 FL 子库改动在独立 `vllm-plugin-FL` 分支 `cgu135/safe-op-fallback`，不能假定主仓提交会同步子库，也不把它自动装入官方镜像。
-- 周报使用本周新增数字，区分 CPU/NPU、单算子/模型、原型/验收；重复轮次不累加。不写凭证，不擅自同步 OneDrive。
-- 不停他人容器、不抢卡、不修改宿主驱动或规避设备隔离。是否有空闲计算和是否获得设备访问是两回事。
+- 本人分支：`cgu135/framework-adapter`；09-23用户授权将09-22原型与证据按团队流程提交、合并推送。用户`.DS_Store`文件保留、不提交。
+- 09-23发布前fetch公共分支到`6af89c4`，含`8cc9dbe`设备原型去torch_fl更新；发布同步不改变下表服务器0916运行副本，也不替代新基座回归。具体提交及合并位置查看Git历史，执行前重新fetch核对。
+- 09-17历史成果已通过merge/push进入公共`dev-1.0@e9fd2ff`；PR #16关闭，不走原PR流程。后续按[根README](../../README.md)标准流程，在个人分支开发、同步解决冲突后合并；是否提交/推送以当轮授权为准，禁止强推共享分支。
+- runtime-team保留原型、探针、部署和证据；正式子库代码独立维护。旧`vllm-plugin-FL`个人分支`cgu135/safe-op-fallback@635ff6d`不会随本仓推送，也不自动装入当前镜像。
 
-## 当前事实与入口
+## 最近使用的环境（运行前重新核查）
 
-- 公共基线：`origin/dev-1.0@f4d0ddd`，已合入个人本地分支。锁文件是 [v2](../stack.lock.910c.v2.yaml)，训练候选镜像未切换；本轮只用锁定推理镜像。
-- PR [#16](https://github.com/FlagRT/runtime-team/pull/16)：2026-09-17 查询 CLOSED、未合并；用户明确要求依根 README 直接 merge/push 到 dev-1.0。本次整理包含 9 月 16 日新结果，提交状态以 Git 实查为准。
-- 27：`cgu135@10.120.72.27`，连接凭证不在仓库。用户确认可用；运行前仍要重查资源和权限。
-- 本人容器 `flagos-proto-infer-910c`，ID 前缀 `7a13465c20ee`、label `owner=cgu135`；本轮创建，仅映射 davinci0。结果完成后停止，重用前核对归属和配置。
-- 宿主持久目录：`/home/cgu135/framework-adapter-910c/acceptance-20260916` → 容器 `/work`。模型 `/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B` → `/model:ro`。
-- 镜像 ID `2e56022ae5b3…`，digest、模型 SHA256、包版本、脚本 SHA256 均在 [证据目录](docs/evidence-model-20260916/)。不能只对 tag。
-- 新入口：`probes/qwen_embedding_baseline.py`；服务器最终执行快照 `/work/qwen_embedding_baseline-v3.py`。本地最终脚本需与 `probe-v3.sha256` 相符。前两版保留在宿主目录，不覆盖旧日志。
-- 9 月 16 日收尾已下载最终日志，确认本地/远端 v3 脚本哈希一致、12 项控制测试与语法检查通过，见 [本地核验](docs/evidence-model-20260916/local-verification.md)。当日未提交/推送；9 月 17 日按新流程同步，仍无 OneDrive 写入。
+| 项目 | 记录 |
+|---|---|
+| 当前允许主机 | 27 / 10.120.72.11，账号cgu135；不要沿用旧五机列表授权 |
+| 实测主机 | npu1-27 / 10.120.72.27，驱动26.1.1；11的Docker权限尚不足 |
+| 本人容器 | flagos-proto-infer-910c，owner=cgu135，非privileged，单davinci0→npu:0 |
+| 最后状态 | 09-22 18:17:35 stopped，SSH退出；[记录](docs/evidence-model-20260922/rms-final-state-20260922.txt) |
+| 持久工作目录 | 宿主/home/cgu135/framework-adapter-910c/acceptance-20260916 → /work |
+| 模型只读挂载 | /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B → /model |
+| 初始化runtime | /work/dev/device-context/prototype，仍为0916保存副本，并非整个最新公共代码 |
+| 依赖 | /work/FlagGems-f7ae8e6-20260922/src；/work/deps-20260922；仅目录覆盖，未改公共镜像 |
 
-## 本轮结果及边界
+完整镜像digest、包版本及已知差异只维护在[实验报告§2](docs/910C模型接入与安全回退-20260922.md)与[证据](docs/evidence-model-20260922/README.md)。未引入FlagTree构建物。凭证不写记录，需要时读取用户连接材料。
 
-- CPU FP32：真实模型 2 组输入通过，8 组代表算子用例通过（6 RMSNorm、2 SiLU）；12 项无硬件控制测试通过。
-- NPU FP16：最终 v3 在设备初始化报 `aclInit 507899 / Resource_Busy`，device_count=0；模型/算子 NPU 通过数为 0。内核日志 `Conflict open udevid` 指向设备 0 的命名空间占用冲突，未确认拥有者或唯一根因。
-- 关键接入发现：Transformers `Qwen3RMSNorm` 自己展开归一化，不经过 `F.rms_norm`，历史拦截原型不能直接覆盖它。vLLM 融合入口只做了源码核对，未运行引擎，不可混称已观测调用。
-- 所有 CPU 结果为诊断 eager、小输入、前向，不是模型检索质量/服务/性能/训练验收，也不是优化算子或回退验证。
+## 接着运行
 
-## 下一步顺序
+1. 重新检查资源、分配规则、容器归属、设备映射和Git状态；不能因上次空闲直接启动。
+2. 在本人已准备好的容器内使用报告§5的环境变量；模型与回退测试看§5，RMSNorm诊断看§8。本地统一入口及代码分工见[README](README.md)。
+3. 使用新结果文件名和有界超时；目标执行错误不吞掉、不自动重试/重置设备。不得停止他人任务。
+4. 完成后下载原始结果及源码哈希、更新同主题日期报告，再更新STATUS。本人容器按实际使用收尾停止，记录状态；不擅自上传OneDrive或Git。
 
-2026-09-16 19:08 只读复查：宿主 npu-smi 未列计算进程；运行中的 flagos-proto-train-910c 和 flaggems-cann9.0.0 均映射全部 16 个 davinci 设备节点（后者 privileged）。这只是映射/运行快照，不证明具体占用者；本次没有重跑 aclInit。本人推理容器仍 exited，未修改远端状态，SSH 已退出。
+服务器文件名映射（不要覆盖旧失败快照）：
 
-19:22 再查：rag-ljy-vllm-910c 已运行，带卡容器总数达到 3（另外两个同上）；设备 2/3 有 Python 计算，设备 0 未列进程。按锁文件并发规则，没有启动本人的第 4 个带卡容器，也没有执行初始化测试。因此没有新增 aclInit 错误/恢复结论。本人容器保持 exited，SSH 已退出，待协调串行窗口或允许共用的环境。
+| 仓库probes/文件 | 容器/work文件 |
+|---|---|
+| qwen_embedding_baseline.py | qwen_embedding_baseline-v3.py |
+| qwen_gems_validation.py | qwen_gems_validation-v3.py |
+| qwen_scoped_adapter.py / test_qwen_scoped_adapter.py | 同名 |
+| qwen_rms_shadow.py / qwen_rms_ablation.py | 同名 |
 
-1. 优先整理接入与回退需求，由组内向算子组确认算子清单、对应关系、调用契约和支持条件；先确认已有机制再写必要适配，不直接扩展为自动识别所有自定义算子。
-2. 协调可分配的设备，或明确被允许共用的公共推理容器。不能自行进入他人的运行环境执行探针；先确认配置/设备分配，再恢复测试。
-3. 在锁定镜像运行同一探针的 NPU FP16/BF16 模式，保留新输出文件名；不修改容差以掩盖错误。
-4. 补充真实 vLLM Embedding 路径观测，分别核对融合 RMSNorm（含 residual）与 SiLU-and-Mul；CPU 的普通模块结果不能替代。
-5. 用实际输入与调用链修订接入方案，确认模块入口/注册入口、支持条件与执行后上抛边界；请求至少 1 个下游 review。
-6. 更新 STATUS、日期报告和本文件，再按用户授权及标准 merge 流程提交/推送。源码和证据存在宿主及本地，不只留在容器可写层。
+rms-shadow的completed只表示统计收集成功；rms-ablation要另看within_tolerance。模型最终向量通过不能抵消隐藏状态失败；不扩大默认准入，不放宽阈值掩盖问题。
+
+## 历史与维护
+
+下轮vLLM服务对接优先复用统一启动脚本与规范。09-22审查的是[个人分支脚本固定版本](https://github.com/FlagRT/runtime-team/blob/bdefeeea61f9d0f951f026e72990f672f0da5257/dev/device-context/prototype/scripts/serve_standard.sh)和[规范](https://github.com/FlagRT/runtime-team/blob/bdefeeea61f9d0f951f026e72990f672f0da5257/dev/device-context/prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md)；09-23公共6af89c4已有prototype同步，后续以公共最新版本重新核对。已审查版本支持SERVE_FORM=embed；需明确MODEL/SERVED_NAME/DEV及日志目录。其清理按进程名范围匹配，不得直接在共享服务环境使用；本方向尚未运行。FAIL可能仍退出0，核验必须看ready/smoke/verdict。厂商服务已跑通不等于我们的FlagGems接入已完成。
+
+旧环境、旧阻塞和此前步骤保存在[整理前快照](docs/历史入口快照-20260922.md)及[日期报告索引](README.md)，不在此追加流水账。新结论写STATUS，技术细节写报告，环境发生变化才改本文件。
