@@ -1,5 +1,9 @@
-# __NAME_CN__（__NAME__）子方向开发容器（公共资源配置见 ../compose.base.yml，本文件只含子方向专属）
-# 用法：cd dev/__NAME__ && docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+# __NAME_CN__（__NAME__）子方向开发容器（本文件只含子方向专属，公共资源配置见下方叠加的
+# 芯片/版本层）
+# 用法（校验版本 + 启动，见 dev/ENV-SPEC.md）：先选一个芯片+版本层作为基础
+#   dev/lib/up.sh dev/images/<chip>/v<N>/docker-compose.<tag>.yml \
+#                 dev/__NAME__/docker-compose.yml
+# 完整可跑通的例子见 dev/_template/USAGE-DEMO.md。
 # 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
 #       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
 

@@ -99,7 +99,8 @@ def main():
 
         llm = LLM(
             model=model_path,
-            task="embed",
+            runner="pooling",
+            convert="embed",
             enforce_eager=True,  # required for Ascend per vllm-plugin-FL README
             max_model_len=512,
             gpu_memory_utilization=0.5,

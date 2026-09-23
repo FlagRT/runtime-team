@@ -281,7 +281,7 @@ FlagCX 训练腿（HCCL adaptor）本身的 STOP CONDITION（`dist.broadcast`/
 `dist.all_gather` 返回错误结果）与本轮 vllm 插件 pivot 无关、不在本轮范围内，
 详见 `dev/images/ascend-train-comm/v3/REBUILD.md`，结论不变。
 
-### ROUND 2 真机验证结果——【PENDING，机器并发占满，未能在本轮会话内执行】
+### ROUND 2/3 真机验证结果——【已执行，2026-09-23，发现新 STOP CONDITION】
 
 本轮构建（Step 1-4）已在真机上用 `docker build`（不需要 `--device`）完整跑通，
 但 Step 5（vLLM 推理烟雾测试 + 训练/推理共存检查）需要挂 `--device` 的带卡
@@ -303,22 +303,69 @@ FlagCX 训练腿（HCCL adaptor）本身的 STOP CONDITION（`dist.broadcast`/
 （读写同一物理 NPU 的驱动状态可能触发 `stack.lock` 里记录的 `acl.init()`
 500000 报错，或者更糟——干扰其他工程师正在跑的 benchmark 的正确性）。
 
-**结果**：Step 5（vLLM 推理烟雾测试的真实输出文本、训练/推理组件共存检查）
-**未能在本轮会话内执行，明确记为 PENDING，不是"跳过"也不是"假设会通过"**。
-Step 1-4（pin 精确 commit、Dockerfile 改造、真机 `docker build` 成功、依赖
-`ascend-operator-runtime:v3` 的 `ascend-train-comm:v3` 重建成功）均已完成且
-有真实构建日志为证，这部分结论是扎实的；但"vllm-plugin-FL 在本血统 torch_npu
-（Route A）路径上跑一次真实 `generate()` 是否产出正确、非乱码输出"这个本轮
-任务的核心目的——尤其是上面「FlagRT 私有 fork 的发现与决策」一节提到的两个
-已知 PrivateUse1 类型提升 bug 是否会在 torch_npu 路径上实际触发——**仍然
-未知，不能假设"构建通过 = 推理正确"**。`repro_status` 因此维持 🟡
-partial-repro，不升级为 🟢，见 `lock.yaml`。
+**执行情况（2026-09-23，切换到 npu1-27 本机继续，卡资源已释放）**：接手时
+`docker ps` 只有 2 个带卡容器（`x-benchmark`、`flaggems-cann9.0.0`），低于
+上限 3。用 `v3-pending-validation/race_and_validate.sh`（1 卡，
+`--device=/dev/davinci0`）驱动 `v3_step5_validate.py`，`docker rm -f` 收尾，
+共跑了两轮：
 
-**下一步**：待机器带卡容器并发数降到 ≤2（`docker ps` 确认），用
-`v3-validate-` 前缀容器名，按任务书 Step 5 的两项检查（1 卡够用：vLLM 单卡
-`generate()` 烟雾测试；共存检查可以同一容器顺带做）执行，跑完立即
-`docker rm -f`。预计所需真机独占时间很短（单次 `generate()` + 几个 import
-检查，不需要长跑训练），一旦有 1 个名额空出即可执行，不需要等到 3 个名额全空。
+**第一轮**：`import_torch_npu_route_a`、`import_flagcx`、
+`privateuse1_stable_after_flagcx`、`triton_driver_check`
+（`triton.__version__=3.5.1`，`active_driver=NPUDriver`）、
+`import_vllm_and_vllm_fl`（`vllm=0.20.2`，`vllm_fl=0.0.0+g8b059122e`，
+`current_platform_type=PlatformFL`）**全部 PASS**——共存检查本身（训练侧
+FlagCX + 推理侧 vllm-plugin-FL 同镜像同进程，PrivateUse1 全程保持
+`"npu"`，无驱动冲突）已证实成立。真实推理调用
+`LLM(model=..., task="embed", ...)` 报
+`TypeError: EngineArgs.__init__() got an unexpected keyword argument 'task'`
+——**这是验证脚本自身的 API 版本问题**（`task` 参数在本血统实际装的 vLLM
+0.20.2 里已被拆成 `runner: Literal['auto','generate','pooling','draft']` +
+`convert: Literal['auto','none','embed','classify']` 两个参数，用
+`python3 -c "from vllm.engine.arg_utils import EngineArgs; ..."` 现场核实过
+新签名），不是产品缺陷，已修复脚本改用
+`runner="pooling", convert="embed"`。
+
+**第二轮（脚本修复后重跑）**：coexistence 各项检查复跑仍全部 PASS；真实推理
+这次进入了 vLLM engine 初始化，但在加载模型权重、构建 `Qwen3Model` 的
+RoPE（`RotaryEmbedding._compute_cos_sin_cache` 里的 `freqs.cos()`）时失败——
+**新 STOP CONDITION**：`torch.cos` 在 NPU 设备上被 FlagGems 的 Triton-Ascend
+算子接管（`torch.utils._device.__torch_function__` 分发到
+`flag_gems.ops.cos`），FlagGems 针对这个张量形状选择了"grid-stride-loop"
+风格 kernel（`ext.num_programs(0)` 分支，而非简单 1D kernel），该分支生成的
+Triton 代码在编译期 `import shmem as ash`
+（来自 `triton/experimental/tle/language/dsa/ascend/communication.py`，
+FlagGems 生成代码 `from flag_gems.utils import triton_lang_extension as ext`
+间接触发），而**镜像里没有装 `shmem` 这个 Python 模块**——
+`triton.compiler.errors.CompilationError: ... ModuleNotFoundError("No module
+named 'shmem'")`，vLLM engine core 初始化失败，整个 `LLM(...)` 构造抛出
+`RuntimeError: Engine core initialization failed`。现场核实过 `shmem` **不是
+公开 PyPI 包**（`pypi.tuna.tsinghua.edu.cn/simple/shmem/` 返回 404），
+`pip show shmem` 在镜像内也确认未安装；`Dockerfile.repro` 里确实从未提及
+`shmem`，说明这是一个在 FlagGems/Triton-Ascend 的"分布式共享内存"实验性代码
+路径上真实存在、但构建时未被察觉的依赖缺口（round 1/2 的静态自检 + 训练侧
+collective 验证都没有触发到这条代码路径，是这次真实跑一个模型的完整前向计算
+才第一次暴露出来）。
+
+**按任务书"遇到需要私有 patch / 官方组件驱动冲突要停下来汇报"的要求，本轮
+未尝试绕过**（可能的绕过方式包括：找一个未经核实来源的 `shmem` wheel 直接装、
+关掉 FlagGems 让 `torch.cos` 落回 torch_npu 原生实现、或者本地手写一个空的
+`shmem` stub 模块——这三种都属于"自行决定的绕过"，且都可能掩盖 FlagGems 在
+Ascend 上一个更广泛缺口的严重性，故未执行，留给项目负责人裁定）。**结果**：
+Step 5 的 coexistence 部分已证实通过，但"真实 `.encode()`/`generate()` 产出
+正确、非乱码输出"这一核心验收目标仍未达成——不是因为 Route A/FlagCX/vllm_fl
+本身有问题，而是卡在 FlagGems 一条特定 kernel 代码路径缺失的第三方依赖。
+`repro_status` 因此维持 🟡 partial-repro，不升级为 🟢，见 `lock.yaml`
+`known_issues.flag-gems-triton-ascend-missing-shmem-module`。
+
+**下一步（需拍板）**：a) 找到 `shmem` 模块的官方来源（可能是 CANN 工具链自带、
+或 FlagTree/Triton-Ascend 官方仓库里一个未被 `pip install .` 自动拉取的
+子组件，需要联系 FlagTree/FlagGems 维护者确认）并正式补进
+`Dockerfile.repro`；或 b) 确认这条 grid-stride-loop kernel 路径是否可以通过
+公开、无风险的配置（而非私自 patch）关闭，改走 1D kernel 路径规避；或
+c) 评估是否可以对 embedding 类模型完全绕开 FlagGems（回到 torch_npu 原生
+`cos`/`sin` 实现，与任务书约束 4"FlagGems 保留可插拔、不强制激活"一致——
+但需先确认 vllm_fl 是否允许在不装/不激活 FlagGems 的情况下跑通这条模型路径，
+现在的报错栈显示 FlagGems 是被自动接管的，不是我们主动 import 的）。
 
 ### PHASE 2 脚本修复：`assets/verify_runtime.py` 的 `torch_fl._C` 探测 bug
 

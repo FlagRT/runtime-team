@@ -235,8 +235,8 @@ repro_result:
   verify_runtime_static: "passed (real design-tag image, not diagnostic -- vllm_fl_installed: true)"
   verify_runtime_dynamic_route_a_default: "passed: route_a_default_check = 'passed (torch_npu claimed PrivateUse1 with no special import order)' -- 2-card container v3-validate-train-910c, 2026-09-22 (round 1, carried forward, independent of vLLM plugin choice)"
   verify_runtime_torch_fl_guard: "passed: torch_fl_guard_check = 'passed (RuntimeError as expected ...)' -- required a script bug-fix, see REBUILD.md 'PHASE 2 脚本修复' (round 1, carried forward)"
-  vllm_inference_smoke_test: "PENDING -- blocked by sustained machine-wide device-container contention from other engineers (5 running, cap is 3), not by any technical failure of this round's build. See REBUILD.md 'ROUND 2 真机验证结果'."
-  coexistence_check: "PENDING -- same blocker as above. Static evidence only: pip freeze confirms flagcx and vllm-plugin-fl coexist in ascend-train-comm:v3's dependency tree without install-time conflict; the dynamic import-order / PrivateUse1-consistency / triton-driver check is NOT yet done."
+  vllm_inference_smoke_test: "FAILED, 2026-09-23 -- real LLM() construction reaches model weight loading / RoPE cos-sin cache computation, then hits a NEW STOP CONDITION: FlagGems' Triton-Ascend grid-stride-loop kernel path imports a 'shmem' Python module that is not installed in the image and is not a public PyPI package (404 on pypi.tuna.tsinghua.edu.cn/simple/shmem/, not referenced anywhere in Dockerfile.repro). See known_issues.flag-gems-triton-ascend-missing-shmem-module and REBUILD.md 'ROUND 2/3 真机验证结果' for full traceback and reasoning on why this was not worked around."
+  coexistence_check: "PASSED, 2026-09-23 -- torch_npu Route A (PrivateUse1='npu') stays stable through import torch_npu -> flagcx -> triton -> vllm+vllm_fl in one process; triton active_driver=NPUDriver (no '2 active drivers' regression); vllm+vllm_fl platform plugin registers correctly (current_platform_type=PlatformFL, vllm=0.20.2, vllm_fl=0.0.0+g8b059122e). Real hardware, container v3-validate-train-910c-r2, image 43f3e2f70b4c, 1 card. This is independent of the vllm_inference_smoke_test failure above (that fails deeper, inside model forward computation, not at coexistence/import time)."
 
 known_issues:
   - id: "triton-2-active-drivers (carried forward from v2)"
@@ -258,19 +258,46 @@ known_issues:
       候选解法列表（均未执行，待总组裁定）。
   - id: "vllm-ascend-pin-unverified"
     description: "【PHASE 2 ROUND 1 RESOLVED】见 open_questions.vllm-ascend-exact-pin 的 resolution——已实测核实为 367b8e62da799870a7476ce34f5f7658589a8aad。本条目保留作为历史记录，round 2 不再涉及 vllm-ascend。"
-  - id: "vllm-plugin-fl-real-hardware-validation-pending (PHASE 2 ROUND 2, 2026-09-22)"
+  - id: "vllm-plugin-fl-real-hardware-validation-pending (PHASE 2 ROUND 2, 2026-09-22, 已执行见 ROUND 3 结论)"
     description: >-
-      vllm-plugin-FL 已实测构建成功（image id `9ad551058f2f`），但 Step 5 真机
-      vLLM 推理烟雾测试（用真实 `generate()` 输出文本确认非乱码/非 CPU 回退）
-      与训练/推理共存检查**均未执行**，原因是本轮会话观测期间机器带卡容器并发
-      数持续保持在 5（超过上限 3，是其他工程师的活跃工作负载，非本任务所起）。
-      这不是技术性失败，是共享机器资源约束——按任务书要求未强行起容器抢占
-      已在跑的设备。**在这一项完成之前，不能认为 vllm-plugin-FL 路径已经"验证
-      通过"，只能说"构建通过"**——尤其是 REBUILD.md「FlagRT 私有 fork 的发现
-      与决策」提到的两个已知 PrivateUse1 类型提升 bug（token id 坍缩成 1 /
-      flagcx backend 异步同步问题）是否会在本血统的 torch_npu 路径上实际触发，
-      仍然未知。`repro_status` 因此维持 🟡 partial-repro。见 REBUILD.md
-      「ROUND 2 真机验证结果」的待办清单。
+      【ROUND 3 结论，2026-09-23，卡资源已释放，已执行】coexistence 检查
+      **PASSED**（PrivateUse1 全程 'npu'，triton driver 正常，vllm+vllm_fl
+      platform 正确注册）。真实推理烟雾测试**FAILED**，但不是当初担心的两个
+      PrivateUse1 类型提升 bug（token id 坍缩 / flagcx sync，那两个是训练侧
+      collective 问题，见 `ascend-train-comm/v3/lock.yaml`）——是一个全新的、
+      更早层面的 STOP CONDITION：FlagGems 的 Triton-Ascend grid-stride-loop
+      kernel 路径缺 `shmem` 模块（见下方新条目
+      `flag-gems-triton-ascend-missing-shmem-module`）。因此"vllm-plugin-FL
+      构建通过 ≠ 推理正确"这条判断被证实是对的，但阻塞点与预想的不同。
+      `repro_status` 维持 🟡 partial-repro。见 REBUILD.md「ROUND 2/3 真机验证
+      结果」完整过程与两轮尝试（第一轮是脚本自身 API 版本 bug，已修复；第二轮
+      才碰到真正的 STOP CONDITION）。
+  - id: "flag-gems-triton-ascend-missing-shmem-module (PHASE 2 ROUND 3 STOP CONDITION, 2026-09-23, 未解决)"
+    description: >-
+      真机 1 卡验证发现：跑 `vllm.LLM(model=Qwen3-Embedding-0.6B, runner=
+      \"pooling\", convert=\"embed\", enforce_eager=True)` 时，`torch.cos`
+      在 NPU 上被 FlagGems 的 Triton-Ascend 算子透明接管
+      （`torch.utils._device.__torch_function__` -> `flag_gems.ops.cos`，
+      不是我们的验证脚本主动 `import flag_gems`——是 vllm_fl/FlagGems 自己的
+      设计对 Ascend 上部分算子做了替换），FlagGems 针对
+      `RotaryEmbedding._compute_cos_sin_cache` 里这个张量形状选择了
+      "grid-stride-loop" 风格的生成 kernel（`ext.num_programs(0)` 分支，
+      `ext = flag_gems.utils.triton_lang_extension`），该分支的生成代码
+      间接 `import shmem as ash`
+      （来自 `triton/experimental/tle/language/dsa/ascend/communication.py`，
+      Ascend 的"分布式共享内存"实验性扩展），**`shmem` 模块在本血统构建出的
+      镜像里未安装**——`pip show shmem` 确认未装，`pypi.tuna.tsinghua.edu.cn/
+      simple/shmem/` 返回 404（不是公开 PyPI 包），`Dockerfile.repro` 全文
+      未提及 `shmem`。直接后果：`triton.compiler.errors.CompilationError`
+      → vLLM engine core 初始化失败 → `LLM(...)` 构造抛出
+      `RuntimeError: Engine core initialization failed`，未能产出任何真实
+      `.encode()`/`generate()` 输出。**未尝试绕过**（候选绕过方式：装一个
+      未经核实来源的 `shmem` wheel / 关闭 FlagGems 让 `cos` 落回 torch_npu
+      原生实现 / 手写空 `shmem` stub——均属于"自行决定的绕过"，可能掩盖
+      FlagGems 在 Ascend 上更广泛的缺口，按任务书要求停下汇报，留待项目负责人
+      裁定三个候选方向，见 REBUILD.md「下一步（需拍板）」）。round 1/2 的静态
+      自检与训练侧 collective 验证从未触发这条代码路径（只有真实模型前向计算
+      才会命中），因此这是本轮才第一次发现的新问题，不是被之前的验证漏掉。
   - id: "verify_runtime.py torch_fl._C find_spec side-effect bug (PHASE 2 found+fixed, 2026-09-22)"
     description: >-
       `find_spec(\"torch_fl._C\")` 隐式 import 父包 `torch_fl`，在 PrivateUse1
@@ -326,3 +353,19 @@ changelog:
       `assets/provenance/pipfreeze-operator-runtime-v3.txt`（替换 round 1 的
       诊断镜像快照）。repro_status 维持 🟡 partial-repro（不升级为 🟢，因为
       真机推理正确性未证实）。未改 `dev/stack.lock.910c.v2.yaml`。
+  - date: "2026-09-23"
+    what: >-
+      ROUND 3（继续，卡资源已释放）：`race_and_validate.sh` 捕获 1 卡窗口后跑
+      `v3_step5_validate.py`（镜像 `43f3e2f70b4c`）。coexistence 检查全部
+      PASSED（PrivateUse1 稳定为 'npu'，triton driver 正常，vllm+vllm_fl
+      platform 正确注册）。真实推理两轮尝试：第一轮撞上脚本自身 bug
+      （`task="embed"` 在本血统实装的 vllm 0.20.2 里已被拆成
+      `runner`/`convert` 两个参数，已现场核实新签名并修复脚本）；第二轮
+      （脚本修复后重跑）**发现新 STOP CONDITION**：FlagGems 的
+      Triton-Ascend grid-stride-loop kernel 路径缺 `shmem` 模块（非公开 PyPI
+      包，未见于 Dockerfile.repro），导致 vLLM engine core 初始化失败，未产出
+      真实推理输出。按任务书要求未尝试绕过（三种候选绕过方式均属"自行绕过"，
+      留待项目负责人裁定），已记录三个候选下一步方向于 REBUILD.md。
+      repro_status 维持 🟡 partial-repro（coexistence 已证实，但推理正确性
+      仍未达成，阻塞点是新发现的 FlagGems/shmem 依赖缺口，与最初担心的两个
+      PrivateUse1 类型提升 bug 无关）。未改 `dev/stack.lock.910c.v2.yaml`。

@@ -15,7 +15,7 @@
 | 1 | 逐字节复现（可选金标准） | 需 owner 交出 FlagCX 私有 commit `55eb2ff` + 2 个 patch + 干净 python3.11.15 构建上下文。见各 `v1/lock.yaml:gaps`。总组以 issue 形式向 owner 索取。 |
 | 2 | `ascend-infer-vllm` 离线副本（可选加固） | 按 digest `sha256:5cf8a2b6…` 存一份，防 quay rc 标签被 GC；连带留存拷出的 `triton_ascend 3.2.1` wheel。见 `ascend-infer-vllm/v1/ARCHIVE.md`。 |
 | 3 | `image_list.md` 维护 | 新镜像/新版本入档时更新索引表与"当前生效版本"。 |
-| 4 | v3 真机验证收尾（跨机器交接中） | 详见 `HANDOFF-v3-910C.md`——卡资源阻塞，FlagCX sync 假设待验证，vLLM smoke test 待跑。 |
+| 4 | v3 真机验证收尾 | **技术验证已完成，见下方「N2 完成」**；剩余是两项需总组拍板的决策（是否吸收私有 fork 的 sync 修复；`shmem` 依赖缺口三个候选方向），详见 `ascend-train-comm/v3/REBUILD.md`「ROUND 3」与 `ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」。 |
 
 ## N1 完成（2026-09-12）——按 BAAI·FlagTree 官方手册 ascend3.5 线重建训练腿祖先镜像
 
@@ -31,3 +31,50 @@
 - **真机验证**（2 卡，容器 `flagos-cand-train-910c-v2`，验证完已释放）：Torch-FL/FlagGems 算子自检通过；FlagCX `verify_flagcx_runtime.py --device` 两个 rank 均 `device_all_reduce_ok: true`；复用 `dev/communication/probes/communication_correctness.py`（未重复造轮子）40/40 all_reduce/all_gather/p2p/async_all_reduce 通过（fp32+bf16）。
 - **已知遗留问题（未修复，已记录）**：集合通信成功完成、结果数值正确之后，进程退出阶段有 `free(): invalid pointer` SIGABRT（已隔离验证与 torch_npu 无关，疑似 FlagCX/Torch-FL 退出期清理顺序冲突，需 FlagCX/Torch-FL 侧协作定位）；不影响训练期间通信正确性，只影响"用退出码判断成功"的批处理式脚本。见 `ascend-train-comm/v2/lock.yaml:known_issues`。
 - **归档**：两镜像 `docker save` + gzip 至 `/mnt/raid/xliu969/flagrt-image-backup/20260912/`，清单见各 `v2/ARCHIVE.md`。
+
+## N2 完成（2026-09-23）——v3 待验证项真机跑完，两个新 STOP CONDITION 澄清/发现
+
+**结论：本机（npu1-27）带卡容器并发数从交接时的 5 回落到 2，未换机器即在原机器
+继续完成。训练腿"缺 sync"假说证实成立；推理腿 coexistence 检查通过，但发现一个
+全新的、跟原先担心的两个 bug 无关的 STOP CONDITION。两项都不是"验证通过"，
+是"技术层面查清楚了，剩两个需要总组拍板的决策"。详见
+`ascend-train-comm/v3/REBUILD.md`「ROUND 3」与
+`ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」。**
+
+- **训练腿 sync 假说验证**（2 卡，容器 `v3-validate-flagcx-sync-910c` /
+  `-followup-910c`，验证完已释放）：`flagcx_sync_test.py` 真机直接测试
+  ——`broadcast`/`all_gather` 无 `torch.npu.synchronize()` 时复现原 STOP
+  CONDITION（broadcast 目标 rank 收不到数据，all_gather 恒返回全零），加 sync
+  后两个原语两个 rank 全部转为 PASS。**结论：2026-09-22 的原诊断是测试遗漏
+  同步导致的误报，不是 FlagCX 本体数据损坏。** 追加跑
+  `train_qwen_1_5b_npu_syncpatch.py`（猴子补丁 `dist.broadcast`/`all_gather`
+  后跑真实训练脚本）确认了预先记录的限制：DDP 内部走 C++ 层
+  `torch._C._distributed_c10d._verify_params_across_processes`，不经过
+  Python 猴子补丁，仍报参数不一致——**真正的修复点必须落在 FlagCX/vllm_fl 自己
+  的 c10d 实现里（私有 fork commit `5d545c9` 实际打的位置），不能靠训练脚本
+  调用方绕过**，真实 loss/吞吐数据仍待"是否吸收私有修复"这个决策落地。
+- **推理腿 coexistence + 推理烟雾测试**（1 卡，容器
+  `v3-validate-train-910c-r2`，验证完已释放）：torch_npu Route A、FlagCX
+  import、triton driver、vllm+vllm_fl platform 注册**全部 PASS**——之前担心的
+  两个私有 fork PrivateUse1 类型提升 bug **均未在本血统触发**。真实
+  `LLM(...).encode()` 调用：第一次撞上验证脚本自身的 API 版本问题（`task=`
+  参数在本血统实装的 vllm 0.20.2 里已拆成 `runner`/`convert`，已修复脚本）；
+  修复后重跑，**发现新 STOP CONDITION**：FlagGems 的 Triton-Ascend
+  grid-stride-loop kernel 代码路径（RoPE cos/sin cache 计算触发）间接
+  `import shmem`，这个模块既未装在镜像里也不是公开 PyPI 包（
+  `pypi.tuna.tsinghua.edu.cn/simple/shmem/` 404），`Dockerfile.repro` 从未
+  提及，vLLM engine core 初始化失败。round 1/2 的静态自检/训练侧验证从未触发
+  这条代码路径，是本轮真实跑一次模型前向计算才第一次暴露。**按任务书要求未
+  尝试绕过**（候选绕过方式均属"自行决定"，已记录三个候选方向待拍板）。
+- **两个脚本迁入永久归档**：`flagcx_sync_test.py`、
+  `train_qwen_1_5b_npu_syncpatch.py` → `ascend-train-comm/v3/assets/`；
+  `v3_step5_validate.py`（已修复 API 用法）→
+  `ascend-operator-runtime/v3/assets/`。临时目录
+  `dev/images/v3-pending-validation/` 已按其自身 README 的"验证完应删除"要求
+  整体删除。
+- **仍未解决（需拍板，非技术阻塞）**：① 是否吸收 FlagRT 私有 fork 的 sync 修复
+  进 v3 默认血统；② `shmem` 依赖缺口三个候选方向（找官方来源补进 Dockerfile /
+  关闭 grid-stride-loop kernel 路径 / 评估对 embedding 模型完全不激活
+  FlagGems）。两项都已把技术判断依据写清楚，等总组/接手人拍板后回填
+  `Dockerfile.repro` + `lock.yaml` provenance。`repro_status` 两条血统均维持
+  🟡 partial-repro，不升级为 🟢。

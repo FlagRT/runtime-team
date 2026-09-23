@@ -258,7 +258,7 @@ torchrun --nproc_per_node=2 --master_port=<port> train_qwen_1_5b_npu.py
 # dist.broadcast(t, src=0) / dist.all_gather(out_list, t)，对比 rank0/rank1 结果
 ```
 
-## ROUND 3（追加，项目负责人指派）："缺 synchronize()" 假说检验——【PENDING，机器并发占满，未能在本轮会话内执行】
+## ROUND 3（追加，项目负责人指派）："缺 synchronize()" 假说检验——【已执行，2026-09-23，假说证实】
 
 **背景**：项目负责人复核了本机另一个 `FlagRT/vllm-plugin-FL` 组织私有 fork
 （`/home/xliu969/runtime-team/vllm-plugin-FL/`，与 round 2 用的纯公开
@@ -297,21 +297,51 @@ Python 层的 `dist.broadcast`/`dist.all_gather`——如果 DDP 走的就是这
 真正修复点必须落在 FlagCX 自己的 c10d ProcessGroup 实现里，而不能在调用方
 用 Python 猴子补丁绕过），不代表假说被推翻。
 
-**未能执行的原因（与本文件其余"PENDING"项同一个阻塞源）**：项目负责人下达
-本任务时机器带卡容器并发数为 5（超过 `stack.lock` 规定的上限 3），本会话
-随后又追加监控/尝试了 5 轮、每轮约 10 分钟的高频（3 秒间隔）窗口捕捉（叠加
-本文件更早的 Step 5 验证已经等待的约 2.5 小时），期间涉事的 `sgl-c256-*`
-sweep 容器名多次变化后最终稳定在 `sgl-c256-tp4-20260922-prefill-{0..3}`，
-`flaggems-cann9.0.0` 已连续运行超过 15 小时——机器带卡容器数持续保持在 5，
-从未降到给本任务留出 1 个名额所需的 ≤2。按"respect shared-machine rules"
-要求，本轮同样未强行起带卡容器抢占。**明确记为 PENDING，不是"跳过"，也不是
-"假设 sync 能修好"——原 STOP CONDITION 的结论（broadcast 静默 no-op、
-all_gather 恒返回全零）在有真机证据推翻它之前，继续按"未解决、真实"处理。**
+**执行情况（2026-09-23，切换到 npu1-27 本机继续，卡资源已释放）**：接手时
+`docker ps` 只剩 2 个带卡容器（`x-benchmark`、`flaggems-cann9.0.0`），低于
+上限 3，未强占，`race_task1.sh` 的轮询窗口捕捉逻辑仍在等待（会话开始时曾短暂
+被第三方新起的 `flagperf-inference-*` 顶到 3，等了约 4 分钟后回落到 2，
+`race_task1.sh` 立即捕获窗口起容器）。用现有 `ascend-train-comm:v3` 镜像
+（`43f3e2f70b4c`）、2 卡（`/dev/davinci0` + `/dev/davinci1`），
+`torchrun --nproc_per_node=2 flagcx_sync_test.py` 实测结果：
 
-**下一步**：机器带卡容器并发数降到 ≤2 时，运行
-`torchrun --nproc_per_node=2 --master_port=<port> flagcx_sync_test.py`
-（脚本已就绪，见本条目所述路径），根据其 exit code/PASS-FAIL 结果决定是否
-继续跑 `train_qwen_1_5b_npu_syncpatch.py` 追加测试；跑完后把两个脚本迁入
-本目录 `assets/`（若验证证实有长期价值）并回填本节的真实结果，同时更新
-`lock.yaml` 与 `image_list.md` 的 broadcast/all_gather STOP CONDITION 状态
-（维持、澄清为"测试遗漏 sync 导致的误报"、或其它）。
+```
+[rank0] broadcast+nosync: result=[1, 1, 1, 1] expected=[1, 1, 1, 1] -> PASS   (rank0 是 src，恒等，不算证据)
+[rank1] broadcast+nosync: result=[2, 2, 2, 2] expected=[1, 1, 1, 1] -> FAIL   <- 复现原 STOP CONDITION
+[rank0] all_gather+nosync: result=[[0,0,0,0],[0,0,0,0]] expected=[[1,1,1,1],[2,2,2,2]] -> FAIL  <- 复现
+[rank1] all_gather+nosync: result=[[0,0,0,0],[0,0,0,0]] expected=[[1,1,1,1],[2,2,2,2]] -> FAIL  <- 复现
+[rank0] broadcast+sync:    result=[1, 1, 1, 1] expected=[1, 1, 1, 1] -> PASS
+[rank1] broadcast+sync:    result=[1, 1, 1, 1] expected=[1, 1, 1, 1] -> PASS  <- sync 后修复
+[rank0] all_gather+sync:   result=[[1,1,1,1],[2,2,2,2]] expected=同 -> PASS
+[rank1] all_gather+sync:   result=[[1,1,1,1],[2,2,2,2]] expected=同 -> PASS   <- sync 后修复
+```
+
+**假说证实**：无 sync 时 broadcast/all_gather 确实复现原 STOP CONDITION
+（`broadcast` 目标 rank 收不到源数据；`all_gather` 恒返回全零）；在集合通信
+调用之后、读取结果张量之前插入 `torch.npu.synchronize()`（commit `5d545c9`
+的确切修法）后，两者在两个 rank 上全部转为 PASS。**结论：flagcx c10d
+backend 的 broadcast/all_gather 确实是异步返回，2026-09-22 的诊断脚本确实
+漏了同步，原 STOP CONDITION 是"测试遗漏 sync 导致的误报"，不是 FlagCX 本体
+数据损坏。**（`torchrun` 进程本身在打印完 VERDICT 后，于
+`dist.destroy_process_group()` 阶段仍触发已知的 `free(): invalid pointer`
+teardown SIGABRT——见下方「teardown-sigabrt」条目，与本次假说验证无关，
+只影响进程退出码，不影响上面打印出的 PASS/FAIL 结果本身。）
+
+**追加测试（`train_qwen_1_5b_npu_syncpatch.py`，猴子补丁 + 真实训练脚本
+DDP 构造）**：按预先记录的风险点确切发生——`RuntimeError: DDP expects same
+model across all ranks, but Rank 0 has 338 params, while rank 0 has
+inconsistent 0 params`（与原始无补丁时的报错一致，仅参数量非零/零角色对调，
+无实质差异）。确认 PyTorch `DistributedDataParallel.__init__` 内部走的是
+C++ 层 `torch._C._distributed_c10d._verify_params_across_processes(...)`，
+不经过本猴子补丁拦截的 Python `dist.broadcast`/`dist.all_gather`——**这不是
+对"缺 sync"假说的反证**（上面的直接测试已经是该假说的权威证据，且已证实），
+而是确认了预先记录的结论：**真正的修复点必须落在 FlagCX 自己的 c10d
+ProcessGroup 实现里（即私有 fork commit `5d545c9` 实际打的位置：
+`vllm_fl/distributed/communicator.py`），不能在训练脚本调用方用 Python
+猴子补丁绕过**。因此本轮未能产出真实 DDP loss/吞吐数据——不是因为假说不成立，
+而是因为验证假说用的方法（调用方猴子补丁）天然覆盖不到 DDP 内部的 C++ 校验
+路径；要拿到真实 loss/吞吐，需要在 FlagCX 源码或其 c10d 注册层本身应用
+sync 修复（即下面 P1 拍板项：是否正式吸收私有 fork 的 fix）。
+
+两个脚本已迁入本目录 `assets/flagcx_sync_test.py` / `train_qwen_1_5b_npu_syncpatch.py`。
+`known_issues` 与 `lock.yaml` 已回填真实结果（见下）。

@@ -65,6 +65,7 @@
 **昇腾 910C**
 - 推理结论性测试：`quay.io/ascend/vllm-ascend` 镜像自带 python 3.11 + torch 2.10.0+cpu + **torch_npu 2.10.0** + vllm 0.20.2 + vllm_ascend（device-context P0–P3 在此验证）
 - 训练 / device-context / conformance / 通信：容器内装 **torch_npu 2.10.0** + FlagCX（`plugin/torch`）+ FlagGems（± vllm-plugin-FL）；具体镜像与 venv 组合以 `dev/device-context/README.md`、`dev/communication/README.md` 为准
+- **候选血统（Route A 默认 + 训练/推理统一基座，v3）**：`dev/images/ascend-operator-runtime/v3/docker-compose.routeA.yml` + `pins.routeA.yaml`，用 `dev/lib/up.sh` 启动、`dev/lib/verify_env.sh` 校验；版本声明格式与用法见 `dev/ENV-SPEC.md`，血统详情见 `dev/images/ascend-operator-runtime/v3/lock.yaml`
 
 **昆仑芯 P800**（厂商官方发布镜像内）
 - python 3.10 + 厂商 CUDA 兼容 torch 2.9 + vllm 0.13 + **vllm-plugin-FL** + FlagGems + FlagCX + triton 3.0.0；口径见 `dev/memory/README.md`

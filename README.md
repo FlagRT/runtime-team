@@ -21,6 +21,8 @@
 dev/
 ├── clone_all.sh              # 新成员一键 clone FlagRT 6 仓（团队公共）
 ├── compose.base.yml           # 公共资源配置：镜像/19 设备/网络/内存/驱动挂载/公共环境变量（所有子方向共享）
+├── ENV-SPEC.md                # 候选血统的版本声明 + 启动前校验规范（总组发版与子方向预研共用）
+├── lib/                        # ENV-SPEC.md 配套工具：verify_env.sh / verify_env.py / up.sh
 └── <子方向>/                 # 如 memory/；未来 kv/ 等，对应成员维护
     ├── README.md             # 本子方向看板入口（目标/任务/重要发现/环境速查）
     ├── docker-compose.yml    # 本子方向专属：-f 合并公共配置 + 容器名/专属环境变量
@@ -29,6 +31,7 @@ dev/
 
 使用基准：
 - 日常启动：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
+- 启动带版本声明的候选血统（如 v3 Route A）：用 `dev/lib/up.sh` 而非裸 `docker compose up`，会先校验版本再启动，规范见 `dev/ENV-SPEC.md`
 - 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，各子方向自动生效 → 同步 `VERSIONS.md`
 - 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
 - 每个子方向 compose 必须声明独立 `name:`（如 `flagos-<方向>`）：默认 project 取首个 -f 文件目录名（`dev`），不声明会跨方向重建同名 `runtime-dev` 服务

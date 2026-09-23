@@ -149,6 +149,7 @@ repro_result:
   verify_flagcx_p2p_route_a: "passed: all 4 payload sizes (1/4/257/65536 elements) sha256-verified correct both ranks, inner_backend='name=flagcx,_get_backend_name=flagcx' (round 1, carried forward)"
   communication_correctness_probe: "not run -- superseded by a more targeted diagnostic (see known_issues.flagcx-broadcast-allgather-wrong-result) that already isolated the exact failing collectives"
   train_qwen_1_5b_npu_reproduction: "FAILED at DDP construction -- see known_issues.flagcx-broadcast-allgather-wrong-result. No real loss/throughput data obtained. Out of scope this round, not re-attempted."
+  flagcx_sync_hypothesis_test: "CONFIRMED, 2026-09-23 -- broadcast/all_gather reconfirmed broken without sync (rank1 broadcast FAIL, both ranks all_gather FAIL), both fixed to PASS on both ranks with torch.npu.synchronize() inserted post-collective, per commit 5d545c9's hypothesis. See assets/flagcx_sync_test.py, REBUILD.md ROUND 3 for full output. Monkeypatch follow-up (assets/train_qwen_1_5b_npu_syncpatch.py) confirmed the predicted limitation: DDP's internal shape check bypasses Python dist.broadcast/all_gather (calls C++ torch._C._distributed_c10d._verify_params_across_processes directly), so real loss/throughput still requires the fix to land inside FlagCX's own c10d ProcessGroup, not a caller-side patch -- pending P1 go/no-go on adopting the private fork's fix."
   teardown_sigabrt_reproduces_in_v3_default_path: true   # see known_issues below, this REVERSES the v2 hypothesis (round 1 finding, carried forward)
   coexistence_check: "PENDING -- round 2 real-hardware Step 5, see REBUILD.md 'ROUND 2 共存检查'"
 
@@ -169,23 +170,32 @@ known_issues:
       `RuntimeError: DDP expects same model across all ranks, but Rank 1 has
       338 params, while rank 0 has inconsistent 0 params.`——根因就是
       DDP 构造内部用于跨 rank 核对参数形状的通信调用依赖 broadcast/all_gather
-      语义，而这两个原语在本 commit 的 flagcx backend 下已损坏。**未尝试打
-      私有补丁或绕过 DDP 的形状校验**（绕过治标不治本：broadcast 本身损坏意味着
-      各 rank 初始权重不会同步，继续训练只会静默产出不可信的数值结果，属于
-      任务书 STOP CONDITION 1"产生错误的数值结果"明确要求停下的场景）。复现
-      步骤、诊断脚本输出全文见 REBUILD.md 对应章节。**这是训练腿目前唯一的
-      阻塞项，待 FlagCX 维护者或项目负责人裁定（例如换一个 FlagCX commit 重测、
-      或联系 FlagCX 上游报告这个 broadcast/all_gather bug）。**
-      【ROUND 3 追加，2026-09-23，PENDING】项目负责人指出本机
-      `FlagRT/vllm-plugin-FL` 私有 fork 的 commit `5d545c9` 提出一个"缺
+      语义，而这两个原语在本 commit 的 flagcx backend 下（无 sync 时）已损坏。
+      复现步骤、诊断脚本输出全文见 REBUILD.md 对应章节。
+      【ROUND 3 结论，2026-09-23，已验证证实，不再是开放问题】项目负责人指出
+      本机 `FlagRT/vllm-plugin-FL` 私有 fork 的 commit `5d545c9` 提出"缺
       torch.npu.synchronize()"假说（flagcx backend 异步返回，读结果前必须
-      同步）——可能是本条目的诊断脚本当年漏了同步，而不是 FlagCX 真的坏了。
-      直接验证脚本（`flagcx_sync_test.py`，对比 sync/no-sync 两种模式）已
-      写好，因机器带卡容器并发持续超限（同一阻塞源，另见
-      operator-runtime/v3 lock.yaml 的 vllm-plugin-fl-real-hardware-
-      validation-pending）本轮**未能执行，结果未知，PENDING**。本条目结论
-      在有真机证据推翻它之前继续视为真实、未解决。见 REBUILD.md「ROUND 3」
-      一节完整设计与待办。
+      同步）。真机 2 卡直接测试（`assets/flagcx_sync_test.py`，
+      `torchrun --nproc_per_node=2`，镜像 `43f3e2f70b4c`）**证实假说成立**：
+      无 sync 时 broadcast/all_gather 复现原 STOP CONDITION（broadcast 目标
+      rank 收不到源数据，all_gather 恒返回全零）；在集合通信调用后、读取结果
+      前插入 `torch.npu.synchronize()` 后，两个原语在两个 rank 上全部转为
+      PASS。**结论：这是 2026-09-22 诊断脚本遗漏同步导致的误报，不是 FlagCX
+      commit `4e0e0cbcbf7...` 本体的数据损坏 bug。** 追加测试
+      （`assets/train_qwen_1_5b_npu_syncpatch.py`，猴子补丁
+      `dist.broadcast`/`all_gather`/`all_gather_object`后跑真实
+      `train_qwen_1_5b_npu.py`）确认了预先记录的风险：DDP 构造内部走 C++ 层
+      `torch._C._distributed_c10d._verify_params_across_processes(...)`，
+      不经过 Python 层猴子补丁，因此该追加测试仍报
+      `RuntimeError: DDP expects same model across all ranks, but Rank 0 has
+      338 params, while rank 0 has inconsistent 0 params`——**这不是对
+      sync 假说的反证**（直接测试已经是权威证据），而是确认真正的修复点必须
+      落在 FlagCX 自己的 c10d ProcessGroup 实现里（即私有 fork 实际打的位置：
+      `vllm_fl/distributed/communicator.py`），不能靠调用方猴子补丁绕过。
+      **因此本轮仍未产出真实 DDP loss/吞吐数据**——不是因为通信原语本身有
+      问题，而是因为要让 DDP 真的跑起来，需要把私有 fork 的 sync 修复吸收进
+      本血统实际使用的 FlagCX/通信层代码里，这是一个需要总组拍板的"是否吸收
+      私有 fix、打破纯公共基座"的决定（见 REBUILD.md「ROUND 3」一节）。
   - id: "teardown-sigabrt (carried forward from v2, PHASE 2 RE-VERIFIED: reproduces in v3 default path too)"
     description: >-
       v2 记录的已知问题：成功完成集合通信后进程退出阶段 "free(): invalid
@@ -238,3 +248,16 @@ changelog:
       确认 flagcx 与 vllm-plugin-fl 同时出现在依赖树里，无安装期冲突）。
       repro_status 维持 🟡 partial-repro（broadcast/all_gather STOP CONDITION
       仍未解决，且不在本轮任务范围内）。未改 dev/stack.lock.910c.v2.yaml。
+  - date: "2026-09-23"
+    what: >-
+      ROUND 3（继续，卡资源已释放）：`race_task1.sh` 捕获窗口后跑
+      `flagcx_sync_test.py`（镜像 `43f3e2f70b4c`，2 卡）：**"缺 sync"假说
+      证实**——无 sync 时 broadcast/all_gather 复现原 STOP CONDITION，加
+      `torch.npu.synchronize()` 后两个原语两个 rank 全部 PASS。追加跑
+      `train_qwen_1_5b_npu_syncpatch.py`（猴子补丁 + 真实训练脚本）：确认
+      预先记录的限制——DDP 内部走 C++ 层校验，不经过 Python 猴子补丁，DDP
+      构造依旧报参数不一致，仍未产出真实 loss/吞吐（这不代表假说不成立，
+      而是修复点必须落在 FlagCX/vllm_fl 的 c10d 实现里，不能靠调用方绕过）。
+      两个脚本迁入 `assets/`。repro_status 维持 🟡 partial-repro（假说已证实，
+      但真实 DDP 数值结果仍待 P1 拍板——是否吸收私有 fork 的 sync 修复——之后
+      才能产出）。未改 dev/stack.lock.910c.v2.yaml。
