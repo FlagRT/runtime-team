@@ -2,3 +2,10 @@
 .venv/
 __pycache__/
 *.pyc
+
+# opencode 状态（auth.json 含 API key，严禁入仓）
+.opencode/
+
+# 镜像内 /vllm-workspace 的源码副本（editable 安装真身，宿主持久化用；改动请同步到自己的 fork）
+/vllm/
+/vllm-ascend/

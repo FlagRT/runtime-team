@@ -22,6 +22,8 @@ services:
       - /dev/davinci_manager:/dev/davinci_manager
       - /dev/devmm_svm:/dev/devmm_svm
       - /dev/hisi_hdc:/dev/hisi_hdc
+      # OEM 定制节点：本机 npu-smi 查 board type 依赖（缺了报 -9005）
+      - /dev/lqdcmi_pcidev:/dev/lqdcmi_pcidev
     environment:
       # 单卡：容器内只有 davinci0，固定可见设备为 0
       - ASCEND_RT_VISIBLE_DEVICES=${ASCEND_RT_VISIBLE_DEVICES:-0}
@@ -32,5 +34,19 @@ services:
       - ${HOME}/.ssh/id_rsa:/root/.ssh/id_rsa:ro
       - ${HOME}/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
       - ${HOME}/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+      # npu-smi 及其依赖（镜像内没有；照抄本机 flagperf 容器的挂载集，均只读）
+      - /usr/local/bin/npu-smi:/usr/local/bin/npu-smi:ro
+      - /usr/local/dcmi:/usr/local/dcmi:ro
+      - /usr/local/Ascend/firmware:/usr/local/Ascend/firmware:ro
+      - /etc/ascend_install.info:/etc/ascend_install.info:ro
+      # 共享模型权重（只读）：含 Qwen3-Embedding-0.6B 等，路径容器内外保持一致
+      - /mnt/raid/hliu553/models:/mnt/raid/hliu553/models:ro
+      # opencode 状态持久化（auth/API key、会话；.opencode/ 已 ignore）。
+      # 注意：compose 相对路径按首个 -f 文件（../compose.base.yml，位于 dev/）解析
+      - ./batch_yxy/.opencode/config:/root/.config/opencode
+      - ./batch_yxy/.opencode/data:/root/.local/share/opencode
+      # vLLM/vllm-ascend editable 源码持久化（改动不入仓，见 .gitignore；正式补丁同步到自己的 fork）
+      - ./batch_yxy/vllm:/vllm-workspace/vllm
+      - ./batch_yxy/vllm-ascend:/vllm-workspace/vllm-ascend
     restart: "no"
     # 注意：容器内实验 venv 不在挂载盘上，容器重建会丢失；重建步骤见 scripts/setup_env.sh

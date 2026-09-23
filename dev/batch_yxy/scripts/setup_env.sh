@@ -9,7 +9,7 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-python_bin="${BATCH_PYTHON_BIN:-/usr/local/python3.12.13/bin/python3}"
+python_bin="${BATCH_PYTHON_BIN:-/usr/local/python3.11.15/bin/python3}"
 venv_dir="${BATCH_VENV_DIR:-${project_dir}/.venv}"
 
 # 1. 基础工具：ssh（git over ssh 需要）
@@ -21,6 +21,8 @@ fi
 # 2. git 身份（容器内 global 配置；key 通过 compose 挂载宿主 ~/.ssh/id_rsa）
 git config --global user.name  "${GIT_USER_NAME:-YoannFang}"
 git config --global user.email "${GIT_USER_EMAIL:-yuanc1511@gmail.com}"
+# 容器内 root 操作宿主属主的挂载仓库，需加白名单消除 dubious ownership 报错
+git config --global --add safe.directory /workspace
 
 # 3. venv（--system-site-packages 复用镜像自带 CANN 相关系统包）
 if [[ ! -x "${python_bin}" ]]; then
