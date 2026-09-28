@@ -109,6 +109,8 @@
 | `ev_matrix_20260922.log` / `ev_matrix2_20260922.log` | torch_fl `Event.query()` 语义缺口实测矩阵（审计台账第 13 条的证据） |
 | `L_serve_standard_910c_20260920.log` | 《组内服务启动标准》脚本真机验证日志（`SERVE_STANDARD_PASS ready=1 smoke=1`） |
 | ⭐ `accept_*_20260922.{log,json}`（15 份） | **三芯片职责验收全套证据**（09-22 傍晚）：离线自检 · 对称性 · 冒烟 · conformance 13/13 与推理 6/6 · 三个多流探针 · 训练腿（`accept_train_npu_20260922/`，含两 rank JSON）· 推理腿前向 · 服务化 · 错误闭环；另有 `accept_probe_results_910c_20260922/`（探针原始 JSON） |
+| ⭐ `accept_serve_ascend_*_20260928.{log}`（3 份） | **服务化按新脚本（v1.2，含 `SMOKE_TIMEOUT`）复跑**：`SERVE_STANDARD_PASS`（就绪 **35 s**、维度 1024、范数 1.000000、**冒烟耗时 0 s**），与 09-22 逐项一致 |
+| `accept_serve_ascend_*_20260928_NAMESLOT_BLOCKED.log`（3 份） | **同轮首跑失败证据（原样留档，未「改判据变绿」）**：宿主带卡容器名额被他人占满 ⇒ `acl.init`=500000、`get_device_count`=(0,0)、vLLM `Engine core initialization failed`（root cause 原文 `Failed to obtain the console log level … Different containers share the same device`） |
 
 > 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
 
@@ -120,13 +122,17 @@
 
 ## 5. 环境要点（910C 专属，不迁移）
 
-- **带卡容器并发上限 3**（`dev/stack.lock.910c.v2.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
-  表现为 `device_count=0`；出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
-- ⚠️ **另一条独立的约束：训练容器与推理容器不能同时持卡**（2026-09-22 验收实测）。
-  二者都挂**全部 16 个 davinci 设备**，同时 Up 时后起的一方报
-  `Failed to obtain the console log level` + `Different containers share the same device` ⇒
+- ⚠️ **带卡容器名额：同一时刻只应有 1 个带卡容器在用**（09-22 与 09-28 两次实测）。
+  名额用尽时 `acl.init()` 返 **500000**、`device_count=0`（`acl.init rc=0` 但 `get_device_count=(0,0)` 也属此列）；
+  出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
+  ⚠️ **口径更正（2026-09-28）**：`dev/stack.lock.910c.v2.yaml` 与早期文档记的是「DrvMng 名额 **≈3**」，
+  但实测**到不了 3** —— 09-22 我方训练容器 + 推理容器（=2）共存即失败；09-28 他人 2 个带卡容器
+  （`temp-cp-arbitrary` 挂 davinci8–15、`mem-profile-910c` 挂 davinci1）+ 我方 1 个（=3）时失败，
+  且**我方容器只挂 1 张无人占用的卡也一样失败**（起临时容器只挂 `davinci0` 实测）
+  ⇒ **与「挑哪张卡 / 卡是否重叠」无关**，不要把 3 当可用阈值。
+  真机症状：后起方报 `Failed to obtain the console log level` + `Different containers share the same device` ⇒
   `terminate called after throwing an instance of 'std::logic_error'` → `Engine core initialization failed`。
-  **这与"并发上限 3"是两件事**（本轮仅 2 个带卡容器、名额没超）⇒ **两条腿串行**：先 `docker stop` 一方释放设备。
+  ⇒ **需要设备时先 `docker ps` 清点带卡容器**：只留自己要用的那一个；他人容器**先协调、用完原样 `docker start` 恢复**。
   另：**训练容器自带 `vllm` 入口但缺包**（`command -v vllm` 有、`import vllm` 报 `ModuleNotFoundError`）
   ⇒ 服务化**必须用推理容器** `flagos-infer-910c`；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）

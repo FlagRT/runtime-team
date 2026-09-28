@@ -61,7 +61,7 @@ distributed_training/
   > ⚠️ **2026-09-22 口径已变更**：训练腿统一改走 **`npu`（torch_npu）**，原权宜例外取消，
   > 原型里的路线 B 后端也已删除。见 `dev/stack.lock.910c.yaml` 的 `per_leg.train`。
 - 容器内需补装 `transformers`
-- 带卡容器并发上限 3；与推理腿串行
+- ⚠️ **带卡容器名额：同一时刻只留 1 个带卡容器**（09-22 / 09-28 两次实测；名义「上限 3」**不可当阈值**，只挂 1 张无人卡也一样失败）—— 用前 `docker ps` 清点，见 `../../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §4.3；与推理腿**串行**
 - 2 卡启动示例：
   `torchrun --nproc_per_node=2 ../prototype/runtime/proto/proto_train_leg.py`
 

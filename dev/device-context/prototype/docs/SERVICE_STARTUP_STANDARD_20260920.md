@@ -246,8 +246,9 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 新需求/新发现 → 改 prototype/scripts/serve_standard.sh（唯一入口）
              → 本文档 §2 参数表与 §3 流程同步更新
              → 在三实例真机上各跑一次（STOP_AFTER=1 验证模式）
-               （⚠️ v1.2 首轮例外：MLU590 已跑通、P800 已复跑，**910C 因主机 SSH 超时不可达未复跑** ——
-                 改动仅「放宽超时上限 + 增一行日志」、不改变判定逻辑，已登记为待补）
+               （✅ v1.2 首轮三实例**均已复跑**：MLU590 首轮即通、P800 与 **910C** 为改脚本后的复跑；
+                 910C 首跑因宿主带卡容器名额被他人占满失败，释放后通过 —— 详见
+                 `PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §4.3）
              → 知会已接入的下游方向
 ```
 

@@ -443,7 +443,8 @@ AttributeError: 'FlagosBackend' object has no attribute 'device_state'. Did you 
 **已修且零回归**：`flagos` 补上 `device_state`（复用共享四态机，**必须标准 `import` 以共享单例**）
 并按 `_CAPABILITY_KEYS` 派生 `info()["supports"]`（与 `kunlun` / `cambricon` 同款）。
 新增自检判据 2 条（`device_state 可调用` / `键集合 == 能力全集`），并已做**非空转验证**。
-⚠️ **`flagos` 的修复尚未在 910C 真机验证**（当日 910C SSH 不可达），待网络恢复补跑。
+⚠️ ~~`flagos` 的修复尚未在 910C 真机验证（当日 910C SSH 不可达），待网络恢复补跑。~~
+**该待补项已自动关闭（2026-09-22/28）**：路线 B（torch_fl）整体退出 ⇒ `backends/flagos/` 已删除，该后端不再在册，无需也不宜再上机复验。上列修复内容作为**历史记录**保留。
 
 ---
 
