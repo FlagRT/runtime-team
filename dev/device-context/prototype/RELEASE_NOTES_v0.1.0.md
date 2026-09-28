@@ -2,7 +2,7 @@
 
 > **版本**：v0.1.0 ｜ **发布日期**：2026-09-09 ｜ **维护**：device-context（子方向 1）
 > **分发单元**：`dev/device-context/prototype/`（自包含，可整体拷出）
-> **Git tag**：`runtime-v0.1.0`
+> **版本载体**：GitHub Release `runtime-v0.1.0`（[发布页](https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.1.0)）；git tag 仅作提交指针
 > **接口状态**：**v0.1 原型期** —— 允许破坏性变更（会提前知会），稳定承诺在 v1.0（计划 2027.06）
 
 

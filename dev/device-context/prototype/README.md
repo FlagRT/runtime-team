@@ -39,7 +39,8 @@ prototype/
 > `docs/ROUTE_B_ARCHIVED_20260922.md` —— 删了什么 / 保留什么 / 三家为何都走厂商分支 / 残留全量清单 / 复跑清单。
 > **要不要发布？** 走 **《统一原型 · 三芯片职责验收与发布结论》**
 > `docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` —— 职责清单 × 验收项 × 三芯片实测结果 + 发布结论（含复跑命令）。
-> 组件版本 `runtime-v0.2.0`（第二实例接入版，见 `RELEASE_NOTES_v0.2.0.md`）。
+> 组件版本 **`runtime-v0.2.0`（三芯片统一原型版）** —— 见 `RELEASE_NOTES_v0.2.0.md`；
+> **版本以 [GitHub Release](https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0) 为准**（git tag 仅作提交指针）。
 
 ---
 
@@ -189,7 +190,7 @@ DEV=6 bash ../P800/probes/G_error_loop.sh         # 错误闭环两设置对照
 | `docs/IMAGE_SELECTION_GUIDE_20260920.md` | **镜像怎么选**：需求画像（5 条可执行判据）· 来源优先级 · 入档/入锁两道门槛 |
 | `docs/IMAGE_REQUIREMENT_SPEC_20260920.md` | **向上游要什么**：官方文档清单 · 我们与官方推荐的差异 · 硬性/期望/可协商三级需求 · 请总组裁定的三件事 |
 | `docs/DESIGN_DIST_COMM_20260908.md` | 2 卡分布式微调通信路线思考备忘（**尚未实跑**；与分布式方向的接口约定待回复） |
-| `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（第二实例接入版）：纪律 3 条 + 已知限制 9 条 |
+| `RELEASE_NOTES_v0.2.0.md` | **组件 v0.2.0 发布说明**（三芯片统一原型版）：纪律 3 条 + 已知限制 10 条 + 三实例验证矩阵 |
 | `RELEASE_NOTES_v0.1.0.md` | 组件 v0.1.0 发布说明（初版，单实例） |
 
 ### 5.4 跨实例参考（正文在芯片目录）
