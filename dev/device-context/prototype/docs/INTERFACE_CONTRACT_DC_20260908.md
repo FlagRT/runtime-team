@@ -63,7 +63,7 @@ fe = runtime.translate_error(exc, location="...")
 
 | 接口 | 语义 |
 |---|---|
-| `device_state(ordinal)` | 设备四态查询（AVAILABLE / DEGRADED / ISOLATED / UNKNOWN） |
+| `device_state(ordinal)` | 设备四态查询（AVAILABLE / DEGRADED / ISOLATED / **DESTROYED**） —— 四态成员名以 `conformance/device_state.py::DeviceState` 为实现基准（见变更记录 2026-09-28） |
 | `recover_device(ordinal, mode)` -> **dict** | 三级重建：`probe`（保底探活）/ `real`（CANN 官方 aclrtResetDevice 序列）/ `hybrid`（先 probe 后 real） |
 
 - **调用约定**：监控方向做检测与恢复编排（何时调、调哪级），恢复执行由本组件完成
@@ -125,6 +125,7 @@ fe = runtime.translate_error(exc, location="...")
 |---|---|---|---|
 | 2026-09-08 | v0.1.0 | 初版定稿（API 面 + 插件规范 + 两条纪律） | 运行时层全组 |
 | 2026-09-20 | v0.1.0 | 在 §2 末尾新增**服务启动指针**：启动流程统一遵循《组内服务启动标准》，并明确"启动参数口径变化不构成接口变更"（接口版本不变，仍为 v0.1 原型期） | 运行时层全组 |
+| 2026-09-28 | v0.1.0 | **三实例职责响应审计**（逐 sub-part 实测，见 `PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`）发现并修正三处**文档↔实现**不一致：① §1.5 四态命名 `UNKNOWN` 与实现（三家共用 `DeviceState`）不符 → **以实现为准更正为 `DESTROYED`**（**行为无变化**，仅措辞对齐）；② `recover_device` 返回契约**五键**（`{ordinal, mode, recovered, state, detail}`）此前仅 `ascend` 齐全 → 已补齐另两家；③ `sync_timeout` 明确为 `bounded_sync` 的**弃用别名**（三家键集合对齐，取值随规范键）。接口签名**未变** | 运行时层全组 |
 
 ---
 

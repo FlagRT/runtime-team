@@ -134,9 +134,17 @@ class RuntimeBackend(ABC):
         """
         return []
 
+    #: 历史 / 弃用能力键 → 规范键（**别名一律归一到规范键判定**，保证跨后端一致）。
+    #: 2026-09-28（职责响应审计暴露）：`sync_timeout` 是 ascend 的历史键名，与规范键
+    #: `bounded_sync` 同义。此前只有 ascend 的 `_CAPABILITY_KEYS` 含它 ⇒ 下游若用该键判定，
+    #: 在 kunlun / cambricon 上会得到 False —— **同一份代码跨芯片行为不一致**。
+    #: 现统一为别名：三家 `_CAPABILITY_KEYS` 均含该键，取值随规范键。
+    _CAPABILITY_ALIASES = {"sync_timeout": "bounded_sync"}
+
     def supports(self, capability: str) -> bool:
-        """能力查询，便于 conformance 做 stub-skip 报告。"""
-        return capability in getattr(self, "_capabilities", set())
+        """能力查询，便于 conformance 做 stub-skip 报告。**含历史键名别名归一。**"""
+        cap = getattr(self, "_CAPABILITY_ALIASES", {}).get(capability, capability)
+        return cap in getattr(self, "_capabilities", set())
 
     # ───────────────────────── 元信息 ─────────────────────────
 

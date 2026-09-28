@@ -17,6 +17,12 @@
 > 第三实例自此与前两实例**同口径、同判据、同证据规范** ⇒ 已并入
 > [`../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md`](../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md)。
 >
+> ⏳ **职责响应审计（39 项 sub-part）真机待补**：寒武纪两台主机（`10.1.1.21` / `10.1.1.22`）
+> 09-28 起 **SSH 超时（间歇性）**，本轮真机审计未跑。已完成的替代验证＝
+> **离线契约自检 41/0/0** + 本轮三处补做（`recover_device` 补 `state`、四态命名对齐、`sync_timeout` 别名）
+> **均已落到本实例代码**。**不以离线结果替代真机结论** —— 网络恢复后按
+> [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md) §七 补跑。
+>
 > 本轮验证报告：**[`docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md`](docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md)**
 > ｜接入方案与真机手册：**[`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)**
 

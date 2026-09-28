@@ -111,6 +111,7 @@
 | ⭐ `accept_*_20260922.{log,json}`（15 份） | **三芯片职责验收全套证据**（09-22 傍晚）：离线自检 · 对称性 · 冒烟 · conformance 13/13 与推理 6/6 · 三个多流探针 · 训练腿（`accept_train_npu_20260922/`，含两 rank JSON）· 推理腿前向 · 服务化 · 错误闭环；另有 `accept_probe_results_910c_20260922/`（探针原始 JSON） |
 | ⭐ `accept_serve_ascend_*_20260928.{log}`（3 份） | **服务化按新脚本（v1.2，含 `SMOKE_TIMEOUT`）复跑**：`SERVE_STANDARD_PASS`（就绪 **35 s**、维度 1024、范数 1.000000、**冒烟耗时 0 s**），与 09-22 逐项一致 |
 | `accept_serve_ascend_*_20260928_NAMESLOT_BLOCKED.log`（3 份） | **同轮首跑失败证据（原样留档，未「改判据变绿」）**：宿主带卡容器名额被他人占满 ⇒ `acl.init`=500000、`get_device_count`=(0,0)、vLLM `Engine core initialization failed`（root cause 原文 `Failed to obtain the console log level … Different containers share the same device`） |
+| ⭐ `duty_audit_ascend_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**；补做后回归复跑仍 39/0/0（无退化） |
 
 > 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
 

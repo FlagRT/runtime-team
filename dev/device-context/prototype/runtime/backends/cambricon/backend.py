@@ -156,7 +156,7 @@ class CambriconBackend(RuntimeBackend):
 
     #: 规范能力键全集（与 ascend / kunlun 同一套键名，便于跨实例同口径比对）
     _CAPABILITY_KEYS = (
-        "device", "memory", "stream", "event", "bounded_sync",
+        "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
     )
@@ -469,14 +469,25 @@ class CambriconBackend(RuntimeBackend):
         待容器内确认原语存在且可安全调用后，再补 `real` 并在 `_capabilities` 中声明。
         """
         alive = self.probe_device(ordinal)
+
+        # 2026-09-28（职责响应审计暴露）：接口约定 §1.5 的返回契约要求
+        # `{ordinal, mode, recovered, state, detail}` **五键齐全**。
+        # 本后端此前只返回四键（缺 `state`），与 ascend 不对称 ⇒
+        # 下游（监控方向）按契约读 `state` 在本家会拿不到 —— 属对称性缺陷，已补。
+        try:
+            state = str(self.device_state(ordinal))
+        except Exception:
+            state = "unknown"
         if mode not in ("probe", "hybrid"):
             return {
                 "ordinal": ordinal, "mode": mode, "recovered": alive,
+                "state": state,
                 "detail": ("寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；"
                            "已按探活结果判定。如需 real 需先在容器内确认可用原语"),
             }
         return {
             "ordinal": ordinal, "mode": mode, "recovered": alive,
+            "state": state,
             "detail": f"probe 级探活：设备当前{'可用' if alive else '不可用'}",
         }
 
@@ -493,8 +504,8 @@ class CambriconBackend(RuntimeBackend):
         return self._device_state.query_device_state(ordinal)  # type: ignore[union-attr]
 
     # ───────────── 能力声明 ─────────────
-    def supports(self, capability: str) -> bool:
-        return capability in self._capabilities
+    # 2026-09-28：`supports()` 覆写已删除 —— 三家实现完全同款（`cap in self._capabilities`）
+    # ⇒ 收敛到基类唯一实现，别名归一（`sync_timeout` → `bounded_sync`）只在基类维护一处。
 
     # ───────────── 已知上游/环境问题（给接入方直接可读）─────────────
     #: 纪律：只收**已实测**的问题；每条注明条件、归属层与证据位置。

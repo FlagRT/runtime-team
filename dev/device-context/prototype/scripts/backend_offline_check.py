@@ -542,6 +542,30 @@ def run(proto_dir, backend):
     rec = bk.recover_device(0, mode="probe")
     check("recover_device 返回 dict 且含 recovered（统一契约）",
           isinstance(rec, dict) and "recovered" in rec, str(rec)[:70])
+    # 2026-09-28 新增：**返回契约是五键**（接口约定 §1.5 补充：
+    #   `{ordinal, mode, recovered, state, detail}`）。
+    #   此前只查了 "recovered" 在不在 ⇒ kunlun / cambricon 漏返回 `state` 这件事，
+    #   在离线自检 / smoke / conformance **三套件里都没有判据抓到**（职责响应审计才暴露）。
+    _NEED_KEYS = {"ordinal", "mode", "recovered", "state", "detail"}
+    _miss = _NEED_KEYS - set(rec if isinstance(rec, dict) else {})
+    check("recover_device 返回**契约五键**齐全（ordinal/mode/recovered/state/detail）",
+          not _miss,
+          (f"缺 {sorted(_miss)}（上层按契约读会拿不到）" if _miss
+           else f"{len(_NEED_KEYS)} 键齐全"))
+    # 2026-09-28 新增：四态**成员名**必须与接口约定一致。
+    #   来由：接口约定曾写 `UNKNOWN`、而三家共用的实现是 `DESTROYED`，
+    #   两者并存 20 天**无任何判据发现**（同样是职责响应审计才暴露）
+    #   ⇒ 把"约定 ↔ 实现"的一致性也变成可执行判据，防再漂移。
+    _CONTRACT_STATES = {"AVAILABLE", "DEGRADED", "ISOLATED", "DESTROYED"}
+    try:
+        import runtime.conformance.device_state as _dsm
+        _got = set(_dsm.DeviceState.__members__)
+        check("DeviceState 四态成员 == 接口约定声明（AVAILABLE/DEGRADED/ISOLATED/DESTROYED）",
+              _got == _CONTRACT_STATES,
+              (f"实现={sorted(_got)} 约定={sorted(_CONTRACT_STATES)}" if _got != _CONTRACT_STATES
+               else f"{sorted(_got)}"))
+    except Exception as e:
+        check("DeviceState 可导入（四态基准）", False, f"{type(e).__name__}: {str(e)[:90]}")
     # 2026-09-22：原先这里直接调 `bk.device_state(0)`，若后端**声明了 device_state 却没实现**
     # 会抛 AttributeError 把整轮自检中斷（只留 traceback，连汇总都打不出来）——
     # 那正好把"声明与实现不符"这类**最重要**的缺陷变成一次崩溃。

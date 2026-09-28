@@ -238,6 +238,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 30 | **修第 19 条缺陷（工具类）**：`serve_standard.sh` 冒烟超时**硬编码 60 s** ⇒ 在 MLU590 上把耗时 **63.6 s** 的**成功**请求判成失败（假失败，`ready=1 smoke=0`）。修＝`SMOKE_TIMEOUT`（默认 180 s）+ 打印实际耗时；**失败证据原样留档、未「改判据变绿」** | ✅ **本轮** |
 | 31 | **三芯片验收矩阵收口**：三实例 12 项判定同口径全通过 ⇒ 报告 `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md`（09-22 版**保留不覆盖**） | ✅ **本轮** |
 | 32 | **910C 按新脚本复跑服务化（补齐）**：网络恢复后复跑 ⇒ `SERVE_STANDARD_PASS`（就绪 **35 s**、维度 1024、范数 1.000000、**冒烟耗时 0 s**），与 09-22 逐项一致 ⇒ **三实例均已按新脚本复跑**。⚠️ 首轮因**宿主带卡容器名额被他人占满**失败（`acl.init`=500000、`get_device_count`=(0,0)，**只挂 1 张无人卡也一样**），释放后即通过 | ✅ **本轮** |
+| 33 | **三实例职责响应审计（新增）**：按《接口约定》§1.1–§1.5 + §2 + §3 拆成 **39 个可执行 sub-part**，逐项在真机调用并判定「响应且合契约」⇒ **910C 39/0/0 · P800 36/0/3（SKIP 均为如实不具备）**，MLU590 真机待网络。审计**发现并补做 3 处缺口**（`recover_device` 返回缺 `state`〔kunlun/cambricon〕、四态命名文档与实现不一致、`sync_timeout` 键三家不齐），并给离线自检**新增 2 条防漂移判据**（已做非空转验证）⇒ 报告 `prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` | ✅ **本轮** |
 
 ---
 
@@ -260,7 +261,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 
 | 文档 | 回答什么 | 读者 | 变更流程 |
 |---|---|---|---|
-| `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md`（166 行） | **我承诺什么接口语义**：统一 API 面（`use` / 设备 / 流 / 事件 / 同步含超时 / 错误翻译 / 状态与恢复）、**Backend 插件接入规范（13 个抽象方法）**、两条纪律 | 运行时层各子方向 + 上层算子/编译层对接人 | 更新文档 → **知会全部下游** → conformance 回归 |
+| `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md`（167 行） | **我承诺什么接口语义**：统一 API 面（`use` / 设备 / 流 / 事件 / 同步含超时 / 错误翻译 / 状态与恢复）、**Backend 插件接入规范（13 个抽象方法）**、两条纪律 | 运行时层各子方向 + 上层算子/编译层对接人 | 更新文档 → **知会全部下游** → conformance 回归 |
 | `prototype/docs/event_semantics_contract.md`（57 行） | **事件语义契约 E1–E4**（昇腾实测驱动的 v2 修订）：事件/流的同步与依赖语义边界 | 同上 | 同上 |
 | `prototype/docs/SERVICE_STARTUP_STANDARD_20260920.md`（256 行） | **你们必须怎么起服务**：唯一入口 `serve_standard.sh`、参数表、**六条硬纪律**、三个已知行为、与自建脚本的关系 | 所有需要在国产芯片上起服务的方向与验收方 | 改脚本 + 改文档 → **两实例各跑一次** → 知会下游 |
 | `prototype/docs/INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`（532 行） | **接口约定修订建议 9 条**（v1.1；P800 是现行约定的首次非昇腾检验）：`device_type`/`vendor` 分离 · `device_state` 入契约 · `.native` 逃生舱约束 + `record_stream` 能力位 · **错误对象跨模块类归一** · 有界同步降级语义 · `known_issues()` 入契约（**v1.1 另增第 7–9 条**）。每条含 ①现状 ②实测依据（带源码行号）③建议条文 ④兼容性 | 接口约定评审人、全部下游 | **尚未生效**——待裁定后并入接口约定，届时按 6.1 第 1 行走流程 |
@@ -270,7 +271,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | 文档 | 回答什么 |
 |---|---|
 | `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`（449 行） | **新芯片怎么接进来**：第 0 步环境风险前置 7 项 → 第 1 步厂商栈判别 4 条路径 → 第 2 步镜像就绪 5 条判据 → 第 3 步 13 个抽象方法清单 → 第 4 步 conformance（§4.4 含**离线契约自检**，无设备即可跑）→ 第 5 步两条腿 → 第 6 步错误闭环 → **可勾选验收清单 13 项** + 跨芯片坑 13 条 + 厂商缺陷上报模板 |
-| `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（149 行） | **怎么复核**：**10 条**「声明 → 命令 → 判据」最小复现表 · **三实例**证据索引（含"当前结论 = 哪一份"）· 缺口 G1–G8 · **证据命名规范** |
+| `prototype/docs/VERIFICATION_MANIFEST_20260920.md`（150 行） | **怎么复核**：**10 条**「声明 → 命令 → 判据」最小复现表 · **三实例**证据索引（含"当前结论 = 哪一份"）· 缺口 G1–G8 · **证据命名规范** |
 | `prototype/scripts/serve_standard.sh`（359 行） | **服务启动唯一入口**：`DC_BACKEND` 切芯片、`SERVE_FORM=generate|embed` 切形态（留空＝各后端现状）、`SMOKE_TIMEOUT` 控冒烟超时（默认 180 s）；流程 = 服务入口就绪 → 设环境 → 清残留 → 用卡快照 → 启动 → 就绪轮询 → 功能冒烟 → 停机复查；verdict = `ready=1 且 smoke=1` |
 | `prototype/scripts/preflight_env.sh`（201 行） | **环境普查一键脚本**（= 接入手册 §1「环境风险前置 7 项」的可执行版）：只读、不装东西；含 docker 数据目录真实挂载点、torch 侧降级查询、网络源可达性、拓扑；缺项如实标注「未取得」，输出可直接作为环境报告 |
 | `prototype/docs/RUNTIME_PROTOTYPE_DESIGN_20260904.md`（314 行） | **原型怎么设计的**：五域划分、13 个抽象方法的来由、目录结构、验证方式（v0.1） |
@@ -290,7 +291,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`（**上一版**） | 三芯片职责验收（09-22）：当时 MLU590 主机不可达 ⇒ 未纳入；**记录保留不覆盖** |
 | `prototype/docs/ROUTE_B_ARCHIVED_20260922.md`（129 行） | **路线 B（torch_fl）退出归档**：删了什么 / 保留什么 / 残留全量清单 / 复跑清单 |
 | `prototype/docs/DESIGN_DIST_COMM_20260908.md`（69 行） | 2 卡分布式微调的通信路线思考备忘（**状态：思考结论，尚未实跑**）；与分布式方向的接口约定**待回复** |
-| `prototype/README.md`（217 行） | 原型分支看板：统一 API 面、目录结构、**三实例**验证状态、文档索引 |
+| `prototype/README.md`（218 行） | 原型分支看板：统一 API 面、目录结构、**三实例**验证状态、文档索引 |
 | `prototype/RELEASE_NOTES_v0.2.0.md`（156 行） | **组件 v0.2.0 发布说明**（第二实例接入版）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
 | `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |

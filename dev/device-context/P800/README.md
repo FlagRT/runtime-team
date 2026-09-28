@@ -13,6 +13,7 @@
 | 项 | 状态 | 关键数字 |
 |---|---|---|
 | ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿** | 离线自检 **39/0**（1 跳过）· 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8**（S12 如实不支持）+ 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（loss 15.4488→11.1481、**3533.5 tok/s**、`dist=cpu:gloo,cuda:flagcx`）· 推理腿前向 **`INFER_LEG_PASS 13/13 + 1 跳过`**（53.28 句/s、p50 56.12 ms）· 服务化 **`SERVE_STANDARD_PASS`**（25 s 就绪、维度 1024、范数 1.000000）· 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0**<br>⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`；证据 `probes/accept_*_20260922.*` |
+| ⭐ **职责响应审计（09-28，逐 sub-part）** | ✅ **`DUTY_RESPONSE_PASS` 36 OK / 0 FAIL / 3 SKIP** | 按接口约定 39 项逐项真机调用；**3 项 SKIP 均为「如实不具备」**（`elapsed_time` 需 `enable_timing=True` 事件；`D5`/`F1` 因本机**无数字错误码**未声明 `error_map`，分级走 `message_hint`，已由 conformance F1 覆盖）。首轮 **34/2/3** —— 暴露 `recover_device` 返回**缺 `state`**（契约五键不全），已补做复跑转 PASS<br>⇒ 报告 `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`；证据 `probes/duty_audit_kunlun_20260928.json` |
 | 阶段 0 · 环境与基线 | ✅ 完成 | 8× P800（96 GB/卡，全空闲）、1.5 TiB 内存、384 线程 |
 | 阶段 1 · 单卡接入 | ✅ 完成 | `kunlun` backend 落地；conformance **13/13 + 6/6**；smoke **42/0** |
 | 阶段 2 · 训练腿（多卡） | ✅ 完成（**标注条件**） | 两 rank **TRAIN_LEG_PASS 6/6**；loss **15.4488 → 11.1481**；**3482 tok/s**（09-14 首测）⇒ **09-22 验收复跑 3533.5 tok/s**（见上表首行） |
