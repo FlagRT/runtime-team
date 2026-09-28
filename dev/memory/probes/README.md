@@ -23,6 +23,9 @@
 | `mem-ab-matrix_910c.py` | 跨 gpu-mem-util / alloc-conf / enforce-eager / max-num-seqs 轴批量跑 profile → 汇总 CSV+MD | 容器内 |
 | `kv-offload-host_910c.py` | KV→Host 卸载移植尝试（阻塞留档） | 910C（vllm 0.20.2） |
 | `comm-hccl-direct_910c.py` | 纯 ctypes HCCL 对照 | 与 `../common/comm-smoke_flagcx.py` 配套 |
+| `gen-load_910c.py` | 生成式请求驱动：tokenizer 构造精确长度 prompt + /v1/completions 压测（并发/取消 `--cancel-after`）+ 1s /metrics 轮询 `kv_cache_usage_perc` → `<tag>_kv.csv` + `<tag>_load.json` | 宿主机或容器内（仅 HTTP，无 torch 依赖） |
+| `gen-matrix_910c.sh` | 生成式画像编排：起标准服务（serve_standard.sh 封装）+ 依次跑 smoke/A/CE/BD/F 组 | 宿主机（含容器内执行与宿主 hbm-sampler 调度） |
+| `gen-parse_910c.py` | 解析 vLLM 结算行（weights/KV 池/最大并发/峰值激活）→ JSON | 宿主机 |
 
 ## p800/（当前方向，FlagOS 官方栈）
 
