@@ -17,11 +17,13 @@
 > 第三实例自此与前两实例**同口径、同判据、同证据规范** ⇒ 已并入
 > [`../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md`](../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md)。
 >
-> ⏳ **职责响应审计（39 项 sub-part）真机待补**：寒武纪两台主机（`10.1.1.21` / `10.1.1.22`）
-> 09-28 起 **SSH 超时（间歇性）**，本轮真机审计未跑。已完成的替代验证＝
-> **离线契约自检 41/0/0** + 本轮三处补做（`recover_device` 补 `state`、四态命名对齐、`sync_timeout` 别名）
-> **均已落到本实例代码**。**不以离线结果替代真机结论** —— 网络恢复后按
-> [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md) §七 补跑。
+> ✅ **职责响应审计（39 项 sub-part）真机完成**（09-28 网络恢复后补跑，用卡 0）：
+> **`DUTY_RESPONSE_PASS` 36 OK / 0 FAIL / 3 SKIP** —— 3 项 SKIP 均为「**如实不具备**」：
+> `elapsed_time`（`CNRT error: failed to call the driver-api function`，契约外可选能力）·
+> `D5` / `F1`（本机**无数字错误码** ⇒ 未声明 `error_map`，分级走 `message_hint`，已由 conformance F1 覆盖）。
+> 离线契约自检 **41/0/0** · 跨后端对称性 **5/0**；三处补做（`recover_device` 补 `state`、四态命名对齐、
+> `sync_timeout` 别名）均**真机验证生效**。⇒
+> [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md)
 >
 > 本轮验证报告：**[`docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md`](docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md)**
 > ｜接入方案与真机手册：**[`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)**
@@ -183,6 +185,7 @@ sudo usermod -aG docker hliu553
 | `docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表 · 厂商栈判别（预期路径 C）· 已完成的代码层动作与能力声明理由 · 本地验证（离线自检 35/0）· **A1–A10 真机执行序列（含确切命令）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
 | `docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md` | ⭐ **推理腿（前向 + 服务化）验收报告**：12 项判定全通过 · 两条要点（**运行时镜像不含 vLLM ⇒ 用官方应用镜像**；**冒烟超时硬编码 60 s ⇒ 假失败**，含 PRE_FIX 原样留档）· 三实例对照与差异解释 · 边界与未覆盖 · 复现命令 |
 | `probes/accept_*_20260928.*` | **本轮 12 项判定的原始证据**（命名与两实例同规范）：离线自检 · 冒烟 · conformance 13+6 · 多流三项 · 训练腿 · 推理腿前向 · 服务化（含 `PRE_FIX` 失败留档与 vLLM 服务端日志）· 错误闭环 |
+| ⭐ `probes/duty_audit_cambricon_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（3 项 SKIP 均为如实不具备）；离线自检 41/0/0 · 对称性 5/0 |
 | `probes/preflight_env_mlu1_20260922.log` | **Mlu-1 环境普查原始日志**（`preflight_env.sh` 首跑产出） |
 | `probes/preflight_env_mlu2_20260922.log` | **Mlu-2 环境普查原始日志** |
 | `probes/.gitignore` | `!*.log` 例外（否则根 `.gitignore` 的 `*.log` 会让证据静默不入库） |
