@@ -115,6 +115,7 @@ P800/
 | `docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` | **结论核对与责任层判定**：准确性 / 可复现性 / 该提算子层还是编译层（三问全答） |
 | `docs/PROGRESS_REPORT_20260914.md` | **全量进度报告**（910C 回顾 + P800 主体 + 待办总清单按「谁来做」四分类 + 证据索引 + 风险与下一步） |
 | `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` | **阶段 3/4 验证报告**：推理腿 13/13 与 910C 同构对照、错误闭环两设置对照（逐字节一致）、**§3 第 4 个框架缺陷的根因与修复**、待办 |
+| ⭐ `docs/DUTY_RESPONSE_AUDIT_P800_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（SKIP 均如实不具备）；**首轮即暴露 `recover_device` 缺 `state`** ⇒ 补做后 E3 转 PASS |
 | `docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：**§0 镜像速查**（两镜像 tag/digest/大小/来源一把看全 + 官方镜像获取与补齐三步 + 容器启动参数对照）· 全部结论复现对照（逐用例/逐 `detail`）· **KL3 挂死一致重现** · **`-base` 开箱缺 `triton` 的调用链与补齐命令** · 对镜像入锁的建议 |
 | `docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 Stream 验收基线 16 项逐项比对报告**：16 项 P800 结论 + **与 910C 逐项对照**（仅 S-12 一项差异）+ **S-7 图捕获首测 5/5** 与**一处自我纠错（首测失败实为用法错误）** + 证据形态差异说明 + 复现命令 |
 | `../prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **跨实例参考**（910C + P800 并列）：镜像 / 模型 / 训推框架 / 参数逐项对照 + **依据链** + 复用坑清单；后续接入者与框架方向首读 |
