@@ -82,6 +82,8 @@
 #   READY_BUDGET    就绪等待上限秒数（180）
 #   HOST            绑定地址（127.0.0.1；跨容器/跨机访问需设 0.0.0.0）
 #   ERROR_TRANSLATION / MONITOR  集成层开关（默认 0；**当前仅 910C 可用**）
+#   SMOKE_TIMEOUT   冒烟**单次请求**的超时秒数（默认 180）。⚠️ 首次请求含编译开销，
+#                   2026-09-28 MLU590 实测首次 embedding 请求 **63.6 s** ⇒ 旧硬编码 60 s 会**误判失败**
 #
 # 【verdict 口径】STOP_AFTER=1 时输出 `SERVE_STANDARD_PASS` 需 **ready=1 且 smoke=1**；
 #   任一不满足即 `SERVE_STANDARD_FAIL (ready=? smoke=?)`。
@@ -98,6 +100,7 @@ DEV=${DEV:-}
 DC_OUT_DIR=${DC_OUT_DIR:-/tmp/dc_serve}
 STOP_AFTER=${STOP_AFTER:-0}
 READY_BUDGET=${READY_BUDGET:-180}
+SMOKE_TIMEOUT=${SMOKE_TIMEOUT:-180}   # 单次冒烟请求超时；见头部说明（首请求编译开销）
 ERROR_TRANSLATION=${ERROR_TRANSLATION:-0}
 MONITOR=${MONITOR:-0}
 HOST=${HOST:-127.0.0.1}
@@ -300,14 +303,17 @@ SMOKE=0
 if [ "$READY" = "1" ]; then
   if [ "$SKIP_EXTRA" = "0" ]; then
     echo "--- 冒烟（embedding 形态）：/v1/embeddings ---"
-    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/embeddings" \
+    SMOKE_T0=$(date +%s)
+    OUT=$(curl -s -m "$SMOKE_TIMEOUT" -X POST "http://$HOST:$PORT/v1/embeddings" \
       -H 'Content-Type: application/json' \
       -d "{\"model\":\"$SERVED_NAME\",\"input\":[\"服务启动标准冒烟\"]}" 2>/dev/null) \
       && echo "$OUT" | python3 -c "import sys,json,math; d=json.load(sys.stdin); v=d['data'][0]['embedding']; print(f'  维度={len(v)} 范数={math.sqrt(sum(x*x for x in v)):.6f}')" 2>/dev/null \
       && SMOKE=1
+    echo "  （冒烟耗时 $(( $(date +%s) - SMOKE_T0 ))s；超时上限 SMOKE_TIMEOUT=${SMOKE_TIMEOUT}s）"
   else
     echo "--- 冒烟（生成形态）：/v1/completions ---"
-    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/completions" \
+    SMOKE_T0=$(date +%s)
+    OUT=$(curl -s -m "$SMOKE_TIMEOUT" -X POST "http://$HOST:$PORT/v1/completions" \
       -H 'Content-Type: application/json' \
       -d "{\"model\":\"$SERVED_NAME\",\"prompt\":\"1+1=\",\"max_tokens\":8,\"temperature\":0}" 2>/dev/null) \
       && echo "$OUT" | python3 -c "
@@ -320,6 +326,7 @@ if not t or not n:
 print(f'  生成 {n} tokens，首段={t[:40]!r}')
 " 2>/dev/null \
       && SMOKE=1
+    echo "  （冒烟耗时 $(( $(date +%s) - SMOKE_T0 ))s；超时上限 SMOKE_TIMEOUT=${SMOKE_TIMEOUT}s）"
   fi
   [ "$SMOKE" = "1" ] || { echo "  ❌ 冒烟失败（服务已就绪但功能不通，见服务日志与上方响应）"; echo "  raw: $(echo "$OUT" | head -c 300)"; }
 else

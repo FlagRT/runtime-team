@@ -1,6 +1,7 @@
-# 两实例验证复核清单（Verification Manifest）
+# 验证复核清单（Verification Manifest）
 
-> 日期：2026-09-20 ｜ 维护：Kistich（hliu553）｜ 性质：**外部复核入口**（第三家接入者 / 验收方 / 后续维护者按此逐行复现）
+> 日期：2026-09-20（**2026-09-28 起覆盖三实例**）｜ 维护：Kistich（hliu553）｜ 性质：**外部复核入口**（新接入者 / 验收方 / 后续维护者按此逐行复现）
+> 文件名保留 `VERIFICATION_MANIFEST_20260920.md`（不改名避免大量引用失联）；原称《两实例验证复核清单》。
 > 用途：把"我们声明过什么"与"证据在哪、怎么复跑、当前是否齐备"一次说清。
 > **本文件只回答可复核性，不重复结论**；结论性数字见各实例 README 与验证报告。
 
@@ -21,13 +22,13 @@
 | 7 | 训练腿 · 2 卡 | `DC_BACKEND=$B torchrun --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py` | `TRAIN_LEG_PASS 6/6`，并记录 loss 与 tok/s |
 | 8 | 错误注入 → 恢复闭环 | `python3 runtime/proto/proto_error_recovery_loop.py --backend $B` | `ERROR_RECOVERY_LOOP_PASS`，记录 闭环/跳过/失败 |
 | 9 | 契约不变式（**待补判据**） | `python3 runtime/conformance/runner.py --backend $B --cases contract_invariants` | I1–I4 全绿 —— ⬜ **尚未实现，见 §3 G8** |
-| 10 | ⭐ **逐芯片职责验收（发布判定）** | 见 `PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` §6（10 条命令；或直接跑上表 1–8） | 10 项判定全绿（含多流 3 探针与两条腿）。**09-22 傍晚实测：910C 10/10 · P800 10/10 ⇒ 可发布**；MLU590 主机不可达，未参与 |
+| 10 | ⭐ **逐芯片职责验收（发布判定）** | 见 `PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §六（10 条命令；或直接跑上表 1–8） | 12 项判定全绿（含多流 3 探针与两条腿）。**09-28 实测：910C ✅ · P800 ✅ · MLU590 ✅ ⇒ 可发布**（09-22 版报告保留不覆盖：当时 MLU590 主机不可达、推理腿与服务化未做） |
 
 > 统一服务启动见 `docs/SERVICE_STARTUP_STANDARD_20260920.md`；接入流程见 `docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`。
 
 ---
 
-## 2. 两实例证据索引（当前结论 = 哪一份）
+## 2. 三实例证据索引（当前结论 = 哪一份）
 
 ### 2.1 第一实例（昇腾，已完成）
 
@@ -61,6 +62,20 @@
 | 执行语义基线 | `P800/probes/K_stream_semantics_full_result_p800_20260920.json` | 含 `backend` / 设备 API | ✅ |
 | 镜像等价性对照 | `P800/probes/I_base_*`（共 17 份）+ `I_base_kl3_ab_*` | 含镜像标识 | ✅ |
 | 服务启动标准 | `P800/probes/L_serve_standard_p800_v2_20260920.log` | 含 backend / 参数 / 时间 | ✅ |
+
+### 2.3 第三实例（寒武纪 MLU590，2026-09-28 补齐）
+
+| 声明 | 当前结论证据（`MLU590/probes/`） | 自证信息 | 状态 |
+|---|---|---|---|
+| 一致性判据 13 例 | `accept_conf13_cambricon_20260928.{json,log}` | 含 `backend` / `chip` / `env` / `verdict` | ✅ 13/13 |
+| 一致性判据 推理 6 例 | `accept_confinfer6_cambricon_20260928.{json,log}` | 同上 | ✅ 6/6 |
+| 组件自检（smoke） | `accept_smoke_cambricon_20260928.log` | 含后端名 / 设备数 | ✅ 46/0 |
+| 离线契约自检（无设备可跑） | `accept_offline_cambricon_20260928.log` · `accept_offline_all_20260928.log` | 含逐条判据与结论行 | ✅ 39/0/0 · 对称性 5/0 |
+| 多流三项（语义 / 图捕获 / 配额） | `accept_stream_semantics_*` · `accept_graph_capture_*` · `accept_stream_quota_*`（均 `_cambricon_20260928.log`） | 含逐项判据与期望值 | ✅ 8/8 · 4/4（+1 契约外观察项容忍）· 3/3 |
+| 训练腿 · 2 卡 | `accept_train_cambricon_20260928/{run.log,train_leg_result_rank0.json,train_leg_result_rank1.json}` | 含 `backend` / `env` | ✅ 6/6 |
+| 推理腿 · 前向 | `accept_inferleg_cambricon_20260928.log` · `accept_inferleg_result_cambricon_20260928.json` | 含 `backend` / `env` / `checks` / `perf` / `skipped` | ✅ 13/13（+1 如实跳过 `vendor_code_map`） |
+| 推理腿 · 服务化 | `accept_serve_cambricon_stdout_20260928.log` · `accept_serve_cambricon_vllm_20260928.log`（**修复前那次**：`accept_serve_cambricon_PRE_FIX_*`，留档不改判） | 含就绪时间 / 冒烟维度 / verdict | ✅ `SERVE_STANDARD_PASS` |
+| 错误闭环 | `accept_errorloop_cambricon_20260928.{json,log}` | 含 `expectation` / `expect_matched` | ✅ 5/0/0 |
 
 ---
 

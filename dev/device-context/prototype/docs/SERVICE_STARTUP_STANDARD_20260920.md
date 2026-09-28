@@ -1,11 +1,17 @@
 # 组内服务启动标准（下游服务复用指南）
 
-> 版本：v1.1 ｜ 日期：2026-09-20 ｜ 制定：device-context 子方向（Kistich）
+> 版本：**v1.2** ｜ 日期：**2026-09-28**（v1.1 为 2026-09-20）｜ 制定：device-context 子方向（Kistich）
 > **读者**：运行时层各子方向（显存 / 分布式 / 监控 / 精度 / 算子 / 调度 / 框架适配）、
 > 以及任何**需要在国产芯片上把推理服务跑起来**的方向与验收方。
 > **效力**：本文档是**启动流程的组内标准**——各方向**统一走这一套脚本与参数**，
 > 不要各自维护一份。与《运行时层接口约定》的分工见 §1。
 > **配套资产**：`prototype/scripts/serve_standard.sh`（唯一入口）
+>
+> **v1.2 变更（2026-09-28，寒武纪 MLU590 真机补跑时发现并修的一处缺口）**
+> 1. **冒烟超时不再硬编码**：原为 `curl -m 60`；而 MLU590 **首次 embedding 请求实测 42–64 s**
+>    （含首次请求编译）⇒ 曾把耗时 **63.6 s** 的**成功**请求判成失败（`ready=1 smoke=0` 假失败）。
+>    现改为 `SMOKE_TIMEOUT`（默认 **180 s**）+ **打印本次冒烟实际耗时**；
+>    失败那轮证据**原样留档、未改判据变绿**。该上限对三家生效（官方 `-base` 镜像上首请求更慢时同样受益）。
 >
 > **v1.1 变更（2026-09-20 晚，910C 真机补跑时发现并修的三处缺口）**
 > 1. **服务入口就绪**：`vllm` 不在 `PATH` 时自动激活厂商 python 环境
@@ -15,8 +21,10 @@
 > 3. **用卡快照容器内降级**：`npu-smi` / `xpu-smi` 是宿主工具，容器内没有 →
 >    退回 torch 侧查询（`torch.npu` / `torch.cuda` 的 `mem_get_info`），日志不再为空
 >
-> **两实例真机验证（同一脚本版本）**：910C `SERVE_STANDARD_PASS`（就绪 30 s、生成冒烟 8 tokens）；
-> P800 `SERVE_STANDARD_PASS`（就绪 25 s、维度=1024 范数=1.000000）——见 §5。
+> **三实例真机验证（同一脚本版本）**：910C `SERVE_STANDARD_PASS`（就绪 30 s、生成冒烟 8 tokens）；
+> P800 `SERVE_STANDARD_PASS`（就绪 25 s、维度=1024 范数=1.000000）；
+> **MLU590 `SERVE_STANDARD_PASS`**（就绪 **150 s**、维度=1024 范数=1.000001、**冒烟耗时 42 s**；
+> 需 **vLLM 应用镜像**容器）——见 §5。
 
 ---
 
@@ -68,14 +76,15 @@ bash prototype/scripts/serve_standard.sh
 | `PORT` | `8100` | 服务端口 |
 | `DEV` | 全部可见卡 | 选卡。**ascend→`ASCEND_RT_VISIBLE_DEVICES`、kunlun→`CUDA_VISIBLE_DEVICES`、cambricon→`MLU_VISIBLE_DEVICES`** ——由脚本按后端选择，不要自己 export |
 | `TP` | `1` | tensor parallel |
-| `MAX_MODEL_LEN` | `4096` | 与两实例保持一致，便于"超长输入"用同一判据比对 |
+| `MAX_MODEL_LEN` | `4096` | 与三实例保持一致，便于"超长输入"用同一判据比对 |
 | `GPU_MEM_UTIL` | 空 | 空则不传。共享机上建议给（P800 实测用 `0.25`） |
 | `EAGER` | `1` | 加 `--enforce-eager`（关图捕获）。**P800 实测去掉它反而更慢**（p50 96.4 → 132.3 ms），故默认保留 |
 | `DC_OUT_DIR` | `/tmp/dc_serve` | 日志与 pid 目录 |
 | `DC_CONDA_ENV` | `python310_torch29_cuda` | 仅当 `vllm` 不在 `PATH` 时使用：脚本按此名激活 conda 环境（P800 用；910C 镜像自带 vllm，不触发） |
 | `HOST` | `127.0.0.1` | 绑定地址。**默认不对外暴露**；跨容器 / 跨机访问需显式 `HOST=0.0.0.0` |
 | `STOP_AFTER` | `0` | `1` = 就绪并冒烟后立即停机（验证/CI 用）；`0` = 保持运行（供下游调用） |
-| `READY_BUDGET` | `180` | 就绪等待上限（秒） |
+| `READY_BUDGET` | `180` | 就绪等待上限（秒）。⚠️ 共享机上冷启动可能更久（MLU590 实测曾达 **365 s**，验证时给足） |
+| `SMOKE_TIMEOUT` | `180` | **冒烟单次请求**超时（秒）。⚠️ **首次请求含编译开销**：MLU590 实测 **42–64 s**、P800 近 0 s ⇒ 不要往小调（v1.2 起由硬编码 60 s 改为本参数） |
 | `ERROR_TRANSLATION` / `MONITOR` | `0` | 集成层开关，**当前仅 910C 可用**，见 §6 |
 | `EXTRA_ARGS` | 空 | 追加的 vllm 参数（**仅在标准参数不满足需求时使用，见 §8**） |
 
@@ -93,7 +102,7 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 | 参数 | 依据 |
 |---|---|
 | `--runner pooling --convert embed` | **该版本 vLLM 没有 `--task` 参数**。按 `--task embed` 启动会报 `vllm: error: unrecognized arguments: --task embed`；查参数表确认可用值为 `--runner {auto,draft,generate,pooling}` 与 `--convert {auto,classify,embed,none,reward}`。两实例**统一这个口径**才能横向比对 |
-| `--max-model-len 4096` | 与两实例保持一致，使"超长输入防御"可用同一判据：6001 tokens > 4096 → HTTP 400 → 统一分级 **L2_PARAM / raise** 且业务继续 |
+| `--max-model-len 4096` | 与三实例保持一致，使"超长输入防御"可用同一判据：6001 tokens > 4096 → HTTP 400 → 统一分级 **L2_PARAM / raise** 且业务继续 |
 | `--enforce-eager` | P800 实测单变量对照：**去掉它更慢**（22.83 句/s、p50 132.3 ms vs 30.70 句/s、p50 96.4 ms） |
 | `--tensor-parallel-size` | 默认 1；910C 侧曾用 `TP=2/4` 做过数值等价对照（**须用 greedy，temperature=1.0 下必然发散**） |
 
@@ -143,13 +152,20 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 
 ## 5. 验证记录
 
-**同一脚本版本（`serve_standard.sh` v1.1）在两实例真机各跑一遍**：
+**同一脚本版本（`serve_standard.sh`）在三实例真机各跑一遍**：
 
 | 实例 | 启动命令 | 结果 |
 |---|---|---|
 | **910C** | `DC_BACKEND=ascend DEV=0 STOP_AFTER=1` | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 **free=60.91GiB / total=61.27GiB，停机前后一致**（确认释放）；旧容器内**无残留 vllm 进程**、宿主 `ss` 显示 **8100 端口已释放**。证据：`910C/probes/L_serve_standard_910c_20260920.log` |
 | **P800** | `DC_BACKEND=kunlun DEV=6 PORT=8200 GPU_MEM_UTIL=0.25 STOP_AFTER=1` | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **25 s**；embedding 冒烟 **维度=1024 范数=1.000000**；停机后**无残留进程**且卡 6 释放至 **0 MiB**。证据：`P800/probes/L_serve_standard_p800_v2_20260920.log` |
-| **MLU590**（寒武纪） | `DC_BACKEND=cambricon DEV=0 STOP_AFTER=1` | ⏳ **尚未真机验证**（2026-09-22 新增分支，机器当时缺 `docker` 组权限）。已知差异只有选卡变量（`MLU_VISIBLE_DEVICES`）；**未设任何厂商专用算子/插件环境变量** —— 前两家的变量互不通用，手册 §9 坑 5 明确「同一插件跨芯片可用性可以完全相反，须逐个实测」。首次跑请把实际报错回填脚本内该分支 |
+| **MLU590**（寒武纪） | `DC_BACKEND=cambricon SERVE_FORM=embed DEV=2 EAGER=1 STOP_AFTER=1 READY_BUDGET=900` | ✅ **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**（**09-28**）：就绪 **150 s**、embedding 冒烟 **维度=1024 范数=1.000001**（冒烟耗时 **42 s**）。⚠️ 两点前提：① **须用 vLLM 应用镜像容器**（运行时镜像不含 vLLM）——`flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2rc2.post2`；② `READY_BUDGET` 给足（冷启动曾达 365 s）。**未设任何厂商专用算子/插件环境变量**（前两家变量互不通用，手册 §9 坑 5） |
+
+**MLU590 侧补跑的历史**（v1.2 的由来，如实记录）：
+1. 首轮（脚本 v1.1，`curl -m 60`）：就绪 `t=365s`、冒烟**超时** ⇒ `SERVE_STANDARD_FAIL (ready=1 smoke=0)`；
+   服务端日志**只有 `GET /v1/models` 200、没有 `POST /v1/embeddings` 访问行**；
+2. 手工复现（保服务运行后单发请求）：`http=200`、**`time_total=63.59 s`** ⇒ **请求成功，只是首次请求慢**；
+3. 末轮（脚本 v1.2、`SMOKE_TIMEOUT=180`）：就绪 **150 s**、冒烟 **42 s** ⇒ `SERVE_STANDARD_PASS`；
+   失败那轮证据原样留档：`MLU590/probes/accept_serve_cambricon_PRE_FIX_*`。
 
 **910C 侧补跑的历史**（如实记录，供追溯）：
 1. 首轮（脚本 v1.0）：`SERVE_STANDARD_PASS`，就绪 **45 s** —— 但发现**生成形态没有功能冒烟**（与 embedding 形态强度不对等）⇒ 补冒烟并把冒烟纳入 verdict；
@@ -229,7 +245,9 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 ```
 新需求/新发现 → 改 prototype/scripts/serve_standard.sh（唯一入口）
              → 本文档 §2 参数表与 §3 流程同步更新
-             → 在两实例真机上各跑一次（STOP_AFTER=1 验证模式）
+             → 在三实例真机上各跑一次（STOP_AFTER=1 验证模式）
+               （⚠️ v1.2 首轮例外：MLU590 已跑通、P800 已复跑，**910C 因主机 SSH 超时不可达未复跑** ——
+                 改动仅「放宽超时上限 + 增一行日志」、不改变判定逻辑，已登记为待补）
              → 知会已接入的下游方向
 ```
 
