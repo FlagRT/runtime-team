@@ -127,6 +127,31 @@ embedding 请求实测 **42–64 s** ⇒ 曾把 63.6 s 的**成功**请求判成
 　　pyACL `free` 后设备空闲**不回落**（厂商内存池语义）、`allocated_mb` 在 ascend 上**不反映** pyACL 分配（绕过 torch 分配器）——
 　　两条均如实登记、未当缺陷。报告：`prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；
 　　契约新增 §1.6/§1.7 与变更记录（第三轮）。
+　　**2026-09-29（P800 上下文语义判明 + C 项补足为「只读观测」）**：据厂商资料（测试机 `/data1/document/`
+　　的 HCCPK1 测试指导 + XTDK 用户手册 V3.5）与四组真机判别实验，**更正** C 项在 P800 缺失的根因表述 ——
+　　原记「XPytorch 兼容层**未暴露**上下文原语」**不准确**：驱动层**有完整 `cuCtx*`（21 个）**，就在
+　　XPytorch 实际加载的 `libcuda.so.1`（= `libxpucuda.so.515.58.kunlun`，415 个 `cu*` 符号）里，
+　　且 **XPytorch 自己在用**（torch 初始化后 `cuCtxGetCurrent` 非 0）。
+　　**真实约束**为三条平台限制：① **只允许一个上下文**（第二次 `cuCtxCreate_v2` → `rc=2`）；
+　　② 该上下文由 **XPytorch/XRE 自建**；③ **本层抢先在 torch 之前建会破坏框架**
+　　（`CUDA error: invalid device ordinal`；**销毁本层建的上下文后 torch 立即恢复 512.0**）。
+　　⇒ 落地能力键 **`context_query`（上下文只读观测）**，与 `context_lifecycle` **分开声明**
+　　（P800 声明；910C / MLU590 如实未声明并返回具体原因）。返回固定 6 键
+　　`{queryable, present, ordinal, flags, managed_by, reason}`，`managed_by ∈ {unified, external}`
+　　把「归谁管」**写进字段** ⇒ 上层换芯片不必写分支。本层实现**绝不调用 `cuCtxCreate_v2` / `cuCtxDestroy_v2`**，
+　　只调 `cuCtxGetCurrent/GetDevice/GetFlags`；库按 **soname `libcuda.so.1`** 惰性加载
+　　（踩过副本路径 ⇒ 版本错配 ⇒ torch `CUDA_ERROR_NOT_INITIALIZED`）。
+　　**真机**：C4 组 `managed_by="external"` · **`compute_before = compute_after = 512.0`（只读无副作用）**。
+　　**判据 +6 条**（离线自检 **ascend 64→68 · kunlun 65→71 · cambricon 55→59**）；
+　　⭐ **非空转验证暴露一个真实缺口**：离线无设备 ⇒ 只走 `if not raw` 分支，「丢掉 `managed_by`」
+　　「声明了却给 `queryable=False`」两处注入**都抓不到** ⇒ 补**可控桩**构造"有上下文"情形后均能 FAIL。
+　　共享层改动后 r4 回归：**910C 10 项全绿（离线 68/0/1 · 冒烟 52/0 · 审计 39/0/0）· P800 10 项全绿
+　　（离线 71/0/1 · 冒烟 46/0 · 审计 36/0/3）**。**纪律升级**：写「该栈未暴露 X」前必须实测到**原语层**
+　　（头文件入口表 + `nm -D` 库符号 + **真调一次**），否则会把**平台约束**误记成**厂商没做**。
+　　报告：`P800/docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md`；契约 §1.7 增 `context_query`（第五轮）。
+　　**边界（如实）**：`flags=8` 含义未查证（仅原样透传）；《XRE 用户手册》不在本次资料内，
+　　单上下文约束**仅当前档位**实测；910C 的 `context_query` **属未做而非不具备**（`acl.rt.get_context` 存在）。
+
 ｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。

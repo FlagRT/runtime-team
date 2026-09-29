@@ -246,3 +246,63 @@ B/C 改的是**共享层**（`backends/base.py` / `api/stream.py` / `runtime/__i
 > 写这类判据前先问一句：**这个对象的键集会只增吗？** 若会 ⇒ 用「**至少含** + **未登记键 FAIL**」的组合。
 
 证据：`../910C/probes/*_ascend_20260929_r3.*`（17 份）· `../P800/probes/*_kunlun_20260929_r3.*`（17 份）。
+
+---
+
+## 11 ⭐ C 项在 P800 的补足：从「如实不具备」到「只读观测」（2026-09-29 第五轮）
+
+### 11.1 起因与更正
+
+§3 曾把 P800 未声明 `context_lifecycle` 的原因记为
+「**XPytorch 兼容层未暴露上下文原语**，与 `recovery_real` 同因」。**该表述不准确，现更正**：
+
+| | 原表述 | 实测（四组判别实验） |
+|---|---|---|
+| 驱动层有无上下文 API | ~~无~~ | **有完整的 `cuCtx*`（21 个）**，就在 XPytorch 实际加载的 `libcuda.so.1`（= `libxpucuda.so.515.58.kunlun`，415 个 `cu*` 符号）里 |
+| 是否真能创建 | —— | **能**（`cuCtxCreate_v2` 返回真句柄；`push/pop current` 语义成立） |
+| 谁在用上下文 | —— | **XPytorch 自己在用**（torch 初始化后 `cuCtxGetCurrent` **非 0**） |
+| 那为什么不能做生命周期 | —— | **平台只允许一个上下文**（第二次 create `rc=2`）+ **由框架自建** + **本层抢先去建会破坏框架** |
+
+最后一条是关键硬证据：在 torch 之前建上下文 ⇒ torch 报
+`AcceleratorError: CUDA error: invalid device ordinal`；
+**销毁本层建的上下文后 torch 立即恢复（`512.0`）**。
+
+### 11.2 处置
+
+- **新增能力键 `context_query`**（只读观测），与 `context_lifecycle` **分开声明**；P800 **声明**，
+  910C / MLU590 **如实未声明**（返回 `queryable=False` + 具体原因）。
+- **本层实现绝不调用 `cuCtxCreate_v2` / `cuCtxDestroy_v2`** —— 只调
+  `cuCtxGetCurrent` / `cuCtxGetDevice` / `cuCtxGetFlags`（真机证明只读安全）。
+- 库按 **soname `libcuda.so.1`** 惰性加载，**不用副本路径**
+  （踩过：从 `triton/backends/xpu/xpu3/so/` 取同名库 ⇒ 版本错配 ⇒ torch `CUDA_ERROR_NOT_INITIALIZED`）。
+
+### 11.3 验证
+
+- 真机 C4 组：`{queryable: true, present: true, ordinal: 0, flags: 8, managed_by: "external", reason: ""}`；
+  **`compute_before = compute_after = 512.0`** ⇒ **只读无副作用**；verdict `C4_context_query_readonly = true`。
+- 离线自检 **+6 条**判据（4 条通用 + 2 条「有上下文」分支）；判据数
+  **ascend 64→68 · kunlun 65→71 · cambricon 55→59**。
+- ⭐ **非空转验证暴露一个真实缺口**：离线无设备 ⇒ 只走 `if not raw` 分支，
+  「丢掉 `managed_by`」「声明了却给 `queryable=False`」两处注入**都抓不到**
+  ⇒ 补**可控桩**构造"有上下文"情形后，两处均能 FAIL。**能造可控假原语就别 SKIP**。
+- 共享层改动后的 r4 全套回归：**910C 10 项全绿 · P800 10 项全绿**（见 §12）。
+
+### 11.4 专项报告
+
+`../../P800/docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md`（含四组实验原始数据、资料出处、5 条边界）。
+
+## 12 第 4 轮全套回归（`context_query` 落地后 · 910C + P800）
+
+| 判定项 | 910C（r4） | P800（r4） |
+|---|---|---|
+| 离线契约自检 | **68 / 0 / 1 跳过** | **71 / 0 / 1 跳过** |
+| 跨后端对称性 `--all` | 5 / 0 | 5 / 0 |
+| 组件冒烟 | **52 / 0** | **46 / 0** |
+| conformance 13 + 推理 6 | 13/13 + 6/6 | 13/13 + 6/6 |
+| 职责响应审计（39 sub-part） | **39 / 0 / 0** | **36 / 0 / 3** |
+| 错误注入→恢复闭环 | 5 / 0 / 0 | 5 / 0 / 0 |
+| 工作包 A 功能等价性 | 6 / 6 | 6 / 6 |
+| 多流语义 / 配额 | 8/8 · 3/3 | 8/8 · 3/3 |
+| 结论 | ✅ **无回归** | ✅ **无回归** |
+
+证据：`../910C/probes/*_ascend_20260929_r4.*`（15 份）· `../P800/probes/*_kunlun_20260929_r4.*`（15 份）。

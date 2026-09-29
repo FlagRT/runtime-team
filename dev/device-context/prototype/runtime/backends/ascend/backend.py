@@ -65,6 +65,9 @@ class AscendBackend(RuntimeBackend):
         "device_state", "graph_capture", "stream_priority", "multidevice",
         # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
         "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
+        # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
+        # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
+        "context_query",
     )
 
     def info(self) -> dict:

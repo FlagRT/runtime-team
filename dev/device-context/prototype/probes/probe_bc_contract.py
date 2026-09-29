@@ -21,7 +21,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 PROTO = HERE.parent
 sys.path.insert(0, str(PROTO))
 
-GROUPS = ("m1", "m2", "c1", "c2", "c3")
+GROUPS = ("m1", "m2", "c1", "c2", "c3", "c4")
 
 
 def _emit(name, **kw):
@@ -182,7 +182,44 @@ def group_c3(runtime):
     _emit("c3", **out)
 
 
-_FUNCS = {"m1": group_m1, "m2": group_m2, "c1": group_c1, "c2": group_c2, "c3": group_c3}
+def group_c4(runtime):
+    """C-4：上下文**只读观测**（工作包 C·P800 专项）—— 真机取证。
+
+    取证目标（每条对应一个可能出错的地方）：
+      · 真机上能否**读到**框架自建的上下文（present / ordinal / flags）；
+      · `managed_by` 是否**如实** —— 本层一个上下文都没造，就不许自称 `unified`；
+      · **只读安全**：查询前后做**同一次计算**，结果必须一致（证明查询无副作用）。
+
+    P800 上的期望值：`managed_by == "external"`（上下文由 XPytorch/XRE 自建）。
+    """
+    bk = runtime.current()
+    if not bk.supports("context_query"):
+        _emit("c4", skipped="未声明 context_query（如实不具备）", capability=False)
+        return
+    out = {"capability": True}
+    try:
+        import torch
+        out["device_count"] = bk.device_count()
+        dev = "cuda" if getattr(bk, "device_type", "") == "cuda" else None
+        a = torch.ones(8, 8, device=dev)
+        out["compute_before"] = float((a @ a).sum())        # 触碰设备（让上下文建起来）
+        q = bk.context_query()
+        out["query"] = q
+        out["present"] = q.get("present")
+        out["ordinal"] = q.get("ordinal")
+        out["flags"] = q.get("flags")
+        out["managed_by"] = q.get("managed_by")
+        out["reason"] = q.get("reason")
+        out["compute_after"] = float((a @ a).sum())         # 只读 ⇒ 必须与 before 相同
+        out["readonly_safe"] = (out["compute_before"] == out["compute_after"])
+        out["context_query_works"] = bool(q.get("queryable") and q.get("present"))
+    except Exception as e:                                    # noqa: BLE001
+        out["err"] = f"{type(e).__name__}: {str(e)[:160]}"
+    _emit("c4", **out)
+
+
+_FUNCS = {"m1": group_m1, "m2": group_m2, "c1": group_c1, "c2": group_c2,
+          "c3": group_c3, "c4": group_c4}
 
 
 def run_one(backend, group):
@@ -244,6 +281,14 @@ def run_all(backend, out_path, ordinal=0):
             verdict["C3_multi_context_isolated"] = bool(
                 g.get("c3", {}).get("count_with_two") == 2
                 and g.get("c3", {}).get("pairwise_isolated") is True)
+        if "context_query" in caps:
+            c4 = g.get("c4", {})
+            # 只读观测：读得到 + **查询无副作用** + managed_by 为合法取值
+            # （P800 期望 `external` —— 上下文由框架自建；该值记在 JSON 里供报告引用）
+            verdict["C4_context_query_readonly"] = bool(
+                c4.get("context_query_works") is True
+                and c4.get("readonly_safe") is True
+                and c4.get("managed_by") in ("external", "unified"))
     res["verdict"] = verdict
     res["PASS"] = all(verdict.values()) if verdict else False
     print(json.dumps(res, indent=2, ensure_ascii=False))

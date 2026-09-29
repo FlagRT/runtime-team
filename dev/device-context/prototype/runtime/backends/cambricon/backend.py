@@ -162,6 +162,9 @@ class CambriconBackend(RuntimeBackend):
         # 2026-09-29（工作包 B/C）新增键：本家**全部未声明**（未真机验证 ⇒ 不声明，
         # 如实呈现为 False）。MLU590 上的原语探测与声明留待下一轮。
         "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
+        # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
+        # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
+        "context_query",
     )
 
     #: 本后端**声明支持**的能力（不支持/未验证的一律不写进来 —— 如实声明，不伪造）

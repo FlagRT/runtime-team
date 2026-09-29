@@ -251,6 +251,72 @@ class RuntimeBackend(ABC):
         """预留钩子：上下文存活面变化后需要刷新时可覆写。"""
         return None
 
+    def context_query(self) -> dict:
+        """查询**此刻进程实际生效的设备上下文**（**只读**，不改状态）。
+
+        与 `context_count()` 的分工（本接口存在的理由）：
+          · `context_lifecycle` 系接口回答「**本层造了几个**」；
+          · `context_query` 回答「**此刻实际在哪个上下文上**」——
+            对**外部/框架自建**的上下文同样有意义（哪怕本层一个都没造）。
+
+        为什么必须把两件事分开（2026-09-29 深夜实测，四组判别实验）：
+          · 910C：`acl.rt.create_context` 可建多个，本层可管（已声明 `context_lifecycle`）；
+          · P800：**平台只允许一个上下文**（已有上下文时第二次 `cuCtxCreate_v2` 返回 `rc=2`），
+            而它由 XPytorch/XRE **自建**；统一层若抢先去建，torch 反而起不来
+            （实测 `CUDA error: invalid device ordinal`；而**销毁本层建的上下文后 torch 立即恢复**）。
+        ⇒ 「上下文由谁拥有」在各栈差异极大。上层不该被迫写分支 ⇒ 本接口把差异
+          **写进字段**（`managed_by`），而不是让上层去猜 —— 这正是本层"让分歧显式
+          且可消费"的定位。
+
+        返回（**固定键**，便于跨后端比对；取不到的键如实置 None，**不填 0 冒充**）：
+          · `queryable`  : 本后端是否具备该查询能力
+          · `present`    : 此刻是否存在生效上下文
+          · `ordinal`    : 上下文绑定的设备序号（取不到 ⇒ None）
+          · `flags`      : 上下文的创建标志（取不到 ⇒ None）
+          · `managed_by` : `"unified"`（本层创建）/ `"external"`（厂商或框架自建）/ None
+          · `reason`     : 不可查询 / 不存在 / 取不到字段的**具体原因**（便于诊断，不吞掉）
+        """
+        if not self.supports("context_query"):
+            return {"queryable": False, "present": None, "ordinal": None, "flags": None,
+                    "managed_by": None,
+                    "reason": f"后端 '{self.name}' 未声明能力 'context_query'"
+                              "（该栈无上下文只读查询入口）"}
+        try:
+            raw = self._ctx_query_raw(0)
+        except Exception as e:                                # noqa: BLE001
+            return {"queryable": False, "present": None, "ordinal": None, "flags": None,
+                    "managed_by": None,
+                    "reason": f"上下文查询失败：{type(e).__name__}: {e}"}
+        if not raw:
+            return {"queryable": True, "present": False, "ordinal": None, "flags": None,
+                    "managed_by": None,
+                    "reason": "此刻无生效上下文（厂商侧尚未建立，或本进程尚未触碰设备）"}
+        # `managed_by` 判定：拿厂商上下文对象与**本层登记表**比对（仅比对、不外泄）
+        managed = "external"
+        for _hid, entry in (self._reg("_ctx_handles") or {}).items():
+            if entry.get("ctx") is not None and self._same_ctx(entry["ctx"], raw.get("ctx")):
+                managed = "unified"
+                break
+        return {"queryable": True, "present": True,
+                "ordinal": raw.get("ordinal"), "flags": raw.get("flags"),
+                "managed_by": managed, "reason": ""}
+
+    def _ctx_query_raw(self, ordinal: int = 0):
+        """子类实现：**只读**查询当前生效的厂商上下文。
+
+        返回 `{"ctx": <厂商上下文对象>, "ordinal": int|None, "flags": int|None}`，
+        或 `None`（无生效上下文）。
+        ⚠️ 返回结构里的 `ctx` **仅供本层比对，不得对外暴露**（不放进任何公开返回）。
+        """
+        raise NotImplementedError(f"后端 '{self.name}' 未实现 _ctx_query_raw")
+
+    def _same_ctx(self, a, b) -> bool:
+        """判断两个厂商上下文对象是否同一（各栈形态不同 ⇒ 子类可覆写）。"""
+        try:
+            return a == b
+        except Exception:                                     # noqa: BLE001
+            return False
+
     def context_count(self) -> int:
         """本层当前在世的设备上下文数（不含进程默认上下文）。"""
         if not self.supports("context_lifecycle"):

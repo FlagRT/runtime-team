@@ -803,6 +803,44 @@ def run(proto_dir, backend):
     check("层内部路径（wait_event 等）⇒ **不得**计入 .native 审计",
           bk.native_accesses()["total"] == 0, str(bk.native_accesses()))
 
+    # C-4：上下文**只读观测**（工作包 C·P800 专项，2026-09-29 新增）
+    # 语义：把"此刻在哪个上下文上、它归谁管"以**同一形态**暴露给上层，
+    #       使上层不必因换芯片而写分支 —— 分歧写进 `managed_by` 字段。
+    # 为何必须单列：「声明即承诺」要求声明了就真能调；而**未声明**时也必须给出
+    #   **具体原因** —— 不许静默返回空结构（那会让上层把"无上下文"与"查不了"混为一谈）。
+    _cq = bk.context_query()
+    _CQ_KEYS = {"queryable", "present", "ordinal", "flags", "managed_by", "reason"}
+    check("context_query 返回固定 6 键（跨后端可比）",
+          isinstance(_cq, dict) and _CQ_KEYS <= set(_cq), str(sorted(_cq or {})))
+    if bk.supports("context_query"):
+        check("声明 context_query ⇒ queryable 为 True", _cq.get("queryable") is True, str(_cq))
+    else:
+        check("未声明 context_query ⇒ queryable=False 且**给出具体原因**（不得静默返回空结构）",
+              _cq.get("queryable") is False and bool(_cq.get("reason")), str(_cq))
+    check("context_query 的 present 为 bool 或 None（不得用 0/1 冒充）",
+          _cq.get("present") is None or isinstance(_cq.get("present"), bool),
+          repr(_cq.get("present")))
+    check("context_query 的 managed_by ∈ {unified, external, None}",
+          _cq.get("managed_by") in ("unified", "external", None), repr(_cq.get("managed_by")))
+
+    if bk.supports("context_query"):
+        # ⭐「有上下文」分支必须**能离线验证** —— 用桩造出可控情形
+        #   （项目纪律：**能造可控假原语就别 SKIP**）。
+        # 必要性来自非空转验证的实测结论：离线无设备 ⇒ 只走 `if not raw` 分支，
+        #   于是"丢掉 managed_by 键"、"声明了却给 queryable=False"两处注入
+        #   **都不会被判据抓到** ⇒ 判据形同虚设。补上此桩后两处均能 FAIL。
+        _orig_raw = bk._ctx_query_raw
+        try:
+            bk._ctx_query_raw = lambda ordinal=0: {"ctx": 20260929, "ordinal": 3, "flags": 8}
+            _cq2 = bk.context_query()
+        finally:
+            bk._ctx_query_raw = _orig_raw
+        check("有上下文时 ⇒ present=True 且 ordinal/flags 原样透传（不臆造）",
+              _cq2.get("present") is True and _cq2.get("ordinal") == 3
+              and _cq2.get("flags") == 8, str(_cq2))
+        check("有上下文时 ⇒ managed_by ∈ {unified, external}（差异写进字段，不给上层留分支）",
+              _cq2.get("managed_by") in ("unified", "external"), str(_cq2))
+
     # C：设备上下文生命周期（能力位自洽 + 只接受本层句柄）
     if bk.supports("context_lifecycle"):
         c0 = bk.context_count()

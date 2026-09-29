@@ -119,6 +119,9 @@ class KunlunBackend(RuntimeBackend):
         "device_state", "graph_capture", "stream_priority", "multidevice",
         # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
         "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
+        # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
+        # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
+        "context_query",
     )
 
     #: 本后端**声明支持**的能力（不支持的一律不写进来，不伪造）
@@ -137,6 +140,13 @@ class KunlunBackend(RuntimeBackend):
                              #   （实测：0 → 4 MiB → 0，且非法/重复指针**如实报错**）
         "memory_alloc_stat",  # memory_stats()["allocated_mb"]（memory_allocated）
         "record_stream",     # Tensor.record_stream 可用
+        # ── 2026-09-29（工作包 C·本家专项）：上下文**只读观测** ──
+        # 实测：libcuda.so.1（= libxpucuda.so.515.58.kunlun，XPytorch 实际用的驱动）
+        # 提供完整 cuCtx* 系列，且 XPytorch 自己在用（torch 初始化后 cuCtxGetCurrent 非 0）。
+        # 但平台**只允许一个**上下文（第二次 create → rc=2），且它由框架自建 ——
+        # 本层若抢先建会让 torch 起不来（invalid device ordinal）
+        # ⇒ 只声明**只读**观测，**绝不**声明/调用创建销毁。
+        "context_query",
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
@@ -145,6 +155,63 @@ class KunlunBackend(RuntimeBackend):
 
     #: 分级来源可达性（如实标注：code_map 路径在昆仑芯不可达）
     _grading_paths = {"code_map": False, "message_hint": True}
+
+    # ── 上下文**只读**观测（工作包 C·P800 专项，2026-09-29）────────────────────
+    #
+    # 为什么只读、为什么不实现 context_lifecycle：四组真机判别实验（报告 §10）
+    #   ① 平台**只允许一个**上下文 —— 已有上下文时 `cuCtxCreate_v2` 返回 `rc=2`；
+    #   ② 该上下文由 XPytorch/XRE **自建** —— 本层抢先在 torch 之前建 ⇒ torch 报
+    #      `CUDA error: invalid device ordinal`；**销毁本层建的上下文后 torch 立即恢复**
+    #   ③ 对 torch 自己的上下文，厂商**拒绝**销毁（`cuCtxDestroy_v2` → `201`
+    #      INVALID_CONTEXT）⇒ 危险操作在厂商侧已兜住；
+    #   ④ 只读接口（GetCurrent/GetDevice/GetFlags/Synchronize）**全部可用且安全**
+    #      （调用后 torch 计算仍为 512.0）。
+    # ⇒ 本类**绝不调用 `cuCtxCreate_v2` / `cuCtxDestroy_v2`**，只做只读观测。
+
+    #: 惰性加载的驱动库句柄（类级缓存；`False` = 已确认不可用，避免反复尝试）
+    _ctx_driver = None
+
+    def _driver_handle(self):
+        """惰性取得**驱动库**句柄。
+
+        用 soname `libcuda.so.1`，**不用**绝对路径、更不用别处的副本：
+        XPytorch 已加载的就是这一个（`/proc/self/maps` 实测为
+        `xcudart/lib/libxpucuda.so.515.58.kunlun`，而 `xcudart/lib/libcuda.so.1`
+        正是指向它的符号链接）⇒ 同名复用**同一份**，不引入第二份副本。
+
+        ⚠️ 反面教材（本轮踩到）：先前误从 `triton/backends/xpu/xpu3/so/` 取同名库
+        ⇒ 触发 "Libraries loaded from different directories!" 版本错配，
+        torch 直接报 `CUDA_ERROR_NOT_INITIALIZED`。
+        **同栈的库必须走 soname，不要拿任意副本路径。**
+        """
+        if type(self)._ctx_driver is None:
+            import ctypes
+            try:
+                type(self)._ctx_driver = ctypes.CDLL("libcuda.so.1")
+            except OSError:
+                type(self)._ctx_driver = False
+        return type(self)._ctx_driver or None
+
+    def _ctx_query_raw(self, ordinal: int = 0):
+        """只读读回当前生效的上下文（句柄/设备号/标志）；无则 `None`。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            return None
+        cur = ctypes.c_void_p(0)
+        try:
+            rc = lib.cuCtxGetCurrent(ctypes.byref(cur))
+        except AttributeError:
+            return None
+        if int(rc) != 0 or not cur.value:
+            return None
+        dev = ctypes.c_int(-1)
+        flg = ctypes.c_uint(0)
+        rc_d = lib.cuCtxGetDevice(ctypes.byref(dev))
+        rc_f = lib.cuCtxGetFlags(ctypes.byref(flg))
+        return {"ctx": int(cur.value),
+                "ordinal": int(dev.value) if int(rc_d) == 0 else None,
+                "flags": int(flg.value) if int(rc_f) == 0 else None}
 
     def __init__(self) -> None:
         self._torch = None

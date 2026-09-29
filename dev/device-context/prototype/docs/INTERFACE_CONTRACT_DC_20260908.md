@@ -114,6 +114,7 @@ fe = runtime.translate_error(exc, location="...")
 | `context_set(handle)` | 切换为当前上下文 | **只接受本层句柄** |
 | `context_destroy(handle)` | 销毁上下文 | ⚠️ **只接受本层创建的句柄**；对非本层句柄（**尤其是进程默认上下文**）**一律拒绝并报错** —— 误毁默认上下文会让整个进程的设备不可用 |
 | `context_count()` | 本层在世上下文数 | **不含**进程默认上下文 |
+| **`context_query()`**（2026-09-29 第五轮补） | 查询**此刻实际生效**的设备上下文（**只读**） | 与 `context_lifecycle` **分开声明** —— 有的栈能管生命周期、有的栈**只允许观测**（平台单上下文）。返回**固定 6 键** `{queryable, present, ordinal, flags, managed_by, reason}`；**未声明者也返回同一 6 键**（`queryable=False` + **具体原因**）⇒ 上层换芯片无需分支。`managed_by ∈ {"unified", "external"}` 把「**归谁管**」写进字段 |
 | **绑定语义** | 上下文销毁后，其上创建的流/事件**即为无效，不可继续使用** | 使用点（`Stream.context()` / `Stream.synchronize()`）**必须如实报错**。⚠️ 厂商栈在此处**不会立刻报错**（实测 910C：直到进程退出清理阶段才暴露 `stream not in current ctx` / 107003）⇒ **拦截由本层负责** |
 | `recover_device()` 增键 | `context_supported` / `context_count` / `context_recreated` | **只增不改**：契约五键 `{ordinal, mode, recovered, state, detail}` **保持不变**；不支持上下文的后端如实置 `False` / `None` |
 
@@ -121,9 +122,19 @@ fe = runtime.translate_error(exc, location="...")
 与内存句柄**同一套 `handle_id` 命名**、用 `kind` 区分种类；
 **两类句柄不得互相误用**（误用必须报错，不许静默）。
 
-**证据与判据**：报告 `WORKPACKAGE_BC_INTERFACE_20260929.md`；真机证据
+**为什么 `context_query` 必须与 `context_lifecycle` 分开**（P800 实测）：
+P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用的 `libcuda.so.1` 里），
+但 **① 平台只允许一个上下文**（第二次 `cuCtxCreate_v2` 返回 `rc=2`）、
+**② 该上下文由 XPytorch/XRE 自建**、**③ 本层抢先去建会破坏框架**
+（实测 torch 报 `CUDA error: invalid device ordinal`；销毁本层的上下文后 torch 立即恢复）
+⇒ P800 上「创建/切换/销毁/计数」四件事**全都不成立**，只能做**只读观测**。
+把 P800 也标成支持 `context_lifecycle` 就是把不成立的事实说成成立。
+
+**证据与判据**：报告 `WORKPACKAGE_BC_INTERFACE_20260929.md` §11、
+`../../P800/docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md`（四组判别实验）；真机证据
 `../../910C/probes/probe_bc_contract_ascend_20260929.json`、
-`../../P800/probes/probe_bc_contract_kunlun_20260929.json`。
+`../../P800/probes/probe_bc_contract_kunlun_20260929.json`、
+`../../P800/probes/probe_bc_contract_kunlun_20260929_r2.json`（含 C4 组）。
 
 ---
 
@@ -186,6 +197,7 @@ fe = runtime.translate_error(exc, location="...")
 
 | 2026-09-29（第三轮） | v0.1.0 | **工作包 B/C 接口落地（只增不改）**：新增 **§1.6 内存句柄与生命周期**（`allocate/free/memory_handle_count`；`memory_stats` 只增 `allocated_mb`；`record_stream` 能力位与**保守同步路径**；`.native` / 退化**双审计**）与 **§1.7 设备上下文生命周期**（`context_create/set/destroy/count`；**绑定语义**由本层在使用点拦截；`recover_device` 只增 context 三键）。**未改任何既有接口签名**；四家 `_CAPABILITY_KEYS` 各新增 4 项键（未声明即如实为 `False`）。判据：离线自检新增 `[9]` 段、6 条负向判据收紧为「必须是契约级 `ValueError`」，并做 **5 处注入的非空转验证**；真机验证 **910C 6/6 · P800 3/3**（C 项在 P800 **如实不具备**）；**MLU590 本轮未探测**（4 个新键未声明）。报告：`WORKPACKAGE_BC_INTERFACE_20260929.md` | 运行时层全组 |
 | 2026-09-29 | v0.1.0 | **「分歧的业务代价」实验**（工作包 A，见 `EXP_DIVERGENCE_COST_20260929.md`）暴露两处**已存在而未判据守**的缺陷并修正：① **码表归属** —— 未声明 `error_map` 的后端其 `category` 仍取自外来（昇腾 ACL）码表 ⇒ 携带昇腾码的消息被判 `L4_FATAL`/`device_recovery`；已改为**从源头不使用外来码表**（`translate_error(..., vendor_codes=False)`），使四个字段结构上不可能不一致；② **`state` 取值域** —— `recover_device()["state"]` 原为 `str(enum)`（`'DeviceState.AVAILABLE'`），已归一为四态规范 token（`base.state_token()`）。同时给离线自检补 2 条判据（**决策字段**不得受外来码表影响；`state` 取值域），并做**非空转验证**。接口签名**未变**；`translate_error` 新增的 `vendor_codes` 为**关键字参数、默认 `True`**，对既有调用完全兼容 | 运行时层全组 |
+| 2026-09-29（第五轮） | v0.1.0 | **新增 `context_query`（上下文**只读观测**，见 §1.7）** —— **只增不改**，与 `context_lifecycle` **分开声明**。起因：P800 的 C 项原记为「兼容层未暴露上下文原语」，实测**更正**为该栈**有**完整 `cuCtx*`（就在 XPytorch 用的 `libcuda.so.1` 里）但**平台只允许一个上下文**、且由框架自建 ⇒ 生命周期四件事均不成立，只能只读观测。落地：`context_query()` 固定 6 键 + `managed_by ∈ {unified, external}` 把差异写进字段；四家 `_CAPABILITY_KEYS` 各加 1 项键（**仅 P800 声明**，910C/MLU590 **如实未声明**且给出具体原因）。判据：离线自检 **+6 条**（含 2 条「有上下文」分支，用**可控桩**覆盖 —— 非空转验证证明该分支原先**抓不到缺陷**）；真机 **C4 组通过**（`managed_by="external"` / `readonly_safe=true`）。报告：`../../P800/docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md` | 运行时层全组 |
 | 2026-09-29（第二轮） | v0.1.0 | **跨实例复验再修一处判据覆盖缺口**：共享消息规则表的 L2 规则原按"个别厂商文案"枚举（`invalid (device\|ordinal\|data\|op\|param)`），寒武纪栈对"设备序号越界"的原文 `CNRT error: invalid argument.` **无规则命中 ⇒ 兜底 `L3_EXECUTION`（`replay`）**，与契约 §1.4 的「参数类应 `raise`」相悖 ⇒ 已改为**按等价类覆盖**（补 `invalid argument`／`invalid value`／`illegal …`，**不做** `invalid \w+` 宽匹配）。同时离线自检 +2 条「参数类文案等价类」判据（用两家真机原文）并做**非空转验证**。**接口签名未变**，`translate_error` 的签名与默认值均未动（仅内部消息规则表扩容） | 运行时层全组 |
 
 ---

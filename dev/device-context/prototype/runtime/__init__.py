@@ -66,7 +66,8 @@ __all__ = [
     # 内存句柄与生命周期（工作包 B）
     "allocate", "free", "memory_handle_count", "MEMORY_HANDLE_KEYS",
     # 设备上下文生命周期（工作包 C）
-    "context_create", "context_destroy", "context_count", "CONTEXT_HANDLE_KEYS",
+    "context_create", "context_destroy", "context_count", "context_query",
+    "CONTEXT_HANDLE_KEYS",
     "DEVICE_STATE_TOKENS",
     # 审计（`.native` 逃生舱 / 退化路径）
     "native_accesses", "degradations",
@@ -163,6 +164,19 @@ def context_create(ordinal: int = 0) -> dict:
 def context_destroy(handle) -> None:
     """销毁本层创建的设备上下文句柄；**对非本层句柄一律拒绝**。"""
     current().context_destroy(handle)
+
+
+def context_query() -> dict:
+    """查询**此刻进程实际生效的设备上下文**（**只读**，不改状态）。
+
+    与 `context_count()` 的分工：后者答"**本层造了几个**"，本接口答"**此刻在哪个上下文上**"
+    —— 对**框架自建**的上下文同样有意义（P800 就是这种情况：上下文由 XPytorch 自建，
+    本层一个都不造，但上层仍需要知道"我在哪个上下文上、它归谁管"）。
+
+    固定键：`queryable / present / ordinal / flags / managed_by / reason`。
+    `managed_by` 取 `"unified"`（本层创建）/ `"external"`（厂商或框架自建）/ `None`。
+    """
+    return current().context_query()
 
 
 def context_count() -> int:
