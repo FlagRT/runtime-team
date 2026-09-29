@@ -44,6 +44,7 @@
 
 | 项 | 结果 |
 |---|---|---|
+| ⭐ **缺陷修复后全套回归（09-29，最新）** | ✅ **10 项全绿、0 回归**：离线自检 **38/0/1 跳过** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 职责审计 **39/0/0** · 错误闭环 **5/0/0** · 等价性 **6/6** · 多流语义 **8/8** + 配额 **3/3** ⇒ 见 `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` |
 | ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿**：离线自检 **35/0** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8** + 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（**4075.4 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`** · 服务化 **`SERVE_STANDARD_PASS`** · 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0** ⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
 | 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
 | 昇腾后端（torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10**、smoke **52/0** |
@@ -77,6 +78,8 @@
 | `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
 | `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
 | ⭐ `docs/DUTY_RESPONSE_AUDIT_910C_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**（三实例中唯一无 SKIP 者）；含本实例运行条件、逐项实测依据、复跑命令 |
+| `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` | **两处层内修复后的全套回归**：10 项判定全绿 / 0 缺陷；含两处修复的定向验证、工作包 A 实验取数、未跑项如实登记、一键复跑命令 |
+| ⚠️ `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md` | **宿主带卡容器名额规则判别实验与口径更正**（5 数据点）：独占单位 = 已 init 容器的**挂载设备集**；「同一时刻只留 1 个」「与挑哪张卡无关」两条旧口径均**不成立**；⚠️ **不迁移**（宿主专属） |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
@@ -84,7 +87,7 @@
 |---|---|
 | `DEVICE_CONTEXT_PLAN_20260827.md` | 设备执行上下文方案定稿（8 月版） |
 | `PROGRESS_20260822.md` | 8-22 阶段进度快照 |
-| `910C-env-issue-report.md` | 容器内 `aclInit` 返 500000 记录（**根因 = DrvMng 容器上限 3**，已解决）⚠️ 环境专属 |
+| `910C-env-issue-report.md` | 容器内 `aclInit` 返 500000 记录 —— ⚠️ 该文所记「**根因 = DrvMng 容器上限 3**」**已作废**（现行口径见 §5 与 `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md`）⚠️ 环境专属 |
 | `O3_getlasterror_fix.md` ｜ `O4_socket_seq_guard.md` | FlagCX O3/O4 缺陷修复设计与实现 |
 | `PR_DEV_1_0_20260902.md` | PR #11 合入 dev-1.0 记录（157 文件） |
 
@@ -113,6 +116,9 @@
 | ⭐ `accept_serve_ascend_*_20260928.{log}`（3 份） | **服务化按新脚本（v1.2，含 `SMOKE_TIMEOUT`）复跑**：`SERVE_STANDARD_PASS`（就绪 **35 s**、维度 1024、范数 1.000000、**冒烟耗时 0 s**），与 09-22 逐项一致 |
 | `accept_serve_ascend_*_20260928_NAMESLOT_BLOCKED.log`（3 份） | **同轮首跑失败证据（原样留档，未「改判据变绿」）**：宿主带卡容器名额被他人占满 ⇒ `acl.init`=500000、`get_device_count`=(0,0)、vLLM `Engine core initialization failed`（root cause 原文 `Failed to obtain the console log level … Different containers share the same device`） |
 | ⭐ `duty_audit_ascend_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**；补做后回归复跑仍 39/0/0（无退化） |
+| ⭐ `regress_*_ascend_20260929.{log,json}`（11 份） | **缺陷修复后全套回归（真机）**：离线自检 38/0/1 · conformance 13/13 与 6/6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 冒烟 52/0 · 多流语义 8/8 · 流配额 3/3 |
+| ⭐ `exp_divergence_cost_ascend_20260929.{json,log}` | **工作包 A 实验的 910C 取数**：M1–M4（0/0/77/0 vs 11/15/163/17）· 功能等价性 **6/6 一致**（`S6` = `L4_FATAL`，ascend 声明了 `error_map` ⇒ 正确） |
+| ⚠️ `nameslot_rule_matrix_ascend_20260929.log` | **宿主名额规则判别实验原始留档**（2×2+1 五个数据点，原样输出）：`davinci7` 成功 / `davinci1`、`davinci2` 失败 ⇒ 旧口径「与挑哪张卡无关」被推翻 |
 
 > 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
 
@@ -124,17 +130,22 @@
 
 ## 5. 环境要点（910C 专属，不迁移）
 
-- ⚠️ **带卡容器名额：同一时刻只应有 1 个带卡容器在用**（09-22 与 09-28 两次实测）。
-  名额用尽时 `acl.init()` 返 **500000**、`device_count=0`（`acl.init rc=0` 但 `get_device_count=(0,0)` 也属此列）；
-  出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
-  ⚠️ **口径更正（2026-09-28）**：`dev/stack.lock.910c.v2.yaml` 与早期文档记的是「DrvMng 名额 **≈3**」，
-  但实测**到不了 3** —— 09-22 我方训练容器 + 推理容器（=2）共存即失败；09-28 他人 2 个带卡容器
-  （`temp-cp-arbitrary` 挂 davinci8–15、`mem-profile-910c` 挂 davinci1）+ 我方 1 个（=3）时失败，
-  且**我方容器只挂 1 张无人占用的卡也一样失败**（起临时容器只挂 `davinci0` 实测）
-  ⇒ **与「挑哪张卡 / 卡是否重叠」无关**，不要把 3 当可用阈值。
-  真机症状：后起方报 `Failed to obtain the console log level` + `Different containers share the same device` ⇒
-  `terminate called after throwing an instance of 'std::logic_error'` → `Engine core initialization failed`。
-  ⇒ **需要设备时先 `docker ps` 清点带卡容器**：只留自己要用的那一个；他人容器**先协调、用完原样 `docker start` 恢复**。
+- ⚠️ **带卡容器名额（2026-09-29 口径更正）**：宿主的独占单位是「**已初始化 ACL 的容器的挂载设备集**」——
+  某容器一旦真正 `acl.init` 成功，就**把它挂载的全部设备整组独占**；其他容器只要与之**挂载集有交集**，
+  `acl.init()` 即失败。**空闲（`Up` 但未 init）的带卡容器不占名额**（实测 5 个 Up 带卡容器并存无碍）。
+  ⇒ **可操作做法：起容器时不要挂全 16 张**（全量挂载几乎必然与任何活跃者相交 ⇒ 必失败），
+  **只挂自己真正要用的空闲卡**，即可与既有活跃容器并存，**不必再停用他人容器**。
+  真机症状：`acl.init()` 返 **500000**、`get_device_count()` 返 **(0, 507899)**、stderr 首条
+  `Failed to obtain the console log level` + `Different containers share the same device`（vLLM 侧表现为
+  `Engine core initialization failed`）；**而 `npu-smi info` 仍报 `Health: OK`** ⇒ **芯片健康 ≠ 名额有空**。
+  处置：**先查自己的挂载集与活跃容器挂载集是否相交**，不要先怀疑镜像/驱动/代码，
+  **也不要在代码里加重试**（宿主占用约束，重试无用）。
+  ⚠️ **历史口径两次更正**：① `dev/stack.lock.910c.v2.yaml` 与早期文档记的「DrvMng 名额 **≈3**」**到不了 3**；
+  ② 09-28 由「起临时容器只挂 `davinci0` 仍失败」推出的「**与挑哪张卡 / 卡是否重叠无关**」**不成立** ——
+  `davinci0` 正是 `evalx-910c` 的挂载设备，那次失败可由"与某活跃容器挂载集相交"解释；
+  09-29 同宿主同刻实测：挂 `davinci7` **成功**（`acl.init rc=0`）、挂 `davinci1` / `davinci2` **均失败**
+  ⇒ **选卡（挂载集是否相交）就是决定因素**。完整实验（5 个数据点）见 `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md`。
+  两条腿**仍须串行**（训练容器与推理容器都挂全部 16 个 `davinci`，互斥必然）。
   另：**训练容器自带 `vllm` 入口但缺包**（`command -v vllm` 有、`import vllm` 报 `ModuleNotFoundError`）
   ⇒ 服务化**必须用推理容器** `flagos-infer-910c`；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）
