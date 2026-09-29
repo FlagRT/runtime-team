@@ -44,6 +44,7 @@
 
 | 项 | 结果 |
 |---|---|---|
+| ⭐ **工作包 B/C 接口落地（09-29，本实例）** | ✅ **真机 6/6** | `allocate/free` 句柄（申请 8 MiB → 设备空闲 **−10.0 MB**）、二次释放如实 `ValueError`、`record_stream` 走**原生路径**、`.native` 审计隔离（公开 1 / 内部 0）、**上下文 create/set/destroy/count + 绑定语义在使用点拦截（`RuntimeError`）+ 多上下文隔离** ⇒ 报告 `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；证据 `probes/probe_bc_contract_ascend_20260929.json` |
 | ⭐ **三处修复后全套回归（09-29 · 第 2 轮 r2，最新）** | ✅ **10 项全绿、0 回归**：离线自检 **40/0/1 跳过** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 职责审计 **39/0/0** · 错误闭环 **5/0/0** · 等价性 **6/6** · 多流语义 **8/8** + 配额 **3/3**（第 1 轮 r1 为离线 **38/0/1**；本轮 +2 条「文案等价类」判据。**两轮证据都保留**）⇒ 见 `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` |
 | ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿**：离线自检 **35/0** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8** + 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（**4075.4 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`** · 服务化 **`SERVE_STANDARD_PASS`** · 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0** ⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
 | 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
@@ -117,7 +118,8 @@
 | `accept_serve_ascend_*_20260928_NAMESLOT_BLOCKED.log`（3 份） | **同轮首跑失败证据（原样留档，未「改判据变绿」）**：宿主带卡容器名额被他人占满 ⇒ `acl.init`=500000、`get_device_count`=(0,0)、vLLM `Engine core initialization failed`（root cause 原文 `Failed to obtain the console log level … Different containers share the same device`） |
 | ⭐ `duty_audit_ascend_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**；补做后回归复跑仍 39/0/0（无退化） |
 | ⭐ `regress_*_ascend_20260929.{log,json}`（11 份） | **缺陷修复后全套回归（真机）**：离线自检 38/0/1 · conformance 13/13 与 6/6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 冒烟 52/0 · 多流语义 8/8 · 流配额 3/3 |
-| ⭐ `regress_*_ascend_20260929_r2.{log,json}`（15 份）+ `exp_divergence_cost_ascend_20260929_r2.{json,log}` | **第 2 轮（含第三处 L2 文案等价类修复）全套回归**：离线 **40/0/1** · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `regress_*_ascend_20260929_r2.{log,json}`（15 份）
+| ⭐ `probe_bc_contract_ascend_20260929.json` | **工作包 B/C 真机契约探针**（5 组逐组独立子进程）：B1/B3/B4/C1/C2/C3 **6/6 通过**；含 allocate→占用→free 的设备空闲变化、二次释放负向、**厂商原生流「销毁后使用 = 静默成功」的对照取证**（本层则如实拦截） |+ `exp_divergence_cost_ascend_20260929_r2.{json,log}` | **第 2 轮（含第三处 L2 文案等价类修复）全套回归**：离线 **40/0/1** · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
 | ⭐ `exp_divergence_cost_ascend_20260929.{json,log}` | **工作包 A 实验的 910C 取数**：M1–M4（0/0/77/0 vs 11/15/163/17）· 功能等价性 **6/6 一致**（`S6` = `L4_FATAL`，ascend 声明了 `error_map` ⇒ 正确） |
 | ⚠️ `nameslot_rule_matrix_ascend_20260929.log` | **宿主名额规则判别实验原始留档**（2×2+1 五个数据点，原样输出）：`davinci7` 成功 / `davinci1`、`davinci2` 失败 ⇒ 旧口径「与挑哪张卡无关」被推翻 |
 

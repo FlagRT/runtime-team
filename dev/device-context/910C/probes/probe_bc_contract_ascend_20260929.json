@@ -1,0 +1,135 @@
+{
+  "backend": "ascend",
+  "groups": {
+    "m1": {
+      "group": "m1",
+      "capability": true,
+      "handle_keys": [
+        "backend",
+        "handle_id",
+        "kind",
+        "ordinal",
+        "size_bytes"
+      ],
+      "handle_has_ptr": false,
+      "before": {
+        "free_mb": 62593.7,
+        "stats": {
+          "total_mb": 62748,
+          "used_mb": 154,
+          "free_mb": 62593,
+          "allocated_mb": 0
+        }
+      },
+      "after_alloc": {
+        "free_mb": 62583.7,
+        "stats": {
+          "total_mb": 62748,
+          "used_mb": 164,
+          "free_mb": 62583,
+          "allocated_mb": 0
+        }
+      },
+      "handle_count_after_alloc": 1,
+      "after_free": {
+        "free_mb": 62583.7,
+        "stats": {
+          "total_mb": 62748,
+          "used_mb": 164,
+          "free_mb": 62583,
+          "allocated_mb": 0
+        }
+      },
+      "handle_count_after_free": 0,
+      "double_free": "ValueError: 内存句柄 1 不属于本后端或**已被释放**（重复释放/跨后端误用）—— 如实报错，不静默接受。",
+      "alloc_zero": "ValueError",
+      "returncode": 0
+    },
+    "m2": {
+      "group": "m2",
+      "record_stream_capability": true,
+      "record_stream_real": "原生路径（无退化）",
+      "native_after_public_access": 1,
+      "native_after_internal_path": 0,
+      "returncode": 0
+    },
+    "c1": {
+      "group": "c1",
+      "capability": true,
+      "count_before": 0,
+      "handle_keys": [
+        "backend",
+        "handle_id",
+        "kind",
+        "ordinal"
+      ],
+      "count_after_create": 1,
+      "set": "ok",
+      "compute_in_ctx": 4.0,
+      "count_after_destroy": 0,
+      "double_destroy": "ValueError: 上下文句柄 1 不属于本后端或**已被释放**（重复释放/跨后端误用）—— 如实报错，不静默接受。",
+      "compute_after_destroy": 4.0,
+      "returncode": 0
+    },
+    "c2": {
+      "group": "c2",
+      "unified_use_after_destroy": "RuntimeError: 该流创建于已销毁的设备上下文（context_id=1）⇒ 不可继续使用。厂商栈在此处**不会立刻报错**（实测：直到进程退出清理阶段才暴露 107003），本层按契约在**使用点**如实拦截；请重新创建上下文与流。",
+      "vendor_native_use_after_destroy": "未报错（静默成功；退出清理阶段可能才暴露）",
+      "returncode": 0
+    },
+    "c3": {
+      "group": "c3",
+      "count_with_two": 2,
+      "value_in_a": 4.0,
+      "value_in_b": 4.0,
+      "pairwise_isolated": true,
+      "count_after_destroy_b": 1,
+      "value_back_in_a": 4.0,
+      "count_after_destroy_a": 0,
+      "compute_after_all": 4.0,
+      "returncode": 0
+    }
+  },
+  "vendor": {
+    "backend": "ascend",
+    "device_type": "npu",
+    "torch": "2.11.0+cu130",
+    "device_count": 3,
+    "capabilities": [
+      "bounded_sync",
+      "context_lifecycle",
+      "device",
+      "device_state",
+      "error_map",
+      "event",
+      "graph_capture",
+      "memory",
+      "memory_alloc",
+      "memory_alloc_stat",
+      "multidevice",
+      "record_stream",
+      "recovery_probe",
+      "recovery_real",
+      "stream",
+      "stream_priority",
+      "sync_timeout"
+    ],
+    "info_native_accesses": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "info_degradations": {
+      "total": 0,
+      "by_kind": {}
+    }
+  },
+  "verdict": {
+    "B1_allocate_free_pairs": true,
+    "B3_record_stream_native_path": true,
+    "B4_native_audit_isolated": true,
+    "C1_context_lifecycle": true,
+    "C2_binding_intercepted": true,
+    "C3_multi_context_isolated": true
+  },
+  "PASS": true
+}

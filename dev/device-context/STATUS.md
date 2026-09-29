@@ -107,6 +107,26 @@ embedding 请求实测 **42–64 s** ⇒ 曾把 63.6 s 的**成功**请求判成
 　　910C 此前登记的「**未验证**（网络超时，11:19–11:53）」状态**关闭**。
 　　`VERIFICATION_MANIFEST §1.1 取数纪律`（不要求同时可达、按破坏面覆盖）在本轮得到完整验证：
 　　三次取数窗口分别为 MLU590（11:0x）→ P800（11:2x）→ 910C（11:5x），**全程无需三台同时在线**。
+　　**2026-09-29（工作包 B/C 接口落地 + 两家真机验证）**：按《薄弱环节补做计划》落 **B（内存域句柄与生命周期）**
+　　与 **C（设备上下文生命周期）**，用户指定**先做 910C 与 P800**。接口**只增不改**：
+　　**B** —— `runtime.allocate/free/memory_handle_count`（**句柄里不放厂商指针**）、`memory_stats` 只增 `allocated_mb`（取不到则省略、不填 0）、
+　　`record_stream` **能力位 + 保守同步路径**（不支持时同步当前设备后放行 + 告警 + 计入退化审计，**不抛错**）、
+　　`.native` 逃生舱与退化路径**分开审计**；
+　　**C** —— `context_create/set/destroy/count` + **绑定语义**（销毁上下文后使用其流**必须如实报错**）+ `recover_device` **只增** context 三键。
+　　**真机结果**：910C **6/6**（B1/B3/B4/C1/C2/C3）· P800 **3/3**（B1/B3/B4；**C 项如实不具备**：XPytorch 未暴露上下文原语，与 `recovery_real` 同因）。
+　　**⭐ 三处"厂商原语与直觉不符"的硬事实**：① `torch.npu.caching_allocator_alloc` 的 `hasattr` **为真但一调即报**
+　　`Found no NVIDIA driver`（只是继承 `torch.cuda` 的实现）⇒ 910C 必须走 **pyACL `acl.rt.malloc/free`**；
+　　② 释放原语正确名是 **`caching_allocator_delete`**（不存在 `caching_allocator_free`）；
+　　③ `acl.rt.create_context()` 返回 **`(handle, ret)` 元组**。
+　　**⭐ 由本层补上的一条契约**：910C 上「上下文销毁后使用其流」厂商**当场静默成功**、直到进程退出清理阶段才暴露 107003 ⇒
+　　本层在 `create_stream()` 登记「流属于哪个上下文」，并在使用点拦截（真机取证：统一层 `RuntimeError` vs 厂商原生**静默**）。
+　　判据：离线自检新增 `[9]` 段（含**刻意做静默**的 stub 原语，把"二次释放必须报错"逼给本层登记表兜），
+　　**6 条负向判据收紧为「必须是契约级 `ValueError`」**（原来 `KeyError` 这类崩溃也会算通过），并做 **5 处注入的非空转验证**；
+　　判据数 **ascend 40→64 · kunlun 45→65 · cambricon 45→55**。
+　　**边界（如实）**：**MLU590 本轮未探测**，4 个新能力键在 cambricon 上**全部未声明**（调用如实报错）；
+　　pyACL `free` 后设备空闲**不回落**（厂商内存池语义）、`allocated_mb` 在 ascend 上**不反映** pyACL 分配（绕过 torch 分配器）——
+　　两条均如实登记、未当缺陷。报告：`prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；
+　　契约新增 §1.6/§1.7 与变更记录（第三轮）。
 ｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。

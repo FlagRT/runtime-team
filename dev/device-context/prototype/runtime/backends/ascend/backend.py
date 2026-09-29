@@ -48,6 +48,11 @@ class AscendBackend(RuntimeBackend):
         "graph_capture",           # torch.npu.graph
         "stream_priority",         # least=7 / greatest=0
         "multidevice",
+        # ── 2026-09-29（工作包 B/C）新增 ──
+        "memory_alloc",            # pyACL acl.rt.malloc/free（**不是** torch.npu.caching_allocator_*）
+        "memory_alloc_stat",       # memory_stats()["allocated_mb"]（分配器视角）
+        "record_stream",           # 跨流内存保护（Tensor.record_stream 可用）
+        "context_lifecycle",       # pyACL create/set/get/destroy_context（真机实测可用）
     }
 
     #: 能力**全集**（已知能力名，`info()["supports"]` 按此逐项 True/False 呈现）。
@@ -58,6 +63,8 @@ class AscendBackend(RuntimeBackend):
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
+        "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
     )
 
     def info(self) -> dict:
@@ -72,6 +79,9 @@ class AscendBackend(RuntimeBackend):
             "framework": "torch_npu",
             "torch": self.torch.__version__,
             "device_count": self.device_count(),
+            "capabilities": sorted(self._capabilities),
+            "native_accesses": self.native_accesses(),
+            "degradations": self.degradations(),
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             # 有界同步的**真实实现路径**（本家走 pyACL；不可用时降级，如实暴露原因）
             "bounded_sync_scope": "pyACL synchronize_*_with_timeout（真中断）；"
@@ -217,11 +227,107 @@ class AscendBackend(RuntimeBackend):
         finally:
             if prev != ordinal:
                 torch.npu.set_device(prev)
-        return {
+        out = {
             "total_mb": int(total / 1024 / 1024),
             "used_mb": int((total - free) / 1024 / 1024),
             "free_mb": int(free / 1024 / 1024),
         }
+        # 工作包 B-2：新增 `allocated_mb`（分配器视角）—— 三键语义不变，只增键；
+        # 取不到时**省略**该键（半成品 0 值比没有键更误导）。
+        try:
+            out["allocated_mb"] = int(torch.npu.memory_allocated(ordinal) / 1024 / 1024)
+        except Exception:
+            pass
+        return out
+
+    # ─────────────── 内存句柄与生命周期（职责 D3 · 工作包 B-1）───────────────
+
+    def _alloc_raw(self, size_bytes: int, ordinal: int):
+        """用 pyACL 申请**原始设备内存**，返回厂商指针（不暴露给上层）。
+
+        ⚠️ 实测（910C，2026-09-29）：**不能**用 `torch.npu.caching_allocator_alloc`
+        —— 该名字在本栈上只是继承了 `torch.cuda` 的实现（torch_npu 未覆写），
+        调用会走 `torch.cuda.current_device()` → `_cuda_init()`，直接报
+        `RuntimeError: Found no NVIDIA driver on your system`。
+        **`hasattr` 为真 ≠ 可用**（与本方向台账第 6/11 条同族）⇒ 本家走 pyACL。
+        """
+        acl = self.acl
+        if acl is None:
+            raise self.translate_error(
+                RuntimeError("内存句柄：pyACL 不可用（"
+                             + (self.acl_unavailable_reason or "原因未记录") + "）"),
+                location="memory:allocate")
+        torch = self.torch
+        prev = torch.npu.current_device()
+        if prev != ordinal:
+            torch.npu.set_device(ordinal)
+        try:
+            ptr, ret = acl.rt.malloc(int(size_bytes), 0)
+        finally:
+            if prev != ordinal:
+                torch.npu.set_device(prev)
+        if ret != 0:
+            raise self.translate_error(
+                RuntimeError(f"acl.rt.malloc failed, error code is {ret}"),
+                location="memory:allocate")
+        return ptr
+
+    def _free_raw(self, ptr, handle: dict) -> None:
+        """释放 pyACL 指针。
+
+        ⚠️ 实测：`acl.rt.free()` 对**二次释放 / 非法指针静默返回 0**（不报错）。
+        因此"重复释放必须报错"**由基类的句柄登记表保证**，不依赖厂商原语
+        —— 这正是统一层把"静默"变"显式"的一个具体落点。
+        """
+        ret = self.acl.rt.free(ptr)
+        if ret != 0:
+            raise self.translate_error(
+                RuntimeError(f"acl.rt.free failed, error code is {ret}"),
+                location="memory:free")
+
+    # ─────────────── 设备上下文生命周期（职责 D2/D1 · 工作包 C）───────────────
+
+    def _ctx_create_raw(self, ordinal: int):
+        """pyACL 创建设备上下文；实测 `create_context` 返回 `(handle, ret)` 元组。"""
+        acl = self.acl
+        if acl is None:
+            raise self.translate_error(RuntimeError("设备上下文：pyACL 不可用"),
+                                       location="context:create")
+        res = acl.rt.create_context(int(ordinal))
+        ctx, ret = res if isinstance(res, tuple) else (res, 0)
+        if ret != 0:
+            raise self.translate_error(
+                RuntimeError(f"acl.rt.create_context failed, error code is {ret}"),
+                location="context:create")
+        return ctx
+
+    def _ctx_set_raw(self, ctx, handle: dict) -> None:
+        ret = self.acl.rt.set_context(ctx)
+        if ret != 0:
+            raise self.translate_error(
+                RuntimeError(f"acl.rt.set_context failed, error code is {ret}"),
+                location="context:set")
+
+    def _ctx_destroy_raw(self, ctx, handle: dict) -> None:
+        """销毁上下文。
+
+        实测（910C，2026-09-29）：销毁后 pyACL **自动回落到进程默认上下文**，设备仍可用。
+        ⚠️ 但**在其上建立的流"当场使用不报错"**，直到**进程退出清理阶段**才暴露
+        `The stream is not in the current context` / `Stream destroy failed … 107003`
+        —— 属"**静默延迟暴露**"，本层需主动拦截（见职责审计的绑定语义判据）。
+        """
+        ret = self.acl.rt.destroy_context(ctx)
+        if ret != 0:
+            raise self.translate_error(
+                RuntimeError(f"acl.rt.destroy_context failed, error code is {ret}"),
+                location="context:destroy")
+
+    def peek_current_device(self) -> int:
+        """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""
+        try:
+            return int(self.torch.npu.current_device())
+        except Exception:
+            return 0
 
     # ─────────────── 执行 / 多流 Stream（职责 D4/D5）──────────────
 
@@ -346,8 +452,8 @@ class AscendBackend(RuntimeBackend):
         self._load_conformance()
         return self._recovery.probe_device(ordinal, device=self.device_type)
 
-    def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "") -> dict:
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "") -> dict:
         """设备重建。mode: probe / real / hybrid（与 recovery.rebuild_mode 一致）。
 
         统一返回 dict，recovered 语义 = **设备当前可用**（与另两家后端一致）。

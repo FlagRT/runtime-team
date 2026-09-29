@@ -17,12 +17,21 @@
      PyTorch 缓存分配器按流跟踪内存；若 tensor 在流 A 分配、在流 B 使用后于流 A 释放，
      分配器不知道流 B 仍在使用，可能把该内存重分配给流 A 的新 tensor → 数据竞争。
      正确做法：`tensor.record_stream(using_stream)`。
+     **2026-09-29（工作包 B-3）**：本纪律的实现路径加了契约约束 —— 能力位
+     `supports("record_stream")`，上层可**提前预判**；后端未声明该能力时，
+     本层走**保守同步路径**（同步当前设备后放行），而不是等到 `getattr` 失败才报错。
   2. **错误隔离是分层的**
      - API 调用级失败（如 107015）：只影响该次调用，其他流不受影响（已实测）
      - 芯片级故障（如 AICORE_TIMEOUT / AICORE_EXCEPTION）：影响该设备上**所有流**，
        恢复必须走设备级 `recover_device(mode="real")`，**流级重试无效**
+
+⚠️ `.native` 是**显式逃生舱**（修订建议 §3）：
+    一旦上层取用 `.native`，该处代码即视为**绑定该厂商**，不得再声称跨芯片可移植。
+    为此本层对公开属性的取用**计数审计**（`backend.info()["native_accesses"]`）；
+    层内部一律走私有 `_native_obj`，**不计数**，避免把"内部实现"记成"上层破坏可移植性"。
 """
 
+import warnings
 from typing import Optional
 
 
@@ -38,8 +47,19 @@ class Stream:
         return self._backend
 
     @property
+    def _native_obj(self):
+        """**层内部**用的原生对象访问口（不计数）。"""
+        return self._native
+
+    @property
     def native(self):
-        """后端原生流对象（需要厂商特有操作时才用）。"""
+        """后端原生流对象（**显式逃生舱**）。
+
+        ⚠️ 使用即视为**绑定该厂商**：该处代码不得再声称跨芯片可移植。
+        取用次数会记入后端审计（`info()["native_accesses"]`），便于事后定位破坏点。
+        正常路径应优先使用本类的统一方法（wait_event / wait_stream / synchronize / context）。
+        """
+        self._backend.note_native_access("Stream")
         return self._native
 
     def wait_event(self, event) -> None:
@@ -47,7 +67,7 @@ class Stream:
 
         兼容传入统一 Event 或后端原生事件对象。
         """
-        native = event.native if isinstance(event, Event) else event
+        native = event._native_obj if isinstance(event, Event) else event
         self._native.wait_event(native)
 
     def wait_stream(self, other) -> None:
@@ -55,11 +75,12 @@ class Stream:
 
         兼容传入统一 Stream 或后端原生流对象。
         """
-        native = other.native if isinstance(other, Stream) else other
+        native = other._native_obj if isinstance(other, Stream) else other
         self._native.wait_stream(native)
 
     def synchronize(self, timeout_ms: Optional[int] = None) -> None:
         """等待本流任务完成；timeout_ms 非空时为有界等待（超时抛 TimeoutError）。"""
+        self._backend.check_stream_usable(self._native)      # 工作包 C：绑定语义拦截
         if timeout_ms is None:
             self._native.synchronize()
             return
@@ -67,20 +88,36 @@ class Stream:
 
     def context(self):
         """返回切换到本流的上下文管理器（with 使用）。"""
+        self._backend.check_stream_usable(self._native)      # 工作包 C：绑定语义拦截
         return self._backend.stream_context(self._native)
 
     def record_stream(self, tensor) -> None:
         """告知缓存分配器：tensor 在本流上仍会被使用。
 
         跨流传递内存时必须调用，否则内存可能被提前回收 → 数据竞争。
+
+        2026-09-29（工作包 B-3）行为定义：
+          · 后端**声明**能力 `record_stream` 且 tensor 原生支持 ⇒ 走原生路径（零额外开销）；
+          · 否则 ⇒ **保守同步路径**：同步当前设备后再放行（**慢但正确**），
+            并 `warnings.warn` + 计入后端退化审计（`info()["degradations"]`）。
+            —— 这里刻意**不再抛 AttributeError**：跨流内存被提前回收是"偶发数据错乱"，
+            比降级慢一点危险得多；且"是否支持"应可**预判**（`supports("record_stream")`）。
         """
         fn = getattr(tensor, "record_stream", None)
-        if fn is None:
-            raise AttributeError(
-                "该 tensor 不支持 record_stream；跨流传递内存需要此能力，"
-                "请确认使用的是支持该语义的框架对象"
-            )
-        fn(self._native)
+        if self._backend.supports("record_stream") and callable(fn):
+            fn(self._native)
+            return
+
+        reason = ("后端未声明能力 record_stream"
+                  if not self._backend.supports("record_stream")
+                  else f"tensor 类型 {type(tensor).__name__} 无 record_stream()")
+        self._backend.note_degradation("record_stream_conservative")
+        warnings.warn(
+            f"[runtime] {reason} ⇒ 走**保守同步路径**（同步当前设备后放行）。"
+            "这会丢失跨流重叠带来的性能收益；如需消除，请改用声明了该能力的后端/张量类型。",
+            stacklevel=2,
+        )
+        self._backend.conservative_stream_sync(self._native)
 
     def __repr__(self) -> str:
         return f"<Stream backend={self._backend.name} native={type(self._native).__name__}>"
@@ -98,12 +135,19 @@ class Event:
         return self._backend
 
     @property
+    def _native_obj(self):
+        """**层内部**用的原生对象访问口（不计数）。"""
+        return self._native
+
+    @property
     def native(self):
+        """后端原生事件对象（**显式逃生舱**，取用计入审计，语义同 `Stream.native`）。"""
+        self._backend.note_native_access("Event")
         return self._native
 
     def record(self, stream: Optional[Stream] = None) -> None:
         """在指定流（或当前流）记录完成点。"""
-        self._native.record(stream.native if stream else None)
+        self._native.record(stream._native_obj if stream else None)
 
     def query(self) -> bool:
         """查询是否已完成。注意：未 record 的事件其 query 语义由后端契约定义。"""
@@ -124,7 +168,7 @@ class Event:
                 raise NotImplementedError("该后端原生事件不支持 wait()")
             fn()
             return
-        native = stream.native if isinstance(stream, Stream) else stream
+        native = stream._native_obj if isinstance(stream, Stream) else stream
         self._native.wait(native)
 
     def synchronize(self) -> None:
@@ -135,7 +179,7 @@ class Event:
         fn = getattr(self._native, "elapsed_time", None)
         if fn is None:
             raise NotImplementedError("该后端不支持 elapsed_time")
-        end = end_event.native if isinstance(end_event, Event) else end_event
+        end = end_event._native_obj if isinstance(end_event, Event) else end_event
         return fn(end)
 
     def __repr__(self) -> str:

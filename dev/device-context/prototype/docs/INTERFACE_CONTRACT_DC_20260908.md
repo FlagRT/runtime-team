@@ -33,7 +33,7 @@ runtime.discover()        # 扫描已安装的 backend 插件
 
 | 接口 | 语义 | 关键约束 |
 |---|---|---|
-| `create_stream()` | 创建统一 Stream 对象 | 跨流传缓冲必须 `record_stream`（见 §3 纪律 1） |
+| `create_stream()` | 创建统一 Stream 对象 | 跨流传缓冲必须 `record_stream`（见 §3 纪律 1）；**2026-09-29 起该纪律有实现路径约束**：先判能力位 `supports("record_stream")`，见 §1.6 |
 | `create_event()` | 创建统一 Event 对象 | record 后 query 才有意义 |
 | `stream.wait_event(ev)` | 建立跨流依赖（A record → B wait → B 可见 A 的结果） | 事件必须先 record |
 | `stream.synchronize(timeout_ms)` | **有界**流同步；超时抛 `TimeoutError` | 长驻服务必须用有界同步，防整体 hang |
@@ -85,6 +85,45 @@ fe = runtime.translate_error(exc, location="...")
 - **调用约定**：监控方向做检测与恢复编排（何时调、调哪级），恢复执行由本组件完成
 - **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前默认不启用
   （本地多进程联调已过，生产默认前需多卡压测调优——见 9 月计划 W4 遗留）
+
+---
+
+### 1.6 内存句柄与生命周期（**工作包 B，2026-09-29 新增 · 只增不改**）
+
+| 接口 | 语义 | 关键约束 |
+|---|---|---|
+| `allocate(size_bytes, ordinal=0)` | 申请设备内存，返回**统一句柄** | 未声明 `memory_alloc` ⇒ **如实报错**；`size_bytes` 非正整数 ⇒ `ValueError`；**只做句柄语义，不含池化 / 碎片 / 峰值 / 扩容策略**（那些属显存方向） |
+| `free(handle)` | 释放句柄 | **成对释放**；**二次释放 / 非本层句柄 ⇒ `ValueError`**（不得静默）；**不接受厂商裸指针/原生句柄** |
+| `memory_handle_count()` | 当前在世句柄数 | 泄漏判据的取数入口 |
+| `memory_stats()` | 规范**三键不变** +（可选）`allocated_mb` | 三键语义与口径不变；`allocated_mb`=**分配器视角**，仅当后端**声明 `memory_alloc_stat`** 时承诺给出，**取不到须省略该键**（不得填 0 冒充）；不得出现未登记键 |
+| `Stream.record_stream(t)` | 跨流内存保护（§3 纪律 1 的实现路径） | 先判能力位 `supports("record_stream")`；后端未声明或张量不支持 ⇒ **保守同步路径**（同步当前设备后放行）+ 告警 + 计入 `degradations`，**不抛错**（跨流内存被提前回收是"偶发数据错乱"，比降级慢更危险） |
+| `info()["native_accesses"]` | `.native` 逃生舱取用审计 | **公开属性 `.native` 计数**；**层内部路径不计数**（内部走私有口） |
+| `info()["degradations"]` | 退化路径审计 | 与上者**语义相反、分开计数**：`.native` = 破坏可移植性；退化 = 用性能换正确性 |
+
+**句柄公共字段**：`{handle_id, kind, backend, ordinal, size_bytes}`（`MEMORY_HANDLE_KEYS`）。
+**承诺：句柄中不含厂商指针** —— 需要绕过统一层请走 `.native` 显式逃生舱，并计入审计。
+
+### 1.7 设备上下文生命周期（**工作包 C，2026-09-29 新增 · 只增不改**）
+
+> ⚠️ 澄清一处长期混淆：`stream_ctx`（§1.3）是**切流**的上下文管理器，
+> 与本节"设备上下文（context）的创建/销毁"**是两件事**。
+
+| 接口 | 语义 | 关键约束 |
+|---|---|---|
+| `context_create(ordinal=0)` | 新建设备上下文并**置为当前**，返回统一句柄 | 未声明 `context_lifecycle` ⇒ **如实报错** |
+| `context_set(handle)` | 切换为当前上下文 | **只接受本层句柄** |
+| `context_destroy(handle)` | 销毁上下文 | ⚠️ **只接受本层创建的句柄**；对非本层句柄（**尤其是进程默认上下文**）**一律拒绝并报错** —— 误毁默认上下文会让整个进程的设备不可用 |
+| `context_count()` | 本层在世上下文数 | **不含**进程默认上下文 |
+| **绑定语义** | 上下文销毁后，其上创建的流/事件**即为无效，不可继续使用** | 使用点（`Stream.context()` / `Stream.synchronize()`）**必须如实报错**。⚠️ 厂商栈在此处**不会立刻报错**（实测 910C：直到进程退出清理阶段才暴露 `stream not in current ctx` / 107003）⇒ **拦截由本层负责** |
+| `recover_device()` 增键 | `context_supported` / `context_count` / `context_recreated` | **只增不改**：契约五键 `{ordinal, mode, recovered, state, detail}` **保持不变**；不支持上下文的后端如实置 `False` / `None` |
+
+**句柄公共字段**：`{handle_id, kind, backend, ordinal}`（`CONTEXT_HANDLE_KEYS`）——
+与内存句柄**同一套 `handle_id` 命名**、用 `kind` 区分种类；
+**两类句柄不得互相误用**（误用必须报错，不许静默）。
+
+**证据与判据**：报告 `WORKPACKAGE_BC_INTERFACE_20260929.md`；真机证据
+`../../910C/probes/probe_bc_contract_ascend_20260929.json`、
+`../../P800/probes/probe_bc_contract_kunlun_20260929.json`。
 
 ---
 
@@ -145,6 +184,7 @@ fe = runtime.translate_error(exc, location="...")
 
 ---
 
+| 2026-09-29（第三轮） | v0.1.0 | **工作包 B/C 接口落地（只增不改）**：新增 **§1.6 内存句柄与生命周期**（`allocate/free/memory_handle_count`；`memory_stats` 只增 `allocated_mb`；`record_stream` 能力位与**保守同步路径**；`.native` / 退化**双审计**）与 **§1.7 设备上下文生命周期**（`context_create/set/destroy/count`；**绑定语义**由本层在使用点拦截；`recover_device` 只增 context 三键）。**未改任何既有接口签名**；四家 `_CAPABILITY_KEYS` 各新增 4 项键（未声明即如实为 `False`）。判据：离线自检新增 `[9]` 段、6 条负向判据收紧为「必须是契约级 `ValueError`」，并做 **5 处注入的非空转验证**；真机验证 **910C 6/6 · P800 3/3**（C 项在 P800 **如实不具备**）；**MLU590 本轮未探测**（4 个新键未声明）。报告：`WORKPACKAGE_BC_INTERFACE_20260929.md` | 运行时层全组 |
 | 2026-09-29 | v0.1.0 | **「分歧的业务代价」实验**（工作包 A，见 `EXP_DIVERGENCE_COST_20260929.md`）暴露两处**已存在而未判据守**的缺陷并修正：① **码表归属** —— 未声明 `error_map` 的后端其 `category` 仍取自外来（昇腾 ACL）码表 ⇒ 携带昇腾码的消息被判 `L4_FATAL`/`device_recovery`；已改为**从源头不使用外来码表**（`translate_error(..., vendor_codes=False)`），使四个字段结构上不可能不一致；② **`state` 取值域** —— `recover_device()["state"]` 原为 `str(enum)`（`'DeviceState.AVAILABLE'`），已归一为四态规范 token（`base.state_token()`）。同时给离线自检补 2 条判据（**决策字段**不得受外来码表影响；`state` 取值域），并做**非空转验证**。接口签名**未变**；`translate_error` 新增的 `vendor_codes` 为**关键字参数、默认 `True`**，对既有调用完全兼容 | 运行时层全组 |
 | 2026-09-29（第二轮） | v0.1.0 | **跨实例复验再修一处判据覆盖缺口**：共享消息规则表的 L2 规则原按"个别厂商文案"枚举（`invalid (device\|ordinal\|data\|op\|param)`），寒武纪栈对"设备序号越界"的原文 `CNRT error: invalid argument.` **无规则命中 ⇒ 兜底 `L3_EXECUTION`（`replay`）**，与契约 §1.4 的「参数类应 `raise`」相悖 ⇒ 已改为**按等价类覆盖**（补 `invalid argument`／`invalid value`／`illegal …`，**不做** `invalid \w+` 宽匹配）。同时离线自检 +2 条「参数类文案等价类」判据（用两家真机原文）并做**非空转验证**。**接口签名未变**，`translate_error` 的签名与默认值均未动（仅内部消息规则表扩容） | 运行时层全组 |
 

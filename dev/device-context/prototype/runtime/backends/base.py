@@ -13,6 +13,8 @@ Backend 插件接口规范 v0.1（runtime/backends/base.py）
      本层**不重复实现算子分发**，只统一"设备抽象与流语义"。
   2. 新增一家芯片 = 实现本接口 + 跑通 conformance。这是"统一接口"的可验收定义。
   3. v0.1 为原型期，允许破坏性变更（每季度评审一次）。
+  4. **能力如实声明**：没实测到的一律不写进 `_capabilities`；未声明的能力被调用时
+     **如实报错**（`NotImplementedError`），**不得静默退化**。
 
 参考：vendor 插件目录模式（backends/<vendor>/），
       但本层位于其上层——设备抽象层而非算子 dispatch 层。
@@ -27,6 +29,17 @@ from ..api.errors import FlagosError
 #: 设备四态**规范 token**（= `conformance/device_state.py::DeviceState` 的 `.value`）。
 #: 契约承诺：`recover_device()["state"]` **必须**是本元组取值之一（见接口约定 §1.5）。
 DEVICE_STATE_TOKENS = ("available", "degraded", "isolated", "destroyed")
+
+#: 内存句柄的**公共字段**（上层只允许依赖这些键；厂商指针一律**不进句柄**）。
+#: 2026-09-29（工作包 B）：句柄不含 `ptr` —— 暴露厂商指针等于绕过 `.native` 逃生舱纪律，
+#: 会把"换芯片不改代码"的主张悄悄破坏掉。指针只留在本层的内部登记表里。
+MEMORY_HANDLE_KEYS = ("handle_id", "kind", "backend", "ordinal", "size_bytes")
+
+#: 上下文句柄的**公共字段**（与内存句柄**同一套 `handle_id` 命名**）。
+#: ⚠️ 2026-09-29：初版曾把上下文句柄的 id 字段写成 `context_id`，而取句柄的公共口只认
+#: `handle_id` ⇒ **上下文永远销毁不掉**（判据当场抓到）。这正是台账 ⑫b 家族的坑：
+#: **同一概念在本层的对外形态必须唯一** ⇒ 统一为 `handle_id` + 用 `kind` 区分种类。
+CONTEXT_HANDLE_KEYS = ("handle_id", "kind", "backend", "ordinal")
 
 
 def state_token(state) -> str:
@@ -67,7 +80,204 @@ class RuntimeBackend(ABC):
 
     @abstractmethod
     def memory_stats(self, ordinal: int) -> dict:
-        """返回 {"total_mb": int, "used_mb": int, "free_mb": int}。"""
+        """返回 {"total_mb": int, "used_mb": int, "free_mb": int}。
+
+        2026-09-29（工作包 B-2）：**在保持上述三键不变的前提下**，鼓励额外提供
+        `"allocated_mb"`（分配器视角：本进程已分配量），并声明能力 `memory_alloc_stat`。
+        取不到时**省略该键**，不得填 0 冒充。三键语义与口径以本方向为准（显存方向采集）。
+        """
+
+    # ─────────────── 内存句柄与生命周期（职责 D3 · 工作包 B-1）───────────────
+    #
+    # 设计要点（三条，均源自 2026-09-29 的真机实测）：
+    #   1. **只做句柄语义**，不做池化 / 碎片 / 峰值 / 扩容策略（那些属显存方向）；
+    #   2. **成对释放**：句柄必须经 `free()` 释放；**重复释放 / 非本层句柄必须报错**；
+    #   3. ⭐ **把厂商的"静默"变成显式错误**：实测 pyACL 的 `acl.rt.free()` 对
+    #      **二次释放/非法指针静默返回 0**（不报错）；昆仑芯在 torch 层报错，但只覆盖
+    #      它自己的分配器。统一层**统一登记句柄、统一拦截**，跨两家行为一致。
+
+    #: 句柄登记表：`handle_id -> {"handle": 公共句柄, "ptr": 厂商指针}`（**每实例独立**）
+    _alloc_handles: Optional[dict] = None
+
+    def allocate(self, size_bytes: int, ordinal: int = 0) -> dict:
+        """申请一段设备内存，返回**统一内存句柄**（公共字段见 `MEMORY_HANDLE_KEYS`）。
+
+        - 未声明能力 `memory_alloc` 的后端 ⇒ **如实报错**（不静默退化为空操作）；
+        - `size_bytes` 必须为正整数，否则 `ValueError`（参数类问题不该走到厂商层）；
+        - 释放必须走 `free()`；**重复释放会报错**（见 `free`）。
+        """
+        if not self.supports("memory_alloc"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'memory_alloc' ⇒ 不支持内存句柄语义"
+                "（**如实不具备**，不等于已确认该芯片不具备；需真机探测后补声明）。"
+                "调用前请先 `supports('memory_alloc')` 判定。")
+        if not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes <= 0:
+            raise ValueError(f"size_bytes 必须为正整数，收到 {size_bytes!r}")
+
+        ptr = self._alloc_raw(int(size_bytes), int(ordinal))
+        seq = int(self.__dict__.get("_handle_seq", 0)) + 1
+        self.__dict__["_handle_seq"] = seq
+        handle = {"handle_id": seq, "kind": "memory", "backend": self.name,
+                  "ordinal": int(ordinal), "size_bytes": int(size_bytes)}
+        self._reg("_alloc_handles")[seq] = {"handle": handle, "ptr": ptr}
+        return handle
+
+    def free(self, handle) -> None:
+        """释放 `allocate()` 返回的句柄。
+
+        **重复释放 / 非本层句柄 ⇒ 报错**（契约要求：不得静默接受）。
+        """
+        if not self.supports("memory_alloc"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'memory_alloc' ⇒ 不支持内存句柄语义")
+        hid = self._handle_id(handle, "_alloc_handles", "内存")
+        entry = self._reg("_alloc_handles").pop(hid)
+        self._free_raw(entry["ptr"], entry["handle"])
+
+    def memory_handle_count(self) -> int:
+        """当前在世的内存句柄数（审计用；泄漏判据的取数入口）。"""
+        return len(self._reg("_alloc_handles"))
+
+    def _alloc_raw(self, size_bytes: int, ordinal: int):
+        """子类实现：调用厂商原语分配，返回厂商指针（不暴露给上层）。"""
+        raise NotImplementedError(f"后端 '{self.name}' 未实现 _alloc_raw")
+
+    def _free_raw(self, ptr, handle: dict) -> None:
+        """子类实现：调用厂商原语释放。"""
+        raise NotImplementedError(f"后端 '{self.name}' 未实现 _free_raw")
+
+    # ─────────── 设备上下文生命周期（职责 D2/D1 · 工作包 C）───────────
+    #
+    # 现状澄清（2026-09-29）：原型的 `stream_context` 是**切流**的上下文管理器，
+    # 与"设备上下文（context）的创建/销毁"是两件事；而 `recover_device(mode="real")`
+    # 内部其实会 destroyContext → ResetDevice → 重建，**执行了但完全不暴露**。
+    #
+    # 安全契约（重要）：**只允许销毁本层自己创建的上下文句柄**。
+    # 对非本层句柄（尤其是进程默认上下文）**一律拒绝并报错** —— 误毁默认上下文
+    # 会让整个进程的设备不可用，属不可逆破坏。
+    #
+    # ⭐ 真机实测（910C · 2026-09-29）：上下文**销毁后**，其上建立的流
+    # **当场使用不报错（静默成功）**，直到**进程退出清理阶段**才暴露
+    # `The stream is not in the current context` / `Stream destroy failed, … 107003`。
+    # ⇒ 本层必须**主动拦截**（见 `check_context_binding`），不能依赖厂商事后暴露。
+
+    #: 上下文登记表：`handle_id -> {"handle": 公共句柄, "ctx": 厂商上下文, "ordinal": n}`
+    _ctx_handles: Optional[dict] = None
+
+    def context_create(self, ordinal: int = 0) -> dict:
+        """在指定设备上**新建**一个设备上下文，返回统一句柄。
+
+        未声明能力 `context_lifecycle` 的后端 ⇒ 如实报错。
+        """
+        if not self.supports("context_lifecycle"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'context_lifecycle' ⇒ 不支持设备上下文"
+                "生命周期（**如实不具备**：该栈未暴露上下文创建/销毁入口）。")
+        ctx = self._ctx_create_raw(int(ordinal))
+        seq = int(self.__dict__.get("_ctx_seq", 0)) + 1
+        self.__dict__["_ctx_seq"] = seq
+        handle = {"handle_id": seq, "kind": "context", "backend": self.name,
+                  "ordinal": int(ordinal)}
+        self._reg("_ctx_handles")[seq] = {"handle": handle, "ctx": ctx}
+        self.__dict__["_current_ctx_id"] = seq        # 新建即成为当前上下文
+        self._refresh_ctx_health()
+        return handle
+
+    def context_destroy(self, handle) -> None:
+        """销毁 `context_create()` 返回的句柄。
+
+        ⚠️ **只接受本层创建的句柄**：对非本层句柄（含进程默认上下文）**拒绝并报错**。
+        """
+        if not self.supports("context_lifecycle"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'context_lifecycle' ⇒ 不支持设备上下文生命周期")
+        hid = self._handle_id(handle, "_ctx_handles", "上下文")
+        entry = self._reg("_ctx_handles").pop(hid)
+        self._ctx_destroy_raw(entry["ctx"], entry["handle"])
+        # 标记为已销毁（用 dict 当集合：`_reg()` 统一返回 dict，避免两套容器语义）
+        self._reg("_dead_ctx")[hid] = True
+        if self.__dict__.get("_current_ctx_id") == hid:
+            self.__dict__["_current_ctx_id"] = None
+        self._refresh_ctx_health()
+
+    def context_set(self, handle) -> None:
+        """把某个**本层创建的**上下文切换为当前上下文。
+
+        为什么需要它：`context_create` 只负责"造出来"，"切到它上面执行"是另一件事
+        （pyACL 的 `create_context` 与 `set_context` 是两个调用）。没有 `set` 就无法做
+        "多上下文隔离"的验证，也无法在销毁 A 之后切回 B。
+
+        ⚠️ 只接受本层句柄 —— 不接受厂商原生上下文对象（那属于 `.native` 逃生舱场景）。
+        """
+        if not self.supports("context_lifecycle"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'context_lifecycle' ⇒ 不支持设备上下文生命周期")
+        hid = self._handle_id(handle, "_ctx_handles", "上下文")
+        self._ctx_set_raw(self._reg("_ctx_handles")[hid]["ctx"], handle)
+        self.__dict__["_current_ctx_id"] = hid
+        self._refresh_ctx_health()
+
+    def current_context_id(self):
+        """当前生效的**本层上下文** id（非本层上下文时返回 None）。"""
+        return self.__dict__.get("_current_ctx_id")
+
+    def note_stream_created(self, native_stream) -> None:
+        """登记"该流是在哪个**本层上下文**下创建的"（无则为 None）。
+
+        为什么需要：实测（910C）上下文销毁后，**在其上创建的流"当场使用不报错"**，
+        直到**进程退出清理阶段**才暴露 `stream not in current ctx`（107003）
+        —— 属"静默延迟暴露"。契约要求「销毁后使用其流必须**明确**」⇒
+        本层必须自己把这条关联记下来，才能在使用点上**主动拦截**。
+        """
+        try:
+            self._reg("_stream_ctx")[id(native_stream)] = self.current_context_id()
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    def check_stream_usable(self, native_stream) -> None:
+        """使用点拦截：流所属上下文已销毁 ⇒ **如实报错**（不得静默成功）。"""
+        cid = self._reg("_stream_ctx").get(id(native_stream))
+        if cid is not None and cid in self._reg("_dead_ctx"):
+            raise RuntimeError(
+                f"该流创建于已销毁的设备上下文（context_id={cid}）⇒ 不可继续使用。"
+                "厂商栈在此处**不会立刻报错**（实测：直到进程退出清理阶段才暴露 107003），"
+                "本层按契约在**使用点**如实拦截；请重新创建上下文与流。")
+
+    def could_intercept_stream_binding(self) -> bool:
+        """本层是否具备"上下文↔流绑定"的拦截能力（供判据/上报使用）。"""
+        return self.supports("context_lifecycle")
+
+    def _refresh_ctx_health(self) -> None:
+        """预留钩子：上下文存活面变化后需要刷新时可覆写。"""
+        return None
+
+    def context_count(self) -> int:
+        """本层当前在世的设备上下文数（不含进程默认上下文）。"""
+        if not self.supports("context_lifecycle"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 'context_lifecycle' ⇒ 无上下文计数")
+        return len(self._reg("_ctx_handles"))
+
+    def context_snapshot(self) -> dict:
+        """上下文维度**快照**（供 `recover_device` 等上报；不支持时如实置 None）。
+
+        只增不改：不改变任何既有返回契约（见接口约定 §1.5 的只增不改原则）。
+        """
+        if not self.supports("context_lifecycle"):
+            return {"context_supported": False, "context_count": None}
+        try:
+            return {"context_supported": True, "context_count": self.context_count()}
+        except Exception as e:                                    # noqa: BLE001
+            return {"context_supported": True, "context_count": None,
+                    "context_error": f"{type(e).__name__}: {e}"}
+
+    def _ctx_create_raw(self, ordinal: int):
+        """子类实现：调用厂商上下文创建原语。"""
+        raise NotImplementedError(f"后端 '{self.name}' 未实现 _ctx_create_raw")
+
+    def _ctx_destroy_raw(self, ctx, handle: dict) -> None:
+        """子类实现：调用厂商上下文销毁原语。"""
+        raise NotImplementedError(f"后端 '{self.name}' 未实现 _ctx_destroy_raw")
 
     # ───────────────────── 执行 / 多流 Stream（职责 D4/D5）──────────────────────
 
@@ -93,6 +303,7 @@ class RuntimeBackend(ABC):
     @abstractmethod
     def stream_context(self, native_stream):
         """返回切换到该流的上下文管理器（with 使用）。"""
+        # 使用点拦截（工作包 C·绑定语义）：见 check_stream_usable。
 
     @abstractmethod
     def synchronize_stream(self, native_stream, timeout_ms: int) -> None:
@@ -101,6 +312,24 @@ class RuntimeBackend(ABC):
     @abstractmethod
     def wait_event_host(self, native_event, timeout_ms: int) -> bool:
         """主机侧有界等待事件；返回 True 表示已完成，超时返回 False。"""
+
+    # ── 跨流内存保护（工作包 B-3）：`record_stream` 能力位 + 保守同步路径 ──
+
+    def peek_current_device(self) -> int:
+        """**只读**返回当前默认设备序号（不切换设备）。
+
+        用途：`conservative_stream_sync()` 需要知道该同步哪个设备。
+        默认实现返回 0（单设备场景安全）；三家均覆写为厂商的 `current_device()`。
+        """
+        return 0
+
+    def conservative_stream_sync(self, native_stream=None) -> None:
+        """`record_stream` 不可用时的**保守同步**：同步当前设备后再让内存被复用。
+
+        宁可慢，不可坏 —— 跨流内存被提前回收会变成**数据竞争**（最难查的一类问题）。
+        本方法把"不支持"从"运行时 `getattr` 失败"变成"一条可预判的退化路径"。
+        """
+        self.synchronize(self.peek_current_device())
 
     # ───────────────────────── 错误码翻译（职责 D10）─────────────────────────
 
@@ -114,15 +343,34 @@ class RuntimeBackend(ABC):
     def probe_device(self, ordinal: int) -> bool:
         """轻量探活：区分可继续与需重建。健康设备应返回 True。"""
 
-    @abstractmethod
     def recover_device(self, ordinal: int, mode: str = "probe",
                        reason: str = "") -> dict:
-        """设备重建，统一返回 dict：{ordinal, mode, recovered, detail}。
+        """设备重建（**公共入口**，统一返回 dict 且**只增不改**）。
 
-        2026-09-09 统一：此前不同后端返回类型不一致（有的返回 bool、有的返回 dict），
-        同一接口跨后端返回类型不一致，上层无法统一处理（已按 dict 归一）。
+        本方法在基类实现，负责在子类实现之上**统一附加"上下文维度"**，
+        避免三家各写一遍（写成三遍就必然出现三套口径）：
+            `context_supported` / `context_count` / `context_recreated`
+        —— 契约五键 `{ordinal, mode, recovered, state, detail}` **保持不变**。
+
+        2026-09-09 统一返回类型为 dict（此前有的返回 bool、有的 dict，上层无法统一处理）。
         """
-        """设备重建。
+        rec = self._recover_device_impl(ordinal, mode=mode, reason=reason)
+        if isinstance(rec, dict):                                 # Mock/自定义实现可返回非 dict
+            snap = self.context_snapshot()
+            rec["context_supported"] = snap["context_supported"]
+            rec["context_count"] = snap["context_count"]
+            # `real` 模式的语义就是"销毁并重建上下文"（见 _recover_device_impl 文档）
+            rec["context_recreated"] = bool(mode == "real" and rec.get("recovered"))
+            if snap.get("context_error"):
+                rec["context_error"] = snap["context_error"]
+        return rec
+
+    @abstractmethod
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "") -> dict:
+        """子类实现：设备重建的**实际动作**，返回 dict（至少含契约五键所需的业务字段）。
+
+        实现者不必关心上下文维度 —— 基类 `recover_device()` 会统一附加。
 
         mode:
           - "probe"  探针重试近似（默认保底，进程内安全）
@@ -164,11 +412,90 @@ class RuntimeBackend(ABC):
         cap = getattr(self, "_CAPABILITY_ALIASES", {}).get(capability, capability)
         return cap in getattr(self, "_capabilities", set())
 
+    # ───────────────────────── `.native` 逃生舱审计（工作包 B-4）─────────────────────────
+    #
+    # 修订建议 §3：`.native` 定为"显式逃生舱"，一旦上层取用，该处代码即视为
+    # **绑定该厂商**，不得再声称跨芯片可移植 ⇒ 必须能**事后溯源**。
+    # 本层做法：公开属性 `.native` **计数**；层内部一律走私有 `_native_obj`，不计数。
+
+    def note_native_access(self, kind: str) -> None:
+        """记一次 `.native` 取用（由 `api/stream.py` 的公开属性调用）。"""
+        acc = self.__dict__.setdefault("_native_accesses", {"total": 0, "by_kind": {}})
+        acc["total"] += 1
+        acc["by_kind"][kind] = acc["by_kind"].get(kind, 0) + 1
+
+    def native_accesses(self) -> dict:
+        """`.native` 取用审计：`{"total": n, "by_kind": {...}}`（只读副本）。"""
+        acc = self.__dict__.get("_native_accesses") or {"total": 0, "by_kind": {}}
+        return {"total": int(acc["total"]), "by_kind": dict(acc["by_kind"])}
+
+    def reset_native_accesses(self) -> None:
+        """清零审计计数（便于"本轮跑完看取用次数"的取数方式）。"""
+        self.__dict__["_native_accesses"] = {"total": 0, "by_kind": {}}
+
+    # ───────────────── 能力缺失的**退化路径**审计（工作包 B-3）─────────────────
+    #
+    # 与上面的 `.native` 审计**分开计数**，因为两者性质相反：
+    #   `.native` 取用 = 破坏可移植性（坏账）；退化路径 = 用性能换正确性（可接受的降级）。
+    # 但两者都必须**可观测**：否则"静默退化"又回来了（台账第 ⑨ 条家族）。
+
+    def note_degradation(self, kind: str) -> None:
+        """记一次因能力缺失而走的退化路径（如 `record_stream` 不可用 → 保守同步）。"""
+        acc = self.__dict__.setdefault("_degradations", {"total": 0, "by_kind": {}})
+        acc["total"] += 1
+        acc["by_kind"][kind] = acc["by_kind"].get(kind, 0) + 1
+
+    def degradations(self) -> dict:
+        """退化路径审计：`{"total": n, "by_kind": {...}}`（只读副本）。"""
+        acc = self.__dict__.get("_degradations") or {"total": 0, "by_kind": {}}
+        return {"total": int(acc["total"]), "by_kind": dict(acc["by_kind"])}
+
+    def reset_degradations(self) -> None:
+        self.__dict__["_degradations"] = {"total": 0, "by_kind": {}}
+
     # ───────────────────────── 元信息 ─────────────────────────
 
-    def info(self) -> dict:
+    def _base_info_fields(self) -> dict:
+        """所有后端 `info()` 都应并入的公共字段（新增能力时**一处生效**）。"""
         return {
-            "name": self.name,
-            "device_type": self.device_type,
             "capabilities": sorted(getattr(self, "_capabilities", set())),
+            "native_accesses": self.native_accesses(),
+            "degradations": self.degradations(),
         }
+
+    def info(self) -> dict:
+        out = {"name": self.name, "device_type": self.device_type}
+        out.update(self._base_info_fields())
+        return out
+
+    # ───────────────────────── 内部工具 ─────────────────────────
+
+    def _reg(self, name: str) -> dict:
+        """取（或惰性创建）**每实例独立**的登记表。"""
+        reg = getattr(self, name, None)
+        if reg is None:
+            reg = {}
+            setattr(self, name, reg)
+        return reg
+
+    #: 登记表名 → 期望的句柄种类（**防两类句柄互相误用**）
+    _REG_KINDS = {"_alloc_handles": "memory", "_ctx_handles": "context"}
+
+    def _handle_id(self, handle, reg_name: str, what: str) -> int:
+        """校验并取出句柄 id；**任何不合契约的句柄都如实报错，绝不静默接受**。"""
+        if not isinstance(handle, dict) or "handle_id" not in handle:
+            raise ValueError(
+                f"{what}句柄格式不合法：期望 allocate()/context_create() 返回的 dict，"
+                f"收到 {type(handle).__name__}。**不接受厂商原始指针/句柄**"
+                "（需绕过统一层请走 `.native` 显式逃生舱并计入审计）。")
+        want = self._REG_KINDS.get(reg_name)
+        if want and handle.get("kind") not in (None, want):
+            raise ValueError(
+                f"{what}句柄种类不匹配：拿到 kind={handle.get('kind')!r}，期望 {want!r}"
+                "—— **内存句柄与上下文句柄不得互相误用**（如实报错，不静默接受）。")
+        hid = handle.get("handle_id")
+        if hid not in self._reg(reg_name):
+            raise ValueError(
+                f"{what}句柄 {hid} 不属于本后端或**已被释放**（重复释放/跨后端误用）"
+                "—— 如实报错，不静默接受。")
+        return hid

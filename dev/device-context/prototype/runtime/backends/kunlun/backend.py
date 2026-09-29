@@ -117,6 +117,8 @@ class KunlunBackend(RuntimeBackend):
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
+        "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
     )
 
     #: 本后端**声明支持**的能力（不支持的一律不写进来，不伪造）
@@ -130,6 +132,11 @@ class KunlunBackend(RuntimeBackend):
         "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
         "graph_capture",     # torch.cuda.graph（2026-09-20 实测 GRAPH_CAPTURE_PASS 5/5）
         "multidevice",       # 单机 8 卡
+        # ── 2026-09-29（工作包 B）新增 ──
+        "memory_alloc",      # torch.cuda.caching_allocator_alloc + caching_allocator_delete
+                             #   （实测：0 → 4 MiB → 0，且非法/重复指针**如实报错**）
+        "memory_alloc_stat",  # memory_stats()["allocated_mb"]（memory_allocated）
+        "record_stream",     # Tensor.record_stream 可用
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
@@ -226,11 +233,17 @@ class KunlunBackend(RuntimeBackend):
                     torch.cuda.set_device(prev)
                 except Exception:
                     pass
-        return {
+        out = {
             "total_mb": int(total / 1024 / 1024),
             "used_mb": int(used / 1024 / 1024),
             "free_mb": int(free / 1024 / 1024),
         }
+        # 工作包 B-2：新增 `allocated_mb`（分配器视角，取不到则省略该键）。
+        try:
+            out["allocated_mb"] = int(torch.cuda.memory_allocated(ordinal) / 1024 / 1024)
+        except Exception:
+            pass
+        return out
 
     def probe_device(self, ordinal: int) -> bool:
         """轻量探活：分配 2x2 零张量并求和，不干扰业务。"""
@@ -252,6 +265,43 @@ class KunlunBackend(RuntimeBackend):
                         pass
         except Exception:
             return False
+
+    # ─────────────── 内存句柄与生命周期（职责 D3 · 工作包 B-1）───────────────
+
+    def _alloc_raw(self, size_bytes: int, ordinal: int):
+        """XPytorch 兼容层的原始设备内存分配。
+
+        实测（P800，2026-09-29）：本家 `caching_allocator_alloc` 是**真覆写**
+        （与 910C 的 `torch.npu` 不同 —— 那边只是继承 `torch.cuda` 的实现、一调就报
+        `Found no NVIDIA driver`）；释放原语名是 **`caching_allocator_delete`**，
+        **不存在** `caching_allocator_free`（`hasattr` 为 False）。
+        """
+        torch = self.torch
+        prev = torch.cuda.current_device()
+        if prev != ordinal:
+            torch.cuda.set_device(ordinal)
+        try:
+            return torch.cuda.caching_allocator_alloc(int(size_bytes))
+        finally:
+            if prev != ordinal:
+                try:
+                    torch.cuda.set_device(prev)
+                except Exception:
+                    pass
+
+    def _free_raw(self, ptr, handle: dict) -> None:
+        """实测：`caching_allocator_delete` 对非法/重复指针**如实报错**
+        （`RuntimeError: invalid device pointer`）—— 与 pyACL 的静默恰好相反；
+        统一层仍统一登记，保证跨家行为一致。
+        """
+        self.torch.cuda.caching_allocator_delete(ptr)
+
+    def peek_current_device(self) -> int:
+        """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""
+        try:
+            return int(self.torch.cuda.current_device())
+        except Exception:
+            return 0
 
     # ───────────── 流 / 事件 ─────────────
     def create_stream(self):
@@ -380,8 +430,8 @@ class KunlunBackend(RuntimeBackend):
 
 
     # ───────────── 恢复 ─────────────
-    def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "", **kwargs: Any) -> dict:
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "", **kwargs: Any) -> dict:
         """设备重建。统一返回 dict，`recovered` 语义 = **设备当前可用**。
 
         ⚠️ 实测：`torch.cuda` 上**没有设备级重置/重建原语** ——
@@ -478,6 +528,8 @@ class KunlunBackend(RuntimeBackend):
             "torch_build": {"USE_CUDA": True, "USE_XPU": False},
             "device_count": self.device_count(),
             "capabilities": sorted(self._capabilities),
+            "native_accesses": self.native_accesses(),
+            "degradations": self.degradations(),
             # 与 _capabilities 同一套键名（自洽，不重复出现 A 键声明/B 键查询的问题）
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),

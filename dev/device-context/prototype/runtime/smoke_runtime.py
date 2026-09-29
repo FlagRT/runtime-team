@@ -108,7 +108,7 @@ class MockBackend(RuntimeBackend):
         )
 
     def probe_device(self, ordinal): return True
-    def recover_device(self, ordinal, mode="probe", reason=""): return True
+    def _recover_device_impl(self, ordinal, mode="probe", reason=""): return True
 
 
 def main(argv=None):

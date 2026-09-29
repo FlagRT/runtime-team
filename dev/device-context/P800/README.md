@@ -12,6 +12,7 @@
 
 | 项 | 状态 | 关键数字 |
 |---|---|---|
+| ⭐ **工作包 B/C 接口落地（09-29）** | ✅ **3/3 · C 项如实不具备** | `allocate/free` 句柄（申请 8 MiB → 设备空闲 **−20.0 MB**、`memory_stats()["allocated_mb"]` **0→8→0**）、二次释放如实 `ValueError`、`record_stream` 走**原生路径**、`.native` 审计隔离（公开 1 / 内部 0）；**`context_lifecycle` 未声明 ⇒ 相关调用如实报错**（XPytorch 兼容层未暴露上下文原语，与 `recovery_real` 同因）⇒ 报告 `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；证据 `probes/probe_bc_contract_kunlun_20260929.json` |
 | ⭐ **跨实例复验（09-29 r2，最新）** | ✅ **10 项全绿 · 0 回归** | 离线自检 **45/0/1 跳过** · 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** · 职责审计 **36/0/3** · 错误闭环 **5/0/0** · 等价性 **6/6** · 多流 8/8 + 配额 3/3。⚠️ 首轮在**卡 1** 上冒烟挂死（`Event.record + wait_host` 失败 → `probe_device` 无返回），经**单变量对照**（同卡用**修复前**原型复现同一行）判定为**卡级环境问题** ⇒ **改用卡 4** 并新增纪律「选卡后先跑最小 Event/同步探针」<br>⇒ 见 `docs/KUNLUN_P800_REGRESS_AFTER_FIX_20260929.md`；证据 `probes/*_kunlun_20260929_r2.*` + `probes/DIAG_kunlun_card1_event_hang_20260929.log` |
 | ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿** | 离线自检 **39/0**（1 跳过）· 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8**（S12 如实不支持）+ 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（loss 15.4488→11.1481、**3533.5 tok/s**、`dist=cpu:gloo,cuda:flagcx`）· 推理腿前向 **`INFER_LEG_PASS 13/13 + 1 跳过`**（53.28 句/s、p50 56.12 ms）· 服务化 **`SERVE_STANDARD_PASS`**（25 s 就绪、维度 1024、范数 1.000000）· 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0**<br>⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`；证据 `probes/accept_*_20260922.*` |
 | ⭐ **职责响应审计（09-28，逐 sub-part）** | ✅ **`DUTY_RESPONSE_PASS` 36 OK / 0 FAIL / 3 SKIP** | 按接口约定 39 项逐项真机调用；**3 项 SKIP 均为「如实不具备」**（`elapsed_time` 需 `enable_timing=True` 事件；`D5`/`F1` 因本机**无数字错误码**未声明 `error_map`，分级走 `message_hint`，已由 conformance F1 覆盖）。首轮 **34/2/3** —— 暴露 `recover_device` 返回**缺 `state`**（契约五键不全），已补做复跑转 PASS<br>⇒ 报告 `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`；证据 `probes/duty_audit_kunlun_20260928.json` |
@@ -207,7 +208,8 @@ P800/
 | `recheck_conformance_infer6_kunlun_20260922.json` | 同上：推理 6 例 6/6 |
 | `recheck_stream_semantics_kunlun_20260922.json` | 同上：执行语义基线 8/8 |
 | `recheck_error_loop_kunlun_20260922.json` | 同上：错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
-| ⭐ `regress_*_kunlun_20260929_r2.{log,json}` + `exp_divergence_cost_kunlun_20260929_r2.{json,log}`（17 份） | **09-29 第 2 轮全套回归原始证据**（卡 4）：离线 **45/0/1** · 对称性 5/0 · 冒烟 46/0 · conformance 13+6 · 职责审计 36/0/3 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `regress_*_kunlun_20260929_r2.{log,json}` + `exp_divergence_cost_kunlun_20260929_r2.{json,log}`（17 份）
+| ⭐ `probe_bc_contract_kunlun_20260929.json` | **工作包 B/C 真机契约探针**：B1/B3/B4 **3/3 通过**；C 三组如实 SKIP（未声明 `context_lifecycle`） | | **09-29 第 2 轮全套回归原始证据**（卡 4）：离线 **45/0/1** · 对称性 5/0 · 冒烟 46/0 · conformance 13+6 · 职责审计 36/0/3 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
 | ⚠️ `DIAG_kunlun_card1_event_hang_20260929.log` | **卡 1 挂死判别记录**（原样留档）：A 组（卡 1 + 新原型，含 `faulthandler` 调用栈）· B 组（卡 4 + 新原型，**全绿**）· C 组（卡 1 + **修复前**原型，**同一行挂死**）⇒ 判定为**卡级环境问题**，未改动任何判据 |
 
 > ⚠️ **注意**：本目录 `*.log` 为**原始证据**，需随仓库分发，故在此目录放了局部 `.gitignore`（`!*.log`）

@@ -155,6 +155,15 @@ def _make_fake_acl(init_rc=0):
     acl.finalize = lambda: 0
     acl.rt = types.SimpleNamespace(
         set_device=lambda o: rc["set_device"],
+        # 2026-09-29（工作包 B/C）：内存句柄与设备上下文原语。
+        # ⚠️ `free` **刻意做成静默**（对重复释放/非法指针返回 0，与 pyACL 实测一致）
+        #    ⇒ "二次释放必须报错"这条判据**只能由本层的句柄登记表兜住**，
+        #    谁把登记表拿掉，判据就 FAIL（非空转可验）。
+        malloc=lambda size, policy=0: (0x20000000 + int(size), 0),
+        free=lambda ptr: 0,
+        create_context=lambda dev: (0x30000000 + int(dev), 0),
+        set_context=lambda ctx: 0,
+        destroy_context=lambda ctx: 0,
         synchronize_device_with_timeout=lambda ms: rc["sync"],
         synchronize_stream_with_timeout=lambda h, ms: rc["sync"],
         get_device_count=lambda: (8, 0),
@@ -251,6 +260,12 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     ns.synchronize = lambda *a, **k: None
     ns.get_device_properties = lambda o: Props()
     ns.memory_allocated = lambda o: 1 * 1024 ** 3
+    # 2026-09-29（工作包 B-1）：原始设备内存原语。
+    # 释放原语名按各家实测命名（昆仑芯 = `caching_allocator_delete`；
+    # `caching_allocator_free` 在本栈**不存在**，故不伪造它）。
+    # 同样**刻意静默**：重复释放不报错 ⇒ 把负向判据逼给本层登记表。
+    ns.caching_allocator_alloc = lambda size, device=None, stream=None: 0x10000000 + int(size)
+    ns.caching_allocator_delete = lambda ptr: None
     ns.device = lambda o=0: _Dev(o)
     if mem_mode == "full":
         ns.mem_get_info = lambda ordinal=None: (80 * 1024 ** 3, 96 * 1024 ** 3)
@@ -371,11 +386,22 @@ def run(proto_dir, backend):
     check("set_device 生效", state["current"] == 3)
     mem = bk.memory_stats(0)
     if caps.get("stub_mem_stats_shape", True):
-        check("memory_stats 结构 = {total_mb,used_mb,free_mb}",
-              set(mem) == {"total_mb", "used_mb", "free_mb"}, str(mem))
-        check("memory_stats 值有效（>0 且 total=used+free 近似）",
+        # 2026-09-29（工作包 B-2）：判据由"**精确等于三键**"改为"**三键齐备 + 只增键**" ——
+        # 契约承诺三键语义**不变**，但允许（鼓励）新增 `allocated_mb`。
+        # ⚠️ 这不是"把判据放宽到能绿"：原来那条会把**合法的契约扩展**判成失败，
+        #    而新增的"未登记键 ⇒ FAIL"反而收得更紧（防键名漂移）。
+        check("memory_stats 三键齐备（total_mb/used_mb/free_mb）",
+              {"total_mb", "used_mb", "free_mb"} <= set(mem), str(mem))
+        check("memory_stats 三键取值有效（>0 且 total=used+free 近似）",
               mem["total_mb"] > 0 and abs(mem["total_mb"] - mem["used_mb"] - mem["free_mb"]) <= 1,
               str(mem))
+        if "allocated_mb" in mem:
+            check("memory_stats 增键 allocated_mb ⇒ 必须为 int 且 ≥0",
+                  isinstance(mem["allocated_mb"], int) and mem["allocated_mb"] >= 0,
+                  str(mem["allocated_mb"]))
+        check("memory_stats 不得出现**未登记**的多余键（防键名漂移）",
+              not (set(mem) - {"total_mb", "used_mb", "free_mb", "allocated_mb"}),
+              str(sorted(mem)))
     else:
         skip("memory_stats 结构/取值",
              "该后端从厂商命名空间原样透传原始字段；stub 造的原始返回形状与真实厂商栈不一致，"
@@ -690,6 +716,163 @@ def run(proto_dir, backend):
              "该后端没有**独立可缺失的厂商扩展模块** —— 它的'扩展'是被替换过的 torch 本身"
              "（如昆仑芯 XPytorch），摘掉模块这一步在本语义空间下无法构造；"
              "真机上表现为 device_count()==0，由 registry/smoke 的 device_count 判据覆盖")
+
+    # ── 9. 内存句柄与设备上下文（工作包 B / C，2026-09-29 新增）──
+    print("\n[9] 内存句柄与生命周期 / 设备上下文（工作包 B/C）")
+
+    # B-2：第四键与能力位必须自洽（"声明即承诺"）
+    if caps.get("stub_mem_stats_shape", True):
+        if bk.supports("memory_alloc_stat"):
+            check("声明 memory_alloc_stat ⇒ memory_stats 必须给出 allocated_mb",
+                  "allocated_mb" in mem, f"keys={sorted(mem)}")
+
+    # B-1：句柄语义 —— 成对释放 + 负向必须报错
+    if bk.supports("memory_alloc"):
+        n0 = bk.memory_handle_count()
+        h = bk.allocate(1 << 20)
+        check("allocate ⇒ 句柄含公共字段、且**不含厂商指针**（防绕过 .native 纪律）",
+              isinstance(h, dict) and set(runtime.MEMORY_HANDLE_KEYS) <= set(h)
+              and "ptr" not in h, str(sorted(h)))
+        check("allocate ⇒ 在世句柄数 +1", bk.memory_handle_count() == n0 + 1,
+              f"{n0} -> {bk.memory_handle_count()}")
+        bk.free(h)
+        check("free ⇒ 在世句柄数回落（成对释放，无泄漏）",
+              bk.memory_handle_count() == n0, str(bk.memory_handle_count()))
+        # ⚠️ stub 的厂商 free **刻意静默** ⇒ 下列两条只能由**本层登记表**兜住
+        try:
+            bk.free(h)
+            check("二次释放必须如实报错（不得静默）", False, "未报错（厂商静默被透传）")
+        except Exception as e:                                # noqa: BLE001
+            check("二次释放必须如实报错（不得静默）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.free({"handle_id": 10 ** 9})
+            check("未见过的句柄必须报错（不得静默）", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("未见过的句柄必须报错（不得静默）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        for bad in (0, -1, "1024"):
+            try:
+                bk.allocate(bad)
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）", False, "未报错")
+            except ValueError:
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）", True, "ValueError")
+            except Exception as e:                            # noqa: BLE001
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）",
+                      False, type(e).__name__)
+    else:
+        try:
+            bk.allocate(1024)
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", False, "未报错")
+        except NotImplementedError:
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", True, "NotImplementedError")
+        except Exception as e:                                # noqa: BLE001
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", False, type(e).__name__)
+
+    # B-3：`record_stream` 能力位 + 保守同步路径
+    class _NoRecordStream:
+        """刻意造一个**没有 record_stream** 的对象（模拟不支持该能力的张量/后端）。"""
+
+    st = runtime.create_stream()
+    _d0 = bk.degradations()["total"]
+    import warnings as _warn
+    _rs_exc = None
+    with _warn.catch_warnings(record=True) as _caught:
+        _warn.simplefilter("always")
+        try:
+            st.record_stream(_NoRecordStream())
+        except BaseException as e:                            # noqa: BLE001
+            _rs_exc = e                                        # 判 FAIL，不让整段崩掉
+    check("record_stream 不可用时 ⇒ 走保守同步且**不抛错**（慢，但不发生数据竞争）",
+          _rs_exc is None and bk.degradations()["total"] == _d0 + 1,
+          (f"{type(_rs_exc).__name__}: {_rs_exc}" if _rs_exc
+           else f"degradations={bk.degradations()} warnings={len(_caught)}"))
+    if bk.supports("record_stream"):
+        check("声明 record_stream ⇒ 能力位为真（上层可提前预判）",
+              bk.supports("record_stream") is True, "True")
+
+    # B-4：`.native` 逃生舱审计（公开属性计数、**层内部路径不计数**）
+    bk.reset_native_accesses()
+    _ = st.native
+    check(".native 取用 ⇒ 审计计数 +1", bk.native_accesses()["total"] == 1,
+          str(bk.native_accesses()))
+    bk.reset_native_accesses()
+    ev_i = runtime.create_event()
+    st.wait_event(ev_i)                                       # 层内部走私有 _native_obj
+    st.synchronize() if False else None
+    check("层内部路径（wait_event 等）⇒ **不得**计入 .native 审计",
+          bk.native_accesses()["total"] == 0, str(bk.native_accesses()))
+
+    # C：设备上下文生命周期（能力位自洽 + 只接受本层句柄）
+    if bk.supports("context_lifecycle"):
+        c0 = bk.context_count()
+        ctx = bk.context_create(0)
+        check("context_create ⇒ 计数 +1，句柄含公共字段且**不含厂商上下文对象**",
+              bk.context_count() == c0 + 1 and "ctx" not in ctx
+              and set(runtime.CONTEXT_HANDLE_KEYS) <= set(ctx), str(sorted(ctx)))
+        try:
+            bk.context_set(ctx)
+            check("context_set ⇒ 可切换到本层创建的上下文", True, "ok")
+        except Exception as e:                                # noqa: BLE001
+            check("context_set ⇒ 可切换到本层创建的上下文", False, f"{type(e).__name__}: {e}")
+        _st_ctx = runtime.create_stream()                     # 在该上下文之下创建流
+        bk.context_destroy(ctx)
+        check("context_destroy ⇒ 计数回落", bk.context_count() == c0, str(bk.context_count()))
+        # C-2 绑定语义：**销毁上下文后使用其流必须如实报错**。
+        # ⚠️ 这条判据的必须性来自真机实测：厂商栈在此处**当场不报错**（静默成功），
+        #    直到进程退出清理阶段才暴露 107003 ⇒ 不拦截就等于"看运气"。
+        try:
+            _st_ctx.context()
+            check("销毁上下文后使用其流必须如实报错（不得静默成功）", False, "未报错（静默成功）")
+        except Exception as e:                                # noqa: BLE001
+            check("销毁上下文后使用其流必须如实报错（不得静默成功）",
+                  isinstance(e, RuntimeError), f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.context_destroy(ctx)
+            check("销毁后重复销毁必须报错", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("销毁后重复销毁必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.context_destroy({"handle_id": 10 ** 9})        # 未登记句柄
+            check("非本层句柄必须报错（不得误毁他人/默认上下文）", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("非本层句柄必须报错（不得误毁他人/默认上下文）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        if bk.supports("memory_alloc"):
+            # 跨种类误用：**内存句柄当上下文销毁**（反之亦然）必须报错
+            _mh = bk.allocate(4096)
+            try:
+                bk.context_destroy(_mh)
+                check("跨种类误用（内存句柄当上下文）必须报错", False, "未报错")
+            except Exception as e:                            # noqa: BLE001
+                check("跨种类误用（内存句柄当上下文）必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+            try:
+                bk.free(ctx)                                  # 上下文句柄当内存句柄
+                check("跨种类误用（上下文句柄当内存）必须报错", False, "未报错")
+            except Exception as e:                            # noqa: BLE001
+                check("跨种类误用（上下文句柄当内存）必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+            bk.free(_mh)
+    else:
+        for _call in (lambda: bk.context_create(0), lambda: bk.context_count(),
+                      lambda: bk.context_set({"handle_id": 1}),
+                      lambda: bk.context_destroy({"handle_id": 1})):
+            try:
+                _call()
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", False, "未报错")
+            except NotImplementedError:
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", True, "NotImplementedError")
+            except Exception as e:                            # noqa: BLE001
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", False, type(e).__name__)
+
+    # C-3：`recover_device` **只增不改**
+    check("recover_device 增补 context 三键（契约五键保持不变）",
+          isinstance(rec, dict)
+          and {"context_supported", "context_count", "context_recreated"} <= set(rec)
+          and {"ordinal", "mode", "recovered", "state", "detail"} <= set(rec),
+          str(sorted(rec)))
 
     print("\n" + "=" * 74)
     print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败 / {SKIPPED} 跳过（stub 能力边界，非失败）")

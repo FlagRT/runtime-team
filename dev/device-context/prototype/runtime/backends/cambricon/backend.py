@@ -159,6 +159,9 @@ class CambriconBackend(RuntimeBackend):
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-29（工作包 B/C）新增键：本家**全部未声明**（未真机验证 ⇒ 不声明，
+        # 如实呈现为 False）。MLU590 上的原语探测与声明留待下一轮。
+        "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
     )
 
     #: 本后端**声明支持**的能力（不支持/未验证的一律不写进来 —— 如实声明，不伪造）
@@ -319,6 +322,13 @@ class CambriconBackend(RuntimeBackend):
         except Exception:
             return False
 
+    def peek_current_device(self) -> int:
+        """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""
+        try:
+            return int(self.torch.mlu.current_device())
+        except Exception:
+            return 0
+
     # ───────────── 流 / 事件（职责 D4/D5）─────────────
     def create_stream(self):
         return self.torch.mlu.Stream()
@@ -462,8 +472,8 @@ class CambriconBackend(RuntimeBackend):
 
 
     # ───────────── 状态恢复（职责 D11）─────────────
-    def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "", **kwargs: Any) -> dict:
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "", **kwargs: Any) -> dict:
         """设备重建。统一返回 dict，`recovered` 语义 = **设备当前可用**。
 
         ⚠️ **`real` 模式当前不支持**，原因是「**未验证**」而非「已确认不具备」：
@@ -613,6 +623,8 @@ class CambriconBackend(RuntimeBackend):
             "device_namespace": "mlu（torch.mlu.*；PrivateUse1，进程内与其他厂商插件互斥）",
             "device_count": self.device_count(),
             "capabilities": sorted(self._capabilities),
+            "native_accesses": self.native_accesses(),
+            "degradations": self.degradations(),
             # 与 _capabilities 同一套键名（自洽，避免 A 键声明 / B 键查询的口径漂移）
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),

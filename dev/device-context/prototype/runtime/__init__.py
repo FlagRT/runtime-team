@@ -10,7 +10,17 @@
     runtime.set_device(0)
     s = runtime.create_stream()
     fe = runtime.translate_error(exc, location="op:matmul")
-    r = runtime.recover_device(0, mode="real")   # -> dict: {ordinal, mode, recovered, detail}\n    ok = r["recovered"]
+    r = runtime.recover_device(0, mode="real")   # -> dict: {ordinal, mode, recovered, state, detail, ...}
+    ok = r["recovered"]
+
+    # 内存句柄（工作包 B）：只做句柄语义，不做池化策略
+    h = runtime.allocate(4 * 1024 * 1024)        # -> 统一句柄 dict（不含厂商指针）
+    runtime.free(h)                              # 重复释放会如实报错
+
+    # 设备上下文生命周期（工作包 C）：能力未声明时如实报错
+    ctx = runtime.context_create(0)
+    runtime.context_count()
+    runtime.context_destroy(ctx)                 # 只接受本层创建的句柄
 
 对应职责子层：设备上下文 + 多流 Stream + 错误码翻译 + 状态恢复。
 架构位置：上承算子层/编译层与模型转换器，下接多机多卡分布式训练与推理。
@@ -23,7 +33,12 @@ from .api.errors import (
     translate_via_backend,
 )
 from .api.stream import Event, Stream
-from .backends.base import RuntimeBackend
+from .backends.base import (
+    CONTEXT_HANDLE_KEYS,
+    DEVICE_STATE_TOKENS,
+    MEMORY_HANDLE_KEYS,
+    RuntimeBackend,
+)
 from .backends import registry
 from .backends.registry import (
     BackendNotFound,
@@ -48,6 +63,13 @@ __all__ = [
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
     "probe_device", "recover_device", "translate_error", "device_state",
+    # 内存句柄与生命周期（工作包 B）
+    "allocate", "free", "memory_handle_count", "MEMORY_HANDLE_KEYS",
+    # 设备上下文生命周期（工作包 C）
+    "context_create", "context_destroy", "context_count", "CONTEXT_HANDLE_KEYS",
+    "DEVICE_STATE_TOKENS",
+    # 审计（`.native` 逃生舱 / 退化路径）
+    "native_accesses", "degradations",
 ]
 
 __version__ = "0.1.0"
@@ -64,13 +86,21 @@ def set_device(ordinal: int) -> None:
 
 
 def memory_stats(ordinal: int = 0) -> dict:
+    """设备内存统计（规范三键 `total_mb` / `used_mb` / `free_mb`；
+    声明了 `memory_alloc_stat` 的后端另给 `allocated_mb`）。"""
     return current().memory_stats(ordinal)
 
 
 def create_stream() -> Stream:
-    """创建统一 Stream 对象（包装后端原生流）。"""
+    """创建统一 Stream 对象（包装后端原生流）。
+
+    2026-09-29（工作包 C）：同时登记"该流创建于哪个本层上下文"，
+    以便上下文销毁后在使用点**如实拦截**（厂商侧是静默的，见 backend.check_stream_usable）。
+    """
     b = current()
-    return Stream(b, b.create_stream())
+    native = b.create_stream()
+    b.note_stream_created(native)
+    return Stream(b, native)
 
 
 def create_event() -> Event:
@@ -101,6 +131,58 @@ def recover_device(ordinal: int = 0, mode: str = "probe", reason: str = "") -> d
 
 def device_state(ordinal: int = 0):
     return current().device_state(ordinal)
+
+
+# ─────────────── 内存句柄与生命周期（工作包 B）───────────────
+
+def allocate(size_bytes: int, ordinal: int = 0) -> dict:
+    """申请设备内存，返回**统一内存句柄**（公共字段见 `MEMORY_HANDLE_KEYS`）。
+
+    只提供句柄语义（申请/释放），**不含池化、碎片、峰值、扩容策略** —— 那些属显存方向。
+    """
+    return current().allocate(size_bytes, ordinal=ordinal)
+
+
+def free(handle) -> None:
+    """释放 `allocate()` 返回的句柄。**重复释放/非本层句柄会报错**（不静默）。"""
+    current().free(handle)
+
+
+def memory_handle_count() -> int:
+    """当前在世的内存句柄数（泄漏判据的取数入口）。"""
+    return current().memory_handle_count()
+
+
+# ─────────────── 设备上下文生命周期（工作包 C）───────────────
+
+def context_create(ordinal: int = 0) -> dict:
+    """新建设备上下文，返回统一句柄；后端未声明 `context_lifecycle` 时如实报错。"""
+    return current().context_create(ordinal=ordinal)
+
+
+def context_destroy(handle) -> None:
+    """销毁本层创建的设备上下文句柄；**对非本层句柄一律拒绝**。"""
+    current().context_destroy(handle)
+
+
+def context_count() -> int:
+    """本层当前在世的设备上下文数（不含进程默认上下文）。"""
+    return current().context_count()
+
+
+# ─────────────── 审计（`.native` 逃生舱 / 退化路径）───────────────
+
+def native_accesses() -> dict:
+    """`.native` 逃生舱取用审计：`{"total": n, "by_kind": {...}}`。
+
+    取用即视为绑定该厂商；本计数用于事后定位"可移植性被破坏"的位置。
+    """
+    return current().native_accesses()
+
+
+def degradations() -> dict:
+    """能力缺失导致的**退化路径**审计（如 `record_stream` 不可用 → 保守同步）。"""
+    return current().degradations()
 
 
 def _auto_discover():
