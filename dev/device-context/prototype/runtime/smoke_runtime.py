@@ -193,8 +193,12 @@ def main(argv=None):
     print("\n[4] 能力查询")
     check("supports(device)", b.supports("device"))
     check("不支持的能力返回 False", not b.supports("graph_capture"))
-    check("info 含 name/device_type/capabilities",
-          set(b.info()) == {"name", "device_type", "capabilities"}, str(b.info()))
+    # 2026-09-29（工作包 B）：`info()` 起改为**只增不改**（新增 native_accesses / degradations
+    # 两个审计字段）⇒ 判据从"**精确等于三键**"改为"**至少含三键**"。
+    # 这不是放宽：精确键集会把每一次合法的契约扩展都判成失败（同 memory_stats 那条）。
+    _info = b.info()
+    check("info 至少含 name/device_type/capabilities（只增不改）",
+          {"name", "device_type", "capabilities"} <= set(_info), str(_info))
 
     # ── 5. 真实后端（若环境可用）──
     print("\n[5] 昇腾后端（需 torch_npu，不可用则跳过）")
