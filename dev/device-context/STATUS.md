@@ -178,6 +178,33 @@ embedding 请求实测 **42–64 s** ⇒ 曾把 63.6 s 的**成功**请求判成
 　　边界（如实）：多卡上下文行为、`cuCtxSetLimit` 写入语义、IPC 真调（需跨进程）**仍未做**；
 　　MLU590 的 B/C 探测仍挂账。
 
+　　**2026-09-29（第五轮末：三项收尾做实 + 「停容器换卡」纪律澄清）**：按用户口径先做**环境普查**再决定动作。
+　　① **多卡上下文**（P800，`CUDA_VISIBLE_DEVICES=4,6`）：**每设备一个 primary context** —— 两设备 current
+　　context **互不相同**、切回后**稳定不变**；`primary` **按需激活**（dev0 `active=1`、dev1 触碰前 `active=0`）；
+　　**任一设备上 primary 激活即拒显式创建**（`create_on_dev1_rc=2`）⇒ 表述**再次精化**：
+　　不是「全局只允许一个上下文」，而是「**每设备一个、属设备级约束**」（多设备并行使用是允许的）。
+　　② **`cuCtxSetLimit` 写入语义**：`CU_LIMIT_STACK_SIZE` `0 → set(4096) rc=0 → 回读 4096 → 复原 0`；
+　　**不支持的 limit（idx=3）连设置也拒（`rc=215`）** ⇒ 写入同样"如实报错、不静默吞"。
+　　③ **IPC 真调（跨进程）**：A 侧 `cuMemAlloc_v2` / `cuMemcpyHtoD_v2` / **`cuIpcGetMemHandle` 全 rc=0**
+　　（64 字节非零 handle）；B 侧 **`cuIpcOpenMemHandle` = `rc=1`（INVALID_VALUE）**。
+　　**三种竞争解释逐一排除**：handle 传递（长度/前 8 字节一致、非全零）· 上下文未绑定
+　　（B 侧 `cuDevicePrimaryCtxRetain`/`cuCtxSetCurrent` 均 rc=0 且 current 非 0）· flags 取值（`1` 与 `0` 都 rc=1）
+　　⇒ **该栈 IPC：导出可用、导入未通**。IPC 不在本层契约内 ⇒ **不构成缺口**（如实登记厂商能力现状）。
+　　④ **910C 侧**：三设备上下文**互不相同**，**销毁 dev0 后 dev1/dev2 仍非零** ⇒ 无交叉影响；
+　　⚠️ **`acl.rt.get_context(dev)` 的 `dev` 参数被忽略**（同一当前设备下 `get(0)/get(1)/get(2)` 返回同一值）
+　　⇒ 必须**先 `set_device` 再查**（本层实现已如此，故不受影响）；`managed_by` **能判出 `unified`**。
+　　⚠️ **如实登记的局限**：`managed_by` 依赖厂商对象比对，**多设备反复切换时序下可能不命中**（可能误报
+　　`external`）⇒ 契约已明确把该字段定位为「**尽力而为的归属提示，非判据**」；销毁口另有「只接受本层句柄」
+　　硬校验兜底。多设备大规模混用前需补测。
+　　⑤ ⚠️ **纪律澄清（用停容器换卡）**：本轮**未停任何容器** —— 普查后判定 **P800 有 ~10 个容器 Up 且挂着活跃作业**
+　　（`VLLM::EngineCore` 已跑 5 天、`qwen3-vl-reranker`/`embedding-2b` 评测 99% CPU、多人 vLLM 服务；
+　　dev2/3/5 util 44%/100%/89%）⇒ `docker stop` 会中断这些作业；而 **910C 全机 8 个 NPU 均 `No running
+　　processes found`**、我方容器只挂 3 张卡且挂载集不相交 ⇒ 按 09-29 判明的名额规则**本就独占这 3 张**。
+　　⇒ **新纪律：先看「是否需要停」，而不是先停再用** —— 空闲容器不占名额时，停用纯属多余的风险。
+　　改用**当次空闲**的 dev4(+dev6) 完成全部探测（只做 8 字节级分配）。
+　　证据：`P800/probes/probe_final3_kunlun_20260929.log` · `probe_ipc2_kunlun_20260929.log` ·
+　　`910C/probes/PROBE_CONTEXT_probe_910c_multicard2.log` · `PROBE_CONTEXT_probe_910c_managed_by.log`。
+
 ｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。

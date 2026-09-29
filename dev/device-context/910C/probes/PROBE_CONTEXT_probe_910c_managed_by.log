@@ -1,0 +1,18 @@
+=== ① 建之前 ===
+   {'queryable': True, 'present': False, 'ordinal': None, 'flags': None, 'managed_by': None, 'reason': '此刻无生效上下文（厂商侧尚未建立，或本进程尚未触碰设备）'}
+
+=== ② 厂商侧两套表示对照（直连）===
+   create 返回 = 0xaaab15261420 (rc=0)
+   get    返回 = 0xaaab15261420 (rc=0)
+   两者相等 = True   ← 决定 _same_ctx 能否命中
+
+=== ③ 经统一层：建上下文后查 managed_by ===
+   {'queryable': True, 'present': True, 'ordinal': 0, 'flags': None, 'managed_by': 'unified', 'reason': ''}
+
+=== ④ 再 set 一次后查 ===
+   {'queryable': True, 'present': True, 'ordinal': 0, 'flags': None, 'managed_by': 'unified', 'reason': ''}
+
+=== ⑤ 销毁后查 ===
+   {'queryable': True, 'present': False, 'ordinal': None, 'flags': None, 'managed_by': None, 'reason': '此刻无生效上下文（厂商侧尚未建立，或本进程尚未触碰设备）'}
+
+RESULT_JSON {"capabilities": {"context_query": true, "context_lifecycle": true}, "before_create": {"queryable": true, "present": false, "ordinal": null, "flags": null, "managed_by": null, "reason": "此刻无生效上下文（厂商侧尚未建立，或本进程尚未触碰设备）"}, "vendor_create_ret": "0xaaab15261420 (rc=0)", "vendor_get_ret": "0xaaab15261420 (rc=0)", "same_object": true, "after_create": {"queryable": true, "present": true, "ordinal": 0, "flags": null, "managed_by": "unified", "reason": ""}, "managed_becomes_unified": true, "after_set": {"queryable": true, "present": true, "ordinal": 0, "flags": null, "managed_by": "unified", "reason": ""}, "after_destroy": {"queryable": true, "present": false, "ordinal": null, "flags": null, "managed_by": null, "reason": "此刻无生效上下文（厂商侧尚未建立，或本进程尚未触碰设备）"}}

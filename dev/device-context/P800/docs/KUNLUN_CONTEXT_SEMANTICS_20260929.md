@@ -147,6 +147,19 @@ cuCtxSetCacheConfig cuCtxSetCurrent cuCtxSetLimit cuCtxSetSharedMemConfig cuCtxS
 ⇒ **准确表述是**：**该设备上 primary context 已激活 ⇒ 显式创建被拒**，
 而非笼统的"平台只允许一个上下文"；且"是否占位"**有可观测判据**（`active` 字段）。
 
+**续测（多卡）进一步精化**：
+
+| 观察（`CUDA_VISIBLE_DEVICES=4,6`） | 结果 |
+|---|---|
+| `cuda:0` 与 `cuda:1` 的 current context | **互不相同**（`0x…80df0` vs `0x…87fa0`）⇒ **每设备各一个** |
+| 切回 `cuda:0` 后 current | **与之前完全相同**（`dev0_ctx_stable=true`）⇒ 切换稳定 |
+| `cuDevicePrimaryCtxGetState(0)` / `(1)` | dev0 **`active=1`**；dev1 **`active=0`**（尚未触碰）⇒ **按需激活** |
+| `cuCtxCreate_v2(…, dev=1)` | **`rc=2`** ⇒ 任一设备上 primary 已激活即拒 |
+
+⇒ **最终表述**：**每个设备各有自己的 primary context；某设备上 primary 已激活时，该设备上的显式创建被拒（`rc=2`）**。
+**不是「全局只允许一个上下文」** —— 那是把**设备级**约束误读成**进程级**
+（多设备**并行**使用是允许的，只是每设备一个 primary）。
+
 ⭐ **与 910C 同构**：`acl.rt.get_primary_ctx_state(0)` 实测返回 **`(1, 0, 0)`** ——
 `state=1` 即 *primary 已存在*；设备 1 返回 `(0, 0, 0)`、越界设备返回 `(0, 0, 107001)`。
 **两家栈在同一概念上给出同一语义**（一个是 `active`，一个是 `state`），这使"上层不必写分支"
@@ -287,15 +300,38 @@ cuCtxSetCacheConfig cuCtxSetCurrent cuCtxSetLimit cuCtxSetSharedMemConfig cuCtxS
 | 原边界项 | 处置 | 结果 |
 |---|---|---|
 | `flags=8` 含义未查证 | ✅ **已查证** | 本栈 `cuda.h` 的 `CUctx_flags` 枚举：**`CU_CTX_MAP_HOST = 0x08`**（*Support mapped pinned allocations*）。**运行时复核一致**（`cuCtxGetFlags`→`8` → 解码为 `CU_CTX_MAP_HOST`）。另记本栈**特有** `CU_CTX_NAKED_PRIMARY = 0x20` |
-| `cuCtxGet/SetLimit` 未做 | ✅ **已做（只读）** | `CU_LIMIT_STACK_SIZE`=0 · `CU_LIMIT_PRINTF_FIFO_SIZE`=0 · `CU_LIMIT_MALLOC_HEAP_SIZE`=**8388608**（均 `rc=0`）；`CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH` 与 `CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT` **`rc=215`（`CUDA_ERROR_UNSUPPORTED_LIMIT`）**，且**输出参数保持哨兵值未被写入** ⇒ **不支持就如实报、不静默填假值**。只读后 torch 计算仍 `512.0` |
-| `xpu_ipc_*` 共享上下文未做 | ✅ **符号已核** | context 层：`cuIpcGetMemHandle` / `cuIpcOpenMemHandle` / `cuIpcCloseMemHandle` / `cuIpcGetEventHandle` / `cuIpcOpenEventHandle`（**五个俱全**）；XRE 层：`xpu_ipc_get_memhandle` / `open_memhandle` / `close_memhandle`。**注意**：它们共享的是**内存/事件句柄**，**不是上下文** —— 契约里没有"跨进程共享上下文"这一项，故**不构成本层缺口** |
-| 多卡下的上下文行为 | ⏸ **本轮未做，原因是环境** | 需**两张空闲卡**做 `set_device` 切换；当次实测 8 卡几乎全占（dev0 1.9 G · dev2 23.7 G · dev3 20.4 G · dev4 16.8 G · dev5 4.4 G · dev6 4.3 G；**dev1 为已知故障卡禁用**）⇒ **不在他人作业卡上做设备切换**。**不是"不做"，是"当次不可做"**；待有空闲窗口补 |
+| `cuCtxGet/SetLimit` 未做 | ✅ **已做（读写）** | `CU_LIMIT_STACK_SIZE`=0 · `CU_LIMIT_PRINTF_FIFO_SIZE`=0 · `CU_LIMIT_MALLOC_HEAP_SIZE`=**8388608**（均 `rc=0`）；`CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH` 与 `CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT` **`rc=215`（`CUDA_ERROR_UNSUPPORTED_LIMIT`）**，且**输出参数保持哨兵值未被写入** ⇒ **不支持就如实报、不静默填假值**。只读后 torch 计算仍 `512.0` |
+| `xpu_ipc_*` 共享上下文未做 | ✅ **已核符号 + 已真调（跨进程）** | **符号**：context 层 `cuIpcGet/Open/CloseMemHandle`、`cuIpcGet/OpenEventHandle` 五个俱全；XRE 层 `xpu_ipc_get/open/close_memhandle`。**真调（两进程）**：A 侧 `cuMemAlloc_v2` rc=0、`cuMemcpyHtoD_v2` rc=0、**`cuIpcGetMemHandle` rc=0**（64 字节非零 handle）；**B 侧 `cuIpcOpenMemHandle` = `rc=1`（`CUDA_ERROR_INVALID_VALUE`）**。**三种竞争解释逐一排除**：① handle 传递（长度/前 8 字节一致、非全零）；② 上下文未绑定（B 侧 `cuDevicePrimaryCtxRetain` / `cuCtxSetCurrent` 均 rc=0 且 current 非 0）；③ flags 取值（`1` 与 `0` **都**返回 rc=1）。⇒ **该栈 IPC：导出可用、导入未通**。**注意**：它们共享的是**内存/事件句柄，不是上下文** ⇒ 契约无此项 ⇒ **不构成本层缺口**（如实登记厂商能力现状） |
+| 多卡下的上下文行为 | ✅ **已做（同日续）** | 转机：dev4 当次**完全空闲**（0 MiB / util 0%）、dev6 util 0% ⇒ 用 `CUDA_VISIBLE_DEVICES=4,6` 完成（**只做 8 字节级分配、不做大分配**）。结果见 §4.1b：**每设备一个 primary context、切换稳定、任一设备上 primary 激活即拒显式创建**。⚠️ 其余卡（dev2/3/5 有 44%/100%/89% **活跃计算**）**未触碰** —— 现场见 §9 末 |
 | 单上下文约束未与文档口径交叉核对 | ⏸ **仍不可做** | 《XRE 用户手册》**不在**本次资料内（用户提供的两份中，XTDK 手册明确指向它）。**已在 §2.1 如实登记**，不臆造 |
 | 厂商静默：`cuCtxSetCurrent(已销毁句柄)` 返回 0 | ✅ **已登记为判据依据** | 写进接入手册 skill：将来若本层暴露"切换"语义，**必须自己查句柄有效性**（厂商不拦）。本轮 P800 不暴露 `context_set`，故不构成缺口 |
 
 **新增纪律（用卡）**：上一轮记录的"用卡 4"**当次已失效**（dev4 由 0 MiB 变为 16.8 GB 他人占用）
-⇒ **用卡前必须当次重探占用并记录**，不得沿用历史记录。本轮的只读探测改选 **dev6**
-（当次最低，4.3 G / util 0%），且**只做只读查询 + 8 字节分配、不做设备切换**。
+⇒ **用卡前必须当次重探占用并记录**，不得沿用历史记录。
+
+**收尾时的现场（如实）**：普查显示 P800 有 **~10 个容器 Up、全部挂 8 张卡**，其中
+`VLLM::EngineCore`（已跑 5 天）、`qwen3-vl-reranker` / `qwen3-vl-embedding-2b` 评测（99% CPU）、
+多人 vLLM 服务等**活跃作业**；dev2/3/5 的 util 为 44%/100%/89%。
+⇒ **未停任何容器**（`docker stop` 会中断这些作业），改用**当次空闲**的 dev4(+dev6) 完成全部探测。
+对照：**910C 全机 8 个 NPU 均 `No running processes found`**，且我方容器只挂 3 张卡、
+挂载集不相交 ⇒ 按 09-29 判明的名额规则**本就独占这 3 张**，**同样无需停任何容器**。
+⇒ **新纪律：先看「是否需要停」，而不是先停再用** —— 空闲容器不占名额时，停用纯属多余的风险。
+
+---
+
+## 11 910C 侧的多卡与语义细节（同日续，与 P800 对照）
+
+| 项 | 910C（pyACL） | P800 |
+|---|---|---|
+| 多设备上下文 | **三设备各自独立**（`0x…7e000` / `0x…7e230` / `0x…963f0`，互不相同）；销毁 dev0 后 dev1/dev2 仍非零 ⇒ **无交叉影响** | 每设备一个 primary，互不相同，切换稳定 |
+| `get_context(dev)` 的 **`dev` 参数** | ⚠️ **被忽略**（同一当前设备下 `get(0)/get(1)/get(2)` 返回**同一值**）⇒ **必须"先 `set_device` 再查"** | 无此参数（`cuCtxGetDevice` 读回） |
+| `managed_by` 能否判出 `unified` | ✅ **能**（单设备紧邻场景：建后 `unified`、销毁后 `present=False`） | 不适用（不声明 `context_lifecycle`） |
+| IPC 入口 | `ipc_mem_get_export_key` / `ipc_mem_import_by_key` / `ipc_mem_set_import_pid` / `mem_export_to_shareable_handle` 等 **11 个存在**（`acl.rt`） | 导出 rc=0 / 导入 rc=1（见 §9） |
+
+⚠️ **如实登记的局限（本层）**：`managed_by` 的判定依赖"厂商上下文对象比对"。
+实测在**多设备反复切换**的时序下，`create_context` 的返回值与 `get_context` 的返回值**可能不一致**
+（单设备紧邻调用时一致）⇒ 该情形下 `managed_by` 可能误报 `external`。
+**契约把 `managed_by` 定义为「尽力而为的归属提示」**（不是判据）；多设备大规模混用前需补测。
 
 ---
 
