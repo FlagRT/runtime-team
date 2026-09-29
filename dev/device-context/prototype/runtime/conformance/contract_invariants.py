@@ -411,6 +411,9 @@ def check_i4(bk):
     return (not problems), "；".join(notes + problems)
 
 
+#: 判据串标签（runner 用它拼出 `CONTRACT_INVARIANTS_PASS/FAIL`，使该腿的结论**自证是哪一项**）
+VERDICT_TAG = "CONTRACT_INVARIANTS"
+
 #: 核心检查表（真机与离线**共用**；新增不变式只改这里）
 CHECKS = (
     ("I1_honest_declaration", "诚实声明", check_i1),

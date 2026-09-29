@@ -180,7 +180,12 @@ def main():
 
     total = len(cases)
     print(f"\n=== 汇总: {passed}/{total} 通过 ===")
-    verdict = "CONFORMANCE_PASS" if passed == total else "CONFORMANCE_FAIL"
+    # 2026-09-29（B1）：**用例集可自命名判据串** —— 各"腿"的判定串应能自证是哪一项
+    # （同族：TRAIN_LEG_PASS / INFER_LEG_PASS / ERROR_RECOVERY_LOOP_PASS / STREAM_SEMANTICS_PASS…）。
+    # 用例模块可选定义 `VERDICT_TAG`（如 "CONTRACT_INVARIANTS"）；**不定义则保持原行为**
+    # ⇒ 对既有 cases / infer_cases 零影响（向后兼容）。
+    _tag = str(getattr(mod, "VERDICT_TAG", "") or "CONFORMANCE").strip()
+    verdict = f"{_tag}_PASS" if passed == total else f"{_tag}_FAIL"
     results["verdict"] = verdict
     results["passed"] = passed
     results["total"] = total

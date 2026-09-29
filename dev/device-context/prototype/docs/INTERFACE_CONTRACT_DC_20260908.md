@@ -195,7 +195,7 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 **边界**：四条都是**可观测性**约束，**不评判性能**；判据遇"能力未声明"时如实标**不适用**
 （计为通过但**注明不适用**），**不得**因不适用而把未声明能力当作已验。
 
-**状态（2026-09-29）**：**已实现**。**离线桩已通过**（`backend_offline_check.py` 第 `[10]` 段，与真机**同一套核心函数**：`ascend 75/0/1` · `kunlun 76/0/1` · `cambricon 64/0/0`）；**5 处注入的非空转验证全部被抓**。⏳ 真机复跑（`--cases contract_invariants`）安排在与第 5 轮全套回归（r5）同窗口。报告：`CONTRACT_INVARIANTS_I1_I4_20260929.md`。
+**状态（2026-09-29）**：**已实现且两实例真机通过**。**真机**：`910C 4/4` · `P800 4/4`（均 `CONTRACT_INVARIANTS_PASS`；P800 的上下文分支如实「不适用」）。**离线桩**（`backend_offline_check.py` 第 `[10]` 段，与真机**同一套核心函数**）：`ascend 75/0/1` · `kunlun 76/0/1` · `cambricon 64/0/0`；**5 处注入的非空转验证全部被抓**。⏳ **MLU590 未跑**（本轮范围外）。报告：`CONTRACT_INVARIANTS_I1_I4_20260929.md`。
 
 ---
 
@@ -262,6 +262,7 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 | 2026-09-29（第二轮） | v0.1.0 | **跨实例复验再修一处判据覆盖缺口**：共享消息规则表的 L2 规则原按"个别厂商文案"枚举（`invalid (device\|ordinal\|data\|op\|param)`），寒武纪栈对"设备序号越界"的原文 `CNRT error: invalid argument.` **无规则命中 ⇒ 兜底 `L3_EXECUTION`（`replay`）**，与契约 §1.4 的「参数类应 `raise`」相悖 ⇒ 已改为**按等价类覆盖**（补 `invalid argument`／`invalid value`／`illegal …`，**不做** `invalid \w+` 宽匹配）。同时离线自检 +2 条「参数类文案等价类」判据（用两家真机原文）并做**非空转验证**。**接口签名未变**，`translate_error` 的签名与默认值均未动（仅内部消息规则表扩容） | 运行时层全组 |
 | 2026-09-29（第六轮 · B1） | v0.1.0 | **新增 §1.8 契约不变式 I1–I4**（定名 + 定义 + 判定细则）—— 此前后者只有名字、没有定义（G8 登记为「未实现，靠人工检查」，全仓 grep 仅两处引用且都只解释 I2）。**只增不改**（不新增 API，只约束既有 API 的可观测性）。判据落地两处：真机 `runtime/conformance/contract_invariants.py`（`runner.py --cases contract_invariants`）+ 离线桩 `backend_offline_check.py` 第 `[10]` 段（**同一套核心函数**，无设备即可拦住回归）。G8 关闭 | 运行时层全组 |
 | 2026-09-29（第六轮续 · B1） | v0.1.0 | **契约不变式判据落地**（G8 关闭）：判据落 `conformance/contract_invariants.py`（真机 4 例）+ `backend_offline_check.py` 第 `[10]` 段（离线，**同一套核心函数**按文件路径加载，避免两处漂移）。过程中：① 发现并修复**台账第 18 条**（`ascend` 把弃用别名 `sync_timeout` 当在册能力列出，另两家不列 ⇒ 同一份下游代码在不同芯片上读到不同的在册集合）；② 修正判据自身两处缺陷（I1③ 需**别名感知**、I1⑤ 需**只认契约级 `NotImplementedError`**，否则会把「抛任何异常」误当显式拒绝 ⇒ **假通过**）。**未改任何接口签名**，行为变化仅限 `info()["capabilities"]` 的归一 | 运行时层全组 |
+| 2026-09-29（第六轮末 · B1 真机） | v0.1.0 | **契约不变式真机复跑与判据串自证**：① 真机 `--cases contract_invariants` **910C 4/4 · P800 4/4**（均 `CONTRACT_INVARIANTS_PASS`）；② runner 支持用例模块定义 **`VERDICT_TAG`** 拼出 `CONTRACT_INVARIANTS_PASS/FAIL` —— **不定义则保持原行为**（已实测 `cases` / `infer_cases` 仍为 `CONFORMANCE_PASS`）；③ 910C 第 5 轮全套回归 **11 项全绿**（含新增不变式 4/4）。**未改任何接口签名** | 运行时层全组 |
 
 ---
 

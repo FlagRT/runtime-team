@@ -98,6 +98,31 @@ ascend **声明了 `error_map`**（109 条 ACL 码），注入的是**本厂商*
 
 ---
 
+### 1.4 第 5 轮（r5）：`ab80d87` + B1 之后的复跑 —— **11 项全绿**
+
+破坏面：`ab80d87`（新增 `_ctx_query_raw`）与 B1（声明集移除弃用别名）**都只落在 `ascend` 后端目录**
+⇒ 按「按破坏面覆盖」**只需 910C 跑全套**（P800 只跑受影响的 conformance 三步）。
+
+| 判定项 | r5 | 与 r4 的差异 |
+|---|---|---|
+| 离线契约自检 | **75 / 0 / 1 跳过** | 68 → 75（**+7**：四条契约不变式 + 模块可加载 + 别名/声明集相关判据） |
+| 跨后端对称性 `--all` | 5 / 0 | 同 |
+| 组件冒烟 | **52 / 0** | 同 |
+| conformance 13 + 推理 6 | 13/13 + 6/6 | 同 |
+| **契约不变式（新增）** | **4 / 4 `CONTRACT_INVARIANTS_PASS`** | —— 本项新增（B1） |
+| 职责响应审计 | **39 / 0 / 0** | 同 |
+| 错误注入→恢复闭环 | **5 / 0 / 0** | 同 |
+| 工作包 A 功能等价性 | 6 / 6 | 同 |
+| 多流语义 / 配额 | 8/8 · 3/3 | 同 |
+| **结论** | ✅ **无回归** | —— |
+
+改动 `runner.py`（新增 `VERDICT_TAG` 支持）**之后**重跑三步确认向后兼容：`cases` 13/13 与
+`infer_cases` 6/6 的判据串**仍为 `CONFORMANCE_PASS`**，仅 `contract_invariants` 自证为
+`CONTRACT_INVARIANTS_PASS`。
+
+证据：`../probes/*_ascend_20260929_r5.*`（22 份，含 `regress_coninvariants_*_r5.{json,log}` 与
+`recheck_*_r5b.json`）。
+
 ## 3 分歧代价实验（工作包 A）在 910C 的取数
 
 `prototype/probes/exp_divergence_cost.py --backend ascend`（逐场景独立进程）
