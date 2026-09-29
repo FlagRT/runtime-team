@@ -59,6 +59,15 @@ fe = runtime.translate_error(exc, location="...")
 | L3_EXECUTION | 执行类（如流同步超时 507046） | 重放（有机会成功）+ 调度重排 | 设备+调度 |
 | L4_FATAL | 芯片级致命（如 AICORE 异常 507015） | **设备级恢复** `recover_device` + 检查点恢复 | 设备+监控+分布式 |
 
+> **码表归属（2026-09-29 补，修正实测缺陷）**：**错误码表按厂商归属**。只有后端**声明了 `error_map`**
+> （拥有本厂商码表）时，才允许依据码表把错误升级到更高分级；**未声明者不得使用任何他厂码表**
+> 参与分级判定。**无依据时的正确行为是兜底 `L3_EXECUTION`**。
+> 实测缺陷：未声明 `error_map` 的后端曾因异常消息里携带**昇腾**码 `507015` 被判
+> `L4_FATAL` / `device_recovery` —— 而本节明令「下游必须按 `disposition` 处理」
+> ⇒ 会**误触发设备级重建**（最昂贵的动作）。修复方式：译码器增加 `vendor_codes` 开关，
+> 无本厂商码表的后端**从源头**不查该表，使 `graded_by` / `mapped` / `error_code` / `category`
+> **四者结构上不可能不一致**（取代原先逐字段事后降级的脆弱写法）。
+
 ### 1.5 状态恢复
 
 | 接口 | 语义 |
@@ -66,6 +75,13 @@ fe = runtime.translate_error(exc, location="...")
 | `device_state(ordinal)` | 设备四态查询（AVAILABLE / DEGRADED / ISOLATED / **DESTROYED**） —— 四态成员名以 `conformance/device_state.py::DeviceState` 为实现基准（见变更记录 2026-09-28） |
 | `recover_device(ordinal, mode)` -> **dict** | 三级重建：`probe`（保底探活）/ `real`（CANN 官方 aclrtResetDevice 序列）/ `hybrid`（先 probe 后 real） |
 
+- **`recover_device` 返回的 `state` 取值域（2026-09-29 补）**：**必须是四态规范 token** ——
+  `available` / `degraded` / `isolated` / `destroyed`（即 `DeviceState` 的 `.value`；
+  实现基准 `runtime/backends/base.py::DEVICE_STATE_TOKENS`）。
+  ⚠️ 此前三家都写 `str(state)`，得到的是 `'DeviceState.AVAILABLE'` 这类 **`str(enum)` 形式**，
+  **不在**取值域内 ⇒ 下游按契约比较 `state == "available"` 会**判假**。
+  注意：`device_state()` 返回**枚举对象**，而 `recover_device()["state"]` 返回**token 字符串**；
+  两端消费者请按契约取 token 字符串这一形态。
 - **调用约定**：监控方向做检测与恢复编排（何时调、调哪级），恢复执行由本组件完成
 - **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前默认不启用
   （本地多进程联调已过，生产默认前需多卡压测调优——见 9 月计划 W4 遗留）
@@ -126,6 +142,10 @@ fe = runtime.translate_error(exc, location="...")
 | 2026-09-08 | v0.1.0 | 初版定稿（API 面 + 插件规范 + 两条纪律） | 运行时层全组 |
 | 2026-09-20 | v0.1.0 | 在 §2 末尾新增**服务启动指针**：启动流程统一遵循《组内服务启动标准》，并明确"启动参数口径变化不构成接口变更"（接口版本不变，仍为 v0.1 原型期） | 运行时层全组 |
 | 2026-09-28 | v0.1.0 | **三实例职责响应审计**（逐 sub-part 实测，见 `PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`）发现并修正三处**文档↔实现**不一致：① §1.5 四态命名 `UNKNOWN` 与实现（三家共用 `DeviceState`）不符 → **以实现为准更正为 `DESTROYED`**（**行为无变化**，仅措辞对齐）；② `recover_device` 返回契约**五键**（`{ordinal, mode, recovered, state, detail}`）此前仅 `ascend` 齐全 → 已补齐另两家；③ `sync_timeout` 明确为 `bounded_sync` 的**弃用别名**（三家键集合对齐，取值随规范键）。接口签名**未变** | 运行时层全组 |
+
+---
+
+| 2026-09-29 | v0.1.0 | **「分歧的业务代价」实验**（工作包 A，见 `EXP_DIVERGENCE_COST_20260929.md`）暴露两处**已存在而未判据守**的缺陷并修正：① **码表归属** —— 未声明 `error_map` 的后端其 `category` 仍取自外来（昇腾 ACL）码表 ⇒ 携带昇腾码的消息被判 `L4_FATAL`/`device_recovery`；已改为**从源头不使用外来码表**（`translate_error(..., vendor_codes=False)`），使四个字段结构上不可能不一致；② **`state` 取值域** —— `recover_device()["state"]` 原为 `str(enum)`（`'DeviceState.AVAILABLE'`），已归一为四态规范 token（`base.state_token()`）。同时给离线自检补 2 条判据（**决策字段**不得受外来码表影响；`state` 取值域），并做**非空转验证**。接口签名**未变**；`translate_error` 新增的 `vendor_codes` 为**关键字参数、默认 `True`**，对既有调用完全兼容 | 运行时层全组 |
 
 ---
 

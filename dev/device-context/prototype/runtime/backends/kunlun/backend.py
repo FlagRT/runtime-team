@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ...api.errors import FlagosError, coerce_category
-from ..base import RuntimeBackend
+from ..base import RuntimeBackend, state_token
 
 logger = logging.getLogger(__name__)
 
@@ -335,21 +335,31 @@ class KunlunBackend(RuntimeBackend):
 
     # ───────────── 错误翻译 ─────────────
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
+        """厂商错误 → 统一 `FlagosError`。分级来源如实限定为 **`message_hint` / `default`**。
+
+        2026-09-22 真机实测：昆仑芯**不把厂商错误码透出为数字码** ⇒ 无可查的码表，
+        故**不声明 `error_map` 能力**（是「确认不具备」，不是「未验证」）。
+
+        ⚠️ **2026-09-29 修（工作包 A 实验暴露，§11-① 的补全）**：此前是**事后降级** ——
+        调共享翻译器（其码表为**昇腾 ACL 码表**）之后，只把 `graded_by` / `mapped` /
+        `error_code` 三个**置信度字段**降下来，而 **`category` 仍冻结在共享码表给出的值**。
+        实测后果（P800）：喂一条携带昇腾码的消息即得 **L4_FATAL / device_recovery** ——
+        而契约 §1.4 明令「下游必须按 `disposition` 处理」⇒ 会**误触发设备级重建**；
+        且 `errors.py` 自身规则是「无依据兜底 L3」，行为却**升级**为 L4 ⇒ 违反自身规则。
+
+        还有更隐蔽的一层：`message_hint_unexpected` 这个标记本身也是错的 ——
+        共享翻译器在**码表命中时即返回**、**从未评估消息规则**，所以降级后并没有人重算
+        `message_hint`；`category` 只是"恰好"与消息规则一致或**不一致**，属**巧合而非声明**。
+
+        ⇒ 现改为**从源头不使用外来码表**（`vendor_codes=False`）：`graded_by` / `mapped` /
+        `error_code` / **`category`** 四者天然一致，无需任何事后修补 ——
+        「降级必须整组一致」由此从"逐个字段记得改"变成"结构上不可能不一致"。
+        """
         errors = self._load_errors()
-        fe = errors.translate_error(exc, location=location)
+        # ⚠️ `vendor_codes=False` 是本后端**正确性的关键**：本家无厂商码表，
+        #    昇腾 ACL 码表不得参与本家的分级判定。
+        fe = errors.translate_error(exc, location=location, vendor_codes=False)
         graded_by = getattr(fe, "graded_by", "default")
-        # 如实降级：昆仑芯无错误码 → code_map 不可达，只有 message_hint / default 可信
-        #
-        # ⚠️ 2026-09-22 修（第 6 个跨后端缺陷，寒武纪实例暴露后回修本处）：
-        #   底层共享翻译器的码表是**昇腾 ACL 码表**。若消息里恰好出现形如昇腾错误码的数字
-        #   （例如 `error code is 507015`），它会返回 `graded_by="code_map"` 且 `mapped=True`。
-        #   昆仑芯没有厂商码表 ⇒ 这不是本厂商的码表命中，`graded_by` / `mapped` / `error_code`
-        #   必须**一起**降级。原写法只改 `graded_by`，留下「`mapped=True` 但
-        #   `graded_by≠code_map`」的自相矛盾；而契约里 `mapped=True` = **确定分级** ⇒
-        #   等于把保守推断冒充成定论（违反 I2 禁止伪造）。
-        degraded = graded_by == "code_map"
-        if degraded:
-            graded_by = "message_hint_unexpected"
         return FlagosError(
             # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
             # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
@@ -359,14 +369,15 @@ class KunlunBackend(RuntimeBackend):
             category=coerce_category(getattr(fe, "category", None)) or _l3(),
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
-            error_code=None if degraded else getattr(fe, "error_code", None),
-            mapped=False if degraded else bool(getattr(fe, "mapped", False)),
+            error_code=getattr(fe, "error_code", None),
+            mapped=bool(getattr(fe, "mapped", False)),
             graded_by=graded_by,
             # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
             is_grade_confident=(graded_by == "message_hint"),
             recovery_decision=getattr(fe, "recovery_decision", {}) or {},
             backend=self.name,
         )
+
 
     # ───────────── 恢复 ─────────────
     def recover_device(self, ordinal: int, mode: str = "probe",
@@ -385,7 +396,7 @@ class KunlunBackend(RuntimeBackend):
         # 本后端此前只返回四键（缺 `state`），与 ascend 不对称 ⇒
         # 下游（监控方向）按契约读 `state` 在本家会拿不到 —— 属对称性缺陷，已补。
         try:
-            state = str(self.device_state(ordinal))
+            state = state_token(self.device_state(ordinal))
         except Exception:
             state = "unknown"
         if mode not in ("probe", "hybrid"):

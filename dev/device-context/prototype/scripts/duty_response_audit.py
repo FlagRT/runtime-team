@@ -393,12 +393,21 @@ def e2(env):
     return (_ok if isinstance(r, dict) else _fail)(f"type={type(r).__name__}")
 
 
-@item("E 状态恢复", "E3", "返回契约字段齐全 {ordinal,mode,recovered,state,detail}")
+@item("E 状态恢复", "E3", "返回契约字段齐全 {ordinal,mode,recovered,state,detail} 且 state 为四态规范 token")
 def e3(env):
     r = env["runtime"].recover_device(0, "probe", reason="duty audit")
     need = {"ordinal", "mode", "recovered", "state", "detail"}
     miss = need - set(r if isinstance(r, dict) else {})
-    return (_ok if not miss else _fail)(f"缺字段 {sorted(miss)} / 实际 {sorted(r) if isinstance(r, dict) else r}")
+    # 2026-09-29 加（工作包 A 实验暴露）：**不只手字段名，取值域也要守**。
+    #   原判据只看「五键存在性」⇒ `state` 长期返回 `str(enum)`（`'DeviceState.AVAILABLE'`）
+    #   而三套件都没发现（纯靠 09-29 实验才暴露）；下游按契约比较
+    #   `state == "available"` 会**判假**。属 §11-⑫「字符串常量要有判据守」的再深一层。
+    st = r.get("state") if isinstance(r, dict) else None
+    if miss:
+        return _fail(f"缺字段 {sorted(miss)} / 实际 {sorted(r) if isinstance(r, dict) else r}")
+    if st not in ("available", "degraded", "isolated", "destroyed"):
+        return _fail(f"state={st!r} 不是四态规范 token（str(enum) 形式 ⇒ 下游比较会判假）")
+    return _ok(f"五键齐全，state={st!r}")
 
 
 @item("E 状态恢复", "E4", "recovered 语义 = 设备当前可用（与 probe_device 一致）")

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from ...api.errors import ErrorCategory, FlagosError
-from ..base import RuntimeBackend
+from ..base import RuntimeBackend, state_token
 
 # conformance 目录（已有资产所在）：device-context/benchmarks/ascend_regression/conformance
 _CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
@@ -360,7 +360,7 @@ class AscendBackend(RuntimeBackend):
         self._load_conformance()
         state = None
         try:
-            state = str(self._device_state.query_device_state(ordinal))
+            state = state_token(self._device_state.query_device_state(ordinal))
         except Exception:
             state = "unknown"
 

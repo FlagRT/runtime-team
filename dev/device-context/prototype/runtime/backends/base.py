@@ -24,6 +24,24 @@ from typing import Optional
 from ..api.errors import FlagosError
 
 
+#: 设备四态**规范 token**（= `conformance/device_state.py::DeviceState` 的 `.value`）。
+#: 契约承诺：`recover_device()["state"]` **必须**是本元组取值之一（见接口约定 §1.5）。
+DEVICE_STATE_TOKENS = ("available", "degraded", "isolated", "destroyed")
+
+
+def state_token(state) -> str:
+    """把设备四态规范化为**契约 token 字符串**。
+
+    2026-09-29 修（工作包 A 实验暴露）：三家 `recover_device` 原写 `str(state)`，
+    而 `DeviceState` 是 `enum.Enum`（**不是** `str, Enum` / `StrEnum`）
+    ⇒ `str(member)` 给的是 `'DeviceState.AVAILABLE'`，**不是**四态规范取值；
+    下游按契约比较 `state == "available"` 会失败。
+    同模块 `DeviceStatus.snapshot()` 用的却是 `.value` ⇒ **同仓两套约定**，此处归一。
+    """
+    v = getattr(state, "value", None)
+    return str(v) if v is not None else str(state)
+
+
 class RuntimeBackend(ABC):
     """厂商后端插件接口 v0.1。
 

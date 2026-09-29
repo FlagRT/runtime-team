@@ -81,7 +81,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ...api.errors import ErrorCategory, FlagosError, coerce_category
-from ..base import RuntimeBackend
+from ..base import RuntimeBackend, state_token
 
 logger = logging.getLogger(__name__)
 
@@ -415,47 +415,51 @@ class CambriconBackend(RuntimeBackend):
 
     # ───────────── 错误翻译（职责 D10）─────────────
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
-        """厂商错误 → 统一 `FlagosError`。
+        """厂商错误 → 统一 `FlagosError`。分级来源如实限定为 **`message_hint` / `default`**。
 
-        分级来源如实限定为 **`message_hint`（消息规则）/ `default`（兜底）**。
-        2026-09-22 真机实测：**厂商错误码不透出为数字码** —— CNRT 抛的是错误名
-        （`CNRT error: invalid argument.`），OOM 抛 `OutOfMemoryError: MLU out of memory…`
-        ⇒ 无可用于码表的数字码，故**不声明 `error_map` 能力**（是"确认不具备"，不是"未验证"）。
+        2026-09-22 真机实测：**CNRT 抛的是错误名而非数字码**（`CNRT error: invalid argument.`、
+        OOM 抛 `OutOfMemoryError: MLU out of memory…`）⇒ 无可用于码表的数字码，
+        故**不声明 `error_map` 能力**（是「确认不具备」，不是「未验证」）。
 
-        ⚠️ **诚实降级必须三个字段一起动**（2026-09-22 修，第 6 个跨后端缺陷）：
-        底层共享翻译器 `conformance/errors.py` 的码表是**昇腾 ACL 码表**；若异常消息里
-        恰好出现形如昇腾错误码的数字（例如 `error code is 507015`），它会返回
-        `graded_by="code_map"` **且 `mapped=True`**。本后端没有厂商码表，这不是本厂商的
-        码表命中 ⇒ `graded_by` / `mapped` / `error_code` 必须**一起**降级。
-        只改 `graded_by`（原写法）会留下「`mapped=True` 但 `graded_by≠code_map`」的
-        **自相矛盾**，而契约里 `mapped=True` 的含义是**确定分级**（见
-        `conformance/errors.py` 的 `FlagosError` 字段说明）—— 等于把保守推断冒充成定论，
-        违反不变式 I2（禁止伪造）。**实测暴露路径**：错误闭环四类注入中
-        `l4_by_code` 一条即为此形态（`mapped=true` + `graded_by=message_hint_unexpected`）。
+        ⚠️ **2026-09-29 修（工作包 A 实验暴露，§11-① 的补全）**：此前是**事后降级** ——
+        调共享翻译器（其码表为**昇腾 ACL 码表**）之后，只把 `graded_by` / `mapped` /
+        `error_code` 三个**置信度字段**降下来，而 **`category` 仍冻结在共享码表给出的值**。
+        实测后果（P800）：喂一条携带昇腾码的消息即得 **L4_FATAL / device_recovery** ——
+        而契约 §1.4 明令「下游必须按 `disposition` 处理」⇒ 会**误触发设备级重建**；
+        且 `errors.py` 自身规则是「无依据兜底 L3」，行为却**升级**为 L4 ⇒ 违反自身规则。
+
+        还有更隐蔽的一层：`message_hint_unexpected` 这个标记本身也是错的 ——
+        共享翻译器在**码表命中时即返回**、**从未评估消息规则**，所以降级后并没有人重算
+        `message_hint`；`category` 只是"恰好"与消息规则一致或**不一致**，属**巧合而非声明**。
+
+        ⇒ 现改为**从源头不使用外来码表**（`vendor_codes=False`）：`graded_by` / `mapped` /
+        `error_code` / **`category`** 四者天然一致，无需任何事后修补 ——
+        「降级必须整组一致」由此从"逐个字段记得改"变成"结构上不可能不一致"。
         """
         self._load_assets()
-        fe = self._errors.translate_error(exc, location=location)  # type: ignore[union-attr]
+        # ⚠️ `vendor_codes=False` 是本后端**正确性的关键**：本家无厂商码表，
+        #    昇腾 ACL 码表不得参与本家的分级判定。
+        fe = self._errors.translate_error(  # type: ignore[union-attr]
+            exc, location=location, vendor_codes=False)
         graded_by = getattr(fe, "graded_by", "default")
-        degraded = graded_by == "code_map"
-        if degraded:
-            graded_by = "message_hint_unexpected"
         return FlagosError(
-            # `errors.ErrorCategory` 是 IntEnum（L1=1..L4=4），与 api 层枚举**不是同一个类对象**；
-            # 直接透传会让 `FlagosError.disposition` 的查表 KeyError（第 4 个跨后端框架缺陷）。
-            # 经 `coerce_category` 按数值/名称归一（框架已提供该归一函数）。
+            # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
+            # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
+            # （L1=1..L4=4），与 api 层枚举**不是同一个类对象** —— 即使取值相同也不相等，
+            # 直接透传会让 `FlagosError.disposition` 的 `DISPOSITION[cat]` 查表 KeyError。
+            # 故经 `coerce_category` 按数值/名称归一（ascend 用的是同源 _INT_TO_CATEGORY）。
             category=coerce_category(getattr(fe, "category", None)) or ErrorCategory.L3_EXECUTION,
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
-            error_code=None if degraded else getattr(fe, "error_code", None),
-            mapped=False if degraded else bool(getattr(fe, "mapped", False)),
+            error_code=getattr(fe, "error_code", None),
+            mapped=bool(getattr(fe, "mapped", False)),
             graded_by=graded_by,
             # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
             is_grade_confident=(graded_by == "message_hint"),
             recovery_decision=getattr(fe, "recovery_decision", {}) or {},
-            # 后端侧回填后端名（2026-09-22 修：后端侧必须回填，
-            # 不能只依赖 api 层 translate_via_backend —— 直调后端方法时该字段会为空）
             backend=self.name,
         )
+
 
     # ───────────── 状态恢复（职责 D11）─────────────
     def recover_device(self, ordinal: int, mode: str = "probe",
@@ -475,7 +479,7 @@ class CambriconBackend(RuntimeBackend):
         # 本后端此前只返回四键（缺 `state`），与 ascend 不对称 ⇒
         # 下游（监控方向）按契约读 `state` 在本家会拿不到 —— 属对称性缺陷，已补。
         try:
-            state = str(self.device_state(ordinal))
+            state = state_token(self.device_state(ordinal))
         except Exception:
             state = "unknown"
         if mode not in ("probe", "hybrid"):

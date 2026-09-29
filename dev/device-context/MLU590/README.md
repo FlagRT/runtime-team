@@ -21,7 +21,11 @@
 > **`DUTY_RESPONSE_PASS` 36 OK / 0 FAIL / 3 SKIP** —— 3 项 SKIP 均为「**如实不具备**」：
 > `elapsed_time`（`CNRT error: failed to call the driver-api function`，契约外可选能力）·
 > `D5` / `F1`（本机**无数字错误码** ⇒ 未声明 `error_map`，分级走 `message_hint`，已由 conformance F1 覆盖）。
-> 离线契约自检 **41/0/0** · 跨后端对称性 **5/0**；三处补做（`recover_device` 补 `state`、四态命名对齐、
+> ⚠️ **判据数变更（2026-09-29）**：离线自检**新增 2 条判据**（**决策字段**不得受外来码表影响；
+> `recover_device()["state"]` 取值域）⇒ 现行判据数 **cambricon 43**、**kunlun 43**、**ascend 38**
+> （+2 / +2 / +1，均含非空转验证）。**本文档其余计数为历史批次值，按纪律保留不改写。**
+>
+> 离线契约自检 **41/0/0**（09-28 批次值）· 跨后端对称性 **5/0**；三处补做（`recover_device` 补 `state`、四态命名对齐、
 > `sync_timeout` 别名）均**真机验证生效**。⇒
 > [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md)
 >

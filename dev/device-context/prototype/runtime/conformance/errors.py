@@ -300,7 +300,8 @@ def _extract_acl_retcode(msg: str) -> Optional[int]:
     return int(m.group(1)) if m else None
 
 
-def translate_error(exc: BaseException, location: Optional[str] = None) -> FlagosError:
+def translate_error(exc: BaseException, location: Optional[str] = None,
+                    *, vendor_codes: bool = True) -> FlagosError:
     """把任意异常翻译为统一错误对象（F1 三维翻译 + F5 分级可观测）。
 
     优先级：厂商错误码（ret=XXXX → ACL_ERR_TO_CATEGORY）→ 消息关键词粗分类 → L3 默认。
@@ -312,7 +313,12 @@ def translate_error(exc: BaseException, location: Optional[str] = None) -> Flago
       - 两者皆无 → mapped=False, graded_by="default"（兜底 L3，不可当定论）
     """
     msg = str(exc)
-    retcode = _extract_acl_retcode(msg)
+    # ⚠️ 2026-09-29（工作包 A 实验暴露）：本码表是**昇腾 ACL 码表**。抽取规则却很通用
+    #   （`ret=<数字>` / `error code is <数字>`）⇒ 任何后端只要消息里出现一个码表内的数字，
+    #   就会拿到**昇腾**的分级。对**没有厂商码表**的后端必须**关掉**本表（`vendor_codes=False`），
+    #   否则 `category` 会被外来码表决定 —— 事后只降置信度字段是不够的
+    #   （实测：P800 上喂 `... error code is 507015` 得 L4_FATAL/device_recovery）。
+    retcode = _extract_acl_retcode(msg) if vendor_codes else None
 
     if retcode is not None and retcode in ACL_ERR_TO_CATEGORY:
         category = ACL_ERR_TO_CATEGORY[retcode]

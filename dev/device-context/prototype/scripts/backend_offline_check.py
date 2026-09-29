@@ -536,6 +536,20 @@ def run(proto_dir, backend):
               ff.mapped is False, f"mapped={ff.mapped} graded_by={ff.graded_by}")
         check("码表内码串入 ⇒ error_code 必须为 None（该码非本厂商码）",
               ff.error_code is None, str(ff.error_code))
+        # ⭐ 2026-09-29 新增（工作包 A 实验暴露的防回归判据：**决策字段**也要查）
+        #   上面三条只查 `graded_by` / `mapped` / `error_code` —— 全是**置信度字段**，
+        #   于是"`category` 仍冻结在共享码表给出的值"这件事**三套件全都没抓到**：
+        #   实测 P800 喂含昇腾码的消息得到 **L4_FATAL / device_recovery**，而契约 §1.4
+        #   明令「下游必须按 disposition 处理」⇒ 会**误触发设备级重建**。
+        #   本判据补上决策字段：用一条**消息规则不会命中**的消息（`op failed` 无任何
+        #   关键词）携带码表内码 507015 ⇒ 若变成 L4，说明分级来自**外来**昇腾码表。
+        _leak = bk.translate_error(RuntimeError("op failed, error code is 507015"),
+                                   location="self-check")
+        check("外来码表不得影响本后端分类（无依据 ⇒ 兜底 L3，不得升级为 L4）",
+              _leak.category.name == "L3_EXECUTION",
+              f"category={_leak.category.name} graded_by={_leak.graded_by}"
+              + ("（L4 说明分级来自外来昇腾码表）"
+                 if _leak.category.name == "L4_FATAL" else ""))
 
     # ── 6. 恢复与设备状态（R1-R5）──
     print("\n[6] 恢复与设备状态（conformance R1-R5）")
@@ -552,6 +566,18 @@ def run(proto_dir, backend):
           not _miss,
           (f"缺 {sorted(_miss)}（上层按契约读会拿不到）" if _miss
            else f"{len(_NEED_KEYS)} 键齐全"))
+    # ⭐ 2026-09-29 新增：`state` 的**取值域**判据（不只手字段名）。
+    #   来由：三家原写 `str(state)`，而 `DeviceState` 是 `enum.Enum`（非 StrEnum）
+    #   ⇒ 得到 `'DeviceState.AVAILABLE'`，**不是**四态规范取值；下游按契约比较
+    #   `state == "available"` 会**判假**。09-28 的审计只判"五键存在性"故漏过 ——
+    #   §11-⑫ 要再深一层：**字段的取值域也要有判据**。
+    _st = rec.get("state") if isinstance(rec, dict) else None
+    check("recover_device()[\"state\"] 必须是四态规范 token"
+          "（available/degraded/isolated/destroyed）",
+          _st in ("available", "degraded", "isolated", "destroyed"),
+          f"state={_st!r}" + ("（str(enum) 形式 ⇒ 下游比较会判假）"
+                              if isinstance(_st, str) and _st.startswith("DeviceState.")
+                              else ""))
     # 2026-09-28 新增：四态**成员名**必须与接口约定一致。
     #   来由：接口约定曾写 `UNKNOWN`、而三家共用的实现是 `DESTROYED`，
     #   两者并存 20 天**无任何判据发现**（同样是职责响应审计才暴露）
