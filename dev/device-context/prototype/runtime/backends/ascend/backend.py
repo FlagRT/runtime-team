@@ -62,6 +62,8 @@ class AscendBackend(RuntimeBackend):
         # 分开声明 —— 有的栈能管生命周期、有的栈只允许观测（平台单上下文）。
         # 本家实测：get_context / get_primary_ctx_state 可用（见 `_ctx_query_raw`）。
         "context_query",
+        # ── 2026-09-29（A2 收尾）新增 ──
+        "device_state_control",  # 四态**驱动**（`runtime.set_device_state()`）；本层账本，非厂商能力
     }
 
     #: 能力**全集**（已知能力名，`info()["supports"]` 按此逐项 True/False 呈现）。
@@ -78,6 +80,9 @@ class AscendBackend(RuntimeBackend):
         # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
         # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
         "context_query",
+        # 2026-09-29（A2 收尾）：四态机的 **驱动** 入口（原只有查询 `device_state`）。
+        # 芯片无关 —— 走本层共享状态机（进程内账本，不依赖厂商原语），故三家一致声明。
+        "device_state_control",
     )
 
     def info(self) -> dict:

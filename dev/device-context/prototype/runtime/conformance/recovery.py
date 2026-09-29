@@ -230,21 +230,35 @@ def replay_tasks(ordinal: Optional[int] = None) -> List[Dict]:
 def handle_error(exc: BaseException, ordinal: Optional[int] = None,
                  location: Optional[str] = None,
                  op_id: Optional[str] = None,
-                 device: str = "npu", sync_fn=None) -> FlagosError:
+                 device: str = "npu", sync_fn=None,
+                 rebuild_mode: str = REBUILD_PROBE,
+                 translate_fn=None) -> FlagosError:
     """五段式恢复编排入口：错误 → 统一错误对象（R1）→ 评估（R2）→
     隔离/重建（R3/R4）→ 重放数据（R5），返回带恢复决策的统一错误对象。
 
     recovery_decision 记录流程事件，供可观测性/监控诊断消费：
       captured / evaluated(ok) / evaluated(l4)->isolated / recovered / replay_ready
-    """
-    fe = translate_error(exc, location=location)
-    fe.recovery_decision = {"captured": True, "steps": ["captured"]}
 
-    if fe.category != ErrorCategory.L4_FATAL:
+    ⚠️ 两个关键字参数是 **2026-09-29 为"公开入口"新增的（只增不改默认行为）**：
+      · `rebuild_mode`：透传给 `recover_device`，默认 `"probe"`（进程内安全）；
+        传 `"real"` 才走真实重建 —— 与 `recover_device` 的安全默认保持一致。
+      · `translate_fn`：**覆盖默认译码器**。后端应传入**本后端自己的** `translate_error`，
+        以继承其**码表归属**规则（`vendor_codes`）。不传则用本模块译码器 ——
+        它默认按**昇腾 ACL 码表**分级，对未声明 `error_map` 的后端会把携带他厂码的消息
+        误判成 L4 ⇒ **误触发设备级重建**（与台账第 16 条同一缺陷族）。
+    ⚠️ 分级判定按 `category` **名字**而非枚举相等：调用方传进来的可能是**统一错误对象**
+      （`runtime.api.errors.FlagosError`，枚举类型与本文不同）⇒ 用枚举比较会**恒不相等**，
+      设备级恢复会被**静默跳过**。
+    """
+    fe = (translate_fn or (lambda e, loc: translate_error(e, location=loc)))(exc, location)
+    fe.recovery_decision = {"captured": True, "steps": ["captured"]}
+    # 枚举无关的分级归一（统一枚举 / 本文枚举都取名字）
+    _cat = getattr(fe.category, "name", str(fe.category))
+
+    if _cat != "L4_FATAL":
         # L1-L3：不触发状态恢复（L1 重试 / L2 上抛 / L3 同上下文重放）
-        fe.recovery_decision["steps"].append(f"evaluated: {fe.category.name}, no device recovery")
-        fe.recovery_decision["replayable"] = (fe.category in
-                                              (ErrorCategory.L1_RESOURCE, ErrorCategory.L3_EXECUTION))
+        fe.recovery_decision["steps"].append(f"evaluated: {_cat}, no device recovery")
+        fe.recovery_decision["replayable"] = _cat in ("L1_RESOURCE", "L3_EXECUTION")
         return fe
 
     # L4：评估 → 隔离 → 重建
@@ -254,7 +268,8 @@ def handle_error(exc: BaseException, ordinal: Optional[int] = None,
     evaluated = evaluate_device(ordinal, reason=f"L4 error: {fe.root_cause[:80]}", device=device, sync_fn=sync_fn)
     fe.recovery_decision["steps"].append(f"evaluated: {evaluated.value}")
     if evaluated == DeviceState.ISOLATED:
-        ok = recover_device(ordinal, reason=f"L4 recovery: {fe.root_cause[:80]}", device=device, sync_fn=sync_fn)
+        ok = recover_device(ordinal, reason=f"L4 recovery: {fe.root_cause[:80]}", device=device,
+                            sync_fn=sync_fn, rebuild_mode=rebuild_mode)
         fe.recovery_decision["steps"].append(f"recovered: {ok}")
         if ok:
             pending = replay_tasks(ordinal)

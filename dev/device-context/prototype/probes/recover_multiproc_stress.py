@@ -20,10 +20,9 @@
   ≥ `--rounds`（默认 30）轮，零失败
 
 【⚠️ 前置条件与边界（如实声明，不外推）】
-  ① **ISOLATED 是"构造"出来的**：四态状态机由 `runtime/conformance/device_state.py` 承载
-     （其 docstring 写明用法 = `sys.path.insert(.../runtime/conformance)` + `from device_state import ...`），
-     而 **公开面（`runtime`）没有把设备置为 ISOLATED 的入口** ⇒ 只经公开 API 调 `mode="real"`，
-     在健康设备上**永远走"无需重建"分支**（实测，见 A2-P0）。故本脚本按该模块**文档化的用法**置隔离。
+  ① **ISOLATED 是"构造"出来的**：经**公开入口** `runtime.set_device_state(dev, "isolated")`
+     驱动本层四态账本（2026-09-29 补的**只增**入口 —— 在此之前公开面无法置隔离，
+     `mode="real"` 在健康设备上**永远走"无需重建"分支**，本脚本过去只能用内部模块构造）。
      ⇒ 这**不是**真实 L4 硬件故障；"真实故障触发链"不在本脚本结论范围内。
   ② 只验证**同机多卡多进程**（同厂商），不涉及多机。
   ③ `digest` 用整数可精确表示的 fp32 运算 ⇒ 比较是**逐位相同**而非容差近似。
@@ -76,9 +75,9 @@ def _child_worker(rank: int, dev: int, ranks: int, rounds: int, backend: str,
         rt = runtime.use(backend)
         rt.set_device(dev)
 
-        # ── 复用共享状态机（文档化用法；公开面无此入口，见文件头 ①）──
-        sys.path.insert(0, os.path.join(root, "runtime", "conformance"))
-        from device_state import DeviceState, set_device_state, query_device_state, device_states
+        def _tok(st):
+            """设备状态 → 对外 token（契约：`DeviceState` 的 `.value` 即 token）。"""
+            return getattr(st, "value", None) or str(st).split(".")[-1].lower()
 
         DEV = rt.device_type
 
@@ -98,12 +97,12 @@ def _child_worker(rank: int, dev: int, ranks: int, rounds: int, backend: str,
         xs, A = make_tensors()
 
         def snapshot():
-            st = query_device_state(dev)
+            st = _tok(rt.device_state(dev))
             try:
                 cq = dict(rt.context_query())
             except Exception as e:                                # noqa: BLE001
                 cq = {"error": f"{type(e).__name__}: {e}"[:120]}
-            return {"state": getattr(st, "value", str(st)), "context_query": cq,
+            return {"state": st, "context_query": cq,
                     "probe": bool(rt.probe_device(dev))}
 
         expected = _expected_digest()
@@ -121,8 +120,9 @@ def _child_worker(rank: int, dev: int, ranks: int, rounds: int, backend: str,
             try:
                 if rank == victim:
                     pre = snapshot()
-                    set_device_state(dev, DeviceState.ISOLATED,
-                                     f"a2-stress r{r}: 构造隔离（公开面无此入口）")
+                    # ⭐ 经**公开入口**构造隔离（2026-09-29 补的只增入口）
+                    rt.set_device_state(dev, "isolated",
+                                        f"a2-stress r{r}: 构造隔离（公开入口）")
                     rec = rt.recover_device(dev, mode="real",
                                             reason=f"a2-stress r{r}: 多卡并发 real 重建")
                     row["recover"] = rec
@@ -135,7 +135,7 @@ def _child_worker(rank: int, dev: int, ranks: int, rounds: int, backend: str,
                     #   （此处**不**去碰旧张量：无法预判是抛错还是读出垃圾/挂死，属未做项，如实标注。）
                     xs, A = make_tensors()
                     row["digest"] = compute_digest(xs, A)
-                    row["post_state"] = getattr(query_device_state(dev), "value", None)
+                    row["post_state"] = _tok(rt.device_state(dev))
                 else:
                     row["digest"] = compute_digest(xs, A)
                     row["snapshot"] = snapshot()
@@ -144,10 +144,9 @@ def _child_worker(rank: int, dev: int, ranks: int, rounds: int, backend: str,
                 row["traceback"] = traceback.format_exc()[-800:]
             barrier.wait()
             res["rounds"].append(row)
-        try:
-            res["transitions"] = {str(k): v for k, v in device_states().items()}
-        except Exception as e:                                    # noqa: BLE001
-            res["transitions"] = {"error": f"{type(e).__name__}: {e}"[:120]}
+        # 注：状态机的 `last_transition` 事件流**未公开**，此处不采集（逐轮 post_state 已足够）；
+        #     如需事件订阅，属接口面扩张，另行裁定。
+        res["uses_public_api"] = True
         res["ok"] = True
     except Exception as e:                                        # noqa: BLE001
         res["errors"].append(f"{type(e).__name__}: {e}"[:300])
@@ -176,8 +175,8 @@ def main() -> int:
 
     print(f"=== A2 多卡多进程 real 恢复压测：backend={args.backend} "
           f"devices={devs[:ranks]} ranks={ranks} rounds={args.rounds} ===")
-    print("[前置声明] ISOLATED 由 `runtime/conformance/device_state.py`（文档化用法）**构造**，"
-          "公开面无此入口；非真实硬件 L4 故障。")
+    print("[前置声明] ISOLATED 由**公开入口** `runtime.set_device_state(dev, \"isolated\")` 构造"
+          "（本层四态账本）；非真实硬件 L4 故障。")
 
     sys.path.insert(0, ROOT)
     import runtime as _rt

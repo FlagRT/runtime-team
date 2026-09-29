@@ -20,6 +20,7 @@
 | **S3 重建后可继续** | 30/30：重建后 `set_device` + **再建流成功**（`Stream`）+ digest 正确（89440）+ `device_state` 回到 `available`（R4） |
 | **本轮新发现** | **3 处**（台账 **第 21 / 22 / 23 条**），均**已修 + 非空转验证**；其中 1 处是"判据静默空转"类 |
 | **破坏面回归** | ✅ 910C 第 6 轮 **9 项全绿**（离线 78/0/1 · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · 契约不变式 4/4 · 职责审计 39/0/0 · 错误闭环 5/0/0 · B/C 探针 7/7 · A2-P1 定向验证） |
+| ⭐ **同日续：补公开入口**（用户裁定） | ✅ **已补 2 个只增入口 + 1 个只增能力键**（`set_device_state` / `handle_error` / `device_state_control`）；真机 **`ENTRY_VERIFY_PASS`**（含 `handle_error` **端到端** R1–R5）；压测**改用公开入口后 3×30 仍全绿**；4 条新判据**全部非空转**；第 7 轮回归 **10 项全绿** ⇒ 见 `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md` |
 
 > ⚠️ **本轮最该记住的一条**：判据失败时，**先确认"判据与被测对象看的是不是同一个世界"**
 > —— 本次一条假 FAIL 的根因不是行为错，而是**共享状态机被两条导入名各加载了一份**（第 23 条）。
@@ -213,20 +214,29 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 | 重建后**不重新分配**即使用旧张量 | **未做（刻意）** | 无法预判是抛错、读出垃圾还是挂死 ⇒ 会污染整轮；如实登记为未做项 |
 | `P800 / MLU590` 的 A2 | **不适用 / 未跑** | 两家**均未声明 `recovery_real`**（设备级重置原语：kunlun 实测无、cambricon 未验证）⇒ 脚本会**如实跳过**（`SKIP_UNSUPPORTED`，退出码 3，不计失败）；**不得**由 910C 外推 |
 | 多机（>1 节点） | 未做 | 超出「同厂商多卡」范围裁定 |
+| R5 的**在途登记**入口（`mark_inflight` 等） | **未公开** | `handle_error` 的 `replay_ready` 现阶段恒配**空** `replay_tasks`；是否公开另议（见 `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md` §6） |
+| 状态机**事件订阅**（`last_transition`） | **未公开** | 监控方向若要「变化回调」而非轮询需要它；另议 |
 | `context_recreated` 的**独立**佐证 | **部分** | 真重建的佐证来自 `aclrtResetDevice` 返回值 + `detail` + 状态机事件（**同源**）；本层没有"重建计数器"这类**独立可观测物**，且 `context_count` 在 ascend 恒为 0（本层不建上下文，`managed_by="external"`）⇒ 如实标注 |
 | 吞吐/性能 | 不做结论 | 11.0 s / 30 轮（≈0.37 s/轮）是**共享机 + 单次取数**，只作"同档可比" |
 
 ---
 
-## 7 一个需要你知道的接口面事实（**未擅自改**）
+## 7 公开入口：**已补**（同日续 · 2026-09-29）
 
-**公开面（`runtime`）没有把设备置为 `ISOLATED` 的入口**：实测 `recover_device(mode="real")` 在健康设备上
-**永远走"无需重建"分支**（`detail` 自述"无需重建"）；`handle_error` / `set_device_state` 都只在
-`runtime/conformance/` 内部，未导出。故本压测按该模块**文档化用法**（`sys.path.insert(.../conformance)`）构造隔离。
+**原事实（本报告 §1/§2 的实测）**：公开面（`runtime`）**没有把设备置为 `ISOLATED` 的入口** ⇒
+只走公开 API 时 `recover_device(mode="real")` **永远走"无需重建"分支**，该链**不可触发**；
+故本报告 §2 的压测当时只能按 `runtime/conformance/device_state.py` 的**文档化用法**构造隔离。
 
-⇒ **"某卡 L4 故障 → 设备级恢复"这条链在公开面上不可触发**。这是否要补一个公开入口（例如导出
-`handle_error`，或新增 `recover_device(..., force=True)`），**属接口面扩张**，已按纪律**不改、先报**，
-等你裁定。
+**已补（只增不改）**：
+- `runtime.set_device_state(ordinal, state, reason="")` —— **驱动**四态（本层账本），非法取值 `ValueError`
+- `runtime.handle_error(exc, ordinal=None, location="", mode="probe")` —— **R1–R5 编排入口**
+- 能力键 **`device_state_control`**（三家一致声明；与 `device_state` 分开，理由同 `context_query` / `context_lifecycle`：**能查 ≠ 能改**）
+
+**补后重跑（真机）**：压测**改用公开入口**、3 rank × 30 轮**仍全绿**（`a2_recover_multiproc_910c_npu_20260929_pubentry.*`）；入口定向验证 **`ENTRY_VERIFY_PASS`**，其中端到端一条：`handle_error(<L4 消息>, mode="real")` ⇒
+`steps = ['captured', 'evaluated: isolated', 'recovered: True', 'replay_ready']`
+⇒ **该链现在可由公开 API 完整驱动**。
+
+⇒ 语义、非空转验证、回归与**未补的边界**（R5 在途登记入口 / 事件订阅未公开）见 `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md`。
 
 ---
 
@@ -269,6 +279,10 @@ ssh 910C 'docker exec -d dc-lean-910c-20260929 bash -lc \
 | `r6_regress_910c_npu_20260929.log` | **第 6 轮破坏面回归汇总**（9 项 + 免跑理由的可验证形式） |
 | `r6_regress_910c_npu_20260929_out/`（**16 份** log/json） | 回归逐项原始输出（离线/对称性/冒烟/conformance 13+6/契约不变式/职责审计/错误闭环/B-C 探针/A2-P1） |
 | `offline_3backends_910c_npu_20260929.log` | **离线自检三家同跑**（ascend 78/0/1 · kunlun 80/0/1 · cambricon 68/0/0） |
+| ⭐ `entry_verify_910c_npu_20260929.{json,log}` | **同日续**：公开入口定向验证（D1–D4，含 `handle_error` 端到端 steps） |
+| ⭐ `a2_recover_multiproc_910c_npu_20260929_pubentry.{json,log}` | **同日续**：压测**改用公开入口**后复跑（3 rank × 30 轮全绿） |
+| `r7_regress_910c_npu_20260929.log` + `r7_regress_910c_npu_20260929_out/`（17） | **第 7 轮破坏面回归 10 项原始输出**（含 I1④ 覆盖 14/14） |
+| `offline_3backends_910c_npu_20260929_r7.log` | 三家同跑（ascend 83/0/1 · kunlun 85/0/1 · cambricon 73/0/0） |
 
 > ⚠️ 证据命名里的 `910c` 指**芯片实例**，`npu` 才是**设备后端名**（见主看板「命名陷阱」）。
 > 证据命名规范与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。

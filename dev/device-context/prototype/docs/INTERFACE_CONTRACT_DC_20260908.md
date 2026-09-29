@@ -74,6 +74,8 @@ fe = runtime.translate_error(exc, location="...")
 |---|---|
 | `device_state(ordinal)` | 设备四态查询（AVAILABLE / DEGRADED / ISOLATED / **DESTROYED**） —— 四态成员名以 `conformance/device_state.py::DeviceState` 为实现基准（见变更记录 2026-09-28） |
 | `recover_device(ordinal, mode)` -> **dict** | 三级重建：`probe`（保底探活）/ `real`（CANN 官方 aclrtResetDevice 序列）/ `hybrid`（先 probe 后 real） |
+| `set_device_state(ordinal, state, reason="")` -> **token 字符串** | **驱动**四态状态机（**本层账本**）。取值域 `DEVICE_STATE_TOKENS`；**非法取值 ⇒ `ValueError`**（不静默）；同态幂等。⚠️ 是**本层账本，不是厂商设备的真实状态** —— 把健康设备标成 `isolated` 只影响**本层**的调度 / 恢复判定（演练与混沌注入靠它），**不会**让硬件出错；真实故障的隔离仍应由 R2 评估（探针失败）驱动。**三芯片一致可用**（走共享状态机，不依赖厂商原语，故无 `supports()` 分支） |
+| `handle_error(exc, ordinal=None, location="", mode="probe")` -> **`FlagosError`** | **五段式编排**：错误 → 统一错误对象（R1）→ 评估（R2）→ 隔离 / 重建（R3 / R4）→ 重放（R5）。返回**统一类型**错误对象，其 `recovery_decision` 记录流程事件（`captured` / `evaluated: …` / `recovered` / `replay_ready`）。`mode` 与 `recover_device` 同语义，**默认 `"probe"`**（进程内安全）。⚠️ 已如实声明边界：R5 的**在途登记**入口（`mark_inflight` 等）与状态机**事件订阅**（`last_transition`）**未公开** ⇒ 现阶段 `replay_tasks` 恒为空 |
 
 - **`recover_device` 返回的 `state` 取值域（2026-09-29 补）**：**必须是四态规范 token** ——
   `available` / `degraded` / `isolated` / `destroyed`（即 `DeviceState` 的 `.value`；
@@ -86,8 +88,16 @@ fe = runtime.translate_error(exc, location="...")
 - **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前**默认不启用**。
   **多卡多进程压测已完成（2026-09-29）**：910C 3 rank × 30 轮、30 次真重建**零失败**，
   非恢复者不被波及 ⇒ 上次遗留的"生产默认前需多卡压测"这一前置**已满足**；
-  **但默认值是否切到 `real` 仍待裁定**（另有两条未做：真实硬件 L4 故障触发、公开面无 ISOLATED 入口 ——
-  见 `../../910C/docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` §6/§7）。
+  **但默认值是否切到 `real` 仍待裁定**（未做项只剩"真实硬件 L4 故障触发"——健康卡无法制造；
+  见 `../../910C/docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` §6）。
+- ⭐ **2026-09-29 补两个"只增"公开入口，让这条链在公开面上可触发**：
+  实测发现 `recover_device(mode="real")` **只在设备处于 ISOLATED 时**才真重建，
+  而此前**公开面没有任何入口能把设备置为 ISOLATED** ⇒ 只走公开 API 时该链**不可触发**
+  （`real` 永远走"无需重建"分支）。补上 `set_device_state` / `handle_error` 后：
+  置隔离 →（或一次 `handle_error`）→ `recover_device(mode="real")` 全程公开 API 可完成，
+  真机端到端实测 `steps = ['captured', 'evaluated: isolated', 'recovered: True', 'replay_ready']`。
+  配套新增能力键 **`device_state_control`**（如实声明，三家一致；**与 `device_state` 分开**，
+  理由同 `context_query` / `context_lifecycle`：**能查 ≠ 能改**）。
 
 ---
 

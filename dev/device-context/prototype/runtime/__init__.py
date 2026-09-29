@@ -63,6 +63,7 @@ __all__ = [
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
     "probe_device", "recover_device", "translate_error", "device_state",
+    "set_device_state", "handle_error",
     # 内存句柄与生命周期（工作包 B）
     "allocate", "free", "memory_handle_count", "MEMORY_HANDLE_KEYS",
     # 设备上下文生命周期（工作包 C）
@@ -132,6 +133,42 @@ def recover_device(ordinal: int = 0, mode: str = "probe", reason: str = "") -> d
 
 def device_state(ordinal: int = 0):
     return current().device_state(ordinal)
+
+
+def set_device_state(ordinal: int, state, reason: str = "") -> str:
+    """**驱动**设备四态状态机（本层账本），返回新状态 **token 字符串**。
+
+    与 `device_state()`（只读查询）成对：后者答"**现在是什么态**"，本接口答"**把它置成什么态**"。
+
+    为什么要补这个入口（2026-09-29 A2 压测实测）：`recover_device(mode="real")` **只在设备处于
+    `isolated` 时**才真重建，而此前**公开面没有任何入口能把设备置为 `isolated`** ⇒ 只走公开 API 时
+    `real` 永远走"无需重建"分支，「某卡 L4 故障 → 设备级恢复」这条链**在公开面上不可触发**。
+
+    ⚠️ **这是本层的隔离账本，不等于厂商设备的真实状态**：把健康设备标成 `isolated`
+    只影响**本层**的调度 / 恢复判定（演练与混沌注入靠它），**不会**让硬件出错；
+    真实故障的隔离仍应由评估（探针失败）驱动。取值域见 `DEVICE_STATE_TOKENS`；
+    **非法取值 ⇒ `ValueError`**（不静默）。
+    """
+    return current().set_device_state(ordinal, state, reason=reason)
+
+
+def handle_error(exc: BaseException, ordinal=None, location: str = "", mode: str = "probe"):
+    """**五段式错误处理编排**：错误 → 统一错误对象（R1）→ 评估（R2）→
+    隔离 / 重建（R3 / R4）→ 重放（R5）。
+
+    返回**统一类型**的 `FlagosError`（与 `translate_error` 同型）；其 `recovery_decision`
+    记录流程事件（`captured` / `evaluated: …` / `recovered` / `replay_ready`）供监控与可观测消费。
+    `mode` 与 `recover_device` 同语义，**默认 `"probe"`**（进程内安全）；传 `"real"` 才真重建。
+
+    为什么要补这个入口（2026-09-29）：上层此前只能拿到"分级"（`translate_error`）与"重建"
+    （`recover_device`）两个零件，**中间那段（评估 → 隔离 → 重放）只能自己拼** —— 而那正是
+    R 系列契约的实现。本入口把五段一次性收敛到本层，避免每个上层各写一套（三套口径必然漂移）。
+
+    ⚠️ **已知边界（如实标注，未擅自扩张）**：`replay_ready` 表示"重放集合已可消费"，其内容取决于
+    上层是否登记过**在途任务** —— 该登记入口（`mark_inflight` / `finish_inflight`）**目前未公开**，
+    故现阶段 `replay_tasks` 恒为空列表。
+    """
+    return current().handle_error(exc, ordinal=ordinal, location=location, mode=mode)
 
 
 # ─────────────── 内存句柄与生命周期（工作包 B）───────────────

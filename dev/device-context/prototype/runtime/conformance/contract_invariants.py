@@ -40,6 +40,9 @@ CAPABILITY_ENTRYPOINTS = {
     "recovery_probe": ("probe_device", "recover_device"),
     "recovery_real": ("recover_device",),
     "device_state": ("device_state",),
+    # 2026-09-29（A2 收尾新增能力键）：四态的**驱动**入口（原只有查询）。
+    # 与 `device_state` 分开声明的原因同 `context_query` / `context_lifecycle`：**能查 ≠ 能改**。
+    "device_state_control": ("set_device_state",),
     "context_lifecycle": ("context_create", "context_destroy", "context_set", "context_count"),
     "context_query": ("context_query",),
 }

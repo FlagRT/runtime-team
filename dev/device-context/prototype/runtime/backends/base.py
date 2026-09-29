@@ -456,6 +456,86 @@ class RuntimeBackend(ABC):
         但本进程需重新 set_device。生产默认启用前需多卡多进程压力测试。
         """
 
+    # ───────── 状态机驱动 + 错误处理编排（2026-09-29 新增 · **只增不改**）─────────
+    #
+    # 【为什么放在基类唯一实现】四态状态机是**芯片无关的共享资产**
+    #   （`conformance/device_state.py` —— 进程内账本，不依赖任何厂商原语）⇒ 三家实现必然逐字相同。
+    #   项目已有先例：`supports()` 也从三家各写一份**收敛到基类唯一实现** —— 写成三份必然漂移。
+    #
+    # 【为什么现在才补（来由如实记录）】`recover_device(mode="real")` **只在设备处于 ISOLATED 时**
+    #   才真重建，而在此之前**公开面没有任何入口能把设备置为 ISOLATED** ⇒ 只走公开 API 时
+    #   `real` 永远走"无需重建"分支，「某卡 L4 故障 → 设备级恢复」这条链**在公开面上不可触发**
+    #   （2026-09-29 A2 多卡压测实测发现）。补上本组入口后该链可由公开 API 完整驱动：
+    #     生产：捕获异常 → `handle_error()`（R1 分级 → R2 评估 → R3 隔离 → R4 重建 → R5 重放）
+    #     演练 / 监控：`set_device_state()` 直接驱动四态
+    def _load_shared_state_assets(self):
+        """按需加载共享状态机 / 恢复资产。
+
+        ⚠️ 必须用**扁平名**导入（与各后端 `_load_conformance()` 同一形式、同一目录）；
+        换成包路径会得到**另一个模块实例**（进程内两份状态机、各说各话），见审计台账第 23 条。
+        """
+        if getattr(self, "_shared_state_assets_loaded", False):
+            return
+        import sys
+        from pathlib import Path
+        conf_dir = str(Path(__file__).resolve().parents[1] / "conformance")
+        if conf_dir not in sys.path:
+            sys.path.insert(0, conf_dir)
+        import device_state as _device_state
+        import recovery as _recovery
+        self._device_state = _device_state
+        self._recovery = _recovery
+        self._shared_state_assets_loaded = True
+
+    def set_device_state(self, ordinal: int, state, reason: str = "") -> str:
+        """**驱动**四态状态机（本层账本），返回新状态 **token 字符串**。
+
+        - `state` 接受**对外 token**（`available` / `degraded` / `isolated` / `destroyed`）
+          或共享枚举成员；**非法取值 ⇒ `ValueError`**（不静默）。
+        - 幂等：同态转换不产生事件（与状态机语义一致）。
+        - ⚠️ **这是本层的隔离账本，不等于厂商设备的真实状态**：把健康设备标成 `isolated`
+          只影响**本层的调度 / 恢复判定**（演练与混沌注入靠它），**不会**让硬件出错；
+          反过来，真实故障的隔离仍应由 R2 评估（探针失败）驱动。
+        - **三芯片一致可用**（共享资产，不依赖厂商原语）⇒ 无 `supports()` 分支。
+        """
+        self._load_shared_state_assets()
+        ds = self._device_state
+        if isinstance(state, str):
+            tok = state.strip().lower()
+            if tok not in DEVICE_STATE_TOKENS:
+                raise ValueError(f"未知设备状态 {state!r}；取值域 = {DEVICE_STATE_TOKENS}")
+            for member in ds.DeviceState:
+                if member.value == tok:
+                    state = member
+                    break
+        elif not isinstance(state, ds.DeviceState):
+            raise ValueError("state 必须是对外 token 字符串，或共享枚举 DeviceState 成员；"
+                             f"收到 {type(state).__name__}")
+        new = ds.set_device_state(
+            ordinal, state,
+            reason or f"runtime: set_device_state({getattr(state, 'value', state)})")
+        return state_token(new)
+
+    def handle_error(self, exc: BaseException, ordinal=None,
+                     location: str = "", mode: str = "probe"):
+        """**五段式错误处理编排**：错误 → 统一错误对象（R1）→ 评估（R2）→
+        隔离/重建（R3/R4）→ 重放（R5）。
+
+        返回**统一类型**的 `FlagosError`（与 `runtime.translate_error` 同型）；
+        `recovery_decision` 记录流程事件（供监控 / 可观测消费）。
+        `mode` 语义与 `recover_device` 一致，**默认 `"probe"`**（进程内安全）；传 `"real"` 才真重建。
+
+        ⚠️ 编排**复用共享编排器**（不在此另写一份，避免出现第二套口径），但**译码器传本后端自己的**
+        `translate_error` —— 以继承其**码表归属**规则。若沿用共享译码器的默认（昇腾 ACL 码表），
+        未声明 `error_map` 的后端会把携带他厂码的消息误判成 L4 ⇒ **误触发设备级重建**
+        （与审计台账第 16 条同一缺陷族）。
+        """
+        self._load_shared_state_assets()
+        return self._recovery.handle_error(
+            exc, ordinal=ordinal, location=location or "",
+            device=self.device_type, rebuild_mode=mode,
+            translate_fn=self.translate_error)
+
     # ───────────────────────── 可选能力（默认不支持）──────────────────────────
 
     def stream_priority_range(self):

@@ -682,6 +682,65 @@ def run(proto_dir, backend):
     except Exception as e:                                        # noqa: BLE001
         check("共享状态机单一实例可判", False, f"{type(e).__name__}: {str(e)[:110]}")
 
+    # ⭐ 2026-09-29 新增（A2 收尾 · 补公开入口）：四条，全部离线可判。
+    #   来由：此前**公开面没有把设备置为 ISOLATED 的入口** ⇒ 只走公开 API 时
+    #   `recover_device(mode="real")` 永远走"无需重建"分支，「某卡 L4 故障 → 设备级恢复」
+    #   这条链**在公开面上不可触发**。补上 `set_device_state` / `handle_error` 后，
+    #   下面前三条判据把"可触发"钉死；第四条守编排器的**码表归属**不被共享译码器带偏。
+    _rt_mod = sys.modules.get("runtime") or __import__("runtime")
+
+    # N-A：公开面导出
+    _missing_pub = [n for n in ("set_device_state", "handle_error")
+                    if n not in getattr(_rt_mod, "__all__", []) or not callable(getattr(_rt_mod, n, None))]
+    check("公开面已导出 set_device_state / handle_error（设备状态驱动 + 错误编排入口）",
+          not _missing_pub,
+          f"缺/不可调用 {_missing_pub}" if _missing_pub else "两者均在 __all__ 且可调用")
+
+    # N-B：驱动真的生效（判据侧必须读到 isolated）
+    _drive_err = ""
+    try:
+        _back = bk.set_device_state(0, "isolated", "self-check: 公开入口驱动四态")
+        _read = str(bk.device_state(0)).split(".")[-1].lower()
+    except Exception as e:                                        # noqa: BLE001
+        _back, _read, _drive_err = None, None, f"{type(e).__name__}: {str(e)[:90]}"
+    check("set_device_state('isolated') ⇒ device_state() 读到 isolated"
+          "（公开面确实能驱动四态 ⇒ real 重建路径可由公开 API 触发）",
+          _read == "isolated" and _back == "isolated",
+          _drive_err or f"set 返回={_back!r} 读到={_read!r}")
+    try:                                                          # 收尾：回到 available
+        bk.set_device_state(0, "available", "self-check: 收尾恢复")
+    except Exception:                                             # noqa: BLE001
+        pass
+
+    # N-C：非法取值必须如实报错（不得静默）
+    try:
+        bk.set_device_state(0, "bogus_state")
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", False, "未报错")
+    except ValueError as e:                                       # noqa: BLE001
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", True, str(e)[:70])
+    except Exception as e:                                        # noqa: BLE001
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", False,
+              f"抛了 {type(e).__name__}（应为本层契约级 ValueError）")
+
+    # N-D：编排器的分级**必须继承本后端码表归属**。
+    #   ⚠️ 用 `ordinal=None` 调用 ⇒ 即便判成 L4 也**不会**碰设备，故离线可判、无副作用。
+    _own_map = bk.supports("error_map")
+    _fe_msg = RuntimeError("op failed, error code is 507015")
+    try:
+        _fe = bk.handle_error(_fe_msg, ordinal=None, location="self-check")
+        _cat = getattr(getattr(_fe, "category", None), "name", None)
+        check("handle_error 的分级继承本后端码表归属"
+              "（未声明 error_map 者不得因他厂码判成 L4 ⇒ 否则会误触发设备级重建）",
+              (_cat == "L4_FATAL") == bool(_own_map),
+              f"category={_cat} supports(error_map)={_own_map} graded_by={getattr(_fe, 'graded_by', None)}")
+        check("handle_error 返回统一错误对象且带 recovery_decision（流程可观测）",
+              hasattr(_fe, "recovery_decision")
+              and isinstance(_fe.recovery_decision, dict)
+              and bool(_fe.recovery_decision.get("steps")),
+              str(getattr(_fe, "recovery_decision", None))[:120])
+    except Exception as e:                                        # noqa: BLE001
+        check("handle_error 可调用并返回统一错误对象", False, f"{type(e).__name__}: {str(e)[:110]}")
+
     # 2026-09-28 新增：四态**成员名**必须与接口约定一致。
     #   来由：接口约定曾写 `UNKNOWN`、而三家共用的实现是 `DESTROYED`，
     #   两者并存 20 天**无任何判据发现**（同样是职责响应审计才暴露）
