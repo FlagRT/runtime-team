@@ -152,6 +152,32 @@ embedding 请求实测 **42–64 s** ⇒ 曾把 63.6 s 的**成功**请求判成
 　　**边界（如实）**：`flags=8` 含义未查证（仅原样透传）；《XRE 用户手册》不在本次资料内，
 　　单上下文约束**仅当前档位**实测；910C 的 `context_query` **属未做而非不具备**（`acl.rt.get_context` 存在）。
 
+　　**2026-09-29（第五轮续：语义精化 + 边界项逐条做实 + 910C 对齐）**：对上一轮留下的
+　　「边界（如实，不外推）」逐条复查 —— **多数当场就能查，不该长期挂账**：
+　　① **表述精化**：`cuCtxCreate_v2` 的 `rc=2` 并非笼统的「平台只允许一个上下文」，而是
+　　**primary context 已激活即占位**（`cuDevicePrimaryCtxGetState` 实测：触碰前 `rc=3`/输出参数未写入 →
+　　触碰后 `rc=0`、**`active=1`** → 此时显式创建 `rc=2`）；**与 910C 的 `get_primary_ctx_state` 返回
+　　`(1,0,0)` 完全同构** ⇒ 「上层不必写分支」在**机制层**也成立。已入台账 §2.10 补充（含纪律：
+　　**机制性断言前先找厂商是否暴露该机制的状态查询；现象与机制必须分清**）。
+　　② **边界项做实**：`flags=8` **查证 = `CU_CTX_MAP_HOST`**（本栈 `cuda.h` 的 `CUctx_flags` 枚举 +
+　　运行时解码一致；本栈另有特有 `CU_CTX_NAKED_PRIMARY=0x20`）；**limit 已做只读**
+　　（`MALLOC_HEAP_SIZE=8388608`；不支持项**如实 `rc=215`（UNSUPPORTED_LIMIT）且输出参数不被写入**，
+　　**不静默填假值**）；**IPC 符号已核**（`cuIpcGet/Open/CloseMemHandle`、`cuIpcGet/OpenEventHandle` 五个俱全，
+　　但共享的是**内存/事件句柄而非上下文** ⇒ 不构成本层缺口）；**多卡**因当次**无空闲卡**推迟
+　　（8 卡近满：dev0 1.9G · dev2 23.7G · dev3 20.4G · dev4 16.8G · dev5 4.4G · dev6 4.3G，dev1 为故障卡）
+　　—— 记为「**当次不可做**」而非「不做」；《XRE 用户手册》不在资料内 ⇒ 文档口径交叉核对**仍不可做**。
+　　③ **910C 完成对齐**：新增只读入口（`acl.rt.get_context` 返回 `(ctx,rc)` 元组、3 次调用稳定一致；
+　　`get_primary_ctx_state` 返回三元组；**销毁后查询 `(0,107002)` 如实报错**；`flags` 无此概念 ⇒ 如实 `None`）。
+　　真机 C4：`present=True` · `ordinal=0` · `managed_by=external` · **`compute_before = compute_after = 512.0`**，
+　　verdict **7 项全 true**（B1/B3/B4 + C1/C2/C3/**C4**）。⇒ **两家在同一 6 键形态下给出同一 `managed_by`**，
+　　差异只在字段（`flags=None` vs `8`）。④ 顺带修两处工具缺陷：探针 C4 设备串**按 `device_type` 拼**
+　　（原先 ascend 退化为 CPU ⇒ `present` 恒 False 的**假阴性**）；离线假 pyACL **补齐三个只读入口**
+　　（「声明即承诺」判据当场报 `AttributeError`；**补 stub 而非在实现里容错掩盖**）。
+　　⚠️ **用卡纪律更新**：上轮记录的「用卡 4」**当次已失效**（0 MiB → 16.8 GB 他人占用）
+　　⇒ **用卡前必须当次重探占用并记录**；本轮只读探测改选 dev6（当次最低）且**不做设备切换**。
+　　边界（如实）：多卡上下文行为、`cuCtxSetLimit` 写入语义、IPC 真调（需跨进程）**仍未做**；
+　　MLU590 的 B/C 探测仍挂账。
+
 ｜上次例行更新 2026-09-20 ｜ 负责人：Kistich（hliu553）｜ **更新节奏：每周三**
 
 > 本文件按全组约定维护：**各子方向 STATUS.md 是总组收拢诉求与裁定基座调整的依据**。

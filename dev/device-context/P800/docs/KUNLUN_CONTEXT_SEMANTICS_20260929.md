@@ -13,7 +13,7 @@
 |---|---|
 | P800 有没有上下文的 API？ | **有，而且是完整的 CUDA Driver 风格 `cuCtx*`**（21 个，见 §3.1） |
 | 这些 API 是真实现还是壳？ | **真实现**（创建返回真句柄、`push/pop` 语义成立、销毁生效，见 §4.1） |
-| 那能不能做「多上下文生命周期」？ | ❌ **不能** —— 平台**只允许一个上下文**（第二次创建 `rc=2`） |
+| 那能不能做「多上下文生命周期」？ | ❌ **不能** —— **primary context 一经激活即占位**，此时显式创建被拒（`cuCtxCreate_v2` → `rc=2`，见 §4.1/§4.5） |
 | 能不能由本层建一个上下文给 torch 用？ | ❌ **不能** —— 抢先建会让 torch 起不来（`invalid device ordinal`） |
 | 那 C 项能补什么？ | ✅ **只读观测**：`context_query()` —— 读得到"此刻在哪个上下文上、归谁管" |
 | 观测有副作用吗？ | **无** —— 真机实测：查询前后同一次计算均为 `512.0` |
@@ -123,7 +123,7 @@ cuCtxSetCacheConfig cuCtxSetCurrent cuCtxSetLimit cuCtxSetSharedMemConfig cuCtxS
 | `cuCtxGetCurrent`（未触碰设备） | **`0x0`** ⇒ cuInit **不隐式建**上下文 |
 | `cuDeviceGetCount` | 1 |
 | **`cuCtxCreate_v2` #1** | **`rc=0`，句柄 `0x58e7218dd930`**；创建后 current 即该句柄 |
-| **`cuCtxCreate_v2` #2** | ❌ **`rc=2`**（失败）⇒ **平台只允许一个上下文** |
+| **`cuCtxCreate_v2` #2** | ❌ **`rc=2`**（失败）⇒ 该设备上**已有生效上下文**（§4.5 进一步定位为 primary context 占位） |
 | `cuCtxDestroy_v2` | `rc=0`；销毁后 current 回 `0x0` |
 | **再次 destroy 同一句柄** | **`rc=201`**（`CUDA_ERROR_INVALID_CONTEXT`）⇒ **厂商如实报错** |
 | `cuCtxSetCurrent`（已销毁句柄） | ⚠️ **`rc=0`（静默成功）** |
@@ -131,6 +131,26 @@ cuCtxSetCacheConfig cuCtxSetCurrent cuCtxSetLimit cuCtxSetSharedMemConfig cuCtxS
 > 最后一条是一处**厂商静默**：与 910C「上下文销毁后用其流当场静默」同族。
 > 本轮**未在本层提供 `context_set` 口**（P800 不声明 `context_lifecycle`），故不构成缺口；
 > 但**登记在案** —— 将来若本层要暴露切换语义，必须自己查句柄有效性。
+
+### 4.1b ⭐ 进一步定位：不是"只允许一个"，而是 **primary context 占位**（第五轮补测）
+
+符号扫描发现本栈有**完整的 primary context 专用入口**：
+`cuDevicePrimaryCtxGetState` / `Retain` / `Release` / `Reset` / `SetFlags`
+（与 910C 的 `acl.rt.get_primary_ctx_state` 对应）⇒ 可取观测状态，把 `rc=2` 的成因钉死：
+
+| 阶段 | `cuDevicePrimaryCtxGetState(0)` |
+|---|---|
+| **触碰设备之前** | `rc=3`（`CUDA_ERROR_NOT_INITIALIZED`），输出参数**未被写入**（保持哨兵 `0xDEAD`/`-1`） |
+| **触碰设备之后** | `rc=0`，**`active=1`（primary context 已激活）**，`flags=0` |
+| 此时 `cuCtxCreate_v2` | **`rc=2`** |
+
+⇒ **准确表述是**：**该设备上 primary context 已激活 ⇒ 显式创建被拒**，
+而非笼统的"平台只允许一个上下文"；且"是否占位"**有可观测判据**（`active` 字段）。
+
+⭐ **与 910C 同构**：`acl.rt.get_primary_ctx_state(0)` 实测返回 **`(1, 0, 0)`** ——
+`state=1` 即 *primary 已存在*；设备 1 返回 `(0, 0, 0)`、越界设备返回 `(0, 0, 107001)`。
+**两家栈在同一概念上给出同一语义**（一个是 `active`，一个是 `state`），这使"上层不必写分支"
+的主张在**机制层**也站得住。
 
 ### 4.2 实验 B：先建上下文，再让 torch 上来 —— 能不能"接管"
 
@@ -259,14 +279,48 @@ cuCtxSetCacheConfig cuCtxSetCurrent cuCtxSetLimit cuCtxSetSharedMemConfig cuCtxS
 证据：`../910C/probes/*_ascend_20260929_r4.*` · `probes/*_kunlun_20260929_r4.*` ·
 `probes/probe_bc_contract_kunlun_20260929_r2.json`。
 
-## 9 边界（如实，不外推）
+## 9 边界项：**逐条做实**（第五轮，2026-09-29 同日补）
 
-1. **910C / MLU590 的 `context_query` 未实现**，不是"不具备" ——
-   `acl.rt.get_context` 存在（910C 的探测中出现过），但**本轮未做、未验证**，故不声明。
-   方向：910C 可对齐（已有完整 `context_lifecycle`，补 query 是小改）。
-2. `flags=8` 的具体含义**未查证**（未在本次资料内找到标志位定义），仅作**原样透传**记录。
-3. 单上下文约束**只在当前档位**（XRE 5.0.21.47 / xpu3.6 / torch 2.9.0+cu129）实测；
-   《XRE 用户手册》不在手上，未与文档口径交叉核对。
-4. **未做**：多卡（`CUDA_VISIBLE_DEVICES` 多值）下的上下文行为、IPC 共享上下文
-   （`xpu_ipc_*` 存在但未探）、`cuCtxGetLimit`/`cuCtxSetLimit` 语义。
-5. 卡级前提：全程用**卡 4**；**卡 1 为已知故障卡**（对外报告见 `KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md`）。
+初版把下列各条写成"边界（如实，不外推）"。复查后判定：**其中多数当场就能查**
+（头文件就在机器上），不该长期挂账。逐条结果：
+
+| 原边界项 | 处置 | 结果 |
+|---|---|---|
+| `flags=8` 含义未查证 | ✅ **已查证** | 本栈 `cuda.h` 的 `CUctx_flags` 枚举：**`CU_CTX_MAP_HOST = 0x08`**（*Support mapped pinned allocations*）。**运行时复核一致**（`cuCtxGetFlags`→`8` → 解码为 `CU_CTX_MAP_HOST`）。另记本栈**特有** `CU_CTX_NAKED_PRIMARY = 0x20` |
+| `cuCtxGet/SetLimit` 未做 | ✅ **已做（只读）** | `CU_LIMIT_STACK_SIZE`=0 · `CU_LIMIT_PRINTF_FIFO_SIZE`=0 · `CU_LIMIT_MALLOC_HEAP_SIZE`=**8388608**（均 `rc=0`）；`CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH` 与 `CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT` **`rc=215`（`CUDA_ERROR_UNSUPPORTED_LIMIT`）**，且**输出参数保持哨兵值未被写入** ⇒ **不支持就如实报、不静默填假值**。只读后 torch 计算仍 `512.0` |
+| `xpu_ipc_*` 共享上下文未做 | ✅ **符号已核** | context 层：`cuIpcGetMemHandle` / `cuIpcOpenMemHandle` / `cuIpcCloseMemHandle` / `cuIpcGetEventHandle` / `cuIpcOpenEventHandle`（**五个俱全**）；XRE 层：`xpu_ipc_get_memhandle` / `open_memhandle` / `close_memhandle`。**注意**：它们共享的是**内存/事件句柄**，**不是上下文** —— 契约里没有"跨进程共享上下文"这一项，故**不构成本层缺口** |
+| 多卡下的上下文行为 | ⏸ **本轮未做，原因是环境** | 需**两张空闲卡**做 `set_device` 切换；当次实测 8 卡几乎全占（dev0 1.9 G · dev2 23.7 G · dev3 20.4 G · dev4 16.8 G · dev5 4.4 G · dev6 4.3 G；**dev1 为已知故障卡禁用**）⇒ **不在他人作业卡上做设备切换**。**不是"不做"，是"当次不可做"**；待有空闲窗口补 |
+| 单上下文约束未与文档口径交叉核对 | ⏸ **仍不可做** | 《XRE 用户手册》**不在**本次资料内（用户提供的两份中，XTDK 手册明确指向它）。**已在 §2.1 如实登记**，不臆造 |
+| 厂商静默：`cuCtxSetCurrent(已销毁句柄)` 返回 0 | ✅ **已登记为判据依据** | 写进接入手册 skill：将来若本层暴露"切换"语义，**必须自己查句柄有效性**（厂商不拦）。本轮 P800 不暴露 `context_set`，故不构成缺口 |
+
+**新增纪律（用卡）**：上一轮记录的"用卡 4"**当次已失效**（dev4 由 0 MiB 变为 16.8 GB 他人占用）
+⇒ **用卡前必须当次重探占用并记录**，不得沿用历史记录。本轮的只读探测改选 **dev6**
+（当次最低，4.3 G / util 0%），且**只做只读查询 + 8 字节分配、不做设备切换**。
+
+---
+
+## 10 910C 对齐（第五轮同日完成）
+
+`context_query` 是**跨后端同一形态**的接口，910C 早已具备原语（只是本轮之前未接线）。
+实测素材与落地：
+
+| 项 | 910C（pyACL） | P800（CUDA driver 兼容层） |
+|---|---|---|
+| 只读入口 | `acl.rt.get_context(dev)` → **`(ctx, rc)` 元组**，3 次调用稳定一致 | `cuCtxGetCurrent` → 真句柄 |
+| primary 状态 | `acl.rt.get_primary_ctx_state(dev)` → **三元组 `(1, 0, 0)`** | `cuDevicePrimaryCtxGetState` → `active=1` |
+| 销毁后查询 | **`(0, 107002)`**（`ACL_ERROR_RT_CONTEXT_NULL`）**如实报错** | 未测（本层不销毁） |
+| `flags` | **无此概念 ⇒ 如实 `None`** | `8` → `CU_CTX_MAP_HOST` |
+| 真机 C4 结果 | `present=True` · `ordinal=0` · `flags=None` · **`managed_by="external"`** · `readonly_safe=true` | `present=True` · `ordinal=0` · `flags=8` · **`managed_by="external"`** · `readonly_safe=true` |
+
+⇒ **两家在同一 6 键形态下给出同一 `managed_by`**（都是 `external` —— 上下文由框架自建，本层未造），
+这正是本层"**让分歧显式且可消费**"的落点：**差异在字段里（`flags=None` vs `8`），不在接口形状里**。
+
+**同时修掉一处工具缺陷**：探针 C4 原先按 `device_type == "cuda"` 才拼设备串
+⇒ 在 ascend（`device_type="npu"`）上会退化成 **CPU 计算**，根本触碰不到设备，
+`present` 永远为 `False`（**假阴性**）。已改为**按后端 `device_type` 拼**（`npu`/`cuda`/`mlu`），
+真机取证显示 `at_device = npu:0`。
+
+**还抓到一处 stub 不完整**：「声明即承诺」判据当场报
+`AttributeError: 'types.SimpleNamespace' object has no attribute 'get_context'`
+⇒ **离线假 pyACL 缺了三个只读入口**。**已补齐 stub（而非在实现里容错掩盖）**——
+否则"stub 的不完整"会被读成"实现的缺陷"。

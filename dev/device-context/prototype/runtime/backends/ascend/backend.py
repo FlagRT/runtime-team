@@ -53,6 +53,10 @@ class AscendBackend(RuntimeBackend):
         "memory_alloc_stat",       # memory_stats()["allocated_mb"]（分配器视角）
         "record_stream",           # 跨流内存保护（Tensor.record_stream 可用）
         "context_lifecycle",       # pyACL create/set/get/destroy_context（真机实测可用）
+        # 2026-09-29（工作包 C·对齐 P800 第五轮）：**只读观测**。与 context_lifecycle
+        # 分开声明 —— 有的栈能管生命周期、有的栈只允许观测（平台单上下文）。
+        # 本家实测：get_context / get_primary_ctx_state 可用（见 `_ctx_query_raw`）。
+        "context_query",
     }
 
     #: 能力**全集**（已知能力名，`info()["supports"]` 按此逐项 True/False 呈现）。
@@ -324,6 +328,35 @@ class AscendBackend(RuntimeBackend):
             raise self.translate_error(
                 RuntimeError(f"acl.rt.destroy_context failed, error code is {ret}"),
                 location="context:destroy")
+
+    def _ctx_query_raw(self, ordinal: int = 0):
+        """只读读回**当前生效的设备上下文**（pyACL）。
+
+        实测（910C，2026-09-29）：
+          · `acl.rt.get_context(dev)` 返回 **`(ctx, ret)` 元组**（与 `create_context` 同款形状），
+            3 次连续调用**稳定一致** ⇒ 可用于同一性比对；
+          · **销毁上下文后** 返回 **`(0, 107002)`**（`ACL_ERROR_RT_CONTEXT_NULL`）
+            ⇒ **厂商如实报错**，不需要本层兜；
+          · `acl.rt.get_primary_ctx_state(dev)` 返回**三元组**：设备 0 → `(1, 0, 0)`
+            （primary 已存在）、设备 1 → `(0, 0, 0)`、越界设备 7 → `(0, 0, 107001)`。
+          · pyACL **无 flags 概念** ⇒ `flags` 如实置 `None`（不臆造）。
+
+        入参 `ordinal` **被忽略**：契约要的是「**此刻实际生效**的那个上下文」，
+        故一律向厂商问"当前设备上的上下文"（多设备下由 `acl.rt.get_device()` 决定）。
+        """
+        acl = self.acl
+        if acl is None:
+            return None
+        try:
+            dev = acl.rt.get_device()
+            dev = int(dev[0]) if isinstance(dev, tuple) else int(dev)
+        except Exception:                                     # noqa: BLE001
+            dev = 0
+        res = acl.rt.get_context(dev)
+        ctx, ret = res if isinstance(res, tuple) else (res, 0)
+        if int(ret) != 0 or not ctx:
+            return None
+        return {"ctx": ctx, "ordinal": dev, "flags": None}
 
     def peek_current_device(self) -> int:
         """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""

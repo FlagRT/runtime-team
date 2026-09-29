@@ -200,8 +200,16 @@ def group_c4(runtime):
     try:
         import torch
         out["device_count"] = bk.device_count()
-        dev = "cuda" if getattr(bk, "device_type", "") == "cuda" else None
-        a = torch.ones(8, 8, device=dev)
+        # 设备串**按后端自己的 device_type** 拼（ascend="npu" / kunlun="cuda" / cambricon="mlu"）——
+        # 原写法只对 "cuda" 生效，ascend 上会退化成 CPU 计算 ⇒ 根本触碰不到设备，
+        # 于是 `present` 永远为 False（**假阴性**）。这条由「对齐 910C」时发现并修正。
+        dtype_dev = getattr(bk, "device_type", "") or ""
+        try:
+            a = torch.ones(8, 8, device=(dtype_dev or None))
+        except BaseException as _e:                           # noqa: BLE001
+            out["device_str_err"] = f"{dtype_dev!r} -> {type(_e).__name__}: {str(_e)[:100]}"
+            a = torch.ones(8, 8)
+        out["at_device"] = str(a.device)
         out["compute_before"] = float((a @ a).sum())        # 触碰设备（让上下文建起来）
         q = bk.context_query()
         out["query"] = q

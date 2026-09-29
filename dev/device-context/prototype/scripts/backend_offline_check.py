@@ -162,6 +162,15 @@ def _make_fake_acl(init_rc=0):
         malloc=lambda size, policy=0: (0x20000000 + int(size), 0),
         free=lambda ptr: 0,
         create_context=lambda dev: (0x30000000 + int(dev), 0),
+        # 2026-09-29（对齐 P800 第五轮）：`context_query` 用到的只读入口。
+        # ⚠️ 诚实模拟：**离线无设备 ⇒ 确实没有生效上下文**，故 `get_context` 返回
+        #    `(0, 107002)`（真机上的 `ACL_ERROR_RT_CONTEXT_NULL`），使 present=False。
+        #    该 stub 先前缺席，被「声明即承诺」判据当场抓到（AttributeError ⇒ queryable=False）
+        #    ⇒ **stub 的不完整会伪装成实现的缺陷**，故此处补齐而不是在实现里容错掩盖。
+        #    「有上下文」分支由判据内的**可控桩**覆盖（见 C-4 段）。
+        get_context=lambda dev=0: (0, 107002),
+        get_device=lambda: (0, 0),
+        get_primary_ctx_state=lambda dev=0: (0, 0, 0),
         set_context=lambda ctx: 0,
         destroy_context=lambda ctx: 0,
         synchronize_device_with_timeout=lambda ms: rc["sync"],
