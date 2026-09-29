@@ -222,7 +222,16 @@ ACL_ERR_TO_CATEGORY = {
 # 消息关键词 → 类别（探针级粗分类，厂商错误码未命中时使用）
 _MESSAGE_HINTS = [
     (re.compile(r"(shape|size mismatch|dimension|预期|形状)", re.I), ErrorCategory.L2_PARAM),
-    (re.compile(r"(invalid (device|ordinal|data|op|param))", re.I), ErrorCategory.L2_PARAM),
+    # ⚠️ 2026-09-29 扩等价类（第 3 家实测暴露）：
+    #   原规则只认 `invalid (device|ordinal|data|op|param)` —— 这条是从**个别厂商的文案反推**出来的，
+    #   于是同一故障在别家栈下的**等价说法**会漏网。实测（MLU590 真机，工作包 A 实验 S1）：
+    #   设备序号越界时 CNRT 的原文是 `CNRT error: invalid argument.`
+    #   ⇒ 落不到 L2，只能兜底 **L3_EXECUTION**（`replay`）⇒ 对一个**永久性参数错误反复重放**，
+    #   **动作反了**（与 09-29 修掉的 `category` 泄漏同一危害家族：**分级错了，下游动作就反**）。
+    #   `invalid argument` / `invalid value` 是 EINVAL 类**调用方**错误的通用措辞 ⇒ 必须覆盖。
+    #   ⚠️ 规则只扩到"参数类名词族"，**不做** `invalid \w+` 宽匹配（避免把 L4 类吞进 L2）。
+    (re.compile(r"(invalid (device|ordinal|data|op|param|arg(?:ument)?s?|value|index)"
+                r"|illegal (?:arg(?:ument)?s?|value|param|device))", re.I), ErrorCategory.L2_PARAM),
     # vLLM 层校验错误（2026-09-02 D10 集成时发现）：超长 prompt / 上下文长度超限 /
     # 参数校验失败 —— 责任在调用方请求，重放无意义，应上抛（L2）而非执行类重放（L3）
     (re.compile(r"(vllmvalidationerror|maximum context length|exceed(s|ed)? (the )?(length|limit|tokens|maximum)|prompt.*too long|too many tokens)", re.I),

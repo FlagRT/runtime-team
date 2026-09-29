@@ -25,6 +25,16 @@
 > `recover_device()["state"]` 取值域）⇒ 现行判据数 **cambricon 43**、**kunlun 43**、**ascend 38**
 > （+2 / +2 / +1，均含非空转验证）。**本文档其余计数为历史批次值，按纪律保留不改写。**
 >
+> ⭐ **跨实例复验（2026-09-29，本实例发现并修复 1 处层内缺陷）**：按同一套判据复跑，首轮即暴露
+> 「**参数类错误的措辞等价类漏网**」—— 设备序号越界时 CNRT 原文是 **`CNRT error: invalid argument.`**，
+> 落不到 L2，只能兜底 **`L3_EXECUTION`（`replay`）**，而契约期望 **`L2_PARAM`（`raise`）**
+> ⇒ **对一个永久性参数错误反复重放（动作反了）**。已把 L2 规则改为**按等价类覆盖**，
+> 并给离线自检 **+2 条判据**（用两家真机原文）且做**非空转验证**（回退规则 ⇒ 恰好该条 FAIL，44/1）。
+> 修复后 **10 项全绿**：离线自检 **45/0/0** · 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** ·
+> 职责审计 **36/0/3** · 错误闭环 **5/0/0** · **等价性 5/6 → 6/6** · 多流 **8/8** + 配额 **3/3**。
+> ⇒ 报告 [`docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md`](docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md)；
+> 缺陷台账见 [`../prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md`](../prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md) 第 16 条。
+>
 > 离线契约自检 **41/0/0**（09-28 批次值）· 跨后端对称性 **5/0**；三处补做（`recover_device` 补 `state`、四态命名对齐、
 > `sync_timeout` 别名）均**真机验证生效**。⇒
 > [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md)
@@ -189,11 +199,14 @@ sudo usermod -aG docker hliu553
 | `docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表 · 厂商栈判别（预期路径 C）· 已完成的代码层动作与能力声明理由 · 本地验证（离线自检 35/0）· **A1–A10 真机执行序列（含确切命令）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
 | `docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md` | ⭐ **推理腿（前向 + 服务化）验收报告**：12 项判定全通过 · 两条要点（**运行时镜像不含 vLLM ⇒ 用官方应用镜像**；**冒烟超时硬编码 60 s ⇒ 假失败**，含 PRE_FIX 原样留档）· 三实例对照与差异解释 · 边界与未覆盖 · 复现命令 |
 | ⭐ `docs/DUTY_RESPONSE_AUDIT_MLU590_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（SKIP 均如实不具备）；`recover_device` 的 `state` 补做**真机验证生效** |
+| ⭐ `docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md` | **修复后全套回归 + 一处层内缺陷的发现与修复**：工作包 A 等价性 **5/6 → 6/6**；L2 文案等价类的现象/根因/危害/修法；2 条新判据与**非空转验证**（回退规则 ⇒ 44/1）；三处修复的定向验证；未跑项如实登记 |
 | `probes/accept_*_20260928.*` | **本轮 12 项判定的原始证据**（命名与两实例同规范）：离线自检 · 冒烟 · conformance 13+6 · 多流三项 · 训练腿 · 推理腿前向 · 服务化（含 `PRE_FIX` 失败留档与 vLLM 服务端日志）· 错误闭环 |
 | ⭐ `probes/duty_audit_cambricon_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（3 项 SKIP 均为如实不具备）；离线自检 41/0/0 · 对称性 5/0 |
 | `probes/preflight_env_mlu1_20260922.log` | **Mlu-1 环境普查原始日志**（`preflight_env.sh` 首跑产出） |
 | `probes/preflight_env_mlu2_20260922.log` | **Mlu-2 环境普查原始日志** |
 | `probes/.gitignore` | `!*.log` 例外（否则根 `.gitignore` 的 `*.log` 会让证据静默不入库） |
+| ⭐ `probes/regress_*_cambricon_20260929.*` + `probes/exp_divergence_cost_cambricon_20260929.*`（共 18 份） | **09-29 修复后全套回归原始证据**：离线 **45/0/0** · 对称性 5/0 · 冒烟 46/0 · conformance 13+6 · 职责审计 36/0/3 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `probes/exp_divergence_cost_cambricon_PRE_FIX_20260929.json` | **修复前**同一实验的原始证据（**5/6，`S1` DIFF + 期望未达标**）—— 缺陷发现的**第一手证据**，原样留档 |
 
 ---
 

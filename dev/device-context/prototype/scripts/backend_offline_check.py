@@ -502,6 +502,26 @@ def run(proto_dir, backend):
         location="stream:0/op:matmul")
     check("F1：形状不匹配（真实 PyTorch 文案）→ L2_PARAM",
           fe_shape.category.name == "L2_PARAM", fe_shape.category.name)
+    # ⭐ 2026-09-29 新增（第 3 家真机实测暴露的防回归判据：**厂商文案等价类覆盖**）
+    #   背景：共享消息规则表（`conformance/errors.py::_MESSAGE_HINTS`）的 L2 规则原先只认
+    #   `invalid (device|ordinal|data|op|param)` —— 它是**从个别厂商的文案反推**出来的，
+    #   于是同一故障在别家栈下的**等价说法**漏网。
+    #   实测（MLU590 真机，工作包 A 实验 S1）：设备序号越界时 CNRT 原文是
+    #       `CNRT error: invalid argument.`
+    #   → 落不到 L2，只能兜底 **L3_EXECUTION**（`replay`）⇒ 对**永久性参数错误反复重放**，
+    #   **动作反了**（与 09-29 修掉的 `category` 泄漏同一危害家族：分级错了，下游动作就反）。
+    #   本判据用**两家真机抓到的原文**做输入（不发明文案），只碰文本、不碰设备 ——
+    #   正是"无设备先自查"该发挥作用的场合（该缺陷本可以在上机前被拦住）。
+    for _msg, _src in (
+        ("CUDA error: invalid device ordinal", "P800 真机原文 · S1 设备序号越界"),
+        ("CNRT error: invalid argument.", "MLU590 真机原文 · S1 设备序号越界"),
+    ):
+        _fp = bk.translate_error(RuntimeError(_msg), location="self-check:param-phrasing")
+        check(f"参数类文案等价类 ⇒ L2_PARAM：{_msg!r}（{_src}）",
+              _fp.category.name == "L2_PARAM",
+              f"category={_fp.category.name} graded_by={_fp.graded_by}"
+              + ("（L3 说明该厂商措辞漏网 ⇒ 下游会 replay 一个永久性参数错误）"
+                 if _fp.category.name == "L3_EXECUTION" else ""))
     if bk.supports("error_map"):
         check("声明 error_map ⇒ 无码消息不得伪称 code_map",
               fe.graded_by != "code_map", fe.graded_by)

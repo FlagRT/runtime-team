@@ -6,6 +6,11 @@
 > **2026-09-22 深夜补记（第三轮）**：910C 网络恢复 + 并发名额释放后做完整复核，再新增
 > **第 11–15 条**；其中**第 11 条是此前"910C 上 conformance 跑不通"的真因**（不是环境问题，是我方原型缺陷）；
 > 第 15 条由**训练腿切 `torch_npu`** 时暴露。
+> **2026-09-29 补记（第四轮）**：以「分歧的业务代价」实验（工作包 A）为手段做**跨实例复验**，
+> 新增 **第 16 条** —— 它不是"某个后端写错了"，而是**共享判据表本身"以个别厂商的文案为样本"**
+> （规则是从昇腾/昆仑芯的写法反推的），于是同一故障在别家栈下的**等价说法**漏网。
+> 三实例同口径复跑见 `../../MLU590/docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md`、
+> `../../P800/docs/KUNLUN_P800_REGRESS_AFTER_FIX_20260929.md`。
 > **性质**：**审计 / 复核记录**（不是规范、不是操作手册）。规范正文见 `INTERFACE_CONTRACT_DC_20260908.md`，
 > 修订建议见 `INTERFACE_CONTRACT_REVISION_PROPOSAL_20260920.md`。
 > **写法**：每条缺陷给"现象 / 复现路径 / 归属 / 处置 / 防回归判据 / 各实例验证状态"。
@@ -40,6 +45,7 @@
 | **第 13** | **torch_fl `Event.query()` 语义缺口**：流上有工作时**恒 False**、**`ev.synchronize()` 成功后仍 False**、空流时真时假 ⇒ `wait_host()` **假超时** | **厂商运行时**（torch_fl，非我方缺陷） | 910C | 登记 `known_issues: FLAGOS-EVENT-QUERY-SEMANTICS` + 全变体实测矩阵；`wait_host()` 的 `False` 须读作「**未确认完成**」 | smoke 该项仍如实 **FAIL**（**不掩盖**）；已推荐改用阻塞 `synchronize()` / 显式依赖 |
 | **第 14** | **OOM 注入在 `memory_stats["total_mb"]=0` 时静默退化成 `torch.empty(0)`**：不报错、不占显存，**却仍记"已注入"** ⇒ 假证据 | 验证资产（`proto_error_recovery_loop.py`） | 910C（第 12 条的连带后果） | `total<=0` 时**回退默认估值并打印提示** | 错误闭环 `oom` 项由「未触发异常」恢复为 `L1_RESOURCE` |
 | **第 15** | **`init_process_group("hccl")` 早于 `use()`** ⇒ `hccl` 后端未注册 ⇒ `AssertionError: Unknown backend type hccl`（**厂商集合通信后端名也要先加载扩展才注册**） | 验证资产（`proto_train_leg.py`） | 910C（**训练腿切 torch_npu** 时暴露） | 初始化进程组**之前**先 `use()` + 触碰设备；并给 `ascend` 补默认 `DC_DIST_BT=hccl` | 训练腿 `TRAIN_LEG_PASS 6/6`（`dist=hccl`） |
+| **第 16** | **判据表「以个别厂商文案为样本」⇒ 参数类错误的等价说法漏网**：设备序号越界在寒武纪栈下原文是 `CNRT error: invalid argument.`，而 L2 规则只认 `invalid (device\|ordinal\|data\|op\|param)` ⇒ **无规则命中、兜底 `L3_EXECUTION`（`replay`）**，而契约期望 `L2_PARAM`（`raise`）⇒ **下游对一个永久性参数错误反复重放（动作反了）** | 共享判据表（`conformance/errors.py::_MESSAGE_HINTS`） | **MLU590**（P800/910C 文案恰好命中 ⇒ 未暴露） | L2 规则改为**按等价类覆盖**（`invalid argument`/`invalid value`/`illegal …`）；**刻意不做** `invalid \w+` 宽匹配 | 离线自检 +2 条「参数类文案等价类」判据（用两家真机原文），**非空转验证**：回退规则 ⇒ 恰好该条 FAIL（44/1） |
 
 **一句话（第二轮补充）**：第 9 条是**错误归因**里最坏的一种 —— 把"环境/初始化失败"报成
 "设备同步超时"，下游会按 L3 去 `replay`，而正确动作是 L2 的 `raise`（**动作反了**）。
@@ -435,6 +441,67 @@ AssertionError: Unknown backend type hccl
 **验证**：训练腿 `TRAIN_LEG_PASS 6/6`、`dist=hccl`，三类通信对照全对。
 
 ---
+
+### 2.9 第 16 条（第四轮，跨实例复验暴露）：判据表以"个别厂商文案"为样本
+
+#### 第 16 条：参数类错误的「措辞等价类」漏网 ⇒ 参数错误被当成执行错误重放
+
+**现象**（MLU590 真机，工作包 A 实验 S1「设备序号越界」）：
+
+| 路径 | 类别 | 处置 |
+|---|---|---|
+| ① 统一层 `runtime` | **`L3_EXECUTION`** ❌ | `replay` |
+| ② 直接调厂商原生 | `L2_PARAM` ✅ | `raise` |
+
+厂商栈原文（真机抓取）：MLU590 `CNRT error: invalid argument.`；P800 `CUDA error: invalid device ordinal`；
+910C 带数字码走 `code_map`。
+
+**根因**：`conformance/errors.py::_MESSAGE_HINTS` 的 L2 规则原为
+
+```python
+(re.compile(r"(invalid (device|ordinal|data|op|param))", re.I), ErrorCategory.L2_PARAM)
+```
+
+—— 它是**从个别厂商的文案反推**出来的（昇腾 / 昆仑芯的 `invalid device` 写法）。
+CNRT 说的是 `invalid argument`：**既不在这张名词表里，也不含任何 L3 关键词** ⇒ 落到最后一条**兜底 `L3_EXECUTION`**。
+
+**归属**：**我方**（共享判据表）。
+
+**危害**：`L3_EXECUTION` 的契约处置是 `replay`。设备序号越界是**永久性**参数错误，
+重放多少次都以同样方式失败 ⇒ **下游对着不可能成功的操作反复重放**；
+与第 6 条（外来码表把参数类错误升级成 `L4_FATAL`、误触发设备级重建）是**同一危害家族的两个方向**：
+**分级错了，下游动作就反。**
+
+**处置**：L2 规则从"按名词枚举"改为"按**等价类**覆盖"：
+
+```python
+(re.compile(r"(invalid (device|ordinal|data|op|param|arg(?:ument)?s?|value|index)"
+            r"|illegal (?:arg(?:ument)?s?|value|param|device))", re.I), ErrorCategory.L2_PARAM)
+```
+
+`invalid argument` / `invalid value` 是 **EINVAL 类调用方错误**的通用措辞 ⇒ 必须覆盖；
+**刻意不做** `invalid \w+` 宽匹配（否则可能把 `invalid context` 一类 L4 场景吞进 L2）。
+
+**防回归判据**：离线自检新增 **2 条**「参数类文案等价类 ⇒ L2_PARAM」，
+输入用**两家真机抓到的原文**（不发明文案），**只碰文本、不碰设备** ⇒ 属于"上机前就能拦住"的场合。
+
+**非空转验证**：把规则回退为旧版 ⇒ **恰好该条 FAIL**（`44 通过 / 1 失败`），
+另一条（P800 措辞）仍 PASS；恢复后 `45/0`。
+
+**各实例验证状态**
+
+| 实例 | 状态 |
+|---|---|
+| MLU590（cambricon） | ✅ **真机复验通过**：等价性 **5/6 → 6/6**，`S1` 两路径均 `L2_PARAM`；离线自检 43→**45/0/0** |
+| P800（kunlun） | ✅ 真机复验：离线自检 43→**45/0/1**；`S1` 本就正确（属**防回归**） |
+| 910C（ascend） | 🟨 无设备判据 **40/0/1 已过**；**真机复跑未取得**（2026-09-29 11:19 起 SSH 超时，见当日日志）—— 属**未验证**，非"已确认无影响" |
+
+> ⭐ **可推广的教训**：**判据表本身也要有"样本来源"意识** ——
+> 凡规则是"照着某一家的报错文案写的"，就必须问一句：**同一故障在另两家的原文是什么？**
+> 等价类没覆盖，规则再对也只是**在一家上对**。
+
+---
+
 
 ## 3. 判据非空转验证（新增判据必须能真的失败）
 

@@ -1,0 +1,50 @@
+═══════════════════════════════════════════════════════════════════════════════
+P800「卡 1」Event/同步异常导致 probe_device 挂死 —— 判别记录（原样留档）
+时间：2026-09-29 11:18–11:40 CST ｜ 主机 VM-0-2-ubuntu ｜ 容器 hliu553-device-context-p800
+栈：conda python310_torch29_cuda（torch 2.9 / xpu3.6）· XPU_EVENT_KL3_ENABLE=1
+目的：核验 09-29 三处层内修复时，首轮回归在 CUDA_VISIBLE_DEVICES=1 上「冒烟挂死」，
+     需判定是**本层回归**还是**环境（卡）问题**。
+═══════════════════════════════════════════════════════════════════════════════
+
+【现象】
+  同一条命令 `python3 runtime/smoke_runtime.py --backend kunlun`：
+    · CUDA_VISIBLE_DEVICES=1 → 打印 `[FAIL] Event.record + wait_host 有界返回`
+      之后卡在 `probe_device`（调用栈见下），**90 s 无返回**（faulthandler 强制 dump）；
+    · CUDA_VISIBLE_DEVICES=4 → **全绿 `46 通过 / 0 失败`**，`Event.record + wait_host`、
+      `probe_device(0)`、`recover_device` 均 PASS。
+
+【为什么不是本轮修复引入的：单变量对照】
+  用**修复前**的原型副本 `/workspace/prototype`（已核：不含 09-29 新增的 L2 文案等价类规则，
+  grep 命中数 = 0）在**同一张卡 1** 上跑同一命令 ⇒ **同一行挂死**
+  （`[FAIL] Event.record + wait_host 有界返回` → `Timeout (0:01:00)` → `probe_device`）。
+  ⇒ 两个版本的**唯一变量**是原型版本，结果相同 ⇒ **挂死与 09-29 的修复无关，是卡 1 的环境问题**。
+  （另：把 XPU_EVENT_KL3_ENABLE 关掉重跑**同样挂死** ⇒ 也**不是 KL3**。）
+
+【A 组 · 卡 1 + 当前原型 · 调用栈（原样）】
+  [PASS] memory_stats 结构 {'total_mb': 65536, 'used_mb': 1024, 'free_mb': 64512}
+  [PASS] memory_stats 结构 {'total_mb': 98304, 'used_mb': 198, 'free_mb': 98106}
+  [FAIL] Event.record + wait_host 有界返回 
+Thread 0x000071726b02b480 (most recent call first):
+  File "/workspace/dc_regress_20260929/prototype/runtime/backends/kunlun/backend.py", line 245 in probe_device
+  File "runtime/smoke_runtime.py", line 294 in main
+  File "runtime/smoke_runtime.py", line 357 in <module>
+
+【B 组 · 卡 4 + 当前原型 · 关键判据（原样）】
+  [PASS] Event.record + wait_host 有界返回 
+  [PASS] probe_device(0) 
+  [PASS] recover_device 返回 dict（统一契约） {'ordinal': 0, 'mode': 'probe', 'recovered': True, 'state': 'available', 'detail': 'probe 级探活：设备当前可用'}
+=== 结果: 46 通过 / 0 失败 ===
+
+【C 组 · 卡 1 + 修复前旧原型 · 关键判据（原样）】
+  [FAIL] Event.record + wait_host 有界返回 
+Timeout (0:01:00)!
+  File "/workspace/prototype/runtime/backends/kunlun/backend.py", line 245 in probe_device
+
+【处置】
+  1. **避开卡 1**，本轮正式回归改用卡 4（xpu-smi 显示空闲，且**先用最小冒烟验证该卡功能正常**）；
+  2. 未把该现象当成层内缺陷、未改动任何判据；
+  3. ⭐ **方法学**：「`xpu-smi` 显示空闲」**不等于**「该卡功能正常」——
+     本次卡 1 显示 `0 MiB / 0%` 却无法完成 `Event.record + wait_host`。
+     ⇒ **选卡后先跑一个最小 Event/同步探针再正式取数**，否则会把环境问题记成代码缺陷。
+     （与 2026-09-22「把卡被他人占用误判为通信库缺陷」同源，属同一纪律的加强。）
+【边界】本结论只在**当前档位与这张卡**下成立，不写成常态；未对该卡做硬件级诊断（不在本层职责）。
