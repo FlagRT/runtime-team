@@ -1157,6 +1157,27 @@ def symmetry(proto_dir):
         need = [k for k, v in ok_rows.items() if v["declares_error_map"] and not v["sample_coded"]]
         check("声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR", not need, str(need))
 
+        # ⑥ ⭐ 2026-09-29（B3 复核）新增：info() 必须含**契约承诺的最小键集**。
+        #   来由：`ascend` 覆写 `info()` 时**丢掉了 `device_type`** ⇒ `info()["device_type"]` 直接
+        #   `KeyError`，而契约与 smoke 都写「info 至少含 name/device_type/capabilities」。
+        #   长期未被发现的两处盲区（第 9 条「验证资产可达性」家族）：
+        #     ① 上文矩阵的 device_type 列取的是**类属性** `bk.device_type`，**不是 info()**；
+        #     ② smoke 的同名判据只对 **stub** 跑 —— 真实后端无人守。
+        _INFO_MIN = ("name", "device_type", "capabilities")
+        bad_info = {k: sorted(set(_INFO_MIN) - set(v["info_keys"]))
+                    for k, v in ok_rows.items() if set(_INFO_MIN) - set(v["info_keys"])}
+        check("info() 含契约最小键集 name/device_type/capabilities（真实后端也守）",
+              not bad_info, str(bad_info))
+
+        # ⑦ ⭐ 公共字段一致性：三家 info() 都**手写**了 capabilities/native_accesses/degradations，
+        #   而基类 `_base_info_fields()` **无任何调用方** ⇒ 同一份清单三个来源
+        #   （第 8 条「同一份清单只能有一个来源」的残留形态）。
+        _COMMON = ("capabilities", "native_accesses", "degradations")
+        lack = {k: [c for c in _COMMON if c not in v["info_keys"]] for k, v in ok_rows.items()}
+        check("info() 均含公共字段 capabilities/native_accesses/degradations",
+              all(not x for x in lack.values()),
+              str({k: v for k, v in lack.items() if v}))
+
         # ⑤ 同一能力在不同家的"声明与否"必须能解释 —— 这里只报差异，不判失败
         all_caps = sorted(set().union(*[v["capabilities"] for v in ok_rows.values()])) if ok_rows else []
         print("\n[差异清单] 允许存在，但每处都应有理由（不计失败）")

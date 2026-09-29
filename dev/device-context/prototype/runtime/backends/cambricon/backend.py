@@ -625,14 +625,13 @@ class CambriconBackend(RuntimeBackend):
         self._load()
         return {
             "name": self.name,
+            # 公共字段改由基类唯一来源提供（原为三家各手写一份 ⇒ 同一份清单三个来源）
+            **self._base_info_fields(),
             "device_type": self.device_type,
             "framework": "torch_mlu（PyTorch PrivateUse1 厂商扩展）",
             "torch": self._torch.__version__ if self._torch is not None else None,
             "device_namespace": "mlu（torch.mlu.*；PrivateUse1，进程内与其他厂商插件互斥）",
             "device_count": self.device_count(),
-            "capabilities": sorted(self._capabilities),
-            "native_accesses": self.native_accesses(),
-            "degradations": self.degradations(),
             # 与 _capabilities 同一套键名（自洽，避免 A 键声明 / B 键查询的口径漂移）
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),

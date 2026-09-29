@@ -594,14 +594,13 @@ class KunlunBackend(RuntimeBackend):
         self._load()
         return {
             "name": self.name,
+            # 公共字段改由基类唯一来源提供（原为三家各手写一份 ⇒ 同一份清单三个来源）
+            **self._base_info_fields(),
             "device_type": self.device_type,
             "framework": "XPytorch (torch.cuda 兼容层) + torch_xray 符号重写",
             "torch": self._torch.__version__,
             "torch_build": {"USE_CUDA": True, "USE_XPU": False},
             "device_count": self.device_count(),
-            "capabilities": sorted(self._capabilities),
-            "native_accesses": self.native_accesses(),
-            "degradations": self.degradations(),
             # 与 _capabilities 同一套键名（自洽，不重复出现 A 键声明/B 键查询的问题）
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),

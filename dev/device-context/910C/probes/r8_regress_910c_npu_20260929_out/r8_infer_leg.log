@@ -1,0 +1,8 @@
+[W929 09:55:05.002155788 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+[1] 设备上下文: backend=ascend dev=npu:0 count=3 mem={'total_mb': 62748, 'used_mb': 172, 'free_mb': 62575, 'alloc
+[2] 模型加载完成 → npu:0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 73.49 句/s, p50 40.35 ms, avg 40.82 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=code_map)
+
+[rank0] INFER_LEG_PASS 14/14 | backend=ascend dev=npu:0 | dim 1024 | 73.49 句/s p50 40.35ms | 区分度 0.6391 -> /mnt/raid/hliu553/dc_legs_20260929/out_r8/proto_infer_leg_result.json

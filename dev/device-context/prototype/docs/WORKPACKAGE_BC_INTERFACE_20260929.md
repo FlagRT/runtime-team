@@ -269,8 +269,12 @@ B/C 改的是**共享层**（`backends/base.py` / `api/stream.py` / `runtime/__i
 
 ### 11.2 处置
 
-- **新增能力键 `context_query`**（只读观测），与 `context_lifecycle` **分开声明**；P800 **声明**，
-  910C / MLU590 **如实未声明**（返回 `queryable=False` + 具体原因）。
+- **新增能力键 `context_query`**（只读观测），与 `context_lifecycle` **分开声明**。
+  ⚠️ **2026-09-29 口径更正（B3 复核实测，逐个真调 `supports()`）**：本节原写「P800 **声明**，
+  910C / MLU590 **如实未声明**」，但实测 **`ascend` 也已声明 `context_query`**（由 `ab80d87`
+  「910C 对齐 context_query」落地）⇒ **现状 = 910C + P800 两家声明**；仅 MLU590 未声明
+  （返回 `queryable=False` + 具体原因）。三家 `supports()` 实测见
+  [`INTERFACE_CONTRACT_REVISION_STATUS_REVIEW_20260929.md`](INTERFACE_CONTRACT_REVISION_STATUS_REVIEW_20260929.md) §7.1。
 - **本层实现绝不调用 `cuCtxCreate_v2` / `cuCtxDestroy_v2`** —— 只调
   `cuCtxGetCurrent` / `cuCtxGetDevice` / `cuCtxGetFlags`（真机证明只读安全）。
 - 库按 **soname `libcuda.so.1`** 惰性加载，**不用副本路径**

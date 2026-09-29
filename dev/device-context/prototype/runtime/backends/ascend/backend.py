@@ -94,12 +94,14 @@ class AscendBackend(RuntimeBackend):
         issues = self.known_issues()
         return {
             "name": self.name,
+            # 2026-09-29（B3 复核）：本方法**原缺 `device_type`** ⇒ `info()["device_type"]`
+            # 直接 KeyError，而契约与 smoke 都写「info 至少含 name/device_type/capabilities」。
+            # 未被发现的原因：矩阵取的是**类属性**、smoke 该判据只对 **stub** 跑 ⇒ 真实后端无人守。
+            "device_type": self.device_type,
+            **self._base_info_fields(),
             "framework": "torch_npu",
             "torch": self.torch.__version__,
             "device_count": self.device_count(),
-            "capabilities": sorted(self._capabilities),
-            "native_accesses": self.native_accesses(),
-            "degradations": self.degradations(),
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             # 有界同步的**真实实现路径**（本家走 pyACL；不可用时降级，如实暴露原因）
             "bounded_sync_scope": "pyACL synchronize_*_with_timeout（真中断）；"
