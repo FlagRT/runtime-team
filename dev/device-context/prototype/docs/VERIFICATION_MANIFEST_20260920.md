@@ -24,7 +24,7 @@
 | 6 | 推理腿 · 服务化 | `DC_BACKEND=$B MODEL=<模型路径> STOP_AFTER=1 bash scripts/serve_standard.sh` | `SERVE_STANDARD_PASS (ready=1 smoke=1)` |
 | 7 | 训练腿 · 2 卡 | `DC_BACKEND=$B torchrun --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py` | `TRAIN_LEG_PASS 6/6`，并记录 loss 与 tok/s |
 | 8 | 错误注入 → 恢复闭环 | `python3 runtime/proto/proto_error_recovery_loop.py --backend $B` | `ERROR_RECOVERY_LOOP_PASS`，记录 闭环/跳过/失败 |
-| 9 | 契约不变式（**待补判据**） | `python3 runtime/conformance/runner.py --backend $B --cases contract_invariants` | I1–I4 全绿 —— ⬜ **尚未实现，见 §3 G8** |
+| 9 | 契约不变式（**已实现**，2026-09-29） | `python3 runtime/conformance/runner.py --backend $B --cases contract_invariants` | `CONTRACT_INVARIANTS_PASS 4/4`（I1–I4 全绿）。**离线桩已通过**（`backend_offline_check.py` 第 `[10]` 段：`ascend 75/0/1` · `kunlun 76/0/1` · `cambricon 64/0/0`）＋ **5 处注入的非空转验证全部被抓**；⏳ **真机复跑待与 r5 同窗口**（未跑即如实标注）⇒ 定义与判据见 `CONTRACT_INVARIANTS_I1_I4_20260929.md` |
 | 10 | ⭐ **逐芯片职责验收（发布判定）** | 见 `PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §六（10 条命令；或直接跑上表 1–8） | 12 项判定全绿（含多流 3 探针与两条腿）。**09-28 实测：910C ✅ · P800 ✅ · MLU590 ✅ ⇒ 可发布**（09-22 版报告保留不覆盖：当时 MLU590 主机不可达、推理腿与服务化未做） |
 | 11 | ⭐ **职责响应审计（逐 sub-part）** | `python3 scripts/duty_response_audit.py --backend $B` | `DUTY_RESPONSE_PASS`（0 FAIL）。**09-28 实测：910C 39/0/0 · P800 36/0/3（SKIP=如实不具备）**；MLU590 **36/0/3**（同日补跑）⇒ **三实例全部真机 PASS**。首次运行暴露 3 处缺口已补做 ⇒ 见 `PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` |
 
@@ -120,7 +120,7 @@
 | **G5** | 缺"一命令复核"入口 | 第三方需自行拼命令 | 本文件 §1 提供 9 条命令；后续可做一键脚本 | 🟡 已缓解 |
 | **G6** | 环境层未闭环：① 第一实例训练镜像**未发布 registry**；② 第二实例镜像**未归档未入锁**；③ 两实例 **LR 实际取值未记录**；④ 第一实例训练腿依赖版本未记录 | 结论的证据基础（环境）不可完全复现 | ①② 已在状态文件登记诉求交由总组裁定；③④ 属低成本补记 | 🟠 部分待办 |
 | **G7** | 第一实例**宿主工作副本陈旧**（停在目录重组前，缺 `910C/`、缺 `prototype/scripts/`） | 复核者照该副本操作**路径全部不对** | 下次窗口顺带对齐；本次复跑走独立同步目录规避 | 🟠 待办 |
-| **G8** | **契约不变式判据（I1–I4）未实现** | "诚实声明/禁止伪造/失效受管/降级可观测"目前靠人工检查 | 新增 `contract_invariants` 判据集（工作量小、不需卡） | ⬜ 待做 |
+| **G8** | **契约不变式判据（I1–I4）未实现** | "诚实声明/禁止伪造/失效受管/降级可观测"目前靠人工检查 | 新增 `contract_invariants` 判据集（工作量小、不需卡） | ✅ **2026-09-29 已关闭**：① 定义补入契约 **§1.8**（此前只有名字）；② 判据落 `conformance/contract_invariants.py`（真机）+ `backend_offline_check.py` 第 `[10]` 段（离线，**同一套核心函数**）；③ **5 处注入的非空转验证全部被抓**（并因此修正判据自身 2 处误报/漏报）；④ 过程中发现并修复**台账第 18 条**。真机复跑待与 r5 同窗口 ⇒ `CONTRACT_INVARIANTS_I1_I4_20260929.md` |
 
 ---
 

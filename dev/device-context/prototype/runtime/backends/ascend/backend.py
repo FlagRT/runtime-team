@@ -40,7 +40,12 @@ class AscendBackend(RuntimeBackend):
     # 已具备的能力（conformance 会据此生成 stub-skip 报告）
     _capabilities = {
         "device", "memory", "stream", "event",
-        "sync_timeout",            # pyACL synchronize_*_with_timeout（历史键名）
+        # ⚠️ 2026-09-29（契约不变式 I1 判据暴露，台账第 18 条）：**弃用别名不得列入声明集**。
+        # `sync_timeout` 自 2026-09-28 起统一为 `bounded_sync` 的**别名**（见基类
+        # `_CAPABILITY_ALIASES`），三家 `_CAPABILITY_KEYS` 均含它 ⇒ `supports("sync_timeout")`
+        # 在任何实例上都为 True（兼容入口保留）。但把它当成**在册能力**列进 `info()["capabilities"]`
+        # 只有本家这么做 ⇒ 同一份下游代码在不同芯片上读到**不同的在册集合**（18 vs 13/10）——
+        # 而这不是真实能力差异。**别名是兼容入口，不是在册能力。**
         "bounded_sync",           # 统一键名：有界同步（与 kunlun / cambricon 对齐）
         "error_map",               # 109 条 ACL 错误码映射（2026-09-22 增补通用段 500000）
         "recovery_probe", "recovery_real",  # 探针重试 + 真实重建
@@ -62,7 +67,8 @@ class AscendBackend(RuntimeBackend):
     #: 能力**全集**（已知能力名，`info()["supports"]` 按此逐项 True/False 呈现）。
     #: 2026-09-22 补齐：原先 ascend 未定义本清单、也未覆写 `info()`，
     #: 于是它的元信息比其他三家**薄一大截**（无 `supports` 映射）——**四家对称性缺口**。
-    #: 本清单 = 另三家那 12 项 + 本家历史键名 `sync_timeout`（保留以免下游读不到）。
+    #: 本清单 = 三实例**同一份规范键集合**（含 `sync_timeout`，但它是**别名**：
+    #: `info()["supports"]` 里会出现（兼容下游按历史键名查询），**不再进 `capabilities`**）。
     _CAPABILITY_KEYS = (
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",

@@ -921,6 +921,30 @@ def run(proto_dir, backend):
           and {"ordinal", "mode", "recovered", "state", "detail"} <= set(rec),
           str(sorted(rec)))
 
+    # ── [10] 契约不变式 I1–I4（2026-09-29 新增；与真机 conformance **同一套核心函数**）──
+    # 定义见《接口约定》§1.8。此前后者**只有名字没有定义**（G8 登记为"靠人工检查"）。
+    # 为什么在离线也跑一遍：这四条正是本项目反复踩的坑家族（假绿 / 静默退化 / 失效对象可用），
+    #   而它们在**无设备时**同样能判定 ⇒ 能提前拦住回归（本项因此被定为"不需卡"）。
+    # ⚠️ 单一事实来源：核心函数从 conformance 模块**按文件路径加载**，不复制一份（否则两处会漂移）。
+    print("\n[10] 契约不变式 I1–I4（定义见《接口约定》§1.8；与真机 conformance 同一套核心函数）")
+    try:
+        import importlib.util as _ilu
+        _ci_path = Path(proto_dir) / "runtime" / "conformance" / "contract_invariants.py"
+        _spec = _ilu.spec_from_file_location("_contract_invariants_offline", str(_ci_path))
+        _ci = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_ci)
+    except Exception as e:                                        # noqa: BLE001
+        check("[10] 契约不变式模块可加载", False, f"{type(e).__name__}: {str(e)[:120]}")
+        _ci = None
+    if _ci is not None:
+        check("[10] 契约不变式模块可加载", True, f"CHECKS={len(_ci.CHECKS)} 条")
+        for _key, _label, _fn in _ci.CHECKS:
+            try:
+                _ok, _detail = _fn(bk)
+            except Exception as e:                                # noqa: BLE001
+                _ok, _detail = False, f"检查自身抛错 {type(e).__name__}: {str(e)[:120]}"
+            check(f"[10] {_key}（{_label}）", _ok, str(_detail)[:200])
+
     print("\n" + "=" * 74)
     print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败 / {SKIPPED} 跳过（stub 能力边界，非失败）")
     print("⚠️ 结论边界：本结果只证明实现逻辑与契约形态。")
