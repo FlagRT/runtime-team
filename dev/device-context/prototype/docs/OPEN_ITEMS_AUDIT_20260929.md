@@ -9,7 +9,9 @@
 
 ## 0 结论先行
 
-核查出 **11 项未收尾**，按"能不能现在做"分三类：
+核查出 **11 项未收尾**，按"能不能现在做"分三类。
+**收尾进度（2026-09-29）**：C1 · B1 · A3 已在第一批收尾；**A1 / A4 已于同日第二轮收尾**
+⇒ **现存未收尾 = 6 项**（A 1 · B 2 · C 3）：
 
 | 类 | 项数 | 含义 | 需卡 |
 |---|---|---|---|
@@ -18,9 +20,15 @@
 | **C · 口径与环境层** | 4 | 看板口径与代码**矛盾**、宿主副本陈旧、环境可复现性缺口 | ❌ 不需卡 |
 
 > ⚠️ **本批已顺手收尾 1 项**：**C1（看板口径矛盾）已在本提交内改正** —— 5 处错位「最新」标记 + 1 处**与当前代码矛盾**的表述 + 两台表格行序改为时间倒序 + 补倒序说明。
-> ⇒ **当前仍未收尾 = 10 项**（A 4 · B 3 · C 3）。
+> ⇒ **当时剩余 = 10 项**（A 4 · B 3 · C 3）；其后 B1、A3 于第一批收尾，**A1 / A4 于第二轮收尾**。
+>
+> ⭐ **A1 + A4 第二轮收尾（2026-09-29）**：一轮 910C 窗口内跑完 **训练腿 2 卡（`TRAIN_LEG_PASS 6/6`）**
+> + **推理腿前向（`INFER_LEG_PASS 14/14`）** + **服务化 4 形态**（TP=1/2 × EAGER=1/0 全 `SERVE_STANDARD_PASS`），
+> **全绿 0 失败**；并顺手修掉 1 处**工具假信号**（停机复查把"正在回落"读成"未释放"，附非空转验证）。
+> ⇒ **现存未收尾 = 6 项**（A2 · B2 · B3 · C2 · C3 · C4）。证据与全文：`../910C/docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md`。
 
-**三条最该先做的**（理由在 §3，C1 已在本批修掉）：**B1 契约不变式判据（不需卡、工作量小）** → **A3 910C 第 5 轮回归（破坏面只有 ascend 一个目录）** → **A1 两条腿复跑（多卡训推最直接的证据缺口）**。
+**三条最该先做的**（理由在 §3）：~~B1 契约不变式判据~~ ✅ **已完成** → ~~A3 910C 第 5 轮回归~~ ✅ **已完成**
+→ ~~A1 两条腿复跑~~ ✅ **已完成（同批含 A4）** ⇒ **下一批建议：A2（`recover_device(mode="real")` 多卡多进程压测）**。
 
 **最重要的一条**：**两条腿（多卡训练 / 推理 / 服务化）最后一次取数分别是 910C 09-22、P800 09-20**，
 而此后共享层（`base.py` / `api/stream.py`）已被工作包 B/C 改过 ——
@@ -48,10 +56,10 @@
 
 | # | 项 | 证据 / 现状 | 为什么算未收尾 | 收尾条件 | 需卡 |
 |---|---|---|---|---|---|
-| **A1** | ⭐ **两条腿（多卡训练 / 推理前向 / 服务化）未在 B/C 之后的版本复跑** | 910C 最后：训练腿 `910C/probes/accept_train_npu_20260922/train_leg_result_rank{0,1}.json`（**09-22**）、推理腿 `910C/probes/proto_infer_leg_result.json`（**09-22 17:27**）；P800 最后：`P800/probes/I_base_train_leg_result_rank0_20260920.json`（**09-20**） | 此后改动含**共享层**：路线 B 退出（`7d05d69`）· 容错修复（`vendor_codes` / `state_token` / L2 文案）· **B/C 接口（`base.py` / `api/stream.py` / `__init__.py`）** · `context_query`。910C 报告 §5 的免跑理由写的是"修复**不触及**前向/服务路径"——**B/C 改的正是 `Stream` / `record_stream` / `allocate`**，训推两条腿都要建流、都要跨流内存保护 ⇒ **理由失效** | 训练腿 `TRAIN_LEG_PASS 6/6` · 推理腿 `INFER_LEG_PASS 13/13` · 服务化 `SERVE_STANDARD_PASS`（含**实际耗时**打印，防 63.6 s 假失败重演） | ✅ |
+| **A1** | ✅ **2026-09-29 已完成（910C · 两条腿 + 服务化全绿）**｜原为：⭐ **两条腿（多卡训练 / 推理前向 / 服务化）未在 B/C 之后的版本复跑** | 910C 最后：训练腿 `910C/probes/accept_train_npu_20260922/train_leg_result_rank{0,1}.json`（**09-22**）、推理腿 `910C/probes/proto_infer_leg_result.json`（**09-22 17:27**）；P800 最后：`P800/probes/I_base_train_leg_result_rank0_20260920.json`（**09-20**） | 此后改动含**共享层**：路线 B 退出（`7d05d69`）· 容错修复（`vendor_codes` / `state_token` / L2 文案）· **B/C 接口（`base.py` / `api/stream.py` / `__init__.py`）** · `context_query`。910C 报告 §5 的免跑理由写的是"修复**不触及**前向/服务路径"——**B/C 改的正是 `Stream` / `record_stream` / `allocate`**，训推两条腿都要建流、都要跨流内存保护 ⇒ **理由失效** | 训练腿 `TRAIN_LEG_PASS 6/6` · 推理腿 `INFER_LEG_PASS 13/13` · 服务化 `SERVE_STANDARD_PASS`（含**实际耗时**打印，防 63.6 s 假失败重演） | ✅ |
 | **A2** | ⭐ **`recover_device(mode="real")` 多卡多进程压测未做** | `WORKPACKAGE_BC_INTERFACE_20260929.md` §6「多进程 / 多卡下的 `mode="real"` 压测 ⛔ 未做」；910C 报告 §5 同；旧档 `910C/distributed_inference/docs/DEVICE_CONTEXT_INFERENCE_MAPPING_20260831.md` 明写"**real/hybrid 在生产默认启用前需压力测试验证多卡并发恢复**" | 现默认 `mode="probe"`（进程内安全）；**多卡分布式训推下"某卡故障 → 设备级恢复"这条链没有生产级证据** —— 而 `real` 会 `destroyContext → ResetDevice → 重建`，多 rank 并发时是否互扰**未验** | N rank 并发注入故障 ⇒ 指定 rank `recovered=True`、其余 rank **不受影响**；五键 + context 三键取值正确；≥30 轮零失败（沿用 09-02 的 S1/S2/S3 口径） | ✅ |
 | **A3** | ✅ **2026-09-29 已完成（r5 · 11 项全绿）**｜原为：⭐ **910C 第 5 轮全套回归（r5）未跑** | `ab80d87` 改了 `prototype/runtime/backends/ascend/backend.py`（**+33 行**，新增 `_ctx_query_raw`）；此后只跑了**离线自检（70/0/1）+ B/C 契约探针 r3**，**未跑全套 10 项** | 910C 看板上"最新"的整套回归是 **r4**，那是 `_ctx_query_raw` **之前**的版本。破坏面 = ascend 后端目录 ⇒ **只需 910C**（P800 不必，按"按破坏面覆盖"） | 10 项全绿（离线 / 对称性 / 冒烟 / conformance 13+6 / 职责审计 39/0/0 / 错误闭环 / 等价性 / 多流 8/8+3/3） | ✅ |
-| **A4** | **多卡 TP / 关闭 `--enforce-eager` 的服务化形态未跑** | 910C 报告 §5「已知挂账（09-28 登记）」 | 属**多卡推理形态**覆盖；当前推理腿只有"单卡前向 + 单卡服务化" | `TP>1` 的服务化起服务 + 冒烟通过；关闭 `--enforce-eager` 形态至少一轮 | ✅ |
+| **A4** | ✅ **2026-09-29 已完成（910C · TP=2 与 EAGER=0 均 `SERVE_STANDARD_PASS`）**｜原为：**多卡 TP / 关闭 `--enforce-eager` 的服务化形态未跑** | 910C 报告 §5「已知挂账（09-28 登记）」 | 属**多卡推理形态**覆盖；当前推理腿只有"单卡前向 + 单卡服务化" | `TP>1` 的服务化起服务 + 冒烟通过；关闭 `--enforce-eager` 形态至少一轮 | ✅ |
 
 ### B 类 · 已登记未做
 
@@ -78,17 +86,21 @@
 |---|---|---|
 | 1 | ~~**C1 口径矛盾**~~ ✅ **本批已修** | 属**禁止项**，已改正（见 §2 状态列） |
 | 2 | **B1 契约不变式判据** | **不需卡**、工作量小；且守的正是本项目反复踩的坑家族（假绿/静默/失效可用） |
-| 3 | **A3 910C r5 回归** | 破坏面只有 ascend 一个目录；**和 A1/A2 共用同一次上机窗口最省** |
-| 4 | **A1 + A4 两条腿复跑** | 同一窗口做：训推两条腿 + 服务化 + TP 形态；这是"多卡分布式训推"最直接的证据缺口 |
+| 3 | ~~**A3 910C r5 回归**~~ ✅ **已完成** | 破坏面只有 ascend 一个目录；**和 A1/A2 共用同一次上机窗口最省** |
+| 4 | ~~**A1 + A4 两条腿复跑**~~ ✅ **2026-09-29 已完成** | 同一窗口做完：训推两条腿 + 服务化 4 形态（TP=1/2 × EAGER=1/0）；**两条腿须串行**（挂载集相交）—— 实测可行，见 `../910C/docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` |
 | 5 | **A2 `real` 多卡多进程压测** | 需多 rank 并发窗口，可与 A1 串行（910C 训推容器不能同时持卡） |
 | 6 | **B3 修订建议状态复核** | 纯文档，不需要窗口 |
 | 7 | **B2 工作包 D** | P2；优先级效果可能"测不出"，属可接受结论 |
 | 8 | **C2 / C3 / C4** | 环境与流程项，C4 需人定 |
 
 **窗口需求汇总（一次上机能收多少）**：
-- **不需卡就能收**：C1 · B1 · B3 · C3③④（4 项）
-- **一次 910C 窗口可收**：A3 + A1（训练腿/推理腿/服务化）+ A4 —— 注意**训练容器与推理容器不能同时持卡，两条腿需串行**
-- **需额外窗口**：A2（多 rank 并发）
+- ~~**不需卡就能收**：C1 · B1 · B3 · C3③④（4 项）~~ ⇒ **C1 / B1 已收尾**，余 **B3 · C3③④**
+- ~~**一次 910C 窗口可收**：A3 + A1（训练腿/推理腿/服务化）+ A4~~ ⇒ ✅ **2026-09-29 已完成**
+  （实测耗时：训练腿 ~2 min · 推理腿 ~1 min · 服务化 4 形态 ~10 min；**训练容器与推理容器不能同时持卡 ⇒ 两条腿串行**）
+- **需额外窗口**：A2（多 rank 并发）—— **下一批**
+- ⚠️ **P800 / MLU590 需各自窗口复跑两条腿 + 服务化**：本轮 `serve_standard.sh` 的改动落在三实例**共用**路径上
+  （新增 `RELEASE_WAIT`，见 `../prototype/scripts/serve_standard.sh` 头部说明），按"按破坏面覆盖"纪律
+  **不得由 910C 外推** ⇒ 已登记为后续项
 
 ---
 
@@ -114,15 +126,31 @@ cd dev/device-context/prototype
 grep -n "如实未声明，返回 \`queryable=False\` + 具体原因；910C 已具备" ../910C/README.md
 grep -n "09-29 r2，最新" ../P800/README.md
 
-# B1 是否仍未实现（零命中 = 仍未实现）
-grep -rn "contract_invariants" runtime/conformance/
+# B1 是否已完成（应命中：判据模块 + runner 的 VERDICT_TAG）
+grep -rn "contract_invariants" runtime/conformance/ | head
+grep -n "VERDICT_TAG" runtime/conformance/runner.py
+
+# A1 是否已收尾：两条腿的判定串应各命中一次
+grep -ho "TRAIN_LEG_PASS 6/6"  ../910C/probes/legs_train_910c_npu_20260929.log
+grep -ho "INFER_LEG_PASS 14/14" ../910C/probes/legs_infer_910c_npu_20260929.log
+
+# A1+A4 服务化四形态：verdict 应四条全 PASS
+grep -h "\[verdict\]" ../910C/probes/serve_pool_910c_npu_20260929_r1.log
+
+# A4 的"真生效"证据（不是参数被吞）
+grep -ao "world_size=2 rank=[01] local_rank=[01] .*backend=hccl" ../910C/probes/serve_vllm_910c_npu_20260929_r1_tp2_eager1.log
+grep -aoE "enforce_eager=[A-Za-z]*|CUDAGraphMode\.[A-Z_]*" ../910C/probes/serve_vllm_910c_npu_20260929_r1_tp1_eager0.log | sort -u
+
+# 工具修复的非空转验证（⚠️ 分支应命中）
+grep -o "⚠️ 释放复查：5s 内空闲显存仍在增长" ../910C/probes/serve_standard_910c_npu_20260929_r1_nonidle_wait5.log
 
 # A3 的破坏面依据：ab80d87 改了哪个后端（注意路径要带 dev/device-context/ 前缀）
 git show --stat ab80d87 -- dev/device-context/prototype/runtime/backends/
 
-# 当前离线判据数（对照报告 §C1 里写的 68→70）
+# 当前离线判据数（对照 §C1 里写的 68→70）
 python3 scripts/backend_offline_check.py --backend ascend | tail -3
 ```
 
-> 边界：本报告只做**回溯核查**，所有"未收尾"判定都附了可复核的证据位置；
-> 未对任何未完成的项给出完成时间（需按 §3 的窗口需求排期）。
+> 边界：本报告只做**回溯核查**，所有"未收尾"判定都附了可复核的证据位置。
+> **完成时间只写在已收尾的项上**（C1 · B1 · A3 · A1 · A4）；仍未收尾的 6 项不给完成时间，
+> 需按 §3 的窗口需求排期 —— 其中 **A2 与另两家（P800 / MLU590）的复跑各自需要一次窗口**。

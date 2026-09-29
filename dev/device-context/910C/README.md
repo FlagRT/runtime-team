@@ -45,10 +45,11 @@
 > 下表**按时间倒序**（越上越新）；历史批次保留不删，标注为「历史批次」。
 | 项 | 结果 |
 |---|---|---|
+| ⭐ **A1+A4 收尾：两条腿 + 服务化四形态（09-29 第六轮 · 最新）** | ✅ **全绿 0 失败** | 训练腿 **`TRAIN_LEG_PASS 6/6`**（loss 15.4498→11.1479、**4513.2 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`**（dim 1024、78.84 句/s、p50 37.59 ms、**区分度 0.6391**）· 服务化 **4 形态全 `SERVE_STANDARD_PASS`**（TP=1/2 × EAGER=1/0：就绪 30/45/45/80 s、冒烟 1/1/0/0 s、dim 1024、范数 1.000000；**TP=2 服务端实测 `world_size=2` + `Worker_TP0/TP1` + `backend=hccl`**；**EAGER=0 实测 `enforce_eager=False` + ACL Graph（PIECEWISE）**）· 顺手修掉 1 处**工具假信号**（停机复查把"正在回落"读成"未释放"，带非空转验证）⇒ 报告 `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` |
 | ⭐ **多卡上下文与语义细节（09-29 第五轮续）** | ✅ **三设备隔离成立** | 三设备各持独立上下文（互不相同），**销毁 dev0 后 dev1/dev2 仍非零** ⇒ 无交叉影响；⚠️ **`acl.rt.get_context(dev)` 的 `dev` 参数被忽略**（恒返回「当前设备的上下文」）⇒ 必须**先 `set_device` 再查**（本层实现已如此）；`managed_by` **能判出 `unified`**（建后 `unified`、销毁后 `present=False`）；IPC 入口 11 个存在（`ipc_mem_get_export_key` 等）⇒ 证据 `probes/PROBE_CONTEXT_probe_910c_multicard2.log` · `PROBE_CONTEXT_probe_910c_managed_by.log` |
 | ⭐ **上下文只读观测 `context_query`（09-29 第五轮·对齐 P800）** | ✅ **真机 C4 PASS** | pyACL 只读入口实测：`acl.rt.get_context(dev)` 返回 **`(ctx, rc)` 元组**（3 次调用稳定一致）、`get_primary_ctx_state(dev)` 返回**三元组 `(1, 0, 0)`**（primary 已存在；设备 1 → `(0,0,0)`、越界 → `(0,0,107001)`）、**销毁后查询 `(0, 107002)` 如实报错**；`flags` **无此概念 ⇒ 如实 `None`**。真机 C4：`present=True` · `ordinal=0` · `managed_by="external"` · **`compute_before = compute_after = 512.0`（只读无副作用）** ⇒ 证据 `probes/probe_bc_contract_ascend_20260929_r3.json`（verdict 7 项全 true） | `allocate/free` 句柄（申请 8 MiB → 设备空闲 **−10.0 MB**）、二次释放如实 `ValueError`、`record_stream` 走**原生路径**、`.native` 审计隔离（公开 1 / 内部 0）、**上下文 create/set/destroy/count + 绑定语义在使用点拦截（`RuntimeError`）+ 多上下文隔离** ⇒ 报告 `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；证据 `probes/probe_bc_contract_ascend_20260929.json` |
 | ⭐ **共享层改动后的第 4 轮全套回归（09-29 r4）** | ✅ **10 项全绿 · 无回归** | 离线 **68/0/1** · 对称性 5/0 · 冒烟 **52/0** · conformance 13+6 · 职责审计 **39/0/0** · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3（本轮 `context_query` 在 ascend **尚未声明**；**已在「第五轮续」对齐** —— 现 ascend 已声明、真机 C4 PASS、离线判据数 **68 → 70**，见本表更上方一行）⇒ 证据 `probes/*_ascend_20260929_r4.*` |
-| ⭐ **第 5 轮全套回归（09-29 r5 · 最新）** | ✅ **11 项全绿 · 无回归** | 离线 **75/0/1**（判据数 68→75）· 对称性 5/0 · 冒烟 **52/0** · conformance 13+6 · **契约不变式 4/4（新增，`CONTRACT_INVARIANTS_PASS`）** · 职责审计 **39/0/0** · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 ⇒ 证据 `probes/*_ascend_20260929_r5.*`（22 份） |
+| ⭐ **第 5 轮全套回归（09-29 r5）** | ✅ **11 项全绿 · 无回归** | 离线 **75/0/1**（判据数 68→75）· 对称性 5/0 · 冒烟 **52/0** · conformance 13+6 · **契约不变式 4/4（新增，`CONTRACT_INVARIANTS_PASS`）** · 职责审计 **39/0/0** · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 ⇒ 证据 `probes/*_ascend_20260929_r5.*`（22 份） |
 | ⭐ **共享层改动后的第 3 轮全套回归（09-29 r3）** | ✅ **10 项全绿 · 无回归** | 离线 **64/0/1** · 对称性 5/0 · 冒烟 **52/0** · conformance 13+6 · 职责审计 **39/0/0** · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3（本轮唯一回归=冒烟 `info` 精确键集误报，已改判据）⇒ 证据 `probes/*_ascend_20260929_r3.*` |
 | ⭐ **三处修复后全套回归（09-29 · 第 2 轮 r2）** | ✅ **10 项全绿、0 回归**：离线自检 **40/0/1 跳过** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 职责审计 **39/0/0** · 错误闭环 **5/0/0** · 等价性 **6/6** · 多流语义 **8/8** + 配额 **3/3**（第 1 轮 r1 为离线 **38/0/1**；本轮 +2 条「文案等价类」判据。**两轮证据都保留**）⇒ 见 `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` |
 | ⭐ **三芯片职责验收（09-22 傍晚 · 历史批次）** | ✅ **10 项全绿**：离线自检 **35/0** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8** + 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（**4075.4 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`** · 服务化 **`SERVE_STANDARD_PASS`** · 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0** ⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
@@ -85,6 +86,7 @@
 | `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
 | ⭐ `docs/DUTY_RESPONSE_AUDIT_910C_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**（三实例中唯一无 SKIP 者）；含本实例运行条件、逐项实测依据、复跑命令 |
 | `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` | **两处层内修复后的全套回归**：10 项判定全绿 / 0 缺陷；含两处修复的定向验证、工作包 A 实验取数、未跑项如实登记、一键复跑命令 |
+| ⭐ `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` | **A1+A4 收尾：两条腿与服务化四形态复跑**（当前原型）：训练腿 `6/6` · 推理腿 `14/14` · 服务化 TP=1/2 × EAGER=1/0 全 `SERVE_STANDARD_PASS`；含「为什么上一轮的免跑理由失效」的破坏面依据、TP 与图捕获的**生效证据**、1 处工具假信号的修复与**非空转验证**、一键复跑 |
 | ⚠️ `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md` | **宿主带卡容器名额规则判别实验与口径更正**（5 数据点）：独占单位 = 已 init 容器的**挂载设备集**；「同一时刻只留 1 个」「与挑哪张卡无关」两条旧口径均**不成立**；⚠️ **不迁移**（宿主专属） |
 
 **8 月早期工作（FlagCX 补丁与准备）**
@@ -123,8 +125,12 @@
 | `accept_serve_ascend_*_20260928_NAMESLOT_BLOCKED.log`（3 份） | **同轮首跑失败证据（原样留档，未「改判据变绿」）**：宿主带卡容器名额被他人占满 ⇒ `acl.init`=500000、`get_device_count`=(0,0)、vLLM `Engine core initialization failed`（root cause 原文 `Failed to obtain the console log level … Different containers share the same device`） |
 | ⭐ `duty_audit_ascend_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**；补做后回归复跑仍 39/0/0（无退化） |
 | ⭐ `regress_*_ascend_20260929.{log,json}`（11 份） | **缺陷修复后全套回归（真机）**：离线自检 38/0/1 · conformance 13/13 与 6/6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 冒烟 52/0 · 多流语义 8/8 · 流配额 3/3 |
-| ⭐ `regress_*_ascend_20260929_r2.{log,json}`（15 份）
-| ⭐ `probe_bc_contract_ascend_20260929.json` | **工作包 B/C 真机契约探针**（5 组逐组独立子进程）：B1/B3/B4/C1/C2/C3 **6/6 通过**；含 allocate→占用→free 的设备空闲变化、二次释放负向、**厂商原生流「销毁后使用 = 静默成功」的对照取证**（本层则如实拦截） |+ `exp_divergence_cost_ascend_20260929_r2.{json,log}` | **第 2 轮（含第三处 L2 文案等价类修复）全套回归**：离线 **40/0/1** · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `regress_*_ascend_20260929_r2.{log,json}`（15 份）+ `exp_divergence_cost_ascend_20260929_r2.{json,log}` | **第 2 轮（含第三处 L2 文案等价类修复）全套回归（真机）**：离线 **40/0/1** · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · 职责审计 39/0/0 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `probe_bc_contract_ascend_20260929.json` | **工作包 B/C 真机契约探针**（5 组逐组独立子进程）：B1/B3/B4/C1/C2/C3 **6/6 通过**；含 allocate→占用→free 的设备空闲变化、二次释放负向、**厂商原生流「销毁后使用 = 静默成功」的对照取证**（本层则如实拦截） |
+| ⭐ `regress_*_ascend_20260929_r5.{log,json}`（22 份）+ `recheck_*_r5b.json` | **第 5 轮全套回归（当前原型 · 11 项全绿）**：离线 **75/0/1** · 对称性 5/0 · 冒烟 52/0 · conformance 13+6 · **契约不变式 4/4** · 职责审计 39/0/0 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
+| ⭐ `legs_train_910c_npu_20260929.log` + `train_leg_910c_npu_20260929_rank{0,1}.json` + `legs_infer_910c_npu_20260929.log` + `infer_leg_910c_npu_20260929.json`（5 份） | **A1 两条腿复跑（当前原型）**：训练腿 `TRAIN_LEG_PASS 6/6`（loss 15.4498→11.1479、**4513.2 tok/s**）· 推理腿前向 `INFER_LEG_PASS 14/14`（dim 1024、78.84 句/s、p50 37.59 ms、区分度 0.6391） |
+| ⭐ `serve_standard_910c_npu_20260929_r1_tp{1,2}_eager{0,1}.log`（4）+ `serve_vllm_910c_npu_20260929_r1_tp{1,2}_eager{0,1}.log`（4）+ `serve_pool_910c_npu_20260929_r1.log` + `serve_standard_910c_npu_20260929_r1_nonidle_wait5.log`（10 份） | **A1+A4 服务化四形态（当前原型）**：TP=1/2 × EAGER=1/0 **全 `SERVE_STANDARD_PASS`**；TP=2 服务端日志实测 `world_size=2` + `Worker_TP0/TP1` + `backend=hccl`；EAGER=0 实测 `enforce_eager=False` + ACL Graph（PIECEWISE）；`nonidle_wait5` 为**非空转验证**（证明 `⚠️` 释放复查分支能真的触发） |
+| ⚠️ `serve_standard_910c_npu_20260929_PRE_FIX_tp{1,2}_eager{0,1}.log`（4）+ `serve_vllm_910c_npu_20260929_PRE_FIX_tp{1,2}_eager{0,1}.log`（4） | **改动前原样留档**（未「改判据变绿」）：TP=2 停机后即时复查读 dev0 **55.06 / 55.07 GiB**（用卡前 61.12）⇒ 会被误读为「未释放」，实为**释放延迟**（约 1 min 后回基线，宿主 `npu-smi info -t proc-mem` 全程 `No process`） |
 | ⭐ `exp_divergence_cost_ascend_20260929.{json,log}` | **工作包 A 实验的 910C 取数**：M1–M4（0/0/77/0 vs 11/15/163/17）· 功能等价性 **6/6 一致**（`S6` = `L4_FATAL`，ascend 声明了 `error_map` ⇒ 正确） |
 | ⚠️ `nameslot_rule_matrix_ascend_20260929.log` | **宿主名额规则判别实验原始留档**（2×2+1 五个数据点，原样输出）：`davinci7` 成功 / `davinci1`、`davinci2` 失败 ⇒ 旧口径「与挑哪张卡无关」被推翻 |
 
@@ -155,7 +161,8 @@
   ⇒ **选卡（挂载集是否相交）就是决定因素**。完整实验（5 个数据点）见 `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md`。
   两条腿**仍须串行**（训练容器与推理容器都挂全部 16 个 `davinci`，互斥必然）。
   另：**训练容器自带 `vllm` 入口但缺包**（`command -v vllm` 有、`import vllm` 报 `ModuleNotFoundError`）
-  ⇒ 服务化**必须用推理容器** `flagos-infer-910c`；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
+  ⇒ 服务化**必须用推理容器**（`flagos-infer-910c`，或**镜像相同、只挂要用的卡**的等价精简容器
+  `dc-lean-infer-910c-20260929` —— 本轮即用它只挂 `davinci1,2`，避免与任何活跃容器挂载集相交）；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）
   ⇒ **2026-09-22 起训练腿改走 `npu`（torch_npu）**：用容器内**带 torch_npu 的解释器**
   `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（该解释器**无 torch_fl** ⇒ **物理隔离**，

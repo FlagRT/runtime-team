@@ -84,6 +84,11 @@
 #   ERROR_TRANSLATION / MONITOR  集成层开关（默认 0；**当前仅 910C 可用**）
 #   SMOKE_TIMEOUT   冒烟**单次请求**的超时秒数（默认 180）。⚠️ 首次请求含编译开销，
 #                   2026-09-28 MLU590 实测首次 embedding 请求 **63.6 s** ⇒ 旧硬编码 60 s 会**误判失败**
+#   RELEASE_WAIT    停机后「用卡复查」的**释放回落等待上限**秒数（默认 30）。
+#                   ⚠️ 2026-09-29 910C TP=2 实测：kill 后设备内存回落**有延迟**，立即读数会把
+#                   「正在回落」读成「未释放」（dev0 即时 55.07 GiB、用卡前 61.12 GiB；约 1 min
+#                   后回基线，而宿主 `npu-smi info -t proc-mem` 全程 No process）⇒ 轮询到稳定再打印。
+#                   **该复查不参与 verdict**；RELEASE_WAIT=0 = 旧行为（立即取值）。
 #
 # 【verdict 口径】STOP_AFTER=1 时输出 `SERVE_STANDARD_PASS` 需 **ready=1 且 smoke=1**；
 #   任一不满足即 `SERVE_STANDARD_FAIL (ready=? smoke=?)`。
@@ -101,6 +106,7 @@ DC_OUT_DIR=${DC_OUT_DIR:-/tmp/dc_serve}
 STOP_AFTER=${STOP_AFTER:-0}
 READY_BUDGET=${READY_BUDGET:-180}
 SMOKE_TIMEOUT=${SMOKE_TIMEOUT:-180}   # 单次冒烟请求超时；见头部说明（首请求编译开销）
+RELEASE_WAIT=${RELEASE_WAIT:-30}      # 停机后释放回落等待上限；见头部说明（不参与 verdict）
 ERROR_TRANSLATION=${ERROR_TRANSLATION:-0}
 MONITOR=${MONITOR:-0}
 HOST=${HOST:-127.0.0.1}
@@ -246,6 +252,14 @@ PY
   fi
 }
 
+# 设备侧「空闲显存合计」(GiB) —— 供停机后的释放回落轮询使用。
+#   POSIX awk 求和（兼容容器内 mawk/gawk）；既无 smi 也无 torch 时输出**空串**，
+#   调用方据此退化为"立即取值"（等同旧行为）。
+card_free_gib() {
+  card_snapshot 2>/dev/null | tr ' ' '\n' | sed -n 's/^free=\([0-9.]*\)GiB$/\1/p' \
+    | awk '{s+=$1; n++} END{ if (n>0) printf "%.2f", s }'
+}
+
 echo "--- 用卡前 ---"; card_snapshot
 cleanup
 
@@ -340,7 +354,24 @@ if [ "$STOP_AFTER" = "1" ]; then
   echo
   echo "############ 验证模式：停机 ############"
   cleanup
-  echo "--- 用卡后复查（确认已释放）---"; card_snapshot
+  echo "--- 用卡后复查（确认已释放）---"
+  # ⚠️ 释放有延迟（2026-09-29 910C TP=2 实测）⇒ 轮询到空闲显存不再增长再打印，
+  #    否则会把"正在回落"读成"未释放"（假信号）。上限 RELEASE_WAIT 秒；不参与 verdict。
+  _f0=$(card_free_gib); _wt=0
+  while [ -n "$_f0" ] && [ "$_wt" -lt "$RELEASE_WAIT" ]; do
+    sleep 5; _wt=$((_wt + 5))
+    _f1=$(card_free_gib)
+    if awk -v a="$_f0" -v b="$_f1" 'BEGIN{ exit !((b - a) < 0.05) }'; then
+      _f0=$_f1; break
+    fi
+    _f0=$_f1
+  done
+  card_snapshot
+  echo "  （释放复查：等待 ${_wt}s 后取值；上限 RELEASE_WAIT=${RELEASE_WAIT}s）"
+  if [ -n "$_f0" ] && [ "$RELEASE_WAIT" -gt 0 ] && [ "$_wt" -ge "$RELEASE_WAIT" ]; then
+    echo "  ⚠️ 释放复查：${RELEASE_WAIT}s 内空闲显存仍在增长 —— 可能仍在回落，或确有残留"
+    echo "     交叉核对（宿主侧）：npu-smi info -t proc-mem / xpu-smi / cnmon 的进程视图"
+  fi
   # verdict 要求"就绪 + 冒烟"双通过（只看端口会掩盖"起来了但算不出"的情况）
   if [ "$READY" = "1" ] && [ "$SMOKE" = "1" ]; then
     echo "[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)"
