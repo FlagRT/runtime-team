@@ -83,8 +83,11 @@ fe = runtime.translate_error(exc, location="...")
   注意：`device_state()` 返回**枚举对象**，而 `recover_device()["state"]` 返回**token 字符串**；
   两端消费者请按契约取 token 字符串这一形态。
 - **调用约定**：监控方向做检测与恢复编排（何时调、调哪级），恢复执行由本组件完成
-- **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前默认不启用
-  （本地多进程联调已过，生产默认前需多卡压测调优——见 9 月计划 W4 遗留）
+- **约束**：L4 级错误流级重试无效，必须走 `recover_device`；real 模式当前**默认不启用**。
+  **多卡多进程压测已完成（2026-09-29）**：910C 3 rank × 30 轮、30 次真重建**零失败**，
+  非恢复者不被波及 ⇒ 上次遗留的"生产默认前需多卡压测"这一前置**已满足**；
+  **但默认值是否切到 `real` 仍待裁定**（另有两条未做：真实硬件 L4 故障触发、公开面无 ISOLATED 入口 ——
+  见 `../../910C/docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` §6/§7）。
 
 ---
 
@@ -116,7 +119,7 @@ fe = runtime.translate_error(exc, location="...")
 | `context_count()` | 本层在世上下文数 | **不含**进程默认上下文 |
 | **`context_query()`**（2026-09-29 第五轮补） | 查询**此刻实际生效**的设备上下文（**只读**） | 与 `context_lifecycle` **分开声明** —— 有的栈能管生命周期、有的栈**只允许观测**（平台单上下文）。返回**固定 6 键** `{queryable, present, ordinal, flags, managed_by, reason}`；**未声明者也返回同一 6 键**（`queryable=False` + **具体原因**）⇒ 上层换芯片无需分支。`managed_by ∈ {"unified", "external"}` 把「**归谁管**」写进字段 |
 | **绑定语义** | 上下文销毁后，其上创建的流/事件**即为无效，不可继续使用** | 使用点（`Stream.context()` / `Stream.synchronize()`）**必须如实报错**。⚠️ 厂商栈在此处**不会立刻报错**（实测 910C：直到进程退出清理阶段才暴露 `stream not in current ctx` / 107003）⇒ **拦截由本层负责** |
-| `recover_device()` 增键 | `context_supported` / `context_count` / `context_recreated` | **只增不改**：契约五键 `{ordinal, mode, recovered, state, detail}` **保持不变**；不支持上下文的后端如实置 `False` / `None` |
+| `recover_device()` 增键 | `context_supported` / `context_count` / `context_recreated` | **只增不改**：契约五键 `{ordinal, mode, recovered, state, detail}` **保持不变**；不支持上下文的后端如实置 `False` / `None`。⚠️ **`context_recreated` 的语义（2026-09-29 定死）** = 「本次是否**真的执行了**销毁 / 重置 / 重建上下文的路径」，由**实现如实回报**；**不得**用 `mode == "real"` 与 `recovered` 反推 —— `recovered` 的语义是「设备当前可用」（见 §补充），反推会把「无需重建」（设备本就健康）与「real 不支持」（kunlun / cambricon）统统误报成「已重建」。修前实测：三家在该路径上都报 `True`，而同一次返回的 `detail` 自写着「无需重建」/「real 模式不支持」⇒ 同一次返回内自相矛盾 |
 
 **句柄公共字段**：`{handle_id, kind, backend, ordinal}`（`CONTEXT_HANDLE_KEYS`）——
 与内存句柄**同一套 `handle_id` 命名**、用 `kind` 区分种类；
@@ -284,7 +287,7 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
     否则返回 False；此前 ascend 后端直接透传该 bool，导致"设备正常、无需重建"
     被上报为"恢复失败"。现已统一：以设备状态 + 探活结果判定。
 - `detail` 区分三种情况：重建成功 / 无需重建（探活可用）/ 恢复失败（探活不可用）
-- `state` 为设备四态之一，便于上层与监控方向判定
+- `state` 为设备四态之一，便于上层与监控方向判定。**时点（2026-09-29 定死）**：`state` 是「**调用时（恢复前）**」的状态 —— 因此真实重建成功时会同时出现 `state="isolated"` 与 `recovered=True`（前者 = **从什么状态出发**，后者 = **现在能不能用**），**这不是矛盾**；恢复**后**的状态请用 `device_state(ordinal)` 查询。（判据：`backend_offline_check.py` 的「state 时点」一条，防再漂移）
 
 ---
 

@@ -26,6 +26,7 @@
 """
 
 import threading
+import sys
 import time
 from typing import Dict, List, Optional
 
@@ -114,6 +115,20 @@ def evaluate_device(ordinal: int, reason: str = "", device: str = "npu", sync_fn
 
 
 # ---------------------------------------------------------------- 重建（R3/R4）
+# 最近一次 `recover_device()` **实际走了哪条路**（`None`=未执行重建 / `"probe"` /
+# `"aclrtResetDevice"`）。供后端如实回报"本次是否真的重建了上下文"。
+# ⚠️ 为什么要**在源头记录事实**、而不是让调用方拿 `recovered` 反推（2026-09-29 第 21 条）：
+#   `recovered` 的语义是「**设备当前可用**」，不是「重建动作已执行」；
+#   用它反推会把「无需重建」（设备本来就健康）与「real 不支持」（kunlun/cambricon）
+#   统统误报成「已重建」—— 与第 ① 条同一思考方式：**能源头给出该事实，就不要事后反推**。
+_LAST_REBUILD_PATH = None
+
+
+def last_rebuild_path():
+    """最近一次 `recover_device()` 的实际路径；`None` 表示**没有执行重建**。"""
+    return _LAST_REBUILD_PATH
+
+
 def recover_device(ordinal: int, attempts: int = 3, reason: str = "", device: str = "npu", sync_fn=None,
                    rebuild_mode: str = REBUILD_PROBE) -> bool:
     """五段式恢复的重建段（R3 隔离 + R4 重建）：ISOLATED → 重试探针/真实重建 → AVAILABLE。
@@ -129,10 +144,14 @@ def recover_device(ordinal: int, attempts: int = 3, reason: str = "", device: st
       · "hybrid"：先探针（快路径，探测通过即恢复），失败后走真实重建
     - 成功：置 AVAILABLE（R4 保证）；失败：保持 ISOLATED
     """
+    global _LAST_REBUILD_PATH
+    _LAST_REBUILD_PATH = None
     if query_device_state(ordinal) != DeviceState.ISOLATED:
         return False
 
     def _mark_ok(how: str, note: str = "") -> bool:
+        global _LAST_REBUILD_PATH
+        _LAST_REBUILD_PATH = how
         set_device_state(ordinal, DeviceState.AVAILABLE,
                          reason or f"recover: rebuild ok via {how}{(' ' + note) if note else ''}")
         return True
@@ -243,3 +262,25 @@ def handle_error(exc: BaseException, ordinal: Optional[int] = None,
             fe.recovery_decision["replay_tasks"] = pending
             fe.recovery_decision["steps"].append("replay_ready")
     return fe
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ⚠️ 本模块带**进程内共享状态**，必须全局只有一份（2026-09-29 实测缺陷，第 23 条）
+#   同一个文件既能以 `<conformance>/recovery.py` 导入（**扁平名** —— 后端与本文档《用法》所用），
+#   也能以 `runtime.conformance.recovery`（**包路径**）导入；Python 会让两条路径**各执行一次文件**，
+#   得到**两个互不相干的实例**（实测：`flat is pkg == False`、`_STATES` 不是同一个 dict）。
+#   一侧 `set_device_state()`（或登记在途任务），另一侧**毫无感知**，而且**不报错**
+#   ⇒ 任何"先置状态、再判定"的判据都会**静默空转**（判的是另一个世界）。
+#   ⇒ 把两条路径都指向**先加载的那一份**（`setdefault` 不覆盖已存在项：谁先加载，谁就是唯一那份）。
+# ══════════════════════════════════════════════════════════════════════════════
+for _alias in ("recovery", "runtime.conformance.recovery"):
+    sys.modules.setdefault(_alias, sys.modules[__name__])
+# 另：`import runtime.conformance.recovery as X` 这种**语句形式**还要求父包已导入、
+# 且 `runtime` 上挂好 `conformance` 属性（否则会抛 ImportError）。父包是 PEP 420
+# 命名空间包，导入它不执行任何代码、无副作用。
+try:
+    import importlib as _importlib
+    setattr(_importlib.import_module("runtime.conformance"),
+            "recovery", sys.modules[__name__])
+except Exception:
+    pass
+# ALIASED

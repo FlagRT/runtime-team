@@ -518,9 +518,19 @@ class AscendBackend(RuntimeBackend):
             device=self.device_type,
             rebuild_mode=mode,
         )
+        # ⭐ 2026-09-29（第 21 条）：把"是否**真的执行了**销毁/重置/重建序列"作为**事实**
+        #   回报给基类（私有键 `_rebuilt`，由基类转成 `context_recreated`）。
+        #   不要用 `ok` 反推 —— `ok=True` 也可能来自"设备本来就可用"或"探针重试成功"。
+        _path = self._recovery.last_rebuild_path()
+        _rebuilt = (_path == "aclrtResetDevice")
         if ok:
+            if _rebuilt:
+                _detail = f"rebuild_mode={mode}：真实重建成功（aclrtResetDevice 序列已执行）"
+            else:
+                _detail = (f"rebuild_mode={mode}：探针重试成功（**未**执行销毁/重建；"
+                           f"设备本就可用或探针已恢复）")
             return {"ordinal": ordinal, "mode": mode, "recovered": True,
-                    "state": state, "detail": f"rebuild_mode={mode}：重建成功"}
+                    "state": state, "detail": _detail, "_rebuilt": _rebuilt}
 
         # 未执行/重建失败：以探活结果判定设备是否实际可用
         try:
@@ -531,6 +541,8 @@ class AscendBackend(RuntimeBackend):
             "ordinal": ordinal, "mode": mode, "recovered": alive, "state": state,
             "detail": (f"rebuild_mode={mode}：设备状态={state}，" +
                        ("无需重建，探活可用" if alive else "探活不可用，恢复失败")),
+            # 本分支**没有**执行重建 ⇒ 如实回报 False（基类据此定 `context_recreated`）
+            "_rebuilt": False,
         }
 
     # ─────────────── 可选能力 ───────────────

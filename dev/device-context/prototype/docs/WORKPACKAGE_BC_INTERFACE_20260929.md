@@ -172,7 +172,7 @@
 | **MLU590（cambricon）** | ⛔ **本轮未探测** | 用户指定先落 910C 与 P800。**4 个新能力键在 cambricon 上全部未声明** ⇒ `info()["supports"]` 如实呈现为 `False`，调用如实报错。**下一轮**按同一探针取数后决定是否声明。 |
 | `allocated_mb` 在 **910C** 上不反映 `acl.rt.malloc` | 🟡 **如实口径** | pyACL 分配绕过 torch 缓存分配器 ⇒ 该字段在 ascend 上只反映 **torch 侧**分配量。`memory_alloc_stat` 的声明**仅承诺"可给出该字段"**，**不承诺**反映 pyACL 分配。占用判据在 ascend 上用 `mem_get_info`。 |
 | pyACL `free` 后设备空闲**不回落** | 🟡 **厂商池语义** | 未当作我方缺陷；判据只要求"申请后占用可见"，**不要求**"释放后回落"。 |
-| `recover_device` 的 `context_recreated` | 🟡 **派生字段** | 语义 = "本次恢复是否走了销毁并重建上下文的路径"（`real` 模式 + 成功），非厂商直供；已写进 docstring。 |
+| `recover_device` 的 `context_recreated` | 🟡 **由实现如实回报**（原为派生字段，**2026-09-29 已修**） | 语义 = "本次是否**真的执行了**销毁/重建上下文的路径"。⚠️ 原派生条件 `mode == "real" and recovered` **用错了上游事实**（`recovered` = 设备当前可用）⇒ 在「健康设备上调 real」（`detail` 自写"无需重建"）与「未声明 `recovery_real` 的两家」上都**误报 `True`**（台账第 21 条）。现由 `conformance/recovery.py::last_rebuild_path()` 给出事实、后端经 `_rebuilt` 回报，**未回报视为未重建**。 |
 | C 的 `context_set` | 🟢 已实现 | 计划里未列，但"切回某个上下文"是隔离验证的前提 ⇒ 作为 C 的最小可用集一并实现。 |
 | 多进程 / 多卡下的 `mode="real"` 压测 | ⛔ 未做 | 已知挂账（与工作包 C 风险表一致）。 |
 

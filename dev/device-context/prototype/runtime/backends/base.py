@@ -425,8 +425,16 @@ class RuntimeBackend(ABC):
             snap = self.context_snapshot()
             rec["context_supported"] = snap["context_supported"]
             rec["context_count"] = snap["context_count"]
-            # `real` 模式的语义就是"销毁并重建上下文"（见 _recover_device_impl 文档）
-            rec["context_recreated"] = bool(mode == "real" and rec.get("recovered"))
+            # ⭐ 2026-09-29 修正（第 21 条）：**只认实现如实回报的事实**，不再用 `mode + recovered` 反推。
+            #   原实现 `bool(mode == "real" and rec.get("recovered"))` 把「设备当前可用」
+            #   当成「重建动作已执行」，于是在**未执行任何重建**的路径上也报 True：
+            #     · ascend 健康设备上调 `real`（同一次返回的 `detail` 自己写着"无需重建"）
+            #     · kunlun / cambricon **未声明 `recovery_real`**（明说 real 不支持）
+            #   ⇒ 同一次返回内 `detail` 与 `context_recreated` 自相矛盾，违反 I1「诚实声明」/ I4「降级可观测」。
+            #   现由实现在**做决策的同一处**记录实际路径，并通过私有键 `_rebuilt` 回报；
+            #   **未回报视为未重建**（宁可不声明，不臆造）。
+            _rebuilt = bool(rec.pop("_rebuilt", False))
+            rec["context_recreated"] = bool(_rebuilt and mode in ("real", "hybrid"))
             if snap.get("context_error"):
                 rec["context_error"] = snap["context_error"]
         return rec

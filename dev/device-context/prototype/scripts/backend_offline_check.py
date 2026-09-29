@@ -621,6 +621,12 @@ def run(proto_dir, backend):
           not _miss,
           (f"缺 {sorted(_miss)}（上层按契约读会拿不到）" if _miss
            else f"{len(_NEED_KEYS)} 键齐全"))
+    # ⭐ 2026-09-29 新增（第 21 条）：probe 模式**不可能**重建上下文 ⇒ 该字段必须如实为 False。
+    check("recover_device(mode=\"probe\") 的 context_recreated 必须为 False"
+          "（probe 只重试探针，不销毁/重建上下文）",
+          isinstance(rec, dict) and rec.get("context_recreated") is False,
+          f"mode={rec.get('mode') if isinstance(rec, dict) else None} "
+          f"context_recreated={rec.get('context_recreated') if isinstance(rec, dict) else None!r}")
     # ⭐ 2026-09-29 新增：`state` 的**取值域**判据（不只手字段名）。
     #   来由：三家原写 `str(state)`，而 `DeviceState` 是 `enum.Enum`（非 StrEnum）
     #   ⇒ 得到 `'DeviceState.AVAILABLE'`，**不是**四态规范取值；下游按契约比较
@@ -633,6 +639,49 @@ def run(proto_dir, backend):
           f"state={_st!r}" + ("（str(enum) 形式 ⇒ 下游比较会判假）"
                               if isinstance(_st, str) and _st.startswith("DeviceState.")
                               else ""))
+    # ⭐ 2026-09-29 新增（第 22 条）：**给 `state` 定死时点**。
+    #   来由：契约原先只说"为设备四态之一"，**没说调用前还是调用后**。A2 真机实测出现
+    #   `state='isolated'` + `recovered=True`（从隔离出发、重建后可用）—— 时点不定义就是歧义。
+    #   现按实现口径**定义**为「调用时（恢复前）」，并在此钉死（行为不变，只定口径）。
+    try:
+        import runtime.conformance.device_state as _ds_pin
+        _ds_pin.set_device_state(0, _ds_pin.DeviceState.ISOLATED,
+                                 "self-check: pin state timing (调用前=isolated)")
+        _pre = _ds_pin.query_device_state(0)
+        _rec_pin = bk.recover_device(0, mode="probe", reason="self-check: state timing")
+        check("recover_device() 的 state == **调用时（恢复前）**的状态（时点已定死，不是恢复后）",
+              isinstance(_rec_pin, dict) and _rec_pin.get("state") == _pre.value,
+              f"调用前={_pre.value} 返回的 state={_rec_pin.get('state')!r}"
+              + ("（若为 available 说明取的是恢复后 ⇒ 时点漂移）"
+                 if _rec_pin.get("state") == "available" and _pre.value != "available" else ""))
+    except Exception as e:                                        # noqa: BLE001
+        check("recover_device() 的 state 时点可判", False, f"{type(e).__name__}: {str(e)[:110]}")
+    # 收尾：确保状态机回到 AVAILABLE，别影响后续判据
+    try:
+        import runtime.conformance.device_state as _ds_fix
+        if _ds_fix.query_device_state(0) != _ds_fix.DeviceState.AVAILABLE:
+            _ds_fix.set_device_state(0, _ds_fix.DeviceState.AVAILABLE, "self-check: restore")
+    except Exception:                                             # noqa: BLE001
+        pass
+
+    # ⭐ 2026-09-29 新增（第 23 条）：共享资产**必须全局只有一份实例**。
+    #   来由：同一文件既能以**扁平名**导入（后端与《用法》所用），也能以
+    #   `runtime.conformance.*`（**包路径**）导入 ⇒ Python 会让两条路径**各执行一次文件**，
+    #   得到两个互不相干的状态机（实测 `flat is pkg == False`、`_STATES` 不是同一个 dict）。
+    #   一侧 `set_device_state()` 另一侧**毫无感知**，而且**不报错**
+    #   ⇒ 一切「先置状态、再判定」的判据都会**静默空转**（判的是另一个世界）。
+    #   本判据把「单一事实来源」钉死，防再漂移。
+    try:
+        import importlib as _il
+        import device_state as _ds_flat
+        _ds_pkg = _il.import_module("runtime.conformance.device_state")
+        check("共享状态机全局只有一份实例（扁平名与包路径 == 同一对象；否则判据会「静默空转」）",
+              _ds_flat is _ds_pkg and _ds_flat._STATES is _ds_pkg._STATES,
+              f"flat is pkg={_ds_flat is _ds_pkg}；_STATES 同一 dict="
+              f"{_ds_flat._STATES is _ds_pkg._STATES}")
+    except Exception as e:                                        # noqa: BLE001
+        check("共享状态机单一实例可判", False, f"{type(e).__name__}: {str(e)[:110]}")
+
     # 2026-09-28 新增：四态**成员名**必须与接口约定一致。
     #   来由：接口约定曾写 `UNKNOWN`、而三家共用的实现是 `DESTROYED`，
     #   两者并存 20 天**无任何判据发现**（同样是职责响应审计才暴露）
@@ -667,6 +716,17 @@ def run(proto_dir, backend):
         rec2 = bk.recover_device(0, mode="real")
         check("未声明 recovery_real ⇒ real 模式如实说明不支持（不伪造重建）",
               isinstance(rec2, dict) and "detail" in rec2, rec2.get("detail", "")[:60])
+        # ⭐ 2026-09-29 新增（A2 实测暴露，第 21 条）：**取值域**判据。
+        #   来由：`context_recreated` 原先由 `mode=="real" and recovered` 反推，
+        #   而 `recovered` 的语义是「设备当前可用」而**不是**「重建动作已执行」
+        #   ⇒ 后端明说"real 不支持"时，它仍然报 `context_recreated=True`。
+        #   只查字段名不查取值，正是 09-28 漏过 kunlun/cambricon 缺 `state` 的同一坑（§11-⑫）。
+        check("未声明 recovery_real ⇒ context_recreated 必须为 False"
+              "（real 不支持就不可能重建上下文）",
+              isinstance(rec2, dict) and rec2.get("context_recreated") is False,
+              f"context_recreated={rec2.get('context_recreated')!r}"
+              + ("（real 不支持却声称已重建 ⇒ 违反 I1 诚实声明）"
+                 if rec2.get("context_recreated") else ""))
 
     # ── 7. 能力声明自洽 + known_issues ──
     print("\n[7] 能力声明自洽 / 已知问题（stub-skip 报告基础）")
