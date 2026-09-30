@@ -44,6 +44,7 @@
 |---|---|
 | **本机没有宿主 git 副本** | `/workspace/runtime-team`、`/data2/hliu553/runtime-team` **都不存在**。P800 侧只有**同步过去的 `prototype/` 目录**（宿主 `/data2/hliu553/dc_regress_20260929/prototype` = 容器内 `/workspace/...`）。**不要按"应该有一份"去找**；需要版本信息请看 910C 宿主副本（已对齐）或 GitHub。 |
 | **路径映射** | 宿主 `/data2/hliu553` = 容器 `/workspace`。**在宿主上执行的脚本**其重定向要用宿主路径，**传给容器程序的 `--out`** 要用容器路径 —— 混用会得到一堆 rc=1（2026-09-30 首跑即如此）。 |
+| **流优先级空间 = 退化单点（2026-09-30 实测）** | 兼容层三个入口**都在**（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`），但范围查询返回 **`least=0, greatest=0`** ⇒ **本机没有可调的优先级空间**；且 `cuStreamCreateWithPriority(..., prio=-1)` **回读仍为 0**（不保留传入值）⇒ 优先级在 P800 上**无可观测效果**（不是「接口没实现」，而是「设备只报一个档位」）。证据 `probes/prio_readback_kunlun_20260930.log`；重跑 `probes/inspect_prio_readback_kunlun_20260930.py` |
 | **选卡** | `dev1` = **已知故障卡**（UUID `b3509946…`，`0 MiB / 0%` **与好卡同貌**，靠 UUID 识别）⇒ **永远避开**；2026-09-30 复跑用 **`dev4`**（292 MiB / 0%）。 |
 
 ---

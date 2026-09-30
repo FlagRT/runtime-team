@@ -1,0 +1,21 @@
+=== 前置：建立 ACL context ===
+[W930 01:58:02.608642593 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+  OK；range = (7, 0, 0)
+  已加载的真实库（来自 /proc/self/maps）: ['/usr/local/Ascend/cann-9.0.0/aarch64-linux/lib64/libascendcl.so']
+
+=== R1/R2 用 create_stream_with_config 建流并回读 priority ===
+  传入 priority=0: create rc=0 handle=187652259370928 | 回读 rc=0 priority=0
+  传入 priority=3: create rc=0 handle=187652260304928 | 回读 rc=0 priority=3
+  传入 priority=7: create rc=0 handle=187652261238928 | 回读 rc=0 priority=7
+
+=== R2b 对照：torch.npu.Stream(priority=…) 建出来的流回读 priority ===
+  torch Stream(priority=0): handle=187652262174992 回读 rc=0 priority=0
+  torch Stream(priority=7): handle=187652263111056 回读 rc=0 priority=0
+
+=== R3 判定 ===
+  pyACL 三档回读值 = {0: 0, 3: 3, 7: 7}
+  · 参数被接受（回读 == 传入）: True
+  · 不同档位回读不同（至少存下来了）: True
+  ⇒ 若都是同一个值 ⇒ **优先级参数在本产品线上未生效**（与官方文档「训练产品上为预留参数」一致）
+
+BOUNDARY: 只读 + 稀疏建流；未改任何配置；结论只在本栈（CANN 9.0.0 / 910C / torch_npu 2.11.0）成立。

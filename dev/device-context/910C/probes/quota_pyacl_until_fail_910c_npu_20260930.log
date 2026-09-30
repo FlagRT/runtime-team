@@ -1,0 +1,10 @@
+=== MODE=pyacl CAP=4000 ===
+[W930 01:55:04.850362300 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+  [前置] torch 已触碰设备 ⇒ ACL context 已建立
+  _C.so 里出现的 aclrt*Stream* 符号： []
+  起始 available_num = (1979, 0)
+  pyACL 建流：成功 1979 条，耗时 3.82s，首次失败=rc=207005（第 1980 条）
+  建完后 available_num = (0, 0)
+  ⇒ 上限 ≈ 起始 available_num + 成功条数（应与文档的 2048 − 默认/内部流 对得上）
+
+BOUNDARY: 只读+建流；未调任何 set_* 配置接口；结论只在本栈（torch_npu 2.11.0 / CANN 9.0.0 / 910C 单卡）成立。

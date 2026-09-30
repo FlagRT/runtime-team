@@ -1,165 +1,217 @@
-# 工作包 D · 流优先级「效果」与配额「真实上限」（2026-09-30）
+# 工作包 D · 流优先级「效果」与配额「真实上限」（2026-09-30 · v2 含根因核查）
 
-> 定位：**判据 + 实测记录**。对应《薄弱环节补做计划》工作包 **D**（P2），也是审计清单 **B2** 项的收尾。
-> 设备：**910C / ascend**，单卡（`davinci0`），容器 `dc-quota-probe-0930`，镜像
-> `flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev-hostnet`，解释器
-> `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（torch 2.11.0+cu130 / torch_npu 2.11.0 / py3.12.13）。
+> 定位：**判据 + 实测记录 + 根因核查**。对应《薄弱环节补做计划》工作包 **D**（P2）、审计清单 **B2** 项。
+> 设备：**910C / ascend**（Atlas 训练系列），单卡 `davinci0`，容器 `dc-quota-probe-0930`，
+> 解释器 `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（torch 2.11.0+cu130 / torch_npu 2.11.0 / **CANN 9.0.0**）。
 >
-> **边界（勿外推）**：单卡、单进程、本档位；结论**只在本环境成立**。跨机 / 多进程 / 多流争用未测。
+> ⚠️ **本文 v2 更正了 v1（2026-09-30 上午）的两处结论** —— 起因是"为什么会出现这个结果"的追问 +
+> 官方文档核查。更正内容集中在 §5，**v1 的原始取数证据一字未删**，仅更正**解释与标注**。
+>
+> **边界**：单卡、单进程、本档位；结论只在本环境成立。
 
 ---
 
-## 0 一句话结论
+## 0 一句话结论（v2）
 
-**「范围可读」与「效果可用」是两件事，本轮拿到了两者的分离开的实测数据**：
-
-| 问题 | 实测答案 |
-|---|---|
-| 优先级**范围**能读到吗 | ✅ ascend 返回 **`(7, 0, 0)`**（三元组：hi=7 / lo=0 / rc=0），两端都能建流且算得对（`prio=7` 与 `prio=0` 各得 89440） |
-| 优先级**效果**生效吗 | ❌ **未观测到**：低先提交时高优先级 **0/8** 轮先完成；把提交顺序反过来（高先提交）则高优先级 **8/8** 先完成 ⇒ **提交顺序主导，优先级无可观测效果** |
-| 流**配额上限**在哪 | ⚠️ **到 1,000,000 档仍未触及**：7 档递增（4k→256k）全成功、耗时线性；100 万流 13.93 s 成功、抽样 500/500 可用 |
-| 每个流占多少资源 | 宿主 **+30.8 MB / 1e6 = 0.03 B/流**；设备 **+10.0 MiB / 1e6 = 0.010 B/流**（≈零成本句柄） |
-
-⇒ **「配额上限未知」的真实原因不是探测不够，而是流创建近乎零成本**（资源不落在这一层）。
+| 问题 | v1 结论 | **v2（更正后）** |
+|---|---|---|
+| 优先级**范围** | `(7, 0, 0)`，两端都能建流 | 同上；但**方向标反了**：官方语义为 `leastPriority=7 / greatestPriority=0` ⇒ **数值越小优先级越高（0 最高、7 最低）** |
+| 优先级**效果** | 「未观测到效果」 | **结论仍成立**，但根因不是"提交顺序主导"这么简单 → **两处硬性障碍**（§5.1）：<br>① **`torch.npu.Stream(priority=X)` 在插件层就把参数丢了**（回读恒 0，C API 校验）；<br>② 官方文档：**Atlas 训练系列产品上 `priority` 是「预留参数、暂不使用」（固定 0）** |
+| 配额**上限** | 「到 100 万档未触及」 | ❌ **v1 取数无效**：`torch.npu.Stream()` 构造**不消耗设备流配额**（实测 torch 建 1000 条，`available_num` 纹丝不动）⇒ v1 测的是 **Python 对象数**。<br>✅ **真实上限 = 1979 条**（`acl.rt.get_stream_available_num()` = 1979，pyACL 直连恰好建满 1979 条，第 1980 条失败 `rc=207005`） |
 
 ---
 
-## 1 判据（先写死，再取数）
+## 1 判据（先写死）
 
-### 1.1 优先级效果（`probes/probe_stream_priority_effect.py`，新增）
-
+### 1.1 优先级（两版探针）
 | 判据 | 内容 |
 |---|---|
-| `P1_range_readable` | 范围可解析为 `(lo, hi)`（**兼容三元组**形态：ascend pyACL 返 `(hi, lo, rc)`） |
-| `P1_create_hi/lo` | 用范围**两端**各建一条流、各跑一次计算并校验数值（证明"参数没被吞"） |
-| `P2_effect` | 两流**真并发争用**同设备：低优先级先提交 ⇒ 高优先级先完成 **≥ 6/8** 轮才算"观测到效果" |
-| 附加（本轮加） | **反向对照**：把提交顺序反过来（高先提交）——用于区分"优先级无效"与"争用不够" |
+| `P1_range_readable` | 范围可解析；**按官方语义取 `hi=min(a,b)`**（v1 取 `hi=第二项`，方向错了，见 §5） |
+| `P1_create_hi/lo` | 两端各建流、各算一次并校验（证明参数没被吞） |
+| **`P3_gate_high_wins`（v2 新增）** | ⭐ **两条流先一起等同一个 gate 事件 ⇒ 同时处于「排队」态，再一起放行** —— 这才符合官方机制（优先级只管"排队中"的任务） |
+| `P4_naive_control` | 旧测法（低优先级先提交、已进入运行态）作对照，按官方机制**预期 0** |
 
-### 1.2 配额上限（`probes/probe_stream_quota.py` 逐档 + `probe_stream_quota_touch.py` 新增）
-
+### 1.2 配额
 | 判据 | 内容 |
 |---|---|
-| `Q1/Q2/Q3`（既有） | 连续建 N 个流全成功 · 第 1 个流仍可执行 · 全释放后能再建并执行 |
-| `T1_create`/`T1_touch_all_usable`/`T2_values_correct`/`T4_release_usable`（新增） | 每个流**真被使用过**（抽样真跑计算并校验）· 释放后可用 |
-| `T3_resource_cost`（新增） | 记录**宿主 RSS 增量**与**设备已用显存增量** ⇒ 回答"创建是不是真的" |
+| `Q1/Q2/Q3`（既有，但**路径不可靠**） | 「连续建 N 个流」——⚠️ 见 §5.2：**用 `torch.npu.Stream()` 时它不反映设备配额** |
+| **T3_resource_cost / 设备自报上限（v2）** | 改用 **`acl.rt.get_stream_available_num()`**（设备自报"还能建几个"）与 **pyACL 直连建到失败**，拿**精确上限** |
 
 ---
 
-## 2 优先级：三次取数，两次修正（过程如实留档）
+## 2 优先级：三次取数（v1 的两次 + v2 的机制修正版）
 
-| 轮次 | 做法 | 结果 | 处置 |
-|---|---|---|---|
-| ① | 单次 2048² matmul/流 | 两流各 **0.4–1.8 ms** 就完成 ⇒ 高优先级提交前低优先级**已跑完**，**根本没形成争用**；范围解析错（把三元组当二元）⇒ 误走 SKIP | ❌ **取数无效**（测的是"无争用下的完成顺序"）→ 加重负载 |
-| ② | 每流 60 次链式 matmul（≈25 ms） | 两流真并发；`lo_first` 下高优先级 **0/8** | 加**反向对照**避免误判 |
-| ③ | 60 次链式 + 双向对照 | **`lo_first` 0/8；`hi_first` 8/8** | ✅ 结论成立 |
+| 轮次 | 做法 | 结果 |
+|---|---|---|
+| v1-① | 单次 2048² matmul/流 | 两流各 0.4–1.8 ms ⇒ **未形成争用** ⇒ 取数无效 → 加重负载 |
+| v1-② | 60 次链式（≈25 ms）+ 双向对照 | 「lo_first 0/8、hi_first 8/8」⇒ 记为"提交顺序主导" |
+| **v2-③** | **两流同时排队（gate）** + 修正方向 | **gate 0/8、naive 0/8** ⇒ **即使同时排队，高优先级也不先完成**（见 §5.1 的根因） |
 
-**③ 的原始时间（8 轮 × 2 方向，节选）**：
+**v2-③ 的判据输出**（`prio_queued_910c_npu_20260930.json`）：
 
 ```
-lo_first: hi_s=0.0265 lo_s=0.0249 | hi_s=0.0257 lo_s=0.0246 | hi_s=0.0257 lo_s=0.0245 | ...   （高优先级每轮都慢 ~1.2 ms）
-hi_first: 高优先级先完成 8/8
+[P1] range_raw=(7, 0, 0) ⇒ 按官方语义 hi(最高)=0 lo(最低)=7 supports=True
+[P2] hi=89440.0 lo=89440.0（期望各 89440）           ← 两端都能建流且算得对
+[P3] gate 模式（两流同时排队）：高优先级先完成 0/8      ← 仍未观测到效果
+[P4] naive 对照（低优先级先提交）：高优先级先完成 0/8
+STREAM_PRIORITY_QUEUED_PASS: 4/4（effect_observed=False）
 ```
-
-⭐ **差值 ≈ 提交间隔（~1.2 ms）**，且**两个方向都成立** ⇒ 按纪律记录为：
-**`effect_observed=False`（未观测到优先级效果）**，判据本身**通过**（`STREAM_PRIORITY_EFFECT_PASS`）——
-探针成功与效果结论是两件事，混在一起就会把"测不出"记成"失败"或反过来"改判据变绿"。
-
-> **边界**：这是**本场景**（单卡、两条满载流、同进程提交）的观测。测不出效果 ≠ 优先级无效
-> （可能是负载形态 / 设备占用 / 调度策略所致）；但**"测不出"必须如实记录** ——
-> 这正是"范围可读 ≠ 效果可用"这条结论的取数基础。
 
 ---
 
-## 3 配额：逐档递增到 100 万，仍未触及上限
+## 3 配额：三条路径给出三个不同答案（这才是关键）
 
-| 档位 N | 创建成功 | 耗时 | verdict |
-|---|---|---|---|
-| 4,000 | 4,000 | 0.07 s | `STREAM_QUOTA_PASS` |
-| 8,000 | 8,000 | 0.12 s | PASS |
-| 16,000 | 16,000 | 0.34 s | PASS |
-| 32,000 | 32,000 | 0.54 s | PASS |
-| 64,000 | 64,000 | 1.04 s | PASS |
-| 128,000 | 128,000 | 1.90 s | PASS |
-| 256,000 | 256,000 | 3.67 s | PASS |
-| **1,000,000** | **1,000,000** | **13.93 s** | **`STREAM_QUOTA_TOUCH_PASS` 6/6** |
+| 路径 | `available_num` 变化 | 说明 |
+|---|---|---|
+| **`acl.rt.create_stream()`（pyACL 直连）** | 1979 → **1:1 递减** → 0 | 真实占用设备流资源 |
+| **`torch.npu.Stream()`（构造）** | 1147 → **1147（建 1000 条不变）** | **不消耗配额**（懒分配/未注册） |
+| **`torch.npu.Stream()` 后再真的用它算** | 仍需复核 | 见 §7 未做项 |
 
-**100 万档的资源与可用性（实测）**：
+**决定性实验（pyACL 建到失败）**：
 
 ```
-[创建] 1000000/1000000 成功，13.93s
-[资源] 宿主 RSS 2039.3 → 2070.1 MB（Δ+30.8，0.03 B/流）；设备已用 389.0 → 399.0 MiB（Δ+10.0，0.010 B/流）
-[使用] 抽样 500 个流真跑计算：正确 500/500，0.11s      ← 尾部 500 个（不是头部）也全部可用
-[释放] 释放后新流结果=32.0（期望 32.0）✅
+起始 available_num = (1979, 0)
+pyACL 建流：成功 1979 条，耗时 3.82s，首次失败=rc=207005（第 1980 条）
+建完后 available_num = (0, 0)
 ```
 
-**结论（如实）**：
-- **未观测到配额上限**（到 1e6 档仍零失败）⇒ 长驻服务的流分配**不在这一层受限**；
-- 流创建**近似零成本**（宿主 0.03 B/流、设备 0.010 B/流）⇒ 真正会耗尽的是**别的东西**（如每流挂的显存/上下文资源），而那不是"流数量配额"；
-- ⚠️ **不断言"没有上限"**：只报"到 1e6 未触及"。再往上（1e7）未测，且**宿主 RSS 会先被 Python 对象吃掉**（1e6 档已 +30.8 MB）。
+**⇒ 本栈真实流配额上限 = 1979 条**。与官方文档**对得上**：
+> 「Atlas 训练系列产品，Stream 最大数为 **2048**」；
+> 「只能显式创建 N 个 Stream，**N = Stream最大数 − 默认Stream个数 − 执行内部同步的Stream个数**」
+⇒ 2048 − 1979 = **69** 个默认/内部流（默认流 1 个 + 框架/hccl 等内部同步流）。
+
+**错误码语义**：`rc=207005` 在头文件里是 **`ACL_ERROR_RT_RESOURCE_ALLOC_FAIL`**（通用资源分配失败）
+—— **不是**专门的"流数量超限"码 ⇒ 靠"建到失败"只能拿到**通用错误**，
+**`get_stream_available_num()` 才是可预判的入口**（呼应"能力缺失要给可预判的保守路径"）。
 
 ---
 
-## 4 ⚠️ 取数环境的一个新事实（名额判定，待澄清）
+## 4 ⚠️ v1 的两条结论为什么会"看起来通过"（两处探针缺陷）
 
-本轮首跑 `dc-lean-910c-20260929`（挂 `davinci1,2,3`）**`acl.init` 失败**（`get_device_count=(0, 507899)`），
-当时的 Up 容器中 `flaggems-cann9.0.0` **挂全部 16 张卡且有 python 进程在跑**。
+| # | 缺陷 | 后果 |
+|---|---|---|
+| **D-a** | 优先级**方向标反**：把 `range[1]=7` 当"高优先级"，而官方语义 `greatestPriority` 是**数值最小**那个（0） | v1 报的"高优先级 0/8"其实说的是**最低优先级**；结论方向没错，但**表述与推论基础错了**，且掩盖了"两流都已运行/排队"的真正区别 |
+| **D-b** | 用 `torch.npu.Stream()` 测配额 | 它**不消耗设备配额** ⇒ "到 100 万档未触及"是**必然结果**，与设备无关；v1 把"探针测不到"写成了"设备没有上限" |
 
-改为**新建只挂 `davinci0` 的精简容器** `dc-quota-probe-0930` ⇒ **`acl.init` 成功、`get_device_count` 正常**。
+> 两处都属于本项目台账的老家族：**「看起来通过」**（探针 PASS 但没测到该测的东西）。
+> ⭐ 教训：**测"上限/效果"之前，先证明"我测的量确实在那个层次上被消耗/被使用"**
+> （本轮的做法：用 `available_num` 与 C API 回读**交叉验证**）。
 
-| 观察 | 事实 |
+---
+
+## 5 ⭐ 根因核查（用户追问"为什么" → 官方文档 + C API 回读）
+
+### 5.1 优先级为什么不生效 —— **两层障碍，都已取到硬证据**
+
+**障碍一：`torch.npu.Stream(priority=…)` 在插件层丢参数（实测）**
+
+用 C API **回读**流优先级（`aclrtStreamGetPriority`；pyACL 未暴露，用 ctypes 调 `libascendcl.so`）：
+
+| 建流路径 | 传入 → **回读** |
 |---|---|
-| 挂 `davinci1,2,3` 的新容器 | ❌ 拿不到名额（507899） |
-| 挂 `davinci0` 的新容器 | ✅ 拿到名额 |
-| 两者都落在 `flaggems` 的挂载集（0–15）内 | 是 |
+| pyACL `create_stream_with_config(priority, flag)` | `0→0`、`3→3`、`7→7` ✅ **ACL 真的存下来了** |
+| `torch.npu.Stream(priority=0)` | → **0** |
+| `torch.npu.Stream(priority=7)` | → **0** ⛔ **参数被丢弃** |
 
-⇒ 与既有记录「**并行容器挂载集相交即失败**」**不完全一致**（若纯相交判定，挂 0 也该失败）。
-**如实登记为待澄清事实**，不擅自改判据：可能是"名额单位 = 被独占的**设备子集**"或与 primary context 归属有关。
-本轮的做法（**用只挂所需单卡的新精简容器**）已验证可行，可作为下次的操作首选。
+⇒ **ACL 层有这个能力，但 `torch_npu` 的 eager `Stream` 没把 priority 传下去**（`_C.so` 里也扫不到含
+`priority` 的导出符号）。**我们（及所有走 `torch.npu.Stream(priority=…)` 的代码）传的值根本没到设备。**
 
----
+**障碍二：官方文档说训练产品上该参数是"预留"**
 
-## 5 判据与非空转验证
+CANN `create_stream_with_config` 的 `priority` 参数说明（官方文档原文要点）：
 
-| 项 | 处置 |
+| 产品 | 该参数状态 |
 |---|---|
-| 新增探针 2 个 | `probes/probe_stream_priority_effect.py`（P1/P2）· `probes/probe_stream_quota_touch.py`（T1–T5） |
-| **判据自身缺陷（已修）** | 范围解析初版只认二元组 ⇒ ascend 的 `(7,0,0)` 被误判为"不可读"、整段走 SKIP ⇒ **探针"通过"但什么也没测**。修＝兼容三元组并核对 `rc==0`。**这正是"看起来通过"的又一例**（探针 PASS ≠ 有取数） |
-| 非空转验证 | 见 §2 的①②：**负载不足导致的无效取数**被"反向对照"抓出（若不做对照，会把"无争用"误记成"优先级无效"，方向相反） |
+| Atlas 200/300/500 推理 · **Atlas 训练系列** · Atlas A2 训练 · Atlas 200I/500 A2 | **「当前固定设置为 0，预留参数，暂不使用」** |
+| **Atlas 推理系列产品** | **取值范围 [0, 7]，最多 8 级，数字越小优先级越高（0 最高、7 最低）**；超范围返回报错 |
+
+⇒ **910C 属 Atlas 训练系列 ⇒ 即使参数传到了 ACL，文档口径也是"暂不使用"。**
+
+⚠️ **上游口径冲突（可作上报材料）**：本机 CANN 9.0.0 的**头文件** `acl_rt.h` 对同一接口写的是
+`@param priority [IN] the priority of stream, **value range: 0~7**`（**未提"预留"**），
+而官方文档说训练产品上预留 ⇒ **同一接口的文档与头文件不一致**。
+
+**另有官方明文（图模式 API）**：`npu_stream_switch(stream_tag, stream_priority=0)` 的说明是
+「**当前版本为预留参数，建议取默认值 0**」。
+
+### 5.2 P800（昆仑芯）为什么是"连范围都读不到" —— 与 910C 不同的根因
+
+同法回读（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`，经 `libxpucuda.so.515.58.kunlun`）：
+
+| 项 | P800 实测 |
+|---|---|
+| 三个入口存在性 | **都存在**（不是"没实现"） |
+| **范围查询** | **`least=0, greatest=0`** ⇒ **优先级空间退化为单点** |
+| `cuStreamCreateWithPriority(flags=0, prio=-1)` | 回读 **0**（**不保留**传入值） |
+| `torch.cuda.Stream(priority=-1)` | 回读 **0** |
+
+⇒ **P800 是"设备侧没有任何可调的优先级空间"**（范围单点 + 兼容层不保留），因此**无效果可测**；
+而 910C 是"范围有（0~7），但**插件层丢参数** + 文档说训练产品预留"。
+
+⇒ 我们的 `kunlun` 后端 `stream_priority_range()` 返回 `None` **是如实**的，但**表述可以更准**：
+设备其实报的是"**退化到单点 (0,0)**"，比 `None`（易被读成"接口不存在"）更接近事实。
+**这一点列为改进项（§7），本轮未擅自改契约。**
+
+### 5.3 机制层面的官方说明（解释"为什么两流测试很难测出差异"）
+
+CANN 文档原文（Stream 管理）：
+> 「高优先级 Stream 中待执行的任务将优先于低优先级 Stream 中的任务得到调度，**但不会抢占已处于运行状态的低优先级任务**」
+> 「Device 在执行过程中**不会动态重新评估任务队列**」
+> 「Stream 的优先级主要用于影响任务的**调度顺序**，而非强制规定严格的执行序列」
+> 「Stream 的优先级**在 Device 范围内生效，而不是在 Context 范围内生效**」
+
+⇒ 这解释了 v1 的 naive 测法为什么必然测不出（先提交者已进入运行态）；
+但 v2 的 **gate 测法（两流同时排队）仍然测不出** ⇒ 说明**障碍在参数传递层面（§5.1），而不是调度时机**。
 
 ---
 
 ## 6 一键复跑
 
 ```bash
-# 910C（容器内；只挂 davinci0 的精简容器）
 C=dc-quota-probe-0930; PY=/mnt/raid/hliu553/venvs/venv-infer-a/bin/python
-P=/mnt/raid/hliu553/dc_legs_20260929/prototype; O=/mnt/raid/hliu553/dc_legs_20260929/b2_out
+B=/mnt/raid/hliu553/dc_legs_20260929
 
-# 优先级效果（含双向对照）
-docker exec -e DC_BACKEND=ascend -e DC_OUT_DIR=$O $C $PY $P/probes/probe_stream_priority_effect.py
+# ① 优先级：C API 回读（判断参数是否真的到了设备）
+docker exec $C $PY -u $B/readback_priority_910c.py
 
-# 配额逐档（4k → 256k）
-for N in 4000 8000 16000 32000 64000 128000 256000; do
-  docker exec -e DC_BACKEND=ascend -e DC_QUOTA_N=$N -e DC_TAG=_n$N -e DC_OUT_DIR=$O \
-    $C $PY $P/probes/probe_stream_quota.py
-done
+# ② 优先级：按官方机制重测（两流同时排队）+ naive 对照
+docker exec -e DC_BACKEND=ascend -e DC_OUT_DIR=$B/rca_out $C $PY -u \
+  $B/prototype/probes/probe_stream_priority_queued.py --dev 0
 
-# 100 万档 + 资源代价（宿主 RSS / 设备显存）
-docker exec -e DC_BACKEND=ascend -e DC_QUOTA_N=1000000 -e DC_TOUCH_SAMPLE=500 \
-  -e DC_TAG=_1M -e DC_OUT_DIR=$O $C $PY $P/probes/probe_stream_quota_touch.py
+# ③ 配额：设备自报可用流数 + pyACL 直连建到失败（精确上限）
+docker exec $C bash -lc "MODE=pyacl CAP=4000 $PY -u $B/find_stream_quota_910c.py"
+
+# ④ P800 对称核查（优先级回读）
+ssh P800 'docker exec -e CUDA_VISIBLE_DEVICES=4 hliu553-device-context-p800 bash -lc \
+  "source /root/miniconda/etc/profile.d/conda.sh && conda activate python310_torch29_cuda && \
+   python3 -u /workspace/dc_regress_20260929/readback_priority_p800.py"'
 ```
 
-证据（`../910C/probes/`）：`b2_priority_effect_910c_npu_20260930.json` ·
-`b2_stream_quota_910c_npu_20260930_n{4000,8000,16000,32000,64000,128000,256000}.json` ·
-`b2_quota_touch_910c_npu_20260930_1M.json` · `b2_pool_910c_npu_20260930.log`（11 份）
+**证据**（`../910C/probes/`，11 份）：
+`prio_readback_910c_npu_20260930.log` · `prio_queued_910c_npu_20260930.json` ·
+`quota_pyacl_until_fail_910c_npu_20260930.log` · `available_num_behavior_910c_npu_20260930.log` ·
+`prio_gate_and_torch_quota_910c_npu_20260930.log` · `b2_*_20260930*`（v1 原样保留）；
+**P800**：`P800/probes/prio_readback_kunlun_20260930.log`；
+**可复跑脚本**：`910C/probes/inspect_prio_{readback,api_surface}_910c_20260930.py` ·
+`910C/probes/find_stream_quota_910c_20260930.py` · `P800/probes/inspect_prio_readback_kunlun_20260930.py` ·
+`prototype/probes/probe_stream_priority_queued.py`
+
+**官方依据（可点开核对）**：
+- CANN `device_get_stream_priority_range`（Python）：https://www.hiascend.com/document/detail/zh/canncommercial/latest/API/runtimeapi/aclpythondevg_01_1030.html
+- CANN `create_stream_with_config` 的 `priority` 参数状态（"预留参数，暂不使用" / 推理系列支持 [0,7]）：https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/83RC1alpha002/API/appdevgapi/aclpythondevg_01_0078.html
+- CANN Stream 管理（不抢占 / 不重评估 / Device 范围生效）：https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/920beta1/others/acldevg/runtime_doc_dev_0011.html
+- CANN `aclrtCreateStream` 的 Stream 最大数（Atlas 训练系列 2048，`N = 2048 − 默认 − 内部同步`）：https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/runtimeapi/aclcppdevg_03_0065.html
+- torchair `npu_stream_switch`（`stream_priority` 为**预留参数**）：https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00102.html
 
 ---
 
-## 7 未做 / 边界（不补零）
+## 7 结论与改进项（**未擅自改契约，待裁定**）
 
-| 项 | 状态 |
-|---|---|
-| P800 / MLU590 的优先级与配额 | ⬜ **本轮未取数**（P800 的 `stream_priority_range()` 为 `None` ⇒ 预期如实 `unsupported`；MLU590 范围 `(0,-3)`，需各自窗口） |
-| 多进程 / 多流真实争用下的优先级 | ⬜ 未测（本轮是**同进程两条流**） |
-| 1e7 档配额 | ⬜ 未测（先撞宿主内存） |
-| "优先级在驱动层是否真的被使用" | ⬜ 未做（需厂商侧证据；本层只报可观测行为） |
+| # | 事实 | 影响 | 建议 |
+|---|---|---|---|
+| 1 | 本层**声明了 `stream_priority` 能力**，但：① 统一 API 的 `create_stream()` **没有 priority 参数**；② 底层 `torch.npu.Stream()` **静默丢弃** priority；③ 文档说训练产品上该参数**预留** | ⚠️ **"声明即承诺"近似违反**：下游看到"支持 stream_priority + 范围 0~7"，会以为可调 | 二选一：**(A)** 补 `create_stream(priority=None)` 走 **pyACL `create_stream_with_config`** 路径 + **回读校验**（ACL 层确实接受）；**(B)** 如实**降级声明**（声明语义改为"仅可读范围，不可设置"）并加判据守 |
+| 2 | `kunlun.stream_priority_range()` 返回 `None` | 会被读成"接口不存在"，而实测是"**范围退化到 (0,0)**" | 改为如实返回 `(0, 0)`（或带原因的结构），与"设备自报"一致 |
+| 3 | 旗舰判据缺口 | 现有判据只查"范围可读"，**没有任何判据查"能不能真的设置并生效"** | 建议加**真机**判据：**声明 `stream_priority` ⇒ 必须能设置且能回读**（本报告的回读法即可，成本极低） |
+| 4 | 上游口径冲突 | 头文件 `value range: 0~7` vs 官方文档「训练产品预留」 | 作为**上报材料**（本方向已有"上游内部口径冲突是最有力上报材料"的惯例） |
+
+**未做（如实登记）**：MLU590 的优先级与配额未取数；`torch.npu.Stream()` 在**真正使用后**是否才消耗配额未复核（§3 第三行）；`1e7` 档未测（且 `available_num` 已给出真实上限，无需再测）。

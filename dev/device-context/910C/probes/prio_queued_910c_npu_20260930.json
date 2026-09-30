@@ -1,0 +1,131 @@
+{
+  "verdict": "STREAM_PRIORITY_QUEUED_PASS",
+  "passed": 4,
+  "total": 4,
+  "backend": "ascend",
+  "range_raw": [
+    7,
+    0,
+    0
+  ],
+  "hi_priority": 0,
+  "lo_priority": 7,
+  "effect_observed": false,
+  "gate_hi_wins": 0,
+  "naive_hi_wins": 0,
+  "checks": {
+    "P1_range_readable_并给出官方语义方向": {
+      "ok": true,
+      "detail": "raw=(7, 0, 0); hi=0, lo=7（官方：greatestPriority 数值最小 = 最高优先级）",
+      "range_raw": [
+        7,
+        0,
+        0
+      ],
+      "hi_priority": 0,
+      "lo_priority": 7
+    },
+    "P2_create_both_ends": {
+      "ok": true,
+      "detail": "hi=89440.0 lo=89440.0（期望各 89440）"
+    },
+    "P3_gate_high_wins": {
+      "ok": true,
+      "detail": "gate 模式（两流同时排队）：高优先级先完成 0/8（阈值 6）⇒ ⚠️ 仍未观测到效果（如实记录）",
+      "effect_observed": false,
+      "hi_wins": 0,
+      "rounds": 8,
+      "timings": [
+        {
+          "round": 0,
+          "hi_s": 0.0229,
+          "lo_s": 0.0211
+        },
+        {
+          "round": 1,
+          "hi_s": 0.0239,
+          "lo_s": 0.0235
+        },
+        {
+          "round": 2,
+          "hi_s": 0.0239,
+          "lo_s": 0.0232
+        },
+        {
+          "round": 3,
+          "hi_s": 0.0239,
+          "lo_s": 0.0228
+        },
+        {
+          "round": 4,
+          "hi_s": 0.0239,
+          "lo_s": 0.0232
+        },
+        {
+          "round": 5,
+          "hi_s": 0.0239,
+          "lo_s": 0.0228
+        },
+        {
+          "round": 6,
+          "hi_s": 0.0235,
+          "lo_s": 0.0225
+        },
+        {
+          "round": 7,
+          "hi_s": 0.0239,
+          "lo_s": 0.0229
+        }
+      ]
+    },
+    "P4_naive_control": {
+      "ok": true,
+      "detail": "naive 对照（低优先级先提交、先跑起来）：高优先级先完成 0/8（按官方机制**预期为 0**，因为不抢占、不重评估）",
+      "hi_wins": 0,
+      "timings": [
+        {
+          "round": 0,
+          "hi_s": 0.0252,
+          "lo_s": 0.0245
+        },
+        {
+          "round": 1,
+          "hi_s": 0.0255,
+          "lo_s": 0.0244
+        },
+        {
+          "round": 2,
+          "hi_s": 0.0255,
+          "lo_s": 0.0248
+        },
+        {
+          "round": 3,
+          "hi_s": 0.0255,
+          "lo_s": 0.0248
+        },
+        {
+          "round": 4,
+          "hi_s": 0.0255,
+          "lo_s": 0.0244
+        },
+        {
+          "round": 5,
+          "hi_s": 0.0255,
+          "lo_s": 0.0248
+        },
+        {
+          "round": 6,
+          "hi_s": 0.0255,
+          "lo_s": 0.0247
+        },
+        {
+          "round": 7,
+          "hi_s": 0.0255,
+          "lo_s": 0.0244
+        }
+      ]
+    }
+  },
+  "torch": "2.11.0+cu130",
+  "mechanism_note": "CANN 文档：优先级不抢占已运行任务、不动态重评估队列 ⇒ 旧测法（先提交者已进入运行态）按机制不可能观测到差异"
+}

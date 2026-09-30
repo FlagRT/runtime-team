@@ -1,0 +1,51 @@
+
+====== Q1-a 完整 docstring（看 priority 是否被文档化） ======
+Wrapper around a NPU stream.
+
+    A NPU stream is a linear sequence of execution that belongs to a specific
+    device, independent from other streams.  See :ref:`npu-semantics` for
+    details.
+
+    Arguments:
+        device(torch.device or int, optional): a device on which to allocate
+            the stream. If :attr:`device` is ``None`` (default) or a negative
+            integer, this will use the current device.
+        priority(int, optional): priority of the stream. Lower numbers
+                                 represent higher priorities.
+    
+...
+含 'priority' 字样: True
+
+====== Q1-b pyACL 的流创建入口与属性常量 ======
+create_stream 签名           : 取不到 ValueError
+  create_stream_with_config    doc: create stream with config
+  get_stream_attribute         doc: get stream attribute
+  set_stream_attribute         doc: set stream attribute
+  get_stream_available_num     doc: get stream available num
+  get_stream_res_limit         doc: get stream res limit
+  set_stream_res_limit         doc: set stream res limit
+  reset_stream_res_limit       doc: reset stream res limit
+  acl 里 STREAM/PRIOR/ATTR 常量: []
+
+====== Q2-a 直接问设备：可用流数 / 流资源上限 ======
+  get_stream_available_num() -> (0, 107002)
+  get_stream_res_limit() 失败: TypeError acl.rt.get_stream_res_limit parse failed
+
+====== Q2-b 建流前后 available_num 的变化（看它是否真的在计数） ======
+  建流前=(0, 107002)  建 64 后=(1947, 0)  建 384 后=(1947, 0)
+  释放后= (1947, 0)
+
+====== Q1-c torch.npu.Stream(priority=…) 是否真的把 priority 传下去 ======
+  先看 C 层是否接受该 kwargs（不报错 ≠ 生效）：
+    Stream(priority= 0) OK  stream_id=96 npu_stream=187651918063936
+    Stream(priority= 7) OK  stream_id=97 npu_stream=187651919037840
+    Stream(priority=-1) OK  stream_id=128 npu_stream=187651948156176
+  ⚠️ 关键判断：若三次的 stream_id/句柄都不同 ⇒ 只是各建了一条流，**没有证据**说明 priority 进了设备；
+     需对比 device 侧调度行为（B2 已做：双向对照 ⇒ 提交顺序主导 ⇒ 未观测到效果）。
+
+====== Q1-d 用 pyACL 原生路径建流（带 priority config）看能否成立 ======
+  acl.rt.create_stream 返回: (187651978044176, 0)
+  取签名失败: ValueError
+  create_stream_with_config(dict) 失败: TypeError acl.rt.create_stream_with_config args parse failed
+
+BOUNDARY: 只读 + 稀疏建流；结论只在本栈（torch_npu 2.11.0 / CANN 9.0.0）成立。

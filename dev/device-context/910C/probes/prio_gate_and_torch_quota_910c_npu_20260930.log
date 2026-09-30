@@ -1,0 +1,50 @@
+===== [1] torch 侧配额行为（CAP=4000）=====
+=== MODE=torch CAP=4000 ===
+  [前置] torch 已触碰设备 ⇒ ACL context 已建立
+  _C.so 里出现的 aclrt*Stream* 符号： []
+  起始 available_num = (1979, 0)
+    torch 建流   500 条  available_num=(1947, 0)
+    torch 建流  1000 条  available_num=(1947, 0)
+    torch 建流  1500 条  available_num=(1947, 0)
+    torch 建流  2000 条  available_num=(1947, 0)
+    torch 建流  2500 条  available_num=(1947, 0)
+    torch 建流  3000 条  available_num=(1947, 0)
+    torch 建流  3500 条  available_num=(1947, 0)
+    torch 建流  4000 条  available_num=(1947, 0)
+  torch 建流：成功 4000 条，耗时 0.07s，首次失败=None
+  建完后 available_num = (1947, 0)
+  真的在 300 条 torch 流上跑了计算后  available_num=(1947, 0)
+
+BOUNDARY: 只读+建流；未调任何 set_* 配置接口；结论只在本栈（torch_npu 2.11.0 / CANN 9.0.0 / 910C 单卡）成立。
+===== [2] 按官方机制重测优先级（gate 模式）=====
+=== probe_stream_priority_queued.py: 按官方机制测优先级 ===
+[env] backend=ascend device_type=npu torch=2.11.0+cu130 rounds=8 iters=60 work=2048
+[P1] range_raw=(7, 0, 0) ⇒ 按官方语义 hi(最高)=0 lo(最低)=7 supports=True
+
+[gate] 高优先级先完成 0/8 | [naive] 0/8
+STREAM_PRIORITY_QUEUED_PASS: 4/4（effect_observed=False）
+
+{
+  "verdict": "STREAM_PRIORITY_QUEUED_PASS",
+  "passed": 4,
+  "total": 4,
+  "backend": "ascend",
+  "range_raw": [
+    7,
+    0,
+    0
+  ],
+  "hi_priority": 0,
+  "lo_priority": 7,
+  "effect_observed": false,
+  "gate_hi_wins": 0,
+  "naive_hi_wins": 0,
+  "torch": "2.11.0+cu130",
+  "mechanism_note": "CANN 文档：优先级不抢占已运行任务、不动态重评估队列 ⇒ 旧测法（先提交者已进入运行态）按机制不可能观测到差异"
+}
+  PASS  P1_range_readable_并给出官方语义方向  raw=(7, 0, 0); hi=0, lo=7（官方：greatestPriority 数值最小 = 最高优先级）
+  PASS  P2_create_both_ends  hi=89440.0 lo=89440.0（期望各 89440）
+  PASS  P3_gate_high_wins  gate 模式（两流同时排队）：高优先级先完成 0/8（阈值 6）⇒ ⚠️ 仍未观测到效果（如实记录）
+  PASS  P4_naive_control  naive 对照（低优先级先提交、先跑起来）：高优先级先完成 0/8（按官方机制**预期为 0**，因为不抢占、不重评估）
+结果 -> /mnt/raid/hliu553/dc_legs_20260929/rca_out/stream_priority_queued_result.json
+===== ALL DONE =====
