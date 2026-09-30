@@ -1,0 +1,128 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+{
+  "backend": "kunlun",
+  "device_type": "cuda",
+  "ordinal": 0,
+  "declared_recovery_real": false,
+  "declared_error_map": false,
+  "public_api_only": true,
+  "d1": {
+    "pre": "available",
+    "post": "available",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "available",
+      "detail": "昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d2": {
+    "set_returned": "isolated",
+    "post": "isolated",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d3": {
+    "post": "isolated",
+    "return": {
+      "ordinal": 0,
+      "mode": "probe",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "probe 级探活：设备当前可用",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d4": {
+    "category": "L3_EXECUTION",
+    "graded_by": "message_hint",
+    "recovery_decision": {
+      "captured": true,
+      "steps": [
+        "captured",
+        "evaluated: L3_EXECUTION, no device recovery"
+      ],
+      "replayable": true
+    },
+    "post": "isolated"
+  },
+  "checks": {
+    "d1_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d1_state_in_domain": {
+      "ok": true,
+      "detail": "state='available'"
+    },
+    "d2_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d2_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "d3_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d3_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "D1_健康设备real_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语'"
+    },
+    "D2_公开入口置隔离后real_必须声明真重建": {
+      "ok": false,
+      "detail": "set 返回='isolated' recovered=True context_recreated=False detail='昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语'"
+    },
+    "D2_重建后回到 available（R4）": {
+      "ok": false,
+      "detail": "post='isolated'"
+    },
+    "D3_隔离后probe_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='probe 级探活：设备当前可用'"
+    },
+    "D4_端到端（本后端未声明 error_map ⇒ 按码表归属**不应**判 L4，如实跳过）": {
+      "ok": true,
+      "detail": "category=L3_EXECUTION（若为 L4 说明分级用了外厂码表）"
+    }
+  },
+  "verdict": "ENTRY_VERIFY_FAIL"
+}
+
+  PASS  d1_keys_5+3  8 键齐全
+  PASS  d1_state_in_domain  state='available'
+  PASS  d2_keys_5+3  8 键齐全
+  PASS  d2_state_in_domain  state='isolated'
+  PASS  d3_keys_5+3  8 键齐全
+  PASS  d3_state_in_domain  state='isolated'
+  PASS  D1_健康设备real_不得声称已重建  context_recreated=False detail='昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语'
+  FAIL  D2_公开入口置隔离后real_必须声明真重建  set 返回='isolated' recovered=True context_recreated=False detail='昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，无 reset_device/context 重建）→ real 模式不支持；已按探活结果判定，如需 real 需上游提供原语'
+  FAIL  D2_重建后回到 available（R4）  post='isolated'
+  PASS  D3_隔离后probe_不得声称已重建  context_recreated=False detail='probe 级探活：设备当前可用'
+  PASS  D4_端到端（本后端未声明 error_map ⇒ 按码表归属**不应**判 L4，如实跳过）  category=L3_EXECUTION（若为 L4 说明分级用了外厂码表）
+
+ENTRY_VERIFY_FAIL
+结果 -> /workspace/dc_regress_20260929/out_r6/r6_entry_verify_kunlun.json
+ENTRY_BOUNDARY: 全程公开 API；ISOLATED 为构造而非真实硬件故障；结论只在本档位/环境成立，不外推到其他实例或多机。

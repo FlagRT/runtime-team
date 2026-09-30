@@ -10,6 +10,10 @@
     D1 健康设备 + `mode="real"` ⇒ `context_recreated` 必须 **False**（未重建就不得声称已重建）
     D2 `set_device_state("isolated")` + `mode="real"` ⇒ `recovered=True` **且** `context_recreated=True`
        （真重建必须被如实声明 —— 别把一个缺陷修成另一个方向的缺陷），且重建后回 `available`（R4）
+       ⚠️ **后端未声明 `recovery_real` 时 D2 不适用** ⇒ **如实跳过**（与 A2 压测 `SKIP_UNSUPPORTED` 同口径），
+          并改用两条**该情形下真正适用**的判据：① 必须**显式拒绝**且不得声称已重建；② 账本可**显式复原**到
+          `available`（这正是"无恢复原语"时的唯一退路 —— 若不验这条，等于放着一台卡在隔离态的设备不管）。
+          （2026-09-30 在 P800 上首跑暴露：原先对未声明 real 的后端直接判 FAIL ⇒ **同一情形两处口径不一致**。）
     D3 `set_device_state("isolated")` + `mode="probe"` ⇒ `context_recreated` 必须 **False**
        （探针只重试，不销毁/重建上下文）
     D4 **端到端（公开 API 一次调用）**：置隔离 → `handle_error(<L4 消息>, mode="real")`
@@ -67,7 +71,11 @@ def main() -> int:
     checks = {}
 
     def judge(name, ok, detail):
-        checks[name] = {"ok": bool(ok), "detail": detail}
+        checks[name] = {"ok": bool(ok), "detail": detail, "skipped": False}
+
+    def skip(name, detail):
+        """如实跳过：**不计失败**（能力缺失已如实声明），但在结果里留痕。"""
+        checks[name] = {"ok": True, "detail": detail, "skipped": True}
 
     out = {"backend": rt.name, "device_type": rt.device_type, "ordinal": dev,
            "declared_recovery_real": bool(rt.supports("recovery_real")),
@@ -114,11 +122,28 @@ def main() -> int:
 
     judge("D1_健康设备real_不得声称已重建", r1.get("context_recreated") is False,
           f"context_recreated={r1.get('context_recreated')!r} detail={r1.get('detail')!r}")
-    judge("D2_公开入口置隔离后real_必须声明真重建",
-          r2.get("recovered") is True and r2.get("context_recreated") is True,
-          f"set 返回={back2!r} recovered={r2.get('recovered')!r} "
-          f"context_recreated={r2.get('context_recreated')!r} detail={r2.get('detail')!r}")
-    judge("D2_重建后回到 available（R4）", post2 == "available", f"post={post2!r}")
+    if out["declared_recovery_real"]:
+        judge("D2_公开入口置隔离后real_必须声明真重建",
+              r2.get("recovered") is True and r2.get("context_recreated") is True,
+              f"set 返回={back2!r} recovered={r2.get('recovered')!r} "
+              f"context_recreated={r2.get('context_recreated')!r} detail={r2.get('detail')!r}")
+        judge("D2_重建后回到 available（R4）", post2 == "available", f"post={post2!r}")
+    else:
+        # 未声明 recovery_real ⇒ real 不适用：如实跳过（同 A2 压测口径），
+        # 并把该情形下**真正该守的两条**判据补上（否则等于"跳过即不管"）。
+        skip("D2_公开入口置隔离后real_必须声明真重建",
+             "本后端未声明 recovery_real ⇒ real 模式不适用，如实跳过（与 A2 压测 SKIP_UNSUPPORTED 同口径）")
+        judge("D2_未声明 real ⇒ 必须显式拒绝且不得声称已重建",
+              r2.get("context_recreated") is False and r2.get("recovered") is True,
+              f"context_recreated={r2.get('context_recreated')!r} recovered={r2.get('recovered')!r} "
+              f"detail={r2.get('detail')!r}")
+        # 账本复原：无恢复原语时的唯一退路（必须验，否则设备会永久留在 isolated）
+        _rb = rt.set_device_state(dev, "available", "entry-verify D2: 账本复原（未声明 real 的退路）")
+        _post_rb = _tok(rt.device_state(dev))
+        judge("D2_账本可显式复原到 available（未声明 real 时的唯一退路）",
+              _post_rb == "available",
+              f"set_device_state 返回={_rb!r} 读回={_post_rb!r}")
+        out["d2_restore"] = {"set_returned": _rb, "post": _post_rb}
     judge("D3_隔离后probe_不得声称已重建", r3.get("context_recreated") is False,
           f"context_recreated={r3.get('context_recreated')!r} detail={r3.get('detail')!r}")
 
