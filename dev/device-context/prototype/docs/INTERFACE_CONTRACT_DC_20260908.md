@@ -296,6 +296,31 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 
 **变更流程**：接口变更 → 本文档更新（变更记录节）→ 知会全部下游 → conformance 回归全绿。
 
+### 1.10 流所有权与释放（2026-09-30，(A) 真落地轮 · **只增**）
+
+| 接口 | 语义 |
+|---|---|
+| `release_stream(stream) -> bool` | 释放**本层拥有**的流：`True` = **真的销毁**；`False` = 本层**不拥有**（no-op，未做任何事）或销毁原语不可得 ⇒ **不假装成功** |
+| `Stream.release()` | 同上（统一包装上的便捷方法） |
+| `owns_stream(native) -> bool`（后端） | 该流是否由**本层**创建并拥有（决定 `release_stream` 是否真的销毁） |
+
+**规则**（五条，均为契约级）：
+
+1. **所有权判据**：走「**厂商 C API 建流 + 包装成 torch 流**」路径创建的流由**本层拥有**
+   —— 实测依据（P800，2026-09-30）：**torch 不拥有**包装进来的流
+   （丢弃包装对象 + gc 之后句柄**仍可计算**）；而厂商 / torch 原生路径（`torch.npu.Stream()` /
+   `torch.cuda.Stream()` / `torch.mlu.Stream()`）造的流由**厂商拥有**。
+2. **不得越权销毁**：厂商拥有的流 ⇒ `release_stream` **必须 no-op 且返回 `False`**
+   （销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）。
+3. **泄漏纪律**：本层拥有的流用完后**必须显式释放**（否则泄漏一条**设备级**流；
+   设备流总数有限 —— 910C 实测可用流上限 **1979**）。
+4. **使用已销毁对象必须明确**：已释放的流**再使用**（`synchronize()` / `context()` /
+   `record_stream()`）⇒ **`RuntimeError`**（文案含「已释放」），**不得**静默失败。
+5. **幂等**：重复 `release_stream` 返回 `False`、**不报错**。
+
+⚠️ 边界：`release_stream` 的返回值语义是「**是否真的销毁了**」，不是「调用是否成功」——
+调用方若需要「确保不再泄漏」，应自行记账（本层不提供「是否为拥有者」以外的保证）。
+
 ### 变更记录
 
 | 日期 | 版本 | 变更 | 知会 |
@@ -315,6 +340,7 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 | 2026-09-29（第六轮末 · B1 真机） | v0.1.0 | **契约不变式真机复跑与判据串自证**：① 真机 `--cases contract_invariants` **910C 4/4 · P800 4/4**（均 `CONTRACT_INVARIANTS_PASS`）；② runner 支持用例模块定义 **`VERDICT_TAG`** 拼出 `CONTRACT_INVARIANTS_PASS/FAIL` —— **不定义则保持原行为**（已实测 `cases` / `infer_cases` 仍为 `CONFORMANCE_PASS`）；③ 910C 第 5 轮全套回归 **11 项全绿**（含新增不变式 4/4）。**未改任何接口签名** | 运行时层全组 |
 
 | 2026-09-30（第八轮 · (A) 方案） | v0.1.0 | **流优先级统一 API 落地（只增不改）**：新增 **§1.9**（`create_stream(priority=None)` + `stream_priority_readback()` + 三个能力键 `stream_priority` / `stream_priority_control` / `stream_priority_readback`，**拆开声明**）。四道约束落基类唯一实现（未声明⇒`NotImplementedError` / 越界⇒`ValueError` / **创建后强制回读校验**，回读≠请求⇒`RuntimeError`）。三家按实测如实声明：**MLU590 全 ✅ / 910C 与 P800 只读**（原因不同，见 §1.9 表）。判据：离线自检新增 `[8b]` 段（4 条）+ **5 处注入的非空转验证（5/5 当场 FAIL）**；真机 `STREAM_PRIORITY_API_PASS` **910C 8/8 · P800 7/7**；破坏面回归 910C r9 / P800 r7 全绿。附带修 **2 处**：`ascend.stream_priority_range()` 透传**三元组**（形状违约，跨实例不一致）、`demo_unified.py` 根解析 **off-by-one**（隐式依赖调用方 CWD）。报告：`STREAM_PRIORITY_API_20260930.md`；缺陷台账 **第 24/25/26 条** | 运行时层全组 |
+| 2026-09-30（第九轮 · (A) 真落地） | v0.1.0 | 1) **P800 声明 `stream_priority_control`**（由「如实不声明」改为真声明）；2) kunlun `_create_stream_raw(priority)` 走 `cuStreamCreateWithPriority` + `torch.cuda.ExternalStream`；3) **新增 §1.10 流所有权与释放**（`release_stream` / `Stream.release()` / `owns_stream`）；4) `check_stream_usable` 增「已释放」拦截 | 只增（既有签名与行为不变） |
 
 ---
 

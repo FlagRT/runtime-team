@@ -295,6 +295,21 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     # 同样**刻意静默**：重复释放不报错 ⇒ 把负向判据逼给本层登记表。
     ns.caching_allocator_alloc = lambda size, device=None, stream=None: 0x10000000 + int(size)
     ns.caching_allocator_delete = lambda ptr: None
+    class ExternalStream(Stream):
+        """假 `torch.cuda.ExternalStream`（真机实测行为：**句柄逐位保留**）。
+
+        真机依据（P800，2026-09-30）：`ExternalStream(h).cuda_stream == h` 逐位相同，
+        且**丢弃包装对象 + gc 之后句柄仍可计算** ⇒ torch **不拥有**外部流
+        （这正是本层需要 `release_stream()` 的原因）。
+        """
+        def __init__(self, ptr=None, device=None, **k):
+            self._ptr = int(ptr or 0)
+            self.npu_stream = self._ptr
+            self.cuda_stream = self._ptr
+            self.mlu_stream = self._ptr
+            self.priority = 0
+
+    ns.ExternalStream = ExternalStream
     ns.device = lambda o=0: _Dev(o)
     if mem_mode == "full":
         ns.mem_get_info = lambda ordinal=None: (80 * 1024 ** 3, 96 * 1024 ** 3)
@@ -329,6 +344,101 @@ def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
         mods["acl"] = acl_mod
         state["acl_rc"] = rc
     return torch, mods, state
+
+
+def _ctype_value(x):
+    """取 ctypes 参数的数值：**用 `.value`**，不要用 `int(x)`。
+
+    ⚠️ 实测（CPython **3.9 / 3.13 均如此**）：`int(ctypes.c_int(2))` 会抛
+    `ValueError: invalid literal for int() with base 10: b'\x02\x00\x00\x00'`
+    —— ctypes 类型支持 buffer 协议，`int()` 于是**按字节串解析**而非数值转换。
+    `.value` 才是 ctypes 的规范取值方式（`c_void_p(5).value == 5`）。
+    """
+    v = getattr(x, "value", None)
+    return x if v is None else v
+
+
+class _FakeFn:
+    """假厂商原语：**可调用 + 可写属性**（`restype` / `argtypes`）。
+
+    ⚠️ 必须是"对象"而不是**绑定方法**：厂商调用点写的是
+    `fn = lib.xxx; fn.restype = ...; fn.argtypes = ...`；对绑定方法赋值会抛
+    `AttributeError`，而调用点又用 `except AttributeError: return None` **静默吞掉**
+    ⇒ 假库被误判成「库不支持该函数」（2026-09-30 实测踩到：range 明明可读却返回 None）。
+    """
+
+    def __init__(self, impl):
+        self.restype = None
+        self.argtypes = None
+        self.calls = 0
+        self._impl = impl
+
+    def __call__(self, *a, **k):
+        self.calls += 1
+        return self._impl(*a, **k)
+
+
+def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=0):
+    """造一个**可控假驱动库**（按 ctypes 调用约定：byref 参数用 `_obj.value` 写回）。
+
+    为什么要造：`(A)` 方案在 kunlun 上走「厂商 C API 建流 + 包装」⇒ 那条链路在**离线**
+    压根走不到（无设备、无真库），判据会退化成 SKIP 或**误报**。纪律是
+    **「能造可控假原语就别 SKIP」** ⇒ 这里给出可控替身。
+
+    开关（供**非空转验证**）：
+      · `range_`      假 `cuCtxGetStreamPriorityRange` 返回值（默认 `(0, 0)` = 真机单点）
+      · `keep`        `False` ⇒ **收下 priority 却记成 0**（复现「接受但静默丢弃」那一类）
+                      ⇒ 用来证明本层的「回读校验」不是空转
+      · `destroy_rc`  销毁原语返回码（非 0 ⇒ `release_stream` 必须**如实返回 False**）
+      · `default_prio` **未登记的句柄**（= 厂商自建流，如 `torch.cuda.Stream()`）的回读值
+                      —— 真机实测 P800 上为 **0**；基类的「单点区间等价放行」正是靠它校验
+    """
+    class _FakeCuda:
+        def __init__(self):
+            self.range = tuple(range_)
+            self.keep = bool(keep)
+            self.destroy_rc = int(destroy_rc)
+            self.default_prio = int(default_prio)
+            self.created = []            # 建流顺序（句柄）
+            self.destroyed = []          # 已销毁句柄
+            self.priorities = {}         # 句柄 → 设备侧实际保留的优先级
+            self._next = 0x1000
+            self.cuCtxGetStreamPriorityRange = _FakeFn(self._range)
+            self.cuStreamCreateWithPriority = _FakeFn(self._create)
+            self.cuStreamGetPriority = _FakeFn(self._getprio)
+            self.cuStreamDestroy_v2 = _FakeFn(self._destroy)
+
+        # ---- 本层用到的厂商原语（实现）---------------------------------
+        def _range(self, least_p, greatest_p):
+            least_p._obj.value = int(self.range[0])
+            greatest_p._obj.value = int(self.range[1])
+            return 0
+
+        def _create(self, handle_p, flag, prio):
+            self._next += 0x10
+            h = self._next
+            self.created.append(h)
+            self.priorities[h] = int(_ctype_value(prio)) if self.keep else 0
+            handle_p._obj.value = h
+            return 0
+
+        def _getprio(self, handle, out_p):
+            h = int(_ctype_value(handle))
+            if h in self.destroyed:
+                return 1                 # 已销毁句柄 ⇒ 失败（读不出）
+            # ⭐ 未登记句柄 = **厂商自建流**（`torch.cuda.Stream()` / `ExternalStream` 之外的）
+            #    ⇒ 回读"厂商默认优先级"（真机 P800 实测为 0）。若这里返回失败，
+            #    基类的「单点区间等价放行」会被误判为"读不回"（v5 即踩到此坑）。
+            out_p._obj.value = int(self.priorities.get(h, self.default_prio))
+            return 0
+
+        def _destroy(self, handle):
+            h = int(_ctype_value(handle))
+            self.destroyed.append(h)
+            self.priorities.pop(h, None)
+            return self.destroy_rc
+
+    return _FakeCuda()
 
 
 #: 厂商 stub 注册表 —— 新厂商在这里加一项即可（三家已内置）
@@ -851,6 +961,15 @@ def run(proto_dir, backend):
     # （910C 实测：`torch.npu.Stream(priority=7)` 收下 kwarg 却回读恒 0）。
     # 本段守四件事：形状合规 / 设置必须可回读校验 / 未声明必须显式拒绝 / 读不出必须 None。
     print("\n[8b] 流优先级：形状 / 设置+回读 / 未声明则拒绝")
+    # ⭐ 2026-09-30：**先把可控假原语注入好**，再往下判 —— 走厂商 C API 的后端（kunlun）
+    #   在离线（无设备 / 无真库）时 `stream_priority_range()` 返回 None；若等到判据中途才
+    #   注入，前面用到的 `_priority_bounds()` 已经按 None 算过了 ⇒ 会把
+    #   「离线没有真库」**误报**成「声明了能力却没实现」。
+    #   纪律：**「能造可控假原语就别 SKIP」**；且**时序本身会改变结论**（台账第 ⑪ 条同族）。
+    _cls8 = type(bk)
+    _orig_drv8 = getattr(_cls8, "_ctx_driver", None)
+    if hasattr(_cls8, "_ctx_driver"):
+        _cls8._ctx_driver = _make_fake_cuda_driver()      # 默认 (0, 0)，与真机一致
     _rng = bk.stream_priority_range()
     check("stream_priority_range() 形状合规（**2 元组**或 None；不得透传厂商三元组）",
           _rng is None or (isinstance(_rng, tuple) and len(_rng) == 2
@@ -928,6 +1047,121 @@ def run(proto_dir, backend):
         finally:
             if _orig_raw is not None:
                 bk._stream_priority_read_raw = _orig_raw
+    if hasattr(_cls8, "_ctx_driver"):                     # 假驱动用完即还（不污染后续判据段）
+        _cls8._ctx_driver = _orig_drv8
+
+    # ── 8b-② 2026-09-30（(A) 方案真落地）：**本层拥有**的流 —— 登记 / 释放 / 拦截 ──
+    print("\n[8b-②] 流所有权与释放：按**实际路径**分流（单点等价放行 vs 多档 C API 路径）")
+    # 默认路径（priority=None）⇒ 厂商拥有 ⇒ 不得登记、不得销毁
+    try:
+        _plain = bk.create_stream()
+        check("create_stream()（默认路径）**不得**被登记为『本层拥有』"
+              "（否则 release 会越权销毁厂商的流）",
+              not bk.owns_stream(_plain), f"owns_stream={bk.owns_stream(_plain)}")
+        check("厂商拥有的流 ⇒ release_stream 必须 **no-op 返回 False**（不假装成功、不越权）",
+              bk.release_stream(_plain) is False,
+              f"release_stream={bk.release_stream(_plain)!r}")
+    except BaseException as e:                                        # noqa: BLE001
+        check("默认路径的所有权与释放语义", False, f"{type(e).__name__}: {str(e)[:80]}")
+
+    if _has_set:
+        _has_drv = hasattr(_cls8, "_ctx_driver")
+        if _has_drv:
+            # ── A) 单点区间 ⇒ 基类「等价放行」（走厂商默认流，本层**不拥有**）──
+            try:
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 0))
+                _s0 = bk.create_stream(0)
+                check("单点区间下请求唯一档位 ⇒ 放行且**回读一致**（等价厂商默认，无信息损失）",
+                      bk.stream_priority_readback(_s0) == 0,
+                      f"回读={bk.stream_priority_readback(_s0)!r}")
+                check("『等价放行』的流**由厂商拥有** ⇒ 不得登记、release 必须 no-op",
+                      (not bk.owns_stream(_s0)) and (bk.release_stream(_s0) is False),
+                      f"owns={bk.owns_stream(_s0)} release={bk.release_stream(_s0)!r}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("单点区间：等价放行的回读与所有权", False,
+                      f"{type(e).__name__}: {str(e)[:90]}")
+
+            # ── B) 多档区间 ⇒ 真走「厂商 C API 建流 + 包装」⇒ 本层拥有 + 可释放 + 已释放拦截 ──
+            try:
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                _s1 = bk.create_stream(2)
+                check("多档区间下请求非默认档位 ⇒ 走『厂商 C API 建流 + 包装』，"
+                      "该流**必须**登记为本层拥有（否则用完后泄漏设备级流）",
+                      bk.owns_stream(_s1), f"owns_stream={bk.owns_stream(_s1)}")
+                # ⚠️ detail 必须用**被断言的同一次调用**的值：重复 release 会返回 False
+                #    （幂等语义）⇒ 若 detail 里再调一次，打印的"实测值"与判定依据
+                #    就不是同一次（自相矛盾的证据）。
+                _rel = bk.release_stream(_s1)     # **只调一次** ⇒ detail 与断言同源
+                check("本层拥有的流 ⇒ release_stream 必须**真的销毁**（返回 True）",
+                      _rel is True, f"release={_rel!r}")
+                check("重复 release 幂等（返回 False，不报错）",
+                      bk.release_stream(_s1) is False, "重复调用返回 False")
+                try:
+                    bk.check_stream_usable(_s1)
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          False, "未报错 —— 释放后仍可静默继续用")
+                except RuntimeError as e:
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          ("release" in str(e) or "释放" in str(e)), f"RuntimeError: {str(e)[:70]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          False, f"异常类型不合契约：{type(e).__name__}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("多档区间：C API 路径的建流 / 释放 / 拦截", False,
+                      f"{type(e).__name__}: {str(e)[:90]}")
+
+            try:
+                # ── C) 非空转：多档 + 设备**不保留**请求值 ⇒ 回读校验必须当场报错 ──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3), keep=False)
+                try:
+                    bk.create_stream(2)
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          False, "未报错 —— 静默返回了一条优先级不对的流")
+                except RuntimeError as e:
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          ("回读" in str(e) or "未生效" in str(e)), f"RuntimeError: {str(e)[:70]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          False, f"异常类型不对：{type(e).__name__}: {str(e)[:60]}")
+
+                # ── D) 销毁原语 rc≠0 ⇒ release 必须如实返回 False（不假装成功）──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3), destroy_rc=1)
+                _s2 = bk.create_stream(1)
+                _rel2 = bk.release_stream(_s2)
+                check("销毁原语失败（rc≠0）⇒ release_stream 必须**如实返回 False**（不得假装成功）",
+                      _rel2 is False, f"release={_rel2!r}")
+
+                # ── E) 兜底不得过宽：原语抛**非 AttributeError** ⇒ 必须传播（不静默）──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                _cls8._ctx_driver.cuCtxGetStreamPriorityRange = _FakeFn(
+                    lambda *a: (_ for _ in ()).throw(RuntimeError("INJECTED: 原语内部错误")))
+                try:
+                    bk.stream_priority_range()
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          False, "未传播 —— 真实错误被兜底吞掉了")
+                except RuntimeError as e:
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          "INJECTED" in str(e), f"RuntimeError: {str(e)[:60]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          False, f"异常类型不对：{type(e).__name__}: {str(e)[:60]}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("非空转：回读校验 / 销毁失败 / 兜底宽度", False,
+                      f"{type(e).__name__}: {str(e)[:90]}")
+        else:
+            # 非驱动原语路径（如 cambricon：priority 落在 torch 层）⇒ 只验「建流 + 回读一致」
+            try:
+                _ext = bk.create_stream(_b[0] if _b else 0)
+                check("非驱动原语路径：priority 域内值可建流且**回读一致**",
+                      bk.stream_priority_readback(_ext) == (_b[0] if _b else 0),
+                      f"回读={bk.stream_priority_readback(_ext)!r}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("非驱动原语路径：建流与回读", False, f"{type(e).__name__}: {str(e)[:90]}")
+            skip("非空转：回读校验有牙齿",
+                 "该后端不提供 `_ctx_driver`（非驱动原语路径）⇒ 无法造可控假原语")
     if not bk.supports("graph_capture"):
         print("  [INFO] 未声明 graph_capture：`torch.<ns>.graph` 存在性须容器内实测后决定")
 

@@ -119,6 +119,19 @@ class Stream:
         )
         self._backend.conservative_stream_sync(self._native)
 
+    def release(self) -> bool:
+        """释放本流；**仅当它由本层拥有**时真的销毁，否则 no-op 返回 `False`。
+
+        什么时候本层拥有：走 `create_stream(priority=…)`（厂商 C API 建流 + 包装）时
+        —— 实测 torch **不拥有**这种流（丢弃包装对象 + gc 后句柄仍可用）。
+        `create_stream()`（厂商原生路径）造的流由厂商拥有 ⇒ 本方法 no-op，
+        **不会越权销毁**别人的流。
+
+        ⚠️ 释放后**不得再使用**该流（`synchronize()` / `context()` / `record_stream()`
+        会当场报错，而不是静默失败）。
+        """
+        return self._backend.release_stream(self._native)
+
     def __repr__(self) -> str:
         return f"<Stream backend={self._backend.name} native={type(self._native).__name__}>"
 

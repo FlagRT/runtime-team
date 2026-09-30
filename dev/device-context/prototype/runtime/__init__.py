@@ -63,6 +63,7 @@ __all__ = [
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
     "stream_priority_readback",
+    "release_stream",
     "probe_device", "recover_device", "translate_error", "device_state",
     "set_device_state", "handle_error",
     # 内存句柄与生命周期（工作包 B）
@@ -129,6 +130,21 @@ def stream_priority_readback(stream):
     """
     native = stream._native_obj if isinstance(stream, Stream) else stream
     return current().stream_priority_readback(native)
+
+
+def release_stream(stream) -> bool:
+    """释放一条流；**只有本层拥有的流会被真的销毁**（否则 no-op 返回 `False`）。
+
+    为什么需要（2026-09-30，(A) 方案配套）：`create_stream(priority=…)` 在部分厂商上必须走
+    「厂商 C API 建流 + 包装成 torch 流」，而**torch 不拥有**包装进来的那条流
+    （P800 实测：丢弃包装对象 + gc 之后句柄**仍可计算**）⇒ 不显式释放就会**泄漏设备级流**
+    （设备流总数有限：910C 实测可用流上限 1979）。
+
+    ⚠️ 释放后**不得再使用**该流（`synchronize()` / `context()` 会当场报错）。
+    厂商原生路径（`create_stream()`）造的流由厂商拥有 ⇒ 本接口为 no-op，**不会越权销毁**。
+    """
+    native = stream._native_obj if isinstance(stream, Stream) else stream
+    return current().release_stream(native)
 
 
 def create_event() -> Event:

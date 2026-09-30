@@ -717,6 +717,58 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 **非空转证据**：修后从 `CWD=/` 且**不给 `DC_ROOT`** 运行 ⇒ 910C 与 P800 **双向通过**；
 修前同条件在 910C 上同样会失败（已实测 `cd / && …` ⇒ `ModuleNotFoundError`）。
 
+
+### 2.18 第 27 条（第九轮，(A) 真落地）：**`except AttributeError` 兜底过宽 ⇒「库没这个符号」与「代码有 bug」被混为一谈，且是静默的**
+
+- **现象/证据**：kunlun `stream_priority_range()` 原写法是
+  `try: fn = lib.xxx; fn.restype = ...; rc = fn(...) \n except AttributeError: return None`。
+  当 `lib` 是**替身对象**（其同名属性是**绑定方法**，不允许赋值属性）时，`fn.restype = ...` 抛
+  `AttributeError` ⇒ **被吞掉** ⇒ 返回 `None`。
+  ⭐ 于是**现象**是「这台设备不支持读优先级范围」，**真因**却是「调用方式与替身不兼容」（是 bug）。
+  本轮因为这个兜底**误判了一轮**（判据报出「声明了能力却没实现」的假 FAIL）。
+- **修法**：用 **`getattr(lib, name, None)` 显式探针**判断「符号是否存在」；其余异常**一律传播**（不静默）。
+  已用于 kunlun 四处：`cuCtxGetStreamPriorityRange` / `cuStreamGetPriority` / `cuStreamDestroy_v2` /
+  `cuStreamCreateWithPriority`。
+- **判据**（离线 `[8b-②]`，非空转验证）：注入「原语抛 `RuntimeError`」 ⇒ 必须**传播**（实测 PASS）。
+- ⭐ **推广**：**兜底的范围必须等于「你真正想兜的那一件事」**。`except Exception` /
+  `except AttributeError` 这类宽兜底会把「实现 bug」伪装成「能力缺失」——
+  而能力缺失是**允许**的结论，于是它**永远不会被追查**。
+
+### 2.19 第 28 条（第九轮，工具类）：**ctypes 取值必须用 `.value`；`int(c_int)` 会按「字节串」解析并抛 `ValueError`**
+
+- **实测**（CPython **3.9 与 3.13 行为一致**）：
+
+  | 表达式 | 结果 |
+  |---|---|
+  | `int(ctypes.c_int(2))` | ⛔ `ValueError: invalid literal for int() with base 10: b'\x02\x00\x00\x00'` |
+  | `int(ctypes.c_uint(2))` | ⛔ 同上 |
+  | `int(ctypes.c_void_p(5))` | ⛔ 同上（把内存当字节串解析） |
+  | `ctypes.c_int(2).value` / `c_void_p(5).value` | ✅ `2` / `5` |
+
+- **影响面**：只在**「替身 / 直调」**场景踩到（真机代码里 `int(handle)` 用的是 **Python `int`**，不触发）。
+  本轮表现为：**假驱动自身崩**，且报错信息看起来像「实现有缺陷」。
+- **修法**：统一 `_ctype_value(x) = x.value if hasattr(x, "value") else x`。
+- ⭐ 与第 27 条同族：**这两条都在「替身/离线」这一侧把「工具问题」伪装成「被测对象问题」**。
+
+### 2.20 第 29 条（第九轮，判据设计）：**造「可控假原语」要同构；判据要与「实际分支」对齐；detail 要与断言同源**
+
+三小点，同一课 —— **判据自身的三类缺陷**：
+
+1. **替身必须与真库「同构」**：厂商调用点是 `fn = lib.xxx; fn.restype = ...; fn.argtypes = ...`
+   ⇒ 替身必须提供**可调用 + 可写属性**的对象（本轮写了 `_FakeFn`），**不能**用绑定方法
+   （绑定方法不允许赋值属性 ⇒ 触发第 27 条那类静默吞掉）。
+2. ⭐ **判据必须与实现的「实际分支」对齐**：我按「声明了 `stream_priority_control` ⇒ 一定走厂商 C API 建流」
+   写判据；而**实际**在**单点区间**下基类走的是「**等价放行**」（厂商默认流 + 回读校验）
+   ⇒ 判据断言错了分支 ⇒ 误报。
+   修法：**按实际路径分流** —— 单点 ⇒ 等价放行（**不拥有** + `release` 为 no-op）；
+   多档 ⇒ C API 路径（**本层拥有** + `release` 必须真销毁 + 释放后再用必须报错）。
+3. **判据 `detail` 里的「实测值」必须来自被断言的**同一次**调用**：
+   `release_stream` 是**幂等**的（第二次调用返回 `False`）⇒ 若 `detail` 里再调一次，
+   打印出的「实测值」与判定依据**不是同一次** ⇒ **自相矛盾的证据**（本轮抓到两处）。
+   修法：先存变量，**断言与 detail 同源**。
+
+⭐ 一句话：**「造一个能骗过自己的替身」和「写一条能被自己的替身骗过的判据」是同一个错误的两种形态。**
+
 ## 3. 判据非空转验证（新增判据必须能真的失败）
 
 | 判据 | 非空转证据 |

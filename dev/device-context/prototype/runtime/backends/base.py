@@ -236,6 +236,13 @@ class RuntimeBackend(ABC):
 
     def check_stream_usable(self, native_stream) -> None:
         """使用点拦截：流所属上下文已销毁 ⇒ **如实报错**（不得静默成功）。"""
+        rel = self._reg("_released_streams").get(id(native_stream))
+        if rel is not None:
+            raise RuntimeError(
+                f"该流已被 `release_stream()` 释放（厂商句柄 {int(rel):#x}）⇒ 不可继续使用。"
+                "本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**"
+                "（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）"
+                "⇒ 用完后须显式 `runtime.release_stream(stream)`。")
         cid = self._reg("_stream_ctx").get(id(native_stream))
         if cid is not None and cid in self._reg("_dead_ctx"):
             raise RuntimeError(
@@ -357,14 +364,23 @@ class RuntimeBackend(ABC):
     #
     # 契约（本层的承诺，**只增不改**）：
     #   ① `create_stream()`（priority=None）= **厂商默认**，既有行为逐位不变；
-    #   ② `priority` 非 None 且后端**未声明 `stream_priority_control`** ⇒ `NotImplementedError`
-    #      （**显式拒绝**，绝不静默返回一条无优先级的流）；
-    #   ③ `priority` 越出 `stream_priority_range()` 的区间 ⇒ `ValueError`（非 int / bool ⇒ 同）；
-    #   ④ 创建后**必须回读校验**：回读值 != 请求值 ⇒ `RuntimeError`
-    #      —— 这是"参数被厂商**静默丢弃**"的唯一防线（torch_npu 正是这种情形）。
+    #   ② `priority` 非 int（含 bool）⇒ `ValueError` —— 与能力无关，最先判；
+    #   ③ `priority` 越出 `stream_priority_range()` 的区间 ⇒ `ValueError`
+    #      （**判在能力门禁之前**：越界是**调用方错误**，与「本后端能不能设置」是两件事；
+    #        顺序颠倒会把越界误报成 `NotImplementedError`，掩盖更基本的问题 —— 2026-09-30 修）；
+    #   ④ **单点区间的等价请求：放行**（2026-09-30 新增）——
+    #      区间 `least == greatest` ⇒ 设备只有一档 ⇒ 请求值**必然等于厂商默认优先级**
+    #      ⇒ 产出流的优先级**可回读验证等于请求** ⇒ 不存在信息损失；
+    #      此时报错是**过度保守**（与「静默放行」是同一类失真的两个方向），故放行，但**必须带回读证据**。
+    #   ⑤ 其余 `priority` 非 None 的情形：后端**未声明 `stream_priority_control`** ⇒
+    #      `NotImplementedError`（**显式拒绝**，绝不静默返回一条无优先级的流）；
+    #   ⑥ 声明了 `stream_priority_control` 的后端：创建后**必须回读校验** ⇒ 不一致即 `RuntimeError`
+    #      —— 这是「参数被厂商**静默丢弃**」的唯一防线。
     #
+    # ⚠️ 为什么「放行」只在**单点**成立：多档区间下任何「部分放行」都会让下游误判能力边界
+    #    （以为能设 0 就能设 7）⇒ 一律交回能力门禁。
     # ⚠️ 声明 `stream_priority_control` 的后端**必须同时**声明 `stream_priority_readback`
-    #    （否则第 ④ 条无法执行 ⇒ 无法证明参数真的进去了）。该耦合由离线判据守住。
+    #    （否则第 ⑥ 条无法执行 ⇒ 无法证明参数真的进去了）。该耦合由离线判据守住。
 
     @abstractmethod
     def _create_stream_raw(self, priority=None):
@@ -372,6 +388,10 @@ class RuntimeBackend(ABC):
 
         ⚠️ 实现纪律：`priority is not None` 且本后端未声明 `stream_priority_control` 时，
         **必须显式抛错**（通常基类门禁已先抛）—— **绝不能静默忽略**该参数。
+
+        ⚠️ 例外（2026-09-30 新增）：**单点区间**（`least == greatest`）下「**等于该唯一档位**」的
+        请求由**基类直接放行**（等价厂商默认，且带回读校验），**不会**落到本方法 ⇒
+        本方法只处理「**真的需要按请求选档**」的情形。
         """
 
     def _priority_bounds(self):
@@ -392,20 +412,91 @@ class RuntimeBackend(ABC):
             return None
         return (min(a, b), max(a, b))
 
+    # ─────────── 本层**拥有**的流：登记 / 释放（2026-09-30，(A) 方案配套）───────────
+    #
+    # 为什么需要：走「厂商 C API 建流 + 包装成 torch 流」时，**torch 不拥有**这条流
+    # （P800 实测：丢弃包装对象 + gc 之后句柄**仍可计算**）⇒ 不显式销毁就**泄漏一条设备级流**
+    # （设备流总数有限：910C 实测可用流上限 1979）。
+    # 而厂商自己建的流（`torch.npu.Stream()` / `torch.cuda.Stream()`）由厂商 / torch 拥有
+    # ⇒ 本层释放必须是 **no-op**，**不得越权销毁**别人的流。
+
+    def _register_owned_stream(self, native_stream, handle) -> None:
+        """登记「本层拥有、需显式释放」的流（`id(native)` → 厂商句柄）。"""
+        try:
+            self._reg("_owned_streams")[id(native_stream)] = int(handle)
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    def owns_stream(self, native_stream) -> bool:
+        """该流是否由**本层**创建并拥有（决定 `release_stream` 是否真的销毁）。"""
+        return id(native_stream) in self._reg("_owned_streams")
+
+    def release_stream(self, native_stream) -> bool:
+        """释放由**本层拥有**的流；厂商拥有的流 ⇒ **no-op 并返回 `False`**。
+
+        返回值语义（**不假装成功**）：
+          · `True`  = 本层创建的那条流**真的被销毁**（厂商销毁原语返回成功）；
+          · `False` = 本层不拥有（未做任何事，逐位保持原有语义）或销毁原语不可得。
+
+        幂等：重复释放返回 `False`、不报错；但**再使用**已释放的流会被
+        `check_stream_usable()` 当场拦下（契约：使用已销毁对象必须明确）。
+        """
+        reg = self._reg("_owned_streams")
+        handle = reg.pop(id(native_stream), None)
+        if handle is None:
+            return False
+        self._reg("_released_streams")[id(native_stream)] = int(handle)
+        return bool(self._destroy_stream_raw(handle))
+
+    def _destroy_stream_raw(self, handle) -> bool:
+        """**厂商原语层**：销毁由本层创建的流。基类默认 `False`（未实现 ⇒ 不假装成功）。"""
+        return False
+
     def create_stream(self, priority=None):
         """创建并返回该后端的 Stream 对象；**可选**指定流优先级。
 
         `priority=None`（默认）⇒ 厂商默认行为，与历史版本**逐位一致**。
-        `priority=<int>` ⇒ 走上面 ①②③④ 四道约束。
+        `priority=<int>` ⇒ 走上面 ①–⑥ 六条（**顺序**本身就是契约的一部分）。
 
         为什么不做成"传了就当没传"（2026-09-30 的教训）：
         静默忽略参数会产出**最贵的假象** —— 上层以为"高优先级流已建好"，
         据此做调度决策，而设备侧根本没有这回事。**宁可报错，不给假象。**
+
+        ⚠️ 但"宁可报错"**不等于"报错越多越诚实"**（2026-09-30 修）：请求落在
+        **单点区间**上时（如 P800 的 `(0, 0)`），请求值**必然等于厂商默认优先级**
+        ⇒ 结果可回读验证 ⇒ 此时报错是**过度保守**，把「可满足的请求」说成「不支持」，
+        同样是失真（方向相反）。故第 ④ 条**放行**，并**强制**带回读证据。
         """
         if priority is None:
             return self._create_stream_raw(None)
 
-        # ① 声明即承诺：未声明 ⇒ 显式拒绝（不是静默降级）
+        # ① 类型（与能力无关、成本为零）：bool 是 int 的子类，先挡掉
+        if isinstance(priority, bool) or not isinstance(priority, int):
+            raise ValueError(
+                f"priority 必须是 int 或 None，收到 {type(priority).__name__}：{priority!r}")
+
+        # ② 取值域（**先于能力门禁**：越界是调用方错误，与「能不能设置」是两件事）
+        bounds = self._priority_bounds()
+        if bounds is not None and not (bounds[0] <= priority <= bounds[1]):
+            raise ValueError(
+                f"priority={priority} 越出本设备区间 {bounds}"
+                f"（官方语义：数值**越小优先级越高**；`stream_priority_range()` 返回 "
+                f"(least, greatest)，本层已归一为 (low, high)）")
+
+        # ③ **单点区间的等价请求：放行**（但必须带回读证据 —— 放行不是免校验）
+        if (bounds is not None and bounds[0] == bounds[1] == priority
+                and self.supports("stream_priority_readback")):
+            native = self._create_stream_raw(None)
+            got = self.stream_priority_readback(native)
+            if got is not None and int(got) == int(priority):
+                return native
+            raise RuntimeError(
+                f"单点区间 {bounds} 的等价放行**未通过校验**：请求 {priority}，回读 {got!r}。\n"
+                f"  · 含义：本后端自称区间只有一档，但**厂商默认流的优先级与该档位不一致**"
+                f" ⇒ 区间值不可信（**声明与实现不一致**），故不予放行；\n"
+                f"  · 处置：修区间读数或修默认流 —— **不要靠放宽判据**（同族纪律：厂商缺陷不得改判据变绿）。")
+
+        # ④ 声明即承诺：未声明 ⇒ 显式拒绝（不是静默降级）
         if not self.supports("stream_priority_control"):
             raise NotImplementedError(
                 f"后端 '{self.name}' 未声明能力 `stream_priority_control` ⇒ 拒绝 "
@@ -416,24 +507,15 @@ class RuntimeBackend(ABC):
                 f"  · 该实例的具体原因与证据见 `info()['known_issues']` 与芯片目录报告；\n"
                 f"  · 不指定优先级请用 `create_stream()`。")
 
-        # ② 取值域（bool 是 int 的子类，先挡掉）
-        if isinstance(priority, bool) or not isinstance(priority, int):
-            raise ValueError(
-                f"priority 必须是 int 或 None，收到 {type(priority).__name__}：{priority!r}")
-        bounds = self._priority_bounds()
+        # ⑤ 声明了 control ⇒ 区间必须可解析（否则无法做取值域校验）
         if bounds is None:
             raise RuntimeError(
                 f"后端 '{self.name}' 声明了 `stream_priority_control`，但 "
                 f"`stream_priority_range()` 给不出可解析的 2 元组区间"
                 f"（实际 = {self.stream_priority_range()!r}）"
                 f" ⇒ **声明与实现不一致**（设置无法做取值域校验）。")
-        if not (bounds[0] <= priority <= bounds[1]):
-            raise ValueError(
-                f"priority={priority} 越出本设备区间 {bounds}"
-                f"（官方语义：数值**越小优先级越高**，`stream_priority_range()` 返回 "
-                f"(least, greatest)）")
 
-        # ③ 创建 + **回读校验**（本层不允许静默退化）
+        # ⑥ 创建 + **回读校验**（本层不允许静默退化）
         native = self._create_stream_raw(int(priority))
         got = self.stream_priority_readback(native)
         if got is None:

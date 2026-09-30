@@ -141,6 +141,11 @@ class KunlunBackend(RuntimeBackend):
         "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
         # ── 2026-09-29（A2 收尾）新增 ──
         "device_state_control",  # 四态**驱动**（`runtime.set_device_state()`）；本层账本，非厂商能力
+        # ── 2026-09-30（(A) 方案真落地）：流优先级**能设置** ──
+        # 依据：真机实测「请求 = 回读」成立（区间单点 {0}），且
+        # `torch.cuda.ExternalStream` 能把 C API 建的流**逐位**包回 torch。
+        # ⚠️ 「能设置」≠「有效果」：区间单点 ⇒ 无调度区分，见 known_issues()。
+        "stream_priority_control",
         "graph_capture",     # torch.cuda.graph（2026-09-20 实测 GRAPH_CAPTURE_PASS 5/5）
         "multidevice",       # 单机 8 卡
         # ── 2026-09-29（工作包 B）新增 ──
@@ -387,28 +392,77 @@ class KunlunBackend(RuntimeBackend):
             return 0
 
     # ───────────── 流 / 事件 ─────────────
+    #: 建流 flag：`CU_STREAM_NON_BLOCKING`（与 `torch.cuda.Stream()` 的语义一致；
+    #: 实测本机 0 / 1 / 2 都可用，取 2 与 torch 对齐）。
+    _CU_STREAM_NON_BLOCKING = 0x02
+
     def _create_stream_raw(self, priority=None):
-        """默认路径：`torch.cuda.Stream()` —— **与历史版本逐位一致**。
+        """`priority is None` ⇒ `torch.cuda.Stream()`（**与历史版本逐位一致**）。
 
-        `priority is not None` 分支**正常走不到**（本后端不声明 `stream_priority_control`，
-        基类门禁先抛 `NotImplementedError`）；此处仍**显式抛错**，避免误加能力键后静默放行。
+        `priority=<int>` ⇒ 走**真路径**（2026-09-30 (A) 方案落地）：
+        `cuStreamCreateWithPriority` 建流 → `torch.cuda.ExternalStream` **包回 torch**。
 
-        为什么本家做不了（2026-09-30 实测）：CUDA 兼容层三个入口都在，但
-        **`cuCtxGetStreamPriorityRange` 返回 `least=0, greatest=0`**
-        ⇒ **优先级空间退化为单点**；且 `cuStreamCreateWithPriority(..., prio=-1)`
-        **回读仍为 0**（不保留传入值）。设备只报一个档位 ⇒ 设置**不产生任何区分**，
-        与其宣称"可设置"，不如**如实不声明**（同 `context_lifecycle` 在 P800 的处置）。
+        为什么这条路成立（真机实测，`P800/probes/prio_settable_kunlun_20260930.log`）：
+          · `cuCtxGetStreamPriorityRange` = **(0, 0)** ⇒ 合法取值域 = {0}，越界由基类 `ValueError` 拒；
+          · `cuStreamCreateWithPriority(h, flag, 0)` **rc=0**，`cuStreamGetPriority` 回读 **0**
+            ⇒ 「请求 = 回读」成立（本层「能设置」的判据就是这个）；
+          · `torch.cuda.ExternalStream(handle)` **可用**：回取 `cuda_stream` 与 handle **逐位相同**，
+            且在该流上跑算子的结果**正确** ⇒ 这条流真的进了 torch 执行上下文。
+
+        ⚠️ 三条如实标注的边界（不外推）：
+          · **区间退化单点** ⇒ 设置 priority **不产生调度区分**（**「能设置」≠「有效果」**）；
+          · **本层拥有**这条流（实测：丢弃包装对象 + gc 后句柄仍可计算 ⇒ torch 不拥有它）
+            ⇒ 用完需 `runtime.release_stream(stream)` 显式释放，否则泄漏一条设备级流；
+          · 包装失败时**先销毁刚建的设备流再抛错**（不泄漏）。
+
+        任何一步不成立都**如实抛错**，绝不返回一条「看起来设了优先级」的流。
         """
-        if priority is not None:
-            raise NotImplementedError(
-                f"kunlun：本设备**优先级空间退化为单点**（`cuCtxGetStreamPriorityRange` "
-                f"返回 least=0, greatest=0）⇒ 设置 priority={priority} 不产生任何区分，"
-                f"故**如实不声明** `stream_priority_control`。\n"
-                f"  · 三个 CUDA 兼容入口都在（Range/CreateWithPriority/GetPriority），"
-                f"不是『接口没实现』，而是『设备只报一个档位』；\n"
-                f"  · `cuStreamCreateWithPriority(prio=-1)` **回读仍为 0**（不保留传入值）；\n"
-                f"  · 证据：`P800/probes/prio_readback_kunlun_20260930.log`。")
-        return self.torch.cuda.Stream()
+        torch = self.torch
+        if priority is None:
+            return torch.cuda.Stream()
+
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            raise RuntimeError(
+                "kunlun：驱动库不可得 ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本路径需要 `cuStreamCreateWithPriority`（XPytorch 实际加载的 libcuda.so.1）；\n"
+                "  · 不指定优先级请用 `create_stream()`（走 torch 原生路径）。")
+        fn = getattr(lib, "cuStreamCreateWithPriority", None)
+        if fn is None:
+            raise RuntimeError(
+                "kunlun：驱动库缺少 `cuStreamCreateWithPriority` ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本层**不降级**（不会静默返回一条无优先级的流）；不指定优先级请用 `create_stream()`。")
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint, ctypes.c_int]
+        handle = ctypes.c_void_p(0)
+        rc = int(fn(ctypes.byref(handle),
+                    ctypes.c_uint(self._CU_STREAM_NON_BLOCKING),
+                    ctypes.c_int(int(priority))))
+        if rc != 0 or not handle.value:
+            raise RuntimeError(
+                f"kunlun：`cuStreamCreateWithPriority(priority={priority})` 失败 "
+                f"rc={rc} handle={handle.value!r} ⇒ 如实报错，不返回假流。")
+
+        try:
+            native = torch.cuda.ExternalStream(handle.value,
+                                               device=torch.cuda.current_device())
+        except BaseException:
+            self._destroy_stream_raw(handle.value)      # 不留泄漏
+            raise
+        self._register_owned_stream(native, handle.value)
+        return native
+
+    def _destroy_stream_raw(self, handle) -> bool:
+        """销毁由**本层**创建的流（`cuStreamDestroy_v2`）；原语不可得返回 False（不假装成功）。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return False
+        fn = getattr(lib, "cuStreamDestroy_v2", None)
+        if fn is None:
+            return False
+        return int(fn(ctypes.c_void_p(int(handle)))) == 0
 
     def create_event(self):
         # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
@@ -485,8 +539,13 @@ class KunlunBackend(RuntimeBackend):
         且**不触发断言** ⇒ "不支持"这个结论**方向对、表述错**：设备报的是
         **"只有一个档位"**，而不是"没有这个接口"。现改为如实回报。
 
-        ⚠️ **不声明 `stream_priority_control` 的依据**：区间是单点 ⇒ 设置无区分意义。
-        这与 `context_lifecycle`（平台单上下文 ⇒ 只声明只读 `context_query`）**同构**。
+        ⚠️ **能力声明口径（2026-09-30 修订，(A) 方案落地）**：区间虽是**单点**，但
+        「设 0 ⇒ 回读 0」在契约意义上**成立**（本层「能设置」的判据就是 **请求 = 回读**）
+        ⇒ 本家**声明** `stream_priority_control`，实现走
+        `cuStreamCreateWithPriority` + `torch.cuda.ExternalStream` 包装（真机实测可用）。
+        取值域 = 本区间的 `min/max`（本机即 `{0}`），越界由基类抛 `ValueError`。
+        ⭐ **「能设置」≠「有效果」**：单点区间下设置**不产生调度区分** —— 这一条写进
+        `known_issues()`，**不要把接口能力当成调度能力**。
         """
         import ctypes
         lib = self._driver_handle()
@@ -494,13 +553,17 @@ class KunlunBackend(RuntimeBackend):
             return None
         least = ctypes.c_int(0)
         greatest = ctypes.c_int(0)
-        try:
-            fn = lib.cuCtxGetStreamPriorityRange
-            fn.restype = ctypes.c_int
-            fn.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
-            rc = int(fn(ctypes.byref(least), ctypes.byref(greatest)))
-        except AttributeError:
+        # ⚠️ 用 **`getattr` 显式探针**判断「符号是否存在」，其余异常**一律传播**。
+        #    2026-09-30 实测教训：原写法 `try: fn = lib.xxx; fn.restype = ... \n except
+        #    AttributeError: return None` 会把「给 `fn.restype` 赋值失败」（属**调用方
+        #    /替身兼容性**问题，是 bug）与「库没这个符号」（如实不支持）**混为一谈**，
+        #    且是**静默的**（现象变成『不支持』，真因被藏起来）。
+        fn = getattr(lib, "cuCtxGetStreamPriorityRange", None)
+        if fn is None:
             return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        rc = int(fn(ctypes.byref(least), ctypes.byref(greatest)))
         if rc != 0:
             return None
         return int(least.value), int(greatest.value)
@@ -514,15 +577,15 @@ class KunlunBackend(RuntimeBackend):
         lib = self._driver_handle()
         if lib is None or not handle:
             return None
-        try:
-            fn = lib.cuStreamGetPriority
-            fn.restype = ctypes.c_int
-            fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
-            got = ctypes.c_int(0x7FFFFFFF)
-            rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
-            return int(got.value) if rc == 0 else None
-        except AttributeError:
+        # 同上：**显式探针**，不吞 AttributeError（否则替身/调用方式的问题会被读成"不支持"）
+        fn = getattr(lib, "cuStreamGetPriority", None)
+        if fn is None:
             return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        got = ctypes.c_int(0x7FFFFFFF)
+        rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
+        return int(got.value) if rc == 0 else None
 
     def stream_priority_readback(self, native_stream):
         """回读该流的优先级；读不出返回 None。
@@ -664,6 +727,36 @@ class KunlunBackend(RuntimeBackend):
             ),
             "report_to": "昆仑芯（XPytorch / XRE）—— 我方已上报，对应本方向对外提交项 C3",
             "evidence": "prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md",
+        },
+        {
+            "id": "KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL",
+            "severity": "low",
+            "scope": "流优先级（`stream_priority_control` / `stream_priority_range`）",
+            "condition": "任何调用 `stream_priority_range()` 或 `create_stream(priority=…)` 的场景",
+            "symptom": (
+                "`cuCtxGetStreamPriorityRange` 返回 **least=0, greatest=0** "
+                "⇒ **优先级区间退化为单点**：接口可用、可设置、可回读，"
+                "但**设置不产生任何调度区分**（设备只暴露一个档位）"
+            ),
+            "repro_rate": "100%（2026-09-30 三次独立运行一致）",
+            "root_cause_layer": (
+                "厂商 CUDA 兼容运行时（libxpucuda.so.515.58.kunlun）上报的设备属性 "
+                "—— 设备只暴露一个优先级档位"
+            ),
+            "ruled_out": (
+                "**不是**接口没实现：三个入口（`cuCtxGetStreamPriorityRange` / "
+                "`cuStreamCreateWithPriority` / `cuStreamGetPriority`）都在且可用；"
+                "**不是**包装不了：`torch.cuda.ExternalStream(handle)` 回取句柄**逐位相同**"
+                "且能在其上跑对算子"
+            ),
+            "workaround": (
+                "需要**按优先级编排**的上层：本平台做不到，**请勿据此做调度决策**；"
+                "需要**跨芯片可移植的调用面**：正常调用 `create_stream(priority=0)`"
+                "（唯一合法值），越界值本层会 `ValueError` 拒绝"
+            ),
+            "workaround_risk": "无（区间由设备自报，本层只是如实转达）",
+            "report_to": "昆仑芯（XPytorch / XRE）—— 若要支持多档优先级，需厂商侧暴露",
+            "evidence": "P800/probes/prio_settable_kunlun_20260930.log",
         },
     ]
 

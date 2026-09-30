@@ -1,0 +1,137 @@
+{
+  "backend": "kunlun",
+  "groups": {
+    "m1": {
+      "group": "m1",
+      "capability": true,
+      "handle_keys": [
+        "backend",
+        "handle_id",
+        "kind",
+        "ordinal",
+        "size_bytes"
+      ],
+      "handle_has_ptr": false,
+      "before": {
+        "free_mb": 98272.0,
+        "stats": {
+          "total_mb": 98304,
+          "used_mb": 32,
+          "free_mb": 98272,
+          "allocated_mb": 0
+        }
+      },
+      "after_alloc": {
+        "free_mb": 98252.0,
+        "stats": {
+          "total_mb": 98304,
+          "used_mb": 52,
+          "free_mb": 98252,
+          "allocated_mb": 8
+        }
+      },
+      "handle_count_after_alloc": 1,
+      "after_free": {
+        "free_mb": 98252.0,
+        "stats": {
+          "total_mb": 98304,
+          "used_mb": 52,
+          "free_mb": 98252,
+          "allocated_mb": 0
+        }
+      },
+      "handle_count_after_free": 0,
+      "double_free": "ValueError: 内存句柄 1 不属于本后端或**已被释放**（重复释放/跨后端误用）—— 如实报错，不静默接受。",
+      "alloc_zero": "ValueError",
+      "returncode": 0
+    },
+    "m2": {
+      "group": "m2",
+      "record_stream_capability": true,
+      "record_stream_real": "原生路径（无退化）",
+      "native_after_public_access": 1,
+      "native_after_internal_path": 0,
+      "returncode": 0
+    },
+    "c1": {
+      "group": "c1",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "capability": false,
+      "returncode": 0
+    },
+    "c2": {
+      "group": "c2",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "returncode": 0
+    },
+    "c3": {
+      "group": "c3",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "returncode": 0
+    },
+    "c4": {
+      "group": "c4",
+      "capability": true,
+      "device_count": 2,
+      "at_device": "cuda:0",
+      "compute_before": 512.0,
+      "query": {
+        "queryable": true,
+        "present": true,
+        "ordinal": 0,
+        "flags": 8,
+        "managed_by": "external",
+        "reason": ""
+      },
+      "present": true,
+      "ordinal": 0,
+      "flags": 8,
+      "managed_by": "external",
+      "reason": "",
+      "compute_after": 512.0,
+      "readonly_safe": true,
+      "context_query_works": true,
+      "returncode": 0
+    }
+  },
+  "vendor": {
+    "backend": "kunlun",
+    "device_type": "cuda",
+    "torch": "2.9.0+cu129",
+    "device_count": 2,
+    "capabilities": [
+      "bounded_sync",
+      "context_query",
+      "device",
+      "device_state",
+      "device_state_control",
+      "event",
+      "graph_capture",
+      "memory",
+      "memory_alloc",
+      "memory_alloc_stat",
+      "multidevice",
+      "record_stream",
+      "recovery_probe",
+      "stream",
+      "stream_priority",
+      "stream_priority_control",
+      "stream_priority_readback"
+    ],
+    "info_native_accesses": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "info_degradations": {
+      "total": 0,
+      "by_kind": {}
+    }
+  },
+  "verdict": {
+    "B1_allocate_free_pairs": true,
+    "B3_record_stream_native_path": true,
+    "B4_native_audit_isolated": true,
+    "C4_context_query_readonly": true
+  },
+  "PASS": true
+}
