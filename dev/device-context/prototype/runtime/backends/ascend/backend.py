@@ -13,11 +13,48 @@
 底层：torch_npu（昇腾原生 PyTorch 扩展），本层不触碰算子分发。
 """
 
+import ctypes
 from pathlib import Path
 from typing import Optional
 
 from ...api.errors import ErrorCategory, FlagosError
 from ..base import RuntimeBackend, state_token
+
+#: 真实 `libascendcl.so` 的**进程内句柄**缓存（`/proc/self/maps` 里的那份）。
+_LIB_CACHE = {}
+
+
+def _real_libascendcl():
+    """取**已加载的真实** `libascendcl.so`（找不到返回 None）。
+
+    ⚠️ 为什么不用 `ctypes.CDLL("libascendcl.so")`（2026-09-30 踩到）：
+    CANN 工具链里同时有**真实库**与**stub 库**（供编译期用），直接按名加载会**抓到 stub**，
+    调用返回 `rc=100039`（stub library cannot be used for execution）——
+    **症状是"调用失败"，很容易被误读成"接口不可用"**。
+    正确做法：从 `/proc/self/maps` 取 pyACL **自己已经加载**的那份真实库路径再 `dlopen`。
+
+    ⚠️ 只在需要**头文件里有、pyACL 未暴露**的入口时才走这条路（如 `aclrtStreamGetPriority`）。
+    """
+    if "lib" in _LIB_CACHE:
+        return _LIB_CACHE["lib"]
+    lib = None
+    try:
+        seen = set()
+        with open("/proc/self/maps", encoding="utf-8", errors="ignore") as f:
+            for ln in f:
+                if "libascendcl.so" in ln:
+                    path = ln.split()[-1]
+                    if path.startswith("/") and path not in seen:
+                        seen.add(path)
+                        try:
+                            lib = ctypes.CDLL(path)
+                            break
+                        except OSError:
+                            continue
+    except OSError:
+        lib = None
+    _LIB_CACHE["lib"] = lib
+    return lib
 
 # conformance 目录（已有资产所在）：device-context/benchmarks/ascend_regression/conformance
 _CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
@@ -51,7 +88,13 @@ class AscendBackend(RuntimeBackend):
         "recovery_probe", "recovery_real",  # 探针重试 + 真实重建
         "device_state",            # 四态机
         "graph_capture",           # torch.npu.graph
-        "stream_priority",         # least=7 / greatest=0
+        "stream_priority",         # 范围**可读**：实测 (least, greatest) = (7, 0)，0 最高
+                                   # ⚠️ 2026-09-30（A2/B2 v2）：**能读范围 ≠ 能设置** ——
+                                   #   设置受阻（torch_npu 丢参数 + 无 ExternalStream），
+                                   #   故下面只声明 readback，**不声明** stream_priority_control。
+        "stream_priority_readback",  # 回读某条流的优先级（ctypes 调真实 libascendcl 的
+                                   #   `aclrtStreamGetPriority`；pyACL 未暴露该入口）
+                                   #   实测：普通流回读 0；pyACL 建的流回读 == 传入值 ✅
         "multidevice",
         # ── 2026-09-29（工作包 B/C）新增 ──
         "memory_alloc",            # pyACL acl.rt.malloc/free（**不是** torch.npu.caching_allocator_*）
@@ -75,6 +118,10 @@ class AscendBackend(RuntimeBackend):
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙**
+        #   —— 与 `device_state` / `device_state_control`、`context_query` / `context_lifecycle` 同构：
+        #      **能读 ≠ 能改**。两键同名的家族一次性补齐（未声明即为 False，如实呈现）。
+        "stream_priority_control", "stream_priority_readback",
         # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
         "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
         # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
@@ -380,7 +427,31 @@ class AscendBackend(RuntimeBackend):
 
     # ─────────────── 执行 / 多流 Stream（职责 D4/D5）──────────────
 
-    def create_stream(self):
+    def _create_stream_raw(self, priority=None):
+        """默认路径：`torch.npu.Stream()` —— **与历史版本逐位一致**。
+
+        `priority is not None` 分支**正常走不到**：本后端不声明 `stream_priority_control`，
+        基类门禁会先抛 `NotImplementedError`。此处仍**显式抛错**（而不是静默忽略）——
+        万一有人误把能力键加上，这里会**当场失败**，而不是悄悄给出一条无优先级的流。
+
+        为什么本家做不了（2026-09-30 实测，6 条证据；详见 `known_issues()`）：
+        pyACL 能建带优先级的流且**可回读**（0/3/7 全部保留），但那条流是**裸 ACL 句柄**，
+        而本栈**没有任何入口**能把它包成"torch 可用的流"
+        （无 `torch.npu.ExternalStream`；`Stream(stream_ptr=H)` 静默忽略；
+        `getStreamFromExternal` 未暴露到 Python）。流若不能进 torch 执行上下文，设置了也白设。
+        """
+        if priority is not None:
+            raise NotImplementedError(
+                f"ascend：**无法**在保持『流可被 torch 执行上下文使用』的前提下设置优先级"
+                f"（请求 priority={priority}）。\n"
+                f"  · pyACL `aclrtCreateStreamWithConfig` 确实接受并保留该参数，但它产出的是"
+                f"**裸 ACL 句柄**，本栈无入口将其包回 torch 流；\n"
+                f"  · `torch.npu.Stream(priority=…)` 收下了这个 kwarg 却**静默丢弃**"
+                f"（`aclrtStreamGetPriority` 回读恒 0）；\n"
+                f"  · 上游诉求：torch_npu 补 `ExternalStream`（同文件已有 `ExternalEvent`），"
+                f"或把 `Stream(stream_ptr=…)` 真正接上（现值被静默忽略）。\n"
+                f"  · 证据：`910C/probes/prio_readback_910c_npu_20260930.log`、"
+                f"`prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md`。")
         return self.torch.npu.Stream()
 
     def create_event(self):
@@ -555,13 +626,59 @@ class AscendBackend(RuntimeBackend):
     # ─────────────── 可选能力 ───────────────
 
     def stream_priority_range(self):
+        """流优先级区间 **(least, greatest) 2 元组**，语义与 CUDA 一致（0 最高、7 最低）。
+
+        ⚠️ **2026-09-30 修（契约形状，跨实例不一致）**：pyACL 的
+        `aclrtDeviceGetStreamPriorityRange` 返回**三元组** `(least, greatest, rc)`，
+        本方法此前**直接透传三元组**；而 cambricon 的同名接口返回 **2 元组**
+        ⇒ **同一份下游代码在两家读到不同形状**（真机实测 `(7, 0, 0)`）。
+        现归一为契约规定的 2 元组；形状由离线判据守住。
+
+        ⚠️ **能读范围 ≠ 能设置**：本家范围可读（实测 `(7, 0)`），但**设置受阻**
+        （见 `_create_stream_raw` 与 `known_issues()`）；故本家**不声明**
+        `stream_priority_control`。
+        """
         acl = self.acl
         if acl is None:
             return None
         try:
-            return acl.rt.device_get_stream_priority_range()
+            res = acl.rt.device_get_stream_priority_range()
         except Exception:
             return None
+        if isinstance(res, (tuple, list)) and len(res) >= 2:
+            return int(res[0]), int(res[1])
+        return None
+
+    def _stream_priority_read_raw(self, handle):
+        """**厂商原语层**：ACL 流句柄 → 优先级（读不出返回 None）。
+
+        ⚠️ 单独成方法是为了**可注入/可替换**：离线自检需要在**无设备**时驱动这条链路
+        （"能造可控假原语就别 SKIP"——否则判据只能空转或跳过）。
+        """
+        lib = _real_libascendcl()
+        if lib is None:
+            return None
+        try:
+            fn = lib.aclrtStreamGetPriority
+            fn.restype = ctypes.c_int
+            fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+            got = ctypes.c_uint32(0xFFFFFFFF)
+            rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
+            return int(got.value) if rc == 0 else None
+        except Exception:                                         # noqa: BLE001
+            return None
+
+    def stream_priority_readback(self, native_stream):
+        """回读该流的优先级（`aclrtStreamGetPriority`）；读不出返回 None。
+
+        为什么必须能回读（2026-09-30）：`torch.npu.Stream(priority=7)` 与
+        `pyACL create_stream_with_config(priority=7)` 在 Python 侧**长得一模一样**，
+        只有回读能把"参数真的进去了"（7）与"被静默丢弃"（0）分开。
+        """
+        handle = getattr(native_stream, "npu_stream", None)
+        if not handle:
+            return None
+        return self._stream_priority_read_raw(handle)
 
     def device_state(self, ordinal: int):
         """查询设备四态（AVAILABLE/DEGRADED/ISOLATED/DESTROYED）。"""
@@ -599,6 +716,42 @@ class AscendBackend(RuntimeBackend):
             "evidence": "本方向 2026-09-22 实测：acl.init rc=500000、set_device rc=107002、"
                         "sync rc=107000；错误码定义见 CANN `acl/acl_base_rt.h` 与 "
                         "`acl/error_codes/rt_error_codes.h`",
+        }, {
+            "id": "ASCEND-STREAM-PRIORITY-SET-BLOCKED",
+            "severity": "low",
+            "scope": "流优先级**设置**（`create_stream(priority=…)`）；范围读取与回读不受影响",
+            "condition": "在本栈（CANN 9.0.0 / torch_npu 2.11.0 / 910C）请求带优先级的流",
+            "symptom": (
+                "`create_stream(priority=…)` 抛 `NotImplementedError`。"
+                "**不是设备故障，也不是本层没实现完 —— 是插件层缺一个入口**："
+                "① `torch.npu.Stream(priority=7)` 收下 kwarg 却**静默丢弃**"
+                "（`aclrtStreamGetPriority` 回读恒 0）；"
+                "② 无 `torch.npu.ExternalStream`（同文件里有 `ExternalEvent`，**无 Stream 版**）；"
+                "③ `torch_npu._C` 无任何 `*External*` 符号，`Stream(stream_ptr=H)` "
+                "**被接受但静默忽略**（拿到的是流池里另一条流）；"
+                "④ `libtorch_npu.so` 导出 `c10_npu::getStreamFromExternal`，**未暴露到 Python**；"
+                "⑤ `acl_rt.h` 无 setter ⇒ 无法「先建后改」。"
+                "⇒ 保持『流可被 torch 执行上下文使用』的前提下，**无法**让 priority 生效"
+                "（pyACL 建的带优先级流是裸 ACL 句柄，包不回 torch 流）"
+            ),
+            "repro_rate": ("确定性（2026-09-30 在 910C 上逐项实测；其中 ②③ 为 12 个候选 kwarg 的"
+                           "穷举结果：仅 `stream_ptr` 被接受且被忽略，其余一律 TypeError）"),
+            "root_cause_layer": "厂商 PyTorch 插件（torch_npu）接口面缺失；本层已如实降级不声明",
+            "workaround": (
+                "① 需要『参数真的进设备』的取证场景：直接用 pyACL "
+                "`aclrtCreateStreamWithConfig`（**裸流，不能跑 torch 算子**）；"
+                "② 需要跨实例可移植：用 `create_stream()`（不指定优先级），"
+                "并用 `supports(stream_priority_control)` **提前判分支**"
+            ),
+            "workaround_risk": ("裸 ACL 流**不可用于 torch 执行上下文**；且官方文档说明"
+                                "**Atlas 训练系列上 priority 属「预留参数、暂不使用」**"
+                                "⇒ 即便打通入口，训练产品上也未必有调度效果"
+                                "（**「能设」与「有效果」是两件事**）"),
+            "report_to": "torch_npu / CANN 上游（诉求：补 `ExternalStream`，或让 "
+                         "`Stream(stream_ptr=…)` 真正生效；现状是**静默忽略**，极易误判）",
+            "evidence": "`910C/probes/prio_readback_910c_npu_20260930.log`（回读对照）、"
+                        "`910C/probes/prio_api_surface_910c_npu_20260930.log`（接口面与插件源码）、"
+                        "`prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md` §5",
         }]
 
 

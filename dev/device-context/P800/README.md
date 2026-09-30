@@ -13,6 +13,7 @@
 > 下表**按时间倒序**（越上越新）；历史批次保留不删，标注为「历史批次」。
 | 项 | 状态 | 关键数字 |
 |---|---|---|
+| ⭐ **流优先级统一 API 落地后的全套复跑（09-30 r7）· 最新** | ✅ **13 项全绿 · 无回归** | 破坏面 = 共享层 `create_stream`（**所有流创建都走新路径**）+ kunlun 后端 ⇒ 覆盖 `create_stream()` 的每个消费方。离线 **89/0/1** · 对称性 **7/0** · 冒烟 **46/0** · conformance 13+6 · 契约不变式 4/4 · 职责审计 **39 项 PASS** · 错误闭环 **5/0/0** · B/C 探针 PASS · 入口定向验证 PASS · **流优先级 API `STREAM_PRIORITY_API_PASS` 7/7** · 多流语义 **8/8** · 配额 **3/3** · demo ✅ · 训练腿 **6/6**（3461.1 tok/s）· 推理腿 **13/13**（52.06 句/s）。**本家如实结论 = 只读**：范围查询改走**真原语** `cuCtxGetStreamPriorityRange` ⇒ 返回 **`(0, 0)`（退化单点）**。旧版本返回 `None` 并把原因写成「torch 的 `priority_range()` 触发 INTERNAL ASSERT」—— 那其实只是 **torch API 路径**的问题（**底层真原语安全可读**），属「根因表述本身错了」的一类，已更正。见 `../prototype/docs/STREAM_PRIORITY_API_20260930.md` |
 | ⭐ **工作包 B/C 接口落地（09-29）** | ✅ **B 3/3 · C 4/4（只读观测）** | `allocate/free` 句柄（申请 8 MiB → 设备空闲 **−20.0 MB**、`memory_stats()["allocated_mb"]` **0→8→0**）、二次释放如实 `ValueError`、`record_stream` 走**原生路径**、`.native` 审计隔离（公开 1 / 内部 0）；**`context_lifecycle` 未声明 ⇒ 相关调用如实报错**；C 项改为支持**只读观测 `context_query`**（真机 `managed_by="external"`、`readonly_safe=true`）—— ⚠️ **原因表述已更正**：驱动层**有**完整 `cuCtx*`（就在 XPytorch 用的 `libcuda.so.1` 里），真实约束是**平台只允许一个上下文 + 由框架自建**（本层抢先建会让 torch 报 `invalid device ordinal`）⇒ 详见 `docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md`⇒ 报告 `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md`；证据 `probes/probe_bc_contract_kunlun_20260929.json` |
 | ⭐ **共享层改动后的第 4 轮全套回归（09-29 r4）** | ✅ **10 项全绿 · 无回归** | 离线 **71/0/1** · 对称性 5/0 · 冒烟 **46/0** · conformance 13+6 · 职责审计 **36/0/3** · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 ⇒ 证据 `probes/*_kunlun_20260929_r4.*` |
 | ⭐ **契约不变式真机复跑（09-29 r5，B1）** | ✅ **4/4 `CONTRACT_INVARIANTS_PASS`** | I1 诚实声明（入口存在性覆盖 **10/13**）· I2 禁止伪造（陌生消息 → `L3_EXECUTION/replay`、`mapped=False`）· I3 失效受管（**A 二次释放 → `ValueError`**；上下文分支**如实不适用** —— P800 未声明 `context_lifecycle`）· I4 降级可观测（`.native` `0→1` 且**退化保持 0**）⇒ 同批 `cases` 13/13 · `infer_cases` 6/6 判据串**未变** （兼容性）⇒ 证据 `probes/recheck_*_kunlun_20260929_r5.*` |
@@ -38,13 +39,14 @@
 
 ---
 
-## 0.5 ⚠️ 两条环境事实（2026-09-30 实测，避免后来者白找）
+## 0.5 ⚠️ 环境事实与环境口径冲突（2026-09-30 实测，避免后来者白找）
 
 | 事实 | 内容 |
 |---|---|
 | **本机没有宿主 git 副本** | `/workspace/runtime-team`、`/data2/hliu553/runtime-team` **都不存在**。P800 侧只有**同步过去的 `prototype/` 目录**（宿主 `/data2/hliu553/dc_regress_20260929/prototype` = 容器内 `/workspace/...`）。**不要按"应该有一份"去找**；需要版本信息请看 910C 宿主副本（已对齐）或 GitHub。 |
 | **路径映射** | 宿主 `/data2/hliu553` = 容器 `/workspace`。**在宿主上执行的脚本**其重定向要用宿主路径，**传给容器程序的 `--out`** 要用容器路径 —— 混用会得到一堆 rc=1（2026-09-30 首跑即如此）。 |
 | **流优先级空间 = 退化单点（2026-09-30 实测）** | 兼容层三个入口**都在**（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`），但范围查询返回 **`least=0, greatest=0`** ⇒ **本机没有可调的优先级空间**；且 `cuStreamCreateWithPriority(..., prio=-1)` **回读仍为 0**（不保留传入值）⇒ 优先级在 P800 上**无可观测效果**（不是「接口没实现」，而是「设备只报一个档位」）。证据 `probes/prio_readback_kunlun_20260930.log`；重跑 `probes/inspect_prio_readback_kunlun_20260930.py` |
+| **⚠️ 一处口径冲突（2026-09-30 新观察到）** | 厂商栈在 stderr 提示「官方手册要求测试前 `export XPU_EVENT_KL3_ENABLE=1`，否则**部分路径行为未定义**」—— 而**该变量正是本方向 09-14 实测的挂死触发条件**（KL3 事件 + 设备集合通信 ⇒ `cudaDeviceSynchronize` 永久自旋，见 `docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`）。⇒ **手册要求设置的环境变量 = 我们实测的故障触发条件**。本方向所有取数（含 09-30 新探针）**均在未设该变量的状态下**完成；与既有「错误闭环两设置逐字节一致」的记录相容，但厂商那句声明如实标注为**上游口径冲突**，已并入上报材料 |
 | **选卡** | `dev1` = **已知故障卡**（UUID `b3509946…`，`0 MiB / 0%` **与好卡同貌**，靠 UUID 识别）⇒ **永远避开**；2026-09-30 复跑用 **`dev4`**（292 MiB / 0%）。 |
 
 ---

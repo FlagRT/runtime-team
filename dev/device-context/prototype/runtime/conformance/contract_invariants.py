@@ -45,6 +45,13 @@ CAPABILITY_ENTRYPOINTS = {
     "device_state_control": ("set_device_state",),
     "context_lifecycle": ("context_create", "context_destroy", "context_set", "context_count"),
     "context_query": ("context_query",),
+    # 2026-09-30（(A) 方案落地）：流优先级**拆三把钥匙**（能读范围 / 能设置 / 能回读）。
+    # 拆开的原因同 `context_query` / `context_lifecycle`：**能读 ≠ 能改**。
+    # 三家的取值不同（910C：范围✅ 回读✅ 设置❌ / P800：范围✅ 回读✅ 设置❌ / MLU590：全✅），
+    # 正是"如实拆分"要表达的信息。
+    "stream_priority": ("stream_priority_range",),
+    "stream_priority_control": ("create_stream",),
+    "stream_priority_readback": ("stream_priority_readback",),
 }
 
 #: 能力**未声明**时必须「显式拒绝」的探测（I1④ 反向）。
@@ -53,6 +60,9 @@ REFUSE_PROBES = {
     "memory_alloc": ("allocate(4096)", lambda bk: bk.allocate(4096)),
     "context_lifecycle": ("context_create(0)", lambda bk: bk.context_create(0)),
     "context_query": ("context_query()", lambda bk: bk.context_query()),
+    # 2026-09-30：未声明 `stream_priority_control` ⇒ `create_stream(priority=…)` 必须**显式拒绝**。
+    # 用 0 作参数：能力门禁在取值域校验**之前**，故该值本身合不合法不影响本探测。
+    "stream_priority_control": ("create_stream(0)", lambda bk: bk.create_stream(0)),
 }
 
 #: `graded_by` 的**已登记取值域**（见 conformance/errors.py 的字段说明）

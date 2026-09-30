@@ -176,7 +176,10 @@ def _make_fake_acl(init_rc=0):
         synchronize_device_with_timeout=lambda ms: rc["sync"],
         synchronize_stream_with_timeout=lambda h, ms: rc["sync"],
         get_device_count=lambda: (8, 0),
-        device_get_stream_priority_range=lambda: (0, -1),
+        # ⚠️ 2026-09-30：**真机 pyACL 返回三元组** `(least, greatest, rc)`（实测 `(7, 0, 0)`）。
+        # 旧 stub 返回 2 元组 ⇒ 把 ascend"直接透传三元组"这个**真实契约缺陷**盖住了
+        # （离线绿、真机形状不同）。现按真机形态返回，形状判据才有牙齿。
+        device_get_stream_priority_range=lambda: (7, 0, 0),
     )
     return acl, rc
 
@@ -203,11 +206,28 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     torch = types.ModuleType("torch")
     torch.__version__ = "0.0.0+stub"
     ns = types.ModuleType(f"torch.{ns_name}")
-    state = {"current": 0, "stream_query": True}
+    state = {"current": 0, "stream_query": True,
+             # 2026-09-30：流优先级的可控开关（供判据做**非空转验证**）——
+             #   `drop_priority=True` 精确复现 910C 上 torch_npu 的真实缺陷：
+             #   **收下 priority 却静默丢弃**（真机 `aclrtStreamGetPriority` 回读恒 0）。
+             "drop_priority": False,
+             "priority_range": (0, -3)}
 
     class Stream:
         def __init__(self, *a, **k):
-            pass
+            # 句柄属性：真机上 torch 的各家流过属性名不同（npu_stream / cuda_stream / mlu_stream），
+            # 本层回读要按名取 —— stub 三家都给，且值可控。
+            self.npu_stream = 0x5A0000 + id(self) % 4096
+            self.cuda_stream = self.npu_stream
+            self.mlu_stream = self.npu_stream
+            _p = int(k.get("priority", 0) or 0)
+            # ⭐「静默丢参数」开关：开了就丢弃传入值（模拟 torch_npu 的真实行为）
+            self.priority = 0 if state["drop_priority"] else _p
+
+        @staticmethod
+        def priority_range():
+            return tuple(state["priority_range"])
+
         def query(self):
             return state["stream_query"]
         def synchronize(self):
@@ -824,6 +844,90 @@ def run(proto_dir, backend):
     if not bk.supports("stream_priority"):
         check("未声明 stream_priority ⇒ stream_priority_range() 返回 None",
               bk.stream_priority_range() is None)
+
+    # ── 8b. 流优先级：**能读范围 ≠ 能设置**（2026-09-30，(A) 方案落地判据）──
+    #
+    # 来由：统一 API 若照抄 torch 的构造签名，会产出"看起来设了优先级、其实没设"的流
+    # （910C 实测：`torch.npu.Stream(priority=7)` 收下 kwarg 却回读恒 0）。
+    # 本段守四件事：形状合规 / 设置必须可回读校验 / 未声明必须显式拒绝 / 读不出必须 None。
+    print("\n[8b] 流优先级：形状 / 设置+回读 / 未声明则拒绝")
+    _rng = bk.stream_priority_range()
+    check("stream_priority_range() 形状合规（**2 元组**或 None；不得透传厂商三元组）",
+          _rng is None or (isinstance(_rng, tuple) and len(_rng) == 2
+                           and all(isinstance(x, int) and not isinstance(x, bool)
+                                   for x in _rng)),
+          f"得到 {_rng!r}（type={type(_rng).__name__}）")
+
+    _has_set = bk.supports("stream_priority_control")
+    _has_rb = bk.supports("stream_priority_readback")
+    check("声明 stream_priority_control ⇒ 必须同时声明 stream_priority_readback"
+          "（设置必须能校验，否则无法证明参数真的进去了）",
+          (not _has_set) or _has_rb, f"control={_has_set} readback={_has_rb}")
+
+    if not _has_set:
+        # 未声明 ⇒ **显式拒绝**（契约级 NotImplementedError），绝不静默返回一条无优先级的流
+        try:
+            bk.create_stream(0)
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  False, "未报错 —— 静默返回了一条无优先级的流（正是要防的假象）")
+        except NotImplementedError as e:
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  "stream_priority_control" in str(e), f"NotImplementedError: {str(e)[:70]}")
+        except BaseException as e:                                # noqa: BLE001
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  False, f"异常类型不合契约：{type(e).__name__}: {str(e)[:70]}")
+    else:
+        _b = bk._priority_bounds()
+        check("声明 control ⇒ 区间可解析（设置要能做取值域校验）", _b is not None, f"bounds={_b!r}")
+        if _b:
+            for _p in sorted({_b[0], _b[1]}):
+                try:
+                    _s_ = bk.create_stream(_p)
+                    _got = bk.stream_priority_readback(_s_)
+                    check(f"声明 control ⇒ create_stream(priority={_p}) 成功且**回读一致**",
+                          _got == _p, f"回读={_got!r}（请求 {_p}）")
+                except BaseException as e:                        # noqa: BLE001
+                    check(f"声明 control ⇒ create_stream(priority={_p}) 成功且**回读一致**",
+                          False, f"{type(e).__name__}: {str(e)[:80]}")
+            for _bad in (_b[0] - 1, _b[1] + 1):
+                try:
+                    bk.create_stream(_bad)
+                    check(f"越界 priority={_bad} ⇒ ValueError", False, "未报错（静默放行非法值）")
+                except ValueError:
+                    check(f"越界 priority={_bad} ⇒ ValueError", True, "ValueError")
+                except BaseException as e:                        # noqa: BLE001
+                    check(f"越界 priority={_bad} ⇒ ValueError", False,
+                          f"异常类型不对：{type(e).__name__}: {str(e)[:70]}")
+        # 非 int / bool ⇒ ValueError（bool 是 int 子类，最容易漏）
+        for _w in (True, 1.5, "3"):
+            try:
+                bk.create_stream(_w)
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", False, "未报错")
+            except ValueError:
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", True, "ValueError")
+            except BaseException as e:                            # noqa: BLE001
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", False, f"{type(e).__name__}")
+
+    if _has_rb:
+        # 用**可控假原语**驱动回读链路（"能造可控假原语就别 SKIP"）——
+        # 否则在无设备/无真库的离线环境里这条链路压根没被走到。
+        _orig_raw = getattr(bk, "_stream_priority_read_raw", None)
+        try:
+            bk._stream_priority_read_raw = lambda *a, **k: 0      # 可控假原语（返回 0）
+            _got = bk.stream_priority_readback(bk.create_stream())
+            check("声明 readback ⇒ 原语可用时回读必须返回 int（句柄提取 + 分发链路通）",
+                  isinstance(_got, int) and _got == 0, f"得到 {_got!r}")
+            bk._stream_priority_read_raw = lambda *a, **k: None   # 原语不可得
+            _got2 = bk.stream_priority_readback(bk.create_stream())
+            check("原语不可得 ⇒ 回读必须返回 None（**不得补零**：补零会把"
+                  "『读不出』伪装成『优先级就是 0』）",
+                  _got2 is None, f"得到 {_got2!r}")
+        except AttributeError:
+            check("声明 readback ⇒ 有 `_stream_priority_read_raw` 可注入（判据可非空转）",
+                  False, "缺该私有方法 ⇒ 离线无法驱动回读链路")
+        finally:
+            if _orig_raw is not None:
+                bk._stream_priority_read_raw = _orig_raw
     if not bk.supports("graph_capture"):
         print("  [INFO] 未声明 graph_capture：`torch.<ns>.graph` 存在性须容器内实测后决定")
 

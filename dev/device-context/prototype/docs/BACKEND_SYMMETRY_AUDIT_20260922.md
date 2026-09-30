@@ -653,6 +653,70 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 并加一条判据把"单一实例"钉死（本次已入离线自检，属"不需卡"）。
 诊断口诀：**判据失败时，先确认"判据与被测对象看的是不是同一个世界"**。
 
+### 2.15 第 24 条（第八轮，(A) 方案落地）：**「构造函数收下了参数」≠「参数生效」**
+
+**现象**：910C 上 `torch.npu.Stream(priority=7)` **接受**这个 kwarg 并返回一条流，
+但用 C API `aclrtStreamGetPriority` **回读恒为 0**。也就是说：**Python 侧看不出任何异常**，
+"设了优先级"与"没设"在调用方眼里**一模一样**。而同一栈的 pyACL
+`aclrtCreateStreamWithConfig(priority)` 传 0/3/7 **全部可回读** ⇒ 参数是在**插件层**被丢掉的。
+
+同一族还有一处更隐蔽的：`torch_npu._C._NPUStreamBase` 接受一个 `stream_ptr=` kwarg
+（正是 stock torch `ExternalStream` 用的那个名字），**收下后静默忽略** ——
+传进去的外部句柄既没报错、也没被用上，返回的是**流池里的另一条流**（12 个候选 kwarg 逐一实测，
+只有 `stream_ptr` 被"接受且忽略"，其余一律 `TypeError: invalid keyword argument`）。
+
+**为什么是缺陷**：这正是本层最贵的假象形态 —— 上层据此做调度决策，而设备侧**根本没这回事**；
+而且它**不会被任何"命令跑通了"式验证发现**。
+
+**修法**（本轮 (A) 方案）：
+1. 能力键**拆两把钥匙**：`stream_priority_control`（能设置）与 `stream_priority_readback`（能回读），
+   与既有的 `stream_priority`（能读范围）并列 —— 同 `device_state` / `device_state_control`、
+   `context_query` / `context_lifecycle` 的拆法：**能读 ≠ 能改，能改 ≠ 能校验**。
+2. `create_stream(priority=…)` 增**四道约束**（实现放基类唯一实现）：
+   未声明 `stream_priority_control` ⇒ `NotImplementedError`（**显式拒绝，不静默降级**）；
+   非 int / 越界 ⇒ `ValueError`；创建后**强制回读校验**，回读 ≠ 请求 ⇒ `RuntimeError`。
+3. 三家**按实测如实声明**：MLU590 全 ✅（唯一能"设置+回读"的实例）；
+   910C 与 P800 **只读**（范围可读、可回读，但**不声明设置**，理由各异：
+   910C = 插件层缺入口，P800 = 优先级空间退化为单点）。
+
+**关键认识**：**「声明」的粒度必须与「能验证的粒度」一致**。若只声明一个笼统的
+`stream_priority`，下游无法从元信息判断"能不能真的设" —— 只能靠踩坑。
+
+**非空转证据**：把 stub 的 `drop_priority` 打开（**精确复现 torch_npu 的静默丢弃行为**）⇒
+"设置成功且回读一致"判据当场 FAIL（`RuntimeError: 流优先级未生效：请求 -3，设备回读 0`）。
+
+### 2.16 第 25 条（第八轮）：**契约的「形状」也是契约 —— 而 stub 的"简化形态"会把它盖住**
+
+**现象**：`stream_priority_range()` 的契约是 **2 元组** `(least, greatest)`，
+但 `ascend` 实现**直接透传** pyACL `aclrtDeviceGetStreamPriorityRange` 的返回值 ——
+真机是**三元组** `(7, 0, rc)`；而 `cambricon` 同接口返回 **2 元组** `(0, -3)`
+⇒ **同一份下游代码在两台机器上读到不同形状**（`len()` 判断、解包都会分叉）。
+
+**为什么长期没被发现**：离线 stub 里写的是 `lambda: (0, -1)` —— **2 元组**。
+即 **stub 比真机"好看"**，把真实缺陷盖住了。这与 §2.6"stub 的不完整会伪装成实现的缺陷"
+**正好相反**：这次是 **stub 的"简化"伪装成了实现的正确**。
+⇒ 纪律：**stub 必须按真机形态写**（本轮已把 stub 改成返回三元组，判据当场可 FAIL）。
+
+**修法**：`ascend` 归一为 2 元组；新增离线判据「`stream_priority_range()` 必须是 2 元组或 None」；
+并把"形状是契约的一部分"写进基类文档。
+
+**非空转证据**：把 `ascend` 改回透传三元组 ⇒ 判据 FAIL（`得到 (7, 0, 0)`）。
+
+### 2.17 第 26 条（第八轮）：**隐式依赖调用方 CWD = 不可移植（"在一台机器上跑得通"可能是环境巧合）**
+
+**现象**：`runtime/demos/demo_unified.py` 用 `Path(__file__).resolve().parents[1]` 当原型根 ——
+但该文件在 `runtime/demos/` 下，`parents[1]` 是 **`runtime/` 目录本身**（正解是 `parents[2]`）。
+同一句 `python3 runtime/demos/demo_unified.py`：
+- **910C 容器内 ✅**：容器 `PYTHONPATH` 结尾多一个 `:` ⇒ **CWD 进了 `sys.path`**，靠调用方 CWD 恰好等于原型根蒙对；
+- **P800 conda 环境 ❌**：`ModuleNotFoundError: No module named 'runtime'`。
+
+**为什么是缺陷**：**可移植性层的示例脚本，自己不可移植**。更危险的是它的"通过"来自
+**与代码无关的环境巧合** —— 换台机器就炸，而排查方向会被误导到"环境缺包"。
+
+**修法**：改为 `parents[2]`，并支持 `DC_ROOT` 覆盖（与 `runtime/proto/*.py` 一致）。
+**非空转证据**：修后从 `CWD=/` 且**不给 `DC_ROOT`** 运行 ⇒ 910C 与 P800 **双向通过**；
+修前同条件在 910C 上同样会失败（已实测 `cd / && …` ⇒ `ModuleNotFoundError`）。
+
 ## 3. 判据非空转验证（新增判据必须能真的失败）
 
 | 判据 | 非空转证据 |
@@ -661,6 +725,9 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 | 第 8 条的键集合判据 | 用 flagos **修前**的键名清单对能力全集做集合差：**缺 10 / 多 3** ⇒ 判据必失败 |
 | 第 9 条的 rc 分类判据 | 假 pyACL 注入 `rc=107000`：修前后端抛 `TimeoutError`（判据**必失败**），修后抛 L2 统一错误；`rc=507046` 仍须是 `TimeoutError`（防"一刀切改成不抛"） |
 | 工具 A 的离线性判据 | 在 910C 上实测：修前 `acl` 被真实加载并让自检崩溃；修后判据通过且如实报出"本机存在真实绑定：['acl']" |
+| 第 24 条的 4 条优先级判据（第八轮） | 5 处注入，**5/5 当场 FAIL**：① stub 开 `drop_priority`（**精确复现 torch_npu 静默丢弃**）⇒「设置+回读一致」FAIL；② 去掉能力门禁 ⇒「未声明必须显式拒绝」FAIL；③ `ascend` 改回透传三元组 ⇒ 形状判据 FAIL；④ 声明 `control` 却去掉 `readback` 声明 ⇒ 耦合判据 FAIL；⑤ 去掉越界校验 ⇒「越界 ⇒ ValueError」FAIL |
+| 第 25 条的形状判据（第八轮） | 见上一行第 ③ 项（stub 改为按真机三元组返回后，该判据才具备"能 FAIL"的能力） |
+| 第 26 条的 CWD 判据（第八轮） | `cd / && python3 <proto>/runtime/demos/demo_unified.py`：修前 910C/P800 均 `ModuleNotFoundError`，修后双向通过（**不给 `DC_ROOT`**，纯靠自身路径解析） |
 
 （两条都在本文件与提交信息里留了原始输出，便于复核。）
 

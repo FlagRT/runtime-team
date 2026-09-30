@@ -33,7 +33,8 @@ runtime.discover()        # 扫描已安装的 backend 插件
 
 | 接口 | 语义 | 关键约束 |
 |---|---|---|
-| `create_stream()` | 创建统一 Stream 对象 | 跨流传缓冲必须 `record_stream`（见 §3 纪律 1）；**2026-09-29 起该纪律有实现路径约束**：先判能力位 `supports("record_stream")`，见 §1.6 |
+| `create_stream(priority=None)` | 创建统一 Stream 对象（**可选**指定优先级） | 跨流传缓冲必须 `record_stream`（见 §3 纪律 1）；**2026-09-29 起该纪律有实现路径约束**：先判能力位 `supports("record_stream")`，见 §1.6。**2026-09-30（只增）**：`priority` 见 **§1.9**（未声明 `stream_priority_control` 的后端 ⇒ `NotImplementedError`） |
+| `stream_priority_readback(stream)` | **回读**某条流的实际优先级；读不出返回 `None` | **不猜、不补零**。它是"参数真的进了设备"的唯一判定（见 §1.9）；兼容传统一 `Stream` 或原生流 |
 | `create_event()` | 创建统一 Event 对象 | record 后 query 才有意义 |
 | `stream.wait_event(ev)` | 建立跨流依赖（A record → B wait → B 可见 A 的结果） | 事件必须先 record |
 | `stream.synchronize(timeout_ms)` | **有界**流同步；超时抛 `TimeoutError` | 长驻服务必须用有界同步，防整体 hang |
@@ -212,6 +213,42 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 
 ---
 
+### 1.9 流优先级（**2026-09-30 新增 · 只增不改**）
+
+**背景（实测，见 `STREAM_PRIORITY_API_20260930.md`）**：统一 API 若照抄厂商 torch 的构造签名
+（`Stream(priority=…)`），会产出**最贵的假象** —— 910C 上 `torch.npu.Stream(priority=7)` **收下 kwarg
+却静默丢弃**（C API `aclrtStreamGetPriority` **回读恒 0**），Python 侧**看不出任何异常**。
+⇒ 本层把"能设"与"能读"**拆开声明**，并对设置**强制回读校验**。
+
+| 接口 | 语义 | 关键约束 |
+|---|---|---|
+| `create_stream(priority=None)` | `None`=厂商默认（**与历史逐位一致**）；`int`=指定优先级 | 四道约束：① 未声明 `stream_priority_control` ⇒ `NotImplementedError`（**显式拒绝，不静默降级**）② 非 int / 越出 `stream_priority_range()` ⇒ `ValueError`（bool 亦拒）③ 创建后**回读校验**：回读 ≠ 请求 ⇒ `RuntimeError` ④ 不指定时行为不变 |
+| `stream_priority_readback(stream)` | 回读该流的实际优先级（`int`）；**读不出返回 `None`** | **不得补零** —— 补零会把"读不出"伪装成"优先级就是 0" |
+| `stream_priority_range()` | `(least, greatest)` **2 元组** 或 `None` | ⚠️ **形状是契约的一部分**：不得把厂商的**三元组**（如 pyACL 的 `(least, greatest, rc)`）直接透传。官方语义：`greatest` 是**数值最小**的那个 ⇒ **0 最高、7 最低** |
+| 能力键 `stream_priority` | **范围可读** | 与下面两键**分开**（能读 ≠ 能改） |
+| 能力键 `stream_priority_control` | **能设置**（`create_stream(priority=…)` 真能生效） | **声明该键 ⇒ 必须同时声明 `stream_priority_readback`**（否则设置无法校验）；由离线判据守住 |
+| 能力键 `stream_priority_readback` | **能回读**单条流 | 可用于诊断"某条流实际是什么优先级" |
+
+**三家实测（如实，不得外推）**：
+
+| 实例 | 范围 | 设置 | 回读 | 真实原因（不是"没做"） |
+|---|---|---|---|---|
+| **MLU590** | `(0, -3)` | ✅ | ✅ | 三家**唯一**能完整落地的实例；上游**不拦截非法值**（本层已从源头兜住） |
+| **910C** | `(7, 0)` | ❌ | ✅ | **插件层缺入口**：torch_npu 无 `ExternalStream`（同文件里有 `ExternalEvent`）、`Stream(stream_ptr=…)` 被**静默忽略**、`libtorch_npu.so` 的 `getStreamFromExternal` **未暴露到 Python**；`acl_rt.h` 无 setter ⇒ 无法"先建后改"。pyACL 本身**接受并保留**该参数（可回读），但它产出的是**裸 ACL 句柄**，包不回 torch 流 |
+| **P800** | `(0, 0)` | ❌ | ✅ | **优先级空间退化为单点**（三个 CUDA 兼容入口都在，但 `cuCtxGetStreamPriorityRange` 报 `least=0, greatest=0`；且 `cuStreamCreateWithPriority(prio=-1)` **回读仍 0**）⇒ 设置**不产生任何区分**，故如实不声明 |
+
+**⚠️ 与"有效果"的区分**：本节的承诺是**接口能力**（能设、能读回），**不是**调度效果。
+官方文档明确 **Atlas 训练系列上 `priority` 属「预留参数、暂不使用」**，且优先级
+「**不抢占已处于运行状态的低优先级任务**」「**不动态重新评估任务队列**」
+⇒ 即便打通入口，也**未必**有可观测的调度效果（本方向 09-30 的实测：两种提交顺序下均"谁先提交谁先完成"）。
+**"能设"与"有效果"是两件事**，不得互相替代。
+
+**边界**：`priority` 的**取值域**由 `stream_priority_range()` 给；本层**不保证**厂商对越界值的行为
+（MLU590 实测不报错 —— 已被本层挡在门外）。若上层需要据此做调度决策，
+**应先补一条性能侧对照实验**（本方向尚未做）。
+
+---
+
 ## 2. Backend 插件接入规范（新芯片方向照此实现）
 
 **新增一家芯片 = 实现一个 backend + 跑通 conformance。** 步骤：
@@ -276,6 +313,8 @@ P800 的驱动层**有完整的 `cuCtx*` 系列**（21 个，就在 XPytorch 用
 | 2026-09-29（第六轮 · B1） | v0.1.0 | **新增 §1.8 契约不变式 I1–I4**（定名 + 定义 + 判定细则）—— 此前后者只有名字、没有定义（G8 登记为「未实现，靠人工检查」，全仓 grep 仅两处引用且都只解释 I2）。**只增不改**（不新增 API，只约束既有 API 的可观测性）。判据落地两处：真机 `runtime/conformance/contract_invariants.py`（`runner.py --cases contract_invariants`）+ 离线桩 `backend_offline_check.py` 第 `[10]` 段（**同一套核心函数**，无设备即可拦住回归）。G8 关闭 | 运行时层全组 |
 | 2026-09-29（第六轮续 · B1） | v0.1.0 | **契约不变式判据落地**（G8 关闭）：判据落 `conformance/contract_invariants.py`（真机 4 例）+ `backend_offline_check.py` 第 `[10]` 段（离线，**同一套核心函数**按文件路径加载，避免两处漂移）。过程中：① 发现并修复**台账第 18 条**（`ascend` 把弃用别名 `sync_timeout` 当在册能力列出，另两家不列 ⇒ 同一份下游代码在不同芯片上读到不同的在册集合）；② 修正判据自身两处缺陷（I1③ 需**别名感知**、I1⑤ 需**只认契约级 `NotImplementedError`**，否则会把「抛任何异常」误当显式拒绝 ⇒ **假通过**）。**未改任何接口签名**，行为变化仅限 `info()["capabilities"]` 的归一 | 运行时层全组 |
 | 2026-09-29（第六轮末 · B1 真机） | v0.1.0 | **契约不变式真机复跑与判据串自证**：① 真机 `--cases contract_invariants` **910C 4/4 · P800 4/4**（均 `CONTRACT_INVARIANTS_PASS`）；② runner 支持用例模块定义 **`VERDICT_TAG`** 拼出 `CONTRACT_INVARIANTS_PASS/FAIL` —— **不定义则保持原行为**（已实测 `cases` / `infer_cases` 仍为 `CONFORMANCE_PASS`）；③ 910C 第 5 轮全套回归 **11 项全绿**（含新增不变式 4/4）。**未改任何接口签名** | 运行时层全组 |
+
+| 2026-09-30（第八轮 · (A) 方案） | v0.1.0 | **流优先级统一 API 落地（只增不改）**：新增 **§1.9**（`create_stream(priority=None)` + `stream_priority_readback()` + 三个能力键 `stream_priority` / `stream_priority_control` / `stream_priority_readback`，**拆开声明**）。四道约束落基类唯一实现（未声明⇒`NotImplementedError` / 越界⇒`ValueError` / **创建后强制回读校验**，回读≠请求⇒`RuntimeError`）。三家按实测如实声明：**MLU590 全 ✅ / 910C 与 P800 只读**（原因不同，见 §1.9 表）。判据：离线自检新增 `[8b]` 段（4 条）+ **5 处注入的非空转验证（5/5 当场 FAIL）**；真机 `STREAM_PRIORITY_API_PASS` **910C 8/8 · P800 7/7**；破坏面回归 910C r9 / P800 r7 全绿。附带修 **2 处**：`ascend.stream_priority_range()` 透传**三元组**（形状违约，跨实例不一致）、`demo_unified.py` 根解析 **off-by-one**（隐式依赖调用方 CWD）。报告：`STREAM_PRIORITY_API_20260930.md`；缺陷台账 **第 24/25/26 条** | 运行时层全组 |
 
 ---
 

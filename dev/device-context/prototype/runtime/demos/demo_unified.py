@@ -15,10 +15,18 @@
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# 2026-09-30 修（**off-by-one**）：本文件在 `runtime/demos/` 下，根是 **parents[2]**，
+# 原写 `parents[1]` = `runtime/` 目录本身 ⇒ `import runtime` 只能靠**调用方 CWD 恰好在原型根**
+# 侥幸成功（910C 容器 PYTHONPATH 结尾多一个 `:` ⇒ CWD 进了 sys.path；
+#  P800 的 conda 环境没有 ⇒ 直接 ModuleNotFoundError）。
+# ⭐ 教训：**隐式依赖调用方 CWD = 不可移植**；根路径必须自己算对，
+#    可用 `DC_ROOT` 覆盖（与 runtime/proto/*.py 的规范做法一致）。
+sys.path.insert(0, os.environ.get("DC_ROOT")
+                or str(Path(__file__).resolve().parents[2]))
 
 import runtime
 from runtime.api.errors import ErrorCategory

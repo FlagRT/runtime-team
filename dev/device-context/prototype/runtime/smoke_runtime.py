@@ -77,7 +77,7 @@ class MockBackend(RuntimeBackend):
     def memory_stats(self, o):
         return {"total_mb": 65536, "used_mb": 1024, "free_mb": 64512}
 
-    def create_stream(self): return _MockNativeStream()
+    def _create_stream_raw(self, priority=None): return _MockNativeStream()
     def create_event(self): return _MockNativeEvent()
     def current_stream(self): return "mock-current"
 

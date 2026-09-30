@@ -62,6 +62,7 @@ __all__ = [
     # 设备 / 流（转发到当前后端）
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
+    "stream_priority_readback",
     "probe_device", "recover_device", "translate_error", "device_state",
     "set_device_state", "handle_error",
     # 内存句柄与生命周期（工作包 B）
@@ -93,16 +94,41 @@ def memory_stats(ordinal: int = 0) -> dict:
     return current().memory_stats(ordinal)
 
 
-def create_stream() -> Stream:
-    """创建统一 Stream 对象（包装后端原生流）。
+def create_stream(priority=None) -> Stream:
+    """创建统一 Stream 对象（包装后端原生流）；**可选**指定流优先级。
 
     2026-09-29（工作包 C）：同时登记"该流创建于哪个本层上下文"，
     以便上下文销毁后在使用点**如实拦截**（厂商侧是静默的，见 backend.check_stream_usable）。
+
+    2026-09-30（(A) 方案）：新增可选 `priority`（**只增不改**，默认 None = 既有行为逐位不变）。
+    四道约束由后端基类**统一**执行（`backends/base.py::create_stream`）：
+      ① 后端未声明 `stream_priority_control` ⇒ `NotImplementedError`（**显式拒绝**）；
+      ② `priority` 非 int / 越出 `stream_priority_range()` ⇒ `ValueError`；
+      ③ 创建后**必须回读校验**（回读 != 请求 ⇒ `RuntimeError`）——
+         这是"参数被厂商**静默丢弃**"的唯一防线（910C 的 `torch.npu.Stream(priority=7)`
+         正是这种情形：收下 kwarg 却回读恒 0）。
+    ⭐ 官方语义：数值**越小优先级越高**（`stream_priority_range()` 返回 `(least, greatest)`，
+    其中 `greatest` 是**数值最小**的那个）。能否**设置**请先查
+    `info()["supports"]["stream_priority_control"]`——**能读范围 ≠ 能设置**。
     """
     b = current()
-    native = b.create_stream()
+    native = b.create_stream(priority)
     b.note_stream_created(native)
     return Stream(b, native)
+
+
+def stream_priority_readback(stream):
+    """**回读**某条流的实际优先级；读不出返回 `None`（**不猜、不补零**）。
+
+    兼容传入统一 `Stream` 或后端原生流对象。
+
+    为什么要有这个入口（2026-09-30）：`torch.npu.Stream(priority=7)` 与
+    `pyACL create_stream_with_config(priority=7)` 在 Python 侧**长得一模一样**，
+    只有回读能把"参数真的进了设备"（7）与"被静默丢弃"（0）分开。
+    `create_stream(priority=…)` 内部即用它对第 ③ 条做强制校验。
+    """
+    native = stream._native_obj if isinstance(stream, Stream) else stream
+    return current().stream_priority_readback(native)
 
 
 def create_event() -> Event:

@@ -168,6 +168,9 @@ class CambriconBackend(RuntimeBackend):
         # 2026-09-29（A2 收尾）：四态机的 **驱动** 入口（原只有查询 `device_state`）。
         # 芯片无关 —— 走本层共享状态机（进程内账本，不依赖厂商原语），故三家一致声明。
         "device_state_control",
+        # 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙**
+        #   —— 与 `device_state` / `device_state_control`、`context_query` / `context_lifecycle` 同构。
+        "stream_priority_control", "stream_priority_readback",
     )
 
     #: 本后端**声明支持**的能力（不支持/未验证的一律不写进来 —— 如实声明，不伪造）
@@ -186,6 +189,12 @@ class CambriconBackend(RuntimeBackend):
                              #   （入口是 torch.mlu.MLUGraph + torch.mlu.graph）
         "stream_priority",   # 2026-09-22 实测 priority_range() = (0, -3) 可用且不崩
                              #   （与昆仑芯相反：那里同款 API 会触发 PyTorch INTERNAL ASSERT）
+        # ── 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙** ──
+        # **能读范围 ≠ 能设置**（同 `device_state` / `device_state_control` 的拆法）。
+        # 本家是三家**唯一两家都能声明**的实例（另两家：910C 插件层丢参数且无 ExternalStream、
+        # P800 优先级空间退化为单点）⇒ 声明"能设置 + 能回读"。
+        "stream_priority_control",   # `create_stream(priority=…)` 真能生效（设备侧可回读校验）
+        "stream_priority_readback",  # `Stream.priority` 回读（09-22 实测读回值正确）
         # ── 以下**不声明**（两类原因分开写清，勿混为一谈）──
         # 【已实测确认不具备 → 不声明】不是"未验证"，是"确认没有"
         #   "recovery_real" : torch.mlu 下 reset* / destroy* / reinit* 全是内存统计类
@@ -338,8 +347,41 @@ class CambriconBackend(RuntimeBackend):
             return 0
 
     # ───────────── 流 / 事件（职责 D4/D5）─────────────
-    def create_stream(self):
-        return self.torch.mlu.Stream()
+    def _create_stream_raw(self, priority=None):
+        """默认路径：`torch.mlu.Stream()`；`priority` 非 None 时带优先级建流。
+
+        本家是三家**唯一**能完整落地"设置 + 回读"的实例（2026-09-22 MLU590 真机实测：
+        `priority_range()` = **(0, -3)**，`Stream(priority=0/-1/-3)` 均可创建且**读回正确**）。
+        取值域与回读校验由基类 `create_stream()` **统一**执行（共享资产单一实现）。
+
+        ⚠️ 如实边界：厂商行为取自 09-22 记录；**本轮（09-30）未在 MLU590 真机复验本层新接线**
+        （该机网络未启用）⇒ 属"实现就绪、待窗口复验"，不得由另两家外推。
+        """
+        if priority is None:
+            return self.torch.mlu.Stream()
+        return self.torch.mlu.Stream(priority=int(priority))
+
+    def _stream_priority_read_raw(self, native_stream):
+        """**厂商原语层**：该流的优先级（读不出返回 None）。
+
+        本家的"原语"就是 torch 侧属性（`Stream.priority`），**没有独立的句柄式 C API**
+        （与 ascend 的 `aclrtStreamGetPriority` / kunlun 的 `cuStreamGetPriority` 不同）
+        —— 故本方法收的是**流对象**而不是句柄。
+        """
+        try:
+            v = getattr(native_stream, "priority", None)
+            return int(v) if v is not None else None
+        except Exception:                                         # noqa: BLE001
+            return None
+
+    def stream_priority_readback(self, native_stream):
+        """回读该流的优先级；读不出返回 None。
+
+        为什么必须能回读（2026-09-30）：`torch.npu.Stream(priority=7)` 在 910C 上
+        **接受 kwarg 却静默丢弃**（回读恒 0）—— 只有回读能把"参数真的进去了"与
+        "看起来设了"分开。本层据此对声明了 `stream_priority_control` 的后端**强制校验**。
+        """
+        return self._stream_priority_read_raw(native_stream)
 
     def create_event(self):
         # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
@@ -418,9 +460,10 @@ class CambriconBackend(RuntimeBackend):
         `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`）。
         实测也确认 `Stream(priority=0/-1/-3)` 均可创建且读回值正确。
 
-        ⚠️ **一处如实标注的缺口**：上游**未拦截非法优先级**（`Stream(priority=99)`
-        不报错）。本层**不透传非法值**；调用方若给区间外的值，行为由厂商实现决定，
-        不由本层保证。
+        ✅ **2026-09-30 起该缺口已被本层兜住**：上游**未拦截非法优先级**
+        （`Stream(priority=99)` 不报错），但本层的 `create_stream(priority=…)` 会
+        **按本区间强制校验**（越界 ⇒ `ValueError`）并做**创建后回读校验**
+        （回读 != 请求 ⇒ `RuntimeError`）⇒ 调用方不再需要自己保证区间。
 
         ⚠️ 仍未单独验证的：优先级的**实际调度效果**（读回值只证明被接受）。
         若后续需要据此做调度决策，应先补一条性能侧对照实验。
@@ -614,6 +657,26 @@ class CambriconBackend(RuntimeBackend):
             "workaround_risk": "该应用镜像内 vLLM 是厂商移植版还是社区版 + 插件，**仍未验证**",
             "report_to": "无（镜像分层设计使然，不需要上报）",
             "evidence": "MLU590/probes/A5_verify_20260922.log §B「推理腿平台判别」",
+        }, {
+            "id": "MLU-STREAM-PRIORITY-NO-VALIDATION",
+            "severity": "low",
+            "scope": "流优先级**取值域**（`torch.mlu.Stream(priority=…)` 的上游校验）",
+            "condition": "给区间 (0, -3) 之外的值（如 99）",
+            "symptom": (
+                "上游**不报错**（`torch.mlu.Stream(priority=99)` 直接建流成功）"
+                "—— 静默接受非法值，调用方无法从返回值看出参数早就越界了"
+            ),
+            "repro_rate": "确定性（2026-09-22 实测；本层未再复现，因已从源头挡住）",
+            "root_cause_layer": "厂商 PyTorch 插件（torch_mlu）参数校验缺失",
+            "workaround": (
+                "**本层已从源头兜住**：`create_stream(priority=…)` 按 "
+                "`stream_priority_range()` **强制校验取值域**（越界 ⇒ `ValueError`），"
+                "并在创建后**回读校验**（不符 ⇒ `RuntimeError`）—— 上层无需自行保证区间"
+            ),
+            "workaround_risk": "无（越界直接被拒，不会产出『看起来设了』的流）",
+            "report_to": "torch_mlu 上游（可选：建议补参数区间校验并报错）",
+            "evidence": "`MLU590/probes/A5_verify_20260922.log`；本层实现见 "
+                        "`runtime/backends/base.py::create_stream`（三段校验）",
         },
     ]
 

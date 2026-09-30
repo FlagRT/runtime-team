@@ -347,9 +347,109 @@ class RuntimeBackend(ABC):
 
     # ───────────────────── 执行 / 多流 Stream（职责 D4/D5）──────────────────────
 
+    # ───────────────── 流优先级：**能读范围 ≠ 能设置**（2026-09-30）─────────────────
+    #
+    # 来由（2026-09-30 B2 v2 实测 + 官方文档）：统一 API 若照抄 torch 的构造签名
+    # `Stream(priority=…)`，会得到一个"**看起来设了优先级、其实没设**"的流 ——
+    # 在 910C 上 `torch.npu.Stream(priority=7)` 经 `aclrtStreamGetPriority` **回读恒 0**
+    # （参数在 torch_npu 插件层被丢弃）；而 pyACL `aclrtCreateStreamWithConfig` 的 0/3/7
+    # **全部可回读**。⇒ 本层不能把"厂商构造函数收了这个 kwarg"当成"能力已具备"。
+    #
+    # 契约（本层的承诺，**只增不改**）：
+    #   ① `create_stream()`（priority=None）= **厂商默认**，既有行为逐位不变；
+    #   ② `priority` 非 None 且后端**未声明 `stream_priority_control`** ⇒ `NotImplementedError`
+    #      （**显式拒绝**，绝不静默返回一条无优先级的流）；
+    #   ③ `priority` 越出 `stream_priority_range()` 的区间 ⇒ `ValueError`（非 int / bool ⇒ 同）；
+    #   ④ 创建后**必须回读校验**：回读值 != 请求值 ⇒ `RuntimeError`
+    #      —— 这是"参数被厂商**静默丢弃**"的唯一防线（torch_npu 正是这种情形）。
+    #
+    # ⚠️ 声明 `stream_priority_control` 的后端**必须同时**声明 `stream_priority_readback`
+    #    （否则第 ④ 条无法执行 ⇒ 无法证明参数真的进去了）。该耦合由离线判据守住。
+
     @abstractmethod
-    def create_stream(self):
-        """创建并返回该后端的 Stream 对象。"""
+    def _create_stream_raw(self, priority=None):
+        """子类实现：**厂商建流原语**。`priority=None` 表示"不指定"（厂商默认）。
+
+        ⚠️ 实现纪律：`priority is not None` 且本后端未声明 `stream_priority_control` 时，
+        **必须显式抛错**（通常基类门禁已先抛）—— **绝不能静默忽略**该参数。
+        """
+
+    def _priority_bounds(self):
+        """把 `stream_priority_range()` 规整为 `(low, high)`；不可得返回 `None`。
+
+        ⚠️ **形状纪律**（2026-09-30）：契约是 **2 元组** `(least, greatest)`，其中
+        `greatest` 是**数值最小**的那个（官方：0 最高、7 最低）⇒ 区间取 `min/max`，
+        **不按原序**。pyACL 的 `aclrtDeviceGetStreamPriorityRange` 返回**三元组**
+        `(least, greatest, rc)`，后端**必须**归一 —— 否则同一份下游代码在不同家读到
+        不同形状（本轮修掉的一处真实跨实例不一致）。
+        """
+        rng = self.stream_priority_range()
+        if not isinstance(rng, (tuple, list)) or len(rng) != 2:
+            return None
+        try:
+            a, b = int(rng[0]), int(rng[1])
+        except (TypeError, ValueError):
+            return None
+        return (min(a, b), max(a, b))
+
+    def create_stream(self, priority=None):
+        """创建并返回该后端的 Stream 对象；**可选**指定流优先级。
+
+        `priority=None`（默认）⇒ 厂商默认行为，与历史版本**逐位一致**。
+        `priority=<int>` ⇒ 走上面 ①②③④ 四道约束。
+
+        为什么不做成"传了就当没传"（2026-09-30 的教训）：
+        静默忽略参数会产出**最贵的假象** —— 上层以为"高优先级流已建好"，
+        据此做调度决策，而设备侧根本没有这回事。**宁可报错，不给假象。**
+        """
+        if priority is None:
+            return self._create_stream_raw(None)
+
+        # ① 声明即承诺：未声明 ⇒ 显式拒绝（不是静默降级）
+        if not self.supports("stream_priority_control"):
+            raise NotImplementedError(
+                f"后端 '{self.name}' 未声明能力 `stream_priority_control` ⇒ 拒绝 "
+                f"create_stream(priority={priority!r})。\n"
+                f"  · 本层**能读**优先级范围（stream_priority_range() = "
+                f"{self.stream_priority_range()!r}），但**不等于能设置**；\n"
+                f"  · 本层宁可报错，也不返回一条『看起来设了优先级、其实没设』的流；\n"
+                f"  · 该实例的具体原因与证据见 `info()['known_issues']` 与芯片目录报告；\n"
+                f"  · 不指定优先级请用 `create_stream()`。")
+
+        # ② 取值域（bool 是 int 的子类，先挡掉）
+        if isinstance(priority, bool) or not isinstance(priority, int):
+            raise ValueError(
+                f"priority 必须是 int 或 None，收到 {type(priority).__name__}：{priority!r}")
+        bounds = self._priority_bounds()
+        if bounds is None:
+            raise RuntimeError(
+                f"后端 '{self.name}' 声明了 `stream_priority_control`，但 "
+                f"`stream_priority_range()` 给不出可解析的 2 元组区间"
+                f"（实际 = {self.stream_priority_range()!r}）"
+                f" ⇒ **声明与实现不一致**（设置无法做取值域校验）。")
+        if not (bounds[0] <= priority <= bounds[1]):
+            raise ValueError(
+                f"priority={priority} 越出本设备区间 {bounds}"
+                f"（官方语义：数值**越小优先级越高**，`stream_priority_range()` 返回 "
+                f"(least, greatest)）")
+
+        # ③ 创建 + **回读校验**（本层不允许静默退化）
+        native = self._create_stream_raw(int(priority))
+        got = self.stream_priority_readback(native)
+        if got is None:
+            raise RuntimeError(
+                f"后端 '{self.name}' 声明了 `stream_priority_control`/`stream_priority_readback`，"
+                f"但创建后**读不回**优先级 ⇒ 无法证明参数真的进去了"
+                f" ⇒ **声明与实现不一致**（设置必须可校验）。")
+        if int(got) != int(priority):
+            raise RuntimeError(
+                f"流优先级**未生效**：请求 {priority}，设备**回读** {got}。\n"
+                f"  · 含义：厂商在该路径上**接受但静默丢弃**了 priority"
+                f"（910C 的 `torch.npu.Stream(priority=…)` 正是这种情形：回读恒 0）；\n"
+                f"  · 本层**不掩盖**这一点：要么换一条真能把参数送进设备的路径，"
+                f"要么如实不声明该能力。\n"
+                f"  · 取证：`stream_priority_readback()` 与芯片目录报告。")
+        return native
 
     @abstractmethod
     def create_event(self):
@@ -539,7 +639,22 @@ class RuntimeBackend(ABC):
     # ───────────────────────── 可选能力（默认不支持）──────────────────────────
 
     def stream_priority_range(self):
-        """流优先级范围 (least, greatest)；不支持返回 None。"""
+        """流优先级范围 **(least, greatest) 2 元组**；不支持返回 None。
+
+        ⚠️ **形状是契约的一部分**（2026-09-30 修）：返回**必须**是 2 元组或 None ——
+        不得把厂商的**三元组**（如 pyACL 的 `(least, greatest, rc)`）直接透传出去。
+        官方语义：`greatest` 是**数值最小**的那个 ⇒ 0 最高、7 最低。
+        """
+        return None
+
+    def stream_priority_readback(self, native_stream):
+        """**回读**某条流的实际优先级；读不出返回 None（**不猜、不补零**）。
+
+        用途：把"参数真的进了设备"与"构造函数收了这个 kwarg"**分开**。
+        2026-09-30 实测：`torch.npu.Stream(priority=7)` 回读 **0**（插件层丢弃），
+        而 pyACL `aclrtCreateStreamWithConfig` 的 0/3/7 **全部可回读**
+        —— 没有这条回读，两种情形在 Python 侧**看起来一模一样**。
+        """
         return None
 
     def known_issues(self) -> list:
