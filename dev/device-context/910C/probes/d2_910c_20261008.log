@@ -1,0 +1,107 @@
+===== [0] 跑的是当前版本吗 =====
+-- 本轮新增的探针（期望存在且非空）
+   size=46657  probes/probe_stream_priority_sched_effect.py
+-- 探针判据数（judge/skip 调用，期望 31）
+   31
+-- 共享层关键点（本轮**未改**，此处只确认跑的是第十二轮修复后的版本）
+   release_stream      = 1
+   身份复核（第33条）= 1
+   stream_priority_readback = 1
+   context_set（第30条）= 1
+-- 职责审计项数（期望 78）
+   78
+-- 能力声明（决定 D2 的 applicable）
+   supports = {'stream_priority': True, 'stream_priority_control': False, 'stream_priority_readback': True}
+   range = (7, 0)
+-- 设备可见性
+   npu count = 1  dev0 = Ascend910_9382
+@ npu1-27 2026-10-08 07:34:06  可见设备 = 0（容器内 0 基索引 = 物理卡 2）
+
+########## 主项：D2 流优先级「调度效果」对照实验 ##########
+[07:34:06] start
+rc=0
+[07:34:18] end
+   [E1] range_raw=(7, 0) ⇒ hi(最高)=0 lo(最低)=7 supports_ctrl=False supports_rb=True applicable=False
+        ⇒ 不适用原因：未声明 `stream_priority_control`（如实不具备「能设置」）
+   STREAM_PRIORITY_SCHED_EFFECT_NOT_APPLICABLE（applicable=False · instrument_valid=True · effect_observed=None）
+     [PASS] E1_range_and_applicability: raw=(7, 0); hi=0; lo=7; supports[control]=False; supports[readback]=True; applicable=False；不适用原因：未声明 `stream_priority_control`（如实不具备「能设置」）
+     [SKIP] E2_setup_readback_equals_request: applicable=False ⇒ 不经优先级路径建流（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 13.651 ms（单次 ≈ 0.2275 ms）；gate 慢活 264 次实测 56.478 ms（下限 30.0 ms）
+     [PASS] D1_measurement_resolution: 一趟扫描 2.83 µs = 工作量级（13.651 ms）的 0.021%（阈值 ≤ 5.0%）⇒ 分辨力足够
+     [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 12.7489 ms ⇒ 测量**能**判出差异（仪器有效）
+     [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 2/8 有效轮（平局 0）；中位差 -0.1971 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+     [SKIP] V1_gate_actually_gated: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G1_gate_high_priority_wins: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G4_naive_submit_order_control: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G5_direction_crosscheck_swapped: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G6_nonzero_vs_zero_crosscheck: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G7_ungated_equal_priority_control: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G8_ungated_reversed_order: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+     [SKIP] G9_gated_large_vs_mid_crosscheck: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+
+########## 确认性回归（本轮**未改**共享层；按纪律复核一遍，防「顺带改坏」）##########
+===== d2_offline_ascend =====
+[07:34:18] start
+rc=0
+[07:34:19] end
+===== d2_symmetry_all =====
+[07:34:19] start
+rc=0
+[07:34:19] end
+===== d2_smoke_ascend =====
+[07:34:19] start
+rc=0
+[07:34:28] end
+===== d2_conf13_ascend =====
+[07:34:28] start
+rc=0
+[07:34:39] end
+===== d2_confinfer6_ascend =====
+[07:34:39] start
+rc=0
+[07:34:49] end
+===== d2_coninvariants =====
+[07:34:49] start
+rc=0
+[07:34:59] end
+===== d2_duty_ascend =====
+[07:34:59] start
+rc=0
+[07:35:58] end
+===== d2_selfcheck_duty_ext =====
+[07:35:58] start
+rc=0
+[07:37:43] end
+===== d2_prio_api_ascend =====
+[07:37:43] start
+rc=0
+[07:37:52] end
+===== d2_prio_release_ascend =====
+[07:37:52] start
+rc=0
+[07:38:02] end
+===== d2_entry_verify =====
+[07:38:02] start
+rc=0
+[07:38:11] end
+===== d2_root_resolution =====
+[07:38:11] start
+rc=0
+[07:38:11] end
+
+===== 各步结论 =====
+d2_offline_ascend            离线自检结果: 90 通过 / 0 失败 / 1 跳过 
+d2_symmetry_all              对称性自检结果: 7 通过 / 0 失败 
+d2_smoke_ascend              结果: 52 通过 / 0 失败 
+d2_conf13_ascend             CONFORMANCE_PASS 
+d2_confinfer6_ascend         CONFORMANCE_PASS 
+d2_coninvariants             CONTRACT_INVARIANTS_PASS 
+d2_duty_ascend               DUTY_RESPONSE_AUDIT OK 73 / FAIL 0 / SKIP 5 DUTY_RESPONSE_PASS 
+d2_selfcheck_duty_ext        共 39 项：抓到 34 · 本机不适用 5 · **未抓到 0** SELFCHECK_DUTY_EXT_PASS 
+d2_prio_api_ascend           STREAM_PRIORITY_API_PASS 
+d2_prio_release_ascend       STREAM_RELEASE_CONTROL_PASS 
+d2_entry_verify              ENTRY_VERIFY_PASS ENTRY_VERIFY_PASS 
+d2_root_resolution           ROOT_RESOLUTION_PASS 
+
+===== ALL DONE =====
+[07:38:11]

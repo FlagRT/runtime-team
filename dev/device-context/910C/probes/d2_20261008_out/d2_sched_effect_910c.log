@@ -1,0 +1,23 @@
+=== probe_stream_priority_sched_effect.py: 流优先级「调度效果」对照实验（台账 D2）===
+[env] backend=ascend device_type=npu devices=1 torch=2.11.0+cu130 dev=0（Ascend910_9382）
+[env] rounds=8 pass_n=6 work=2048 iters=60 calib=3 v1_rounds=3
+[E1] range_raw=(7, 0) ⇒ hi(最高)=0 lo(最低)=7 supports_ctrl=False supports_rb=True applicable=False
+     ⇒ 不适用原因：未声明 `stream_priority_control`（如实不具备「能设置」）
+[W1008 07:34:12.806487214 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+
+STREAM_PRIORITY_SCHED_EFFECT_NOT_APPLICABLE（applicable=False · instrument_valid=True · effect_observed=None）
+  [PASS] E1_range_and_applicability: raw=(7, 0); hi=0; lo=7; supports[control]=False; supports[readback]=True; applicable=False；不适用原因：未声明 `stream_priority_control`（如实不具备「能设置」）
+  [SKIP] E2_setup_readback_equals_request: applicable=False ⇒ 不经优先级路径建流（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 13.651 ms（单次 ≈ 0.2275 ms）；gate 慢活 264 次实测 56.478 ms（下限 30.0 ms）
+  [PASS] D1_measurement_resolution: 一趟扫描 2.83 µs = 工作量级（13.651 ms）的 0.021%（阈值 ≤ 5.0%）⇒ 分辨力足够
+  [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 12.7489 ms ⇒ 测量**能**判出差异（仪器有效）
+  [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 2/8 有效轮（平局 0）；中位差 -0.1971 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+  [SKIP] V1_gate_actually_gated: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G1_gate_high_priority_wins: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G4_naive_submit_order_control: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G5_direction_crosscheck_swapped: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G6_nonzero_vs_zero_crosscheck: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G7_ungated_equal_priority_control: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G8_ungated_reversed_order: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+  [SKIP] G9_gated_large_vs_mid_crosscheck: applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））
+结果 -> /mnt/raid/hliu553/dc_d2_20261008/out_d2/d2_sched_effect_910c.json

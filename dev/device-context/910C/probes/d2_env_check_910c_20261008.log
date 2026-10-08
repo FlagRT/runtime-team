@@ -1,0 +1,19 @@
+########## 910C D2 环境前置核查（原始输出 · 2026-10-08 15:46:52）##########
+# 用卡：物理卡 2 独占（容器只挂 /dev/davinci2）；当次普查 16 卡全无运行进程（15:31:39）
+# 命令：docker exec -e DC_ROOT=<原型根> -e DC_BACKEND=ascend dc-d2-910c-20261008 python d2_910c_env_check.py
+
+[W1008 07:46:58.668353198 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+container ASCEND_RT_VISIBLE_DEVICES = <unset>
+acl.init rc = 0
+device_count = (1, 0)
+torch 2.11.0+cu130 | torch_npu 2.11.0
+torch sees 1 npu devices
+device name = Ascend910_9382
+compute ok, sum = 262144.0
+stream_available_num = (1979, 0)
+runtime 出口缺失 = （无）
+backend supports: {'stream_priority': True, 'stream_priority_control': False, 'stream_priority_readback': True}
+stream_priority_range() = (7, 0)
+默认流 priority 回读 = 0
+release_stream(默认流) = False
+ENV_CHECK_PASS
