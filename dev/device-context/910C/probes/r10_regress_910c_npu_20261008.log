@@ -1,0 +1,116 @@
+===== [0] 跑的是当前版本吗（复核本轮关键修复点）=====
+-- 共享层新接口（各期望 1）
+1
+1
+1
+1
+1
+-- 已释放拦截（api/stream.py，期望 >=1）
+0
+-- 离线判据段（[8b] / [8b-②]）
+4
+-- 新增探针在不在
+probes/probe_stream_release_and_control.py
+probes/recover_multiproc_stress.py
+probes/selfcheck_root_resolution.py
+-- create_stream 消费方盘点（消费方清单，防漏覆盖）
+probes/exp_divergence_cost.py
+probes/probe_bc_contract.py
+probes/probe_stream_priority_api.py
+probes/probe_stream_release_and_control.py
+probes/probe_stream_semantics_full.py
+probes/recover_multiproc_stress.py
+runtime/__init__.py
+runtime/api/stream.py
+runtime/backends/ascend/backend.py
+runtime/backends/base.py
+runtime/backends/cambricon/backend.py
+runtime/backends/kunlun/backend.py
+runtime/conformance/contract_invariants.py
+runtime/conformance/runner.py
+runtime/demos/demo_unified.py
+runtime/proto/proto_error_recovery_loop.py
+runtime/proto/proto_infer_leg.py
+runtime/proto/proto_infer_serve.py
+runtime/proto/proto_train_leg.py
+runtime/smoke_runtime.py
+scripts/backend_offline_check.py
+scripts/duty_response_audit.py
+===== r10_offline_ascend =====
+[01:56:17] start
+rc=0
+[01:56:18] end
+===== r10_symmetry_all =====
+[01:56:18] start
+rc=0
+[01:56:18] end
+===== r10_smoke_ascend =====
+[01:56:18] start
+rc=0
+[01:56:28] end
+===== r10_conf13_ascend =====
+[01:56:28] start
+rc=0
+[01:56:39] end
+===== r10_confinfer6_ascend =====
+[01:56:39] start
+rc=0
+[01:56:49] end
+===== r10_coninvariants_ascend =====
+[01:56:49] start
+rc=0
+[01:56:58] end
+===== r10_duty_ascend =====
+[01:56:58] start
+rc=0
+[01:57:09] end
+===== r10_errorloop_ascend =====
+[01:57:09] start
+rc=0
+[01:57:19] end
+===== r10_bc_probe_ascend =====
+[01:57:19] start
+rc=0
+[01:58:20] end
+===== r10_prio_api_ascend =====
+[01:58:20] start
+rc=0
+[01:58:30] end
+===== r10_entry_verify_ascend =====
+[01:58:30] start
+rc=0
+[01:58:40] end
+===== r10_prio_release_ascend =====
+[01:58:40] start
+rc=0
+[01:58:49] end
+===== r10_root_resolution =====
+[01:58:49] start
+rc=0
+[01:58:49] end
+===== r10_stream_semantics =====
+[01:58:49] start
+rc=0
+[01:59:00] end
+===== r10_demo_unified =====
+[01:59:00] start
+rc=0
+[01:59:09] end
+===== r10_stream_quota(2000) =====
+[01:59:09] start
+rc=0
+[01:59:19] end
+===== r10_multiproc_stress =====
+[01:59:19] start
+rc=0
+[01:59:30] end
+===== r10_train_leg =====
+[01:59:30] start
+rc=1
+[01:59:42] end
+===== r10_infer_leg =====
+[01:59:42] start
+rc=0
+[02:00:04] end
+===== ALL DONE =====
+[02:00:04]
