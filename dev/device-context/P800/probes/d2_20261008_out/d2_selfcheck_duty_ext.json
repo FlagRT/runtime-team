@@ -1,0 +1,393 @@
+{
+ "backend": "kunlun",
+ "verdict": "SELFCHECK_DUTY_EXT_PASS",
+ "total": 39,
+ "delegation_mapping": [
+  {
+   "case": "真实通过",
+   "delegated": "True / 判据真正执行且通过",
+   "want": "OK",
+   "mapped": "OK",
+   "ok": true
+  },
+  {
+   "case": "如实跳过",
+   "delegated": "None / 委派方按三值约定跳过",
+   "want": "SKIP",
+   "mapped": "SKIP",
+   "ok": true
+  },
+  {
+   "case": "如实不适用",
+   "delegated": "True / 不适用：未声明 `memory_alloc` 等",
+   "want": "SKIP",
+   "mapped": "SKIP",
+   "ok": true
+  },
+  {
+   "case": "真实失败",
+   "delegated": "False / 二次释放静默（I3 违反）",
+   "want": "FAIL",
+   "mapped": "FAIL",
+   "ok": true
+  }
+ ],
+ "caught": [
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "H7",
+  "H8",
+  "I1",
+  "I6",
+  "I7",
+  "I8",
+  "I9",
+  "J1",
+  "J2",
+  "J3",
+  "J4",
+  "K1",
+  "K4",
+  "K5",
+  "K6",
+  "K7",
+  "K8",
+  "L1",
+  "L2",
+  "L3",
+  "L4",
+  "L5",
+  "L6",
+  "M1",
+  "M2",
+  "M3"
+ ],
+ "not_applicable": [
+  "I2",
+  "I3",
+  "I4",
+  "I5",
+  "I10",
+  "K2",
+  "K3"
+ ],
+ "not_caught": [],
+ "rows": [
+  {
+   "sid": "H1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "未声明能力却静默返回假句柄",
+   "detail": "注入后：未声明 memory_alloc 却**静默返回**（假句柄比报错危险：上层会当成可用的设备内存）"
+  },
+  {
+   "sid": "H2",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "allocate 对非法 size_bytes 不报错",
+   "detail": "注入后：0 未报错; -1 未报错; True 未报错; '4096' 未报错"
+  },
+  {
+   "sid": "H3",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "free 永不报错（二次释放静默）",
+   "detail": "注入后：二次释放**静默通过**（契约要求 ValueError —— 静默会是双重释放 → 后续踩内存）"
+  },
+  {
+   "sid": "H4",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "free 接受任意陌生句柄",
+   "detail": "注入后：{'handle_id': 999999, 'kind': 'memory'} 未报错; 8323072 未报错; '0x7f0000' 未报错; None 未报错"
+  },
+  {
+   "sid": "H5",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "句柄计数恒为 0（与分配/释放不联动）",
+   "detail": "注入后：分配前 0 → 分配后 0（期望 1）→ 释放后 0（期望 0）"
+  },
+  {
+   "sid": "H6",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "memory_stats 出现未登记键",
+   "detail": "注入后：出现未登记键 ['not_a_registered_key']（契约：不得出现未登记键）"
+  },
+  {
+   "sid": "H7",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "record_stream 直接抛错（契约要求保守同步放行）",
+   "detail": "注入后：record_stream 抛错：TypeError: no record_stream（契约：未声明 ⇒ 保守同步放行**不抛错**，跨流内存被提前回收比降级慢危险得多）"
+  },
+  {
+   "sid": "H8",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": ".native 取用不计数（恒值）",
+   "detail": "注入后：.native 取用后 native_accesses 未 +1（424242→424242）—— 取用必须可事后定位"
+  },
+  {
+   "sid": "I1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "未声明 context_lifecycle 却静默返回句柄",
+   "detail": "注入后：[注入后] 未声明 context_lifecycle 却静默返回了上下文句柄（子进程隔离）"
+  },
+  {
+   "sid": "I2",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "context_set 接受任意句柄",
+   "detail": "本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用"
+  },
+  {
+   "sid": "I3",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "context_destroy 接受任意句柄（含默认上下文）",
+   "detail": "本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用"
+  },
+  {
+   "sid": "I4",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "context_count 恒为 1（把进程默认上下文也数进去）",
+   "detail": "本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）"
+  },
+  {
+   "sid": "I5",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "两种句柄可互相误用（不报错）",
+   "detail": "本机如实 SKIP：需要同时声明 memory_alloc 与 context_lifecycle ⇒ 本机该分支不适用（子进程隔离）"
+  },
+  {
+   "sid": "I6",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "context_query 缺键",
+   "detail": "注入后：缺键 ['flags', 'managed_by', 'ordinal', 'present', 'reason']（契约：固定 6 键，上层换芯片无需分支）"
+  },
+  {
+   "sid": "I7",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "present 用 0/1 冒充 bool",
+   "detail": "注入后：present=1（不得用 0/1 冒充 bool）"
+  },
+  {
+   "sid": "I8",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "只读接口产生副作用（新造句柄）",
+   "detail": "注入后：查询过程新造/销毁了内存句柄：1 → 2（只读接口不得有副作用）"
+  },
+  {
+   "sid": "I9",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "recover_device 缺 context 三键",
+   "detail": "注入后：缺 context 三键 ['context_count', 'context_recreated', 'context_supported']（§1.7 只增）"
+  },
+  {
+   "sid": "I10",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "销毁上下文后其流仍可用（使用点未拦截）",
+   "detail": "本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）"
+  },
+  {
+   "sid": "J1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "能力全集之外的键被判 True（I1② 违反）",
+   "detail": "注入后：[委托 contract_invariants] ④ 入口存在性覆盖 14/17 项能力｜问题: ② 能力全集外的键被判 True: ['no_such_capability_xyzzy']"
+  },
+  {
+   "sid": "J2",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "陌生消息却声称 mapped=True（I2② 自相矛盾）",
+   "detail": "注入后：[委托 contract_invariants] ① 陌生消息却 mapped=True（不得声称有依据）；② 自相矛盾: mapped=True 但 graded_by='default'"
+  },
+  {
+   "sid": "J3",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "二次释放静默（I3 违反）",
+   "detail": "注入后：[注入后] [委托 contract_invariants] A 二次释放未报错（静默）；清理后仍有在世内存句柄: 1（本判据泄漏）（子进程隔离）"
+  },
+  {
+   "sid": "J4",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": ".native 取用不计数（I4② 违反）",
+   "detail": "注入后：[委托 contract_invariants] ② .native 计数 0→0、退化保持 1 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓；② `.native"
+  },
+  {
+   "sid": "K1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "范围透传厂商三元组（形状违约）",
+   "detail": "注入后：形状不符：(7, 0, 0)（契约：**(least, greatest) 2 元组** 或 None；不得透传厂商三元组）"
+  },
+  {
+   "sid": "K2",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "未声明 stream_priority 却给出范围",
+   "detail": "本机如实 SKIP：本后端已声明 stream_priority（范围可读）⇒ 该分支不适用"
+  },
+  {
+   "sid": "K3",
+   "base": "SKIP",
+   "injected": "-",
+   "caught": false,
+   "note": "未声明 control 却静默返回流（不拒绝）",
+   "detail": "本机如实 SKIP：本后端已声明 stream_priority_control ⇒ 该分支不适用"
+  },
+  {
+   "sid": "K4",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "非法 priority 不报错",
+   "detail": "注入后：-1 未报错; 1 未报错; '1' 未报错; True 未报错"
+  },
+  {
+   "sid": "K5",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "声明 control 但不声明 readback（耦合破裂）",
+   "detail": "注入后：声明了 control 但**没声明** readback ⇒ 设置无法校验（离线 `[8b]` 段同源判据）"
+  },
+  {
+   "sid": "K6",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "回读与请求不一致（参数被静默丢弃）",
+   "detail": "注入后：请求 0 回读 1（**参数被静默丢弃**）"
+  },
+  {
+   "sid": "K7",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "回读返回字符串（用伪装值表示「读不出」）",
+   "detail": "注入后：回读返回 '0'（str）—— 契约：int 或 None，**不得补零/伪装**"
+  },
+  {
+   "sid": "K8",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "单点区间请求唯一档位也失败/不校验",
+   "detail": "注入后：请求 0 回读 None"
+  },
+  {
+   "sid": "L1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "对厂商拥有的流返回 True（越权销毁）",
+   "detail": "注入后：release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）"
+  },
+  {
+   "sid": "L2",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "release_stream 不幂等（恒 True）",
+   "detail": "注入后：第一次=True 第二次=True（均应为 False）"
+  },
+  {
+   "sid": "L3",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "Stream.release() 越权返回 True",
+   "detail": "注入后：Stream.release() 返回 True —— 与 release_stream 同语义，厂商拥有的流必须是 False"
+  },
+  {
+   "sid": "L4",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "owns=False 但 release 返回 True（不一致）",
+   "detail": "注入后：厂商原生路径：owns=False 但 release=True; 优先级路径：owns=False 但 release=True"
+  },
+  {
+   "sid": "L5",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "已释放的流仍可继续使用（使用已销毁对象未如实报错）",
+   "detail": "注入后：已释放的流仍可使用（契约：使用已销毁对象必须明确报错，不得静默失败）；路径 = A 统一面 create_stream(priority=…)"
+  },
+  {
+   "sid": "L6",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "返回值不是严格 bool",
+   "detail": "注入后：返回 1（int）—— 契约：bool"
+  },
+  {
+   "sid": "M1",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "契约承诺的统一 API 名不可调用",
+   "detail": "注入后：契约承诺但统一面取不到：['context_set'] ⇒ 下游按契约写 `runtime.<name>` 会 AttributeError"
+  },
+  {
+   "sid": "M2",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "公开常量为空",
+   "detail": "注入后：缺或为空：['MEMORY_HANDLE_KEYS']"
+  },
+  {
+   "sid": "M3",
+   "base": "OK",
+   "injected": "FAIL",
+   "caught": true,
+   "note": "__all__ 里出现幽灵导出（拼错/未定义）",
+   "detail": "注入后：幽灵导出 ['definitely_not_a_real_name_xyz']"
+  }
+ ]
+}

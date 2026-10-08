@@ -1,0 +1,1353 @@
+{
+  "verdict": "STREAM_PRIORITY_SCHED_EFFECT_PASS",
+  "backend": "cambricon",
+  "device_type": "mlu",
+  "device_name": "MLU590-M9",
+  "torch": "2.7.1+cpu",
+  "dev": 0,
+  "range_raw": [
+    7,
+    0
+  ],
+  "hi_priority": 0,
+  "lo_priority": 7,
+  "supports_control": true,
+  "supports_readback": true,
+  "applicable": true,
+  "not_applicable_reason": [],
+  "instrument_valid": true,
+  "effect_observed": true,
+  "effect_observed_gated": false,
+  "effect_observed_ungated": true,
+  "wait_path": "Event.wait(Stream)",
+  "rounds": 8,
+  "pass_n": 6,
+  "work": 2048,
+  "iters": 60,
+  "slow_iters": 254,
+  "quantum_ms": 14.185,
+  "slow_ms": 59.185,
+  "backread_hi": 0,
+  "backread_lo": 7,
+  "direction_finding": {
+    "g5_value_wins": 8,
+    "g6_value1_wins": 8,
+    "g9_large_value_wins": 8
+  },
+  "queue_jump_finding": {
+    "g4_gap_ms": 6.2368,
+    "g7_equal_prio_gap_ms": -1.8414,
+    "g8_reversed_gap_ms": 7.1451,
+    "interpretation": "G4（取值 lo 先提交）与 G8（取值 hi 先提交）两向都让取值 hi 大胜 ⇒ 未 gated 场景下优先级有**实质**效果；G7 用同顺序+同取值作对照，排除「恒为后提交者获胜」"
+  },
+  "gated_tilt_finding": {
+    "g1_gap_ms": -0.2272,
+    "g5_gap_ms": 0.2274,
+    "g6_gap_ms": 0.228,
+    "g9_gap_ms": 0.2276,
+    "interpretation": "gated（同时就绪）场景下只有**一个测量步长**量级的偏斜；其方向与未 gated 场景的大效应相反 ⇒ 两个场景分开报，**不就『方向』下统一结论**"
+  },
+  "effect_criteria": {
+    "min_win_frac": 0.75,
+    "min_gap_frac": 0.25,
+    "min_res_frac": 0.05,
+    "min_slow_ms": 30.0
+  },
+  "groups": {
+    "G2": {
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 86.0591,
+      "median_lo_ms": 100.0388,
+      "median_gap_ms": 14.0659,
+      "records": [
+        {
+          "hi_ms": 86.1176,
+          "lo_ms": 100.183,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15420,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 86.3787,
+          "lo_ms": 100.192,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15841,
+          "sweep_us_median": 5.61
+        },
+        {
+          "hi_ms": 85.8883,
+          "lo_ms": 100.0026,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 15710,
+          "sweep_us_median": 5.62
+        },
+        {
+          "hi_ms": 86.0007,
+          "lo_ms": 100.0671,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 15775,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 85.9033,
+          "lo_ms": 100.0105,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15762,
+          "sweep_us_median": 5.69
+        },
+        {
+          "hi_ms": 86.1305,
+          "lo_ms": 99.9781,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15711,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 85.8917,
+          "lo_ms": 99.9656,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15665,
+          "sweep_us_median": 5.69
+        },
+        {
+          "hi_ms": 86.2512,
+          "lo_ms": 100.0747,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 15670,
+          "sweep_us_median": 5.69
+        }
+      ]
+    },
+    "G3": {
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 3,
+      "hi_win_rate_decided": 0.375,
+      "median_hi_ms": 86.0941,
+      "median_lo_ms": 86.0052,
+      "median_gap_ms": -0.2259,
+      "records": [
+        {
+          "hi_ms": 86.1465,
+          "lo_ms": 86.3754,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12267,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 86.3153,
+          "lo_ms": 86.0855,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12352,
+          "sweep_us_median": 5.59
+        },
+        {
+          "hi_ms": 86.1516,
+          "lo_ms": 85.9249,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12245,
+          "sweep_us_median": 5.68
+        },
+        {
+          "hi_ms": 85.8541,
+          "lo_ms": 86.0855,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12212,
+          "sweep_us_median": 5.7
+        },
+        {
+          "hi_ms": 85.8609,
+          "lo_ms": 86.091,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12272,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 86.089,
+          "lo_ms": 85.8639,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12252,
+          "sweep_us_median": 5.67
+        },
+        {
+          "hi_ms": 86.0768,
+          "lo_ms": 85.8459,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12258,
+          "sweep_us_median": 5.67
+        },
+        {
+          "hi_ms": 86.0992,
+          "lo_ms": 85.8671,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12219,
+          "sweep_us_median": 5.68
+        }
+      ]
+    },
+    "V1": {
+      "group": "V1_gate_validity",
+      "rounds": 3,
+      "decided": 3,
+      "indeterminate": 0,
+      "hi_wins": 0,
+      "hi_win_rate_decided": 0.0,
+      "median_hi_ms": 86.2746,
+      "median_lo_ms": 86.0475,
+      "median_gap_ms": -0.2271,
+      "records": [
+        {
+          "hi_ms": 86.2746,
+          "lo_ms": 86.0475,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12221,
+          "sweep_us_median": 5.68
+        },
+        {
+          "hi_ms": 86.305,
+          "lo_ms": 86.0799,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12101,
+          "sweep_us_median": 5.74
+        },
+        {
+          "hi_ms": 86.0922,
+          "lo_ms": 85.8651,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12226,
+          "sweep_us_median": 5.69
+        }
+      ]
+    },
+    "G1": {
+      "group": "G1_gate_hi_vs_lo",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 1,
+      "hi_win_rate_decided": 0.125,
+      "median_hi_ms": 86.0901,
+      "median_lo_ms": 85.8663,
+      "median_gap_ms": -0.2272,
+      "records": [
+        {
+          "hi_ms": 86.4039,
+          "lo_ms": 86.1779,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12193,
+          "sweep_us_median": 5.7
+        },
+        {
+          "hi_ms": 86.092,
+          "lo_ms": 86.3234,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12085,
+          "sweep_us_median": 5.76
+        },
+        {
+          "hi_ms": 86.0883,
+          "lo_ms": 85.8598,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12227,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 86.0882,
+          "lo_ms": 85.8611,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 10885,
+          "sweep_us_median": 5.6
+        },
+        {
+          "hi_ms": 86.2376,
+          "lo_ms": 86.0117,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12230,
+          "sweep_us_median": 5.68
+        },
+        {
+          "hi_ms": 86.0988,
+          "lo_ms": 85.8715,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12297,
+          "sweep_us_median": 5.63
+        },
+        {
+          "hi_ms": 86.0478,
+          "lo_ms": 85.8204,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12162,
+          "sweep_us_median": 5.71
+        },
+        {
+          "hi_ms": 86.065,
+          "lo_ms": 85.8363,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12211,
+          "sweep_us_median": 5.69
+        }
+      ]
+    },
+    "G4": {
+      "group": "G4_naive_submit_order",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 21.5087,
+      "median_lo_ms": 27.739,
+      "median_gap_ms": 6.2368,
+      "records": [
+        {
+          "hi_ms": 19.0173,
+          "lo_ms": 27.7686,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4925,
+          "sweep_us_median": 5.61
+        },
+        {
+          "hi_ms": 20.6018,
+          "lo_ms": 27.7426,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4765,
+          "sweep_us_median": 5.59
+        },
+        {
+          "hi_ms": 21.5116,
+          "lo_ms": 27.7267,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4616,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 21.514,
+          "lo_ms": 27.7355,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4626,
+          "sweep_us_median": 5.67
+        },
+        {
+          "hi_ms": 21.507,
+          "lo_ms": 27.7268,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4654,
+          "sweep_us_median": 5.62
+        },
+        {
+          "hi_ms": 21.5318,
+          "lo_ms": 27.782,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4671,
+          "sweep_us_median": 5.61
+        },
+        {
+          "hi_ms": 21.3261,
+          "lo_ms": 27.7778,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4682,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 21.5104,
+          "lo_ms": 27.7339,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4646,
+          "sweep_us_median": 5.63
+        }
+      ]
+    },
+    "G7": {
+      "group": "G7_ungated_equal_prio",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 0,
+      "hi_win_rate_decided": 0.0,
+      "median_hi_ms": 27.6938,
+      "median_lo_ms": 25.9832,
+      "median_gap_ms": -1.8414,
+      "records": [
+        {
+          "hi_ms": 27.7674,
+          "lo_ms": 25.9251,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4113,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 27.6478,
+          "lo_ms": 25.8072,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4145,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 27.6486,
+          "lo_ms": 26.0413,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 3442,
+          "sweep_us_median": 5.67
+        },
+        {
+          "hi_ms": 27.8995,
+          "lo_ms": 26.0541,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4128,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 27.6699,
+          "lo_ms": 25.827,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4133,
+          "sweep_us_median": 5.68
+        },
+        {
+          "hi_ms": 27.7602,
+          "lo_ms": 26.1426,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4108,
+          "sweep_us_median": 5.7
+        },
+        {
+          "hi_ms": 27.6413,
+          "lo_ms": 25.7975,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4122,
+          "sweep_us_median": 5.67
+        },
+        {
+          "hi_ms": 27.7177,
+          "lo_ms": 26.1016,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4111,
+          "sweep_us_median": 5.67
+        }
+      ]
+    },
+    "G8": {
+      "group": "G8_ungated_reversed",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 20.5853,
+      "median_lo_ms": 27.7287,
+      "median_gap_ms": 7.1451,
+      "records": [
+        {
+          "hi_ms": 18.7827,
+          "lo_ms": 27.7721,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4922,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 20.3568,
+          "lo_ms": 27.7393,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4744,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 20.3518,
+          "lo_ms": 27.7249,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4790,
+          "sweep_us_median": 5.61
+        },
+        {
+          "hi_ms": 20.3517,
+          "lo_ms": 27.7281,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4785,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 20.8242,
+          "lo_ms": 27.7413,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 4748,
+          "sweep_us_median": 5.59
+        },
+        {
+          "hi_ms": 20.8138,
+          "lo_ms": 27.7294,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4707,
+          "sweep_us_median": 5.69
+        },
+        {
+          "hi_ms": 21.7386,
+          "lo_ms": 27.7257,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4607,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 21.492,
+          "lo_ms": 27.7149,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 4672,
+          "sweep_us_median": 5.6
+        }
+      ]
+    },
+    "G5": {
+      "group": "G5_direction_swapped",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 85.9162,
+      "median_lo_ms": 86.1436,
+      "median_gap_ms": 0.2274,
+      "records": [
+        {
+          "hi_ms": 86.1381,
+          "lo_ms": 86.3656,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12266,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 86.0399,
+          "lo_ms": 86.2695,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12355,
+          "sweep_us_median": 5.62
+        },
+        {
+          "hi_ms": 85.8606,
+          "lo_ms": 86.0892,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12260,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 85.876,
+          "lo_ms": 86.1033,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12253,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 85.8964,
+          "lo_ms": 86.1229,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12303,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 85.8161,
+          "lo_ms": 86.0397,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 11947,
+          "sweep_us_median": 5.6
+        },
+        {
+          "hi_ms": 86.1103,
+          "lo_ms": 86.3347,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12279,
+          "sweep_us_median": 5.63
+        },
+        {
+          "hi_ms": 85.9361,
+          "lo_ms": 86.1642,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12242,
+          "sweep_us_median": 5.65
+        }
+      ]
+    },
+    "G6": {
+      "group": "G6_nonzero_vs_zero",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 85.9263,
+      "median_lo_ms": 86.1549,
+      "median_gap_ms": 0.228,
+      "records": [
+        {
+          "hi_ms": 86.2991,
+          "lo_ms": 86.5232,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12307,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 86.1468,
+          "lo_ms": 86.3738,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12318,
+          "sweep_us_median": 5.64
+        },
+        {
+          "hi_ms": 85.9128,
+          "lo_ms": 86.1417,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12389,
+          "sweep_us_median": 5.57
+        },
+        {
+          "hi_ms": 86.0225,
+          "lo_ms": 86.2503,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12324,
+          "sweep_us_median": 5.61
+        },
+        {
+          "hi_ms": 85.8843,
+          "lo_ms": 86.1118,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12361,
+          "sweep_us_median": 5.58
+        },
+        {
+          "hi_ms": 85.8931,
+          "lo_ms": 86.1213,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12278,
+          "sweep_us_median": 5.63
+        },
+        {
+          "hi_ms": 85.9397,
+          "lo_ms": 86.1682,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12229,
+          "sweep_us_median": 5.59
+        },
+        {
+          "hi_ms": 85.8975,
+          "lo_ms": 86.1274,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12261,
+          "sweep_us_median": 5.66
+        }
+      ]
+    },
+    "G9": {
+      "group": "G9_gated_large_vs_mid",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 86.0752,
+      "median_lo_ms": 86.3034,
+      "median_gap_ms": 0.2276,
+      "records": [
+        {
+          "hi_ms": 86.1395,
+          "lo_ms": 86.3676,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12200,
+          "sweep_us_median": 5.7
+        },
+        {
+          "hi_ms": 86.1287,
+          "lo_ms": 86.3581,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 12114,
+          "sweep_us_median": 5.66
+        },
+        {
+          "hi_ms": 86.1487,
+          "lo_ms": 86.3744,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 11530,
+          "sweep_us_median": 5.59
+        },
+        {
+          "hi_ms": 86.2073,
+          "lo_ms": 86.438,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 11119,
+          "sweep_us_median": 5.52
+        },
+        {
+          "hi_ms": 86.0218,
+          "lo_ms": 86.2488,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12275,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 85.9111,
+          "lo_ms": 86.139,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12221,
+          "sweep_us_median": 5.69
+        },
+        {
+          "hi_ms": 85.8844,
+          "lo_ms": 86.1091,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 12280,
+          "sweep_us_median": 5.65
+        },
+        {
+          "hi_ms": 85.8754,
+          "lo_ms": 86.1028,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 11837,
+          "sweep_us_median": 5.66
+        }
+      ]
+    }
+  },
+  "checks": {
+    "E1_range_and_applicability": {
+      "ok": true,
+      "detail": "raw=(7, 0); hi=0; lo=7; supports[control]=True; supports[readback]=True; applicable=True",
+      "range_raw": [
+        7,
+        0
+      ],
+      "hi_priority": 0,
+      "lo_priority": 7,
+      "supports_control": true,
+      "supports_readback": true,
+      "applicable": true,
+      "not_applicable_reason": []
+    },
+    "E2_setup_readback_equals_request": {
+      "ok": true,
+      "detail": "请求 hi=0 ⇒ 回读 0；请求 lo=7 ⇒ 回读 7"
+    },
+    "E3_work_quantum_calibrated": {
+      "ok": true,
+      "detail": "每流 60 次链式 2048² matmul 墙钟中位数 = 14.185 ms（单次 ≈ 0.2364 ms）；gate 慢活 254 次实测 59.185 ms（下限 30.0 ms）",
+      "quantum_ms": 14.185,
+      "per_iter_ms": 0.23641,
+      "slow_iters": 254,
+      "slow_ms": 59.185,
+      "slow_tries": [
+        {
+          "iters": 127,
+          "slow_ms": 29.527
+        },
+        {
+          "iters": 254,
+          "slow_ms": 59.185
+        }
+      ],
+      "min_slow_ms": 30.0,
+      "calib_samples": [
+        14.474,
+        14.171,
+        14.185
+      ]
+    },
+    "D1_measurement_resolution": {
+      "ok": true,
+      "detail": "一趟扫描 5.66 µs = 工作量级（14.185 ms）的 0.040%（阈值 ≤ 5.0%）⇒ 分辨力足够",
+      "sweep_us": 5.66,
+      "resolution_frac": 0.000399
+    },
+    "G2_positive_control_unequal_work": {
+      "ok": true,
+      "detail": "同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 14.0659 ms ⇒ 测量**能**判出差异（仪器有效）",
+      "instrument_valid": true,
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 86.0591,
+      "median_lo_ms": 100.0388,
+      "median_gap_ms": 14.0659
+    },
+    "G3_equal_priority_baseline": {
+      "ok": true,
+      "detail": "同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 3/8 有效轮（平局 0）；中位差 -0.2259 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）",
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 3,
+      "hi_win_rate_decided": 0.375,
+      "median_hi_ms": 86.0941,
+      "median_lo_ms": 86.0052,
+      "median_gap_ms": -0.2259
+    },
+    "V1_gate_actually_gated": {
+      "ok": true,
+      "detail": "慢活基准 59.185 ms；3 轮的完成时刻 hi=[86.2746, 86.305, 86.0922] lo=[86.0475, 86.0799, 85.8651]（阈值 ≥ 47.348 ms）⇒ 两条流都在 gate 触发**之后**才完成 ⇒ 等待非空操作",
+      "gate_slow_ms": 59.185,
+      "threshold_ms": 47.348
+    },
+    "G1_gate_high_priority_wins": {
+      "ok": true,
+      "detail": "同一 gate 同时就绪、入队顺序随机化：高优先级取值（0）那条流先完成 1/8 有效轮（平局 0；需 ≥ 6 = 75%）；中位 hi=86.0901 ms / lo=85.8663 ms、中位差 -0.2272 ms（需 ≥ 3.5462 = 25% 工作量级 14.185 ms）⇒ **未观测到实质性优先级调度效果（如实记录，非探针失败）**｜⚠️ 本组只回答『两流**同时就绪**』这一场景；「一条流已在运行、另一条才提交」的场景见 G4/G8（那里测到的是另一个量级）；噪声基线（G3）为 3/8",
+      "effect_observed": false,
+      "win_criterion_met": false,
+      "gap_criterion_met": false,
+      "win_need": 6,
+      "gap_need_ms": 3.5462,
+      "group": "G1_gate_hi_vs_lo",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 1,
+      "hi_win_rate_decided": 0.125,
+      "median_hi_ms": 86.0901,
+      "median_lo_ms": 85.8663,
+      "median_gap_ms": -0.2272
+    },
+    "G4_naive_submit_order_control": {
+      "ok": true,
+      "detail": "旧测法（**入队顺序固定**：取值 7 先提交、已进入运行态，随后才提交 取值 0）：取值 0（**后提交**）那条流先完成 8/8 有效轮（平局 0）；中位差 6.2368 ms（**正 = 后提交的取值 0 反超获胜；负 = 先提交者仍获胜**）⇒ 后提交者反超 6.2368 ms ⇒ 疑似**优先级插队**",
+      "group": "G4_naive_submit_order",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 21.5087,
+      "median_lo_ms": 27.739,
+      "median_gap_ms": 6.2368
+    },
+    "G7_ungated_equal_priority_control": {
+      "ok": true,
+      "detail": "同 G4 但两流**取值相同**（均 0）、提交顺序仍为角色 lo 先：后提交的角色 hi 先完成 0/8 有效轮（平局 0）；中位差 -1.8414 ms ⇒ 基本同速/先提交者胜 ⇒ 「恒为后者获胜」被排除，G4 的效应**可**归因于优先级差值",
+      "group": "G7_ungated_equal_prio",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 0,
+      "hi_win_rate_decided": 0.0,
+      "median_hi_ms": 27.6938,
+      "median_lo_ms": 25.9832,
+      "median_gap_ms": -1.8414
+    },
+    "G8_ungated_reversed_order": {
+      "ok": true,
+      "detail": "与 G4 顺序相反（取值 0 **先**提交、取值 7 **后**提交）：取值 0 那条流先完成 8/8 有效轮（平局 0）；中位差 7.1451 ms ⇒ 先提交的高优先级流大胜 7.15 ms ⇒ 与 G4/G7 合并支持「取值 0 更高、争用时份额更大」",
+      "group": "G8_ungated_reversed",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 20.5853,
+      "median_lo_ms": 27.7287,
+      "median_gap_ms": 7.1451
+    },
+    "G5_direction_crosscheck_swapped": {
+      "ok": true,
+      "detail": "**把两个取值在角色间对调**（角色 hi 用取值 7，角色 lo 用取值 0）：取值 7 那条流先完成 8/8 有效轮（平局 0）；中位差 0.2274 ms ⇒ 与 G1（取值 0 先完成 1/8）对照，判断获胜方跟『取值』还是跟『角色』",
+      "group": "G5_direction_swapped",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 85.9162,
+      "median_lo_ms": 86.1436,
+      "median_gap_ms": 0.2274
+    },
+    "G6_nonzero_vs_zero_crosscheck": {
+      "ok": true,
+      "detail": "取值 1 vs 取值 0（其余相同）：取值 1 那条流先完成 8/8 有效轮（平局 0）；中位差 0.228 ms ⇒ 用来区分「方向相反」与「非 0 值 vs 0 值的队列差异」",
+      "group": "G6_nonzero_vs_zero",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 85.9263,
+      "median_lo_ms": 86.1549,
+      "median_gap_ms": 0.228
+    },
+    "G9_gated_large_vs_mid_crosscheck": {
+      "ok": true,
+      "detail": "gated 场景 取值 7 vs 取值 1（均为非 0）：取值 7 那条流先完成 8/8 有效轮（平局 0）；中位差 0.2276 ms ⇒ 较大取值稳定领先 ⇒ 偏斜随**数值大小**（与『非 0』无关）",
+      "group": "G9_gated_large_vs_mid",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 86.0752,
+      "median_lo_ms": 86.3034,
+      "median_gap_ms": 0.2276
+    },
+    "G10_ungated_effect_summary": {
+      "ok": true,
+      "detail": "未 gated 场景汇总：G4（取值 7 先提交）= 6.2368 ms / 8/8；G8（取值 0 先提交）= 7.1451 ms / 8/8；同序同取值对照 G7 = -1.8414 ms ⇒ **观测到实质优先级效果**（两向都让取值 0 领先 ≥ 3.546 ms，且与对照的差值也达阈值）",
+      "effect_observed_ungated": true,
+      "g4_gap_ms": 6.2368,
+      "g8_gap_ms": 7.1451,
+      "g7_control_gap_ms": -1.8414,
+      "gap_need_ms": 3.5462
+    }
+  },
+  "notes": [],
+  "boundary": "单卡 · 同进程两条流 · 人为构造争用；不等于生产负载收益。「未观测到效果」≠「优先级无效」。本探针不引用厂商调度文档作机制依据。"
+}

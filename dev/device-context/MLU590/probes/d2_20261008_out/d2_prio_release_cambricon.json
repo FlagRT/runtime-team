@@ -1,0 +1,60 @@
+{
+  "backend": "cambricon",
+  "device_type": "mlu",
+  "range": [
+    0,
+    7
+  ],
+  "supports_control": true,
+  "verdict": "STREAM_RELEASE_CONTROL_PASS",
+  "passed": 9,
+  "failed": 0,
+  "skipped": 1,
+  "checks": {
+    "R1a 默认路径造出的流**不得**被登记为本层拥有": {
+      "ok": true,
+      "detail": "owns=False",
+      "skipped": false
+    },
+    "R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False": {
+      "ok": true,
+      "detail": "release=False",
+      "skipped": false
+    },
+    "R2 单点区间的等价放行": {
+      "ok": true,
+      "detail": "本机区间 = (0, 7)（非单点）⇒ 该分支不适用",
+      "skipped": true
+    },
+    "R3a 私有原语造出的流**可回读且等于请求值**（参数真的进了设备）": {
+      "ok": true,
+      "detail": "回读=0（请求 0）",
+      "skipped": false
+    },
+    "R3b 该流**真的能承载算子**（不是『看起来设了』的假流）": {
+      "ok": true,
+      "detail": "sum=32.0（期望 32.0）",
+      "skipped": false
+    },
+    "R3c 本层拥有的流 ⇒ release_stream 必须**真的销毁**（返回 True）": {
+      "ok": true,
+      "detail": "release=True",
+      "skipped": false
+    },
+    "R3d 已释放的流**再使用**必须报错（使用已销毁对象必须明确）": {
+      "ok": true,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x55593f353d50）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上",
+      "skipped": false
+    },
+    "R4 越界 priority=-1 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    },
+    "R4 越界 priority=8 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    }
+  }
+}
