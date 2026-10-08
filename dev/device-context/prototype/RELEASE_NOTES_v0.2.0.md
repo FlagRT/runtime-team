@@ -1,5 +1,8 @@
 # 统一运行时组件 v0.2.0 · 发布说明
 
+> ⚠️ **这是上一版发布说明** —— 当前版本见 [`RELEASE_NOTES_v0.3.0.md`](RELEASE_NOTES_v0.3.0.md)
+> （2026-10-08 发布；本文件保留为历史，**内容未改动**）。
+
 > **版本**：v0.2.0（**三芯片统一原型版**）｜ **发布**：2026-09-28（首发 2026-09-20）｜ **维护**：device-context（子方向 1）
 > **分发单元**：`dev/device-context/prototype/`（自包含，可整体拷出）
 > **版本载体**：**以 GitHub Release 为准** —— [https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0](https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0)（含附件 `runtime-prototype-v0.2.0.tar.gz`）；git tag 仅作提交指针，不再单独承载版本状态。

@@ -66,7 +66,7 @@
 | **环境普查脚本** | ✅ | `prototype/scripts/preflight_env.sh`（接入手册 §1 的 7 项可执行化）；第 3 家接入的第 0 步，产出即环境报告 |
 | **《验证复核清单》** | ✅ | `prototype/docs/VERIFICATION_MANIFEST_20260920.md`：**10 条**"声明 → 命令 → 判据"最小复现表 · 证据索引（含"当前结论 = 哪一份"）· **缺口 G1–G8** · 复跑阻塞项 · 证据命名规范 |
 | conformance 判据集 | ✅ | 功能 13 例 + 推理 6 例，三个后端结果并列可比 |
-| 组件打包 | ✅ | **GitHub Release [`runtime-v0.2.0`](https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0)**（**三芯片统一原型版**，含附件 `runtime-prototype-v0.2.0.tar.gz`）+ `prototype/RELEASE_NOTES_v0.2.0.md`；上一版 `runtime-v0.1.0`。⚠️ **版本以 Release 为准**（git tag 仅作提交指针） |
+| 组件打包 · **最新** | ✅ | **GitHub Release [`runtime-v0.3.0`](https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.3.0)**（**2026-10-08**：接口面补齐 §1.6–§1.10 + 8 处行为修正，含附件 `runtime-prototype-v0.3.0.tar.gz`）+ `prototype/RELEASE_NOTES_v0.3.0.md`；上一版 `runtime-v0.2.0`（三芯片统一原型版）、更早 `runtime-v0.1.0`。⚠️ **版本以 Release 为准**（git tag 仅作提交指针） |
 
 ### 2.2 910C 实例（第一个落地实例，✅ 已完成）
 
@@ -261,8 +261,9 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`（**上一版**） | 三芯片职责验收（09-22）：当时 MLU590 主机不可达 ⇒ 未纳入；**记录保留不覆盖** |
 | `prototype/docs/ROUTE_B_ARCHIVED_20260922.md`（129 行） | **路线 B（torch_fl）退出归档**：删了什么 / 保留什么 / 残留全量清单 / 复跑清单 |
 | `prototype/docs/DESIGN_DIST_COMM_20260908.md`（69 行） | 2 卡分布式微调的通信路线思考备忘（**状态：思考结论，尚未实跑**）；与分布式方向的接口约定**待回复** |
-| `prototype/README.md`（180 行） | 原型分支看板：统一 API 面、目录结构、**三实例**验证状态、文档索引 |
-| `prototype/RELEASE_NOTES_v0.2.0.md`（219 行） | **组件 v0.2.0 发布说明**（**三芯片统一原型版**；发布页 https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
+| `prototype/README.md`（182 行） | 原型分支看板：统一 API 面、目录结构、**三实例**验证状态、文档索引 |
+| `prototype/RELEASE_NOTES_v0.3.0.md`（218 行） | ⭐ **组件 v0.3.0 发布说明（当前版）**：契约 §1.6–§1.10 五个 sub-part · 统一面出口 28 → 46 · **8 处行为修正**（含「误触发设备级重建」「永久参数错误反复 replay」）· 调度效果**分场景结论** · 已知限制 11 条 · 升级建议 |
+| `prototype/RELEASE_NOTES_v0.2.0.md`（222 行） | **组件 v0.2.0 发布说明**（**三芯片统一原型版**；发布页 https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
 | `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
 | `../../summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md` | **分支级总结**（跨目录，在仓库根 `summary/`）：路线 A/B 选择依据 + 路线 A 设计方案 + **三实例**实现进度与下一步 |

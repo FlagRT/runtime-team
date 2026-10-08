@@ -14,6 +14,7 @@
 | 轮次 | 结论（一行） | 详见（报告 + 行号） |
 |---|---|---|
 | **第十六轮 · 10-08** | 回答「910C / P800 的『流优先级不适用』**属不属于本层职责、能不能修**」⇒ 两家**都不属、都不可修**；⭐ **顺带核出并修掉我方一处口径分叉**（契约 §1.9 表 P800 行自第九轮起漏改，与代码/看板/台账矛盾） | `prototype/docs/INTERFACE_CONTRACT_DC_20260908.md` **§1.9** · `prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` **第 36 条** |
+| **发布 · 10-08** | 发 **`runtime-v0.3.0`**（接口面补齐 §1.6–§1.10 + 8 处行为修正；统一面出口 **28 → 46**，移除 0）· 附件 `runtime-prototype-v0.3.0.tar.gz` | `prototype/RELEASE_NOTES_v0.3.0.md` **L1–L12**（本版一句话） |
 | **第十三轮续 · 10-08** | **D2 调度效果对照实验**三家现役实例全覆盖；MLU590 **分场景结论**，910C / P800 如实 `NOT_APPLICABLE`（**原因不同**） | `prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54 / L123–L150** |
 | **第十三轮 · 10-08** | **「不适用」自证审计**（六问）⇒ 两台结论**成立**；910C 根因**升级为「Python 绑定缺失」** | `prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L16–L112** |
 | **第十二轮 · 10-08** | **回读口径修复**：更正「三家都行使不了 L5」；MLU590 回读原为**空转判据** ⇒ 改走**厂商 C API**；修 **id 复用越权销毁** | `prototype/docs/STREAM_PRIORITY_READBACK_FIX_20261008.md` **L10–L143** |
@@ -46,7 +47,7 @@
 - **统一 API 与 Backend 插件机制已完成**，并在**三个芯片实例**上取得实证（第 3 家 09-28 收官；
   10-08 三实例在**同一版本**上跑完**扩口径 78 项职责审计**）—— 逐实例结论见主看板 §2 与各芯片看板 §3。
 - **阶段 5 交付**：《新芯片接入手册》·《组内服务启动标准》（唯一入口 `prototype/scripts/serve_standard.sh`，
-  跨芯片只改 `DC_BACKEND`，**各方向不再自建启动脚本**）·《验证复核清单》· 原型 release **`runtime-v0.2.0`**。
+  跨芯片只改 `DC_BACKEND`，**各方向不再自建启动脚本**）·《验证复核清单》· 原型 release **`runtime-v0.3.0`**（2026-10-08；上一版 `runtime-v0.2.0`）。
 - **多流 Stream 16 项验收基线**三家逐项比对完成（**唯一差异 = S-12 流优先级**：MLU590 `(0,-3)` 可设 ·
   P800 **单档** `(0,0)` · 910C **不声明**设置）⇒ `prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54**。
 - **未完成项**：组件下游反馈收集 · 全组联合 demo 合稿。（逐项未收尾清单见 `prototype/docs/OPEN_ITEMS_AUDIT_20260929.md` **§0/§2**）
@@ -62,7 +63,7 @@
 | **P800**（第 2 家） | `P800/README.md` §0 · `P800/docs/PROGRESS_REPORT_20260914.md` | 阶段 0–5 完成：训练腿 **6/6**（3533.5 tok/s）· 推理腿 **13/13** · 服务化 **10/10** |
 | **MLU590**（第 3 家） | `MLU590/README.md` §0 · `MLU590/docs/CAMBRICON_MLU_M1_RERUN_20261008.md` **L10–L46** | 接入完成 + m1 补齐轮 **20 项全绿**：训练腿 **6/6**（3015.3 tok/s）· 推理腿 **13/13** |
 | **三实例同口径矩阵** | `prototype/README.md` §3 · `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` | **12 项判定全部通过**；职责审计 **73/0/5 · 67/0/11 · 62/0/16** |
-| **组件级** | `prototype/RELEASE_NOTES_v0.2.0.md` | Release **`runtime-v0.2.0`**（三芯片统一原型版） |
+| **组件级** | `prototype/RELEASE_NOTES_v0.3.0.md` | Release **`runtime-v0.3.0`**（接口面补齐 + 行为修正；出口 28 → 46） |
 
 ## 基座与约束（本方向实测）
 
