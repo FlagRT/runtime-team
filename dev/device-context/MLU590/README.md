@@ -9,94 +9,34 @@
 
 ## 0. 状态
 
-> ✅ **2026-10-08 补齐轮 m1 已完成**（网络恢复后一次窗口跑完工作包四组，**20 项全绿**）——
-> **台账 D1 收尾**：本实例是三家**唯一**声明 `stream_priority_control`（**能设置**）的实例，
-> **本轮已在本层新接线（三段校验 + 强制回读校验）下真机跑过并通过**：
-> `STREAM_PRIORITY_API_PASS` **7/7**（区间 `(0,-3)`；请求 `0`/`-3` **回读与请求一致**；
-> 越界 `-4`/`1` ⇒ `ValueError`；厂商路径参数**保留**）；职责审计 **K6**（端点请求必须回读一致）
-> **首次被真正行使**。⚠️ 同时**更正一处预测**：本实例**并不能**行使 **L5**（建流走 torch 侧
-> ⇒ 流非「本层拥有」⇒ `release_stream` 恒 `False`）⇒ 已登记台账 **E2**。
-> 🔴 **2026-10-08 第十二轮（同日）再次更正与修复**：上面那条「不能行使 L5」已**通过改口径解决** ——
-> 本实例的整条优先级路径改走**厂商 CNRT C API**（与 kunlun 同构）⇒ 产生「本层拥有」的流
-> ⇒ **L5 经统一面真机行使并通过**（`RuntimeError: 该流已被 release_stream() 释放`），
-> 释放探针 **R3c/R3d 首次真行使**。⚠️ 更要紧的是：本实例原先的「能设置」**是空转判据撑起的假象**
-> —— 回读读的是 `torch.mlu.Stream.priority`（**构造参数的回显**），而**设备侧** C API 读到的是
-> 4 / 3 / 1 ⇒ 契约 §1.9 第 ⑥ 条在 MLU590 **永远不可能 FAIL**。同轮还修掉**长期登记未修**的
-> **id 复用越权销毁**（缺陷台账第 33 条）。详见
-> **`../prototype/docs/STREAM_PRIORITY_READBACK_FIX_20261008.md`**。
+> ✅ **当前状态（2026-10-08）**：**接入完成 · 12 项判定全部通过**；**m1 补齐轮 20 项全绿**
+> （离线 **97/0/0** · 冒烟 46/0 · conformance 13+6 · **职责 `DUTY_RESPONSE_PASS` 62/0/16** ·
+> 非空转 **26/13/0** · 训练腿 6/6 · 推理腿 13/13 · 服务化 `SERVE_STANDARD_PASS` + `SERVE_LEG_PASS` 10/10）。
+> 数字与证据：`docs/CAMBRICON_MLU_M1_RERUN_20261008.md` **L10–L46**（§0）。
 >
-> 🆕 **2026-10-08 第十三轮 · 台账 D2 收尾（流优先级「调度效果」对照实验）**：
-> 本实例是**唯一能出效果结论**的实例（另两家或未声明 `control`、或优先级空间退化为单点）。
-> 新增探针 14 项判据全 PASS，**结论分场景**：**同时就绪 ⇒ 无实质效果**（两条流并行完成，
-> 中位差 **0.227 ms** = 工作量级 14.185 ms 的 **1.6%**）；**有排队争用 ⇒ 有实质效果**
-> （取值 0 在两种提交顺序下各 **8/8**：反超 **+6.24 ms** / 大胜 **+7.15 ms**；同取值同顺序对照
-> **−1.84 ms** ⇒ 净效应 **5.3–8.1 ms**）⇒ **可以**用优先级表达「插队」，**不可以**指望
-> 「同时就绪时按优先级排序完成」。⚠️ 上述数字**只对本栈**（驱动 6.2.29 / `neuware4.4.3`）成立，
-> 且为**人为构造的单卡争用**。确认性回归全绿（离线 **97/0/0** · 冒烟 46/0 · 职责 **62/0/16** ·
-> 非空转 26/13/0 · 优先级 API / 释放所有权 / 入口 / 根解析全 PASS）。详见
-> **`../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md`**。
-> 本轮另暴露并修复 **5 处缺陷**（含职责审计 J 域把委派方的「不适用」压成 `OK`）。
-> 全部实测数字与证据：`docs/CAMBRICON_MLU_M1_RERUN_20261008.md`。
-> 详见 [`../prototype/docs/STREAM_PRIORITY_API_20260930.md`](../prototype/docs/STREAM_PRIORITY_API_20260930.md) §4.5 与
-> [`../prototype/docs/OPEN_ITEMS_AUDIT_20260929.md`](../prototype/docs/OPEN_ITEMS_AUDIT_20260929.md) 第八轮段。
-
-> 状态：✅ **接入完成 · 12 项判定全部通过**（2026-09-28 真机复跑）——
-> 离线自检 **39/0/0** / 对称性 **5/0** / 冒烟 **46/0** / **conformance 13/13 + 6/6** /
-> 多流 16 项（语义 8/8 · 图捕获 4/4 · 配额 3/3）/ 训练腿 **6/6** / **推理腿前向 13/13（另 1 项如实跳过）** /
-> **服务化 `SERVE_STANDARD_PASS`** / 错误闭环 **5/0/0**。
-> **09-22 因两台主机 SSH 超时未做的「推理腿与服务化」2 项已于 09-28 补齐**，
-> 第三实例自此与前两实例**同口径、同判据、同证据规范** ⇒ 已并入
-> [`../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md`](../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md)。
+> ⭐ **本实例的三个「唯一」**（三家对照时信息量最大）：
+> ① **唯一**声明 `stream_priority_control` **且区间非单点**（`(0,-3)`）⇒ **唯一能出「调度效果」结论**的实例；
+> ② **唯一**经**统一面**行使契约 §1.10 **L5**（流所有权/释放）的实例 —— 整条优先级路径走**厂商 CNRT C API**
+>    （与 kunlun 同构）⇒ 能产生「**本层拥有**的流」；
+> ③ **唯一**暴露过「**回读判据空转**」的实例（原读 `torch.mlu.Stream.priority` = **构造参数回显**，
+>    设备侧其实是 3/4）⇒ 已改为**厂商 C API 口径**，见
+>    `../prototype/docs/STREAM_PRIORITY_READBACK_FIX_20261008.md` **L59–L100**。
 >
-> ✅ **职责响应审计（39 项 sub-part）真机完成**（09-28 网络恢复后补跑，用卡 0）：
-> **`DUTY_RESPONSE_PASS` 36 OK / 0 FAIL / 3 SKIP** —— 3 项 SKIP 均为「**如实不具备**」：
-> `elapsed_time`（`CNRT error: failed to call the driver-api function`，契约外可选能力）·
-> `D5` / `F1`（本机**无数字错误码** ⇒ 未声明 `error_map`，分级走 `message_hint`，已由 conformance F1 覆盖）。
-> ⚠️ **判据数变更（2026-09-29）**：离线自检**新增 2 条判据**（**决策字段**不得受外来码表影响；
-> `recover_device()["state"]` 取值域）⇒ 现行判据数 **cambricon 43**、**kunlun 43**、**ascend 38**
-> （+2 / +2 / +1，均含非空转验证）。**本文档其余计数为历史批次值，按纪律保留不改写。**
+> ⭐ **调度效果结论（D2 · 分场景，不得合并）**：**同时就绪 ⇒ 无实质效果**（两流并行完成，中位差
+> **0.227 ms** = 工作量级 14.185 ms 的 **1.6%**）；**有排队争用 ⇒ 有实质效果**（取值 0 两种提交顺序各
+> **8/8**：反超 **+6.24** / 大胜 **+7.15 ms**，同取值同顺序对照 **−1.84 ms** ⇒ 净效应 **5.3–8.1 ms**）
+> ⇒ **可以**用优先级表达「插队到已在运行的低优先级流之前」，**不可以**指望「同时就绪时按优先级排序完成」。
+> ⚠️ 数字**只对本栈**（驱动 6.2.29 / `neuware4.4.3`）且为**人为构造的单卡争用**。
+> 详见 `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54 / L94–L122**。
 >
-> ⭐ **跨实例复验（2026-09-29，本实例发现并修复 1 处层内缺陷）**：按同一套判据复跑，首轮即暴露
-> 「**参数类错误的措辞等价类漏网**」—— 设备序号越界时 CNRT 原文是 **`CNRT error: invalid argument.`**，
-> 落不到 L2，只能兜底 **`L3_EXECUTION`（`replay`）**，而契约期望 **`L2_PARAM`（`raise`）**
-> ⇒ **对一个永久性参数错误反复重放（动作反了）**。已把 L2 规则改为**按等价类覆盖**，
-> 并给离线自检 **+2 条判据**（用两家真机原文）且做**非空转验证**（回退规则 ⇒ 恰好该条 FAIL，44/1）。
-> 修复后 **10 项全绿**：离线自检 **45/0/0** · 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** ·
-> 职责审计 **36/0/3** · 错误闭环 **5/0/0** · **等价性 5/6 → 6/6** · 多流 **8/8** + 配额 **3/3**。
-> ⇒ 报告 [`docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md`](docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md)；
-> 缺陷台账见 [`../prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md`](../prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md) 第 16 条。
+> **「不适用」自证（2026-10-08）**：本实例**没有**「不适用」结论 —— 三家中的另两家才有
+> （910C 未声明 `control`、P800 单档）；两家均通过自证审计，见
+> `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md`。
 >
-> 离线契约自检 **41/0/0**（09-28 批次值）· 跨后端对称性 **5/0**；三处补做（`recover_device` 补 `state`、四态命名对齐、
-> `sync_timeout` 别名）均**真机验证生效**。⇒
-> [`../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md`](../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md)
->
-> 本轮验证报告：**[`docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md`](docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md)**
-> ｜接入方案与真机手册：**[`docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md`](docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md)**
-
-| 阶段 | 状态 | 结果 |
-|---|---|---|
-| 阶段 0 · 环境普查 | ✅ **完成（09-22）** | 两台测试机：各 **8 × MLU590-M9（96 GB/卡）**、128 核 / 2 TB 内存、11T 数据盘挂在 `/srv`；**验收模型已在共享 HF 缓存**（`Qwen3-Embedding-0.6B` 快照 `97b0c614…`，只读复用） |
-| 阶段 0b · 镜像渠道与定档 | ✅ **完成（09-22）** | 定档 `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（digest `sha256:e55b420e…`）；**实测可匿名拉取** |
-| 阶段 0c · **环境开通 + 起容器** | ✅ **完成（09-22）** | `hliu553` 入 `docker` 组、`/srv/hliu553` 可写；拉定档镜像（**digest 实测与定档一致**）并起容器 `dc-mlu590-hliu553` |
-| 阶段 1 · 接入（`backends/cambricon/`） | ✅ **完成（09-22）** | 13 抽象 + `build()` + `supports()` 如实声明 + `known_issues()`；**离线自检 39/0（按当前原型复跑；落地时为 34/0）、smoke 42/0**（09-28 复跑 **46/0**）；能力声明已按真机证据更新 |
-| 阶段 2 · conformance | ✅ **完成（09-22）** | **13/13 + 6/6 全绿（`CONFORMANCE_PASS`）** —— 接入完成的判定线已达成 |
-| 阶段 3 · **多流 16 项基线** | ✅ **完成（09-22）** | 多流 **15 通过 / 1 不适用 / 0 不支持**；探针 **`STREAM_SEMANTICS_PASS 8/8`**（双卡，含 S-13）、图捕获（09-22 旧探针口径 **5/5**；09-28 按**现行口径**＝契约内 **4/4** + 1 项契约外**观察项**容忍）、S-16 配额 **2000 流 3/3** ⇒ 报告 `docs/CAMBRICON_MLU_STREAM_BASELINE_16_20260922.md` |
-| 阶段 4 · **训练腿** | ✅ **完成（09-22）** | 2 卡 DDP + **`cncl`** + 三类通信对照：**`TRAIN_LEG_PASS 6/6`**、loss **15.4498 → 11.1479**（50 步，无 NaN）、**2957.8 tok/s**（卡 0,2；**09-28 复跑 3015.3 / 3017.5 tok/s，卡 6,7**）。⚠️ CNCL 未加载 `libibverbs`/`libmlx5` ⇒ 走 **MLU_LINK 片间互联**，**非 RDMA**（已如实标注） |
-| 阶段 5 · **错误闭环** | ✅ **完成（09-22）** | 四类注入 **`ERROR_RECOVERY_LOOP_PASS`（闭环 5 / 跳过 0 / 失败 0）**，记录自带 `expectation`/`expect_matched` |
-| 阶段 6 · **推理腿前向** | ✅ **完成（09-28）** | **`INFER_LEG_PASS 13/13`**（另 1 项 `vendor_code_map` **如实跳过**——CNRT 抛错误名而非数字码）：dim **1024**、**41.08 句/s**、p50 **72.89 ms**、区分度 **0.6391**（`dev=mlu:0`） |
-| 阶段 7 · **推理腿服务化** | ✅ **完成（09-28）** | **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：就绪 **150 s**、维度 **1024**、范数 **1.000001**、冒烟耗时 **42 s**。⚠️ **须用 vLLM 应用镜像容器**（运行时镜像不含 vLLM，见 §3） |
-| 阶段 8 · 收敛 | ✅ **完成（09-28）** | 验证报告 + 三芯片验收矩阵已产出；本轮另修 **1 处工具问题**（冒烟超时硬编码 60 s ⇒ 假失败）并解决 **1 项入口缺口**（服务化改用官方应用镜像）；既有审计见 `../prototype/docs/BACKEND_SYMMETRY_AUDIT_20260922.md` |
-
-**预期收益**：`device_type="mlu"` 是**第三种设备命名空间**（前两种为 `npu` / `cuda`），
-是接口约定修订建议**第 1 条（`device_type` 与 `vendor` 分离）的首次真实验证场景**。
-
-> ⚠️ **一条原预期已被实测否定（09-22）**：本文档原写「寒武纪有真正的厂商错误码体系（CNRT），
-> **预期可做出比 P800 更完整的 `error_map`**」—— **实测证明该预期不成立**：
-> CNRT 抛出的**不是数字码而是错误名**（`RuntimeError: CNRT error: invalid argument.`），
-> OOM 亦是标准 PyTorch 文案（`OutOfMemoryError: MLU out of memory…`）⇒ **无可建码表的数字码**。
-> ⇒ `error_map` **如实不声明**（现已从「未验证不声明」升级为「已确认不具备」）；
-> 分级由 `message_hint` 覆盖：形状错 → L2、OOM → L1，conformance f1 已通过。
-> **方法论**：这正是「先如实不声明，拿到证据再声明」的价值 —— 若当初照着推测写一张码表，就是编造。
+> **接入期状态（09-28 收口 · 历史）**：12 项判定全部通过（离线 39/0/0 · 冒烟 46/0 · conformance 13+6 ·
+> 多流 16 项 · 训练腿 6/6 · 推理腿前向 13/13 · 服务化 · 错误闭环 5/0/0）；09-22 因两机 SSH 超时未做的
+> 推理腿与服务化 2 项已于 09-28 补齐 ⇒ 与前两实例**同口径、同判据、同证据规范**（已并入
+> `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md`）。
 
 ---
 
@@ -138,66 +78,24 @@
 
 ---
 
-## 3. 环境版本组合（⚠️ 本节的版本号**不是**我们的目标档，见下）
+## 3. 环境版本组合（⚠️ 版本号由**宿主驱动**决定，不按 torch 版本选）
 
-`/srv/data/build_base_venv.sh`（他人资产，只读）给出了"寒武纪 MLU 基础 venv"的确切组合：
+**一句话**：实测宿主驱动 **v6.2.29**（6.2.x 线）⇒ 定档
+`flagos-runtime-cambricon-neuware4.4.3:2.2.0`；`neuware4.7.2` 档（torch-mlu 1.33.1）**要求驱动 6.5.48**，
+列为**上报预案、非当前诉求**（**不凭版本号要求升级**）。
 
-```text
-python     3.12（注释："neuware472 需 py3.12"）
-torch      2.11.0+cpu
-torch-mlu  1.33.1+torch2.11.0
-torch-mlu-ops 1.12.1+torch2.11.0
-triton     3.4.0+mlu2.1.1          ← triton-mlu 变体
-私有源     https://resource.flagos.net/repository/flagos-pypi-cambricon/simple
-通用源     https://mirrors.aliyun.com/pypi/simple
-NEUWARE_HOME  /usr/local/neuware
-FlagGems   拉 master 源码 → /opt/FlagGems（editable, --no-deps）
-```
+| 项 | 值 | 说明 |
+|---|---|---|
+| 宿主驱动 | **v6.2.29**（固件 v1.5.0） | `cnmon` 实测；**选档第一判据** |
+| 定档镜像 | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（digest `sha256:e55b420e…`） | **实测可匿名拉取**（无需私仓凭据） |
+| 实机栈 | py3.10.20 / torch 2.7.1+cpu / torch_mlu 1.29.2 / triton 3.2.0+mlu1.7.2（`torch.mlu.device_count()==8`） | 容器内实测，与 4.4.3 档一致 |
+| 服务化镜像 | `flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2rc2.post2`（vLLM 0.20.2，digest `sha256:f568f23c…`） | **运行时镜像不含 vLLM** ⇒ 必须用应用镜像；栈与运行时镜像逐项相同 ⇒ 同档可比 |
+| ⚠️ 已作废的一条 | 他人脚本 `/srv/data/build_base_venv.sh` 给的 `torch 2.11.0 + torch-mlu 1.33.1` | 属 **4.7.2 档**（注释原文 "neuware472 需 py3.12"）⇒ **不是**我们的档位；其价值仅在于证明依赖获取 = **厂商私有源 + 通用源混合** |
 
-> **⚠️ 重要更正（2026-09-22）**：该组合属 **`cambricon-neuware4.7.2` 档**
-> （脚本注释原文即 "neuware472 需 py3.12"），而该档官方标注**宿主驱动前置 6.5.48**，
-> 我们两台机器实测 **v6.2.29** ⇒ **不满足**。
-> **本方向已定档走 `neuware4.4.3` 档**，实际组合为
-> **py3.10 / torch 2.7.1+cpu / torch-mlu 1.29.2+torch2.7.1 / torch-mlu-ops 1.8.0 / triton 3.2.0+mlu1.7.2**
-> （官方标注驱动前置 6.2.15，与我们同 6.2.x 线）。
-> 本节的**价值仍在于**：证明依赖获取是「厂商私有源 + 通用源混合」，不是裸 `pip install torch-mlu`。
-> 依据：`docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.1。
-
-✅ **已实机复核（09-22 起）**：`import torch_mlu` → `torch.mlu.device_count() == 8`；
-实际栈为 **py3.10.20 / torch 2.7.1+cpu / torch_mlu 1.29.2+torch2.7.1 / triton 3.2.0+mlu1.7.2**，**与 `neuware4.4.3` 档一致**；且**运行时镜像与 vLLM 应用镜像的栈逐项相同**（见下）。
-
-**镜像从哪来 → 见 `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md`**（09-22 调研 + **同日下午更正**）：
-- ❌ **FlagTree 没有寒武纪 User Manual / 推荐镜像**（wiki 26 页无 cambricon 条目；寒武纪只存在于编译器侧 `triton_v3.2.x` 分支）
-- ✅ **但 FlagOS 官方在 BAAI Harbor 上已有寒武纪镜像**（`flagos-base` / `flagos-runtime` / `flagos-app` 共 12 个仓
-  + FlagGems 周测 2 个仓），且**实测可匿名拉取**（Registry v2 匿名 token 取 manifest 成功，digest 已取得）
-  ⇒ **不需要寒武纪私仓凭据**
-- ⭐ **档位按宿主驱动选，不按 torch 版本选**（实测驱动 **v6.2.29**，落 6.2.x 线）：
-
-| 档位 | py | torch / torch-mlu / triton | 官方标注宿主驱动 | 我们 |
-|---|---|---|---|---|
-| **`harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`** | 3.10 | 2.7.1+cpu / 1.29.2 / 3.2.0+mlu1.7.2 | **6.2.15** | ✅ **已定档（2026-09-22）：先走它解除阻塞** |
-| `…/flagos-runtime-cambricon-neuware4.7.2:2.2.0` | 3.12 | 2.11.0+cpu / 1.33.1 / 3.4.0+mlu2.1.1 | **6.5.48** | ❌ 需升宿主驱动；列为**上报预案**（见下） |
-
-**定档理由**：4.4.3 的驱动前置 6.2.15 与我们实测 **v6.2.29 同属 6.2.x 线** ⇒ 起容器风险最低、可立即推进；
-4.7.2 需动**两台共享机的宿主驱动**（影响他人），且非当前瓶颈。
-**代价如实标注**：4.4.3 是旧档（torch-mlu 1.29.2 vs 1.33.1 / py3.10 vs 3.12）；
-本方向对 torch-mlu 小版本不敏感，故代价可接受。
-
-⚠️ **驱动升级（→ 6.5.48 走 4.7.2）为预案、非当前诉求**：**不凭版本号要求升级，只凭证据要求升级**；
-只有当原型接入 / 设备上下文验证出现「疑与旧档强相关、且已排除我方五域」的不可解问题时才启动，
-且上报须写清**问题**与**原因**（四条门槛 + 模板见
-`docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` §0.2）。
-**纪律**：设备上下文结论必须标注取得时所处的档位（同 P800 的「KL3 未设置条件下取得」）。
-
-- ✅ **推理形态（09-28 实测定稿）**：服务化改用 FlagOS 官方**应用镜像**
-  **`flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2rc2.post2`**（vLLM **0.20.2**，
-  digest `sha256:f568f23cf29b2…` **与 harbor 登记一致**，2.91 GiB，**实测可匿名拉取**）；
-  镜像内栈与运行时镜像**逐项一致**（py3.10.20 / torch 2.7.1+cpu / torch_mlu 1.29.2）⇒ **同档可比**。
-  起容器脚本 `start_container_mlu590_vllm.sh`（**与原脚本只差镜像一行**）。
-  另一档 `vllm0.24.0-cambricon-neuware4.4.3:2.2.0-0.3.0rc2.post2` 列为候选（vLLM 版本更高，**未采用**）
-- ✅ **原三项「仍待实测」已全部定论**：① 驱动 **6.2.29 可跑**标 6.2.15 的 4.4.3（同 6.2.x 线，实测正常）；
-  ② 带卡机**可出网**拉 `harbor.baai.ac.cn`（runtime 与应用镜像均拉通，digest 一致）；
-  ③ 应用镜像内为**厂商移植版 vLLM**（`vllm_fl.dispatch.manager` 算子分发日志 + triton `mlu` backend）
+> 完整调研 / 档位对照 / 私仓实测 / 驱动升级四条门槛与上报模板：
+> `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` **L10–L51**（§0 更正 + §0.1 定档）·
+> **L63–L109**（§0.2 升级预案 + §0.3 纪律）· **L154–L224**（寒武纪官方渠道实测）。
+> ⚠️ **纪律**：设备上下文结论必须标注取得时所处的档位（同 P800 的「KL3 未设置条件下取得」）。
 
 ---
 
@@ -231,13 +129,7 @@ sudo usermod -aG docker hliu553
 | `docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md` | ⭐ **推理腿（前向 + 服务化）验收报告**：12 项判定全通过 · 两条要点（**运行时镜像不含 vLLM ⇒ 用官方应用镜像**；**冒烟超时硬编码 60 s ⇒ 假失败**，含 PRE_FIX 原样留档）· 三实例对照与差异解释 · 边界与未覆盖 · 复现命令 |
 | ⭐ `docs/DUTY_RESPONSE_AUDIT_MLU590_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（SKIP 均如实不具备）；`recover_device` 的 `state` 补做**真机验证生效** |
 | ⭐ `docs/CAMBRICON_MLU_REGRESS_AFTER_FIX_20260929.md` | **修复后全套回归 + 一处层内缺陷的发现与修复**：工作包 A 等价性 **5/6 → 6/6**；L2 文案等价类的现象/根因/危害/修法；2 条新判据与**非空转验证**（回退规则 ⇒ 44/1）；三处修复的定向验证；未跑项如实登记 |
-| `probes/accept_*_20260928.*` | **本轮 12 项判定的原始证据**（命名与两实例同规范）：离线自检 · 冒烟 · conformance 13+6 · 多流三项 · 训练腿 · 推理腿前向 · 服务化（含 `PRE_FIX` 失败留档与 vLLM 服务端日志）· 错误闭环 |
-| ⭐ `probes/duty_audit_cambricon_20260928.json` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（3 项 SKIP 均为如实不具备）；离线自检 41/0/0 · 对称性 5/0 |
-| `probes/preflight_env_mlu1_20260922.log` | **Mlu-1 环境普查原始日志**（`preflight_env.sh` 首跑产出） |
-| `probes/preflight_env_mlu2_20260922.log` | **Mlu-2 环境普查原始日志** |
-| `probes/.gitignore` | `!*.log` 例外（否则根 `.gitignore` 的 `*.log` 会让证据静默不入库） |
-| ⭐ `probes/regress_*_cambricon_20260929.*` + `probes/exp_divergence_cost_cambricon_20260929.*`（共 18 份） | **09-29 修复后全套回归原始证据**：离线 **45/0/0** · 对称性 5/0 · 冒烟 46/0 · conformance 13+6 · 职责审计 36/0/3 · 错误闭环 5/0/0 · 等价性 6/6 · 多流 8/8 + 配额 3/3 |
-| ⭐ `probes/exp_divergence_cost_cambricon_PRE_FIX_20260929.json` | **修复前**同一实验的原始证据（**5/6，`S1` DIFF + 期望未达标**）—— 缺陷发现的**第一手证据**，原样留档 |
+| 证据入口 | **`probes/`** —— 逐份说明见 [`docs/EVIDENCE_INDEX_MLU590.md`](docs/EVIDENCE_INDEX_MLU590.md)；当前结论入口：`probes/accept_*_20260928.*` · `probes/duty_audit_cambricon_*.json` · `probes/m1_*_20261008*` · `probes/regress_*_cambricon_20260929.*` |
 
 ---
 
