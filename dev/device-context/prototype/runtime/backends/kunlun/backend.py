@@ -168,9 +168,15 @@ class KunlunBackend(RuntimeBackend):
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
-        # "stream_priority_control" : 区间是**退化单点**（实测 (0, 0)）⇒ 设置**不产生任何区分**，
-        #   与其宣称"可设置"，不如如实不声明（同 `context_lifecycle` 在本平台的处置）。
-        #   ⚠️ 旧注释曾把原因写成"priority_range() 触发 PyTorch INTERNAL ASSERT" ——
+        #
+        # ⚠️ 2026-10-08 第十六轮更正：此处原有第三条「`stream_priority_control`：区间退化单点 ⇒
+        #   如实不声明」—— 那是**第八轮的老处置**；**第九轮已改为真声明**（见上面集合里的
+        #   `"stream_priority_control"` 与 `P800/README.md`）⇒ 那段注释**从第九轮起就是死注释**
+        #   （同一个字面量里其实**已声明**），且它给的是**效果**理由，而契约 §1.9 的判据是
+        #   **接口能力**（能设 + 回读一致），不是效果。现状：**声明** `control`（取值域 = 单点 `{0}`，
+        #   请求 0 = 回读 0；非 0 先被 `ValueError` 挡下），**单档 ⇒ 无调度区分**；
+        #   上层若要用优先级表达意图，判据是 `range[0] == range[1]` ⇒ 不得据此做调度决策（台账第 36 条）。
+        #   ⚠️ 更旧的注释曾把原因写成"priority_range() 触发 PyTorch INTERNAL ASSERT" ——
         #   那是 **torch API 路径**的问题；底层真原语**安全可读**（纪律 ⑰：根因表述本身可能错）。
     }
 
