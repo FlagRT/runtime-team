@@ -30,20 +30,20 @@ FlagOS runtime-team v3 候选血统的 **round 4 收尾**：两项已拍板决�
 - 镜像构建：operator-runtime v3 `be30a952c2eb`、train-comm v3 `7028028bb62c`
   （含补丁，三重证据：static 自检 / `vllm_fl 0.0.0+g8b059122e.d20261008` 脏标记 /
   communicator.py SYNC-FIX ×2）。npu1-27 侧证明见两 REBUILD.md「ROUND 4」。
-- 文档链回填完毕（dev-1.0@31c741d 已含 e8d62b9；另有 6 文件回填改动已在
-  本机工作区 apply：`/tmp/round4-backfill.patch`，见 §5 步骤 0）。
+- 文档链回填完毕并已入库：dev-1.0@31c741d 含 e8d62b9（round 4 决策落地 13 文件）
+  与 1fdfaf8（round 4 构建事实回填 6 文件）。
 - pins.routeA.yaml digest 已更新（`sha256:7028028bb62c…af7913`）。
 
 ## 4. 本机（npu1-11）已就位的资源
 
 | 资源 | 位置 | 状态（2026-10-08 深夜） |
 |---|---|---|
-| 仓 | `~/runtime-team`（dev-1.0@31c741d + 6 文件回填 patch 已 apply，工作区 6 个 modified 未提交） | ✅ |
+| 仓 | `~/runtime-team` | 🔄 首跑步骤 0 会切到 xliu969/dev（含 1fdfaf8），见下 |
 | compose 插件 | `~/.docker/cli-plugins/docker-compose` v2.29.7 | ✅ |
 | 基座镜像 | `harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-…:202608-torch2.10.0-vllm0.20.2`（aa697a359613，19.2GB） | ✅ 已拉 |
 | 模型 | `~/models/Qwen3-Embedding-0.6B`（1.2G，含 model.safetensors） | ✅ |
-| 模型 | `~/models/Qwen2.5-1.5B`（2.9G） | 🔄 rsync 收尾中（启动前 du 核对≈2.9G） |
-| v3 镜像 | 待本机重建（见步骤 1） | ⬜ |
+| 模型 | `~/models/Qwen2.5-1.5B`（2.9G） | ✅ |
+| v3 镜像 | 待本机重建（见首跑步骤 1） | ⬜ |
 
 注意：**npu1-27 的 docker save 已损坏**（numpy libopenblas 层校验和不匹配，
 save 任何派生镜像必失败；运行不受影响）。所以镜像不能搬、只能本机重建——
@@ -61,20 +61,22 @@ save 任何派生镜像必失败；运行不受影响）。所以镜像不能搬
 
 按顺序执行：
 
-0. 状态核对：cd ~/runtime-team && git log --oneline -1（应 31c741d）；
-   git status（应恰好 6 个 modified，为 round4 文档回填——这是 npu1-27 上
-   已完成的回填，保持原样不要动、不要提交）；
-   若 /tmp/round4-backfill.patch 尚未 apply（git status 干净）则先
-   git apply /tmp/round4-backfill.patch。
-   du -sh ~/models/Qwen2.5-1.5B（应 ≈2.9G；不足则等/重跑
-   rsync -a npu1-27:/mnt/raid/hliu553/models/Qwen2.5-1.5B ~/models/）。
+0. 状态核对与分支切换：
+   cd ~/runtime-team
+   git status（若有未提交改动，多半是迁移中间态：git checkout -- . &&
+   git clean -fd dev docs 清掉，正式内容已全部入库）；删掉本地 tmp-round4
+   分支（迁移中间态）：git branch -D tmp-round4
+   git fetch origin
+   git checkout -B xliu969/dev origin/xliu969/dev
+   git log --oneline -2   # 应看到 1fdfaf8（round-4 构建事实回填）及其之前
+   du -sh ~/models/*      # 两个模型 ≈1.2G + 2.9G
+   docker images | grep flagtree-ascend3.5   # 基座 19.2GB 在位
 
 1. 重建 v3 两条镜像（不占卡；基座已在本地，走缓存很快）：
    参考 dev/images/ascend-operator-runtime/v3/build.sh 的上下文组装法——
    git archive 导出本仓 FlagGems@f7ae8e6b 与 PyTorch-Plugin-FL@162582d6
    （子库 pin commit，见 lock.yaml；本机子库若无对象则从 origin fetch）。
-   注意本机仓是 dev-1.0 分支，先按 dev/memory/dev-prep.sh 或手动
-   git checkout -b xliu969/dev origin/xliu969/dev 之类切到工作分支再改（若需要）。
+   注意：本机仓刚从 dev-1.0 切到 xliu969/dev，工作分支已就绪，直接做。
    构建预期产物 image id 与 npu1-27 不必一致（环境差异），但
    verify_runtime.py --static 必须过、镜像内 vllm_fl 版本串必须带 .d 日期
    脏标记、communicator.py 含 SYNC-FIX——三者齐 = 补丁层正确进镜像。
@@ -86,9 +88,9 @@ save 任何派生镜像必失败；运行不受影响）。所以镜像不能搬
    （up.sh 会先跑 pins 校验——注意 pins.routeA.yaml 的 digest 是 npu1-27 的
    镜像 id 7028028bb62c…，本机重建后 id 会不同：这是预期内的，把 digest
    改成本机 docker image inspect 的实际值即可，属环境适配不是违规。）
-   容器内跑 SMOKE_MODEL_PATH=~/models/Qwen3-Embedding-0.6B（容器内
-   /workspace/models/…，compose 挂了 WORKSPACE_ROOT=/home/xliu969/runtime-team，
-   所以实际把模型放到 ~/runtime-team/models/ 或直接用绝对路径挂载，自行判断）
+   容器内跑 SMOKE_MODEL_PATH 指向本机模型（compose 挂了
+   ${WORKSPACE_ROOT}:/workspace，把模型软链到 ~/runtime-team/models/ 下
+   或用绝对路径自行挂载，自行判断），执行
    python3 dev/images/ascend-operator-runtime/v3/assets/v3_step5_validate.py
    预期：coexistence PASS + 真实 .encode() 输出（round 3 卡死的 shmem 缺口
    应被 BLACKLIST=cos 绕开）。对照组：不叠 cos-off 层复现原 STOP CONDITION
@@ -117,6 +119,4 @@ save 任何派生镜像必失败；运行不受影响）。所以镜像不能搬
 - **/mnt/raid/models 权限**：raid 根 root-only，模型放 `~/models`（已做）。
 - **v3_step5_validate.py 的模型路径**：默认 `/mnt/raid/hliu553/models/…`（npu1-27
   路径），本机用 `SMOKE_MODEL_PATH` 环境变量覆盖。
-- **本机仓基线**：dev-1.0@31c741d；不要动 tmp-round4 本地分支（迁移中间态，
-  内容已含于 dev-1.0）。
 - compose `${WORKSPACE_ROOT}` 由 up.sh 设置，绕开 up.sh 需手动 export。
