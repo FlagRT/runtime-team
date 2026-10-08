@@ -738,7 +738,13 @@ class KunlunBackend(RuntimeBackend):
                 "⇒ **优先级区间退化为单点**：接口可用、可设置、可回读，"
                 "但**设置不产生任何调度区分**（设备只暴露一个档位）"
             ),
-            "repro_rate": "100%（2026-09-30 三次独立运行一致）",
+            "repro_rate": ("100%（2026-09-30 三次独立运行一致）。"
+                           "**2026-10-08 自证审计加宽证据面**：① **逐卡 7/8** 张（跳过他人作业在用的卡）"
+                           "全部 `rc=0` 且 `range=[0,0]`；② **两条独立实现路径读数一致** —— "
+                           "driver API（`cuCtxGetStreamPriorityRange`）与 runtime API "
+                           "（`cudaDeviceGetStreamPriorityRange`）都是 `(0,0)`；"
+                           "③ `cuStreamCreateWithPriority` 对 -10/-5/-2/-1/0/1/5/10、"
+                           "`cudaStreamCreateWithPriority` 对 -2/-1/0/1/2 **全部 rc=0、回读 0**"),
             "root_cause_layer": (
                 "厂商 CUDA 兼容运行时（libxpucuda.so.515.58.kunlun）上报的设备属性 "
                 "—— 设备只暴露一个优先级档位"
@@ -747,7 +753,12 @@ class KunlunBackend(RuntimeBackend):
                 "**不是**接口没实现：三个入口（`cuCtxGetStreamPriorityRange` / "
                 "`cuStreamCreateWithPriority` / `cuStreamGetPriority`）都在且可用；"
                 "**不是**包装不了：`torch.cuda.ExternalStream(handle)` 回取句柄**逐位相同**"
-                "且能在其上跑对算子"
+                "且能在其上跑对算子；"
+                "**不是**「只看了兼容层」：driver(`cu*`) 与 runtime(`cuda*`) 两条路径读数一致；"
+                "**也不是**「原生层另有一套」：全量 `nm -D` 扫描下 "
+                "`xpu*`/`XPU*` 前缀的 `Stream`/`Queue` API **零命中**，"
+                "`libxpurt.so.12.9.1.kunlun` 含 `priority` 与 `Stream` 的符号**都是 0 个**；"
+                "**不是**「只测了一张卡」：逐卡 7/8 张一致"
             ),
             "workaround": (
                 "需要**按优先级编排**的上层：本平台做不到，**请勿据此做调度决策**；"
@@ -756,7 +767,9 @@ class KunlunBackend(RuntimeBackend):
             ),
             "workaround_risk": "无（区间由设备自报，本层只是如实转达）",
             "report_to": "昆仑芯（XPytorch / XRE）—— 若要支持多档优先级，需厂商侧暴露",
-            "evidence": "P800/probes/prio_settable_kunlun_20260930.log",
+            "evidence": ("P800/probes/prio_settable_kunlun_20260930.log、"
+                         "P800/probes/audit_20261008_out/kunlun_audit.log"
+                         "（2026-10-08 自证审计：逐卡 / runtime API 交叉 / 全量符号扫描）"),
         },
     ]
 
@@ -785,7 +798,10 @@ class KunlunBackend(RuntimeBackend):
                 "通信库 libbkcl.so（XCCL/BKCL）",
             ],
             "known_upstream_defects": [
-                "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)",
+                "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)"
+                "（⚠️ 这是 **torch API 路径**的问题；底层真原语 `cuCtxGetStreamPriorityRange` "
+                "**安全可读**且返回 `(0,0)` ⇒ 设备报的是「只有一个档位」，不是「没这个接口」；"
+                "见 known_issues 的 KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL）",
                 "厂商错误码不透出到 Python 异常（仅退出钩子偶见 error code=101）",
                 "XPU_EVENT_KL3_ENABLE=1 且存在设备侧集合通信时，设备事件同步概率性永久挂死（≈89%，"
                 "自旋于厂商 libcuda.so）—— 详见 known_issues[0] 与 "

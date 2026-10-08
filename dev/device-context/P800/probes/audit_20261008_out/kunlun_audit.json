@@ -1,0 +1,137 @@
+{
+ "findings": [
+  {
+   "key": "env",
+   "value": "torch=2.9.0+cu129 cuda=12.9 dev_count=8",
+   "why": ""
+  },
+  {
+   "key": "visible",
+   "value": "<unset>",
+   "why": ""
+  },
+  {
+   "key": "A1_maps_libcuda",
+   "value": "（未在 maps 中找到）",
+   "why": ""
+  },
+  {
+   "key": "A2_maps_libxpu",
+   "value": [
+    "/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun",
+    "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpuapi.so",
+    "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_flash_attention.so",
+    "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_dnn.so",
+    "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_blas.so",
+    "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpujitc.so",
+    "/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun",
+    "/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.12.9.1.kunlun"
+   ],
+   "why": ""
+  },
+  {
+   "key": "A3_CDLL('libcuda.so.1')",
+   "value": "OK",
+   "why": ""
+  },
+  {
+   "key": "Q3_候选库数",
+   "value": 9,
+   "why": "['/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_blas.so', '/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_dnn.so', '/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_flash_attention.so', '/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpuapi.so', '/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpujitc.so', '/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpucuda.so.515.58.kunlun', '/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpuml.so.515.58.kunlun', '/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpunvidia-ml.so.515.58.kunlun', '/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.12.9.1.kunlun']"
+  },
+  {
+   "key": "Q3_命中的库与其符号",
+   "value": "{\"/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_blas.so\": [\"xpu3_kernel_src_bmm_algo_1_fc_batched\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common_crc32\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common_len\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_crc32\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_common\", \"xpu3_kernel_src_bmm_algo_2_bmm_common_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_common_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nkm\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nkm_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nkm_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nmk\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nmk_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nmk_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mkn\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mkn_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mkn_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mnk\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mnk_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_kn_mnk_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nkm\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nkm_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nkm_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nmk\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nmk_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_mk_nmk_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_kmn\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_kmn_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_kmn_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_knm\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_knm_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_mn_knm_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mkn\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mkn_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mkn_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mnk\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mnk_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_nk_mnk_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_nm_kmn\"], \"/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/libxpu_dnn.so\": [\"xpu3_kernel_src_bmm_algo_1_fc_batched\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common_crc32\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_common_len\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_crc32\", \"xpu3_kernel_src_bmm_algo_1_fc_batched_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_common\", \"xpu3_kernel_src_bmm_algo_2_bmm_common_crc32\", \"xpu3_kernel_src_bmm_algo_2_bmm_common_len\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nkm\", \"xpu3_kernel_src_bmm_algo_2_bmm_km_nkm_",
+   "why": ""
+  },
+  {
+   "key": "Q1_有cuCtxGetStreamPriorityRange",
+   "value": true,
+   "why": ""
+  },
+  {
+   "key": "Q1_有cuDeviceGet/cuCtxCreate",
+   "value": [
+    true,
+    true
+   ],
+   "why": ""
+  },
+  {
+   "key": "Q1_Q2_逐卡range",
+   "value": "{\"0\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"1\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"2\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"3\": {\"skipped\": \"该卡有他人作业在用 ⇒ 本轮不去创建上下文（未测）\"}, \"4\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"5\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"6\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}, \"7\": {\"rc\": 0, \"range\": [0, 0], \"name\": \"GPU\"}}",
+   "why": ""
+  },
+  {
+   "key": "Q1_退化卡数/非退化卡数",
+   "value": "7 / 0",
+   "why": "非退化卡数 > 0 ⇒ 「全机退化」不成立"
+  },
+  {
+   "key": "Q4a_torch_get_stream_priority_range",
+   "value": "AttributeError: module 'torch.cuda' has no attribute 'get_stream_priority_range'",
+   "why": ""
+  },
+  {
+   "key": "Q4b_torch_Stream(priority=-1).priority",
+   "value": 0,
+   "why": ""
+  },
+  {
+   "key": "Q4c_有ExternalStream",
+   "value": true,
+   "why": ""
+  },
+  {
+   "key": "R3_有create/getp",
+   "value": [
+    true,
+    true
+   ],
+   "why": ""
+  },
+  {
+   "key": "R3_逐值建流回读",
+   "value": "{\"-10\": {\"create_rc\": 0, \"readback\": 0}, \"-5\": {\"create_rc\": 0, \"readback\": 0}, \"-2\": {\"create_rc\": 0, \"readback\": 0}, \"-1\": {\"create_rc\": 0, \"readback\": 0}, \"0\": {\"create_rc\": 0, \"readback\": 0}, \"1\": {\"create_rc\": 0, \"readback\": 0}, \"5\": {\"create_rc\": 0, \"readback\": 0}, \"10\": {\"create_rc\": 0, \"readback\": 0}}",
+   "why": ""
+  },
+  {
+   "key": "S1_有cudaDeviceGetStreamPriorityRange",
+   "value": true,
+   "why": ""
+  },
+  {
+   "key": "S1_runtime_range",
+   "value": {
+    "rc": 0,
+    "least": 0,
+    "greatest": 0
+   },
+   "why": ""
+  },
+  {
+   "key": "S3_runtime_vs_driver_一致",
+   "value": true,
+   "why": "driver(卡0)=[0, 0] runtime=[0, 0] ⇒ 一致则「单点」不是某一条 API 的怪癖"
+  },
+  {
+   "key": "S2_有建流/回读/销毁",
+   "value": [
+    true,
+    true,
+    true
+   ],
+   "why": ""
+  },
+  {
+   "key": "S2_runtime逐值建流回读",
+   "value": "{\"-2\": {\"create_rc\": 0, \"readback\": 0}, \"-1\": {\"create_rc\": 0, \"readback\": 0}, \"0\": {\"create_rc\": 0, \"readback\": 0}, \"1\": {\"create_rc\": 0, \"readback\": 0}, \"2\": {\"create_rc\": 0, \"readback\": 0}}",
+   "why": ""
+  },
+  {
+   "key": "N_原生xpu流API",
+   "value": "（零命中 ⇒ 不存在 xpu 前缀的原生流 API）",
+   "why": "零命中 ⇒ 优先级只有 CUDA 兼容层这一套"
+  }
+ ]
+}

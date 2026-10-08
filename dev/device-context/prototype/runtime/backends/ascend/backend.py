@@ -727,15 +727,31 @@ class AscendBackend(RuntimeBackend):
                 "① `torch.npu.Stream(priority=7)` 收下 kwarg 却**静默丢弃**"
                 "（`aclrtStreamGetPriority` 回读恒 0）；"
                 "② 无 `torch.npu.ExternalStream`（同文件里有 `ExternalEvent`，**无 Stream 版**）；"
-                "③ `torch_npu._C` 无任何 `*External*` 符号，`Stream(stream_ptr=H)` "
-                "**被接受但静默忽略**（拿到的是流池里另一条流）；"
-                "④ `libtorch_npu.so` 导出 `c10_npu::getStreamFromExternal`，**未暴露到 Python**；"
-                "⑤ `acl_rt.h` 无 setter ⇒ 无法「先建后改」。"
+                "③ `torch_npu._C` 无任何 `*External*` 符号 —— 两条**同族但不同**的假通路："
+                "`Stream(stream_ptr=H)` **被接受但静默忽略**（拿到的是流池里另一条流）；"
+                "`Stream(stream_id=H)`/`_npu_setStream(stream_id=H)` 则**接受任何整数、"
+                "到使用点才抛**（见 ⑥）；"
+                "④ `libtorch_npu.so` 导出 `c10_npu::getStreamFromExternal(void*, signed char)` 与 "
+                "`c10_npu::setCurrentNPUStream(...)`，**未暴露到 Python**"
+                "（全量扫 `.so`：无任何其它库导入该符号；包内 Python 零引用）"
+                "⇒ **这是「Python 绑定缺失」，不是「做不到」**；"
+                "⑤ `acl_rt.h` 无 priority setter ⇒ 无法「先建后改」"
+                "（`aclrtSetStreamAttribute` 的枚举只有 "
+                "`FAILURE_MODE / FLOAT_OVERFLOW_CHECK / USER_CUSTOM_TAG / CACHE_OP_INFO`）；"
+                "⑥ `Stream(stream_id=H)` **不校验** H，但**任何使用点**都抛 "
+                "`INTERNAL ASSERT FAILED at \"../torch_npu/csrc/core/npu/NPUStream.cpp\":371, "
+                "please report a bug to PyTorch. Unrecognized stream … (I didn't recognize the "
+                "stream type)` ⇒ 把「用法错误」表述成「请向框架报 bug」。"
                 "⇒ 保持『流可被 torch 执行上下文使用』的前提下，**无法**让 priority 生效"
                 "（pyACL 建的带优先级流是裸 ACL 句柄，包不回 torch 流）"
             ),
             "repro_rate": ("确定性（2026-09-30 在 910C 上逐项实测；其中 ②③ 为 12 个候选 kwarg 的"
-                           "穷举结果：仅 `stream_ptr` 被接受且被忽略，其余一律 TypeError）"),
+                           "穷举结果：仅 `stream_ptr` 被接受且被忽略，其余一律 TypeError）。"
+                           "**2026-10-08 自证审计复核**（`audit_stream_priority_ascend.py`）："
+                           "结论不变，并补齐「逐档位设备回读」与「使用点断言原文」两项原始读数；"
+                           "⚠️ 同族复查中修掉一处**探针自身缺陷**：`hasattr/getattr` 探 "
+                           "`Stream.priority` 会**抛** `RuntimeError`（`hasattr` 只吞 "
+                           "`AttributeError`）⇒ 存在性探测必须 `try/except BaseException` 分类回报"),
             "root_cause_layer": "厂商 PyTorch 插件（torch_npu）接口面缺失；本层已如实降级不声明",
             "workaround": (
                 "① 需要『参数真的进设备』的取证场景：直接用 pyACL "
@@ -751,7 +767,9 @@ class AscendBackend(RuntimeBackend):
                          "`Stream(stream_ptr=…)` 真正生效；现状是**静默忽略**，极易误判）",
             "evidence": "`910C/probes/prio_readback_910c_npu_20260930.log`（回读对照）、"
                         "`910C/probes/prio_api_surface_910c_npu_20260930.log`（接口面与插件源码）、"
-                        "`prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md` §5",
+                        "`prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md` §5、"
+                        "`910C/probes/audit_20261008_out/ascend_audit.log`（2026-10-08 自证审计："
+                        "ACL 保留 0/3/7 + 逐档位设备回读全 0 + 四处使用点断言原文）",
         }]
 
 

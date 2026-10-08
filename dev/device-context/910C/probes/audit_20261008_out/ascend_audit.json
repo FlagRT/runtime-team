@@ -1,0 +1,172 @@
+{
+ "findings": [
+  {
+   "key": "env",
+   "value": "torch=2.11.0+cu130 torch_npu=2.11.0 npu=Ascend910_9382",
+   "why": ""
+  },
+  {
+   "key": "A0_acl_rt.h",
+   "value": [
+    "/usr/local/Ascend/ascend-toolkit/latest/aarch64-linux/include/acl/acl_rt.h",
+    "/usr/local/Ascend/ascend-toolkit/latest/include/acl/acl_rt.h",
+    "/usr/local/Ascend/cann-9.0.0/aarch64-linux/include/acl/acl_rt.h"
+   ],
+   "why": ""
+  },
+  {
+   "key": "A1_名字带Priority的函数",
+   "value": [
+    "aclrtDeviceGetStreamPriorityRange(",
+    "aclrtStreamGetPriority("
+   ],
+   "why": ""
+  },
+  {
+   "key": "A2_aclrtStreamAttr枚举值",
+   "value": [
+    "ACL_STREAM_ATTR_CACHE_OP_INFO",
+    "ACL_STREAM_ATTR_FAILURE_MODE",
+    "ACL_STREAM_ATTR_FLOAT_OVERFLOW_CHECK",
+    "ACL_STREAM_ATTR_USER_CUSTOM_TAG"
+   ],
+   "why": "枚举里没有 priority ⇒ aclrtSetStreamAttribute 不是优先级 setter"
+  },
+  {
+   "key": "B0_lib",
+   "value": "/usr/local/Ascend/cann-9.0.0/aarch64-linux/lib64/libascendcl.so",
+   "why": ""
+  },
+  {
+   "key": "B0_priority符号",
+   "value": [
+    "aclrtDeviceGetStreamPriorityRange",
+    "aclrtStreamGetPriority"
+   ],
+   "why": ""
+  },
+  {
+   "key": "CH_libascendcl",
+   "value": "\"/usr/local/Ascend/cann-9.0.0/aarch64-linux/lib64/libascendcl.so\"",
+   "why": ""
+  },
+  {
+   "key": "CH_B_default_stream_read3",
+   "value": "{\"priority\": 0, \"flags\": 3, \"stream_id\": 41, \"rc\": [0, 0, 0]}",
+   "why": ""
+  },
+  {
+   "key": "CH_B_acl_preserves",
+   "value": "{\"0\": {\"create_rc\": 0, \"read3\": {\"priority\": 0, \"flags\": 0, \"stream_id\": 9, \"rc\": [0, 0, 0]}}, \"3\": {\"create_rc\": 0, \"read3\": {\"priority\": 3, \"flags\": 0, \"stream_id\": 9, \"rc\": [0, 0, 0]}}, \"7\": {\"create_rc\": 0, \"read3\": {\"priority\": 7, \"flags\": 0, \"stream_id\": 9, \"rc\": [0, 0, 0]}}}",
+   "why": ""
+  },
+  {
+   "key": "CH_C_priority_scan",
+   "value": "{\"0\": {\"handle\": \"0xaaab2da65470\", \"stream_id\": 97, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 40, \"rc\": [0, 0, 0]}}, \"1\": {\"handle\": \"0xaaab2db494e0\", \"stream_id\": 98, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 39, \"rc\": [0, 0, 0]}}, \"2\": {\"handle\": \"0xaaab2dc2d550\", \"stream_id\": 99, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 38, \"rc\": [0, 0, 0]}}, \"3\": {\"handle\": \"0xaaab2dd115c0\", \"stream_id\": 100, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 37, \"rc\": [0, 0, 0]}}, \"4\": {\"handle\": \"0xaaab2ddf5630\", \"stream_id\": 101, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 36, \"rc\": [0, 0, 0]}}, \"5\": {\"handle\": \"0xaaab2ded96a0\", \"stream_id\": 102, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 35, \"rc\": [0, 0, 0]}}, \"6\": {\"handle\": \"0xaaab2dfbd710\", \"stream_id\": 103, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 34, \"rc\": [0, 0, 0]}}, \"7\": {\"handle\": \"0xaaab2e0a1780\", \"stream_id\": 104, \"devread3\": {\"priority\": 0, \"flags\": 3, \"stream_id\": 3",
+   "why": ""
+  },
+  {
+   "key": "CH_C_distinct_device_priorities",
+   "value": "[\"0\"]",
+   "why": ""
+  },
+  {
+   "key": "CH_C_distinct_handles",
+   "value": "8",
+   "why": ""
+  },
+  {
+   "key": "CH_D_kwarg_scan",
+   "value": "{\"priority\": {\"ctor\": \"接受\", \"handle\": \"0xaaab2e1857f0\", \"devprio\": 0, \"py_priority\": \"<抛 RuntimeError: NPU dose not support Stream.get_priority() currently.\\n[ERROR>\"}, \"stream_ptr\": {\"ctor\": \"接受\", \"handle\": \"0xaaab2e269860\", \"devprio\": 0, \"py_priority\": \"<抛 RuntimeError: NPU dose not support Stream.get_priority() currently.\\n[ERROR>\"}, \"stream_id\": {\"ctor\": \"拒绝 RuntimeError: \\n[ERROR] 2026-10-08-08:47:31 (PID:1766, Device:0, RankID:-1) ERR00002 PTA invalid type\"}, \"device_index\": {\"ctor\": \"接受\", \"handle\": \"0xaaab2e34d8d0\", \"devprio\": 0, \"py_priority\": \"<抛 RuntimeError: NPU dose not support Stream.get_priority() currently.\\n[ERROR>\"}, \"device_type\": {\"ctor\": \"接受\", \"handle\": \"0xaaab2d132a40\", \"devprio\": 0, \"py_priority\": \"<抛 RuntimeError: NPU dose not support Stream.get_priority() currently.\\n[ERROR>\"}, \"is_sync_launch\": {\"ctor\": \"接受\", \"handle\": \"0xaaab2f621310\", \"devprio\": 0, \"py_priority\": \"<抛 RuntimeError: NPU dose not support Stream.get_priority() currently.\\n[ERROR>\"}, \"flags\": {\"ct",
+   "why": ""
+  },
+  {
+   "key": "CH_E_external_handle_into_torch",
+   "value": "{\"raw_handle\": \"0xaaab2f9bacf0\", \"raw_devpriority\": 7, \"ctor_ok\": true, \"stream_id_equals_raw\": true, \"读 .npu_stream\": \"**抛 RuntimeError**: 0 INTERNAL ASSERT FAILED at \\\"../torch_npu/csrc/core/npu/NPUStream.cpp\\\":371, please report a bug to PyTorch. Unrecognized stream stream 187652214861040\", \"repr(s)\": \"**抛 RuntimeError**: 0 INTERNAL ASSERT FAILED at \\\"../torch_npu/csrc/core/npu/NPUStream.cpp\\\":371, please report a bug to PyTorch. Unrecognized stream stream 187652214861040\", \"s.synchronize()\": \"**抛 RuntimeError**: 0 INTERNAL ASSERT FAILED at \\\"../torch_npu/csrc/core/npu/NPUStream.cpp\\\":371, please report a bug to PyTorch. Unrecognized stream stream 187652214861040\", \"with_torch_npu_stream\": \"**抛 RuntimeError**: 0 INTERNAL ASSERT FAILED at \\\"../torch_npu/csrc/core/npu/NPUStream.cpp\\\":371, please report a bug to PyTorch. Unrecognized stream stream 187652214861040 on device npu:0 (I \"}",
+   "why": ""
+  },
+  {
+   "key": "CH_F_setStream_raw",
+   "value": "\"RuntimeError: 0 INTERNAL ASSERT FAILED at \\\"../torch_npu/csrc/core/npu/NPUStream.cpp\\\":371, please report a bug to PyTorch. Unrecognized stream stream 187652214861040 on device npu:0 (I didn't recognize the stream type, g)\\n[ERROR] 2026-\"",
+   "why": ""
+  },
+  {
+   "key": "CH_F2_setStream_poolid",
+   "value": "{\"ok\": true, \"became_other\": true}",
+   "why": ""
+  },
+  {
+   "key": "CH_G_torch.npu_ExternalStream",
+   "value": "false",
+   "why": ""
+  },
+  {
+   "key": "CH_G_C_External_符号",
+   "value": "[]",
+   "why": ""
+  },
+  {
+   "key": "CH_G_C_setStream族",
+   "value": "[\"_npu_getCurrentRawStream\", \"_npu_getCurrentRawStreamNoWait\", \"_npu_getCurrentStream\", \"_npu_setStream\"]",
+   "why": ""
+  },
+  {
+   "key": "G2_包内引用",
+   "value": "[\"dynamo/trace_rule.py:77: \\\"torch_npu._C._npu_setStream\\\",\", \"npu/utils.py:255: torch_npu._C._npu_setStream(stream_id=stream.stream_id,\"]",
+   "why": ""
+  },
+  {
+   "key": "G3_libtorch_npu",
+   "value": "/mnt/raid/hliu553/venvs/venv-infer-a/lib/python3.12/site-packages/torch_npu/lib/libtorch_npu.so",
+   "why": ""
+  },
+  {
+   "key": "G3_getStreamFromExternal",
+   "value": [
+    "c10_npu::getStreamFromExternal(void*, signed char)\n0000000001884a90 T c10_npu::graph_task_update_end(c10_npu::NPUStream)\n00000000018662b0 T c10_npu::warn_or_error_on_sync()\n00000000018b6ae0 T c10_npu::check_dequeue_need_use(void*)\n00000000018b0d00 T c10_npu::check_enqueue_need_use(void*)\n0000000004a642f0 T c10_npu::custom_dtype_functions()\n0000000001882540 T c10_npu::graph_task_group_begin(c10_npu::NPUStream)\n0000000001886384 T c10_npu::super_kernel_scope_end(char const*)\n0000000001883e20 T c10_npu::graph_task_update_begin(c10_npu::NPUStream, c10_npu::NPUTaskGroupHandle)\n00000000018b0da0 T c10_npu::is_core_control_enabled()\n0000000001894b70 T c10_npu::PrivateUse1HooksRegistry"
+   ],
+   "why": ""
+  },
+  {
+   "key": "G3_setCurrentNPUStream",
+   "value": [
+    "c10_npu::setCurrentNPUStream(c10_npu::NPUStream)\n00000000018b61f4 T c10_npu::getNPUStreamFromPool(signed char)\n00000000018831b0 T c10_npu::graph_task_group_end(c10_npu::NPUStream)\n00000000018bad10 T c10_npu::npuSynchronizeDevice(bool)\n0000000001874190 T c10_npu::GetResInCurrentThread(int)\n00000000018b6ce4 T c10_npu::getStreamFromExternal(void*, signed char)\n0000000001884a90 T c10_npu::graph_task_update_end(c10_npu::NPUStream)\n00000000018662b0 T c10_npu::warn_or_error_on_sync()\n00000000018b6ae0 T c10_npu::check_dequeue_need_use(void*)\n00000000018b0d00 T c10_npu::check_enqueue_need_use(void*)\n0000000004a642f0 T c10_npu::custom_dtype_functions()\n0000000001882540 T c10_npu::graph_task_group_begin(c10_npu::NPUStream)\n0000000001886384 T c10_npu::super_kernel_scope_end(char const*)\n0000000001883e20 T c10_npu::graph_task_update_begin(c10_npu::NPUStream, c10_npu::NPUTaskGroupHandle)\n00000000018b0da0 T c10_npu::is_core_control_enabled()\n0000000001894b70 T c10_npu::PrivateUse1HooksRegistry"
+   ],
+   "why": ""
+  },
+  {
+   "key": "G3_getStreamFromPool",
+   "value": [
+    "c10_npu::getStreamFromPool(bool, signed char)\n0000000001882000 T c10_npu::graph_pool_handle()\n000000000186a294 T c10_npu::device_synchronize()\n000000000186bf10 T c10_npu::stream_synchronize(void*)\n0000000001889574 T c10_npu::unsubscribe_report(unsigned long, c10_npu::NPUStream)\n00000000017ff110 T c10_npu::NPUCachingAllocator::GetBlockPtr(void const*)\n0000000001818400 T c10_npu::NPUCachingAllocator::MallocBlock(unsigned long, void*, int)\n00000000017ff220 T c10_npu::NPUCachingAllocator::GetBlockSize(void const*)\n00000000017fe014 T c10_npu::NPUCachingAllocator::getFreeMutex()\n00000000017ef460 T c10_npu::NPUCachingAllocator::NPUAllocatorConfig::parsePinnedReserveSegmentSize(c10::CachingAllocator::ConfigTokenizer const&, unsigned long)\n00000000017f2b04 T c10_npu::NPUCachingAllocator::NPUAllocatorConfig::parseArgs(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)\n0000000001800c40 T c10_npu::NPUCachingAllocator::saveDevMemUsageInfo(int const&)\n00000000017fea90 T c10_npu::NPUCachingAllocator::setAllocatorSettings(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)\n00000000017fde24 T c10_npu::NPUCachingAllocator::FreeNPUMemoryCallbacksRegistry"
+   ],
+   "why": ""
+  },
+  {
+   "key": "H1_supports",
+   "value": {
+    "stream_priority": true,
+    "stream_priority_control": false,
+    "stream_priority_readback": true
+   },
+   "why": ""
+  },
+  {
+   "key": "H2_range",
+   "value": [
+    7,
+    0
+   ],
+   "why": ""
+  },
+  {
+   "key": "H3_create_stream(priority=0)",
+   "value": "NotImplementedError: 后端 'ascend' 未声明能力 `stream_priority_control` ⇒ 拒绝 create_stream(priority=0)。\n  · 本层**能读**优先",
+   "why": "显式拒绝（非静默给无优先级流）"
+  },
+  {
+   "key": "H3_create_stream(priority=7)",
+   "value": "NotImplementedError: 后端 'ascend' 未声明能力 `stream_priority_control` ⇒ 拒绝 create_stream(priority=7)。\n  · 本层**能读**优先",
+   "why": "显式拒绝（非静默给无优先级流）"
+  }
+ ]
+}

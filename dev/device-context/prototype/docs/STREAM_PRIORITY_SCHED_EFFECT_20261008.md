@@ -9,6 +9,12 @@
 > `../910C/probes/run_910c_d2_20261008.sh`。
 > 原始日志与 JSON：`../MLU590/probes/d2_20261008_out/`、`../P800/probes/d2_20261008_out/`、
 > `../910C/probes/d2_20261008_out/`（另加各机顶层驱动日志 `d2_<chip>_20261008.log`）。
+>
+> ⭐ **两个「不适用」实例已于同日通过「不适用自证审计」**（用户要求自查「是真的不存在，还是我没发现」）：
+> 逐卡 / 双层 API（driver vs runtime）/ 全量符号扫描 / 假通路（接受但忽略、接受但使用点才失败）逐条取证，
+> **结论成立**（910C 根因表述升级为「C++ 有 `getStreamFromExternal`、Python 绑定缺失」）。
+> 全文：**`STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md`**（其中 §3 如实记录了审计中查出的
+> **我自己的 4 处不到位**）。
 
 ---
 
@@ -242,5 +248,11 @@
    `NOT_APPLICABLE`（`instrument_valid=True`，仪器有效性三组均跑通），
    **三家现役实例至此全覆盖**；其 G3 基线还给了解释场景 A 偏斜量级的独立证据（§4.5、§5 第 3 条）。
    ⚠️ **仍遗留**：该实例的「不适用」属**接口能力缺失**（未声明 `stream_priority_control`），
-   其**根因**（torch_npu 丢参数 + 无 `ExternalStream`）已登记在
-   `STREAM_PRIORITY_API_20260930.md` 与契约 §1.9，**修它属上游诉求**。
+   其**根因**已登记在 `STREAM_PRIORITY_API_20260930.md`、契约 §1.9 与该实例的 `known_issues()`，
+   **修它属上游诉求**。⭐ **2026-10-08 自证审计后根因表述已升级为更精确的一版**：
+   **「插件 C++ 已有 `c10_npu::getStreamFromExternal`，但未暴露到 Python；所有 Python 可见的绕行
+   （`stream_ptr` 静默忽略 / `stream_id` 接受但使用点断言 / 无 setter）都被插件自身的
+   `Unrecognized stream` 校验拒绝」** —— 即**是「绑定缺失」，不是「做不到」**。
+   该审计同时确认 **P800 的「单点」也不是「只看了一层/一张卡」**（driver 与 runtime 两条路径读数一致、
+   逐卡 7/8 一致、无原生 XPU 流 API）。全文见
+   `STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md`。
