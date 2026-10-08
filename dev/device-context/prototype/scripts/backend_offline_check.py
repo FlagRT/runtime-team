@@ -385,6 +385,10 @@ def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=
     压根走不到（无设备、无真库），判据会退化成 SKIP 或**误报**。纪律是
     **「能造可控假原语就别 SKIP」** ⇒ 这里给出可控替身。
 
+    ⚠️ **2026-10-08**：同一份实现**同时挂 CUDA 与 CNRT 两族符号名**
+    （kunlun 用 `cu*`、cambricon 用 `cnrt*`）—— 两侧的调用约定与语义一致
+    （range 出参 / keep 开关 / destroy_rc / 未登记句柄的默认回读），故不必写两份。
+
     开关（供**非空转验证**）：
       · `range_`      假 `cuCtxGetStreamPriorityRange` 返回值（默认 `(0, 0)` = 真机单点）
       · `keep`        `False` ⇒ **收下 priority 却记成 0**（复现「接受但静默丢弃」那一类）
@@ -407,6 +411,19 @@ def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=
             self.cuStreamCreateWithPriority = _FakeFn(self._create)
             self.cuStreamGetPriority = _FakeFn(self._getprio)
             self.cuStreamDestroy_v2 = _FakeFn(self._destroy)
+            # ⚠️ **2026-10-08 新增：同一份实现挂上寒武纪（CNRT）的符号名。**
+            #    为什么必须补：cambricon 的优先级路径同日改为「厂商 C API 口径」
+            #    （`cnrtQueueCreateWithPriority` / `cnrtQueueGetPriority` / `cnrtQueueDestroy` /
+            #     `cnrtDeviceGetQueuePriorityRange`，见 `runtime/backends/cambricon/backend.py`）。
+            #    若不在这里给出同族符号名，该后端在**离线**会拿不到符号 ⇒
+            #    `stream_priority_range()` 返回 None，而它**声明了** `control`
+            #    ⇒ 判据会被「离线没有真库」**误报**成「声明了能力却没实现」。
+            #    纪律：**「能造可控假原语就别 SKIP」**；厂商符号名只是**被取用的名字**，
+            #    假体按名提供即可，不需要为每家写一份实现。
+            self.cnrtDeviceGetQueuePriorityRange = _FakeFn(self._range)
+            self.cnrtQueueCreateWithPriority = _FakeFn(self._create)
+            self.cnrtQueueGetPriority = _FakeFn(self._getprio)
+            self.cnrtQueueDestroy = _FakeFn(self._destroy)
 
         # ---- 本层用到的厂商原语（实现）---------------------------------
         def _range(self, least_p, greatest_p):
@@ -1136,8 +1153,15 @@ def run(proto_dir, backend):
 
                 # ── E) 兜底不得过宽：原语抛**非 AttributeError** ⇒ 必须传播（不静默）──
                 _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
-                _cls8._ctx_driver.cuCtxGetStreamPriorityRange = _FakeFn(
+                # ⚠️ **必须把两族符号名都换掉**（2026-10-08 踩到）：假驱动同时挂 `cu*` 与
+                #    `cnrt*` 两族名字，而**不同后端取的是不同族**（kunlun→`cu*`、cambricon→`cnrt*`）。
+                #    只换一族 ⇒ 另一族的后端**压根调不到被注入的函数** ⇒ 判据**空转**、
+                #    并把结果读成「未传播」（假失败）。这正是「判据与被测对象不在同一个世界」
+                #    的又一例（同族：台账第 ⑪/⑳/㉑ 条）。注入要打在**被测对象真正会调到的那一面**上。
+                _boom = _FakeFn(
                     lambda *a: (_ for _ in ()).throw(RuntimeError("INJECTED: 原语内部错误")))
+                _cls8._ctx_driver.cuCtxGetStreamPriorityRange = _boom
+                _cls8._ctx_driver.cnrtDeviceGetQueuePriorityRange = _boom
                 try:
                     bk.stream_priority_range()
                     check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
@@ -1148,11 +1172,41 @@ def run(proto_dir, backend):
                 except BaseException as e:                                # noqa: BLE001
                     check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
                           False, f"异常类型不对：{type(e).__name__}: {str(e)[:60]}")
+                # ── F) **id 复用**不得让 `release_stream` 越权销毁（台账第 33 条，2026-10-08）──
+                #
+                # 为什么必须验：注册表以 `id(native_stream)` 为键，而 **id 在对象回收后会被复用**
+                # ⇒ 一条**全新**的流可能撞上"已登记/已释放"那条的 id。
+                # 后果最坏的一类是 `release_stream` **越权销毁厂商拥有的流**（契约 §1.10 规则 2
+                # 明令禁止 —— "比泄漏更糟"）。此前的登记表只有 id、没有身份复核 ⇒ 必然误判。
+                # 这里**直接注入该情形**（把 a 的条目搬到 b 的 id 下，等价于"b 拿到了 a 的 id"），
+                # 证明修好的身份复核**真的能挡住**，而不是"看起来修了"。
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                _a = bk.create_stream(2)
+                _b = bk.create_stream(2)
+                _reg = bk._reg("_owned_streams")
+                _ent_a = _reg.pop(id(_a))
+                _ent_b = _reg.get(id(_b))
+                _reg[id(_b)] = _ent_a                 # ⭐ 注入：b 的 id 指向 a 的条目
+                try:
+                    check("id 复用：owns_stream 必须**按身份**判定"
+                          "（不得把一条新流当成已登记的那条）",
+                          bk.owns_stream(_b) is False, f"owns_stream(_b)={bk.owns_stream(_b)}")
+                    _relx = bk.release_stream(_b)
+                    check("id 复用：release_stream **不得越权销毁**（必须如实返回 False）",
+                          _relx is False, f"release_stream(_b)={_relx!r}")
+                finally:
+                    _reg.pop(id(_b), None)
+                    _reg[id(_a)] = _ent_a             # 还原，避免污染后续判据
+                    if _ent_b is not None:
+                        _reg[id(_b)] = _ent_b
+                bk.release_stream(_a)
+                bk.release_stream(_b)
             except BaseException as e:                                    # noqa: BLE001
-                check("非空转：回读校验 / 销毁失败 / 兜底宽度", False,
+                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用", False,
                       f"{type(e).__name__}: {str(e)[:90]}")
         else:
-            # 非驱动原语路径（如 cambricon：priority 落在 torch 层）⇒ 只验「建流 + 回读一致」
+            # 非驱动原语路径（**当前无实例**；cambricon 自 2026-10-08 起也走驱动 C API 口径）
+            # ⇒ 只验「建流 + 回读一致」
             try:
                 _ext = bk.create_stream(_b[0] if _b else 0)
                 check("非驱动原语路径：priority 域内值可建流且**回读一致**",
@@ -1161,7 +1215,8 @@ def run(proto_dir, backend):
             except BaseException as e:                                    # noqa: BLE001
                 check("非驱动原语路径：建流与回读", False, f"{type(e).__name__}: {str(e)[:90]}")
             skip("非空转：回读校验有牙齿",
-                 "该后端不提供 `_ctx_driver`（非驱动原语路径）⇒ 无法造可控假原语")
+                 "该后端不提供 `_ctx_driver`（非驱动原语路径）⇒ 无法造可控假原语"
+                 "（当时无此分支；三家现均为驱动原语路径）")
     if not bk.supports("graph_capture"):
         print("  [INFO] 未声明 graph_capture：`torch.<ns>.graph` 存在性须容器内实测后决定")
 

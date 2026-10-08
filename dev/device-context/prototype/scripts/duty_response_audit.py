@@ -1185,23 +1185,69 @@ def l4(env):
 def l5(env):
     rt, bk = env["runtime"], env["backend"]
     if not bk.supports("stream_priority_control"):
-        return _skip("本机没有「由本层拥有」的建流路径（未声明 control）⇒ 该分支不适用")
+        return _skip("本机没有「由本层拥有」的建流路径（未声明 `stream_priority_control`）"
+                     "⇒ 该分支不适用（契约 §1.10 规则 1 要求走「厂商 C API 建流 + 包装」）")
     flat, why = _range_of(bk)
     if flat is None:
         return _skip(f"范围不可得（{why}）⇒ 无法走优先级路径")
-    st = rt.create_stream(priority=flat[0])
-    rel = rt.release_stream(st)
-    if rel is not True:
-        return _skip(f"本机该路径未产生「本层拥有」的流（release={rel!r}）⇒ 使用已释放对象的场景不成立")
+
+    # ⭐ **2026-10-08（第十二轮）修正判据入口** —— 原版**只走统一面**，于是三家都报 SKIP，
+    #    读者会以为「契约 §1.10 规则 4 **无任何覆盖**」。**这是错的**：同一条款在
+    #    `probes/probe_stream_release_and_control.py` 的 **R3c/R3d** 里经**后端私有原语**路径
+    #    行使过，且 **2026-09-30 在 P800 上已经真机 PASS**（`P800/probes/r8_regress_kunlun_20260930_out/
+    #    r8_prio_release_kunlun.json`：R3c release=True、R3d `RuntimeError: 该流已被 … 释放`）。
+    #    ⇒ 缺陷是**判据入口不齐**（同族：第 31 条「同一原因两种标签」）。
+    #    现补**路径 B**，并逐条如实回报走的是哪条、另一条为何不通。
+    attempts = []
+    st = None
+    used = None
+    for label, maker in (
+            ("A 统一面 create_stream(priority=…)",
+             lambda: rt.create_stream(priority=flat[0])),
+            ("B 后端原语 _create_stream_raw(…)【取证用途：与探针 R3 同法，"
+             "代表上层不使用的私有面】", lambda: bk._create_stream_raw(flat[0])),
+    ):
+        try:
+            cand = maker()
+        except BaseException as e:                                # noqa: BLE001
+            attempts.append(f"{label}: {type(e).__name__}: {str(e)[:44]}")
+            continue
+        owns = bool(bk.owns_stream(cand))
+        # ⚠️ **必须释放**：若该流真由本层拥有而不释放 ⇒ 泄漏一条设备级流（契约 §1.10 规则 3）
+        rel = rt.release_stream(cand)
+        attempts.append(f"{label}: owns={owns} release={rel!r}")
+        if rel is True:
+            st, used, via_wrapper = cand, label, label.startswith("A")
+            break
+
+    if st is None:
+        return _skip("两条路径都未产生「本层拥有」的流 ⇒ 使用已释放对象的场景不成立（"
+                     + " ｜ ".join(attempts) + "）")
+
+    # ⚠️ **"再使用"怎么验，取决于对象是哪一类 —— 这里踩过一次**（2026-10-08 P800 实测）：
+    #   · **路径 A**：对象是**统一包装** `Stream` ⇒ 直接 `synchronize()` 即可，
+    #     它内部第一件事就是 `backend.check_stream_usable(...)`（使用点拦截）。
+    #   · **路径 B**：对象是**厂商原生流**，且**已被销毁** ⇒ **绝不能**调用它自己的任何方法
+    #     —— 那是**在已释放对象上调用原生 API**（未定义行为）。实测后果：P800 上
+    #     `native.synchronize()` 把**整个进程打断，rc=1 且无任何输出**（看上去像"审计莫名消失"）。
+    #     ⇒ 改用**本层自己的使用点拦截**来验（与 `probes/probe_stream_release_and_control.py`
+    #     的 R3d 同法 —— 那里本来就是这么写的，本例是没照抄现成范式而踩的坑）。
     try:
-        st.synchronize()
-        return _fail("已释放的流仍可 synchronize（契约：使用已销毁对象必须明确报错，不得静默失败）")
+        if via_wrapper:
+            st.synchronize()
+        else:
+            bk.check_stream_usable(st)
+        return _fail(f"已释放的流仍可使用（契约：使用已销毁对象必须明确报错，不得静默失败）"
+                     f"；路径 = {used}")
     except RuntimeError as e:
         txt = str(e)
         ok = ("释放" in txt) or ("release" in txt.lower())
-        return (_ok if ok else _fail)(f"RuntimeError 但文案不含「已释放」线索：{txt[:70]}")
+        how = "包装的 synchronize()（内部先走使用点拦截）" if via_wrapper \
+            else "本层使用点拦截 check_stream_usable()（原生流已销毁，不得调其原生方法）"
+        return (_ok if ok else _fail)(
+            f"经**{used}**行使，验证方式 = {how}；RuntimeError: {txt[:52]}")
     except BaseException as e:                                    # noqa: BLE001
-        return _fail(f"异常类型非契约级：{type(e).__name__}: {str(e)[:60]}")
+        return _fail(f"异常类型非契约级：{type(e).__name__}: {str(e)[:60]}（路径 = {used}）")
 
 
 @item("L 流所有权与释放", "L6", "release_stream 的返回值必须是**严格 bool**（不得返回 truthy 的非 bool）")

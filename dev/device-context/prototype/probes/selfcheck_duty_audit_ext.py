@@ -229,8 +229,20 @@ def build_injections():
         "Stream.release() 越权返回 True")
     add("L4", lambda e: _env_with(e, bk_ov={"release_stream": lambda s: True}),
         "owns=False 但 release 返回 True（不一致）")
-    add("L5", lambda e: _env_with(e, rt_ov={"release_stream": lambda s: False}),
-        "本层拥有的流未被真销毁（release 恒 False）⇒ 已释放语义不成立")
+    # ⚠️ **2026-10-08 注入重写（L5 判据同日改了两条路径后必须同步）**：
+    #    旧注入是 `release_stream → False`（"该流未被真销毁"）。但 L5 现在**有回落路径**
+    #    （统一面拿不到「本层拥有」的流时，改走后端原语再试一次）⇒ 把 release 掐成 False
+    #    只会让 L5 **如实 SKIP**（"两条路径都未产生拥有流"），而不是 FAIL
+    #    ⇒ 脚手架会报「未抓到」，**但那是注入打错了面**（同族：J1/J2 曾犯过）。
+    #    正确做法是注入**L5 自己那条断言的反面**：「**已释放的流仍然可以使用**」
+    #    —— 即 release 返回 True（让它真的走完流程）而该流 `synchronize()` 不报错。
+    #    ⭐ 纪律：**判据改了，注入必须同步改成"该判据真正会抓到的那种缺陷"**；
+    #      否则"未抓到"会指向一个并不存在的缺陷（假警报），比不报更误导。
+    add("L5", lambda e: _env_with(
+        e,
+        rt_ov={"create_stream": lambda priority=None: _FakeStream(release_ret=True),
+               "release_stream": lambda s: True}),
+        "已释放的流仍可继续使用（使用已销毁对象未如实报错）")
     add("L6", lambda e: _env_with(e, rt_ov={"release_stream": lambda s: 1}),
         "返回值不是严格 bool")
 

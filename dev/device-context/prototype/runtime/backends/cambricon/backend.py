@@ -154,6 +154,15 @@ class CambriconBackend(RuntimeBackend):
     name = "cambricon"
     device_type = "mlu"
 
+    #: 厂商驱动库句柄缓存（惰性 `ctypes.CDLL`）。**沿用 kunlun 的同名属性** ——
+    #: 离线自检靠 `hasattr(cls, "_ctx_driver")` 判定"该后端走厂商驱动原语路径"
+    #: 并注入**可控假驱动**（纪律：「能造可控假原语就别 SKIP」）。
+    #: `False` = 已试过且不可得（避免反复重试）。
+    _ctx_driver = None
+
+    #: `cnrtQueueCreateWithPriority` 的 flags 取值；`0` = 默认（真机实测 rc=0）。
+    _CNRT_QUEUE_FLAGS = 0
+
     #: 规范能力键全集（与 ascend / kunlun 同一套键名，便于跨实例同口径比对）
     _CAPABILITY_KEYS = (
         "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
@@ -187,14 +196,25 @@ class CambriconBackend(RuntimeBackend):
         "multidevice",       # 单机 8 卡（实测：8 × MLU590-M9）
         "graph_capture",     # 2026-09-22 实测 GraphCapture 5/5 成功
                              #   （入口是 torch.mlu.MLUGraph + torch.mlu.graph）
-        "stream_priority",   # 2026-09-22 实测 priority_range() = (0, -3) 可用且不崩
-                             #   （与昆仑芯相反：那里同款 API 会触发 PyTorch INTERNAL ASSERT）
+        "stream_priority",   # 设备口径区间：`cnrtDeviceGetQueuePriorityRange`（真机 2026-10-08 实测
+                             #   least=7 greatest=0 ⇒ 合法域 0..7，数值越小优先级越高）。
+                             #   ⚠️ 旧注释记的是 torch 口径 (0,-3)；两者**非恒等映射**
+                             #   （实测 torch 请求 0 ⇒ 设备 4），故不能混用（见下方 2026-10-08 更正块）。
         # ── 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙** ──
         # **能读范围 ≠ 能设置**（同 `device_state` / `device_state_control` 的拆法）。
         # 本家是三家**唯一两家都能声明**的实例（另两家：910C 插件层丢参数且无 ExternalStream、
         # P800 优先级空间退化为单点）⇒ 声明"能设置 + 能回读"。
-        "stream_priority_control",   # `create_stream(priority=…)` 真能生效（设备侧可回读校验）
-        "stream_priority_readback",  # `Stream.priority` 回读（09-22 实测读回值正确）
+        # ⚠️ **2026-10-08 更正两处"未经验证的推测"**（手册 §7.1 三步判定缺一不可）：
+        #   ① 旧注释写「本家**没有**独立的句柄式 C API」—— **错**。`neuware/include/cnrt.h`
+        #      有 `cnrtQueueCreate / CreateWithPriority / Destroy / GetPriority /
+        #      DeviceGetQueuePriorityRange`；`libcnrt.so.7.4.0` 导出 **17 个**同族符号。
+        #   ② 旧注释隐含「无 `ExternalStream` 等价入口」（从 ascend 外推）—— **错**。
+        #      `torch.mlu.ExternalStream` **存在且可用**（实测包装出的流能承载算子，sum=32.0）。
+        #   ③ 旧实现走 `torch.mlu.Stream(priority=…)` 且**回读读的是 `Stream.priority`** ——
+        #      那是**构造参数的回显**（请求 -1 ⇒ .priority=-1，而设备侧是 3）
+        #      ⇒ 契约 §1.9 第 ⑥ 条在本实例**永远不可能 FAIL** ⇒ **判据空转**（已修为 C API 口径）。
+        "stream_priority_control",   # `create_stream(priority=…)` 真能生效（**设备侧**可回读校验）
+        "stream_priority_readback",  # `cnrtQueueGetPriority` 回读（真设备读数，非 torch 属性回显）
         # ── 以下**不声明**（两类原因分开写清，勿混为一谈）──
         # 【已实测确认不具备 → 不声明】不是"未验证"，是"确认没有"
         #   "recovery_real" : torch.mlu 下 reset* / destroy* / reinit* 全是内存统计类
@@ -346,6 +366,26 @@ class CambriconBackend(RuntimeBackend):
         except Exception:
             return 0
 
+    def _driver_handle(self):
+        """惰性取得**厂商驱动库**句柄（`libcnrt.so`）。
+
+        ⚠️ 走 **soname**（`readelf -d` 实测 SONAME = `libcnrt.so`），
+        **不**取绝对路径、更不用别处的副本 —— 同栈的库必须指向**同一份**
+        （kunlun 上曾因取 `triton/.../so/` 下的同名副本触发
+        `Libraries loaded from different directories!` ⇒ torch 直接 `CUDA_ERROR_NOT_INITIALIZED`）。
+
+        ⚠️ 不用 `try/except AttributeError` 包裹后续的属性赋值：那会把
+        「库没这个符号」（如实不支持）与「调用方/替身兼容性问题」（bug）**混为一谈且静默**
+        ⇒ 一律用 `getattr(lib, name, None)` **显式探针**，其余异常**传播**。
+        """
+        if type(self)._ctx_driver is None:
+            import ctypes
+            try:
+                type(self)._ctx_driver = ctypes.CDLL("libcnrt.so")
+            except OSError:
+                type(self)._ctx_driver = False
+        return type(self)._ctx_driver or None
+
     # ───────────── 流 / 事件（职责 D4/D5）─────────────
     def _create_stream_raw(self, priority=None):
         """默认路径：`torch.mlu.Stream()`；`priority` 非 None 时带优先级建流。
@@ -359,29 +399,107 @@ class CambriconBackend(RuntimeBackend):
         """
         if priority is None:
             return self.torch.mlu.Stream()
-        return self.torch.mlu.Stream(priority=int(priority))
 
-    def _stream_priority_read_raw(self, native_stream):
-        """**厂商原语层**：该流的优先级（读不出返回 None）。
+        # ── `priority=<int>`：走**厂商 C API**（2026-10-08 起；此前走 torch 侧）──
+        #
+        # 为什么必须换（真缺陷）：torch 侧路径的"回读"只能读 `Stream.priority`，
+        # 而它**是构造参数的回显**（实测：请求 -1 ⇒ .priority == -1，而设备侧是 3）
+        # ⇒ 契约 §1.9 第 ⑥ 条在本实例上**永远不可能 FAIL**（判据空转）。
+        # 换到 C API 后，回读 = `cnrtQueueGetPriority`（真设备读数），
+        # 实测 8 个档位（0..7）**回读 == 请求**。
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            raise RuntimeError(
+                "cambricon：驱动库 `libcnrt.so` 不可得 ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本路径需要 `cnrtQueueCreateWithPriority`（neuware 的 CNRT 运行时）；\n"
+                "  · 不指定优先级请用 `create_stream()`（走 torch 原生路径，逐位不变）。")
+        fn = getattr(lib, "cnrtQueueCreateWithPriority", None)
+        if fn is None:
+            raise RuntimeError(
+                "cambricon：驱动库缺少 `cnrtQueueCreateWithPriority` ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本层**不降级**（不会静默返回一条无优先级的流）；不指定优先级请用 `create_stream()`。")
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint, ctypes.c_int]
+        handle = ctypes.c_void_p(0)
+        rc = int(fn(ctypes.byref(handle), ctypes.c_uint(self._CNRT_QUEUE_FLAGS),
+                    ctypes.c_int(int(priority))))
+        if rc != 0 or not handle.value:
+            raise RuntimeError(
+                f"cambricon：`cnrtQueueCreateWithPriority(priority={priority})` 失败 "
+                f"rc={rc} handle={handle.value!r} ⇒ 如实报错，不返回假流。")
 
-        本家的"原语"就是 torch 侧属性（`Stream.priority`），**没有独立的句柄式 C API**
-        （与 ascend 的 `aclrtStreamGetPriority` / kunlun 的 `cuStreamGetPriority` 不同）
-        —— 故本方法收的是**流对象**而不是句柄。
-        """
         try:
-            v = getattr(native_stream, "priority", None)
-            return int(v) if v is not None else None
-        except Exception:                                         # noqa: BLE001
+            # ⚠️ 这一步是**一票否决**的关键：拿不到"能进 torch 执行上下文"的流，
+            #    设置了也白设（同理 910C：pyACL 能建带优先级的流，但无入口包回 torch
+            #    ⇒ 本层如实不声明 `stream_priority_control`）。MLU590 实测该入口**可用**。
+            native = self.torch.mlu.ExternalStream(handle.value)
+        except BaseException:                                     # noqa: BLE001
+            self._destroy_stream_raw(handle.value)                # 不留泄漏
+            raise
+        self._register_owned_stream(native, handle.value)
+        return native
+
+    def _destroy_stream_raw(self, handle) -> bool:
+        """销毁由**本层**创建的队列（`cnrtQueueDestroy`）；原语不可得返回 False（不假装成功）。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return False
+        fn = getattr(lib, "cnrtQueueDestroy", None)
+        if fn is None:
+            return False
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p]
+        return int(fn(ctypes.c_void_p(int(handle)))) == 0
+
+    def _stream_priority_read_raw(self, handle):
+        """**厂商原语层**：队列句柄 → 优先级（读不出返回 None）。
+
+        ⚠️ **2026-10-08 修正（这是一处真缺陷的修复，不是重构）**：本方法原读的是
+        `torch.mlu.Stream.priority` —— 那是**构造参数的 Python 侧回显**，不是设备读数。
+        实测对照（同一批流）：
+
+            请求         `.priority`（旧口径）   `cnrtQueueGetPriority`（设备读数）
+            无参 / 0     0                       4
+            -1           -1                      3
+            -3           -3                      1
+            7（越界）     0                       4
+
+        ⇒ 旧口径下「请求 == 回读」是**同义反复**，契约 §1.9 第 ⑥ 条在本实例
+        **永远不可能 FAIL** ⇒ 判据空转（本项目禁止项家族）。
+        改为厂商 C API 后，回读是**真设备读数**，且 `cnrtQueueCreateWithPriority`
+        建的流实测 8 个档位（0..7）**回读 == 请求**。
+
+        ⚠️ 单独成方法是为了**可注入/可替换**（离线自检在无设备时要能驱动这条链路）。
+        """
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
             return None
+        fn = getattr(lib, "cnrtQueueGetPriority", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        got = ctypes.c_int(0x7FFFFFFF)
+        rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
+        return int(got.value) if rc == 0 else None
 
     def stream_priority_readback(self, native_stream):
-        """回读该流的优先级；读不出返回 None。
+        """回读该流的优先级（**设备读数**）；读不出返回 None。
 
         为什么必须能回读（2026-09-30）：`torch.npu.Stream(priority=7)` 在 910C 上
         **接受 kwarg 却静默丢弃**（回读恒 0）—— 只有回读能把"参数真的进去了"与
         "看起来设了"分开。本层据此对声明了 `stream_priority_control` 的后端**强制校验**。
+        ⚠️ 而"回读"本身也必须是**设备读数**：MLU590 原先的 torch 属性口径就是反例（见上）。
+
+        句柄属性名各家不同：`npu_stream` / `cuda_stream` / `mlu_stream`（本家 = `mlu_stream`）。
         """
-        return self._stream_priority_read_raw(native_stream)
+        handle = getattr(native_stream, "mlu_stream", None)
+        if not handle:
+            return None
+        return self._stream_priority_read_raw(handle)
 
     def create_event(self):
         # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
@@ -458,7 +576,13 @@ class CambriconBackend(RuntimeBackend):
         语义与 CUDA 一致（least=0 / greatest=-3），**且不触发断言** ——
         与昆仑芯形成明确对照（那里同款 API 会触发 PyTorch 自身的
         `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`）。
-        实测也确认 `Stream(priority=0/-1/-3)` 均可创建且读回值正确。
+
+        ⚠️ **2026-10-08 改口径（本方法返回设备口径）**：上面那个 `(0, -3)` 是 **torch 侧**
+        的档位口径，与**设备侧**不是恒等映射（实测：torch 请求 `0` ⇒ 设备 `4`）。
+        既然建流与回读都改走厂商 C API（见 `_create_stream_raw` / `stream_priority_readback`），
+        区间**必须同口径**，否则取值域校验会拒掉合法设备档位（或放行非法档位）。
+        现返回 `cnrtDeviceGetQueuePriorityRange` 的结果（真机实测 `least=7, greatest=0`，
+        即合法域 `0..7`，**数值越小优先级越高**）—— 与 910C 的 pyACL 口径同构。
 
         ✅ **2026-09-30 起该缺口已被本层兜住**：上游**未拦截非法优先级**
         （`Stream(priority=99)` 不报错），但本层的 `create_stream(priority=…)` 会
@@ -468,11 +592,19 @@ class CambriconBackend(RuntimeBackend):
         ⚠️ 仍未单独验证的：优先级的**实际调度效果**（读回值只证明被接受）。
         若后续需要据此做调度决策，应先补一条性能侧对照实验。
         """
-        try:
-            return self.torch.mlu.Stream.priority_range()
-        except Exception:
-            # 任何异常都不透传（避免重演"只读查询把进程打崩"）
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
             return None
+        fn = getattr(lib, "cnrtDeviceGetQueuePriorityRange", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        least, greatest = ctypes.c_int(0), ctypes.c_int(0)
+        if int(fn(ctypes.byref(least), ctypes.byref(greatest))) != 0:
+            return None
+        return int(least.value), int(greatest.value)
 
     # ───────────── 错误翻译（职责 D10）─────────────
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:

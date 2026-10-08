@@ -230,20 +230,23 @@ class RuntimeBackend(ABC):
         本层必须自己把这条关联记下来，才能在使用点上**主动拦截**。
         """
         try:
-            self._reg("_stream_ctx")[id(native_stream)] = self.current_context_id()
+            self._reg("_stream_ctx")[id(native_stream)] = (
+                self.current_context_id(), self._id_holder(native_stream))
         except Exception:                                     # noqa: BLE001
             pass
 
     def check_stream_usable(self, native_stream) -> None:
         """使用点拦截：流所属上下文已销毁 ⇒ **如实报错**（不得静默成功）。"""
-        rel = self._reg("_released_streams").get(id(native_stream))
+        _ent = self._reg("_released_streams").get(id(native_stream))
+        rel = _ent[0] if (_ent is not None and _ent[1]() is native_stream) else None
         if rel is not None:
             raise RuntimeError(
                 f"该流已被 `release_stream()` 释放（厂商句柄 {int(rel):#x}）⇒ 不可继续使用。"
                 "本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**"
                 "（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）"
                 "⇒ 用完后须显式 `runtime.release_stream(stream)`。")
-        cid = self._reg("_stream_ctx").get(id(native_stream))
+        _cent = self._reg("_stream_ctx").get(id(native_stream))
+        cid = _cent[0] if (_cent is not None and _cent[1]() is native_stream) else None
         if cid is not None and cid in self._reg("_dead_ctx"):
             raise RuntimeError(
                 f"该流创建于已销毁的设备上下文（context_id={cid}）⇒ 不可继续使用。"
@@ -420,16 +423,48 @@ class RuntimeBackend(ABC):
     # 而厂商自己建的流（`torch.npu.Stream()` / `torch.cuda.Stream()`）由厂商 / torch 拥有
     # ⇒ 本层释放必须是 **no-op**，**不得越权销毁**别人的流。
 
-    def _register_owned_stream(self, native_stream, handle) -> None:
-        """登记「本层拥有、需显式释放」的流（`id(native)` → 厂商句柄）。"""
+    #: ⚠️ **为什么所有"以 `id()` 为键"的登记表都要配一个持有器**（2026-10-08 实测踩到）
+    #:
+    #: `id()` 只保证"同一对象的 id 在其存活期内不变"，**对象回收后 id 会被复用**。
+    #: 于是"按 id 查表"会把**另一条新流**误认成**已登记/已释放的那条**。
+    #: 后果分两类，都属本项目禁止项家族：
+    #:   · `_owned_streams` 误判 ⇒ `release_stream()` **越权销毁厂商拥有的流**
+    #:     （契约 §1.10 规则 2 明令禁止 —— "比泄漏更糟"：会让厂商栈内部状态崩坏）；
+    #:   · `_released_streams` 误判 ⇒ 一条**全新**的流被判"已释放"而**误拦**；
+    #:   · `_stream_ctx` 误判 ⇒ 新流被判"绑定在已销毁的上下文上"而**误拦**。
+    #: **暴露条件**：只有当实例**真的会产生「本层拥有」的流**时第一类才有机会发作
+    #: ⇒ MLU590 在 2026-10-08 改走厂商 C API 之前**永远碰不到**，故长期未被发现
+    #: （此前只作为"已知未修风险"登记在册）。**修法：登记时一并存持有器，查询时按身份复核。**
+    @staticmethod
+    def _id_holder(obj):
+        """返回一个"取回原对象"的持有器：优先 `weakref`（对象回收后返回 `None`），
+        类型不支持弱引用时退化为**强引用** lambda —— 强引用同样保证身份可复核
+        （且保住对象 ⇒ 其 id 不会被复用）。"""
         try:
-            self._reg("_owned_streams")[id(native_stream)] = int(handle)
+            import weakref
+            return weakref.ref(obj)
+        except TypeError:
+            return lambda: obj
+
+    def _owned_handle(self, native_stream):
+        """本层拥有 ⇒ 返回厂商句柄；否则 `None`。**按对象身份判定**（不看 id 复用）。"""
+        ent = self._reg("_owned_streams").get(id(native_stream))
+        if ent is None:
+            return None
+        handle, holder = ent
+        return handle if holder() is native_stream else None
+
+    def _register_owned_stream(self, native_stream, handle) -> None:
+        """登记「本层拥有、需显式释放」的流（`id(native)` → (厂商句柄, 身份持有器)）。"""
+        try:
+            self._reg("_owned_streams")[id(native_stream)] = (
+                int(handle), self._id_holder(native_stream))
         except Exception:                                     # noqa: BLE001
             pass
 
     def owns_stream(self, native_stream) -> bool:
         """该流是否由**本层**创建并拥有（决定 `release_stream` 是否真的销毁）。"""
-        return id(native_stream) in self._reg("_owned_streams")
+        return self._owned_handle(native_stream) is not None
 
     def release_stream(self, native_stream) -> bool:
         """释放由**本层拥有**的流；厂商拥有的流 ⇒ **no-op 并返回 `False`**。
@@ -442,10 +477,18 @@ class RuntimeBackend(ABC):
         `check_stream_usable()` 当场拦下（契约：使用已销毁对象必须明确）。
         """
         reg = self._reg("_owned_streams")
-        handle = reg.pop(id(native_stream), None)
-        if handle is None:
+        ent = reg.get(id(native_stream))
+        if ent is None:
             return False
-        self._reg("_released_streams")[id(native_stream)] = int(handle)
+        handle, holder = ent
+        if holder() is not native_stream:
+            # ⚠️ **id 被复用**：这条不是本层拥有的那条流 ⇒ 既**不得**越权销毁（契约 §1.10 规则 2），
+            #    也**不得**报 True（返回值语义是"是否真的销毁了"）。原条目**保留在册**
+            #    —— 它记录的是"有一条本层拥有的流被回收却没释放"这个**泄漏事实**，不掩盖。
+            return False
+        reg.pop(id(native_stream), None)
+        self._reg("_released_streams")[id(native_stream)] = (
+            int(handle), self._id_holder(native_stream))
         return bool(self._destroy_stream_raw(handle))
 
     def _destroy_stream_raw(self, handle) -> bool:
