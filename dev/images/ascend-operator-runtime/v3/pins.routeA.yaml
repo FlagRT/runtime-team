@@ -1,0 +1,28 @@
+# v3 候选血统版本声明。schema 见 dev/ENV-SPEC.md §4。
+# image digest 权威来源：本目录 lock.yaml 的 image_id（此处补全 sha256: 前缀）。
+# repos 的 commit 权威来源：本目录 Dockerfile.repro 的 ARG（Torch-FL/FlagGems）与
+# ../../ascend-train-comm/v3/lock.yaml 的 layers.pin（FlagCX）/ lock.yaml 的
+# vllm_plugin_fl_exact_commit_verified（vllm-plugin-FL）。
+#
+# 不含 FlagTree：Dockerfile.repro 在容器构建期自己 `git fetch <commit>` 并断言
+# HEAD 等于该 commit（见其 "git fetch --depth 1 origin ${FLAGTREE_COMMIT}" 一步），
+# 不读取、不依赖宿主的 FlagTree/ 检出——宿主检出与镜像内容完全无关，strict 校验
+# 对它不适用（曾误加过一条，核实后移除）。
+
+image:
+  ref: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+  digest: sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913   # round 4 rebuild 2026-10-08（含声明式覆盖层补丁；round 2 为 43f3e2f70b4c，已被同名 tag 取代）
+
+repos:
+  FlagGems:
+    class: strict
+    expect_commit: f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+  Torch-FL:
+    class: strict
+    expect_commit: 162582d678e40f133924a4d3b5b6df1cb8154dc7
+  FlagCX:
+    class: strict
+    expect_commit: 4e0e0cbcbf721169ca82348080f8353aebfe2c31
+  vllm-plugin-FL:
+    class: loose
+    expect_branch: release/0.2

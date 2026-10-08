@@ -1,0 +1,102 @@
+# ascend-train-comm v3 — 在 ascend-operator-runtime:v3 之上叠加 FlagCX，
+# 训练腿通信从"flagos 适配"切到"HCCL 适配"（torch_npu 原生 + FlagCX 自注册的
+# "flagcx" c10d 后端），对齐
+# dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py
+# 的实测通路（2481 步、loss 1.95、4245-5428 tok/s，双卡 DDP，零 torch_fl 依赖）。
+#
+# 与 v2（dev/images/ascend-train-comm/v2）的关键区别：
+#
+#   1. 【父镜像换成 v3】ascend-operator-runtime:v3（Route A 默认 + 内含
+#      vllm-ascend 插件），不再是 v2 的 operator-runtime:v2。
+#
+#   2. 【ENV 移除 flagos 强制】v2 在本层设置 TORCH_DEVICE_BACKEND_AUTOLOAD=0 +
+#      FLAGCX_TORCH_BACKEND=flagos，强制训练路径走 Torch-FL 的 "flagos"
+#      ProcessGroup（内部调用 FlagCX）。v3 两条都删——官方默认行为（torch_npu
+#      autoload 抢注 PrivateUse1="npu"）生效，训练时走
+#      `dist.init_process_group(backend="flagcx")`，这是 FlagCX 自己注册的
+#      原生 c10d 后端（与 Torch-FL 的 "flagos" 包装层是两回事——见下方
+#      「FlagCX 消费路径说明」）。
+#
+#   3. 【FlagCX 本体构建方式不变，逐 commit 相同】
+#      **本阶段从阅读代码 + 现有真机验证记录能确定的结论是：flagos 适配 vs
+#      HCCL 适配的差别在"消费侧"（哪个进程内 import 顺序、传给
+#      dist.init_process_group 的 backend 字符串是什么），不在 FlagCX 的编译期
+#      flag——`USE_ASCEND=1 pip install . --no-build-isolation` 这条构建命令
+#      两条路径都一样，FLAGCX_COMMIT 也未变。这是本次设计阶段做出的判断，
+#      不是从 FlagCX 源码逐行核实过的事实（源码在构建期才 git archive/clone，
+#      本仓库不 vendor 它）——按任务书要求，明确标注为"需要 phase 2 real-machine
+#      verification"，见下方「开放问题」与「FlagCX 消费路径说明」。**
+#
+#   4. 【verify 脚本改写】assets/verify_flagcx_runtime.py /
+#      verify_flagcx_p2p.py 的 --device 路径从 "torch_fl + flagos backend"
+#      改为 "torch_npu + flagcx backend"，直接对齐
+#      train_qwen_1_5b_npu.py 的 dist.init_process_group(backend="flagcx")
+#      调用方式。
+#
+# 边界：父镜像与本文件新增层均为 custom（FlagRT 自建 + 组织仓公开 commit）。
+
+ARG PARENT_IMAGE=flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64
+FROM ${PARENT_IMAGE}
+
+ARG FLAGCX_VERSION=0.13.0
+ARG FLAGCX_COMMIT=4e0e0cbcbf721169ca82348080f8353aebfe2c31
+ARG PYTHON_BIN=/usr/local/python3.11.15/bin/python3
+
+LABEL org.opencontainers.image.title="FlagRT Ascend communication runtime (v3, Route A / HCCL-adaptor lineage)" \
+      org.opencontainers.image.version="2.0.0" \
+      io.flagrt.flagcx.version="${FLAGCX_VERSION}" \
+      io.flagrt.flagcx.commit="${FLAGCX_COMMIT}" \
+      io.flagrt.flagcx.origin="public (FlagRT/FlagCX org fork public trunk, synced from flagos-ai/FlagCX upstream) -- UNCHANGED from v2" \
+      io.flagrt.flagcx.hw_adaptor="ascend (USE_ASCEND=1 at build time -- unchanged from v2; this selects the CANN/HCCL hardware target, NOT the torch consumption path)" \
+      io.flagrt.flagcx.torch_consumption_path="torch_npu (PrivateUse1='npu', official autoload) + dist.init_process_group(backend=\"flagcx\") -- FlagCX's own native c10d backend registration, matching dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py. NOT Torch-FL's \"flagos\" ProcessGroup wrapper." \
+      io.flagrt.flagcx.torch_consumption_path_confidence="best-effort reading of Dockerfile/docs; NOT independently re-verified against FlagCX source in this phase -- see REBUILD.md open questions" \
+      io.flagrt.release.stage="candidate" \
+      io.flagrt.lineage="flagtree-official-ascend3.5-routeA"
+
+# 【v3 核心改动】移除 v2 的 FLAGCX_TORCH_BACKEND=flagos 与
+# TORCH_DEVICE_BACKEND_AUTOLOAD=0——两者都是"强制走 flagos/Torch-FL 消费路径"
+# 的开关。v3 不设置它们，让父镜像（ascend-operator-runtime:v3）的官方默认行为
+# 生效：torch_npu autoload 抢注 PrivateUse1="npu"。
+#
+# 注：FLAGCX_TORCH_BACKEND 这个变量本身是不是 FlagCX 包内部真正读取/消费的
+# env（而不只是本组自己在 LABEL/文档里用的标注惯例），本阶段未能从阅读确认
+# ——因为 FlagCX 源码是构建期才拉取，不在本仓库里可 grep。为避免"看起来设了
+# 一个开关但其实没人读"的误导，v3 索性不再设置这个变量，只在 LABEL 里用
+# io.flagrt.flagcx.torch_consumption_path 描述实际生效的消费路径。见
+# REBUILD.md「开放问题」。
+#
+# HCCL_WHITELIST_DISABLE=1 与 LD_LIBRARY_PATH 追加 torch/lib 保持不变（与设备
+# 后端选择无关，两条路径都需要）。
+ENV HCCL_WHITELIST_DISABLE=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LD_LIBRARY_PATH=/usr/local/python3.11.15/lib/python3.11/site-packages/torch/lib:${LD_LIBRARY_PATH}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# FlagCX 源码(组织仓公开主干 tip，与 v2 相同 commit，未升级)+ 校验/自检脚本
+# (v3 版本，见 assets/ 内文件头注释)。
+COPY src/FlagCX/ /opt/flagrt/src/FlagCX/
+COPY assets/verify_flagcx_runtime.py /opt/flagrt/verify_flagcx_runtime.py
+COPY assets/verify_flagcx_p2p.py /opt/flagrt/verify_flagcx_p2p.py
+
+# third-party/json、third-party/googletest 是 FlagCX 的公开 git submodule
+# (nlohmann/json、google/googletest)，构建期直接 clone（需 --network=host）。
+# 与 v2 相同，未改动。
+RUN git config --global --add safe.directory "*" \
+    && cd /opt/flagrt/src/FlagCX \
+    && rm -rf third-party/json third-party/googletest \
+    && git clone --depth 1 https://github.com/nlohmann/json.git third-party/json \
+    && git clone --depth 1 https://github.com/google/googletest.git third-party/googletest
+
+# 【与 v2 相同的构建命令】USE_ASCEND=1 是本阶段能确认的唯一 FlagCX 构建期
+# adaptor 选择开关（选 CANN/HCCL 硬件目标，对应"ascend" hw_adaptor）。
+# 按上面的分析，flagos-consumption 与 hccl/npu-consumption 的差别不在这条
+# 构建命令里——如果 phase 2 真机验证发现这个判断有误（比如 FlagCX 实际上还有
+# 一个未被本文档捕捉到的编译期 flag），需要回来修这里，而不是继续假设。
+RUN source /usr/local/Ascend/ascend-toolkit/set_env.sh \
+    && cd /opt/flagrt/src/FlagCX \
+    && USE_ASCEND=1 ${PYTHON_BIN} -m pip install --no-build-isolation . \
+    && ${PYTHON_BIN} /opt/flagrt/verify_flagcx_runtime.py --static \
+    && rm -rf /root/.cache/pip /opt/flagrt/src
+
+WORKDIR /workspace/FlagPerf/base

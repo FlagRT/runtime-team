@@ -16,7 +16,9 @@
 ```
 dev/__NAME__/
 ├── README.md           # 本文档（看板）
-├── docker-compose.yml  # 容器配置（-f ../compose.base.yml 合并公共配置）
+├── docker-compose.yml  # 容器配置（-f 叠加所选芯片/版本层合并公共配置）
+├── docker-compose.<tag>.yml  # 可选：探索/试验层（如需固定或对比某个具体版本组合）
+├── pins.<tag>.yaml      # 可选：与上面同名，声明该探索层的版本期望，见 dev/ENV-SPEC.md
 ├── .env.example        # 环境变量模板（cp 成 .env 按需调整）
 ├── docs/               # 调研笔记、方案摘录、执行记录（按需建）
 ├── probes/             # 探针/画像脚本（按需建）
@@ -36,11 +38,14 @@ dev/__NAME__/
 ## 启动容器（宿主侧）
 
 ```bash
-cd dev/__NAME__
-cp .env.example .env    # 按需调整专属开关（默认值即可直接启动）
-docker compose -f ../compose.base.yml -f docker-compose.yml up -d
+cp dev/__NAME__/.env.example dev/__NAME__/.env    # 按需调整专属开关（默认值即可直接启动）
+dev/lib/up.sh dev/images/<chip>/v<N>/docker-compose.<tag>.yml dev/__NAME__/docker-compose.yml
 docker ps | grep flagos-__NAME__-dev-910c    # 确认 Up
 ```
+
+`dev/lib/up.sh` 会先做版本校验（见 `dev/ENV-SPEC.md`）再启动，校验失败会阻止启动并打印
+原因。完整跑通的具体步骤示例见 `dev/_template/USAGE-DEMO.md`。若只想按老办法直接启动
+不做校验，仍可以用裸 `docker compose -f ... -f ... up -d`，但不推荐。
 
 ## 常用命令（环境速查）
 

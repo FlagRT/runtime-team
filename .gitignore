@@ -2,12 +2,14 @@
 # 布局约定详见 README.md「目录布局约定」
 
 # --- 6 个子库（独立 git 仓库，各归 FlagRT 组织仓管理） ---
-FlagCX/
-FlagGems/
-PyTorch-Plugin-FL/
-vllm-plugin-FL/
-FlagTree
-FlagPerf/
+# 锚定仓库根：非锚定的 `vllm-plugin-FL/` 会连带忽略 assets/patches/vllm-plugin-FL/
+# 等任意层级的同名目录（2026-10-08 实际踩坑）。
+/FlagCX/
+/FlagGems/
+/PyTorch-Plugin-FL/
+/vllm-plugin-FL/
+/FlagTree
+/FlagPerf/
 
 # --- 大文件 / 运行时产物 ---
 models/
@@ -18,6 +20,7 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+dev/lib/.env_provenance.json
 
 # --- 部署本地配置（每人自己的宿主路径等，.env 不入仓） ---
 .env
