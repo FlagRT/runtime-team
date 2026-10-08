@@ -43,7 +43,7 @@
 |---|---|---|---|
 | v1 | 现网生效 | 自建底座 + pip wheel 组合，未按官方手册路径 | 本节上方 |
 | v2 | 候选，未生效 | 切到 BAAI·FlagTree 官方手册路径构建；FlagCX 去除私有 patch | `PROCESS.md`「v1 → v2」 |
-| v3 | 候选，🟡 partial-repro，两项决策待总组拍板 | Route A 设为默认设备后端；新增 vLLM 推理插件层（vllm-plugin-FL），训练+推理统一血统 | `PROCESS.md`「v3」 |
+| v3 | 候选，🟡 partial-repro，两项决策已拍板落地（round 4） | Route A 设为默认设备后端；新增 vLLM 推理插件层（vllm-plugin-FL），训练+推理统一血统；round 4 加声明式覆盖层补丁并重建 | `PROCESS.md`「v3」/「round 4」 |
 
 ## 依赖与血缘一览（昇腾 910C）
 
@@ -80,7 +80,7 @@
 |---|---|---|---|
 | v1 | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`（`d948410966b0`） | 🟢 functional-repro | `ascend-operator-runtime/v1/` |
 | v2 | `flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64` | 🟢 functional-repro（真机 2 卡验证通过） | `ascend-operator-runtime/v2/` |
-| v3 | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（`9ad551058f2f`） | 🟡 partial-repro | `ascend-operator-runtime/v3/` |
+| v3 | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（`be30a952c2eb`，round 4 重建含覆盖层补丁；round 2 为 9ad551058f2f） | 🟡 partial-repro | `ascend-operator-runtime/v3/` |
 
 > 新增版本直接在此表追加一行；`(下一个版本占位行)`
 
@@ -122,7 +122,7 @@ L2 算子编译    FlagTree triton_v3.5.x@15ec1a6c（同 v2，triton 3.5.1，off
               grid-stride-loop kernel 路径缺 shmem 模块，STOP CONDITION，见 lock.yaml）
 L3 Runtime    Torch-FL @162582d（opt-in，需显式反向操作激活，guard fail-loud 真机确认）
               vllm 0.20.2（父镜像自带裸 vLLM）
-              vllm-plugin-FL release/0.2 @8b059122e（round 2 新增，取代构建失败的 vllm-ascend）
+              vllm-plugin-FL release/0.2 @8b059122e + 覆盖层补丁（round 2 新增；round 4 起叠加 assets/patches/ 声明式补丁，见 lock.yaml overlay_patches）
 L4 挂载/装配  docker-compose.routeA.yml：${WORKSPACE_ROOT}:/workspace ·
               /usr/local/Ascend/driver 直通 · 16×davinci 设备 · shm_size 512g ·
               ipc: host
@@ -141,7 +141,7 @@ GR3）：`FlagGems` / `Torch-FL` / `FlagCX` = **静态挂载点 strict**（精�
 |---|---|---|---|
 | v1 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64`（`3b9e08f231d0`） | 🟢 functional-repro | `ascend-train-comm/v1/` |
 | v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40 通过） | `ascend-train-comm/v2/` |
-| v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟡 partial-repro | `ascend-train-comm/v3/` |
+| v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（`7028028bb62c`，round 4 级联重建；round 3 为 43f3e2f70b4c） | 🟡 partial-repro | `ascend-train-comm/v3/` |
 
 ### 层级视图（只列相对 operator-runtime 同版本新增的 L3/L4；L1/L2 见上一节）
 

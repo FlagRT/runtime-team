@@ -406,3 +406,34 @@ import，只查是否存在"）在 v3 默认路径下并不是无副作用的—
 训练腿（FlagCX/DDP）本身发现的独立 STOP CONDITION 见
 `dev/images/ascend-train-comm/v3/REBUILD.md`（`dist.broadcast`/`dist.all_gather`
 在 `flagcx` backend 下返回错误结果）。
+
+
+## ROUND 4（2026-10-08）：覆盖层补丁构建
+
+**背景**：round 3 收尾的两项总组决策拍板（声明式覆盖层 + upstream-first + 官方开关
+解堵，见 `docs/v3-决策备忘录与shmem跨组需求-20261008.md`），本节记录其中已执行的
+构建部分。真机双腿验证仍 PENDING（见文末）。
+
+- **构建**：`build.sh /home/xliu969/tmp-reproV3-r4`（上下文组装：`git archive` 导出
+  FlagGems/Torch-FL 的 pin commit）。同名 tag 重建，新 image id `be30a952c2eb`
+  （9ad551058f2f → be30a952c2eb；旧 id 保留）。补丁层之前全部缓存命中，仅补丁层起
+  27 层重跑（约 150s，DOCKER_BUILDKIT=0）。
+- **三重验证证据**：
+  1. `verify_runtime.py --static` 通过（vllm_fl_installed: true）；
+  2. 镜像内 vllm_fl 版本串 `0.0.0+g8b059122e.d20261008`——setuptools-scm 对 pin
+     之上的本地改动追加 `.d<日期>` 脏标记，round 2 无补丁时为干净串（直接证据）；
+  3. 文件级核验 `site-packages/vllm_fl/distributed/communicator.py`：SYNC-FIX ×2
+     （all_reduce 同步 + all_gather 覆盖实现）。
+- **坑点（无卡容器验证）**：`inspect.getsource` 类 import 式验证在无 `--device`
+  容器跑不通——torch_npu autoload 需宿主驱动库（libascend_hal.so）；设
+  `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 又撞 flag_gems 设备探测。属环境限制非镜像
+  缺陷，文件级 grep 等价替代。
+- **级联**：`ascend-train-comm/v3` 同步重建（新 image id `7028028bb62c`），补丁经
+  父镜像继承，FlagCX 层未变，见该目录 REBUILD.md「ROUND 4」。
+- **provenance**：`assets/provenance/pipfreeze-operator-runtime-v3-round4.txt`。
+- **环境事故（2026-10-08 发现）**：npu1-27 docker 存储的 numpy libopenblas 层
+  校验和损坏（`docker save` 报 file integrity checksum failed，基座镜像与所有
+  派生镜像均无法导出；运行不受影响，已实测 numpy matmul 正常）。镜像迁移改走
+  "npu1-11 直拉 harbor 基座 + 本地重建"路径。
+- **真机验证 PENDING**：npu1-27 带卡容器并发持续超限（守候 4h 无窗口），双腿
+  验证迁移至 npu1-11（仓 dev-1.0@31c741d 已同步 round 4 全部内容）。

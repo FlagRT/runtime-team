@@ -345,3 +345,18 @@ sync 修复（即下面 P1 拍板项：是否正式吸收私有 fork 的 fix）�
 
 两个脚本已迁入本目录 `assets/flagcx_sync_test.py` / `train_qwen_1_5b_npu_syncpatch.py`。
 `known_issues` 与 `lock.yaml` 已回填真实结果（见下）。
+
+
+## ROUND 4（2026-10-08）：级联重建（继承覆盖层补丁）
+
+- **构建**：父镜像换成 operator-runtime/v3 round 4 新镜像（`be30a952c2eb`），
+  FlagCX 层本身未变（0.13.0@4e0e0cbc，`_C.so`/`libflagcx.so` sha256 由 build.sh
+  静态检查记录）。新 image id `7028028bb62c`（43f3e2f70b4c → 7028028bb62c，
+  旧 id 保留）。
+- **补丁继承机制**：vllm-plugin-FL 覆盖层补丁（flagcx all_reduce/all_gather 缺
+  torch.npu.synchronize() 修复）在父镜像的 vllm-plugin-FL 层内构建期应用，本
+  血统经 FROM 继承，无需（也没有）自己的补丁层。round 3 证实的"修复必须落在
+  c10d/communicator 实现层、Python 猴子补丁绕不过"由此闭环。
+- **provenance**：`assets/provenance/pipfreeze-comm-v3-round4.txt`。
+- **真机训练腿验证 PENDING**（真实 loss/吞吐，补丁的直接受益验证）：npu1-27
+  卡窗口无望，迁移至 npu1-11 执行（与推理腿同批）。

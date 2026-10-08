@@ -25,7 +25,8 @@ flagtree_line: >-
   但从未真正被用于计算；v3：torch_npu 是唯一默认路径，torch_fl 保留但降级为
   opt-in）以及新增 vLLM 推理插件层（round 2：vllm-plugin-FL，取代 round 1 构建
   失败的 vllm-ascend）。
-built_at: "2026-09-22 (round 2: real design-tag build, image id 9ad551058f2f -- superseded round 1's diagnostic-variant-only status)"
+built_at: "2026-10-08 (round 4: overlay-patch rebuild, image id be30a952c2eb)"
+built_at_history: "2026-09-22 (round 2: real design-tag build, image id 9ad551058f2f -- superseded round 1's diagnostic-variant-only status)"
 builder: "runtime-team (phase 2 real-hardware validation agent)"
 repro_status: "🟡 partial-repro"   # 标准 🟢/🟡/🔴（dev/images/README.md §4.1）。
                                    # round 2：设计 tag（含 vllm-plugin-FL）真机
@@ -223,6 +224,12 @@ torch_npu_default_finding: |
 
 repro_result:
   status: >-
+    ROUND 4 — 2026-10-08. 声明式覆盖层补丁构建成功：同名 tag 重建，新 image id
+    be30a952c2eb（补丁层之前全部缓存命中，仅补丁层起 27 层重跑约 150s）；
+    verify_runtime.py --static 通过。真机双腿验证 PENDING（npu1-27 带卡容器
+    并发持续超限，验证迁移至 npu1-11 执行，镜像经 harbor 基座 + 本地重建路径
+    迁移——npu1-27 docker 存储的 numpy libopenblas 层校验和损坏，docker save
+    不可用，详见 REBUILD.md「ROUND 4」）。round 1-3 的真机结论继续有效。
     PHASE 2 ROUND 2 — 2026-09-22. 设计 tag 本身（含 vllm-plugin-FL 层）
     **构建成功**（取代 round 1 的 vllm-ascend 尝试，见 known_issues 历史记录），
     不再需要诊断变体——本文件的字段现在全部来自真实设计 tag 镜像。真机 Step 5
@@ -233,7 +240,9 @@ repro_result:
     （route_a_default_check、torch_fl_guard_check，均在诊断镜像上做的，与 vLLM
     插件选型无关）继续有效，不需要在正式 tag 上重跑。
   image: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64"   # round 2: 真实产出，非 null
-  image_id: "9ad551058f2f"
+  image_id: "be30a952c2eb"   # round 4 rebuild（含覆盖层补丁）
+  image_id_round2_superseded: "9ad551058f2f（round 2 产物，已被同名 tag 取代，本机保留未删）"
+  vllm_fl_overlay_patch_dirty_marker: "0.0.0+g8b059122e.d20261008（覆盖层补丁存在的直接证据：setuptools-scm 对 pin 之上本地改动追加 .d 日期脏标记；round 2 无补丁时为干净的 0.0.0+g8b059122e）"
   image_tag_diagnostic_superseded: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64-DIAGNOSTIC-novllm"   # round 1 遗留，image id 4bab61434602，已被正式 tag 取代，本机镜像未删除但不建议再用
   triton_version: "3.5.1"        # 实测
   flagtree_version: "0.6.0+ascend.git15ec1a6c"   # 实测
@@ -241,7 +250,8 @@ repro_result:
   flag_gems_version: "0.0.0+f7ae8e6b934a"        # 实测（round 2 未改动此 pin，见 open_questions.vllm-plugin-fl-flaggems-version-compat）
   torch_npu_version: "2.10.0"    # 实测
   vllm_ascend_version: null      # round 1 尝试，从未安装成功，round 2 已放弃该路径，见 known_issues 历史记录
-  vllm_fl_version: "0.0.0+g8b059122e"   # 实测（round 2，vllm-plugin-fl dist 版本，setuptools-scm 从 commit 8b059122e 生成）
+  vllm_fl_version: "0.0.0+g8b059122e.d20261008"   # round 4 实测（含覆盖层补丁的本地改动脏标记）
+  vllm_fl_version_round2: "0.0.0+g8b059122e（round 2 无补丁时的干净版本串，setuptools-scm 从 commit 8b059122e 生成）"
   vllm_plugin_fl_exact_commit_verified: "8b059122e32b9ac47b9820a9c7b1bb95077481a4"   # git ls-remote 实测取得的 release/0.2 分支 tip
   verify_runtime_static: "passed (real design-tag image, not diagnostic -- vllm_fl_installed: true)"
   verify_runtime_dynamic_route_a_default: "passed: route_a_default_check = 'passed (torch_npu claimed PrivateUse1 with no special import order)' -- 2-card container v3-validate-train-910c, 2026-09-22 (round 1, carried forward, independent of vLLM plugin choice)"
@@ -403,3 +413,18 @@ changelog:
       编译组提出 shmem 官方出处的跨组需求（docs/v3-决策备忘录与shmem跨组
       需求-20261008.md），官方来源落实后本层删除。镜像尚未重建（本机带卡
       容器 5 个超上限 3，排队中），重建+真机验证记为 PENDING。
+  - date: "2026-10-08"
+    what: >-
+      ROUND 4 构建执行：决策①的覆盖层补丁随 Dockerfile.repro 构建进镜像——同名
+      tag 重建，operator-runtime 新 image id be30a952c2eb（旧 9ad551058f2f 保留），
+      级联重建 ascend-train-comm/v3 新 image id 7028028bb62c（旧 43f3e2f70b4c
+      保留，FlagCX 层未变）。三重验证证据：verify_runtime.py --static 通过；
+      镜像内 vllm_fl 版本串 0.0.0+g8b059122e.d20261008（setuptools-scm 本地改动
+      脏标记，round 2 无补丁时为干净串）；文件级核验 communicator.py 含
+      SYNC-FIX ×2。provenance 落盘 pipfreeze-operator-runtime-v3-round4.txt。
+      pins.routeA.yaml digest 同步更新为 7028028bb62c 的完整 sha256。环境坑点：
+      无卡容器里 import 式验证不可用（torch_npu autoload 需宿主驱动库），
+      文件级 grep 等价替代。真机双腿验证 PENDING：npu1-27 带卡容器并发超限
+      （守候 4h 无窗口），且本机 docker 存储发现 numpy libopenblas 层校验和
+      损坏（docker save 不可用、不影响运行），验证迁移至 npu1-11（仓
+      dev-1.0@31c741d + harbor 基座 + 本地重建路径）。

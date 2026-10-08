@@ -28,7 +28,8 @@ image_tag: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0
 flagtree_line: >-
   ascend3.5，随父镜像 ascend-operator-runtime/v3。本层只叠加 FlagCX（与 v2 相同
   commit，未升级），改变的是消费侧配置（ENV 与 verify 脚本），不是 FlagCX 本体。
-built_at: "2026-09-22"
+built_at: "2026-10-08 (round 4 级联重建，父镜像为 operator-runtime round 4 新镜像)"
+built_at_history: "2026-09-22"
 builder: "runtime-team (phase 2 real-hardware validation agent)"
 repro_status: "🟡 partial-repro"   # 构建成功、通信原语部分验证通过（all_reduce/P2P 正确），
                                     # 但训练脚本因 broadcast/all_gather STOP CONDITION 无法产出
@@ -142,7 +143,8 @@ repro_result:
     image). See known_issues.flagcx-broadcast-allgather-wrong-result (unchanged,
     still the open blocker for real DDP loss numbers -- out of scope this round).
   image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"   # round 2: no -DIAGNOSTIC-novllm suffix, real image id 43f3e2f70b4c, built on real operator-runtime:v3 (image id 9ad551058f2f)
-  image_id: "43f3e2f70b4c"
+  image_id: "7028028bb62c"   # round 4 级联重建（父镜像含覆盖层补丁）
+  image_id_round3_superseded: "43f3e2f70b4c（round 2/3 产物，已被同名 tag 取代，本机保留未删）"
   flagcx_so_present: true
   verify_flagcx_runtime_static: "passed"
   verify_flagcx_runtime_device_route_a: "passed: device_all_reduce_ok=true both ranks, device_backend_str='flagcx', torch_npu_default_check passed -- 2-card real hardware, container v3-validate-train-910c, 2026-09-22 (round 1, carried forward -- FlagCX layer unchanged)"
@@ -261,3 +263,11 @@ changelog:
       两个脚本迁入 `assets/`。repro_status 维持 🟡 partial-repro（假说已证实，
       但真实 DDP 数值结果仍待 P1 拍板——是否吸收私有 fork 的 sync 修复——之后
       才能产出）。未改 dev/stack.lock.910c.v2.yaml。
+  - date: "2026-10-08"
+    what: >-
+      ROUND 4 级联重建：父镜像换成 operator-runtime/v3 round 4 新镜像
+      （be30a952c2eb，含 vllm-plugin-FL 覆盖层补丁——flagcx sync 修复经父镜像
+      继承进本血统），FlagCX 层本身未变（0.13.0@4e0e0cbc）。新 image id
+      7028028bb62c（旧 43f3e2f70b4c 保留）。provenance 落盘
+      pipfreeze-comm-v3-round4.txt。真机训练腿验证（真实 loss/吞吐，补丁的
+      直接受益验证）PENDING，与推理腿一同迁移至 npu1-11 执行。

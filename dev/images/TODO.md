@@ -103,7 +103,14 @@
   PR 文本草稿见决策备忘录附录。
 - **跨组需求已建档**：shmem 官方出处（FlagTree triton tle/dsa/ascend 扩展的
   依赖声明缺口）已写成独立需求文档，待转算子编译组。
-- **下一步（按依赖排序）**：① 卡资源释放后重建镜像（Dockerfile.repro 已变，
-  build.sh 驱动）→ ② 叠加 flaggems-cos-off 层跑 round 4 真机验证（训练腿
-  loss/吞吐 + 推理腿 embed/generate）→ ③ 结果回填 lock.yaml/REBUILD.md，
-  视结果决定 repro_status 是否升 🟢；上游 PR 提交与跨组需求发出并行推进。
+- **下一步（按依赖排序，2026-10-08 深夜更新）**：
+  ① ~~重建镜像~~ **已完成**：operator-runtime `be30a952c2eb` / train-comm
+  `7028028bb62c`（含覆盖层补丁，三重证据验证，见各 REBUILD.md「ROUND 4」）。
+  ② 真机双腿验证 **PENDING→迁移 npu1-11**：npu1-27 带卡容器并发超限（守候 4h
+  无窗口）且 docker 存储层校验和损坏（save 不可用）；npu1-11（10.120.72.11，
+  16 卡零占用）已就位：仓 dev-1.0@31c741d 同步完毕、harbor 基座拉取中、模型
+  rsync 中，到货后按本目录配方本地重建+验证。
+  ③ 文档回填：本轮已完成（lock.yaml×2 / REBUILD.md×2 / image_list / TODO）。
+  ④ **新增待办**：v3 round 4 镜像 docker save 离线归档 raid——被 npu1-27 存储
+  损坏阻塞，待 npu1-11 重建成功后在那边 save 归档（先例各 v2/ARCHIVE.md）。
+  ⑤ 上游 PR 提交与跨组需求发出并行推进（PR 草稿见决策备忘录附录 A/B）。
