@@ -1,7 +1,7 @@
 # 合入 dev-1.0 准备材料（子树同步）
 
 > **日期**：2026-10-08 ｜ **方向**：device-context（子方向 1）｜ **特性分支**：`kistich/device-context`（本地 HEAD = 组件 `runtime-v0.3.0` 所在提交）
-> **目标分支**：`dev-1.0`（远端 tip 实测 `da2e53b`，2026-09-24，「Merge pull request #21 from FlagRT/dev-zkm」）
+> **目标分支**：`dev-1.0`（远端 tip 实测 **`31c741d`**，2026-10-08，「Merge xliu969/dev into dev-1.0」）
 > **同步分支**：`sync/dc-v030-for-dev10`（**本地已就绪、尚未推送**）
 
 ---
@@ -11,10 +11,11 @@
 | 项 | 结果 |
 |---|---|
 | 同步方式 | **子树同步**（以 `dev-1.0` tip 为基，只落本方两个子树）—— **不是**把特性分支整体推过去 |
-| 同步范围 | `dev/device-context/`（**774 新增 + 31 修改**）· `summary/`（2 新增）；**805 文件 +85943 / −1276** |
+| 同步范围 | `dev/device-context/`（**775 新增 + 31 修改**）· `summary/`（2 新增）；合计 **808 文件 · 约 +8.7 万行 / −1.3 千行** |
 | 删除文件 | **0 个**（`dev-1.0` 上该子树的 412 个文件我方**全部保留**） |
 | **合入把关四道** | ✅ **① 可快进 · ② 内容级 tree 核对逐字相同 · ③ 禁用词 0 · ④ 基座草稿未带入** |
 | 待办 | 提 PR（标题/正文见 §5）；**提 PR 前需重新 fetch `dev-1.0` 并重做四道**（目标分支可能已前进） |
+| ⚠️ 目标分支已前进一次 | 准备期间 `dev-1.0` 从 `da2e53b` 前进到 `31c741d`（**8 个提交，全部是镜像/文档方向，未触及本方向子树**）⇒ 同步基与四道**已按新基重做**（本条即 §5「提 PR 前重做」的实例） |
 
 ---
 
@@ -25,8 +26,8 @@
 结果是一个**单一、可快进、只增本方子树**的提交。
 
 ```bash
-# ① 以 dev-1.0 tip 为基
-git fetch <remote> dev-1.0 && git checkout -b sync/dc-v030-for-dev10 FETCH_HEAD
+# ① 以 dev-1.0 tip 为基（tip 每次提 PR 前都要重新取）
+git fetch <remote> dev-1.0 && git checkout -B sync/dc-v030-for-dev10 FETCH_HEAD
 # ② 只落本方子树
 git checkout kistich/device-context -- dev/device-context summary
 # ③ 范围自检（必须为空）
@@ -40,7 +41,7 @@ git diff --cached --name-only | grep -vE '^(dev/device-context/|summary/)'
 | # | 关卡 | 命令 | 读数 |
 |---|---|---|---|
 | **①** | **可快进** | `git merge-base --is-ancestor da2e53b HEAD` | ✅ 通过（`dev-1.0` tip 是本提交的祖先 ⇒ 可 fast-forward / 干净 merge） |
-| **②** | **内容级核对** | `git rev-parse HEAD:<子树>` vs `git rev-parse kistich/device-context:<子树>` | ✅ **`dev/device-context` = `a30cdd97…` · `summary` = `bcd396c7…`**（两棵树与特性分支**逐字相同**） |
+| **②** | **内容级核对** | `git rev-parse HEAD:<子树>` vs `git rev-parse kistich/device-context:<子树>` | ✅ **两棵子树与特性分支逐字相同**（`git rev-parse` 两次输出同值即通过）。⚠️ **此处刻意不硬编码 hash** —— 本文档位于被核对的子树内，写入 hash 会改变该子树 ⇒ 自我指涉；**具体读数见当轮交付说明** |
 | **③** | **禁用词扫描** | `git diff --cached --no-color \| grep -cE '^\+.*(异构\|heterogeneous\|hetero)'` | ✅ **0** |
 | **④** | **基座草稿不 PR** | `git diff --cached --name-only \| grep -E 'stack\.lock\.910c\.yaml$'` | ✅ **空**（草稿 `dev/stack.lock.910c.yaml` 仅存在于特性分支，**未带入**） |
 
@@ -68,8 +69,9 @@ git diff --cached --name-only | grep -vE '^(dev/device-context/|summary/)'
 
 1. **看板口径**：`dev-1.0` 上的 device-context 看板即本次带入的版本（已按"**只留结论 + 报告与行号**"精简过），
    无需再裁剪；后续在该分支上更新时，注意**共享分支看板按「已推范围」写**（特性分支可留全量）。
-2. **组件版本载体**：Release 建在 `runtime-v0.3.0` tag（= 特性分支提交），**合入后 tag 与 Release 不动**
-   （版本以 Release 为准，tag 仅作提交指针）。
+2. **组件版本载体**：Release 建在 `runtime-v0.3.0` tag（= 特性分支提交 `5288f04`），**合入后 tag 与 Release 不动**
+   （版本以 Release 为准，tag 仅作提交指针）。⚠️ tag 与分支 tip 会随分支继续前进而分离，属正常 ——
+   **判「发布状态」只看 Release，不看 tag 列表**。
 
 ---
 
@@ -125,6 +127,6 @@ P800 两条厂商侧问题（KL3 事件挂死、物理卡 1 计算通路故障�
 | 项 | 状态 |
 |---|---|
 | 同步分支**推送** 与 **PR 创建** | ⏸ **未做**（待用户裁定；本文件只做"准备材料"） |
-| 提 PR 前的**再 fetch + 重做四道** | ⏳ 必做（目标分支可能已前进） |
+| 提 PR 前的**再 fetch + 重做四道** | ✅ 已按新基（`31c741d`）重做；**提 PR 时若目标分支再次前进，需再重做一次** |
 | `dev/stack.lock.910c.yaml`（基座草稿） | ⏸ 留在特性分支**不 PR**；按每周三惯例评估 |
 | 台账 D3（上游诉求跟进）· C4（上报渠道） | ⏸ 待定（**不影响本方向验收**） |

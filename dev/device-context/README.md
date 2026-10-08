@@ -266,7 +266,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/RELEASE_NOTES_v0.2.0.md`（222 行） | **组件 v0.2.0 发布说明**（**三芯片统一原型版**；发布页 https://github.com/FlagRT/runtime-team/releases/tag/runtime-v0.2.0）：kunlun 后端 · 4 个框架修复 · 脚本后端无关化 · 验证结果 · **纪律 3 条** · 已知限制 9 条 |
 | `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
-| `prototype/docs/MERGE_PREP_DEV10_20261008.md`（130 行） | ⭐ **合入 `dev-1.0` 的准备材料**：子树同步方式（基 `dev-1.0` tip，只落 `dev/device-context/` + `summary/`）· **合入把关四道逐条读数**（可快进 / 子树 tree 逐字相同 / 禁用词 0 / 基座草稿未带入）· 可直接使用的 **PR 标题与正文** · 合入后收尾 · 未做项 |
+| `prototype/docs/MERGE_PREP_DEV10_20261008.md`（132 行） | ⭐ **合入 `dev-1.0` 的准备材料**：子树同步方式（基 `dev-1.0` tip，只落 `dev/device-context/` + `summary/`）· **合入把关四道逐条读数**（可快进 / 子树 tree 逐字相同 / 禁用词 0 / 基座草稿未带入）· 可直接使用的 **PR 标题与正文** · 合入后收尾 · 未做项 |
 | `../../summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md` | **分支级总结**（跨目录，在仓库根 `summary/`）：路线 A/B 选择依据 + 路线 A 设计方案 + **三实例**实现进度与下一步 |
 
 ### 6.4 芯片专属文档（**结论不迁移**，新芯片按手册新建）
