@@ -1,0 +1,29 @@
+===== [0] 前提复核 =====
+DC_MODEL = /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+训练腿用卡 = 2,3 ；推理腿用卡 = 2
+-- 步 0：模型完整性（sha256 应与 HF blob 名一致；本轮已在开工前验过，此处复核）
+0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd  /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors
+-- 设备可见性
+mlu calc  = 3.0
+dc_dist_bt = <unset>
+
+===== m1_train_leg（2 卡 · 50 步）=====
+[13:09:11] start
+train rc=0
+[13:10:20] end
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank1] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3018.8 tok/s(两卡合计) -> /work/dc_mlu_regen_20261008/out_m1/train_mlu/train_leg_result_rank1.json
+[rank0] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3017.2 tok/s(两卡合计) -> /work/dc_mlu_regen_20261008/out_m1/train_mlu/train_leg_result_rank0.json
+
+===== m1_infer_leg（单卡）=====
+[13:10:20] start
+infer rc=0
+[13:10:31] end
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 40.46 句/s, p50 73.72 ms, avg 74.15 ms
+[rank0] INFER_LEG_PASS 13/13 | backend=cambricon dev=mlu:0 | dim 1024 | 40.46 句/s p50 73.72ms | 区分度 0.6391 -> /work/dc_mlu_regen_20261008/out_m1/proto_infer_leg_result.json
+===== ALL DONE =====
+[13:10:31]

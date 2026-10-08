@@ -945,6 +945,17 @@ def _invariant(env, which):
         ok, detail = fn(env["backend"]) if which != "i3" else fn(env["backend"], 0)
     except BaseException as e:                                    # noqa: BLE001
         return _fail(f"判据自身异常：{type(e).__name__}: {str(e)[:90]}")
+
+    # ⚠️ 三值翻译（True / False / None ↔ OK / FAIL / SKIP）—— **不得**把「不适用」当「通过」。
+    # 2026-10-08 MLU590 实测暴露：`check_i3` 在两项能力都未声明时按自身的既定约定返回
+    # `(True, NOT_APPLICABLE + 原因)`；本委托层原先把 `ok=True` 一律映成 OK ⇒
+    # 审计里 J3 报 OK，而**同一原因**的 H2/H3/H4/H5（未声明 memory_alloc）与
+    # I2/I3/I4/I5/I10（未声明 context_lifecycle）报的是 SKIP ⇒ 同一原因两种标签，
+    # 且非空转脚手架无法把「判据失效」与「本机不适用」区分开（误报「未抓到」）。
+    if ok is None:                                                # 委派方如实跳过
+        return _skip(f"[委托 contract_invariants] {str(detail)[:170]}")
+    if ok is True and str(detail).startswith(ci.NOT_APPLICABLE):   # 委派方如实标「不适用」
+        return _skip(f"[委托 contract_invariants] {str(detail)[:170]}")
     return (_ok if ok else _fail)(f"[委托 contract_invariants] {str(detail)[:170]}")
 
 

@@ -1,0 +1,51 @@
+===== [0] 容器与版本 =====
+[12:44:18]
+dc-mlu590-vllm-hliu553|Up 36 minutes
+vllm 0.20.2 torch 2.7.1+cpu torch_mlu 1.29.2+torch2.7.1
+mlu_cnt 8
+MODEL(容器内) = /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+  config.json ✓
+
+===== [A] 序 20：serve_standard.sh（SERVE_FORM=embed · DEV=2 · EAGER=1 · STOP_AFTER=1）=====
+     ⭐ 本段**刻意不传 MODEL** —— 为验证同日修好的 cambricon 分支默认值真的可用
+probes/run_mlu590_m1_serve_20261008.sh: line 55: /srv/hliu553/models/…: No such file or directory
+        （原默认是宿主路径 ，容器内永不存在）
+[12:44:25] start
+form rc=0
+[12:52:24] end
+-- verdict 与关键行（取自 serve_standard.log，非外层重定向）--
+  ✅ 服务就绪 t=360s
+  维度=1024 范数=1.000001
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+---- vllm 实际启动参数（确认形态与模型真的生效）----
+(APIServer pid=1802) INFO 10-08 12:45:02 [utils.py:233] non-default args: {'model_tag': '/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', 'host': '127.0.0.1', 'port': 8100, 'model': '/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', 'runner': 'pooling', 'convert': 'embed', 'max_model_len': 4096, 'enforce_eager': True, 'served_model_name': ['qwen3-embedding-0.6b']}
+
+===== [B] 序 21：proto_infer_serve.py（本层消费方）=====
+     本段**显式传 MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/** 与 [A] 形成互补（一条走默认、一条走显式）
+[12:52:24] start serve
+[i] 第 160 s 就绪（http 200）
+ready=1
+[12:55:04] run consumer
+[1] 设备上下文: 后端=cambricon 设备数=8
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-embedding-0.6b
+[3] 向量: 维度=1024 有限=True 范数=1.000001
+[4] 语义: 同主题 0.6975 / 异主题 0.2884 / 区分度 0.4091
+[5] 吞吐: 0.09 句/s | p50 678.5ms | max 105539.8ms
+[6] 错误注入: HTTP 400 | This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at l → L2_PARAM / raise
+[7] 业务继续: ✅
+
+=== SERVE_LEG_PASS | 10/10 ===
+结果已写入 /work/dc_mlu_regen_20261008/out_serve_m1/consumer/proto_infer_serve_result.json
+consumer rc=0
+    "batch": 3
+  },
+  "passed": 10,
+  "total": 10,
+  "verdict": "SERVE_LEG_PASS"
+}
+===== [C] 停服务（只停自己起的）=====
+   4851 /flagos/bin/python /flagos/bin/vllm serve /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/ --served-model-name qwen3-embedding-0.6b --host 127.0.0.1 --port 8100 --max-model-len 4096 --tensor-parallel-size 1 --runner pooling --convert embed --enforce-eager
+(上方为空=已清)
+===== ALL DONE =====
+[12:59:48]

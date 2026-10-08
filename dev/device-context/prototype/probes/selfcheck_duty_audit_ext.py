@@ -17,8 +17,22 @@
 【判定】
   · 非 SKIP 的项：`原状 == OK` 且 `注入后 == FAIL` ⇒ **抓到了**；
   · 原状即 `SKIP` 的项 ⇒ 如实标「不适用（本机该分支不成立）」并**计入覆盖缺口**，
-    不算通过（换芯片/换实例时这些分支会在别的机器上被真正行使 —— 例如 L5 只在
-    声明 `stream_priority_control` **且区间非单点**的实例上成立，目前只有 MLU590 满足）。
+    不算通过（换芯片/换实例时这些分支会在别的机器上被真正行使）。
+    ⚠️ **2026-10-08 更正**：本节原写「L5 只在声明 `stream_priority_control` 且区间非单点的
+    实例上成立，**目前只有 MLU590 满足**」—— 该预测**已被实机证伪**：MLU590 区间确为
+    `(0, -3)` 非单点，但它的建流走 torch 侧（`torch.mlu.Stream(priority=…)`，本家**没有**
+    独立的句柄式 C API）⇒ `release_stream` 恒 `False`（不属于「本层拥有」）⇒ L5 **同样 SKIP**。
+    ⇒ **「区间非单点」只是 L5 的必要条件，不是充分条件**；充分条件还要求该后端真的存在
+    「厂商 C API 建流 + 本层包装」的路径（目前只有 P800 的 C API 路径，而它区间退化单点
+    ⇒ 真机走的是等价放行分支）。**结论：三家现役实例目前都行使不了 L5。**
+
+【§0 委派翻译层自检（无需设备）】
+  J 域把 `contract_invariants.check_i1..i4` **委托**过来（同一份实现，避免两处漂移）。
+  被委托方的返回是三值的（`True` / `False` / `None` 或 `True` + `NOT_APPLICABLE` 哨兵），
+  本审计的状态也是三值的（`OK` / `FAIL` / `SKIP`）⇒ **必须逐值对齐**。
+  这一节用**受控替身**直接喂四种返回形状并断言映射 —— 因为「如实跳过 / 如实不适用」
+  这两条分支在**声明了两项能力的实例上永远走不到**（910C 两项都声明、P800 声明
+  `memory_alloc`），单靠真机跑不动它。⭐ 纪律：**新分支必须证明它能真的报**。
 
 【用法】
   DC_BACKEND=ascend python3 probes/selfcheck_duty_audit_ext.py --backend ascend --out <json>
@@ -266,6 +280,48 @@ def _child(sid, backend, inject):
                 r.returncode, " | ".join(tail[-2:])[:160] if tail else "（无输出）")
 
 
+def check_delegation_mapping():
+    """§0 委派翻译层自检（**无需设备**）：委派返回形状 → 审计状态 的三值映射。
+
+    断言四条（依据 = 审计工具自身的三值约定 `_ok=True / _fail=False / _skip=None`）：
+        真实通过   (True,  "…")                  -> OK   (True)
+        如实跳过   (None,  "…")                  -> SKIP (None)
+        如实不适用 (True,  NOT_APPLICABLE + "…") -> SKIP (None)   ← 2026-10-08 修的正是这条
+        真实失败   (False, "…")                  -> FAIL (False)
+
+    为什么不能靠真机：后两条分支要求**后端不声明**相应能力才会触发；910C 两项都声明、
+    P800 声明 memory_alloc ⇒ 它们的 J3 永远走真实分支。MLU590 是首个两项都不声明的实例，
+    但它只能证明「如实不适用」这一条；「如实跳过」（`None`）目前**没有任何被委托方会返回**
+    ⇒ 只能在这里用受控替身证明它真的被识别，而不是一条永不触发的 if。
+    """
+    from runtime.conformance import contract_invariants as ci
+
+    cases = [
+        ("真实通过", (True, "判据真正执行且通过"), True, "OK"),
+        ("如实跳过", (None, "委派方按三值约定跳过"), None, "SKIP"),
+        ("如实不适用", (True, ci.NOT_APPLICABLE + "未声明 `memory_alloc` 等"),
+         None, "SKIP"),
+        ("真实失败", (False, "二次释放静默（I3 违反）"), False, "FAIL"),
+    ]
+    rows, bad = [], []
+    saved = ci.check_i3
+    try:
+        for label, ret, want, want_name in cases:
+            # 受控替身：只换被委托的那一个函数，其余一律不动
+            ci.check_i3 = lambda bk, ordinal=0, _r=ret: _r
+            got = audit.j3({"backend": object()})[0]
+            good = (got is want)
+            rows.append({"case": label, "delegated": f"{ret[0]!r} / {str(ret[1])[:26]}",
+                         "want": want_name,
+                         "mapped": {True: "OK", False: "FAIL", None: "SKIP"}.get(got, repr(got)),
+                         "ok": good})
+            if not good:
+                bad.append(f"{label}：期望 {want_name}，实得 {got!r}")
+    finally:
+        ci.check_i3 = saved                                     # ⚠️ 必须还原，否则污染后续真机判据
+    return (not bad), ("；".join(bad) if bad else "四种返回形状的三值映射全部符合约定"), rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default=os.environ.get("DC_BACKEND", "ascend"))
@@ -273,6 +329,29 @@ def main():
     ap.add_argument("--only", default="", help="只跑一项（供侵入项的子进程隔离用）")
     ap.add_argument("--inject", action="store_true", help="在 --only 模式里应用该 sid 的注入")
     a = ap.parse_args()
+
+    map_rows = []
+    if not a.only:
+        # ── §0 委派翻译层自检（**无需设备**；先跑，不过就别浪费后面的设备时间）──
+        map_ok, map_detail, map_rows = check_delegation_mapping()
+        print("=" * 90)
+        print("§0 委派翻译层自检（无需设备）：委派返回形状 → 审计状态 的三值映射")
+        print("=" * 90)
+        for r in map_rows:
+            print(f"  [{'OK  ' if r['ok'] else 'FAIL'}] {r['case']:<10} "
+                  f"委派={r['delegated']:<36} → 期望 {r['want']:<5} 实得 {r['mapped']}")
+        print(f"  {map_detail}")
+        if not map_ok:
+            print("-" * 90)
+            print("SELFCHECK_DUTY_EXT_FAIL（§0 未过 ⇒ 后续注入验证的结论不可信）")
+            if a.out:
+                Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+                Path(a.out).write_text(json.dumps({
+                    "backend": a.backend, "verdict": "SELFCHECK_DUTY_EXT_FAIL",
+                    "stage": "delegation_mapping", "rows": map_rows,
+                }, ensure_ascii=False, indent=1), encoding="utf-8")
+            return 1
+        print()
 
     items = {r["sid"]: r["fn"] for r in audit.RESULTS}
     env = audit.build_env(a.backend)
@@ -351,6 +430,7 @@ def main():
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps({
             "backend": a.backend, "verdict": verdict, "total": n,
+            "delegation_mapping": map_rows,
             "caught": caught, "not_applicable": na, "not_caught": broken, "rows": rows,
         }, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"结果已写入 {a.out}")

@@ -65,7 +65,7 @@
 |---|---|---|---|
 | 910C | `ascend` | **`DUTY_RESPONSE_PASS` 39 / 0 / 0** | 首轮 39/0/0；补做后**回归仍 39/0/0**（无退化） |
 | P800 | `kunlun` | **`DUTY_RESPONSE_PASS` 36 / 0 / 3** | 首轮 34/2/3（E3 缺口）→ 补做后 36/0/3 |
-| MLU590 | `cambricon` | **`DUTY_RESPONSE_PASS` 36 / 0 / 3** | 09-28 网络恢复后补跑一遍即 PASS；3 项 SKIP 均为「如实不具备」（见 §三 说明 + §六） |
+| MLU590 | `cambricon` | **`DUTY_RESPONSE_PASS` 36 / 0 / 3**（**39 项旧口径 · 首测**；现行结论见下方 §三·补） | 09-28 网络恢复后补跑一遍即 PASS；3 项 SKIP 均为「如实不具备」（见 §三 说明 + §六） |
 
 **P800 的 3 项 SKIP 都是"如实不具备"**，不是缺口：
 - `C13 elapsed_time`：`torch.cuda` 事件需 `enable_timing=True` 创建（契约外可选能力）
@@ -80,7 +80,7 @@
 |---|---|---|---|
 | 910C | `ascend` | **`DUTY_RESPONSE_PASS` 73 / 0 / 5** | **34 抓到 / 5 不适用 / 0 未抓到** |
 | P800 | `kunlun` | **`DUTY_RESPONSE_PASS` 67 / 0 / 11** | **31 / 8 / 0** |
-| MLU590 | `cambricon` | ⏳ **未跑**（旧口径 36/0/3 不得当现行结论；需按 78 项重跑） | ⏳ 未跑 |
+| MLU590 | `cambricon` | **`DUTY_RESPONSE_PASS` 61 / 0 / 17（2026-10-08 补齐轮 m1）** | **25 抓到 / 14 不适用 / 0 未抓到** |
 
 > **SKIP 的含义不变**（如实不具备，不是缺口）。5 项与 11 项 SKIP 的逐条原因见各实例的职责文档 §1.1。
 > ⭐ **扩口径顺带修掉两处真缺陷**：契约 §1.7 的 `context_set` 与 §1.9 的 `stream_priority_range`

@@ -65,7 +65,10 @@ def cosine(a, b):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", default="ascend")
+    # 2026-10-08：与原写死的 "ascend" 改为读 DC_BACKEND（与其余 proto 脚本 / 全部探针同约定）
+    # —— 否则在非昇腾实例上直接跑会选错后端，且报错是 `No module named 'torch_npu'`
+    #    （看着像环境缺包，实为选错后端；同类误导性报错见 demo_unified.py 同日修正）。
+    ap.add_argument("--backend", default=os.environ.get("DC_BACKEND", "ascend"))
     ap.add_argument("--rounds", type=int, default=5)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()

@@ -1,0 +1,61 @@
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+[W1008 13:09:22.535080666 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 13:09:28.579111572 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 13:09:39.796162798 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 13:09:39.816121439 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 13:09:45.840190857 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 13:09:51.880255906 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+The module name  (originally ) is not a valid Python identifier. Please rename the original module to avoid import issues.
+The module name  (originally ) is not a valid Python identifier. Please rename the original module to avoid import issues.
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.350630][CNCL][WARNING][16794][Card:0]: Failed to open libmlx5.so[.1]. If you want to use mlx5 api, you need add libmlx5.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.350695][CNCL][WARNING][16794][Card:0]: /usr/local/neuware/lib64/libcncl.so.1: undefined symbol: mlx5dv_modify_qp_udp_sport
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.350732][CNCL][WARNING][16794][Card:0]: Fail to load libmlx5.so, cannot use mlx5dv_modify_qp_udp_sport to set udp port!
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.350881][CNCL][WARNING][16794][Card:0]: Failed to open libibverbs.so[.1]. If you want to use RDMA transport, you need add libibverbs.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.350923][CNCL][WARNING][16794][Card:0]: Fail to load libibverbs.so!
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.351014][CNCL][INFO][16794][Card:0]: CNCL Version 1.29.4
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.453728][CNCL][WARNING][16795][Card:1]: Failed to open libmlx5.so[.1]. If you want to use mlx5 api, you need add libmlx5.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.453803][CNCL][WARNING][16795][Card:1]: /usr/local/neuware/lib64/libcncl.so.1: undefined symbol: mlx5dv_modify_qp_udp_sport
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.453852][CNCL][WARNING][16795][Card:1]: Fail to load libmlx5.so, cannot use mlx5dv_modify_qp_udp_sport to set udp port!
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.454009][CNCL][WARNING][16795][Card:1]: Failed to open libibverbs.so[.1]. If you want to use RDMA transport, you need add libibverbs.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.454045][CNCL][WARNING][16795][Card:1]: Fail to load libibverbs.so!
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.468909][CNCL][INFO][16794][Card:0]: Enable shmlog!
+[tza-0a06-ai01-em9][2026-10-08 13:09:57.468973][CNCL][INFO][16794][Card:0]: Disable alltoall shmlog!
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.222473][CNCL][INFO][16794][Card:0]: Clique(10102969741799653613) build homogeneous all-connected MLU_LINK topo: success
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.603201][CNCL][INFO][16794][Card:0]: Clique(10102969741799653613) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 0[6f000]): 1--[MLU_LINK]->0--[MLU_LINK]->1
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.603270][CNCL][INFO][16794][Card:0]: Clique(10102969741799653613) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 1[73000]): 0--[MLU_LINK]->1--[MLU_LINK]->0
+[rank1]:[W1008 13:09:59.811172141 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[rank0]:[W1008 13:09:59.815861807 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.847561][CNCL][INFO][16794][Card:0]: CNCL Version 1.29.4
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.848005][CNCL][INFO][16794][Card:0]: Enable shmlog!
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.848046][CNCL][INFO][16794][Card:0]: Disable alltoall shmlog!
+[tza-0a06-ai01-em9][2026-10-08 13:09:59.854291][CNCL][INFO][16794][Card:0]: Clique(5623155479552072430) build homogeneous all-connected MLU_LINK topo: success
+[tza-0a06-ai01-em9][2026-10-08 13:10:00.233319][CNCL][INFO][16794][Card:0]: Clique(5623155479552072430) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 0[6f000]): 1--[MLU_LINK]->0--[MLU_LINK]->1
+[tza-0a06-ai01-em9][2026-10-08 13:10:00.233389][CNCL][INFO][16794][Card:0]: Clique(5623155479552072430) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 1[73000]): 0--[MLU_LINK]->1--[MLU_LINK]->0
+[rank0]:[W1008 13:10:00.421406564 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[rank1]:[W1008 13:10:00.430292623 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+/flagos/lib/python3.10/site-packages/torch/nn/functional.py:3494: UserWarning: The getTensorDesc function with on_chip_type parameter will be deprecated in CNNL v2.0  (Triggered internally at /torch_mlu/torch_mlu/csrc/aten/cnnl/cnnlTensorDesc.cpp:167.)
+  return torch._C._nn.cross_entropy_loss(
+[2026-10-08 13:10:00.674369][CNNL][WARNING][16794][Card:0]: [cnnlStridedSliceBackward] is deprecated and will be removed in the future release. Use [cnnlStridedSliceBackward_v2] instead.
+/flagos/lib/python3.10/site-packages/torch/nn/functional.py:3494: UserWarning: The getTensorDesc function with on_chip_type parameter will be deprecated in CNNL v2.0  (Triggered internally at /torch_mlu/torch_mlu/csrc/aten/cnnl/cnnlTensorDesc.cpp:167.)
+  return torch._C._nn.cross_entropy_loss(
+[2026-10-08 13:10:00.712645][CNNL][WARNING][16795][Card:1]: [cnnlStridedSliceBackward] is deprecated and will be removed in the future release. Use [cnnlStridedSliceBackward_v2] instead.
+/flagos/lib/python3.10/site-packages/torch_mlu/optimizers/optimizer.py:8: UserWarning: `torch._utils.is_compiling` is deprecated. Use `torch.compiler.is_compiling` instead.
+  if not torch._utils.is_compiling() and torch.mlu.is_available():
+/flagos/lib/python3.10/site-packages/torch_mlu/optimizers/optimizer.py:8: UserWarning: `torch._utils.is_compiling` is deprecated. Use `torch.compiler.is_compiling` instead.
+  if not torch._utils.is_compiling() and torch.mlu.is_available():
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank1] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3018.8 tok/s(两卡合计) -> /work/dc_mlu_regen_20261008/out_m1/train_mlu/train_leg_result_rank1.json
+[rank0] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3017.2 tok/s(两卡合计) -> /work/dc_mlu_regen_20261008/out_m1/train_mlu/train_leg_result_rank0.json

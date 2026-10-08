@@ -18,6 +18,12 @@
   · 四条都是**可观测性**约束，**不评判性能**。
   · 能力**未声明**时如实标「不适用」（判为通过但**显式注明**）——
     **不得**因不适用而把未声明能力当作已验，也不得据此声称该芯片不具备。
+    实现方式：`return True, NOT_APPLICABLE + 原因`（哨兵前缀见 `NOT_APPLICABLE` 常量）。
+    ⚠️ **委派消费方必须据此转成"跳过"而不是"通过"**（2026-10-08 教训）：
+      本模块的「不适用」在 conformance 口径下**算通过**（四条不变式是一条整体判据），
+      但在**逐条点名的职责审计**口径下必须记 `SKIP` —— 否则一个**从未运行**的分支
+      会被记成「已响应」，而同一份审计里同样原因的其他项（H2/I3/K2…）记的是 SKIP
+      ⇒ 同一原因两种标签。
   · 本模块只碰**本层 API 与文本**；唯一的设备副作用是 I3 的内存/上下文生命周期，且**用完即清理**。
   · 离线桩结论**不得**当真机结论（厂商原语真实形态仍须上机实测）。
 """
@@ -25,6 +31,13 @@
 from __future__ import annotations
 
 import warnings
+
+#: 「**本机不适用**」的哨兵前缀：所需能力未声明时，检查函数以
+#: `(True, NOT_APPLICABLE + 原因)` 返回（见模块 docstring「边界」第 2 条）。
+#: ⚠️ 该字符串是**跨模块契约**：`scripts/duty_response_audit.py` 的 J 域据此把
+#: 委派结果如实转成 `SKIP`（而不是 `OK`）。两侧**共用本常量**，避免文案漂移
+#: 导致审计侧静默退化成「通过」。
+NOT_APPLICABLE = "不适用："
 
 # ───────────────────────── 常量：能力键 → 公共入口（I1④ 用）─────────────────────────
 #: 只列**本层有明确公共入口**的能力；未列入的键不做入口存在性检查（在 detail 里如实说明覆盖数）。
@@ -266,7 +279,7 @@ def check_i3(bk, ordinal=0):
     ok_mem = bool(bk.supports("memory_alloc"))
     ok_ctx = bool(bk.supports("context_lifecycle"))
     if not (ok_mem or ok_ctx):
-        return True, ("不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`"
+        return True, (NOT_APPLICABLE + "本后端未声明 `memory_alloc` 与 `context_lifecycle`"
                       "（如实不具备；**未验证 ≠ 已确认不具备**）")
 
     mem_handle = ctx_handle = None

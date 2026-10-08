@@ -1,0 +1,29 @@
+=========== 统一推理服务启动 开始 Thu Oct  8 12:52:24 CST 2026 ===========
+backend=cambricon dev=2 port=8100 tp=1 max_model_len=4096 eager=1
+stop_after=0（1=验证后停机；0=保持运行）
+  vllm = /flagos/bin/vllm ｜ python3 = /flagos/bin/python3（Python 3.10.20）
+--- 用卡前 ---
+| 1         37C    121 W/ 550 W |    96 MiB/ 98304 MiB | FULL          Default |
+| 0         34C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 2         36C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         34C    107 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 5         35C    105 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 4         33C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         33C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=4851  日志: /work/dc_mlu_regen_20261008/out_serve_m1/consumer/vllm_serve.log
+  ✅ 服务就绪 t=150s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  维度=1024 范数=1.000001
+  （冒烟耗时 42s；超时上限 SMOKE_TIMEOUT=180s）
+
+############ 服务保持运行 ############
+  base_url   = http://127.0.0.1:8100/v1
+  model      = qwen3-embedding-0.6b
+  停止服务   : STOP 时请用 cleanup 逻辑（kill -9 主进程 **与 EngineCore 子进程**），
+               或重跑本脚本并设 STOP_AFTER=1 以触发清理
+  pid        = 4851（/work/dc_mlu_regen_20261008/out_serve_m1/consumer/serve_standard.pid）
+=========== 结束 Thu Oct  8 12:55:40 CST 2026 ===========

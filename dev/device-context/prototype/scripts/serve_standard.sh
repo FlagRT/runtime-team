@@ -151,9 +151,15 @@ case "$BACKEND" in
     DEV_API=cuda
     ;;
   cambricon)
-    # ⚠️ 本分支 2026-09-22 按规范新写，**尚未真机验证**（寒武纪机器当时缺 docker 组权限）。
-    #    首次在 MLU 容器内跑时，请把实际报错回填到本分支与《寒武纪接入方案》。
-    MODEL=${MODEL:-/srv/hliu553/models/Qwen3-Embedding-0.6B}
+    # ⚠️ 本分支 2026-09-22 按规范新写；**2026-10-08 首次真机触发本默认值并回填**：
+    #    原默认 `/srv/hliu553/models/Qwen3-Embedding-0.6B` 是**宿主路径**，且宿主上也没有
+    #    这个目录；容器内 `/srv/hliu553` 又被挂成 `/work` ⇒ 该默认值**永不可用**。
+    #    报错形态误导：vLLM 抛
+    #      `OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/srv/…'`
+    #    —— 看着像"模型 id 格式不对"，实为"这个路径不存在"。
+    #    改取**容器内可见**的 HF 快照；⚠️ 必须给到 `snapshots/<hash>/`（给缓存根会
+    #    `Unrecognized model`）。
+    MODEL=${MODEL:-$(ls -d /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/*/ 2>/dev/null | head -1)}
     SERVED_NAME=${SERVED_NAME:-qwen3-embedding-0.6b}
     # 选卡：torch_mlu 认 MLU_VISIBLE_DEVICES（⚠️ 待容器内实测确认）
     [ -n "$DEV" ] && export MLU_VISIBLE_DEVICES="$DEV"
@@ -165,6 +171,22 @@ case "$BACKEND" in
   *)
     echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon）"; exit 2 ;;
 esac
+
+# ── 1a-bis) 前置条件显式化：模型路径必须真的可用（2026-10-08 补）─────────────
+#   为什么要加：默认 MODEL 一旦失效（写错/跨实例沿用/挂载不同），原先只会在 vLLM 侧
+#   抛出一串厂商 traceback —— 而这里的实证是它长得像"模型 id 格式错误"
+#   （`Repo id must be in the form 'repo_name'…`），**与真实原因无关**。
+#   ⚠️ 路径口径：本脚本在**容器内**执行 ⇒ MODEL 必须是**容器内**可见的路径。
+#      MLU590 实例：宿主 `/srv/data/hf_cache` → 容器 `/hf_cache`（宿主侧**没有** `/hf_cache`）。
+if [ -z "${MODEL:-}" ] || [ ! -f "$MODEL/config.json" ]; then
+  echo "❌ 模型路径不可用：MODEL='${MODEL:-<空>}'"
+  echo "   期望：**容器内**可见的模型目录（其下须有 config.json）"
+  echo "   910C : 宿主 /mnt/raid/hliu553 与容器同路径"
+  echo "   P800 : 宿主 /data2/hliu553 = 容器 /workspace；模型在 /hf_cache/…/snapshots/<hash>/"
+  echo "   MLU590: 宿主 /srv/hliu553 = 容器 /work；宿主 /srv/data/hf_cache = 容器 /hf_cache"
+  echo "   提示：HF 缓存必须给到 snapshots/<hash>/（给缓存根会 Unrecognized model）"
+  exit 4
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1b) 服务入口就绪（vllm 可执行文件）

@@ -38,7 +38,13 @@ def sep(title):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", default="ascend", help="后端名（ascend / kunlun）")
+    # 2026-10-08 修（可移植性）：原为写死的 default="ascend" 且**不读 DC_BACKEND**
+    # ⇒ 在非昇腾实例上直接跑，会走 `use("ascend")` → `info()` → `import torch_npu`
+    #    ⇒ `ModuleNotFoundError: No module named 'torch_npu'`，
+    #    **看着像"环境缺包"，实际是"选错后端"**（一类误导性报错的典型）。
+    # 约定同 `runtime/proto/*.py` 与全部探针：默认取 `DC_BACKEND`，回落到 ascend。
+    ap.add_argument("--backend", default=os.environ.get("DC_BACKEND", "ascend"),
+                    help="后端名（ascend / kunlun / cambricon）；默认取环境变量 DC_BACKEND")
     ap.add_argument("--ordinal", type=int, default=0)
     args = ap.parse_args()
 
@@ -52,9 +58,20 @@ def main():
         backend = runtime.use(args.backend)
     except runtime.BackendNotFound as e:
         print(f"  ✗ {e}")
-        print("  提示：kunlun 为 9 月 stub，可能尚未注册")
+        print("  提示：未注册的后端名不会有后端对象；确认名字拼写与原型版本")
         return 1
-    print(f"  ✓ 已加载：{backend.info()}")
+    try:
+        _info = backend.info()
+    except Exception as e:                                        # noqa: BLE001
+        # 后端对象已加载，但 info() 要读厂商 `torch` 模块（如 torch_npu / torch_mlu）
+        # ⇒ 厂商栈没装时会在这里炸。把它变成**可操作**的提示，而不是一串误导性 traceback。
+        print(f"  ✗ 后端 {args.backend!r} 已加载，但 info() 取不到厂商栈："
+              f"{type(e).__name__}: {str(e)[:90]}")
+        print(f"    这通常意味着**当前环境没有该后端的厂商包**"
+              f"（例如在非昇腾机器上选了 ascend ⇒ 缺 torch_npu）。")
+        print(f"    先确认该实例该用哪个后端（可用 DC_BACKEND 指定），再重跑本演示。")
+        return 1
+    print(f"  ✓ 已加载：{_info}")
 
     # ── 1. 设备上下文 ──
     sep("[1] 设备上下文（设备句柄 + 内存）")
