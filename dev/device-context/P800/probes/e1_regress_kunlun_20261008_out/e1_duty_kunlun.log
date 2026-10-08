@@ -1,0 +1,196 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+==============================================================================
+职责响应审计：backend=kunlun（口径：接口约定 §1.1–§1.10 + §2 三支撑 + §3 两纪律）
+==============================================================================
+ℹ️ 设备类型=cuda  device_count=1
+ℹ️ 后端已声明能力：['bounded_sync', 'context_lifecycle', 'context_query', 'device', 'device_state', 'device_state_control', 'error_map', 'event', 'graph_capture', 'memory', 'memory_alloc', 'memory_alloc_stat', 'multidevice', 'record_stream', 'recovery_probe', 'recovery_real', 'stream', 'stream_priority', 'stream_priority_control', 'stream_priority_readback', 'sync_timeout']
+
+
+[A 后端选择]
+  [OK] A1 discover() 能发现本后端
+         discover → ['ascend', 'cambricon', 'kunlun']
+  [OK] A2 available() 含本后端
+         available → ['ascend', 'cambricon', 'kunlun']
+  [OK] A3 use() 返回实例 / current() 一致 / 单例
+         current().name=kunlun, 单例=True
+  [OK] A4 use(未注册名) 如实抛 BackendNotFound（负向）
+         抛 BackendNotFound
+
+[B 设备域]
+  [OK] B1 device_count() > 0
+         n=1
+  [OK] B2 set_device(0) 生效且无异常
+         已绑定设备 0
+  [OK] B3 memory_stats(0) 结构含 total/used/free
+         keys=['allocated_mb', 'free_mb', 'total_mb', 'used_mb']
+  [OK] B4 memory_stats 值自洽（total≈used+free 且 total>0）
+         total=98304 used=166 free=98138 gap=0.00%
+  [OK] B5 probe_device(0) 返回 True（健康设备）
+         probe_device → True
+
+[C 流与事件]
+  [OK] C1 create_stream() 返回统一 Stream 且绑定本后端
+         Stream backend=kunlun
+  [OK] C2 create_event() 返回统一 Event 且绑定本后端
+         Event backend=kunlun
+  [OK] C3 current_stream() 可调用
+         current_stream 返回空
+  [OK] C4 stream.synchronize() 无界路径正常返回
+         无界同步返回
+  [OK] C5 stream.synchronize(timeout_ms) 有界成功路径
+         有界同步（流上已有工作）返回
+  [OK] C6 stream.context() 可作 with 上下文管理器
+         with 语法可用
+  [OK] C7 跨流依赖：A record → B wait → B 可见 A 结果（真实语义）
+         跨流可见性结果=196609.0
+  [OK] C8 stream.wait_stream(other) 可调用
+         wait_stream 后同步完成
+  [OK] C9 event.record() 后 query() 为 True
+         query()=True
+  [OK] C10 未 record 的 event：query()=False 且 wait_host 不永久阻塞
+         query=False wait_host=False 耗时=0.50s
+  [OK] C11 record 后 event.wait_host(timeout_ms) 返回 True
+         wait_host → True
+  [OK] C12 event.wait(stream) / event.synchronize() 可调用
+         event.wait / event.synchronize 均返回
+  [SKIP] C13 event.elapsed_time(end) 可调用（若声明支持）
+         未声明/不可用：ValueError: Both events must be created with argument 'enable_timing=True'.
+  [OK] C14 硬纪律 1：stream.record_stream(tensor) 可调用
+         record_stream 已登记（跨流缓冲保护）
+
+[D 错误翻译]
+  [OK] D1 translate_error 返回统一 FlagosError
+         FlagosError
+  [OK] D2 category 属于 L1–L4 四类
+         category=ErrorCategory.L1_RESOURCE
+  [OK] D3 disposition 属于四动作之一
+         disposition='retry'
+  [OK] D4 mapped / graded_by 可观测且自洽
+         mapped=False graded_by=default
+  [SKIP] D5 L1–L4 处置映射符合处置约定表
+         本后端未声明 error_map（无厂商码样例）⇒ 交由 conformance F1 覆盖
+  [OK] D6 完整消息不被截断（截断会退化为保守误判）
+         category=ErrorCategory.L2_PARAM disposition=raise
+
+[E 状态恢复]
+  [OK] E1 device_state(0) 返回四态之一
+         state=available
+  [OK] E2 recover_device(0,'probe') 返回 dict
+         type=dict
+  [OK] E3 返回契约字段齐全 {ordinal,mode,recovered,state,detail} 且 state 为四态规范 token
+         五键齐全，state='available'
+  [OK] E4 recovered 语义 = 设备当前可用（与 probe_device 一致）
+         recovered=True probe_device=True
+  [OK] E5 recover_device(0,'hybrid') 返回 dict
+         mode=hybrid
+  [OK] E6 recover_device(0,'real') 如实响应（执行或明确拒绝，不静默）
+         mode=real recovered=True
+
+[F 硬纪律]
+  [SKIP] F1 错误隔离分层：芯片级 → device_recovery；API 级 → 非 device_recovery
+         本后端无数字错误码（未声明 error_map）⇒ 交由错误闭环与 conformance F1 覆盖
+
+[G 元信息]
+  [OK] G1 supports() 与 info()['supports'] 一致
+         21 项一致
+  [OK] G2 info()['supports'] 键集合 == _CAPABILITY_KEYS（防键漂移）
+         KEYS-INFO 差 []
+  [OK] G3 known_issues() 结构完整（无则如实为空）
+         2 条结构完整
+
+[H 内存句柄与生命周期]
+  [OK] H1 allocate()：未声明 memory_alloc ⇒ 契约级拒绝；声明 ⇒ 五键句柄且**不含厂商指针**
+         五键齐全且无厂商指针：['backend', 'handle_id', 'kind', 'ordinal', 'size_bytes']
+  [OK] H2 allocate(size_bytes) 非正整数 ⇒ ValueError（0 / -1 / bool / 非 int）
+         4 例（0 / -1 / bool / 字符串）全部 ValueError
+  [OK] H3 free() 二次释放 ⇒ ValueError（不得静默）
+         二次释放 → ValueError
+  [OK] H4 free(非本层句柄 / 裸指针) ⇒ ValueError（不接受厂商原始句柄）
+         4 类陌生句柄全部 ValueError
+  [OK] H5 memory_handle_count() 与分配/释放联动（+1 ⇒ 释放后回落）
+         分配前 0 → 分配后 1（期望 1）→ 释放后 0（期望 0）
+  [OK] H6 memory_stats()：三键必在；声明 memory_alloc_stat ⇒ 须给 allocated_mb；未声明 ⇒ **必须缺席**；无未登记键
+         三键 + allocated_mb=0（已声明 memory_alloc_stat）
+  [OK] H7 record_stream：未声明能力 ⇒ 保守同步路径**不抛错**且 degradations +1；声明 ⇒ 走原生路径不抛错
+         已声明 record_stream ⇒ 原生路径，degradations 0→0
+  [OK] H8 .native 取用 ⇒ native_accesses +1 且 degradations **不变**（两者语义相反，必须分开计数）
+         native_accesses 2→3，degradations 保持 0
+
+[I 设备上下文]
+  [OK] I1 context_create()：未声明 context_lifecycle ⇒ 契约级拒绝；声明 ⇒ 四键句柄
+         显式拒绝：后端 'kunlun' 未声明能力 'context_lifecycle' ⇒ 不支持设备上下文生命周期（**如实不具备**：该栈未暴露上下（子进程隔离）
+  [SKIP] I2 context_set() 只接受本层句柄（陌生/厂商句柄 ⇒ 报错）
+         未声明 context_lifecycle ⇒ 该分支不适用
+  [SKIP] I3 context_destroy() 只接受本层句柄 —— **尤其不得毁掉进程默认上下文**
+         未声明 context_lifecycle ⇒ 该分支不适用
+  [SKIP] I4 context_count() **不含**进程默认上下文（初始 0；新建 +1；销毁回落）
+         未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）
+  [SKIP] I5 内存句柄与上下文句柄**不得互相误用**（误用必须报错）
+         需要同时声明 memory_alloc 与 context_lifecycle ⇒ 本机该分支不适用（子进程隔离）
+  [OK] I6 context_query() 返回**固定 6 键**；未声明者也返回同一 6 键（queryable=False + **具体原因**）
+         6 键齐全，queryable=True（已声明），reason=''
+  [OK] I7 context_query() 取值域：present 必须 bool/None（**不得 0/1**）；managed_by ∈ {unified, external, None}
+         present=True managed_by='external'
+  [OK] I8 context_query() **只读无副作用**（调用前后设备计算一致，且**不新造句柄**）
+         计算 6144.0 不变，句柄数 0 不变
+  [OK] I9 recover_device() 的 context 三键**只增不改**；且 context_recreated 不得与 detail 自相矛盾
+         五键 + context 三键齐全；context_recreated=False
+  [SKIP] I10 绑定语义：上下文销毁后其流**在使用点如实报错**（厂商侧当场是静默的）
+         未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）
+
+[J 契约不变式]
+  [OK] J1 I1 诚实声明（声明的真可调；未声明的显式拒绝）
+         [委托 contract_invariants] ④ 入口存在性覆盖 14/17 项能力
+  [OK] J2 I2 禁止伪造（字段不得自相矛盾；取不到必须缺席）
+         [委托 contract_invariants] 陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+  [OK] J3 I3 失效受管（二次释放/二次销毁/跨种类误用/销毁后用其流）
+         [委托 contract_invariants] A 二次释放 → ValueError ✓（子进程隔离）
+  [OK] J4 I4 降级可观测（.native 与退化分开计数、单调不减）
+         [委托 contract_invariants] ② .native 计数 3→4、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓
+
+[K 流优先级]
+  [OK] K1 stream_priority_range() 形状 = **(least, greatest) 2 元组** 或 None
+         (0, 0)
+  [SKIP] K2 未声明 stream_priority ⇒ 范围**如实为 None**（不假装可读）
+         本后端已声明 stream_priority（范围可读）⇒ 该分支不适用
+  [SKIP] K3 未声明 stream_priority_control ⇒ create_stream(priority=int) ⇒ **契约级 NotImplementedError**
+         本后端已声明 stream_priority_control ⇒ 该分支不适用
+  [OK] K4 取值域：越界 / 非 int / bool ⇒ ValueError
+         越界 -1/1 与 非 int/ bool 共 4 例全部 ValueError
+  [OK] K5 耦合：声明 stream_priority_control ⇒ **必须**同时声明 stream_priority_readback
+         声明了 control 但**没声明** readback ⇒ 设置无法校验（离线 `[8b]` 段同源判据）
+  [OK] K6 声明 control ⇒ 区间端点请求必须**回读 == 请求**（不得静默丢弃 —— 910C 的 torch 路径正是如此）
+         端点 0/0 请求与回读一致
+  [OK] K7 stream_priority_readback() 返回值域**严格** `int` 或 `None`（不得用 0/字符串伪装「读不出」）
+         回读 = 0（类型合规）
+  [OK] K8 单点区间：请求**唯一档位**成功且回读一致（等价放行）；非单点 ⇒ 如实 SKIP
+         请求 0 回读 0
+
+[L 流所有权与释放]
+  [OK] L1 默认路径的流由**厂商拥有** ⇒ release_stream 必须 **no-op 返回 False**（不得越权销毁）
+         release_stream 返回 False，且该流仍可正常使用（确实没被动过）
+  [OK] L2 release_stream **幂等**：重复调用返回 False、不报错
+         第一次=False 第二次=False（均应为 False）
+  [OK] L3 `Stream.release()` 与 `release_stream(stream)` 语义一致（都不越权销毁）
+         Stream.release() → False（与 release_stream 一致）
+  [OK] L4 **所有权判据**：owns_stream(native) 与 release_stream(native) 必须一致（owns=False ⇒ 不得返回 True；owns=True ⇒ 不得返回 False）
+         原生路径 owns=False release=False；优先级路径 owns=False release=False
+  [SKIP] L5 **使用已释放对象必须明确**：本层拥有的流 release 后再使用 ⇒ `RuntimeError`（文案含「释放」线索）
+         本机该路径未产生「本层拥有」的流（release=False）⇒ 使用已释放对象的场景不成立
+  [OK] L6 release_stream 的返回值必须是**严格 bool**（不得返回 truthy 的非 bool）
+         返回 False（bool）—— 契约：bool
+
+[M 统一 API 面]
+  [OK] M1 契约 §1.1–§1.10 列出的统一 API 名字，在 `runtime` 上**真的可调用**
+         31 个承诺名全部可调用
+  [OK] M2 公开常量存在且非空（句柄字段 / 状态取值域的对外声明）
+         3 个常量就位（MEMORY_HANDLE_KEYS, CONTEXT_HANDLE_KEYS, DEVICE_STATE_TOKENS）
+  [OK] M3 `runtime.__all__` 里的名字都真的存在（防幽灵导出 / 拼错）
+         46 个名字均可取到
+
+------------------------------------------------------------------------------
+DUTY_RESPONSE_AUDIT kunlun: OK 67 / FAIL 0 / SKIP 11（共 78 项）
+verdict: DUTY_RESPONSE_PASS
+结果已写入 /workspace/dc_e1_20261008/out_e1/e1_duty_kunlun.json

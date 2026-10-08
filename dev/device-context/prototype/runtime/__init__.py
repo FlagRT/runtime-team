@@ -62,14 +62,14 @@ __all__ = [
     # 设备 / 流（转发到当前后端）
     "device_count", "set_device", "memory_stats",
     "create_stream", "create_event", "current_stream", "synchronize",
-    "stream_priority_readback",
+    "stream_priority_readback", "stream_priority_range",
     "release_stream",
     "probe_device", "recover_device", "translate_error", "device_state",
     "set_device_state", "handle_error",
     # 内存句柄与生命周期（工作包 B）
     "allocate", "free", "memory_handle_count", "MEMORY_HANDLE_KEYS",
     # 设备上下文生命周期（工作包 C）
-    "context_create", "context_destroy", "context_count", "context_query",
+    "context_create", "context_set", "context_destroy", "context_count", "context_query",
     "CONTEXT_HANDLE_KEYS",
     "DEVICE_STATE_TOKENS",
     # 审计（`.native` 逃生舱 / 退化路径）
@@ -130,6 +130,20 @@ def stream_priority_readback(stream):
     """
     native = stream._native_obj if isinstance(stream, Stream) else stream
     return current().stream_priority_readback(native)
+
+
+def stream_priority_range():
+    """本设备的流优先级区间，**契约形状 = `(least, greatest)` 2 元组 或 `None`**。
+
+    ⚠️ 形状是契约的一部分（2026-09-30 依据真机发现并修正，台账第 25 条）：
+    pyACL 的原语返回**三元组** `(least, greatest, rc)`，直接透传会让同一份下游代码
+    在不同芯片上读到不同形状。本入口转发的是**各后端已归一**的 2 元组。
+
+    ⚠️ 官方语义：`greatest` 是**数值最小**的那个 ⇒ **0 最高、7 最低**。
+    能否**设置**（而不只是读范围）请看 `info()["supports"]["stream_priority_control"]`
+    —— **能读范围 ≠ 能设置**。
+    """
+    return current().stream_priority_range()
 
 
 def release_stream(stream) -> bool:
@@ -243,6 +257,18 @@ def context_create(ordinal: int = 0) -> dict:
 def context_destroy(handle) -> None:
     """销毁本层创建的设备上下文句柄；**对非本层句柄一律拒绝**。"""
     current().context_destroy(handle)
+
+
+def context_set(handle) -> None:
+    """把某个**本层创建的**上下文切换为当前上下文（契约 §1.7）。
+
+    为什么要它：`context_create` 只负责"造出来"，"切到它上面执行"是另一件事
+    （pyACL 的 `create_context` 与 `set_context` 是两个调用）。没有它就无法做
+    「多上下文隔离」验证，也无法在销毁 A 之后切回 B。
+
+    ⚠️ **只接受本层句柄**（不接受厂商原生上下文对象 —— 那属 `.native` 逃生舱场景）。
+    """
+    current().context_set(handle)
 
 
 def context_query() -> dict:

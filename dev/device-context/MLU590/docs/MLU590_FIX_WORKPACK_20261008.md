@@ -12,7 +12,23 @@
 |---|---|---|---|
 | **910C**（`ascend`） | ✅ `DUTY_RESPONSE_PASS` **39 / 0 / 0** | ✅ **2026-10-08 第十轮全量复跑（20 项全绿）** | **已完成** |
 | **P800**（`kunlun`） | ✅ `DUTY_RESPONSE_PASS` **36 / 0 / 3** | ✅ 2026-09-30 r8（18 项全绿，版本 `ea503cc`）；此后未改动任何原型代码 ⇒ 结论仍有效 | **已完成** |
-| **MLU590**（`cambricon`） | ✅ 曾 `36 / 0 / 3`（**2026-09-28**） | ❌ **停在 2026-09-29**；此后契约新增 5 章、共享层多次改动、新探针 6 类**一份都没跑过** | **待做 ⇒ 本工作包** |
+| **MLU590**（`cambricon`） | ✅ 曾 `36 / 0 / 3`（**2026-09-28**，**旧口径 39 项**） | ❌ **停在 2026-09-29**；此后契约新增 5 章、共享层多次改动、新探针 6 类**一份都没跑过**，且**职责口径已扩到 78 项**（见 §0.1） | **待做 ⇒ 本工作包** |
+
+### 0.1 ⭐ 口径更新（2026-10-08 · 本工作包已同步最新口径）
+
+在制订本工作包后，同日又完成了**台账 E1（职责审计扩口径）**，直接影响本实例的上机清单：
+
+| 变化 | 对 MLU590 的影响 |
+|---|---|
+| **职责审计 39 → 78 项**（新增 H 内存句柄 8 · I 设备上下文 10 · J 契约不变式 4 · K 流优先级 8 · **L 流所有权与释放 6** · M 统一 API 面 3） | §3 第 1 组的第 7 项按 **78 项**跑；**绝不要**拿旧的 36/0/3 当基线 |
+| 新增**非空转验证**脚手架 `probes/selfcheck_duty_audit_ext.py` | §3 第 1 组新增一项（**必跑**）：逐条注入缺陷证明判据能 FAIL |
+| 契约 §1.7 `context_set` / §1.9 `stream_priority_range` **已补为统一面出口**（台账第 30 条） | 本机应**直接通过** M1（若 FAIL ⇒ 说明同步的是旧原型） |
+| ⭐ **侵入项子进程隔离**：审计已把 `I1/I4/I5/I10/J3` 放**子进程**执行 | 本机若声明 `context_lifecycle`，这五项会各起一个子进程（耗时略增）；**不要**改回同进程 —— 同进程内做过上下文 create/destroy 会让后续判据被污染（910C 实测：I8 误报 FAIL、第二次 `check_i3` 段错误 rc=139） |
+| ⭐ **本实例是三家唯一会真正行使 K6 / L5 的** | 区间 `(0,-3)` **非单点** ⇒ **K6**（端点请求必须回读一致）与 **L5**（「由本层拥有」的流释放后再用必须 `RuntimeError`）**首次被真正验证**；K8 因非单点而如实 SKIP |
+
+**2026-10-08 两家现行结论（供本机对照，不得当作本实例结论）**：
+910C `DUTY_RESPONSE_PASS` **73 / 0 / 5** · P800 **67 / 0 / 11**（共 78 项）；
+非空转 **910C 34 抓到 / 5 不适用 / 0 未抓到 · P800 31 / 8 / 0**。
 
 > "910C 与 P800 已修复完成" 的**硬依据**：910C 今日实测；P800 的 09-30 轮；且此后的提交
 > `898536a` **未触及任何原型代码**（`prototype/runtime|scripts|conformance` 命中 0 个文件）
@@ -76,7 +92,8 @@ rsync -az --exclude='__pycache__' --exclude='*.pyc' --exclude='out*' \
 | 4 | `conformance/runner.py --backend cambricon` | 13/13 | `CONFORMANCE_PASS` |
 | 5 | `conformance/runner.py --backend cambricon --cases infer_cases` | 6/6 | `CONFORMANCE_PASS` |
 | 6 | `conformance/runner.py --backend cambricon --cases contract_invariants` | ⛔ **从未跑** | `CONTRACT_INVARIANTS_PASS` |
-| 7 | `scripts/duty_response_audit.py --backend cambricon` | 36/0/3 | `DUTY_RESPONSE_PASS`，**0 FAIL**（口径见 §5） |
+| 7 | `scripts/duty_response_audit.py --backend cambricon` | 36/0/3（**旧口径 39 项，不得当基线**） | **78 项**口径下 `DUTY_RESPONSE_PASS`，**0 FAIL**（SKIP 均为如实不具备） |
+| 7b | `probes/selfcheck_duty_audit_ext.py --backend cambricon` | ⛔ 从未跑 | `SELFCHECK_DUTY_EXT_PASS`（**0 未抓到**）；本机不适用项换实例才成立，见 §0.1 |
 | 8 | `runtime/proto/proto_error_recovery_loop.py --backend cambricon` | 5/0/0 | `ERROR_RECOVERY_LOOP_PASS` |
 | 9 | `probes/recover_entry_verify.py --backend cambricon --dev 0` | ⛔ 从未跑 | `ENTRY_VERIFY_PASS` |
 | 10 | `probes/selfcheck_root_resolution.py` | ⛔ 从未跑 | `ROOT_RESOLUTION_PASS`（正确数 = 38 或随探针增减） |
@@ -122,7 +139,7 @@ rsync -az --exclude='__pycache__' --exclude='*.pyc' --exclude='out*' \
 
 ---
 
-## 5 ⏸ 待裁定的口径问题：职责审计的范围
+## 5 ✅ 已裁定并落地（2026-10-08）：职责审计的范围已扩到 §1.10
 
 **事实**：`scripts/duty_response_audit.py` 的口径写死为
 「接口约定 §1.1–§1.5 + §2（三支撑）+ §3（两纪律）」= **39 项**；
@@ -141,7 +158,10 @@ rsync -az --exclude='__pycache__' --exclude='*.pyc' --exclude='out*' \
 ⇒ **判据都在，但不在"职责响应审计"里**，职责文档也没写这条映射
 ⇒ 读者会以为「39/0/0 = 全部职责已响应」，实际它只覆盖到 §1.5。
 
-**三个选项（请裁定）**：
+**裁定结果（2026-10-08）**：**选 A**（扩口径）—— 已完成并在 910C / P800 复跑（见 §0.1）。
+下表的三个选项**保留作决策记录**。
+
+**三个选项（原样保留）**：
 
 | 选项 | 做法 | 代价 | 收益 |
 |---|---|---|---|

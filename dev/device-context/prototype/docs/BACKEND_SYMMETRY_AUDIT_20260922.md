@@ -769,6 +769,38 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 
 ⭐ 一句话：**「造一个能骗过自己的替身」和「写一条能被自己的替身骗过的判据」是同一个错误的两种形态。**
 
+### 2.21 第 30 条（第十轮，E1 口径对齐时发现）：**契约承诺的统一 API 名，统一面上根本不存在**
+
+**现象**：契约第 1 章的标题是「**统一 API 承诺（下游直接使用）**」。其中
+**§1.7** 的表格列了 `context_set(handle)`、**§1.9** 的表格列了 `stream_priority_range()`。
+这两者都**只有后端实现**（`base.py::context_set`、各后端的 `stream_priority_range`），
+而 `runtime` 模块**既没有定义、也没有导出**它们
+⇒ 下游按契约写 `runtime.context_set(h)` / `runtime.stream_priority_range()` 会直接 **`AttributeError`**。
+
+**为什么长期没被发现（这才是本条的重点）**：既有的入口存在性判据
+（`runtime/conformance/contract_invariants.py` 的 **I1④**）查的是「**后端**入口」——
+`callable(getattr(bk, e, None))`。`bk.context_set` **是存在的** ⇒ 判据通过。
+于是「**后端有**」被当成了「**统一面有**」，而契约承诺的对象恰恰是**统一面**。
+⇒ **两层被混为一谈：判据与被测对象不是同一个世界**（同族：§2.14 第 23 条）。
+
+**取证**：对 `runtime/__init__.py` 做「契约承诺名 vs 顶层定义」静态比对 ⇒ 缺的恰好是这两个；
+职责审计新增的 **M1** 判据（契约承诺名在 `runtime` 上真的可调用）**当场 FAIL**：
+
+```
+注入后：契约承诺但统一面取不到：['context_set'] ⇒ 下游按契约写 `runtime.<name>` 会 AttributeError
+```
+
+**处置（只增不改）**：`runtime/__init__.py` 补两个**纯转发**出口 + 两个 `__all__` 名字
+（`context_set` / `stream_priority_range`，均为一行 `current().X(...)`）。
+
+**防回归判据**：职责审计新增的 **M1 / M2 / M3** 三域 ——
+契约承诺名可调用 · 公开常量（句柄字段/状态取值域）非空 · `runtime.__all__` 无幽灵导出；
+三条都配了**逐条注入的非空转验证**（`probes/selfcheck_duty_audit_ext.py`），
+910C **34 抓到 / 5 不适用 / 0 未抓到**、P800 **31 / 8 / 0**。
+
+⭐ 一句话：**「声明即承诺」要问到底「向谁承诺」** —— 契约面向**统一面**，判据却守在后端面
+⇒ 承诺在中间那一层掉在地上了。
+
 ## 3. 判据非空转验证（新增判据必须能真的失败）
 
 | 判据 | 非空转证据 |
@@ -780,6 +812,7 @@ pkg  视角 dev0 : available       # 包路径完全无感知
 | 第 24 条的 4 条优先级判据（第八轮） | 5 处注入，**5/5 当场 FAIL**：① stub 开 `drop_priority`（**精确复现 torch_npu 静默丢弃**）⇒「设置+回读一致」FAIL；② 去掉能力门禁 ⇒「未声明必须显式拒绝」FAIL；③ `ascend` 改回透传三元组 ⇒ 形状判据 FAIL；④ 声明 `control` 却去掉 `readback` 声明 ⇒ 耦合判据 FAIL；⑤ 去掉越界校验 ⇒「越界 ⇒ ValueError」FAIL |
 | 第 25 条的形状判据（第八轮） | 见上一行第 ③ 项（stub 改为按真机三元组返回后，该判据才具备"能 FAIL"的能力） |
 | 第 26 条的 CWD 判据（第八轮） | `cd / && python3 <proto>/runtime/demos/demo_unified.py`：修前 910C/P800 均 `ModuleNotFoundError`，修后双向通过（**不给 `DC_ROOT`**，纯靠自身路径解析） |
+| 第 30 条的 M1/M2/M3 判据（第十轮 · 职责审计扩口径） | **39 条逐条注入**：910C **34 抓到 · 5 本机不适用 · 0 未抓到**、P800 **31 · 8 · 0**（均 `SELFCHECK_DUTY_EXT_PASS`）；其中 M1 的注入就是「把 `context_set` 从统一面拿掉」⇒ 当场 FAIL（**正是本轮修的缺陷形态**） |
 
 （两条都在本文件与提交信息里留了原始输出，便于复核。）
 
