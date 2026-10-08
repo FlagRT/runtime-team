@@ -42,12 +42,13 @@ git diff --cached --name-only | grep -vE '^(dev/device-context/|summary/)'
 |---|---|---|---|
 | **①** | **可快进** | `git merge-base --is-ancestor da2e53b HEAD` | ✅ 通过（`dev-1.0` tip 是本提交的祖先 ⇒ 可 fast-forward / 干净 merge） |
 | **②** | **内容级核对** | `git rev-parse HEAD:<子树>` vs `git rev-parse kistich/device-context:<子树>` | ✅ **两棵子树与特性分支逐字相同**（`git rev-parse` 两次输出同值即通过）。⚠️ **此处刻意不硬编码 hash** —— 本文档位于被核对的子树内，写入 hash 会改变该子树 ⇒ 自我指涉；**具体读数见当轮交付说明** |
-| **③** | **禁用词扫描** | `git diff --cached --no-color -- . ':(exclude)*' \| grep -cE '^\+.*(异构\|heterogeneous\|hetero)'`（**排除本文件**，见下注） | ✅ **0**（排除本文件后） |
+| **③** | **禁用词扫描** | `git diff --cached --no-color -- . ':(exclude)*MERGE_PREP_DEV10*' \| grep -cE '^\+.*(异构\|heterogeneous\|hetero)'`（**用 pathspec 排除本文件**，见下注） | ✅ **0** |
 | **④** | **基座草稿不 PR** | `git diff --cached --name-only \| grep -E 'stack\.lock\.910c\.yaml$'` | ✅ **空**（草稿 `dev/stack.lock.910c.yaml` 仅存在于特性分支，**未带入**） |
 
-> ⚠️ **关于把关 ③ 的一个自我指涉**：**本文档正文必然包含上述三类禁用词的**字面量**（否则无法记录这条判据），
-> 因此扫描时必须**排除本文件**：`git diff --cached --no-color \| grep -E '^\+.*(异构\|heterogeneous\|hetero)' \| grep -v MERGE_PREP_DEV10`。
-> 排除后命中数 = **0**（实测）。
+> ⚠️ **关于把关 ③ 的一个自我指涉**：**本文档正文必然包含上述三类禁用词的**字面量**（否则无法记录这条判据）⇒
+> 扫描时**必须用 pathspec 把本文件排除出 diff**（`-- . ':(exclude)*MERGE_PREP_DEV10*'`），
+> 而**不能**事后用 `grep -v <文件名>` 过滤 —— 命中行是**文件内容**行，行内并不出现文件名（实测踩过）。
+> 排除后命中数 = **0**。
 
 **附加核对**：本次改动只有 `A`（新增 774）与 `M`（修改 31）两类，**无 `D`** ——
 即不会删除 `dev-1.0` 上任何既有文件（含其它方向的目录，本提交根本没碰）。
