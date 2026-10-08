@@ -1,0 +1,27 @@
+# v3 决策②临时解堵层（2026-10-08）：把 `cos` 从 FlagGems 接管名单里排除，
+# 让 torch.cos 落回 torch_npu 原生实现——绕开 round 3 STOP CONDITION
+# （FlagGems Triton-Ascend grid-stride-loop kernel 路径 import shmem，
+# 该模块不在镜像内、非公开 PyPI 包）。
+#
+# 为什么选黑名单而不是总开关 USE_FLAGGEMS=false：
+#   影响面最小、可逆、不遮掩问题——只把触发 shmem 缺口的这一个算子拉回原生，
+#   FlagGems 其余算子行为保持不变，"FlagGems 在 Ascend 上有缺口"的事实仍可见
+#   （其余算子若同样触发，会如实暴露而不是被总开关整体掩盖）。
+#
+# 这是**临时解堵**，不是终态：shmem 官方出处已向算子编译组提出跨组需求
+# （docs/v3-决策备忘录与shmem跨组需求-20261008.md），官方来源落实后本层删除。
+#
+# 用法（叠加在 routeA 层之上）：
+#   dev/lib/up.sh \
+#     dev/images/ascend-operator-runtime/v3/docker-compose.routeA.yml \
+#     dev/images/ascend-operator-runtime/v3/docker-compose.flaggems-cos-off.yml
+#
+# 依据：vllm-plugin-FL worker 初始化读 VLLM_FL_FLAGOS_BLACKLIST
+# （vllm_fl/worker/worker.py get_flag_gems_whitelist_blacklist()），
+# 命中即 flag_gems.enable(unused=blacklist)——插件一级支持的官方开关，
+# 非代码改动。"cos" 是 FlagGems 注册表合法算子名（ops/__init__.py __all__）。
+
+services:
+  runtime-dev:
+    environment:
+      - VLLM_FL_FLAGOS_BLACKLIST=cos

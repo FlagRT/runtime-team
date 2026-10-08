@@ -20,6 +20,10 @@ mkdir -p "$CTX/assets"
 cp "$HERE/assets/verify_runtime.py" \
    "$HERE/assets/patch_triton_ascend_flagtree.py" \
    "$HERE/assets/FlagGems-DSA-__init__.py" "$CTX/assets/"
+# round 4（2026-10-08）：声明式覆盖层补丁——vllm-plugin-FL 上游 pin 之上应用
+# assets/patches/vllm-plugin-FL/（决策①，详见该目录 README.md）。
+mkdir -p "$CTX/assets/patches/vllm-plugin-FL"
+cp "$HERE"/assets/patches/vllm-plugin-FL/*.patch "$CTX/assets/patches/vllm-plugin-FL/"
 
 cd "$CTX"
 DOCKER_BUILDKIT=0 docker build --network=host \

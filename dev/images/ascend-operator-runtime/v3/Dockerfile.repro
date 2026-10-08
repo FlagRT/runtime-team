@@ -213,11 +213,11 @@ RUN ${PYTHON_BIN} /opt/flagrt/patch_triton_ascend_flagtree.py \
       --triton-path /usr/local/python3.11.15/lib/python3.11/site-packages/triton \
     && rm -rf /root/.triton/cache
 
-# --- official：vLLM 推理插件（vllm-plugin-FL，BAAI·FlagTree 官方公开仓库，
-#     github.com/flagos-ai/vllm-plugin-FL，release/0.2 分支，pin 见上方 ARG）。
-#     使得本镜像同时具备训练腿（下游 ascend-train-comm/v3 叠加 FlagCX）与推理腿
-#     （本层 vLLM 0.20.2 + torch_npu + vllm-plugin-FL）能力，满足任务书第 3 条
-#     "训练+推理统一同一血统"。取代了第一次尝试的 vllm-ascend（构建失败，见上方
+# --- official + 声明式覆盖层：vLLM 推理插件（vllm-plugin-FL，BAAI·FlagTree 官方
+#     公开仓库，github.com/flagos-ai/vllm-plugin-FL，release/0.2 分支，pin 见上方
+#     ARG）。使得本镜像同时具备训练腿（下游 ascend-train-comm/v3 叠加 FlagCX）与
+#     推理腿（本层 vLLM 0.20.2 + torch_npu + vllm-plugin-FL）能力，满足任务书第 3
+#     条"训练+推理统一同一血统"。取代了第一次尝试的 vllm-ascend（构建失败，见上方
 #     大注释里的历史记录 + REBUILD.md）。
 #
 #     安装命令对齐官方 README「Quick Start」：`pip install --no-build-isolation .`
@@ -225,7 +225,22 @@ RUN ${PYTHON_BIN} /opt/flagrt/patch_triton_ascend_flagtree.py \
 #     昇腾/NPU 走"跳过原生 C++ 扩展的纯 Python 插件"路径，这是 README 自己写明
 #     的行为，不是本层的猜测）。entry points 在 pyproject.toml 里确认：
 #     vllm.platform_plugins:fl -> vllm_fl:register，
-#     vllm.general_plugins:fl -> vllm_fl:register_model。 ---
+#     vllm.general_plugins:fl -> vllm_fl:register_model。
+#
+#     【round 4，2026-10-08：声明式覆盖层补丁——决策①落地】
+#     在纯上游 pin 之上应用 assets/patches/vllm-plugin-FL/ 内的显式补丁（不切换到
+#     FlagRT 私有 fork，保持"公开基座 + 声明过的补丁"性质）：
+#       0001-fix-ascend-int64-mask-promote-flagcx-sync.patch
+#         (sha256 b97d0d8b…,源自 FlagRT fork 5d545c9,实测在 ${VLLM_PLUGIN_FL_REF}
+#         上 git apply --check 干净套用零冲突)
+#       - flagcx backend all_reduce/all_gather 异步返回缺 torch.npu.synchronize()
+#         ——round 3 真机 2 卡已证实该假说(无 sync 复现错误,加 sync 转 PASS),
+#         且 DDP 侧 C++ 校验路径无法用 Python 猴子补丁绕过,修复必须落在
+#         FlagCX/vllm_fl 的 c10d/communicator 实现里(即本补丁打的位置)。
+#       - PrivateUse1 bool*int 类型提升错误(token id 坍缩成 1)的显式 int64 转换。
+#     补丁上游合入后本层回退为纯上游 pin(补丁有保质期,详见
+#     assets/patches/vllm-plugin-FL/README.md)。 ---
+COPY assets/patches/vllm-plugin-FL/ /opt/flagrt/patches/vllm-plugin-FL/
 RUN git config --global --add safe.directory "*" \
     && mkdir -p /root/vllm-plugin-FL && cd /root/vllm-plugin-FL \
     && git init -q \
@@ -233,6 +248,8 @@ RUN git config --global --add safe.directory "*" \
     && git fetch --depth 1 origin ${VLLM_PLUGIN_FL_REF} \
     && git checkout -q FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "${VLLM_PLUGIN_FL_REF}" \
+    && git apply --check /opt/flagrt/patches/vllm-plugin-FL/*.patch \
+    && git apply /opt/flagrt/patches/vllm-plugin-FL/*.patch \
     && source /usr/local/Ascend/ascend-toolkit/set_env.sh \
     && ${PYTHON_BIN} -m pip install --no-build-isolation -v . \
     && rm -rf /root/.cache/pip /root/vllm-plugin-FL

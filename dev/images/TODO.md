@@ -78,3 +78,32 @@
   FlagGems）。两项都已把技术判断依据写清楚，等总组/接手人拍板后回填
   `Dockerfile.repro` + `lock.yaml` provenance。`repro_status` 两条血统均维持
   🟡 partial-repro，不升级为 🟢。
+
+
+## N3 完成（2026-10-08）——两项决策拍板落地：声明式覆盖层 + 官方开关解堵
+
+**结论：决策①（吸收 sync 修复）以"公开基座 + 声明过的补丁"方式落地；决策②
+（shmem 缺口）用插件官方黑名单开关临时解堵并同步提跨组需求。镜像重建+真机
+验证 PENDING（本机带卡容器 5 个超上限 3，排队）。** 详见
+`ascend-operator-runtime/v3/lock.yaml` changelog 2026-10-08 条目与
+`docs/v3-决策备忘录与shmem跨组需求-20261008.md`。
+
+- **决策①落地物**：`assets/patches/vllm-plugin-FL/0001-fix-ascend-int64-mask-promote-flagcx-sync.patch`
+  （git format-patch 原样导出自 FlagRT fork `5d545c9`，sha256
+  `b97d0d8b…e23b5f928`，实测在上游 pin `8b059122e` 上干净套用零冲突）；
+  `Dockerfile.repro` vllm-plugin-FL 层新增 `git apply --check`（fail-closed）；
+  `build.sh` 同步拷贝补丁；lock.yaml 该层 origin → `official+custom-overlay`，
+  记录 overlay_patches（来源/sha256/套用基线/保质期）。不切换私有 fork。
+- **决策②落地物**：`docker-compose.flaggems-cos-off.yml`（opt-in 层，
+  `VLLM_FL_FLAGOS_BLACKLIST=cos`）——vllm-plugin-FL 官方一级开关
+  （`vllm_fl/worker/worker.py` 读取），把 torch.cos 拉回 torch_npu 原生，
+  零代码改动；`docker compose config` 实测两层合并正确。选黑名单而非总开关：
+  影响面最小、可逆、不遮掩问题。
+- **upstream-first 同步启动**：修复已具备提交上游条件（干净 patch + 真机证据），
+  PR 文本草稿见决策备忘录附录。
+- **跨组需求已建档**：shmem 官方出处（FlagTree triton tle/dsa/ascend 扩展的
+  依赖声明缺口）已写成独立需求文档，待转算子编译组。
+- **下一步（按依赖排序）**：① 卡资源释放后重建镜像（Dockerfile.repro 已变，
+  build.sh 驱动）→ ② 叠加 flaggems-cos-off 层跑 round 4 真机验证（训练腿
+  loss/吞吐 + 推理腿 embed/generate）→ ③ 结果回填 lock.yaml/REBUILD.md，
+  视结果决定 repro_status 是否升 🟢；上游 PR 提交与跨组需求发出并行推进。

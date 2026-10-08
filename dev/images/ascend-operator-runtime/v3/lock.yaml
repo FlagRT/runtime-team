@@ -96,22 +96,28 @@ layers:
   - name: "MPI 工具链"
     origin: official
     pin: "基座镜像自带系统 mpich 4.0-3（apt），与 v2 相同"
-  - name: "vllm-plugin-FL（round 2 PIVOTED，任务书第 3 条：训练+推理统一血统；取代 round 1 的 vllm-ascend）"
-    origin: official
+  - name: "vllm-plugin-FL（round 2 PIVOTED，任务书第 3 条：训练+推理统一血统；取代 round 1 的 vllm-ascend；round 4 起叠加声明式覆盖层补丁）"
+    origin: official+custom-overlay
     pin:
       repo: >-
         https://github.com/flagos-ai/vllm-plugin-FL.git（BAAI·FlagTree 官方
         公开仓库，与 FlagTree wiki ascend3.5 线自己文档的"Run Qwen vLLM
         benchmark"一节推荐的插件同源，见 dev/images/README.md §4.0
         "BAAI·FlagTree 官方"定义——不是 owner 私有资产。注意与本机另有的
-        `FlagRT/vllm-plugin-FL` 组织 fork 区分——那个 fork 带有未上游化的
-        ascend patch，本层刻意不用，见 REBUILD.md）
+        `FlagRT/vllm-plugin-FL` 组织 fork 区分——那个 fork 带有未上游化
+        的 ascend patch，本层刻意不用，见 REBUILD.md）
       branch: >-
         release/0.2（与本血统 vLLM 0.20.2 精确匹配，见 README 版本兼容表；
         main 分支对应 vLLM 0.24.0，不匹配，不用）
       ref: >-
         8b059122e32b9ac47b9820a9c7b1bb95077481a4（round 2 `git ls-remote` 实测
         取得的 release/0.2 分支 tip，2026-09-22）
+      overlay_patches:
+        - file: assets/patches/vllm-plugin-FL/0001-fix-ascend-int64-mask-promote-flagcx-sync.patch
+          sha256: b97d0d8b2a22539a2d2887bc0345d9e229ea77cc4414c24e8e5fe6ce23b5f928
+          source: FlagRT fork commit 5d545c9eadd7e20a5f3a63111500bbf20a8a1571（git format-patch 原样导出）
+          applies_cleanly_on: 8b059122e32b9ac47b9820a9c7b1bb95077481a4（2026-10-08 git apply --check 实测，零冲突）
+          expiry: 上游合入该修复并出现在 release/0.2 后删除本覆盖层，回退纯上游 pin
     note: >-
       父镜像已有裸 vLLM 0.20.2（vllm-project/vllm 上游 editable checkout）+
       torch_npu 2.10.0，但没有任何 vLLM Platform 插件——vLLM 0.20.x 的硬件分发走
@@ -121,7 +127,12 @@ layers:
       `pip install --no-build-isolation .`（不设 VLLM_VENDOR，见 REBUILD.md）。
       **round 2 已实测构建成功**（image id `9ad551058f2f`），取代了 round 1
       尝试的 vllm-ascend（构建失败，STOP CONDITION，见下方 known_issues 历史
-      记录）。
+      记录）。**round 4（2026-10-08，决策①拍板落地）**：在此上游 pin 之上
+      叠加声明式覆盖层补丁（flagcx sync 修复——round 3 真机已证实缺 sync
+      假说成立，且 DDP 侧修复必须落在 c10d/communicator 实现层——加
+      PrivateUse1 int64 显式转换），不切换到 FlagRT 私有 fork，保持
+      "公开基座 + 声明过的补丁"性质；补丁来源、sha256、保质期见
+      assets/patches/vllm-plugin-FL/README.md，同时按 upstream-first 待提交上游。
 
 # v3 没有 gaps 段——沿用 v2 的判断：每一个 custom 层都是从公开 commit 现场构建，
 # 没有 owner 私有资产依赖。vllm-plugin-FL 层同样是公开仓库（origin: official），
@@ -369,3 +380,26 @@ changelog:
       repro_status 维持 🟡 partial-repro（coexistence 已证实，但推理正确性
       仍未达成，阻塞点是新发现的 FlagGems/shmem 依赖缺口，与最初担心的两个
       PrivateUse1 类型提升 bug 无关）。未改 `dev/stack.lock.910c.v2.yaml`。
+  - date: "2026-10-08"
+    what: >-
+      ROUND 4（两项总组决策拍板，方向：声明式覆盖层 + upstream-first + 官方
+      开关解堵）。【决策①吸收 sync 修复】以声明式覆盖层补丁方式吸收 FlagRT
+      fork 5d545c9 的 flagcx sync 修复 + int64 显式转换——git format-patch
+      原样导出入档 assets/patches/vllm-plugin-FL/（sha256 b97d0d8b…e23b5f928），
+      实测在上游 pin 8b059122e 上 git apply --check 干净套用零冲突（上游 tip
+      领先 fork 基点 19 提交但未触碰 patch 涉及的两个文件）；Dockerfile.repro
+      的 vllm-plugin-FL 层新增 git apply --check + git apply（fail-closed），
+      build.sh 同步拷贝补丁进构建上下文；本文件 layers 该层 origin 改为
+      official+custom-overlay 并记录 overlay_patches（来源/sha256/套用基线/
+      保质期：上游合入后删除回退纯上游 pin）。不切换到私有 fork，保持"公开
+      基座 + 声明过的补丁"性质；同步按 upstream-first 整理待提交上游。
+      【决策②shmem 解堵】不装来路不明的包、不写 stub；新增 opt-in compose 层
+      docker-compose.flaggems-cos-off.yml：VLLM_FL_FLAGOS_BLACKLIST=cos 把
+      torch.cos 拉回 torch_npu 原生（vllm-plugin-FL 一级支持的官方开关，
+      vllm_fl/worker/worker.py 读取，非代码改动；"cos" 为 FlagGems 注册表合法
+      算子名，ops/__init__.py:1026 实查）。docker compose config 实测两层合并
+      后 BLACKLIST 正确注入。选黑名单而非 USE_FLAGGEMS=false 总开关：影响面
+      最小、可逆、不遮掩问题（其余算子若同样触发会如实暴露）。同日向算子
+      编译组提出 shmem 官方出处的跨组需求（docs/v3-决策备忘录与shmem跨组
+      需求-20261008.md），官方来源落实后本层删除。镜像尚未重建（本机带卡
+      容器 5 个超上限 3，排队中），重建+真机验证记为 PENDING。

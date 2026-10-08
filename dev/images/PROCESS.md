@@ -151,3 +151,26 @@ wheel / 关闭 FlagGems 让 `cos` 落回 torch_npu 原生实现 / 手写空 `shm
 **候选状态**：未进入 `dev/stack.lock.910c.v2.yaml` 的 `lock:`/`candidates:`，
 是否登记候选、是否切换由总组另行裁定——鉴于两项决策仍待拍板，**不建议在完成前
 登记为候选**。
+
+
+### round 4（2026-10-08）：两项总组决策拍板落地——声明式覆盖层 + 官方开关解堵
+
+round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstream-first + 官方开关
+解堵”方向落地（决策依据与经典问题对照见 `docs/v3-决策备忘录与shmem跨组需求-20261008.md`）：
+
+- **决策①（吸收 FlagCX sync 修复）**：不切换 FlagRT 私有 fork，改为在上游 pin
+  `8b059122e` 之上叠加**显式声明的覆盖层补丁**——`5d545c9` 的 format-patch
+  原样导出入档 `assets/patches/vllm-plugin-FL/`（sha256 记入 lock.yaml），
+  实测干净套用零冲突（上游 tip 领先 fork 基点 19 提交，但均未触碰补丁涉及的
+  两个文件）；Dockerfile.repro 加 `git apply --check`（fail-closed）。补丁有
+  保质期：上游合入后整层删除。upstream-first 并行启动（PR 草稿见决策备忘录
+  附录 A）。
+- **决策②（shmem 缺口）**：不装来路不明的包、不写 stub；新增 opt-in compose
+  层 `docker-compose.flaggems-cos-off.yml`（`VLLM_FL_FLAGOS_BLACKLIST=cos`，
+  vllm-plugin-FL 官方一级开关，`vllm_fl/worker/worker.py` 读取），把
+  torch.cos 拉回 torch_npu 原生。选黑名单而非 USE_FLAGGEMS=false 总开关：
+  影响面最小、可逆、不遮掩问题。根因是 FlagTree triton tle/dsa/ascend 扩展的
+  依赖声明缺口（跨组协调事项），需求文本见决策备忘录附录 B。
+- **状态**：两条血统 `repro_status` 仍维持 🟡 partial-repro——镜像未重建
+  （本机带卡容器并发超限），round 4 真机验证 PENDING；重建+双腿验证通过后
+  视结果升 🟢。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是候选，非生效）。
