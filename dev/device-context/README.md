@@ -23,7 +23,7 @@
 
 ---
 
-## 1. 目录结构：**一份原型 + 三个芯片实例**
+## 1. 目录结构：**一份原型 + 三个芯片实例（+ 一个接入前调研）**
 
 | 目录 | 定位 | 内容 |
 |---|---|---|
@@ -32,8 +32,10 @@
 | **`P800/`** | **第二个接入实例（昆仑芯）** —— ✅ 阶段 0–5 完成 | 环境汇总、五域基线、接入方案、根因核对、阶段 3/4 与镜像等价性验证、全量进度报告、**探针脚本与原始证据** |
 | **`MLU590/`** | **第三个接入实例（寒武纪）** —— ✅ **接入完成 · 12 项判定全部通过（2026-09-28）**（环境打通 → 镜像定档 → 后端落地 → conformance 13+6 → 16 项基线 → 训练腿 → **推理腿前向 + 服务化** → 错误闭环） | 环境报告、镜像渠道调研与更正、**接入方案 + 真机执行手册**、**16 项基线比对报告**、探针脚本与原始证据（`docs/`、`probes/`） |
 
+| **`PPU/`** | **第四个实例（平头哥）** —— 🟡 **接入前调研完成并逐条复核（2026-10-09）· 未上机**（唯一前置阻塞项 = **机器访问**） | 生态适配调研（**组件层 / 镜像层 / 档位层**逐项读数）· 接入形态判定与证据链 · 风险与前置清单 · **复核记录**；`probes/` 为空（尚未上机） |
+
 顶层保留：`README.md`（本看板）、`STATUS.md`（方向状态）、`.env.example`
-各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`、`MLU590/README.md`
+各有分支看板：`prototype/README.md`、`910C/README.md`、`P800/README.md`、`MLU590/README.md`、`PPU/README.md`
 
 > **划分原则：原型与规范是芯片无关的，放在外面；芯片专属的落地实例资产按芯片分目录。**
 > 新芯片接入 = 在 `prototype/` 下**新建一个 backend** + 跑通 conformance，
@@ -72,14 +74,14 @@
 
 | 项 | 状态 | 证据 / 详见 |
 |---|---|---|
-| 后端（`ascend` = torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6** · 冒烟 **52/0** · 离线自检 **90/0/1** | `910C/README.md` §3 · `../prototype/scripts/backend_offline_check.py` |
+| 后端（`ascend` = torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6** · 冒烟 **52/0** · 离线自检 **90/0/1** | `910C/README.md` §3 · `prototype/scripts/backend_offline_check.py` |
 | 两条腿 + 服务化 | ✅ 训练腿 **6/6**（loss 15.4498→11.1479 · 4196.6 tok/s）· 推理腿 **14/14**（区分度 0.6391）· 服务化 **4 形态全 `SERVE_STANDARD_PASS`** | `910C/docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` **L45–L142** · `910C/docs/ASCEND_910C_R10_RERUN_20261008.md` **L10–L49** |
 | 错误注入 → 恢复闭环 | ✅ 推理腿 **5 闭环 / 0 失败** · 训练腿 **5/0/0** | `910C/docs/ERROR_RECOVERY_LOOP_20260909.md` |
-| ⭐ **职责审计（78 项口径 · 10-08）** | ✅ `DUTY_RESPONSE_PASS` **73 / 0 / 5**（SKIP 均如实不具备）· 非空转 **34 抓到 / 5 不适用 / 0 未抓到** | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
-| ⭐ **流优先级** | ⚪ **只读**：范围 `(7,0)` 可读、**不声明设置**（`create_stream(priority=…)` ⇒ `NotImplementedError`）；「调度效果」如实 `NOT_APPLICABLE` | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L152–L169** · `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L123–L150** |
-| ⭐ **「不适用」自证审计（10-08）** | ✅ 结论成立、**根因升级**：**不是设备限制**（ACL 侧保留 0/3/7），是**插件 Python 绑定缺失**（C++ 已有 `getStreamFromExternal`） | `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L46–L62** |
+| ⭐ **职责审计（78 项口径 · 10-08）** | ✅ `DUTY_RESPONSE_PASS` **73 / 0 / 5**（SKIP 均如实不具备）· 非空转 **34 抓到 / 5 不适用 / 0 未抓到** | `prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
+| ⭐ **流优先级** | ⚪ **只读**：范围 `(7,0)` 可读、**不声明设置**（`create_stream(priority=…)` ⇒ `NotImplementedError`）；「调度效果」如实 `NOT_APPLICABLE` | `prototype/docs/STREAM_PRIORITY_API_20260930.md` **L152–L169** · `prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L123–L150** |
+| ⭐ **「不适用」自证审计（10-08）** | ✅ 结论成立、**根因升级**：**不是设备限制**（ACL 侧保留 0/3/7），是**插件 Python 绑定缺失**（C++ 已有 `getStreamFromExternal`） | `prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L46–L62** |
 | ⚠️ 机器级阻塞（**与本层无关**） | 共享 `Qwen3-Embedding-0.6B/model.safetensors` 被**存储层静默损坏**（2 张量 34396 个非有限值；`md127` RAID5 降级）⇒ 用 P800 位级原件在 scratch 自证修复（**只搬 2.33 MiB**）；**共享资产未改动** | `910C/docs/ASCEND_910C_R10_RERUN_20261008.md` **L89–L177** |
-| 三芯片职责验收（09-22 傍晚 · 历史批次） | ✅ 10 项全绿 | `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
+| 三芯片职责验收（09-22 傍晚 · 历史批次） | ✅ 10 项全绿 | `prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
 
 → 详见 `910C/README.md`
 
@@ -88,9 +90,9 @@
 | 项 | 状态 | 证据 / 详见 |
 |---|---|---|
 | 阶段 0–5 全部完成（09-14 → 09-20） | ✅ 环境与五域基线 → 单卡接入 → 训练腿（loss 15.4488→11.1481 · **3533.5 tok/s**）→ 推理腿前向 **13/13**（53.12 句/s）→ 服务化 **10/10**（30.70 句/s）→ 错误闭环 **5/0/0** → 收敛三件套 | `P800/README.md` §0 · `P800/docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` · `P800/docs/PROGRESS_REPORT_20260914.md` |
-| ⭐ **职责审计（78 项口径 · 10-08）** | ✅ `DUTY_RESPONSE_PASS` **67 / 0 / 11**（SKIP 均如实不具备）· 非空转 **31 / 8 / 0** | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
-| ⭐ **流优先级** | ⚪ 本层**声明** `stream_priority_control`，但区间**退化为单点** `(0,0)` ⇒ **设置无区分**；「调度效果」如实 `NOT_APPLICABLE` | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** · `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
-| ⭐ **「不适用」自证审计（10-08）** | ✅ 成立：**逐卡 7/8**（跳过他人作业在用的卡）全 `(0,0)` · driver(`cu*`) 与 runtime(`cuda*`) **两层读数一致** · 全量 `nm -D` 无原生 XPU 流 API | `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
+| ⭐ **职责审计（78 项口径 · 10-08）** | ✅ `DUTY_RESPONSE_PASS` **67 / 0 / 11**（SKIP 均如实不具备）· 非空转 **31 / 8 / 0** | `prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
+| ⭐ **流优先级** | ⚪ 本层**声明** `stream_priority_control`，但区间**退化为单点** `(0,0)` ⇒ **设置无区分**；「调度效果」如实 `NOT_APPLICABLE` | `prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** · `prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
+| ⭐ **「不适用」自证审计（10-08）** | ✅ 成立：**逐卡 7/8**（跳过他人作业在用的卡）全 `(0,0)` · driver(`cu*`) 与 runtime(`cuda*`) **两层读数一致** · 全量 `nm -D` 无原生 XPU 流 API | `prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
 | 多流 Stream 16 项基线 | ✅ **14 通过 / 1 如实不支持（S-12 流优先级，上游缺陷）/ 1 不适用**；探针 **8/8**（与 910C 逐项一致） | `P800/docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` |
 | 官方 `-base` 镜像等价性（09-20） | ✅ 全部结论复现 ⇒ **缺陷与镜像无关**（KL3 挂死 A 组 3/3 一致重现） | `P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` |
 | 已知厂商缺陷（2 条 · 归厂商侧） | ⚠️ ① KL3 事件同步概率性挂死（≈89%，**不影响单进程设备上下文路径**）② **物理卡 1 计算通路故障**（控制面正常 ⇒「能查到卡」≠「能用卡」） | `P800/README.md` §3.1 / §3.2 · `P800/docs/KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md` |
@@ -125,7 +127,7 @@
 |---|---|---|
 | 阶段 0–8（接入全链路） | ✅ **完成** | 环境普查 → 镜像定档 → 后端落地（13 抽象）→ 离线自检 → **conformance 13/13 + 6/6** → 多流 16 项 → 训练腿 **6/6**（`cncl`）→ 推理腿两形态 → 错误闭环 → 收敛；逐阶段证据 `MLU590/README.md` §0 |
 | ⭐ **m1 补齐轮（10-08）· 20 项全绿** | ✅ 离线 **97/0/0** · 冒烟 46/0 · **职责 62/0/16** · 非空转 26/13/0 · 训练腿 6/6 · 推理腿 13/13 · 服务化 PASS + `SERVE_LEG_PASS` 10/10 | `MLU590/docs/CAMBRICON_MLU_M1_RERUN_20261008.md` **L10–L46** |
-| ⭐ **流优先级（三家唯一能出「效果」结论的实例）** | ✅ 区间 `(0,-3)` **非单点** · **走厂商 CNRT C API**（与 kunlun 同构）⇒ 经统一面**真行使**契约 §1.10 **L5**；「调度效果」**分场景**：同时就绪 ⇒ 无实质效果 / 排队争用 ⇒ 有实质效果 | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54 / L94–L122** · `../prototype/docs/STREAM_PRIORITY_READBACK_FIX_20261008.md` **L59–L100** |
+| ⭐ **流优先级（三家唯一能出「效果」结论的实例）** | ✅ 区间 `(0,-3)` **非单点** · **走厂商 CNRT C API**（与 kunlun 同构）⇒ 经统一面**真行使**契约 §1.10 **L5**；「调度效果」**分场景**：同时就绪 ⇒ 无实质效果 / 排队争用 ⇒ 有实质效果 | `prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54 / L94–L122** · `prototype/docs/STREAM_PRIORITY_READBACK_FIX_20261008.md` **L59–L100** |
 | 推理腿（前向 + 服务化） | ✅ **13/13**（+1 如实跳过）：dim 1024 · **41.08 句/s** · p50 72.89 ms · 区分度 0.6391；服务化 **`SERVE_STANDARD_PASS`**（150 s 就绪，⚠️ **须用 vLLM 应用镜像容器**） | `MLU590/docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md` |
 | 训练腿 2 卡 | ✅ **6/6**：loss 15.4498→11.1479 · **3015.3 tok/s** · `dist=cncl`（⚠️ 走 **MLU_LINK 片间互联**，非 RDMA —— 已如实标注） | `MLU590/README.md` §0 阶段表 |
 | 镜像档位 | ✅ 定档 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`（**选档第一判据 = 宿主驱动 v6.2.29**）；4.7.2 档列为**上报预案** | `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` **L10–L109** |
@@ -267,7 +269,6 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
 | `prototype/docs/MERGE_PREP_DEV10_20261008.md`（137 行） | ⭐ **合入 `dev-1.0` 的准备材料**：子树同步方式（基 `dev-1.0` tip，只落 `dev/device-context/` + `summary/`）· **合入把关四道逐条读数**（可快进 / 子树 tree 逐字相同 / 禁用词 0 / 基座草稿未带入）· 可直接使用的 **PR 标题与正文** · 合入后收尾 · 未做项 |
-| `prototype/docs/THEAD_PPU_FLAGOS_ADAPTATION_RESEARCH_20261009.md`（266 行） | ⭐ **第 4 家（平头哥 PPU）接入调研（2026-10-09）**：FlagOS 适配现状（组件层 **3/4 就位** —— FlagTree / FlagGems / vllm-plugin-FL 均有平头哥后端，**FlagCX 未覆盖**）· ⛔ **运行时层零镜像**（`flagos-runtime` 20 仓 + `flagos-base` 22 仓均无）· 三套档位分叉（2.0.0 / 2.1.0 / 1.5.2）· **形态判定 = 路径 B（复用 `torch.cuda`，与 P800 同构）** · 9 条风险 + 5 项待确认，**未上机** |
 | `../../summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md` | **分支级总结**（跨目录，在仓库根 `summary/`）：路线 A/B 选择依据 + 路线 A 设计方案 + **三实例**实现进度与下一步 |
 
 ### 6.4 芯片专属文档（**结论不迁移**，新芯片按手册新建）
@@ -330,6 +331,12 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `MLU590/docs/CAMBRICON_MLU_INFER_LEG_VERIFY_20260928.md` | ⭐ **推理腿（前向 + 服务化）验收报告（09-28）**：12 项判定全通过 · 两条要点（**运行时镜像不含 vLLM ⇒ 用官方应用镜像**；**冒烟超时硬编码 60 s ⇒ 假失败**，含 PRE_FIX 原样留档）· 三实例对照与差异解释 · 边界与未覆盖 · 复现命令 |
 | `MLU590/docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表（第 0/0b/1/2/3 步状态）· 厂商栈判别（预期 **路径 C：PrivateUse1 / `mlu`**）· 已完成的代码层动作与**能力声明逐条理由**（为什么 `error_map`/`recovery_real`/`graph_capture`/`stream_priority` **如实不声明**）· 本地验证（**离线自检 35/0**）· **A1–A10 真机执行序列（含确切命令与出处）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
 | `MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像获取渠道调研 + 当日更正**：§0 更正段（**FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像、实测可匿名拉取**；**档位由宿主驱动决定**：6.2.29 → `neuware4.4.3`，`neuware4.7.2` 需 6.5.48）· FlagTree 无寒武纪手册 · 官方渠道与三私仓实测（均 401 需鉴权）· 申请清单 · **三家实例镜像获取路径对照** |
+
+**6.4.6 `PPU/docs/`（平头哥，第四实例 · 接入前调研）**
+
+| 文档 | 回答什么 |
+|---|---|
+| `PPU/docs/THEAD_PPU_FLAGOS_ADAPTATION_RESEARCH_20261009.md`（302 行） | ⭐ **接入前调研（含复核）**：生态对该芯片的适配全景（**组件层三件齐备 · 运行时层与基座层镜像为 0 · 档位三套并存**）· 接入形态判定（**间接证据指向「复用 CUDA 命名空间」**，⚠️ 直接判定**待上机**）· 与前三实例的对照 · 风险 **9 条** + 待确认 5 项 · ⭐ **§8 复核记录**（8 条逐条重新取证、含 1 条降级；并列出**仍属未验证的 4 项**）。⚠️ **未上机，不含任何设备侧结论** |
 
 ### 6.5 原始证据目录（复核用，勿只读结论）
 
