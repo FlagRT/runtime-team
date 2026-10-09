@@ -267,6 +267,7 @@ python3 runtime/proto/proto_infer_leg.py                         # 推理腿
 | `prototype/RELEASE_NOTES_v0.1.0.md`（109 行） | 组件 v0.1.0 发布说明（初版，910C 单实例） |
 | `prototype/probes/probe_stream_semantics_full.py` | **多流 16 项基线探针（后端无关 V2）**：覆盖 S-1/S-2 补强 + S-8~S-13，设备 API 前缀由统一运行时给出，同一份脚本跨芯片复用（`DC_BACKEND` / `DC_TAG`） |
 | `prototype/docs/MERGE_PREP_DEV10_20261008.md`（137 行） | ⭐ **合入 `dev-1.0` 的准备材料**：子树同步方式（基 `dev-1.0` tip，只落 `dev/device-context/` + `summary/`）· **合入把关四道逐条读数**（可快进 / 子树 tree 逐字相同 / 禁用词 0 / 基座草稿未带入）· 可直接使用的 **PR 标题与正文** · 合入后收尾 · 未做项 |
+| `prototype/docs/THEAD_PPU_FLAGOS_ADAPTATION_RESEARCH_20261009.md`（266 行） | ⭐ **第 4 家（平头哥 PPU）接入调研（2026-10-09）**：FlagOS 适配现状（组件层 **3/4 就位** —— FlagTree / FlagGems / vllm-plugin-FL 均有平头哥后端，**FlagCX 未覆盖**）· ⛔ **运行时层零镜像**（`flagos-runtime` 20 仓 + `flagos-base` 22 仓均无）· 三套档位分叉（2.0.0 / 2.1.0 / 1.5.2）· **形态判定 = 路径 B（复用 `torch.cuda`，与 P800 同构）** · 9 条风险 + 5 项待确认，**未上机** |
 | `../../summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md` | **分支级总结**（跨目录，在仓库根 `summary/`）：路线 A/B 选择依据 + 路线 A 设计方案 + **三实例**实现进度与下一步 |
 
 ### 6.4 芯片专属文档（**结论不迁移**，新芯片按手册新建）
