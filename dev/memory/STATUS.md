@@ -67,7 +67,7 @@
 |---|---|---|---|
 | 显存池定义 + 画像（910C 锁定镜像） | 已完成 | 锁定镜像 `vllm-ascend:v0.20.2rc1-a3`、`Qwen/Qwen3-Embedding-0.6B`，davinci-7 单卡；加载阶段 HBM 分解 + batch(8-256)×seqlen(128-512) 峰值 sweep + gmu/enforce-eager/alloc-conf 三轴 A/B，全部实测（2026-09-10/11） | 分支 `xliu969/memory-docs-reorg`（尚未合 `dev-1.0`），证据：[profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)、[design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md) |
 | KV 分层缓存 / Host 溢出 | 未验证（本期非硬指标） | 验收模型为 embedding，无生成式缓存增长场景，该能力对本次验收模型无意义 | 不在本期交付范围（§7 已注明），910C native 路径阻塞留档见 [note_KV卸载Host尝试_910c.md](docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md) |
-| 生成式显存画像（910C 标准环境） | 已完成 | `OpenOneRec/OneRec-8B`（revision `29f95b3d`），davinci1 单卡，`serve_standard.sh`（TP=1 / MAX_MODEL_LEN=4096 / EAGER=1）；加载基线 + decode KV 线性增长 + 完成/取消归还闭环 + 输入长度/并发对照 + gmu 0.9/0.4 对照，双指标（HBM + /metrics）全实测（2026-09-23） | 分支 `chenyuanxin/gen-profile-910c`（尚未合 `dev-1.0`），证据：[profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md)、原始数据 `benchmarks/out/gen910c/` |
+| 生成式显存画像（910C 标准环境） | 已完成 | `OpenOneRec/OneRec-8B`（revision `29f95b3d`），davinci1 单卡，`serve_standard.sh`（TP=1 / MAX_MODEL_LEN=4096 / EAGER=1）；加载基线 + decode KV 线性增长 + 完成/取消归还闭环 + 输入长度/并发对照 + gmu 0.9/0.4 对照，双指标（HBM + /metrics）全实测（2026-09-23） | 已合入 `dev-1.0`（merge `d7d6b1c`，2026-10-09），证据：[profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md)、原始数据 `benchmarks/out/gen910c/` |
 
 ## 跨方向反馈（待总组收拢，本次画像顺带实测出的环境事实）
 
