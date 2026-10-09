@@ -103,14 +103,29 @@
   PR 文本草稿见决策备忘录附录。
 - **跨组需求已建档**：shmem 官方出处（FlagTree triton tle/dsa/ascend 扩展的
   依赖声明缺口）已写成独立需求文档，待转算子编译组。
-- **下一步（按依赖排序，2026-10-08 深夜更新）**：
-  ① ~~重建镜像~~ **已完成**：operator-runtime `be30a952c2eb` / train-comm
-  `7028028bb62c`（含覆盖层补丁，三重证据验证，见各 REBUILD.md「ROUND 4」）。
-  ② 真机双腿验证 **PENDING→迁移 npu1-11**：npu1-27 带卡容器并发超限（守候 4h
-  无窗口）且 docker 存储层校验和损坏（save 不可用）；npu1-11（10.120.72.11，
-  16 卡零占用）已就位：仓 dev-1.0@31c741d 同步完毕、harbor 基座拉取中、模型
-  rsync 中，到货后按本目录配方本地重建+验证。
-  ③ 文档回填：本轮已完成（lock.yaml×2 / REBUILD.md×2 / image_list / TODO）。
-  ④ **新增待办**：v3 round 4 镜像 docker save 离线归档 raid——被 npu1-27 存储
-  损坏阻塞，待 npu1-11 重建成功后在那边 save 归档（先例各 v2/ARCHIVE.md）。
-  ⑤ 上游 PR 提交与跨组需求发出并行推进（PR 草稿见决策备忘录附录 A/B）。
+- **下一步（2026-10-09 npu1-11 真机验证完毕后更新）**：
+  ① ~~重建镜像~~ **已完成**：npu1-11 本机重建 operator-runtime `62bcaae3f839` /
+  train-comm `e13a15d0d02b`（npu1-27 侧 be30a952c2eb/7028028bb62c 同源，三重
+  证据齐，见各 REBUILD.md「ROUND 4」）。
+  ② ~~真机双腿验证~~ **已完成**（npu1-11）：推理腿 9/9 PASS（黑名单升级
+  cos,sin + shmem stub + 进程内引擎）；训练腿 sync-test 证实假设 + 手动 DDP
+  loss 2.89→2.55；原生 DDP 仍阻 c10d 层。两条血统维持 🟡，升 🟢 条件见各
+  lock.yaml。镜像归档 /mnt/raid/user_cache/xliu969/v3-round4-archive/。
+  ③ ~~文档回填~~ **已完成**（本轮：两 REBUILD.md 真机验证节 / 两 lock.yaml
+  repro_result+known_issues / PROCESS / TODO / cos-off 层注释 / shmem_stub
+  入仓 / HANDOFF 验证结果节）。
+  ④ **新增待办（按优先级）**：
+  a. **跨组需求升级重发**：shmem 缺口按结构性严重度重写（tle 顶层无条件
+     import + 任何 for 循环触发 + vllm 核心 kernel 命中 + 黑名单覆盖不到），
+     附本轮证据链（round-2/5.log、control-*.log、shmem_stub.py）——原附录 B
+     按单算子写的版本已低估。
+  b. **FlagCX c10d 层 sync 修复需求**（跨组第二条）：DDP.__init__ 的
+     all_gather_into_tensor 异步返回（probe_agit.log 双证据），修复须落
+     FlagCX c10d ProcessGroup，vllm_fl 侧补丁覆盖不到。
+  c. **上游 PR 提交**（附录 A 草稿就绪）。
+  d. **framework-adapter 三级回退需求对接**：本轮实证"编译期失败不触发
+     dispatch 自动回退"（strict:false 救不了 CompilationError），算子级
+     回退目前只能手工黑名单——正是该子方向"三级安全回退"要系统化的东西。
+  e. v3_step5_validate.py 按 vllm 0.20.2 API 修正（pooling_task/.embedding/
+     多进程引擎三处），待上游 API 稳定后一并做。
+  f. npu1-27 docker 存储损坏报修（层校验和，save 不可用）。

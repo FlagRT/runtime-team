@@ -1,27 +1,48 @@
-# v3 决策②临时解堵层（2026-10-08）：把 `cos` 从 FlagGems 接管名单里排除，
-# 让 torch.cos 落回 torch_npu 原生实现——绕开 round 3 STOP CONDITION
-# （FlagGems Triton-Ascend grid-stride-loop kernel 路径 import shmem，
-# 该模块不在镜像内、非公开 PyPI 包）。
+# v3 决策②解堵层（2026-10-08 建立，2026-10-09 真机验证后修订）：
+# VLLM_FL_FLAGOS_BLACKLIST=cos,sin —— 把 cos/sin 从 FlagGems 接管名单里排除，
+# 让 torch.cos/torch.sin 落回 torch_npu 原生实现。
 #
-# 为什么选黑名单而不是总开关 USE_FLAGGEMS=false：
-#   影响面最小、可逆、不遮掩问题——只把触发 shmem 缺口的这一个算子拉回原生，
-#   FlagGems 其余算子行为保持不变，"FlagGems 在 Ascend 上有缺口"的事实仍可见
-#   （其余算子若同样触发，会如实暴露而不是被总开关整体掩盖）。
+# 【2026-10-09 真机实测修订——黑名单单独不足，本层只是解堵组合的一半】
+# round 4 真机验证（npu1-11）发现：shmem 缺口是结构性的——
+#   triton/experimental/tle/__init__.py 顶层 from . import backends →
+#   backends.py:13 _build_ascend_impl 无条件 import shmem（communication.py:6，
+#   镜像内无此模块）；ascend code_generator.py:1197 对任何 for 循环 import tle。
+# 后果：任何含 for 循环的 triton kernel 编译即炸，包括 vllm 核心自己的 kernel
+# （v1/worker/block_table.py::_compute_slot_mapping_kernel）——黑名单只作用于
+# FlagGems 接管的 torch 算子，管不到 vllm 核心 kernel。
 #
-# 这是**临时解堵**，不是终态：shmem 官方出处已向算子编译组提出跨组需求
-# （docs/v3-决策备忘录与shmem跨组需求-20261008.md），官方来源落实后本层删除。
+# 完整解堵组合（推理腿 9/9 PASS 实证，见 operator-runtime/v3 REBUILD.md
+# 「ROUND 4 真机验证——推理腿」）：
+#   1. 本层：VLLM_FL_FLAGOS_BLACKLIST=cos,sin（FlagGems 侧稳妥保险）
+#   2. PYTHONPATH 注入 shmem loud-fail stub（决定性解堵；源码
+#      assets/shmem_stub.py，挂载或复制进容器后 PYTHONPATH 指向其所在目录）
+#   3. VLLM_ENABLE_V1_MULTIPROCESSING=0（可选：进程内引擎，父进程可读显存做证据）
+# 附加对照证明：stub 不会被单卡推理真调用（所有 aclshmem 函数 loud-fail），
+# FlagGems cos/sin 与 torch_npu 原生在本模型数值逐位一致。
+#
+# 为什么仍选黑名单而不是总开关 USE_FLAGGEMS=false：影响面最小、可逆、不遮掩
+# 问题——只把触发 shmem 缺口的算子拉回原生，FlagGems 其余算子行为不变，
+# "FlagGems 在 Ascend 上有缺口"的事实仍可见（其余算子若同样触发，会如实暴露
+# 而不是被总开关整体掩盖）。
+#
+# 这是**临时解堵**，不是终态：根治方是算子编译组（tle 改惰性 import 或
+# aclshmem python 绑定官方入镜像），跨组需求已按结构性严重度重写（原单算子
+# 版本低估）。根治落地后本层与 stub 一并删除。
 #
 # 用法（叠加在 routeA 层之上）：
 #   dev/lib/up.sh \
 #     dev/images/ascend-operator-runtime/v3/docker-compose.routeA.yml \
 #     dev/images/ascend-operator-runtime/v3/docker-compose.flaggems-cos-off.yml
+#   （stub 与 VLLM_ENABLE_V1_MULTIPROCESSING 属运行时注入，不在本 compose 层——
+#    stub 由调用方 docker cp 进容器或自行 -v 挂载后 PYTHONPATH 指向，见
+#    REBUILD.md「ROUND 4 真机验证——推理腿」。）
 #
 # 依据：vllm-plugin-FL worker 初始化读 VLLM_FL_FLAGOS_BLACKLIST
-# （vllm_fl/worker/worker.py get_flag_gems_whitelist_blacklist()），
-# 命中即 flag_gems.enable(unused=blacklist)——插件一级支持的官方开关，
-# 非代码改动。"cos" 是 FlagGems 注册表合法算子名（ops/__init__.py __all__）。
+# （vllm_fl/utils.py get_flag_gems_whitelist_blacklist()，逗号分隔多算子），
+# 命中即 flag_gems.enable(unused=blacklist)——插件一级支持的官方开关，非代码
+# 改动。"cos"/"sin" 均是 FlagGems 注册表合法算子名（ops/__init__.py __all__）。
 
 services:
   runtime-dev:
     environment:
-      - VLLM_FL_FLAGOS_BLACKLIST=cos
+      - VLLM_FL_FLAGOS_BLACKLIST=cos,sin

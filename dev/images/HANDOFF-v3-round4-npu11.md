@@ -120,3 +120,31 @@ save 任何派生镜像必失败；运行不受影响）。所以镜像不能搬
 - **v3_step5_validate.py 的模型路径**：默认 `/mnt/raid/hliu553/models/…`（npu1-27
   路径），本机用 `SMOKE_MODEL_PATH` 环境变量覆盖。
 - compose `${WORKSPACE_ROOT}` 由 up.sh 设置，绕开 up.sh 需手动 export。
+
+## 7. 验证结果（2026-10-09，npu1-11，round 4 收尾完成）
+
+双腿验证执行完毕，全部产物入库待审查（未 commit）。一屏摘要：
+
+- **镜像重建（本机）**：operator-runtime `62bcaae3f839` / train-comm
+  `e13a15d0d02b`（与 npu1-27 同源，三重证据齐：static 自检 / vllm_fl
+  `.d20261008` 脏标记 / SYNC-FIX ×2）。归档
+  `/mnt/raid/user_cache/xliu969/v3-round4-archive/`（tar.gz×2 + SHA256SUMS.txt）。
+- **推理腿 PASS 9/9**：真实 `.encode()` 输出（dim=1024，norm≈1.0，
+  identical=false，无 NaN/全零，显存 16.8GB）。生效配置：
+  `VLLM_FL_FLAGOS_BLACKLIST=cos,sin` + shmem loud-fail stub（PYTHONPATH 注入，
+  已入仓 `assets/shmem_stub.py`）+ `VLLM_ENABLE_V1_MULTIPROCESSING=0`。
+  对照组（空黑名单）如期复现 freqs.cos() shmem 崩溃——证据链闭合。
+- **关键机制发现（改变定级）**：shmem 缺口是结构性的（tle 顶层无条件
+  import + 任何 for 循环触发 + vllm 核心 kernel 也命中），黑名单只能管
+  FlagGems 算子；跨组需求需按此重写（原附录 B 低估）。
+- **训练腿**：flagcx_sync_test 证实 sync-fix 假设（all_gather nosync FAIL /
+  sync PASS）；手动 DDP 端到端 loss 2.8911→2.5528（24 步，LR 1e-5）；
+  原生 DDP 仍阻塞 flagcx c10d 层（all_gather_into_tensor 异步返回，
+  vllm_fl 侧补丁覆盖不到——跨组需求第二条）。
+- **repro_status 双 🟡 维持**：升 🟢 条件 = 算子编译组根治 shmem（推理）+
+  FlagCX c10d sync 修复（训练）。
+- **移交件（待用户执行）**：① 上游 PR 提交（决策备忘录附录 A 草稿就绪）；
+  ② 跨组需求升级重发（shmem 结构性 + c10d sync 两条，证据链在
+  ~/tmp-reproV3-r4/）；③ npu1-27 docker 存储损坏报修。
+- 环境注意：Ascend 驱动容器级 davinci 独占（第二个带卡容器 EBUSY），
+  多腿验证须单容器 ASCEND_RT_VISIBLE_DEVICES 分区。

@@ -11,7 +11,7 @@
 
 image:
   ref: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
-  digest: sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913   # round 4 rebuild 2026-10-08（含声明式覆盖层补丁；round 2 为 43f3e2f70b4c，已被同名 tag 取代）
+  digest: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15   # round 4 rebuild 2026-10-09 npu1-11 本机重建（含声明式覆盖层补丁）；npu1-27 侧为 7028028bb62c…（镜像 id 跨机不同属预期，内容同源：同 Dockerfile.repro + 同 pin commit + 同补丁，三重证据齐）
 
 repos:
   FlagGems:

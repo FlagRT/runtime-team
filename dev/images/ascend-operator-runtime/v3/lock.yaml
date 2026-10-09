@@ -25,7 +25,7 @@ flagtree_line: >-
   但从未真正被用于计算；v3：torch_npu 是唯一默认路径，torch_fl 保留但降级为
   opt-in）以及新增 vLLM 推理插件层（round 2：vllm-plugin-FL，取代 round 1 构建
   失败的 vllm-ascend）。
-built_at: "2026-10-08 (round 4: overlay-patch rebuild, image id be30a952c2eb)"
+built_at: "2026-10-09 (round 4 真机验证 @npu1-11 本机重建, image id 62bcaae3f839; npu1-27 侧 2026-10-08 be30a952c2eb 同源)"
 built_at_history: "2026-09-22 (round 2: real design-tag build, image id 9ad551058f2f -- superseded round 1's diagnostic-variant-only status)"
 builder: "runtime-team (phase 2 real-hardware validation agent)"
 repro_status: "🟡 partial-repro"   # 标准 🟢/🟡/🔴（dev/images/README.md §4.1）。
@@ -224,7 +224,19 @@ torch_npu_default_finding: |
 
 repro_result:
   status: >-
-    ROUND 4 — 2026-10-08. 声明式覆盖层补丁构建成功：同名 tag 重建，新 image id
+    ROUND 4 真机双腿验证已执行（npu1-11，2026-10-09）。推理腿 v3_step5_validate.py
+    9/9 步 PASS（真实 .encode()：embedding_dim=1024、两 prompt 范数≈1.0、
+    identical=false、无 NaN/全零、npu 显存 16.8GB），但解堵依赖镜像外运行时配置
+    （VLLM_FL_FLAGOS_BLACKLIST=cos,sin + shmem stub + 进程内引擎环境变量）——
+    shmem 缺口经实测升级为结构性缺口（tle 顶层无条件 import + 任何 for 循环
+    触发 + vllm 核心 kernel 也命中，黑名单只覆盖 FlagGems 算子），详见
+    known_issues.flag-gems-triton-ascend-missing-shmem-module 的 ROUND 4 升级
+    与 REBUILD.md「ROUND 4 真机验证——推理腿」。对照组（空黑名单）如期复现
+    freqs.cos() CompilationError，证据链闭合。repro_status 维持 🟡（解堵配置
+    未进镜像，不满足"纯镜像复现"绿灯标准；升 🟢 待算子编译组根治 shmem）。
+    本机（npu1-11）重建 image id 62bcaae3f839（npu1-27 侧为 be30a952c2eb，
+    跨机不同属预期，三重证据齐；归档 /mnt/raid/user_cache/xliu969/v3-round4-archive/）。
+    —— ROUND 4 — 2026-10-08. 声明式覆盖层补丁构建成功：同名 tag 重建，新 image id
     be30a952c2eb（补丁层之前全部缓存命中，仅补丁层起 27 层重跑约 150s）；
     verify_runtime.py --static 通过。真机双腿验证 PENDING（npu1-27 带卡容器
     并发持续超限，验证迁移至 npu1-11 执行，镜像经 harbor 基座 + 本地重建路径
@@ -240,7 +252,8 @@ repro_result:
     （route_a_default_check、torch_fl_guard_check，均在诊断镜像上做的，与 vLLM
     插件选型无关）继续有效，不需要在正式 tag 上重跑。
   image: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64"   # round 2: 真实产出，非 null
-  image_id: "be30a952c2eb"   # round 4 rebuild（含覆盖层补丁）
+  image_id: "62bcaae3f839 (npu1-11 本机重建, sha256:62bcaae3f8399b9444628aa24085e0da6871871eb5299ca29e3b2712dc91e106)"   # round 4 rebuild（含覆盖层补丁）；npu1-27 侧为 be30a952c2eb
+  image_id_round4_npu27: "be30a952c2eb（npu1-27 侧 round 4 产物，跨机 id 不同属预期，内容同源）"
   image_id_round2_superseded: "9ad551058f2f（round 2 产物，已被同名 tag 取代，本机保留未删）"
   vllm_fl_overlay_patch_dirty_marker: "0.0.0+g8b059122e.d20261008（覆盖层补丁存在的直接证据：setuptools-scm 对 pin 之上本地改动追加 .d 日期脏标记；round 2 无补丁时为干净的 0.0.0+g8b059122e）"
   image_tag_diagnostic_superseded: "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64-DIAGNOSTIC-novllm"   # round 1 遗留，image id 4bab61434602，已被正式 tag 取代，本机镜像未删除但不建议再用
@@ -293,11 +306,29 @@ known_issues:
       `repro_status` 维持 🟡 partial-repro。见 REBUILD.md「ROUND 2/3 真机验证
       结果」完整过程与两轮尝试（第一轮是脚本自身 API 版本 bug，已修复；第二轮
       才碰到真正的 STOP CONDITION）。
-  - id: "flag-gems-triton-ascend-missing-shmem-module (PHASE 2 ROUND 3 STOP CONDITION, 2026-09-23, 未解决)"
+  - id: "flag-gems-triton-ascend-missing-shmem-module (PHASE 2 ROUND 3 STOP CONDITION, 2026-09-23; ROUND 4 真机定级升级, 2026-10-09, 运行时已解堵/根因未解决)"
     description: >-
-      真机 1 卡验证发现：跑 `vllm.LLM(model=Qwen3-Embedding-0.6B, runner=
-      \"pooling\", convert=\"embed\", enforce_eager=True)` 时，`torch.cos`
-      在 NPU 上被 FlagGems 的 Triton-Ascend 算子透明接管
+      【ROUND 4 升级定级：这不是"cos 单算子缺依赖"，是结构性缺口】round 4
+      真机验证（npu1-11）证实三件事：(1) tle 包顶层
+      `triton/experimental/tle/__init__.py` 第 1 行 `from . import backends` →
+      `backends.py:13 _build_ascend_impl` 在 ascend 环境**无条件**
+      `import shmem`（`language/dsa/ascend/communication.py:6`），实测
+      `import triton.experimental.tle` 直接 ModuleNotFoundError；(2) ascend
+      code_generator.py:1197 对**任何** for 循环（visit_For）都
+      `import triton.experimental.tle`——即任何含 for 循环的 triton kernel
+      编译即炸，与算子无关；(3) vllm 核心自己的 kernel
+      （v1/worker/block_table.py::_compute_slot_mapping_kernel）也命中，
+      而 VLLM_FL_FLAGOS_BLACKLIST 只作用于 FlagGems 接管的 torch 算子，
+      管不到 vllm 核心 kernel。运行时解堵组合（推理腿 9/9 PASS 已实证）：
+      VLLM_FL_FLAGOS_BLACKLIST=cos,sin（FlagGems 侧稳妥保险）+
+      PYTHONPATH 注入 loud-fail shmem stub（决定性解堵；附加对照证明
+      stub 不会被单卡推理真调用、FlagGems cos/sin 与 torch_npu 原生数值
+      逐位一致）。stub 源码入仓 `assets/shmem_stub.py`。**根治方**：算子
+      编译组（tle 改惰性 import 或 aclshmem python 绑定官方入镜像）——
+      跨组需求已按此严重度重写。round 3 原始记录（当时未绕过、留拍板）
+      如下保留：真机 1 卡验证发现：跑 `vllm.LLM(model=Qwen3-Embedding-0.6B,
+      runner="pooling", convert="embed", enforce_eager=True)` 时，
+      `torch.cos` 在 NPU 上被 FlagGems 的 Triton-Ascend 算子透明接管
       （`torch.utils._device.__torch_function__` -> `flag_gems.ops.cos`，
       不是我们的验证脚本主动 `import flag_gems`——是 vllm_fl/FlagGems 自己的
       设计对 Ascend 上部分算子做了替换），FlagGems 针对

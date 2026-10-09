@@ -43,7 +43,7 @@
 |---|---|---|---|
 | v1 | 现网生效 | 自建底座 + pip wheel 组合，未按官方手册路径 | 本节上方 |
 | v2 | 候选，未生效 | 切到 BAAI·FlagTree 官方手册路径构建；FlagCX 去除私有 patch | `PROCESS.md`「v1 → v2」 |
-| v3 | 候选，🟡 partial-repro，两项决策已拍板落地（round 4） | Route A 设为默认设备后端；新增 vLLM 推理插件层（vllm-plugin-FL），训练+推理统一血统；round 4 加声明式覆盖层补丁并重建 | `PROCESS.md`「v3」/「round 4」 |
+| v3 | 候选，🟡 partial-repro，round 4 真机双腿验证完毕（2026-10-09）：推理 9/9 PASS（需运行时解堵配置）、训练手动 DDP 实证、DDP 封装仍阻外部组件 | Route A 设为默认设备后端；新增 vLLM 推理插件层（vllm-plugin-FL），训练+推理统一血统；round 4 加声明式覆盖层补丁并重建 | `PROCESS.md`「v3」/「round 4」；人话总结 `docs/v3-round4-真机验证结果与移交指导-20261009.md` |
 
 ## 依赖与血缘一览（昇腾 910C）
 
@@ -80,7 +80,7 @@
 |---|---|---|---|
 | v1 | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`（`d948410966b0`） | 🟢 functional-repro | `ascend-operator-runtime/v1/` |
 | v2 | `flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64` | 🟢 functional-repro（真机 2 卡验证通过） | `ascend-operator-runtime/v2/` |
-| v3 | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（`be30a952c2eb`，round 4 重建含覆盖层补丁；round 2 为 9ad551058f2f） | 🟡 partial-repro | `ascend-operator-runtime/v3/` |
+| v3 | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（npu1-11 `62bcaae3f839` / npu1-27 be30a952c2eb，round 4 重建含覆盖层补丁；round 2 为 9ad551058f2f） | 🟡 partial-repro（round 4 真机：推理 9/9 PASS，需运行时黑名单+shmem stub） | `ascend-operator-runtime/v3/` |
 
 > 新增版本直接在此表追加一行；`(下一个版本占位行)`
 
@@ -141,7 +141,7 @@ GR3）：`FlagGems` / `Torch-FL` / `FlagCX` = **静态挂载点 strict**（精�
 |---|---|---|---|
 | v1 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64`（`3b9e08f231d0`） | 🟢 functional-repro | `ascend-train-comm/v1/` |
 | v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40 通过） | `ascend-train-comm/v2/` |
-| v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（`7028028bb62c`，round 4 级联重建；round 3 为 43f3e2f70b4c） | 🟡 partial-repro | `ascend-train-comm/v3/` |
+| v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 `e13a15d0d02b` / npu1-27 7028028bb62c，round 4 级联重建；round 3 为 43f3e2f70b4c） | 🟡 partial-repro（round 4 真机：手动 DDP loss 下降实证；DDP 封装仍阻 c10d 层） | `ascend-train-comm/v3/` |
 
 ### 层级视图（只列相对 operator-runtime 同版本新增的 L3/L4；L1/L2 见上一节）
 

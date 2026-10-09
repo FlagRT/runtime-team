@@ -28,12 +28,14 @@ image_tag: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0
 flagtree_line: >-
   ascend3.5，随父镜像 ascend-operator-runtime/v3。本层只叠加 FlagCX（与 v2 相同
   commit，未升级），改变的是消费侧配置（ENV 与 verify 脚本），不是 FlagCX 本体。
-built_at: "2026-10-08 (round 4 级联重建，父镜像为 operator-runtime round 4 新镜像)"
-built_at_history: "2026-09-22"
+built_at: "2026-10-09 (round 4 真机验证 @npu1-11 级联重建, image id e13a15d0d02b; npu1-27 侧 2026-10-08 7028028bb62c 同源)"
+built_at_history: "2026-09-22；2026-10-08 (round 4 级联重建 @npu1-27, image id 7028028bb62c)"
 builder: "runtime-team (phase 2 real-hardware validation agent)"
-repro_status: "🟡 partial-repro"   # 构建成功、通信原语部分验证通过（all_reduce/P2P 正确），
-                                    # 但训练脚本因 broadcast/all_gather STOP CONDITION 无法产出
-                                    # 真实 loss/吞吐数据，故不能标 🟢。见 known_issues 与 REBUILD.md。
+repro_status: "🟡 partial-repro"   # round 4 真机（npu1-11）：comm 正确性与端到端训练已实证
+                                    # （flagcx_sync_test all_gather sync PASS、手动 DDP loss 2.89→2.55），
+                                    # 但 DDP 封装仍阻塞在 flagcx c10d 层（all_gather_into_tensor 异步返回，
+                                    # 镜像 SYNC-FIX 只覆盖 vllm_fl Python communicator），原生 DDP loss 仍拿不到，
+                                    # 不能标 🟢。见 known_issues 与 REBUILD.md「ROUND 4 真机验证——训练腿」。
 
 dockerfile: |
   Dockerfile.repro = 唯一配方。build.sh 驱动，但 phase 1 未执行。
@@ -133,7 +135,22 @@ flagcx_adaptor_terminology: |
 
 repro_result:
   status: >-
-    PHASE 2 ROUND 2 — 2026-09-22. round 1's FlagCX-specific real-hardware rows
+    ROUND 4 真机训练腿验证已执行（npu1-11，2026-10-09，image id e13a15d0d02b）。
+    (1) flagcx_sync_test 四组合：all_gather+nosync 双 rank FAIL（复现 round 3
+    原堵点），all_gather+sync 双 rank PASS——sync-fix 假设再次证实；本环境
+    broadcast nosync 也 PASS（异步返回 bug 暴露面依 collective 类型而异）。
+    (2) DDP 封装仍阻塞：DDP.__init__ 的 C++ _verify_params_across_processes
+    走 all_gather_into_tensor+立即读取命中同一异步 bug（probe_agit.log：nosync
+    FAIL / 加 sync PASS）——镜像 SYNC-FIX 只覆盖 vllm_fl Python communicator，
+    不覆盖 flagcx c10d ProcessGroup，修复必须落 c10d 层（round 3 结论二次闭环）。
+    (3) 手动 DDP（梯度 all_reduce+torch.npu.synchronize()，SYNC-FIX 惯用语）
+    端到端 PASS：Qwen2.5-1.5B bf16, wikitext-2, 2×910C, loss 2.8911→2.5528
+    （24 步，LR 1e-5 稳定；默认 5e-5 第 16 步起 NaN，bf16+AdamW 数值问题非
+    comm 问题）。(4) 环境发现：Ascend 驱动容器级 davinci 独占（第二个带卡容器
+    一律 EBUSY），多腿验证须单容器 ASCEND_RT_VISIBLE_DEVICES 分区。
+    日志 ~/tmp-reproV3-r4/train-leg/outputs/；归档
+    /mnt/raid/user_cache/xliu969/v3-round4-archive/。升 🟢 条件：flagcx c10d
+    层 sync 修复（跨组需求）。—— PHASE 2 ROUND 2 — 2026-09-22. round 1's FlagCX-specific real-hardware rows
     below (flagcx_so_present through teardown_sigabrt_reproduces_in_v3_default_path)
     are carried forward unchanged (FlagCX layer itself is byte-identical between
     round 1 and round 2 -- only the parent image's vLLM plugin changed, which
@@ -143,7 +160,8 @@ repro_result:
     image). See known_issues.flagcx-broadcast-allgather-wrong-result (unchanged,
     still the open blocker for real DDP loss numbers -- out of scope this round).
   image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"   # round 2: no -DIAGNOSTIC-novllm suffix, real image id 43f3e2f70b4c, built on real operator-runtime:v3 (image id 9ad551058f2f)
-  image_id: "7028028bb62c"   # round 4 级联重建（父镜像含覆盖层补丁）
+  image_id: "e13a15d0d02b (npu1-11 级联重建, sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15)"   # round 4 真机验证镜像；npu1-27 侧 7028028bb62c
+  image_id_round4_npu27: "7028028bb62c（npu1-27 侧 round 4 级联产物，跨机 id 不同属预期，内容同源）"
   image_id_round3_superseded: "43f3e2f70b4c（round 2/3 产物，已被同名 tag 取代，本机保留未删）"
   flagcx_so_present: true
   verify_flagcx_runtime_static: "passed"

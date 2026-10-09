@@ -360,3 +360,50 @@ sync 修复（即下面 P1 拍板项：是否正式吸收私有 fork 的 fix）�
 - **provenance**：`assets/provenance/pipfreeze-comm-v3-round4.txt`。
 - **真机训练腿验证 PENDING**（真实 loss/吞吐，补丁的直接受益验证）：npu1-27
   卡窗口无望，迁移至 npu1-11 执行（与推理腿同批）。
+
+### ROUND 4 真机验证——训练腿（npu1-11，2026-10-09）
+
+镜像在本机级联重建（image id `e13a15d0d02b`，父镜像 62bcaae3f839，三重证据同
+operator-runtime REBUILD.md「ROUND 4 真机验证」；归档
+`/mnt/raid/user_cache/xliu969/v3-round4-archive/`）。日志均在
+~/tmp-reproV3-r4/train-leg/outputs/。
+
+**① flagcx_sync_test 四组合（2 卡 NPU2,3，双 rank 一致）**：
+
+| 组合 | 结果 |
+|---|---|
+| broadcast+nosync | PASS |
+| broadcast+sync | PASS |
+| all_gather+nosync | **FAIL**（读回 [[0,0,0,0],[0,0,0,0]]，复现 round 3 原堵点） |
+| all_gather+sync | **PASS**（sync-fix 假设再次证实） |
+
+（与 round 3 的差异：本环境 broadcast nosync 也 PASS——异步返回 bug 的暴露面
+依 collective 类型而异，all_gather 是稳定复现点。）
+
+**② DDP 封装仍阻塞在 c10d 层（与 round 3 结论一致，非本镜像缺陷）**：
+DDP.__init__ 的 C++ `_verify_params_across_processes` 走
+all_gather_into_tensor + 立即读取，命中同一异步返回 bug（probe_agit.log：
+nosync FAIL，读前加 synchronize 后双 rank PASS）。镜像的 SYNC-FIX 补的是
+vllm_fl/distributed/communicator.py（推理侧 Python communicator），不覆盖
+flagcx c10d ProcessGroup。**修复必须落在 FlagCX 自己的 c10d 层**——round 3
+结论经新镜像再次闭环，升级为 c10d 层修复需求的第二份实证。
+
+**③ 手动 DDP 训练 PASS（comm+训练路径端到端走通）**：显式梯度 all_reduce +
+torch.npu.synchronize() 替代 DDP 封装（SYNC-FIX 惯用语），Qwen2.5-1.5B bf16，
+wikitext-2，batch 1/rank，2×910C：**loss 2.8911 → 2.5528（24 步，~5s/步）**。
+数值注意：脚本默认 LR 5e-5 第 16 步起 NaN（bf16+AdamW 数值问题，非 comm
+正确性问题——LR 1e-5 全程稳定，曲线见 train_lr1e5.log）。
+
+**④ 环境发现（影响后续所有多腿验证）**：Ascend 驱动容器级 davinci 独占——
+本机已有带卡容器在跑时，第二个带卡容器无论挂哪些卡一律 EBUSY（不同镜像/
+设备组合均复现）。多腿验证须单容器多 NPU 分区
+（docker exec -e ASCEND_RT_VISIBLE_DEVICES=…）而非多容器。
+
+**⑤ 遗留**：训练子代理曾在推理容器内 pip 安装 datasets 3.6.0 /
+huggingface-hub 1.33.0（已降回兼容版）——容器运行层残留，重建容器即消失，
+不影响镜像内容；teardown SIGABRT（free(): invalid pointer）为已知 flagcx
+销毁问题，不影响结果。
+
+**repro_status 维持 🟡**：训练腿 comm 正确性（sync 惯用语）与端到端训练已实证，
+但 DDP 封装仍阻 c10d 层，"补丁的直接受益验证"以手动 DDP 形式达成而非原生
+DDP。升 🟢 条件：FlagCX c10d 层 sync 修复落地（跨组需求第二条）。

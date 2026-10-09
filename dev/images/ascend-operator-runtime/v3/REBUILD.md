@@ -437,3 +437,42 @@ import，只查是否存在"）在 v3 默认路径下并不是无副作用的—
   "npu1-11 直拉 harbor 基座 + 本地重建"路径。
 - **真机验证 PENDING**：npu1-27 带卡容器并发持续超限（守候 4h 无窗口），双腿
   验证迁移至 npu1-11（仓 dev-1.0@31c741d 已同步 round 4 全部内容）。
+
+### ROUND 4 真机验证——推理腿（npu1-11，2026-10-09，PASS 9/9）
+
+镜像在本机重建（image id `62bcaae3f839`，与 npu1-27 的 be30a952c2eb 不同属预期：
+同 Dockerfile.repro + 同 pin commit + 同补丁，三重证据齐——static 自检过 /
+vllm_fl `0.0.0+g8b059122e.d20261008` 脏标记 / communicator.py SYNC-FIX ×2。
+归档 `/mnt/raid/user_cache/xliu969/v3-round4-archive/`，SHA256SUMS.txt 在档）。
+
+`v3_step5_validate.py` **9/9 步全 PASS**（日志 ~/tmp-reproV3-r4/infer-leg/round-5.log）：
+coexistence（torch_npu/flagcx/vllm_fl 同进程，PrivateUse1=npu 全程稳定）+
+真实 `.encode()`：embedding_dim=1024，两 prompt L2 范数 1.00000004/1.00000007，
+identical=false（token 坍缩 bug 未复发），无 NaN/全零，进程内引擎
+（VLLM_ENABLE_V1_MULTIPROCESSING=0）npu 显存 16.8GB>0。
+
+**最终生效配置**（全部运行时开关，未改镜像/仓）：
+`VLLM_FL_FLAGOS_BLACKLIST=cos,sin` + `VLLM_ENABLE_V1_MULTIPROCESSING=0` +
+`PYTHONPATH=/tmp`（注入 shmem stub，源码已存 `assets/shmem_stub.py`）。
+
+**机制发现（改变 round 3 严重度定级，跨组需求需升级）**：
+1. **黑名单单独不足**。R2 证明 vllm 核心自己的 triton kernel
+   （v1/worker/block_table.py::_compute_slot_mapping_kernel，含 for 循环）走同一条
+   崩溃路径：ascend code_generator.py:1197 对任何 for 循环
+   `import triton.experimental.tle` → tle/backends.py:13 无条件
+   `import shmem`（communication.py:6）。黑名单只作用于 FlagGems 接管的 torch 算子，
+   管不到 vllm 核心 kernel。这是**结构性缺口**：任何含 for 循环的 triton kernel
+   编译即炸，非 round 3 记录的"cos 单算子缺依赖"。
+2. **loud-fail stub 是决定性解堵**（单卡推理无分布式调用，stub 所有 aclshmem 函数
+   raise，不会被真调用——附加对照 B：空黑名单+stub 也 PASS，embedding 数值与
+   主跑逐位一致，证明 FlagGems cos/sin 与 torch_npu 原生在本模型数值等价）。
+3. **对照组证据链闭合**：空黑名单如期在 freqs.cos() 炸
+   CompilationError: No module named 'shmem'（control-no-blacklist.log），
+   证明开关+stub 就是解堵点。
+4. 验证脚本自身 3 处 vllm 0.20.2 API 不兼容（pooling_task 必传 / PoolingOutput
+   无 .embedding / 多进程引擎父进程读 mem=0），全程 stdin shim/环境变量绕过，
+   未改仓内脚本——脚本修正待上游 API 稳定后一并做。
+
+**repro_status 维持 🟡**：推理腿真机 PASS 但解堵依赖镜像外的运行时 stub + 环境变量，
+不满足"纯镜像即可复现"的绿灯标准。升 🟢 条件：算子编译组把 shmem（aclshmem
+python 绑定）官方化入镜像，或 tle 改为惰性 import。
