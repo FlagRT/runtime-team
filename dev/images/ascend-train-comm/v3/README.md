@@ -20,7 +20,7 @@
 
 | 问题 | 归属 | 详情 |
 |---|---|---|
-| FlagCX all_gather 系列返回时数据未写完,立即读取得到全零;DDP 初始化的 C++ 校验(`_verify_params_across_processes` → `all_gather_into_tensor`)命中同一问题,原生 DDP 不可用 | FlagCX 通信方向 | `lock.yaml` known_issues `flagcx-broadcast-allgather-wrong-result`;`REBUILD.md`「ROUND 4 真机验证——训练腿」②;需求文本:[决策备忘录附录 B-2](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
+| FlagCX c10d collective 两类缺陷:① `broadcast` / `all_reduce` / `all_gather_into_tensor` 返回时数据未写完,同步后正确;DDP 初始化的 C++ 校验(`_verify_params_across_processes` → `all_gather_into_tensor`)命中此类,原生 DDP 不可用;② 列表形式 `all_gather` 得到上一次调用的结果,同步无效 | FlagCX 通信方向 | `lock.yaml` known_issues `flagcx-broadcast-allgather-wrong-result`;`REBUILD.md`「ROUND 4 真机验证——训练腿」②;需求文本:[决策备忘录附录 B-2](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
 | 进程退出时 `free(): invalid pointer` SIGABRT(结果已在退出前输出,不影响判定) | FlagCX 通信方向(低优先级) | `lock.yaml` known_issues `teardown-sigabrt` |
 | 默认学习率 5e-5 在 bf16 + AdamW 下第 16 步出现 NaN,需使用 1e-5 | 本组(训练脚本参数) | `REBUILD.md`「ROUND 4 真机验证——训练腿」③ |
 
@@ -45,18 +45,31 @@ FLAGRT_MODELS_DIR=/home/xliu969/models dev/lib/up.sh dev/images/ascend-train-com
 验证结束后 `docker compose -f dev/images/ascend-train-comm/v3/demo/docker-compose.yml down`
 (绕开 `up.sh` 时先 `export WORKSPACE_ROOT=<仓根绝对路径>`)。
 
-### 复现 FlagCX 异步返回
+### 复现 FlagCX collective 缺陷
 
 ```bash
 docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-v3-demo-910c \
-  torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py
+  torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py --iters 20
 ```
 
-预期结果(问题存在时):两个 rank 均输出 `all_gather+nosync: result=[[0, 0, 0, 0], [0, 0, 0, 0]] ... -> FAIL`
-与 `all_gather+sync ... -> PASS`;rank0 判定行为
-`no-sync path (reconfirm original STOP CONDITION): STILL BROKEN` 与
-`with-sync path (5d545c9 hypothesis): FIXED by sync`;退出码 0。
-本环境下 `broadcast+nosync` 为 PASS,稳定复现点为 all_gather。
+脚本对 `broadcast`、`all_reduce`、列表形式 `all_gather`、`all_gather_into_tensor` 各做"未同步即读取 / 同步后读取"
+两组,每次调用使用唯一数据,跨 rank、跨迭代汇总判定。当前预期结果(问题存在时,退出码 1):
+
+```
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL
+```
+
+未同步组的失败为偶发,单次可能通过,故取 `--iters 20`。脚本在判定后直接退出,
+不经过 FlagCX 退出期 SIGABRT,退出码即判定结果。证据:
+[`assets/evidence/flagcx-collectives-20261010.txt`](assets/evidence/flagcx-collectives-20261010.txt)。
 
 ## 验证
 
@@ -65,7 +78,7 @@ docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-v3-demo-910c \
 | `assets/verify_flagcx_runtime.py` | 验证 | `python3 /opt/flagrt/verify_flagcx_runtime.py --static` | 退出码 0 | round 2 通过(`REBUILD.md`「静态自检」) |
 | `assets/verify_flagcx_runtime.py` | 验证 | `torchrun --nproc_per_node=2 /opt/flagrt/verify_flagcx_runtime.py --device` | 两 rank `device_all_reduce_ok: true`,`device_backend_str: "flagcx"` | round 1 通过(`REBUILD.md`「真机动态验证」) |
 | `assets/verify_flagcx_p2p.py` | 验证 | `torchrun --nproc_per_node=2 /opt/flagrt/verify_flagcx_p2p.py` | 两 rank 4 组 payload sha256 一致,`status: "passed"` | round 1 通过(同上) |
-| `assets/flagcx_sync_test.py` | 复现 / 验证 | 见「复现」 | 复现判据见上;**修复验收判据**:四组均 PASS,rank0 判定行为 `no-sync path ...: unexpectedly passed`(退出码只反映 sync 路径,验收须看该判定行) | round 4:all_gather nosync FAIL / sync PASS(npu1-11:`~/tmp-reproV3-r4/train-leg/outputs/flagcx_sync_test.log`);demo 环境下的带卡复跑待执行(`../../TODO.md`) |
+| `assets/flagcx_sync_test.py` | 复现 / 验证 | 见「复现」 | **修复验收**:退出码 0(八组全部 PASS) | 2026-10-10 demo 环境,连续 3 次结论一致:同步后 `broadcast`、`all_reduce`、`all_gather_into_tensor` PASS,列表 `all_gather` FAIL(见上方证据)。round 3/4 结论"同步后 all_gather 正确"系测试复用相同数据所致,已修正 |
 | `assets/train_qwen_1_5b_npu_syncpatch.py` | 复现 | 在 Python 层为 broadcast / all_gather 补同步后运行原生 DDP 训练脚本;脚本内写死路径 `/workspace/train_qwen_1_5b_npu.py`,需先将 `dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py` 置于该路径 | 预期失败于 DDP 初始化:`RuntimeError: DDP expects same model across all ranks ... inconsistent 0 params`(补丁位于 Python 层,不覆盖 C++ 校验路径) | round 4 以本机变体脚本执行,如预期失败(npu1-11:`~/tmp-reproV3-r4/train-leg/outputs/train_syncpatch.log`) |
 | `assets/provenance/pipfreeze-*.txt` | 收数 | `build.sh` 构建后生成 | — | round 4 npu1-11:`pipfreeze-comm-v3-round4-npu11.txt` |
 

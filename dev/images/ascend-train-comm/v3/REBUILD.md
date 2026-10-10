@@ -407,3 +407,33 @@ huggingface-hub 1.33.0（已降回兼容版）——容器运行层残留，重�
 **repro_status 维持 🟡**：训练腿 comm 正确性（sync 惯用语）与端到端训练已实证，
 但 DDP 封装仍阻 c10d 层，"补丁的直接受益验证"以手动 DDP 形式达成而非原生
 DDP。升 🟢 条件：FlagCX c10d 层 sync 修复落地（跨组需求第二条）。
+
+### 2026-10-10 demo 环境带卡复验：FlagCX collective 结论修正
+
+运行环境 `demo/`（image id `e13a15d0d02b`，`up.sh --strict` 核对通过），npu1-11，2×910C。
+
+round 3/4 的 `flagcx_sync_test.py` 每次调用使用相同数据（rank+1），上一次调用遗留的结果与
+本次结果无法区分。脚本已重写：每次调用使用唯一数据；`broadcast`、`all_reduce`、列表形式 `all_gather`、
+`all_gather_into_tensor` 各做未同步 / 同步两组；每组读取后统一同步，避免未完成的调用经
+缓存分配器复用污染下一组；跨 rank（`all_reduce` MIN）与 `--iters` 迭代汇总；判定后
+`os._exit`，退出码不再被退出期 SIGABRT 覆盖。
+
+`--iters 20` 连续 3 次，结论一致（证据 `assets/evidence/flagcx-collectives-20261010.txt`）：
+
+| collective | 未同步 | 同步后 |
+|---|---|---|
+| `broadcast` | FAIL | PASS |
+| `all_reduce` | FAIL | PASS |
+| `all_gather_into_tensor` | FAIL | PASS |
+| 列表形式 `all_gather` | FAIL | **FAIL**（得到上一次调用的数据，如期望 `[1210, 1211]` 得到 `[1200, 1201]`，即紧邻的上一次调用的数据） |
+
+- 异步返回类缺陷（`broadcast`、`all_reduce`、`all_gather_into_tensor`）同步后正确。vllm-plugin-FL 覆盖层补丁
+  使用 `all_reduce` / `all_gather_into_tensor` + 同步，结论不受影响；DDP 启动检查所用原语属此类。
+- 列表形式 `all_gather` 为结果错位类缺陷，同步无效。代码位置
+  `FlagCX/plugin/torch/flagcx/src/backend_flagcx.cpp` `flagcxBackend::allgather`：结果先写入
+  临时缓冲 `outputFlattened`，再 `copy_(..., non_blocking=true)` 拷回列表。推断（待 FlagCX 方向
+  确认）：拷贝与 `flagcxAllGather` 所在流之间缺少先后顺序，且临时缓冲未 `recordStream`。
+- round 3「同步后 broadcast/all_gather 均 PASS」的结论对列表形式 `all_gather` 不成立。
+
+同次复验推理腿：`ascend-operator-runtime/v3/assets/v3_step5_validate.py` 原样执行
+9/9 PASS，撤除规避配置的对照组按预期失败（证据见该目录 `assets/evidence/infer-demo-20261010.txt`）。

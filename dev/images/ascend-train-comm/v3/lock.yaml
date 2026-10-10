@@ -299,3 +299,12 @@ changelog:
       事实以其为准）。
       新增 demo 运行环境目录 demo/（docker-compose.yml + env.baseline.yaml），取代
       此前引用的 ascend-operator-runtime/v3 运行层与版本声明。
+  - date: "2026-10-10"
+    what: >-
+      demo 运行环境带卡复验（npu1-11）。flagcx_sync_test.py 重写为每次调用使用唯一
+      数据、跨 rank 汇总、--iters 迭代，并在判定后直接退出以避开退出期 SIGABRT。
+      结论修正：同步后 broadcast、all_reduce、all_gather_into_tensor 正确（异步返回类缺陷），
+      列表形式 all_gather 同步后仍得到上一次调用的结果（结果错位类缺陷，同步无效）；
+      round 3/4 "同步后 all_gather 正确"系测试复用相同数据所致。flagcx_sync_hypothesis_test
+      与 known_issues flagcx-broadcast-allgather-wrong-result 以本条为准。证据
+      assets/evidence/flagcx-collectives-20261010.txt；需求文本见决策备忘录附录 B-2 修正段。

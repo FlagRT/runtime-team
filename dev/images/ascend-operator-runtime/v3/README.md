@@ -72,7 +72,7 @@ docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
 |---|---|---|---|---|
 | `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py --static`(`build.sh` 构建后自动执行) | 退出码 0 | round 4 通过(`lock.yaml` `verify_runtime_static`) |
 | `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py`(需带卡) | 退出码 0,`route_a_default_check: passed` | round 1 通过,结论沿用至今(`lock.yaml` `verify_runtime_dynamic_route_a_default`) |
-| `assets/v3_step5_validate.py` | 验证 | 见「带规避配置运行」 | 退出码 0;9 个 `[STEP]` 全部 OK;`embedding_dim=1024`、两段文本向量范数≈1.0、`identical=false`、无 NaN/全零、NPU 显存 > 0 | round 4 9/9 PASS(npu1-11:`~/tmp-reproV3-r4/infer-leg/round-5.log`,用户 xliu969;由运行时修补后的脚本得出)。脚本已按 vLLM 0.20.2 接口修正,在 demo 环境下的带卡复跑待执行(`../../TODO.md`) |
+| `assets/v3_step5_validate.py` | 验证 | 见「带规避配置运行」 | 退出码 0;9 个 `[STEP]` 全部 OK;`embedding_dim=1024`、两段文本向量范数≈1.0、`identical=false`、无 NaN/全零、NPU 显存 > 0 | 2026-10-10 demo 环境 9/9 PASS(脚本原样执行,无运行时修补);撤除规避配置的对照组按预期失败于 `No module named 'shmem'`。证据:[`assets/evidence/infer-demo-20261010.txt`](assets/evidence/infer-demo-20261010.txt) |
 | `assets/provenance/pipfreeze-*.txt` | 收数 | `build.sh` 构建后生成 | — | round 4 npu1-11:`pipfreeze-operator-runtime-v3-round4-npu11.txt` |
 
 构建输入类文件(不属于上述三类):`assets/patch_triton_ascend_flagtree.py`、
