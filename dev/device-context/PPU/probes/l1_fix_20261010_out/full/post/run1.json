@@ -1,0 +1,556 @@
+{
+ "backend": "ppu",
+ "ok": 72,
+ "fail": 0,
+ "skip": 6,
+ "total": 78,
+ "verdict": "DUTY_RESPONSE_PASS",
+ "rows": [
+  {
+   "domain": "A 后端选择",
+   "sid": "A1",
+   "title": "discover() 能发现本后端",
+   "status": "OK",
+   "detail": "discover → ['ascend', 'cambricon', 'kunlun', 'ppu']"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A2",
+   "title": "available() 含本后端",
+   "status": "OK",
+   "detail": "available → ['ascend', 'cambricon', 'kunlun', 'ppu']"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A3",
+   "title": "use() 返回实例 / current() 一致 / 单例",
+   "status": "OK",
+   "detail": "current().name=ppu, 单例=True"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A4",
+   "title": "use(未注册名) 如实抛 BackendNotFound（负向）",
+   "status": "OK",
+   "detail": "抛 BackendNotFound"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B1",
+   "title": "device_count() > 0",
+   "status": "OK",
+   "detail": "n=1"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B2",
+   "title": "set_device(0) 生效且无异常",
+   "status": "OK",
+   "detail": "已绑定设备 0"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B3",
+   "title": "memory_stats(0) 结构含 total/used/free",
+   "status": "OK",
+   "detail": "keys=['allocated_mb', 'free_mb', 'total_mb', 'used_mb']"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B4",
+   "title": "memory_stats 值自洽（total≈used+free 且 total>0）",
+   "status": "OK",
+   "detail": "total=98304 used=180 free=98123 gap=0.00%"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B5",
+   "title": "probe_device(0) 返回 True（健康设备）",
+   "status": "OK",
+   "detail": "probe_device → True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C1",
+   "title": "create_stream() 返回统一 Stream 且绑定本后端",
+   "status": "OK",
+   "detail": "Stream backend=ppu"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C2",
+   "title": "create_event() 返回统一 Event 且绑定本后端",
+   "status": "OK",
+   "detail": "Event backend=ppu"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C3",
+   "title": "current_stream() 可调用",
+   "status": "OK",
+   "detail": "current_stream 返回空"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C4",
+   "title": "stream.synchronize() 无界路径正常返回",
+   "status": "OK",
+   "detail": "无界同步返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C5",
+   "title": "stream.synchronize(timeout_ms) 有界成功路径",
+   "status": "OK",
+   "detail": "有界同步（流上已有工作）返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C6",
+   "title": "stream.context() 可作 with 上下文管理器",
+   "status": "OK",
+   "detail": "with 语法可用"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C7",
+   "title": "跨流依赖：A record → B wait → B 可见 A 结果（真实语义）",
+   "status": "OK",
+   "detail": "跨流可见性结果=196609.0"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C8",
+   "title": "stream.wait_stream(other) 可调用",
+   "status": "OK",
+   "detail": "wait_stream 后同步完成"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C9",
+   "title": "event.record() 后 query() 为 True",
+   "status": "OK",
+   "detail": "query()=True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C10",
+   "title": "未 record 的 event：query()=False 且 wait_host 不永久阻塞",
+   "status": "OK",
+   "detail": "query=False wait_host=False 耗时=0.50s"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C11",
+   "title": "record 后 event.wait_host(timeout_ms) 返回 True",
+   "status": "OK",
+   "detail": "wait_host → True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C12",
+   "title": "event.wait(stream) / event.synchronize() 可调用",
+   "status": "OK",
+   "detail": "event.wait / event.synchronize 均返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C13",
+   "title": "event.elapsed_time(end) 可调用（若声明支持）",
+   "status": "SKIP",
+   "detail": "未声明/不可用：ValueError: Both events must be created with argument 'enable_timing=True'."
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C14",
+   "title": "硬纪律 1：stream.record_stream(tensor) 可调用",
+   "status": "OK",
+   "detail": "record_stream 已登记（跨流缓冲保护）"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D1",
+   "title": "translate_error 返回统一 FlagosError",
+   "status": "OK",
+   "detail": "FlagosError"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D2",
+   "title": "category 属于 L1–L4 四类",
+   "status": "OK",
+   "detail": "category=ErrorCategory.L1_RESOURCE"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D3",
+   "title": "disposition 属于四动作之一",
+   "status": "OK",
+   "detail": "disposition='retry'"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D4",
+   "title": "mapped / graded_by 可观测且自洽",
+   "status": "OK",
+   "detail": "mapped=False graded_by=default"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D5",
+   "title": "L1–L4 处置映射符合处置约定表",
+   "status": "SKIP",
+   "detail": "本后端未声明 error_map（无厂商码样例）⇒ 交由 conformance F1 覆盖"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D6",
+   "title": "完整消息不被截断（截断会退化为保守误判）",
+   "status": "OK",
+   "detail": "category=ErrorCategory.L2_PARAM disposition=raise"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E1",
+   "title": "device_state(0) 返回四态之一",
+   "status": "OK",
+   "detail": "state=available"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E2",
+   "title": "recover_device(0,'probe') 返回 dict",
+   "status": "OK",
+   "detail": "type=dict"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E3",
+   "title": "返回契约字段齐全 {ordinal,mode,recovered,state,detail} 且 state 为四态规范 token",
+   "status": "OK",
+   "detail": "五键齐全，state='available'"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E4",
+   "title": "recovered 语义 = 设备当前可用（与 probe_device 一致）",
+   "status": "OK",
+   "detail": "recovered=True probe_device=True"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E5",
+   "title": "recover_device(0,'hybrid') 返回 dict",
+   "status": "OK",
+   "detail": "mode=hybrid"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E6",
+   "title": "recover_device(0,'real') 如实响应（执行或明确拒绝，不静默）",
+   "status": "OK",
+   "detail": "mode=real recovered=True"
+  },
+  {
+   "domain": "F 硬纪律",
+   "sid": "F1",
+   "title": "错误隔离分层：芯片级 → device_recovery；API 级 → 非 device_recovery",
+   "status": "SKIP",
+   "detail": "本后端无数字错误码（未声明 error_map）⇒ 交由错误闭环与 conformance F1 覆盖"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G1",
+   "title": "supports() 与 info()['supports'] 一致",
+   "status": "OK",
+   "detail": "21 项一致"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G2",
+   "title": "info()['supports'] 键集合 == _CAPABILITY_KEYS（防键漂移）",
+   "status": "OK",
+   "detail": "KEYS-INFO 差 []"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G3",
+   "title": "known_issues() 结构完整（无则如实为空）",
+   "status": "OK",
+   "detail": "3 条结构完整"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H1",
+   "title": "allocate()：未声明 memory_alloc ⇒ 契约级拒绝；声明 ⇒ 五键句柄且**不含厂商指针**",
+   "status": "OK",
+   "detail": "五键齐全且无厂商指针：['backend', 'handle_id', 'kind', 'ordinal', 'size_bytes']"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H2",
+   "title": "allocate(size_bytes) 非正整数 ⇒ ValueError（0 / -1 / bool / 非 int）",
+   "status": "OK",
+   "detail": "4 例（0 / -1 / bool / 字符串）全部 ValueError"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H3",
+   "title": "free() 二次释放 ⇒ ValueError（不得静默）",
+   "status": "OK",
+   "detail": "二次释放 → ValueError"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H4",
+   "title": "free(非本层句柄 / 裸指针) ⇒ ValueError（不接受厂商原始句柄）",
+   "status": "OK",
+   "detail": "4 类陌生句柄全部 ValueError"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H5",
+   "title": "memory_handle_count() 与分配/释放联动（+1 ⇒ 释放后回落）",
+   "status": "OK",
+   "detail": "分配前 0 → 分配后 1（期望 1）→ 释放后 0（期望 0）"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H6",
+   "title": "memory_stats()：三键必在；声明 memory_alloc_stat ⇒ 须给 allocated_mb；未声明 ⇒ **必须缺席**；无未登记键",
+   "status": "OK",
+   "detail": "三键 + allocated_mb=8（已声明 memory_alloc_stat）"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H7",
+   "title": "record_stream：未声明能力 ⇒ 保守同步路径**不抛错**且 degradations +1；声明 ⇒ 走原生路径不抛错",
+   "status": "OK",
+   "detail": "已声明 record_stream ⇒ 原生路径，degradations 0→0"
+  },
+  {
+   "domain": "H 内存句柄与生命周期",
+   "sid": "H8",
+   "title": ".native 取用 ⇒ native_accesses +1 且 degradations **不变**（两者语义相反，必须分开计数）",
+   "status": "OK",
+   "detail": "native_accesses 2→3，degradations 保持 0"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I1",
+   "title": "context_create()：未声明 context_lifecycle ⇒ 契约级拒绝；声明 ⇒ 四键句柄",
+   "status": "OK",
+   "detail": "四键齐全：['backend', 'handle_id', 'kind', 'ordinal']（子进程隔离）"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I2",
+   "title": "context_set() 只接受本层句柄（陌生/厂商句柄 ⇒ 报错）",
+   "status": "OK",
+   "detail": "3 类陌生句柄全部 ValueError"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I3",
+   "title": "context_destroy() 只接受本层句柄 —— **尤其不得毁掉进程默认上下文**",
+   "status": "OK",
+   "detail": "3 类陌生句柄全部 ValueError（默认上下文受保护）"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I4",
+   "title": "context_count() **不含**进程默认上下文（初始 0；新建 +1；销毁回落）",
+   "status": "OK",
+   "detail": "0 → 新建 1（期望 1）→ 销毁 0（期望 0）（子进程隔离）"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I5",
+   "title": "内存句柄与上下文句柄**不得互相误用**（误用必须报错）",
+   "status": "OK",
+   "detail": "双向误用均 ValueError（子进程隔离）"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I6",
+   "title": "context_query() 返回**固定 6 键**；未声明者也返回同一 6 键（queryable=False + **具体原因**）",
+   "status": "OK",
+   "detail": "6 键齐全，queryable=True（已声明），reason=''"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I7",
+   "title": "context_query() 取值域：present 必须 bool/None（**不得 0/1**）；managed_by ∈ {unified, external, None}",
+   "status": "OK",
+   "detail": "present=True managed_by='external'"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I8",
+   "title": "context_query() **只读无副作用**（调用前后设备计算一致，且**不新造句柄**）",
+   "status": "OK",
+   "detail": "计算 6144.0 不变，句柄数 0 不变"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I9",
+   "title": "recover_device() 的 context 三键**只增不改**；且 context_recreated 不得与 detail 自相矛盾",
+   "status": "OK",
+   "detail": "五键 + context 三键齐全；context_recreated=False"
+  },
+  {
+   "domain": "I 设备上下文",
+   "sid": "I10",
+   "title": "绑定语义：上下文销毁后其流**在使用点如实报错**（厂商侧当场是静默的）",
+   "status": "OK",
+   "detail": "使用点如实报错：该流创建于已销毁的设备上下文（context_id=1）⇒ 不可继续使用。厂商栈在此处**不会立刻报错**（实测：直到进程退出清理阶段才暴露（子进程隔离）"
+  },
+  {
+   "domain": "J 契约不变式",
+   "sid": "J1",
+   "title": "I1 诚实声明（声明的真可调；未声明的显式拒绝）",
+   "status": "OK",
+   "detail": "[委托 contract_invariants] ④ 入口存在性覆盖 15/17 项能力"
+  },
+  {
+   "domain": "J 契约不变式",
+   "sid": "J2",
+   "title": "I2 禁止伪造（字段不得自相矛盾；取不到必须缺席）",
+   "status": "OK",
+   "detail": "[委托 contract_invariants] 陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）"
+  },
+  {
+   "domain": "J 契约不变式",
+   "sid": "J3",
+   "title": "I3 失效受管（二次释放/二次销毁/跨种类误用/销毁后用其流）",
+   "status": "OK",
+   "detail": "[委托 contract_invariants] A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → RuntimeError ✓；B 未登记句柄 → ValueError ✓（子进程隔离）"
+  },
+  {
+   "domain": "J 契约不变式",
+   "sid": "J4",
+   "title": "I4 降级可观测（.native 与退化分开计数、单调不减）",
+   "status": "OK",
+   "detail": "[委托 contract_invariants] ② .native 计数 3→4、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K1",
+   "title": "stream_priority_range() 形状 = **(least, greatest) 2 元组** 或 None",
+   "status": "OK",
+   "detail": "(0, -3)"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K2",
+   "title": "未声明 stream_priority ⇒ 范围**如实为 None**（不假装可读）",
+   "status": "SKIP",
+   "detail": "本后端已声明 stream_priority（范围可读）⇒ 该分支不适用"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K3",
+   "title": "未声明 stream_priority_control ⇒ create_stream(priority=int) ⇒ **契约级 NotImplementedError**",
+   "status": "SKIP",
+   "detail": "本后端已声明 stream_priority_control ⇒ 该分支不适用"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K4",
+   "title": "取值域：越界 / 非 int / bool ⇒ ValueError",
+   "status": "OK",
+   "detail": "越界 -4/1 与 非 int/ bool 共 4 例全部 ValueError"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K5",
+   "title": "耦合：声明 stream_priority_control ⇒ **必须**同时声明 stream_priority_readback",
+   "status": "OK",
+   "detail": "声明了 control 但**没声明** readback ⇒ 设置无法校验（离线 `[8b]` 段同源判据）"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K6",
+   "title": "声明 control ⇒ 区间端点请求必须**回读 == 请求**（不得静默丢弃 —— 910C 的 torch 路径正是如此）",
+   "status": "OK",
+   "detail": "端点 -3/0 请求与回读一致"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K7",
+   "title": "stream_priority_readback() 返回值域**严格** `int` 或 `None`（不得用 0/字符串伪装「读不出」）",
+   "status": "OK",
+   "detail": "回读 = 0（类型合规）"
+  },
+  {
+   "domain": "K 流优先级",
+   "sid": "K8",
+   "title": "单点区间：请求**唯一档位**成功且回读一致（等价放行）；非单点 ⇒ 如实 SKIP",
+   "status": "SKIP",
+   "detail": "本机区间 (-3, 0) 非单点 ⇒ 「等价放行」分支不适用（由 K6 覆盖）"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L1",
+   "title": "默认路径的流由**厂商拥有** ⇒ release_stream 必须 **no-op 返回 False**（不得越权销毁）",
+   "status": "OK",
+   "detail": "release_stream 返回 False，且该流仍可正常使用（确实没被动过）"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L2",
+   "title": "release_stream **幂等**：重复调用返回 False、不报错",
+   "status": "OK",
+   "detail": "第一次=False 第二次=False（均应为 False）"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L3",
+   "title": "`Stream.release()` 与 `release_stream(stream)` 语义一致（都不越权销毁）",
+   "status": "OK",
+   "detail": "Stream.release() → False（与 release_stream 一致）"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L4",
+   "title": "**所有权判据**：owns_stream(native) 与 release_stream(native) 必须一致（owns=False ⇒ 不得返回 True；owns=True ⇒ 不得返回 False）",
+   "status": "OK",
+   "detail": "原生路径 owns=False release=False；优先级路径 owns=True release=True"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L5",
+   "title": "**使用已释放对象必须明确**：本层拥有的流 release 后再使用 ⇒ `RuntimeError`（文案含「释放」线索）",
+   "status": "OK",
+   "detail": "经**A 统一面 create_stream(priority=…)**行使，验证方式 = 包装的 synchronize()（内部先走使用点拦截）；RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x556b11cfbf70）⇒ 不可继"
+  },
+  {
+   "domain": "L 流所有权与释放",
+   "sid": "L6",
+   "title": "release_stream 的返回值必须是**严格 bool**（不得返回 truthy 的非 bool）",
+   "status": "OK",
+   "detail": "返回 False（bool）—— 契约：bool"
+  },
+  {
+   "domain": "M 统一 API 面",
+   "sid": "M1",
+   "title": "契约 §1.1–§1.10 列出的统一 API 名字，在 `runtime` 上**真的可调用**",
+   "status": "OK",
+   "detail": "31 个承诺名全部可调用"
+  },
+  {
+   "domain": "M 统一 API 面",
+   "sid": "M2",
+   "title": "公开常量存在且非空（句柄字段 / 状态取值域的对外声明）",
+   "status": "OK",
+   "detail": "3 个常量就位（MEMORY_HANDLE_KEYS, CONTEXT_HANDLE_KEYS, DEVICE_STATE_TOKENS）"
+  },
+  {
+   "domain": "M 统一 API 面",
+   "sid": "M3",
+   "title": "`runtime.__all__` 里的名字都真的存在（防幽灵导出 / 拼错）",
+   "status": "OK",
+   "detail": "46 个名字均可取到"
+  }
+ ]
+}

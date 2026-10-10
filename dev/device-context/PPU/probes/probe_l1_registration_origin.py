@@ -89,6 +89,9 @@ print("=== 按审计真实顺序跑到 L1 ===", flush=True)
 for r in mod.RESULTS:
     sid = r["sid"]
     if sid in mod.INVASIVE_SIDS:
+        # ⚠️ **本行有缺陷（2026-10-10 复核发现）**：真实审计对侵入项走
+        #    `mod._run_in_child()`（**子进程隔离**），这里直接 `continue` 会**改变分配序列**
+        #    ⇒ 观测不可信。**请改用 `probe_l1_truth.py`**。
         continue
     LOG.append(f"--- enter {sid} ---")
     try:

@@ -41,6 +41,10 @@ bk.release_stream = spy
 for r in mod.RESULTS:
     sid = r["sid"]
     if sid in mod.INVASIVE_SIDS:
+        # ⚠️ **本行有缺陷（2026-10-10 复核发现）**：真实审计对侵入项走
+        #    `mod._run_in_child()`（**子进程隔离**），这里直接 `continue` 会**改变分配序列**
+        #    ⇒ 本脚本给出的观测**不可信**（它曾得出"在册对象是 torch.cuda.Stream"的结论，
+        #    而该结论是在被改变的序列下得到的）。**请改用 `probe_l1_truth.py`**。
         continue
     try:
         status, detail = r["fn"](env)
