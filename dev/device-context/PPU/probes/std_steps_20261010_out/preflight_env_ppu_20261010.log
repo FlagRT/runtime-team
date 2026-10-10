@@ -1,0 +1,141 @@
+=========== 新芯片接入 · 环境普查 2026-10-10 14:23:20 ===========
+host=ai-server  user=root  vendor_arg=（未指定）
+输出：/tmp/dc_preflight/preflight_env_20261010.log
+
+------------------------------------------------------------------------
+## 1. 基础环境（OS / 内核 / python / 容器）
+------------------------------------------------------------------------
+-- uname:
+Linux ai-server 5.10.134-17.2.al8.x86_64 #1 SMP Fri Aug 9 15:49:42 CST 2024 x86_64 x86_64 x86_64 GNU/Linux
+-- os-release:
+NAME="Ubuntu"
+VERSION="24.04.2 LTS (Noble Numbat)"
+-- CPU / 内存:
+   核数: 192
+   内存: 2015.2 GiB
+-- python（多解释器并列）：
+   python3      Python 3.12.3  (/usr/local/bin/python3)
+   python       Python 3.12.3  (/usr/local/bin/python)
+   python3.12   Python 3.12.3  (/usr/local/bin/python3.12)
+-- conda / venv 环境:
+   未安装 conda
+-- 容器可见性:
+   docker 不可用
+-- sudo: 需密码 / 不可用
+
+------------------------------------------------------------------------
+## 2. 芯片与驱动（厂商工具 + torch 侧双路取证）
+------------------------------------------------------------------------
+-- 厂商工具（容器内通常没有，属正常）：
+   ✅ nvidia-smi -> /usr/local/PPU_SDK/CUDA_SDK/bin/nvidia-smi
+       Sat Oct 10 14:23:20 2026
+       +-------------------------------------------------------------------------------+
+       | PPU-SMI 1.28          Driver Version: 1.5.1-1d747a  HGGC Version: 13.0        |
+       +---------------------------------+----------------------+----------------------+
+       | PPU  Name        Persistence M. | Bus-Id               | Volatile Uncorr. ECC |
+       | Fan  Temp  Perf   Pwr:Usage/Cap | Memory-Usage         | PPU-Util  Compute M. |
+       |                                 |                      |               MIG M. |
+       +=================================+======================+======================+
+       | 0  PPU-ZW810E        N/A        | 00000001:C9:00.0     |                    0 |
+       | N/A  34C   N/A       81W / 400W | 191MiB / 98304MiB    |   0%        Default  |
+       |                                 |                      |             Disabled |
+       +---------------------------------+----------------------+----------------------+
+-- 设备节点 / 驱动模块:
+sed: -e expression #1, char 9: unknown option to `s'
+-- 驱动 / SDK 版本（按厂商候选路径）:
+-- torch 侧（同一段代码依次尝试各命名空间，如实报告哪个可用）:
+   torch: 2.10.0 | file: /usr/local/lib/python3.12/site-packages/torch/__init__.py
+   插件 torch_mlu: 不可导入（ModuleNotFoundError）
+   插件 torch_npu: 不可导入（ModuleNotFoundError）
+   插件 torch_xla: 不可导入（ModuleNotFoundError）
+   命名空间探测（device_count / is_available）:
+     torch.mlu   不存在
+     torch.cuda  available=True device_count=1
+           [0] PPU-ZW810E
+     torch.npu   不存在
+     torch.xpu   available=False device_count=0
+   注意：device_type 只是命名空间，不能作为厂商标识（见接口约定修订建议第 1 条）
+
+------------------------------------------------------------------------
+## 3. 集合通信可用性（训练腿前置）
+------------------------------------------------------------------------
+   flagcx: 不可导入（ModuleNotFoundError）
+   torch.distributed: 可导入
+   torch_mlu: 不可导入（ModuleNotFoundError）
+   torch_npu: 不可导入（ModuleNotFoundError）
+-- 通信库文件（按厂商候选）:
+   /usr/lib/x86_64-linux-gnu/libnccl-net.so
+   /usr/lib/x86_64-linux-gnu/libnccl-net-accl-lite.so
+
+------------------------------------------------------------------------
+## 4. 磁盘与 docker 数据目录（★ P800 曾误判根分区，必须看真实挂载点）
+------------------------------------------------------------------------
+-- 文件系统总览:
+   Filesystem                     Size  Used Avail Use% Mounted on
+   overlay                         11T  6.8T  3.1T  69% /
+   tmpfs                           64M     0   64M   0% /dev
+   tmpfs                         1008G     0 1008G   0% /sys/fs/cgroup
+   shm                             32G     0   32G   0% /dev/shm
+   /dev/mapper/cache_vg-cache_lv   11T  6.8T  3.1T  69% /workspace
+   /dev/sda2                      196G  168G   18G  91% /usr/share/zoneinfo/Etc/UTC
+   tmpfs                         1008G     0 1008G   0% /proc/asound
+   tmpfs                         1008G     0 1008G   0% /proc/acpi
+   tmpfs                         1008G     0 1008G   0% /proc/scsi
+   tmpfs                         1008G     0 1008G   0% /sys/firmware
+   tmpfs                         1008G     0 1008G   0% /sys/devices/virtual/powercap
+-- docker 数据目录的真实挂载点:
+-- 逐目录可用空间（P800 教训：du -x 跨文件系统即停，不可用于判断容量）:
+   /                  3.1T 可用 / 11T 总 (69% 已用)
+   /srv               3.1T 可用 / 11T 总 (69% 已用)
+   /data              3.1T 可用 / 11T 总 (69% 已用)
+   /mnt               3.1T 可用 / 11T 总 (69% 已用)
+   /home              3.1T 可用 / 11T 总 (69% 已用)
+-- 现有镜像（体积口径：docker images 显示磁盘占用，inspect Size 是镜像层）:
+-- 共享目录判定（本机是否有 NFS/共享挂载）:
+
+------------------------------------------------------------------------
+## 5. 网络可达性（镜像 / whl 源；决定能否在线补依赖）
+------------------------------------------------------------------------
+   https://resource.flagos.net/repository/flagos-pypi-hosted/simple         HTTP 404
+   https://pypi.org/simple                                                  HTTP 301
+   https://mirrors.aliyun.com/pypi/simple                                   HTTP 301
+-- 代理环境变量: env | grep -i proxy
+   PYTHON_PKG_URL=https://art.eng.t-head.cn/artifactory/ptgai-generic_proxy_python/ftp/python/3.12.3/Python-3.12.3.tar.xz
+-- 网卡与 RoCE/IB 设备（训练腿拓扑参考）:
+   lo 127.0.0.1/8
+   bond0 192.168.5.112/26
+   nerdctl0 192.168.2.1/24
+   docker0 172.17.0.1/16
+   br-bb2ba3909784 172.20.0.1/16
+   tun0 10.0.10.2/24
+   tun1 10.0.50.2/24
+sed: -e expression #1, char 11: unknown option to `s'
+   （无 /sys/class/infiniband）
+
+------------------------------------------------------------------------
+## 6. 拓扑（多卡实验的用卡选择依据）
+------------------------------------------------------------------------
+-- NUMA 与设备亲和（有 lspci 时按 PCI 归属推断；无则如实标注）:
+   （无 lspci）
+-- NUMA 节点:
+   available: 4 nodes (0-3)
+   node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119
+   node 1 cpus: 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143
+   node 2 cpus: 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167
+   node 3 cpus: 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191
+-- 共享机提醒：用卡前务必确认目标卡空闲（厂商工具或 torch 查询），并记录用卡号
+
+------------------------------------------------------------------------
+## 7. 结论与待补（如实标注，不猜测）
+------------------------------------------------------------------------
+   请逐项核对并填入「已取得 / 待确认」：
+     [ ] 1 连接：SSH 端口、认证方式（密钥/密码）、是否需跳板
+     [ ] 2 权限：docker 组、（如需改 docker data-root 则需）sudo
+     [ ] 3 镜像：目标镜像是否已在位；不在位则 pull 来源与体积
+     [ ] 4 共享用户：是否共享机、并发上限（P800/910C 均实测有上限）
+     [ ] 5 磁盘：数据目录与 docker 数据目录各自的可用空间
+     [ ] 6 网络：whl / 镜像源可达性（决定能否在线补依赖）
+     [ ] 7 拓扑：NUMA 归属与组内/跨组链路，2 卡实验的取卡建议
+   缺失项照实写「未取得」——不猜、不补零（本方向证据规范）。
+
+=========== 普查结束 2026-10-10 14:23:28  报告：/tmp/dc_preflight/preflight_env_20261010.log ===========
