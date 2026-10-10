@@ -8,6 +8,7 @@
 > ⚠️ **相对路径基准**：本报告内所有非 `http` 路径**一律以 `dev/device-context/` 为基准**
 > （与 `VERIFICATION_MANIFEST_20260920.md` 同惯例）；本报告自身位于 `prototype/docs/`，
 > 故形如 `PPU/…`、`910C/…` 的引用**不是**从本文件所在目录起算的链接。
+> ⭐ **下周执行单**（怎么跑 / 判什么 / 要不要卡 / 顺序）：`prototype/docs/TODO_NEXT_WEEK_20261012.md`。
 > 工具（本轮新增，芯片无关）：`prototype/scripts/onboarding_evidence_matrix.py`（证据矩阵）·
 > `prototype/scripts/capability_decl_alignment.py`（能力声明对齐）· `prototype/scripts/probe_parity_compare.py`（同名探针逐项同比对）。
 
@@ -120,6 +121,9 @@
 ---
 
 ## 3 910C / P800 / MLU590 未收尾项
+
+> ⭐ **本节「怎么跑 / 判什么 / 要不要卡 / 按什么顺序」已抽成执行单**：`prototype/docs/TODO_NEXT_WEEK_20261012.md`
+> （2026-10-12 09:30 的一次性提醒即指向它）。本节只保留「是什么、为什么算未收尾」。
 
 ### A 类 · 当前版本未覆盖（需上机）
 
