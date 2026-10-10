@@ -1,0 +1,67 @@
+{
+  "rank": 0,
+  "world_size": 2,
+  "model": "/workspace/models/Qwen3-Embedding-0.6B",
+  "backend": "ppu",
+  "dist_backend": "nccl",
+  "checks": {
+    "device_context": {
+      "ok": true,
+      "detail": "rank0 绑定 cuda:0；可见设备 2；统一流 <Stream backend=ppu native=Stream>"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "加载到 cuda:0"
+    },
+    "comm_all_reduce": {
+      "ok": true,
+      "detail": "实测 3.0 / 期望 3.0"
+    },
+    "comm_all_gather": {
+      "ok": true,
+      "detail": "收集到 [0.0, 1.0]"
+    },
+    "comm_p2p": {
+      "ok": true,
+      "detail": "rank0 接收一致=True"
+    },
+    "loss_decrease": {
+      "ok": true,
+      "detail": "首 15.4498 → 末 11.2841（20 步）；无 NaN=True"
+    }
+  },
+  "device_type": "cuda",
+  "perf": {
+    "steps": 20,
+    "batch": 4,
+    "seq": 128,
+    "tokens_per_s_per_rank": 1889.7,
+    "tokens_per_s_total": 3779.4,
+    "elapsed_s": 5.42
+  },
+  "loss_curve": [
+    15.4498,
+    14.1005,
+    13.251,
+    12.9898,
+    12.4548,
+    12.2796,
+    11.9285,
+    11.9331,
+    11.871,
+    11.7264,
+    11.5892,
+    11.5864,
+    11.4961,
+    11.5499,
+    11.4048,
+    11.3754,
+    11.3781,
+    11.3177,
+    11.3374,
+    11.2841
+  ],
+  "verdict": "TRAIN_LEG_PASS",
+  "passed": 6,
+  "total": 6
+}

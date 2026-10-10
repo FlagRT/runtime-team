@@ -1,0 +1,14 @@
+[1] 设备上下文: backend=ppu dev=cuda:0 count=1 mem={'total_mb': 98304, 'used_mb': 171, 'free_mb': 98132, 'alloc
+WARNING:torchao.kernel.intmm:Warning: Detected no triton, on systems without Triton certain kernels will not work
+[2] 模型加载完成 → cuda:0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 135.77 句/s, p50 22.15 ms, avg 22.1 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=ppu dev=cuda:0 | dim 1024 | 135.77 句/s p50 22.15ms | 区分度 0.6391 -> /workspace/probes_ppu/out_infer_leg/proto_infer_leg_result.json
+  （如实跳过：vendor_code_map）
+Fatal Python error: Segmentation fault
+
+Current thread 0x00007f8bfeea9b80 (most recent call first):
+  <no Python frame>
+timeout: the monitored command dumped core

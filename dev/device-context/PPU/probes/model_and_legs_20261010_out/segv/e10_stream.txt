@@ -1,0 +1,12 @@
+# 对照：原型三档深度（nodev/setdev/stream）
+# 源日志：/bmcp_lvm_fs/hliu553/probes_ppu/segv_isolate/e10_stream/run.log （下列为滤掉 NCCL INFO 后的判定/崩溃行）
+# 结论：**干净退出**（无 Segmentation fault，且到达结束行）
+
+[default0]:[e10] mode=stream set_device(0) ok
+[default1]:[e10] mode=stream set_device(1) ok
+[default1]:[e10] create_stream -> <Stream backend=ppu native=Stream>
+[default0]:[e10] create_stream -> <Stream backend=ppu native=Stream>
+[default1]:[e10] mode=stream rank=1 model loaded on 1
+[default0]:[e10] mode=stream rank=0 model loaded on 0
+[default1]:[e10] mode=stream rank1 loss 15.4498->11.2841
+[default0]:[e10] mode=stream rank0 loss 15.4498->11.2841
