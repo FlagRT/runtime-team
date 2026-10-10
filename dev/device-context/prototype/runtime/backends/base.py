@@ -455,10 +455,34 @@ class RuntimeBackend(ABC):
         return handle if holder() is native_stream else None
 
     def _register_owned_stream(self, native_stream, handle) -> None:
-        """登记「本层拥有、需显式释放」的流（`id(native)` → (厂商句柄, 身份持有器)）。"""
+        """登记「本层拥有、需显式释放」的流（`id(native)` → (厂商句柄, 身份持有器)）。
+
+        ⚠️ **本表必须是「强持有」（2026-10-10 修；此前用 `weakref`，真机抓出 FAIL）**
+        ----------------------------------------------------------------------
+        背景：`_owned_streams` 的键是 `id(native)`，而**判断归属**只能靠
+        「`holder() is native_stream`」这一条身份复核（见本文件顶部那段注释）。
+        该复核**只有在被登记对象仍然存活时才是可靠的** —— 对象一旦被回收，
+        它的 `id` 立刻可被**新对象**复用，而弱引用只能给出 `None`，无法把
+        「同一个 `id`」与「同一个对象」区分开。
+        实测（平头哥 PPU，2026-10-10）：`id()` 复用是**高频常态**（同一句柄/同一地址
+        在一次 78 项审计中被反复命中），表现为 `release_stream(默认路径的流)`
+        **返回 `True`** ⇒ **越权销毁厂商拥有的流**（契约 §1.10 规则 2 明令禁止，
+        「比泄漏更糟」）。同一族的缺陷在 MLU590 上亦修过一次（id 复用越权销毁）。
+        **单独跑该用例通过、只有跑完整序列才复现**，故长期不被发现。
+
+        ⇒ 修法：**持有强引用**。这样「在册」= 「对象一定存活」⇒ 其 `id` 不可能被复用
+        ⇒ `holder() is native_stream` 成为**可靠的同一性判据**（能匹配上的，
+        只能是当初登记的那一个对象）。
+        代价：条目在被显式释放前会让那个 Python 包装对象多活一会儿（数百字节）；
+        按契约**该流本来就该被显式释放**（否则泄漏的是设备级流，代价大得多），
+        故这个代价是正确方向上的取舍。
+
+        ⚠️ 注意与 `_released_streams` / `_stream_ctx` 的区别：那两张表只做
+        「是否已释放 / 绑定在哪个上下文」的**拦截**判断，误判的后果是**误拦**（保守、可恢复），
+        弱引用足够；本表误判的后果是**越权销毁**（不可恢复），故必须强持有。
+        """
         try:
-            self._reg("_owned_streams")[id(native_stream)] = (
-                int(handle), self._id_holder(native_stream))
+            self._reg("_owned_streams")[id(native_stream)] = (int(handle), lambda: native_stream)
         except Exception:                                     # noqa: BLE001
             pass
 
