@@ -9,6 +9,7 @@
 docker 调用（image inspect / docker run 读 pip 元数据）在单测里全部 mock，
 不需要本机有镜像；git 操作用临时仓库真跑。
 """
+import io
 import json
 import os
 import subprocess
@@ -102,15 +103,15 @@ class TestDockerfilePatterns(TempCase):
 RUN ${PYTHON_BIN} -m pip install --no-deps /opt/src/FlagGems
 """)
         r = baseline.analyze_dockerfile(d)
-        self.assertEqual(r["repos"]["FlagGems"]["source"], "copy")
-        self.assertEqual(r["repos"]["FlagGems"]["install"], "pip (non-editable)")
+        self.assertEqual(r.repos["FlagGems"]["source"], "copy")
+        self.assertEqual(r.repos["FlagGems"]["install"], "pip (non-editable)")
 
     def test_pattern1_use_flag_recorded_in_install(self):
         d = self.image_dir(DF_HEAD + """COPY src/FlagCX/ /opt/src/FlagCX/
 RUN cd /opt/src/FlagCX && USE_ASCEND=1 ${PYTHON_BIN} -m pip install .
 """)
         r = baseline.analyze_dockerfile(d)
-        self.assertEqual(r["repos"]["FlagCX"]["install"],
+        self.assertEqual(r.repos["FlagCX"]["install"],
                          "pip (non-editable, USE_ASCEND=1)")
 
     def test_pattern1_copy_src_without_install_errors(self):
@@ -128,7 +129,7 @@ RUN mkdir -p /root/FlagTree && cd /root/FlagTree && git init -q \\
 RUN cd /root/FlagTree && ${PYTHON_BIN} -m pip install .
 """ % ("1" * 40))
         r = baseline.analyze_dockerfile(d)
-        repo = r["repos"]["FlagTree"]
+        repo = r.repos["FlagTree"]
         self.assertEqual(repo["source"], "fetch")
         self.assertEqual(repo["arg"], "FLAGTREE_COMMIT")
         self.assertEqual(repo["arg_value"], "1" * 40)
@@ -359,7 +360,7 @@ RUN ${PYTHON_BIN} -m pip install /opt/src/FlagGems
     def test_show_image_is_read_only(self):
         d, _ = self._export()
         before = (d / "image.baseline.yaml").read_text(encoding="utf-8")
-        self.assertEqual(baseline.show_image(d), 0)
+        self.assertEqual(baseline.show(d, image=True), 0)
         self.assertEqual((d / "image.baseline.yaml").read_text(encoding="utf-8"), before)
 
     def test_list_lists_every_image_baseline(self):
@@ -398,6 +399,11 @@ x-flagrt:
   mounted_repos:
     vllm-plugin-FL: {{activation: pip-editable}}
 """, encoding="utf-8")
+        # docker compose config 的解析结果（真实调用见 TestComposeBinds）
+        self.binds = [((self.ws / "vllm-plugin-FL").resolve(), Path("/workspace/vllm-plugin-FL"))]
+        p = mock.patch.object(baseline, "compose_binds", side_effect=lambda _c: self.binds)
+        p.start()
+        self.addCleanup(p.stop)
 
     def _export(self, **kw):
         with mock.patch.object(baseline, "repo_info", return_value={"branch": "main"}):
@@ -499,15 +505,91 @@ x-flagrt:
                               capture_output=True, text=True).stdout.strip()
         self.assertEqual(head, want)
 
+    # ---- 挂载来源必须就是被核对的宿主目录（WORKSPACE_ROOT 分叉） ----
+    def test_check_env_mount_source_mismatch_fails(self):
+        self._export()
+        other = make_repo(self.tmp / "other" / "vllm-plugin-FL")
+        self.assertTrue(other)
+        self.binds = [((self.tmp / "other" / "vllm-plugin-FL").resolve(),
+                       Path("/workspace/vllm-plugin-FL"))]
+        self.assertEqual(self._check(), 1)
+        last = json.loads((self.env / ".last-check.json").read_text(encoding="utf-8"))
+        self.assertTrue(any(r["status"] == "FAIL" and "挂载来源" in r["detail"]
+                            for r in last["report"]))
+
+    def test_check_env_parent_mount_covers_repo(self):
+        self.binds = [(self.ws.resolve(), Path("/workspace"))]
+        self._export()
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertEqual(data["mounted_repos"]["vllm-plugin-FL"]["container_path"],
+                         "/workspace/vllm-plugin-FL")
+        self.assertEqual(self._check(), 0)
+
+    def test_check_env_unmounted_repo_fails(self):
+        self._export()
+        self.binds = []
+        self.assertEqual(self._check(), 1)
+
+    def test_compose_config_failure_is_exit_2(self):
+        self._export()
+        with mock.patch.object(baseline, "compose_binds",
+                               side_effect=baseline.BaselineError("docker compose config 失败")), \
+             mock.patch.object(baseline, "inspect_image", fake_inspect()):
+            self.assertEqual(baseline.main(["check", str(self.env)]), 2)
+
+    # ---- 覆盖固化 repo 时补丁可见 ----
+    def test_baked_patches_copied_and_check_warns(self):
+        data = json.loads(self.image_baseline.read_text(encoding="utf-8"))
+        data["baked_repos"]["vllm-plugin-FL"]["patches"] = [
+            {"file": "0001-x.patch", "sha256": "5" * 64}]
+        self.image_baseline.write_text(json.dumps(data), encoding="utf-8")
+        self._export()
+        m = baseline.load_yaml(self.env / "env.baseline.yaml")["mounted_repos"]["vllm-plugin-FL"]
+        self.assertEqual(m["baked_patches"], [{"file": "0001-x.patch", "sha256": "5" * 64}])
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(self._check(), 0, "补丁缺失只告警、不算不一致")
+        self.assertIn("[WARN] vllm-plugin-FL: 挂载副本不含镜像内固化的补丁: 0001-x.patch",
+                      out.getvalue())
+
+    def test_no_baked_patches_field_without_patches(self):
+        self._export()
+        m = baseline.load_yaml(self.env / "env.baseline.yaml")["mounted_repos"]["vllm-plugin-FL"]
+        self.assertNotIn("baked_patches", m)
+
+    # ---- load 必须验证检出完整 ----
+    def test_load_fails_on_incomplete_checkout(self):
+        repo = self.ws / "vllm-plugin-FL"
+        self._export()
+        (repo / "b.txt").write_text("y\n", encoding="utf-8")
+        git("add", "-A", cwd=repo)
+        git("commit", "-qm", "second", cwd=repo)
+        real = baseline.run_git
+
+        def broken_checkout(*args, cwd, timeout=60):
+            out = real(*args, cwd=cwd, timeout=timeout)
+            if args[0] == "checkout":  # 模拟部分克隆：checkout 返回 0 但跟踪文件缺失
+                (Path(cwd) / "a.txt").unlink()
+            return out
+
+        with mock.patch.object(baseline, "run_git", side_effect=broken_checkout), \
+             mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            self.assertEqual(baseline.load_env(self.env), 1)
+        self.assertIn("vllm-plugin-FL", err.getvalue())
+        self.assertIn("检出不完整", err.getvalue())
+
     def test_show_env(self):
         self._export()
-        self.assertEqual(baseline.show_env(self.env), 0)
+        self.assertEqual(baseline.show(self.env, image=False), 0)
 
     def test_compose_without_x_flagrt_is_format_error(self):
         (self.env / "docker-compose.yml").write_text("services: {dev: {image: x}}\n",
                                                      encoding="utf-8")
         rc = baseline.main(["export", str(self.env)])
         self.assertEqual(rc, 2)
+
+    def test_malformed_compose_yaml_is_format_error(self):
+        (self.env / "docker-compose.yml").write_text("x-flagrt: [\n", encoding="utf-8")
+        self.assertEqual(baseline.main(["check", str(self.env)]), 2)
 
     def test_mounted_repos_come_only_from_x_flagrt(self):
         """仓根整体挂载不等于声明挂载（方案 §2.1）。"""
@@ -524,6 +606,74 @@ x-flagrt:
         self.assertEqual(self._export(), 0)
         data = baseline.load_yaml(self.env / "env.baseline.yaml")
         self.assertEqual(data["mounted_repos"], {})
+
+
+class TestComposeBinds(TempCase):
+    def _fake_run(self, rc=0):
+        seen = {}
+
+        def run(cmd, **kw):
+            seen["cmd"], seen["env"] = cmd, kw.get("env")
+            out = json.dumps({"services": {"dev": {"volumes": [
+                {"type": "bind", "source": "/srv/ws/vllm-plugin-FL",
+                 "target": "/workspace/vllm-plugin-FL"},
+                {"type": "volume", "source": "data", "target": "/data"}]}}})
+            return subprocess.CompletedProcess(cmd, rc, out if rc == 0 else "", "boom")
+        return run, seen
+
+    def test_parses_bind_mounts_with_workspace_root_default(self):
+        run, seen = self._fake_run()
+        env = {k: v for k, v in os.environ.items() if k != "WORKSPACE_ROOT"}
+        with mock.patch.dict(os.environ, env, clear=True), \
+             mock.patch.object(baseline.subprocess, "run", side_effect=run):
+            binds = baseline.compose_binds(Path("/x/docker-compose.yml"))
+        self.assertEqual(binds, [(Path("/srv/ws/vllm-plugin-FL").resolve(),
+                                  Path("/workspace/vllm-plugin-FL"))])
+        self.assertEqual(seen["cmd"][:4], ["docker", "compose", "-f", "/x/docker-compose.yml"])
+        self.assertEqual(seen["env"]["WORKSPACE_ROOT"], str(self.tmp / "ws"))
+
+    def test_failure_is_format_error(self):
+        run, _ = self._fake_run(rc=1)
+        with mock.patch.object(baseline.subprocess, "run", side_effect=run):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.compose_binds(Path("/x/docker-compose.yml"))
+        self.assertEqual(cm.exception.code, 2)
+
+
+class TestUpSh(TempCase):
+    """up.sh 给 compose 的 WORKSPACE_ROOT 与 baseline.py 用的 FLAGRT_WORKSPACE_ROOT 同源。"""
+
+    def _run_up(self, extra_env):
+        lib = self.tmp / "dev" / "lib"  # up.sh 以 lib/../.. 为仓根
+        lib.mkdir(parents=True)
+        (lib / "up.sh").write_text((LIB / "up.sh").read_text(encoding="utf-8"), encoding="utf-8")
+        (lib / "baseline.py").write_text(
+            "import os\nprint('CHECK', os.environ.get('FLAGRT_WORKSPACE_ROOT'),"
+            " os.environ.get('WORKSPACE_ROOT'))\n", encoding="utf-8")
+        bindir = self.tmp / "bin"
+        bindir.mkdir()
+        (bindir / "docker").write_text('#!/bin/sh\necho "DOCKER $WORKSPACE_ROOT"\n',
+                                       encoding="utf-8")
+        (bindir / "docker").chmod(0o755)
+        envdir = self.tmp / "envdir"
+        envdir.mkdir()
+        env = dict(os.environ, PATH=f"{bindir}:{os.environ['PATH']}", **extra_env)
+        env.pop("WORKSPACE_ROOT", None)
+        if "FLAGRT_WORKSPACE_ROOT" not in extra_env:
+            env.pop("FLAGRT_WORKSPACE_ROOT", None)
+        return subprocess.run(["bash", str(lib / "up.sh"), str(envdir)], env=env,
+                              capture_output=True, text=True).stdout
+
+    def test_flagrt_workspace_root_drives_compose(self):
+        out = self._run_up({"FLAGRT_WORKSPACE_ROOT": "/srv/other"})
+        self.assertIn("CHECK /srv/other /srv/other", out)
+        self.assertIn("DOCKER /srv/other", out)
+
+    def test_default_is_repo_root(self):
+        out = self._run_up({})
+        root = str(self.tmp.resolve())
+        self.assertIn(f"CHECK {root} {root}", out)
+        self.assertIn(f"DOCKER {root}", out)
 
 
 class TestInfoBlock(TempCase):

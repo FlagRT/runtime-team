@@ -21,7 +21,10 @@ if [ "$#" -eq 0 ]; then
   exit 2
 fi
 
-export WORKSPACE_ROOT="$(cd "$HERE/../.." && pwd)"
+# 单一来源：compose 的 WORKSPACE_ROOT 与 baseline.py 的 FLAGRT_WORKSPACE_ROOT 取同一值，
+# 保证 check 核对的就是容器实际挂载的 checkout。
+WORKSPACE_ROOT="${FLAGRT_WORKSPACE_ROOT:-$(cd "$HERE/../.." && pwd)}"
+export WORKSPACE_ROOT FLAGRT_WORKSPACE_ROOT="$WORKSPACE_ROOT"
 
 if [ -d "$1" ]; then
   ENV_DIR="$(cd "$1" && pwd)"
