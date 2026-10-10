@@ -18,7 +18,8 @@ prototype/
 │   │   ├── registry.py          # 注册表（register / use / discover）
 │   │   ├── ascend/              # 第 1 家 昇腾 910C（torch_npu，训推两腿）
 │   │   ├── cambricon/           # 第 3 家 寒武纪 MLU590（torch_mlu）
-│   │   └── kunlun/              # 第 2 家 昆仑芯 P800（torch.cuda / XPytorch）
+│   │   ├── kunlun/              # 第 2 家 昆仑芯 P800（torch.cuda / XPytorch）
+│   │   └── ppu/                 # 第 4 家 平头哥 PPU（torch.cuda / 真武 ZW810E）
 │   ├── conformance/             # 验收用例 13 例 + 推理 6 例 + runner（含资产模块）
 │   ├── proto/                   # 两条腿自验证脚本与结果
 │   ├── demos/                   # 设备无关演示
@@ -61,7 +62,7 @@ prototype/
 
 ---
 
-## 3. 验证状态（三实例实跑）
+## 3. 验证状态（**三实例全口径实跑 + 第 4 家 PPU 进行中**）
 
 > **本表只给"过没过"**；每条的过程、判据明细与我方缺陷复盘在专题报告里（见末列）。
 > 发布判定：**三实例 12 项判定全部通过**（09-28 收口）⇒ **可发布**；
@@ -84,7 +85,13 @@ prototype/
 | 官方镜像等价性 | — | ✅ 全部结论复现 ⇒ **缺陷与镜像无关** | — | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` |
 | ⭐ 流优先级「调度效果」 | ⚪ `NOT_APPLICABLE`（未声明 `control`） | ⚪ `NOT_APPLICABLE`（单档 `(0,0)`） | ✅ **分场景**：同时就绪 ⇒ 无实质效果 / 排队争用 ⇒ 有实质效果 | `docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** |
 
-> **换芯片只改一行**：同一条命令，只把 `--backend` / `DC_BACKEND` 在 `ascend`／`kunlun`／`cambricon`
+> ⭐ **第 4 家（平头哥 PPU）当前进度（2026-10-10）**：冒烟 **46/0** · conformance **13/13 + 6/6** · 离线自检 **112/0/1** ·
+> **训练腿 6/6**（15.4498→11.2841 · **3779 tok/s** · `nccl`）· **推理腿 13/13**（**135.77 句/s** · 区分度 0.6391）；
+> ⚪ **未跑**：多流 8 项探针 · 服务化（`serve_standard.sh` 待补 `ppu` 分支）· 错误闭环 · 职责审计 78 项。
+> ⚠️ 两条腿均在**判据通过后于解释器退出阶段段错误**（与 `runtime.create_stream()` 强相关，**归属未定**）。
+> 详见 `../PPU/README.md` §0 · `../PPU/docs/PPU_MODEL_AND_TWO_LEGS_20261010.md` **§2–§4**
+
+> **换芯片只改一行**：同一条命令，只把 `--backend` / `DC_BACKEND` 在 `ascend`／`kunlun`／`cambricon`／`ppu`
 > 之间换（设备串、选卡变量、通信后端名由后端各自封装，见 `docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md`）。
 >
 > **两个易混点（务必看清）**：① 两条腿**都是经统一 API**（`runtime.use(...)`）接入设备的，但
