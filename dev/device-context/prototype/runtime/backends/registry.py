@@ -31,13 +31,15 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 _CURRENT: Optional[str] = None
 
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
+#: 2026-10-10：新增 ppu（平头哥 真武 ZW810E，第四个接入实例）—— 同样属**厂商官方插件路线**，
+#:            形态上复用 `torch.cuda`（与 kunlun 同构，故厂商标识只能靠设备名/驱动特征）。
 #: 2026-09-22：新增 cambricon（寒武纪 MLU，第三个接入实例）
 #:
 #: ⚠️ **2026-09-22 口径统一**：本清单只登记**厂商官方 torch 插件**路线的后端 ——
 #: `ascend`（torch_npu）/ `kunlun`（`torch.cuda` 兼容层，XPytorch）/ `cambricon`（torch_mlu）。
 #: 原路线 B 的后端已**整体删除**（不再是本原型的活跃或备用后端）；
 #: 路线 A/B 的取舍依据见 `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`。
-_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon")
+_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon", "ppu")
 
 
 class BackendNotFound(RuntimeError):

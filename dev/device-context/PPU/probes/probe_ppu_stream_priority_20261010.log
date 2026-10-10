@@ -1,0 +1,20 @@
+==============================================================================
+PPU 能力探测 · 第四轮：流优先级真实取值域
+==============================================================================
+---- priority_scan
+range_rc=0 least=0 greatest=-3
+FLAG=0  -8:rc0/get-3  -7:rc0/get-3  -6:rc0/get-3  -5:rc0/get-3  -4:rc0/get-3  -3:rc0/get-3  -2:rc0/get-2  -1:rc0/get-1  0:rc0/get0  1:rc0/get0  2:rc0/get0  3:rc0/get0  4:rc0/get0  5:rc0/get0  6:rc0/get0  7:rc0/get0  8:rc0/get0
+FLAG=1  -8:rc0/get-3  -7:rc0/get-3  -6:rc0/get-3  -5:rc0/get-3  -4:rc0/get-3  -3:rc0/get-3  -2:rc0/get-2  -1:rc0/get-1  0:rc0/get0  1:rc0/get0  2:rc0/get0  3:rc0/get0  4:rc0/get0  5:rc0/get0  6:rc0/get0  7:rc0/get0  8:rc0/get0
+FLAG=2  -8:rc1  -7:rc1  -6:rc1  -5:rc1  -4:rc1  -3:rc1  -2:rc1  -1:rc1  0:rc1  1:rc1  2:rc1  3:rc1  4:rc1  5:rc1  6:rc1  7:rc1  8:rc1
+FLAG=4  -8:rc1  -7:rc1  -6:rc1  -5:rc1  -4:rc1  -3:rc1  -2:rc1  -1:rc1  0:rc1  1:rc1  2:rc1  3:rc1  4:rc1  5:rc1  6:rc1  7:rc1  8:rc1
+---- torch_priority_path
+BASELINE(no priority) capi_read: ('rc0', 0) attr: 0
+torch Stream(priority=-3) -> capi_read=('rc0', -3) attr=-3
+torch Stream(priority=-2) -> capi_read=('rc0', -2) attr=-2
+torch Stream(priority=-1) -> capi_read=('rc0', -1) attr=-1
+torch Stream(priority=0) -> capi_read=('rc0', 0) attr=0
+torch Stream(priority=-4) OUT-OF-SPEC -> capi_read=('rc0', -3)
+torch Stream(priority=1) OUT-OF-SPEC -> capi_read=('rc0', 0)
+torch Stream(priority=7) OUT-OF-SPEC -> capi_read=('rc0', 0)
+stream(priority=-3) real_op_sum: 512.0
+==============================================================================

@@ -333,6 +333,16 @@ def _stub_kunlun(mode="full"):
     return _vendor_stub("cuda", (), mode)
 
 
+def _stub_ppu(mode="full"):
+    """平头哥 PPU 走 `torch.cuda` 兼容栈 —— 无额外顶层厂商模块（与 kunlun 同形）。
+
+    ⚠️ 这里**只需一行**，但意义与前几家同等重要：本项目有过血证 ——
+    自检工具原先只为一家内置 stub，导致其余后端**从未被自检过**，
+    结果在已上线多日的实例上长期存在两处缺陷（"只有一家能跑的自检 = 其余各家的盲区"）。
+    """
+    return _vendor_stub("cuda", (), mode)
+
+
 def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
     """昇腾 `torch.npu` —— 需伪造顶层 `torch_npu`，并注入**假 pyACL**。
 
@@ -424,6 +434,23 @@ def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=
             self.cnrtQueueCreateWithPriority = _FakeFn(self._create)
             self.cnrtQueueGetPriority = _FakeFn(self._getprio)
             self.cnrtQueueDestroy = _FakeFn(self._destroy)
+            # ⚠️ **2026-10-10 新增：CUDA 上下文系列符号。**
+            #    为什么必须补：平头哥 PPU（`ppu`）实测**允许本层自建多个上下文并切换**
+            #    （`cuCtxCreate_v2`/`cuCtxSetCurrent`/`cuCtxDestroy_v2` 全 rc=0，且不影响 torch）
+            #    ⇒ 它**声明**了 `context_lifecycle`。若不在此给出同族符号，该后端在**离线**
+            #    拿不到原语 ⇒ `context_create()` 直接抛错，判据会被"离线没有真库"**误报**成
+            #    「声明了能力却没实现」。纪律同上：**能造可控假原语就别 SKIP**。
+            #    语义与真机一致：建流→成为当前；切到未登记/已销毁句柄⇒失败(1)；销毁后回读取不到。
+            self.ctx_cur = 0
+            self.ctx_next = 0xC000
+            self.ctx_map = {}          # 句柄 → {"ordinal", "flags"}
+            self.ctx_destroyed = []
+            self.cuCtxCreate_v2 = _FakeFn(self._ctx_create)
+            self.cuCtxSetCurrent = _FakeFn(self._ctx_set)
+            self.cuCtxDestroy_v2 = _FakeFn(self._ctx_destroy)
+            self.cuCtxGetCurrent = _FakeFn(self._ctx_get_current)
+            self.cuCtxGetDevice = _FakeFn(self._ctx_get_device)
+            self.cuCtxGetFlags = _FakeFn(self._ctx_get_flags)
 
         # ---- 本层用到的厂商原语（实现）---------------------------------
         def _range(self, least_p, greatest_p):
@@ -455,6 +482,46 @@ def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=
             self.priorities.pop(h, None)
             return self.destroy_rc
 
+        # ---- 设备上下文原语（2026-10-10 新增，见 __init__ 处说明）----------
+        def _ctx_create(self, handle_p, flags, ordinal):
+            h = self.ctx_next
+            self.ctx_next += 0x10
+            self.ctx_map[h] = {"ordinal": int(_ctype_value(ordinal)),
+                               "flags": int(_ctype_value(flags))}
+            self.ctx_cur = h
+            handle_p._obj.value = h
+            return 0
+
+        def _ctx_set(self, ctx):
+            h = int(_ctype_value(ctx))
+            if h in self.ctx_map:          # 未登记/已销毁 ⇒ 如实失败
+                self.ctx_cur = h
+                return 0
+            return 1
+
+        def _ctx_destroy(self, ctx):
+            h = int(_ctype_value(ctx))
+            self.ctx_map.pop(h, None)
+            self.ctx_destroyed.append(h)
+            if self.ctx_cur == h:
+                self.ctx_cur = 0
+            return self.destroy_rc
+
+        def _ctx_get_current(self, out_p):
+            # 注意：写 0 时 `c_void_p.value` 读回是 **None**（本层据此判定"无上下文"）
+            out_p._obj.value = self.ctx_cur
+            return 0
+
+        def _ctx_get_device(self, out_p):
+            info = self.ctx_map.get(self.ctx_cur)
+            out_p._obj.value = int(info["ordinal"]) if info else -1
+            return 0
+
+        def _ctx_get_flags(self, out_p):
+            info = self.ctx_map.get(self.ctx_cur)
+            out_p._obj.value = int(info["flags"]) if info else 0
+            return 0
+
     return _FakeCuda()
 
 
@@ -471,6 +538,9 @@ def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=
 _STUBS = {
     "cambricon": (_stub_cambricon, "mlu", {}),
     "kunlun": (_stub_kunlun, "cuda", {"stub_vendor_extension": False}),
+    # 平头哥 PPU：同样复用 torch.cuda；与 kunlun 的差别**不在 stub**，而在真机实测结论
+    #（优先级多档可设 / 上下文可管理 / 无数值错误码）⇒ 由各后端的 _capabilities 表达。
+    "ppu": (_stub_ppu, "cuda", {"stub_vendor_extension": False}),
     "ascend": (_stub_ascend, "npu", {"stub_real_ops": False, "stub_bounded_sync": False}),
 }
 

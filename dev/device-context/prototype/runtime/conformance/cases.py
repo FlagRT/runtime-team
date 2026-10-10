@@ -250,7 +250,12 @@ def case_t3_topology_path(ctx):
         dst = src.to(f"{device}:1")
         ctx["sync"]()
         ok_data = bool((dst.cpu() == 1).all())
-        # 拓扑接口可查询性（torch_npu 未暴露统一拓扑查询 → 如实标注）
-        return ok_data, f"跨设备直接传输数据一致={ok_data}；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）"
+        # 拓扑接口可查询性：**本用例是芯片无关的**，不得写死某一家的模块名/工具名
+        # （2026-10-10 修：原文硬编码 `torch_npu` / `npu-smi`，第 4 家不同厂商跑同一套
+        #  用例时暴露出该文案已失真 —— 手册 §4.4.4「证据卫生：不得硬编码厂商专有文案」）。
+        # 如实表述为「统一面未暴露拓扑查询」；具体事实由各后端 `info()` 与芯片目录报告承载。
+        return ok_data, (f"跨设备直接传输数据一致={ok_data}；"
+                         "拓扑接口: 统一面未暴露拓扑查询（如实标注，"
+                         "拓扑事实需经厂商工具/外部通道核对；本后端的具体情况见其 info()）")
     except Exception as e:
         return False, f"异常: {e}"
