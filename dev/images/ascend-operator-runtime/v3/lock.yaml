@@ -14,6 +14,10 @@
 # 因此仍是 🟡（构建成功但真机推理验证未完成），不是 🔴（不是"没有配方"），也
 # 不是 🟢（真机推理正确性未证实）。
 
+# 版本事实（image id、各 repo commit、资源 sha256）以同目录 image.baseline.yaml 为准
+# （dev/ENV-SPEC.md）；运行配置见 dev/images/ascend-train-comm/v3/demo/。本文件记录
+# 构建过程、已知问题与验证结果。
+
 superseded_by: null   # v2 未被取代——三条血统（v1/v2/v3）并存，详见 image_list.md"当前生效版本"
 supersedes_candidate_status_of: null  # v3 本身也只是 candidate，不改变 v1（现网生效）或 v2（既有候选）的地位
 
@@ -459,3 +463,12 @@ changelog:
       （守候 4h 无窗口），且本机 docker 存储发现 numpy libopenblas 层校验和
       损坏（docker save 不可用、不影响运行），验证迁移至 npu1-11（仓
       dev-1.0@31c741d + harbor 基座 + 本地重建路径）。
+  - date: "2026-10-10"
+    what: >-
+      环境基线机制接入：新增 image.baseline.yaml（baseline.py export 生成，版本
+      事实以其为准）。
+      本目录的运行层 docker-compose.routeA.yml、修正层 docker-compose.flaggems-cos-off.yml
+      与版本声明 pins.routeA.yaml 由 demo 运行环境目录
+      dev/images/ascend-train-comm/v3/demo/ 取代并删除（内容见 git 历史）：demo 合并
+      两层配置，并把 round 4 经 docker exec 注入的 shmem 占位模块与 PYTHONPATH 改为
+      声明式挂载。

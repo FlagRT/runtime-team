@@ -1,6 +1,7 @@
 # 镜像索引
 
-> 所有归档基座镜像的一览。详细 pin 清单以各 `<name>/v<N>/lock.yaml` 为准；本表只做索引，
+> 所有归档基座镜像的一览。版本事实以各 `<name>/v<N>/image.baseline.yaml` 为准（v1/v2 无镜像基线，以
+> `lock.yaml` 为准）；本表只做索引，
 > **过程性叙述（尝试了什么、round 之间为什么切换、STOP CONDITION 怎么发现的）统一记录在
 > `PROCESS.md`**。"用途 / 使用约束"见消费方文档（`dev/stack.lock.910c.*.yaml` 现行版本、
 > `docs/` 阶段目标文档），具体以消费方文档为准。基座设计的黄金准则与整体方案见
@@ -48,8 +49,8 @@
 ## 依赖与血缘一览（昇腾 910C）
 
 > 只覆盖当前有意义对比的代际（v1 现网生效、v2/v3 候选）；更早的归档细节见各自
-> `lock.yaml`/`ARCHIVE.md`。commit 权威来源同各 `lock.yaml`，与实际部署状态如有出入以
-> `lock.yaml`/`pins.*.yaml` 为准（校验逻辑以 `dev/lib/verify_env.py` 为准，本表仅供人工索引阅读）。
+> `lock.yaml`/`ARCHIVE.md`。commit 权威来源：v3 为 `image.baseline.yaml`（`python3 dev/lib/baseline.py list`
+> 可列出全部镜像基线），v1/v2 为 `lock.yaml`；本表仅供人工索引阅读。
 
 **依赖 commit 对照**（同一行代表同一个库，跨代际对比版本是否推进）：
 
@@ -95,7 +96,7 @@ L2 算子编译    triton 3.5.0（pip 官方 wheel，非 FlagTree 构建）
               triton-ascend 3.2.1（华为昇腾官方 wheel，从 vllm-ascend 镜像拷出）
               FlagGems 0.0.0+f7ae8e6b @f7ae8e6b（custom）
 L3 Runtime    Torch-FL 0.1.0 @af50297（custom，默认路径）· MPICH 4.1.3
-L4 挂载/装配  无 volume 挂载机制（早于 docker-compose+pins 机制）；
+L4 挂载/装配  无运行环境目录（早于环境基线机制）；
               无 vLLM 推理插件层（v1 推理腿走独立的 ascend-infer-vllm 系列）
 ```
 
@@ -108,7 +109,7 @@ L2 算子编译    FlagTree triton_v3.5.x@15ec1a6c 源码编译 → triton 3.5.1
               FlagGems 0.0.0+f7ae8e6b @f7ae8e6b（custom，同 v1）
 L3 Runtime    Torch-FL 0.1.0 @162582d（custom，升级自 v1；仍是默认路径）
               系统 mpich 4.0-3（apt）
-L4 挂载/装配  无 volume 挂载机制（早于 docker-compose+pins 机制）；
+L4 挂载/装配  无运行环境目录（早于环境基线机制）；
               无 vLLM 推理插件层
 ```
 
@@ -123,15 +124,14 @@ L2 算子编译    FlagTree triton_v3.5.x@15ec1a6c（同 v2，triton 3.5.1，off
 L3 Runtime    Torch-FL @162582d（opt-in，需显式反向操作激活，guard fail-loud 真机确认）
               vllm 0.20.2（父镜像自带裸 vLLM）
               vllm-plugin-FL release/0.2 @8b059122e + 覆盖层补丁（round 2 新增；round 4 起叠加 assets/patches/ 声明式补丁，见 lock.yaml overlay_patches）
-L4 挂载/装配  docker-compose.routeA.yml：${WORKSPACE_ROOT}:/workspace ·
+L4 挂载/装配  demo 运行环境 ascend-train-comm/v3/demo/：${WORKSPACE_ROOT}:/workspace ·
               /usr/local/Ascend/driver 直通 · 16×davinci 设备 · shm_size 512g ·
-              ipc: host
+              ipc: host · VLLM_FL_FLAGOS_BLACKLIST=cos,sin · shmem 占位模块挂载
 ```
 
-挂载点分类（`pins.routeA.yaml`，见 `docs/运行时基座建设-黄金准则与方案存档.v1.md` §3
-GR3）：`FlagGems` / `Torch-FL` / `FlagCX` = **静态挂载点 strict**（精确 commit）；
-`vllm-plugin-FL` = **动态挂载点 loose**（仅分支）。当前四者均在构建期固化进镜像，
-尚未实现运行时挂载切换，属已知缺口（见黄金准则文档 §6）。
+资产分类（见 `docs/运行时基座建设-黄金准则与方案存档.v1.md` §2 GR3）：上述 repo 均为**固化资产**，
+版本与资源 sha256 见 [`ascend-operator-runtime/v3/image.baseline.yaml`](ascend-operator-runtime/v3/image.baseline.yaml)；
+demo 运行环境 [`ascend-train-comm/v3/demo/`](ascend-train-comm/v3/demo/docker-compose.yml) 不声明挂载资产。
 
 ## ascend-operator-runtime-comm 系列（在上表基础上叠加通信层）
 
@@ -165,12 +165,16 @@ L4 挂载/装配        同 v1 ENV（消费路径未变，仍是 flagos 适配�
 
 ```
 L3 Runtime（通信）  FlagCX 0.13.0 @4e0e0cb（同 v2 相同 commit，未升级）
-                    ⚠️ 消费方需自行 torch.npu.synchronize()，否则 broadcast/all_gather
-                    返回错误结果——是否吸收私有 fork 的 sync 修复待总组拍板
+                    ⚠️ all_gather 系列返回时数据未写完：手动 DDP 写法（显式
+                    torch.npu.synchronize()）可用，原生 DDP 封装受 FlagCX c10d 层阻塞，
+                    见 lock.yaml known_issues
 L4 挂载/装配        消费路径改为 HCCL 适配：删除 FLAGCX_TORCH_BACKEND/AUTOLOAD ENV，
                     改用 torch_npu 原生 + dist.init_process_group(backend="flagcx")，
-                    对齐 train_qwen_1_5b_npu.py
+                    对齐 train_qwen_1_5b_npu.py；运行环境同 operator-runtime v3 的 demo
 ```
+
+版本事实见 [`ascend-train-comm/v3/image.baseline.yaml`](ascend-train-comm/v3/image.baseline.yaml)；
+运行环境见 [`ascend-train-comm/v3/demo/`](ascend-train-comm/v3/demo/docker-compose.yml)。
 
 ## ascend-infer-vllm 系列
 
@@ -187,7 +191,7 @@ L4 挂载/装配        消费路径改为 HCCL 适配：删除 FLAGCX_TORCH_BAC
 ```
 L1 芯片底座    华为昇腾官方一体镜像（CANN + torch_npu + vLLM 打包，非本组分层自建）
 L2~L3 算子/Runtime  vllm_ascend（华为昇腾官方插件）· vLLM 0.20.2（官方）
-L4 挂载/装配  不适用——官方一体镜像，未纳入本组 docker-compose+pins 挂载机制
+L4 挂载/装配  不适用——官方一体镜像，未纳入本组环境基线机制
 ```
 
 ---
@@ -241,7 +245,7 @@ L2 算子编译    flagtree 0.6.1+xpu3.6（triton 3.6.0，pip 预编译 wheel，
               FlagGems 4.2.1.rc.0 @73c5aff1（editable）
 L3 Runtime    FlagCX @3b43bdb2（editable）· vllm==0.13.0 · transformers==4.57.1 ·
               vllm-plugin-fl（editable，未单独记录 commit pin）
-L4 挂载/装配  未接入 docker-compose+pins 机制（无独立 docker-compose 文件）
+L4 挂载/装配  未接入环境基线机制（无镜像基线与 demo 运行环境目录）
 ```
 
 ---

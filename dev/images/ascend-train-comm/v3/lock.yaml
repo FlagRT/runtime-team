@@ -22,6 +22,10 @@
 # （partial-repro）——broadcast/all_gather STOP CONDITION 仍未解决，见下方
 # known_issues 与 REBUILD.md 详述。
 
+# 版本事实（image id、各 repo commit、资源 sha256）以同目录 image.baseline.yaml 为准
+# （dev/ENV-SPEC.md）；运行配置见 dev/images/ascend-train-comm/v3/demo/。本文件记录
+# 构建过程、已知问题与验证结果。
+
 superseded_by: null   # v2 未被取代——三条血统并存，详见 image_list.md"当前生效版本"
 
 image_tag: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
@@ -289,3 +293,9 @@ changelog:
       7028028bb62c（旧 43f3e2f70b4c 保留）。provenance 落盘
       pipfreeze-comm-v3-round4.txt。真机训练腿验证（真实 loss/吞吐，补丁的
       直接受益验证）PENDING，与推理腿一同迁移至 npu1-11 执行。
+  - date: "2026-10-10"
+    what: >-
+      环境基线机制接入：新增 image.baseline.yaml（baseline.py export 生成，版本
+      事实以其为准）。
+      新增 demo 运行环境目录 demo/（docker-compose.yml + env.baseline.yaml），取代
+      此前引用的 ascend-operator-runtime/v3 运行层与版本声明。

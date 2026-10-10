@@ -14,8 +14,8 @@
   lock.yaml                  # │ (技术口径权威:lock.yaml / REBUILD.md)
   REBUILD.md                 # │
   ARCHIVE.md / BACKUP.local  # ┘
-  docker-compose.<tag>.yml   # 运行层;可叠加修正层(如 docker-compose.flaggems-cos-off.yml)
-  pins.<tag>.yaml            # 与运行层同名,版本声明,schema 见 dev/ENV-SPEC.md §4
+  image.baseline.yaml        # 镜像基线(版本事实),规范见 dev/ENV-SPEC.md §3.1
+  demo/                      # demo 运行环境目录:docker-compose.yml + env.baseline.yaml(dev/ENV-SPEC.md §3.2)
   assets/
     <脚本>                   # 复现 / 验证 / 收数 三类,类别在 README 脚本表中标注
     patches/                 # 构建期应用的声明式补丁(各带 README 与 sha256)
@@ -23,9 +23,8 @@
     evidence/                # 报错证据截选(见 §2 规则 4)
 ```
 
-- 运行层与 pins 可由同一血统的兄弟目录提供,此时 README 以相对路径引用,不复制。
-  例:`ascend-train-comm/v3/` 使用 `../../ascend-operator-runtime/v3/docker-compose.routeA.yml`
-  与同目录的 `pins.routeA.yaml`(两者声明的即为完整镜像)。
+- demo 运行环境目录可由同一血统的兄弟目录提供,此时 README 以相对路径引用,不复制。
+  例:`ascend-operator-runtime/v3/` 的验证在完整镜像上执行,使用 `../../ascend-train-comm/v3/demo/`。
 - 脚本三类定义:
 
 | 类别 | 作用 | 判定要求 |
@@ -40,10 +39,11 @@
 ## 2. 四条硬规则
 
 1. **单入口**:复现与验证各自一条命令(或一个脚本)即可完成;前置准备纳入脚本或
-   compose 层,不写"先手动执行若干步骤再运行"。
-2. **外部依赖必须声明**:镜像与宿主挂载的代码仓写入 `pins.<tag>.yaml`,由
-   `dev/lib/up.sh` 机器校验;pins schema 不覆盖的依赖(模型权重、数据集、所需卡数)
-   在 README「复现」节的前置条件表中逐项列出,并给出获取方式。
+   demo 的 `docker-compose.yml`,不写"先手动执行若干步骤再运行"。
+2. **外部依赖必须声明**:镜像与以可编辑方式挂载的代码仓记录在基线文件
+   (`image.baseline.yaml` / `env.baseline.yaml`),由 `dev/lib/up.sh --strict` 机器核对;
+   基线文件不覆盖的依赖(模型权重、数据集、所需卡数)在 README「复现」节的前置条件表中
+   逐项列出,并给出获取方式。
 3. **自判定**:验证脚本以退出码与判定行给出结论,执行者无需人工判读日志;README 写明
    关键判据(例:"all_gather+sync 两 rank 均 PASS")。
 4. **日志不进仓**:完整运行日志留在执行机器,README 注明机器名与绝对路径;仓内只放
@@ -74,8 +74,8 @@ README 是摘要与入口,技术细节以 `lock.yaml` / `REBUILD.md` 为准,READ
 ## 4. 交付前检查清单
 
 - [ ] README 三段齐全,首句说明镜像能力范围
-- [ ] 每个运行层有同名 `pins.<tag>.yaml`(或在 README 中引用兄弟目录的运行层与 pins)
-- [ ] 模型、数据集、卡数等非 pins 依赖已在前置条件表列出并给出获取方式
+- [ ] 有 `image.baseline.yaml`,`baseline.py check --image` 通过;demo 运行环境目录(或 README 引用的兄弟目录 demo)`baseline.py check` 通过
+- [ ] 模型、数据集、卡数等基线文件之外的依赖已在前置条件表列出并给出获取方式
 - [ ] 复现与验证均为单入口,命令可直接复制执行
 - [ ] 验证脚本自判定(退出码 + 判定行),README 写明判据
 - [ ] 报错证据有 `assets/evidence/` 截选;完整日志的机器名与路径已注明

@@ -16,14 +16,16 @@
 ```
 dev/__NAME__/
 ├── README.md           # 本文档（看板）
-├── docker-compose.yml  # 容器配置（-f 叠加所选芯片/版本层合并公共配置）
-├── docker-compose.<tag>.yml  # 可选：探索/试验层（如需固定或对比某个具体版本组合）
-├── pins.<tag>.yaml      # 可选：与上面同名，声明该探索层的版本期望，见 dev/ENV-SPEC.md
+├── docker-compose.yml  # 运行环境：x-flagrt 声明 + extends 复用镜像 demo，只写本方向差异
+├── env.baseline.yaml   # 运行环境基线，由 baseline.py export 生成，不手工编辑
 ├── .env.example        # 环境变量模板（cp 成 .env 按需调整）
 ├── docs/               # 调研笔记、方案摘录、执行记录（按需建）
 ├── probes/             # 探针/画像脚本（按需建）
 └── benchmarks/         # A/B 对比与负载脚本（按需建）
 ```
+
+本目录即一个运行环境目录，规范见 [`dev/ENV-SPEC.md`](../ENV-SPEC.md) §3.2。需要不同配置组合时，
+在本目录下另建子目录（各含 `docker-compose.yml` 与 `env.baseline.yaml`），相对路径相应加一级 `../`。
 
 代码改造主战场不在本目录：**<子库路径>**（如 torch_fl `csrc/runtime/allocator/`，按需填写）
 
@@ -35,17 +37,20 @@ dev/__NAME__/
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 
-## 启动容器（宿主侧）
+## 启动容器（宿主侧，仓根执行）
 
 ```bash
-cp dev/__NAME__/.env.example dev/__NAME__/.env    # 按需调整专属开关（默认值即可直接启动）
-dev/lib/up.sh dev/images/<chip>/v<N>/docker-compose.<tag>.yml dev/__NAME__/docker-compose.yml
-docker ps | grep flagos-__NAME__-dev-910c    # 确认 Up
+cp dev/__NAME__/.env.example dev/__NAME__/.env          # 按需调整专属开关
+python3 dev/lib/baseline.py export dev/__NAME__         # 首次及 x-flagrt / 挂载 repo 变更后执行
+docker ps                                               # 昇腾驱动对带卡容器独占：确认无其他带卡容器
+FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh dev/__NAME__ # 验收或出结论的运行加 --strict
+docker ps | grep flagos-__NAME__-dev-910c
 ```
 
-`dev/lib/up.sh` 会先做版本校验（见 `dev/ENV-SPEC.md`）再启动，校验失败会阻止启动并打印
-原因。完整跑通的具体步骤示例见 `dev/_template/USAGE-DEMO.md`。若只想按老办法直接启动
-不做校验，仍可以用裸 `docker compose -f ... -f ... up -d`，但不推荐。
+`up.sh` 先按 `env.baseline.yaml` 核对镜像 id 与挂载 repo，再启动；默认只报告不一致，`--strict`
+时拒绝启动。镜像、设备与公共挂载继承自
+[`ascend-train-comm/v3/demo`](../images/ascend-train-comm/v3/demo/docker-compose.yml)；以可编辑方式
+挂载 repo 的写法见 `dev/ENV-SPEC.md` §5。
 
 ## 常用命令（环境速查）
 

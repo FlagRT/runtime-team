@@ -1,20 +1,29 @@
-# __NAME_CN__（__NAME__）子方向开发容器（本文件只含子方向专属，公共资源配置见下方叠加的
-# 芯片/版本层）
-# 用法（校验版本 + 启动，见 dev/ENV-SPEC.md）：先选一个芯片+版本层作为基础
-#   dev/lib/up.sh dev/images/<chip>/v<N>/docker-compose.<tag>.yml \
-#                 dev/__NAME__/docker-compose.yml
-# 完整可跑通的例子见 dev/_template/USAGE-DEMO.md。
-# 注意：-f 多文件合并（后文件覆盖前文件），需 docker compose v2；DrvMng 并发容器上限≈3；
-#       多卡测试前 npu-smi 确认 16 卡空闲；容器名冲突时先 docker stop 旧容器
+# __NAME_CN__（__NAME__）子方向运行环境（规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套运行环境：本文件（启动与装配）+ env.baseline.yaml（baseline.py export 生成）。
+# 经 extends 复用 v3 完整镜像的 demo 运行环境，本文件只写子方向差异。
+# 用法见同目录 README.md「启动容器」。
 
-# 每个子方向必须使用独立 project，避免公共 service 名 runtime-dev 发生跨方向重建。
+# 每个运行环境必须使用独立 project 名与容器名，避免与 demo 或其他方向的容器冲突。
 name: flagos-__NAME__
+
+x-flagrt:
+  image_baseline: ../images/ascend-train-comm/v3/image.baseline.yaml
+  # 以可编辑方式挂载并生效的 repo；无则保持 {}。示例（覆盖镜像内固化的 vllm-plugin-FL，
+  # 同时取消下方 environment / command 中对应行的注释，见 dev/ENV-SPEC.md §5）：
+  #   vllm-plugin-FL: {activation: pip-editable}
+  mounted_repos: {}
 
 services:
   runtime-dev:
+    extends:
+      file: ../images/ascend-train-comm/v3/demo/docker-compose.yml
+      service: runtime-dev
     container_name: flagos-__NAME__-dev-910c
     environment:
       # 子方向专属环境变量（与 .env.example 对应，.env 中可覆盖默认值）
       # - YOUR_SWITCH=${YOUR_SWITCH:-true}
-    restart: "no"
+      # pip-editable 挂载时必需：
+      # - PYTHONDONTWRITEBYTECODE=1
+      # - GIT_OPTIONAL_LOCKS=0
+    # command: ["bash", "-c", "pip install --no-deps --no-build-isolation -e /workspace/vllm-plugin-FL && exec sleep infinity"]
     # 注意：容器内实验 venv 不在挂载盘上，容器重建会丢失；重建步骤记入本子方向 README

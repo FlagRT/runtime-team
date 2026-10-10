@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""dev/lib/baseline.py 的单元测试：覆盖方案 §4.2 的全部 Dockerfile 判定模式
+"""dev/lib/baseline.py 的单元测试：覆盖 dev/ENV-SPEC.md §4.2 的全部 Dockerfile 判定模式
 （含报错分支）与 §4.3 的运行环境安全规则。
 
 运行方式（本机 python3 没有 pytest，用 unittest；有 pytest 时也可直接 pytest）：
@@ -592,7 +592,7 @@ x-flagrt:
         self.assertEqual(baseline.main(["check", str(self.env)]), 2)
 
     def test_mounted_repos_come_only_from_x_flagrt(self):
-        """仓根整体挂载不等于声明挂载（方案 §2.1）。"""
+        """仓根整体挂载不等于声明挂载（ENV-SPEC §2.1）。"""
         (self.env / "docker-compose.yml").write_text(f"""services:
   dev:
     image: flagrt/img:1

@@ -29,12 +29,18 @@ dev/images/
       Dockerfile             # 原始构造还原（逐字节复现目标；可能缺 owner 私有件）
       Dockerfile.repro       # 已实机验证可重建的配方（功能等价）
       build.sh               # 一键重建 + 校验
-      lock.yaml              # 血统 + 内置版本 pin + 官方/自定义边界 + 重建缺口 + 重建验证结果
+      image.baseline.yaml    # 镜像基线：固化资产与版本（baseline.py export 生成，版本事实以此为准）
+      lock.yaml              # 血统 + 官方/自定义边界 + 构建历史 + 已知问题 + 重建验证结果
       REBUILD.md             # 重建步骤、踩坑、验证方法
       ARCHIVE.md             # 离线归档清单（tar 名 / 大小 / sha256 / 内容 / docker load 用法）— 机器无关，追踪
       BACKUP.local           # 本机归档实体的绝对路径 + 最近校验日期 — 机器相关，不追踪
-      assets/               # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
+      assets/                # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
+      demo/                  # demo 运行环境目录：docker-compose.yml + env.baseline.yaml（验收配置与推荐用法）
 ```
+
+版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准，`lock.yaml` 不再重复填写；
+机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。demo 可放在镜像血统的任一版本目录下（v3 完整镜像的 demo 位于
+`ascend-train-comm/v3/demo/`），由 `image.baseline.yaml` 的 `image.demo` 指向。
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
 
@@ -73,7 +79,7 @@ dev/images/
 
 一个镜像被本目录归档，其 `v<N>/` 须满足：
 
-1. 有 `lock.yaml`（血统 + 内置版本 + 官方/自定义边界）；
+1. 有 `lock.yaml`（血统 + 官方/自定义边界）；自建镜像另有 `image.baseline.yaml`（v1/v2 缺 commit 标签，除外）；
 2. `repro_status` ≥ 🟡；
 3. 上游发布的镜像（华为昇腾官方 / 社区）可无 Dockerfile，但须记可拉取 digest + 上游来源。
 

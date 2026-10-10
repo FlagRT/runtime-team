@@ -1,15 +1,14 @@
-# v3 完整镜像的 demo 运行环境（规范见 docs/环境基线管理-改造实施方案-20261010.md §3.2）。
+# v3 完整镜像的 demo 运行环境（规范见 dev/ENV-SPEC.md §3.2）。
 # 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
 # dev/lib/baseline.py export 生成，不手工编辑）。
 #
 # 本文件记录 v3 完整镜像 round 4 真机验收（npu1-11，2026-10-09）时的准确运行配置，
-# 同时是该镜像的推荐用法。自包含、单文件，不叠加其他 compose 层：
-#   - 来源 1：ascend-operator-runtime/v3/docker-compose.routeA.yml（基础装配层）
-#   - 来源 2：ascend-operator-runtime/v3/docker-compose.flaggems-cos-off.yml
-#            （VLLM_FL_FLAGOS_BLACKLIST=cos,sin）
-#   - 来源 3：round 4 验收时经 docker exec 临时注入的 shmem 占位模块与 PYTHONPATH
-#            （见 ascend-operator-runtime/v3/REBUILD.md「ROUND 4 真机验证——推理腿」），
-#            本文件把它固化为声明式挂载，验收配置不再依赖手工步骤。
+# 同时是该镜像的推荐用法。自包含、单文件，合并了此前分散的三处配置：
+#   - 基础装配（镜像、设备、驱动与仓根挂载）；
+#   - VLLM_FL_FLAGOS_BLACKLIST=cos,sin；
+#   - round 4 验收时经 docker exec 临时注入的 shmem 占位模块与 PYTHONPATH
+#     （见 ascend-operator-runtime/v3/REBUILD.md「ROUND 4 真机验证——推理腿」），
+#     此处改为声明式挂载，验收配置不再依赖手工步骤。
 #
 # 用法（仓根执行）：
 #   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
@@ -23,7 +22,7 @@ name: flagrt-v3-demo
 x-flagrt:
   image_baseline: ../image.baseline.yaml
   # v3 的全部 repo 均为固化资产（见镜像基线 baked_repos），本环境不以可编辑方式挂载
-  # 任何 repo：仓根整体挂到 /workspace 只使代码可见、不使其生效（方案 §2.1）。
+  # 任何 repo：仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
   mounted_repos: {}
 
 services:
@@ -73,7 +72,8 @@ services:
     environment:
       - HCCL_WHITELIST_DISABLE=1
       # FlagGems 侧稳妥保险：把 cos/sin 排除出 FlagGems 接管名单，落回 torch_npu 原生
-      # （插件一级支持的官方开关；与 stub 合起来才是完整解堵组合，依据见来源 2 注释）。
+      # （插件一级支持的官方开关；与 stub 合起来才是完整解堵组合，依据见
+      # ascend-operator-runtime/v3/REBUILD.md「ROUND 4 真机验证——推理腿」）。
       - VLLM_FL_FLAGOS_BLACKLIST=cos,sin
       # compose 设置 PYTHONPATH 是整体覆盖而非追加，故须写出镜像内既有的完整值
       # （含 CANN 路径，取自 docker image inspect .Config.Env），只在最前面加 stub 目录。

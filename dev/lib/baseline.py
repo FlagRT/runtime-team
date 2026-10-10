@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """环境基线管理：镜像基线（image.baseline.yaml）与运行环境基线（env.baseline.yaml）
 的生成（export）、核对（check）、按基线切换宿主 repo（load）、只读查看（show/list）。
-规范见 docs/环境基线管理-改造实施方案-20261010.md（§3 文件形态、§4.2 判定规则、§4.3 运行环境）。
+规范见 dev/ENV-SPEC.md（§3 文件形态、§4.2 Dockerfile 判定规则、§4.3 运行环境场景）。
 
 用法：
   baseline.py export --image <image-dir> [--demo <path>] [--image-ref <ref>]
@@ -48,7 +48,7 @@ COMMIT_LABEL = {
     "FlagCX": "io.flagrt.flagcx.commit",
 }
 BRANCH_LABEL = {"FlagTree": "io.flagrt.flagtree.branch"}
-# 四层模型层级（与交付方式正交，方案 §1/§3）；未登记的按 L3
+# 四层模型层级（与交付方式正交，ENV-SPEC §2）；未登记的按 L3
 LAYER = {
     "FlagTree": "L2", "FlagGems": "L2", "llvm-toolchain": "L2", "triton-build-deps": "L2",
     "patch_triton_ascend_flagtree.py": "L2", "FlagGems-DSA-__init__.py": "L2",
@@ -297,7 +297,7 @@ def repo_info(name: str, commit: str, repo_url=None, branch_hint=None):
     return info or None
 
 
-# ---- Dockerfile 解析（方案 §4.2：只识别列出的模式，其余一律报错） ----
+# ---- Dockerfile 解析（ENV-SPEC §4.2：只识别列出的模式，其余一律报错） ----
 
 KNOWN_OPS = {"FROM", "ARG", "LABEL", "ENV", "RUN", "COPY", "SHELL", "WORKDIR", "USER", "EXPOSE",
              "ENTRYPOINT", "CMD", "VOLUME", "STOPSIGNAL", "HEALTHCHECK", "MAINTAINER"}
@@ -403,7 +403,7 @@ class _Recipe:
         """raw 未展开 ARG（用于识别 ${<X>_COMMIT|REF|URL}），body 为展开后的实际值。"""
         body = expand(raw, self.args)
         if re.search(r"pip\s+install\b[^&|;]*(\s-e\s|\s--editable\b)", body):
-            raise BaselineError("本构建层出现 pip install -e：固化资产不允许 editable 安装（方案 §2.1）")
+            raise BaselineError("本构建层出现 pip install -e：固化资产不允许 editable 安装（ENV-SPEC §2.1）")
         if re.search(r"\bwget\b", body):
             raise BaselineError("RUN 中出现 wget，§4.2 只识别 curl ... ${<X>_URL}")
 
@@ -581,7 +581,7 @@ def _external_base(recipe: _Recipe, warnings: list):
                       "install": "editable-in-image",
                       "info": repo_info(name, e.get("commit"), repo_url=e.get("repo_url"))})
         warnings.append(f"{name}: 继承自父镜像的 editable 安装，源码位于镜像内 {src}，"
-                        "记为固化资产（install: editable-in-image，方案 §2.1）")
+                        "记为固化资产（install: editable-in-image，ENV-SPEC §2.1）")
     return {"ref": recipe.from_ref, "digest": digest, "provides": provides}, repos
 
 
@@ -757,7 +757,7 @@ def _env(env_dir):
         raise BaselineError(f"运行环境目录缺少 docker-compose.yml: {env_dir}")
     x = load_yaml(compose).get("x-flagrt")
     if not isinstance(x, dict):
-        raise BaselineError(f"{rel_to_repo(compose)} 缺少顶层 x-flagrt 声明（方案 §3.2）")
+        raise BaselineError(f"{rel_to_repo(compose)} 缺少顶层 x-flagrt 声明（ENV-SPEC §3.2）")
     if not x.get("image_baseline"):
         raise BaselineError("x-flagrt 缺少 image_baseline")
     mounted = x.get("mounted_repos") or {}
@@ -867,7 +867,7 @@ def check_env(env_dir) -> int:
             report.append(("WARN", name, "挂载副本不含镜像内固化的补丁: "
                            + ", ".join(p.get("file", "?") for p in item["baked_patches"])))
     if base.get("baked_repos"):
-        report.append(("INFO", "baked", "固化资产不与宿主比对，由 image id 约束（方案 §2）"))
+        report.append(("INFO", "baked", "固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）"))
     ok = _print_report(report)
     out = env_dir / ".last-check.json"
     out.write_text(json.dumps({
@@ -899,7 +899,7 @@ def load_env(env_dir) -> int:
             dirty.append(name)
         plan.append((name, host, item["commit"], head))
     if dirty:
-        print("[ABORT] 以下挂载 repo 工作区不干净，整体中止，未做任何切换（方案 §4.3）: "
+        print("[ABORT] 以下挂载 repo 工作区不干净，整体中止，未做任何切换（ENV-SPEC §4.3）: "
               + ", ".join(dirty), file=sys.stderr)
         return 3
 
@@ -1025,7 +1025,7 @@ def list_baselines() -> int:
 
 def build_parser():
     p = argparse.ArgumentParser(prog="baseline.py", description="环境基线管理（镜像基线 / 运行环境基线）。"
-                                "规范见 docs/环境基线管理-改造实施方案-20261010.md")
+                                "规范见 dev/ENV-SPEC.md")
     sub = p.add_subparsers(dest="action")
     for action, help_ in (("export", "生成基线文件"), ("check", "核对基线与本机实际"),
                           ("show", "只读打印基线")):
