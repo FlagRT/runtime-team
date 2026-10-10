@@ -75,6 +75,8 @@ prototype/
 |---|---|---|---|---|
 | 冒烟自检 | **52/0** | **46/0** | **46/0** | `runtime/smoke_runtime.py` |
 | conformance | **13/13 + 6/6** | **13/13 + 6/6** | **13/13 + 6/6** | `runtime/conformance/` |
+| ⭐ **契约不变式 I1–I4** | **4/4**（i1 入口覆盖 **16/17**） | **4/4**（**14/17**） | **4/4**（**11/17**） | `runtime/conformance/contract_invariants.py`（`--cases contract_invariants`） |
+| ｜↳ ⚠️ **本行为 2026-10-10 补入** | ⚠️ 三家**早已实跑**（产物见 `910C/probes/e1_regress_*_out/e1_coninvariants.*` · `P800/…/e1_coninvariants.*` · `MLU590/probes/{d2,m1}_20261008_out/*_coninvariants.*`），但**本矩阵从未列此行** ⇒ 第 4 家按「看板对齐」时**漏掉了它**（当日已补跑 `CONTRACT_INVARIANTS_PASS 4/4`） |  |  | `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §1 第 9 条 |
 | 执行语义基线（多流 8 项探针） | **8/8** | **8/8** | **8/8**（另 S-7 图捕获 5/5） | `probes/probe_stream_semantics_full.py` |
 | 训练腿 2 卡微调 | **6/6**（15.4498→11.1479 · 3954–4402 tok/s · `hccl`） | **6/6**（3533.5 tok/s） | **6/6**（3015.3 tok/s · `cncl`） | `runtime/proto/proto_train_leg.py` |
 | 推理腿（单卡前向） | **14/14**（77.49 句/s · 区分度 0.6391） | **13/13 +1 跳过**（53.28 句/s） | **13/13 +1 跳过**（41.08 句/s） | `runtime/proto/proto_infer_leg.py` |
@@ -88,7 +90,8 @@ prototype/
 > ⭐ **第 4 家（平头哥 PPU）当前进度（2026-10-10 · 含同日同口径自审）**：冒烟 **46/0** · conformance **13/13 + 6/6** · 离线自检 **112/0/1** ·
 > **多流 8/8** · **图捕获 4/4** · **流配额 3/3** · **B/C 契约 7/7** · **训练腿 50 步 6/6**（15.4498→11.1530 · **5167 tok/s** · `nccl`）· **推理腿 13/13**（**135.77 句/s**）；
 > ⚠️ **职责审计 72/0/6**：`L1`「`release_stream` 越权销毁」**已收口**：根因＝**跨类型地址复用**（`ExternalStream` 回收后 `Stream` 落在同地址）；修复＝**类型复核**（机制无关，弱引用下亦 3/3 OK）+ 强持有纵深防御（`../PPU/docs/PPU_L1_ROOTCAUSE_RECHECK_20261010.md`）；
-> ⚪ **未跑**：服务化（`serve_standard.sh` 待补 `ppu` 分支）· 错误闭环四类注入 · 非空转验证。
+> ✅ **契约不变式 I1–I4 真机 `4/4`**（2026-10-10 补跑；i1 入口覆盖 **15/17**）· ✅ **A2 压测如实跳过留档**（未声明 `recovery_real` ⇒ `A2_BOUNDARY: SKIP_UNSUPPORTED`，不计失败）；
+> ⚪ **未跑**：服务化（`serve_standard.sh` 待补 `ppu` 分支）· 错误闭环四类注入 · **多流 16 项基线逐项比对报告** · **D2 调度效果实证** · **证据索引**（三家均有，PPU 缺）。
 > ⚠️ 两条腿均在**判据通过后于解释器退出阶段段错误**（与 `runtime.create_stream()` 强相关，**归属未定**）。
 > 详见 `../PPU/README.md` §0 · `../PPU/docs/PPU_MODEL_AND_TWO_LEGS_20261010.md` **§2–§4**
 
