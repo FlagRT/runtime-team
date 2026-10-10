@@ -11,9 +11,11 @@ Does two things in one process, in this order:
      conflict.
   2. vLLM inference smoke test: load the acceptance_model from
      dev/stack.lock.910c.v2.yaml (Qwen/Qwen3-Embedding-0.6B, an embedding
-     model) via vllm-plugin-FL's "fl" platform plugin, run a real .encode()
-     call, print the actual output (embedding vector shape/norm/first few
-     values) as evidence it produced real numbers, not garbage/NaN/zeros.
+     model) via vllm-plugin-FL's "fl" platform plugin, run a real
+     LLM.embed() call (vLLM 0.20.2 API: encode(pooling_task="embed") +
+     EmbeddingOutput), print the actual output (embedding vector
+     shape/norm/first few values) as evidence it produced real numbers,
+     not garbage/NaN/zeros.
 
 Everything is printed as JSON at the end plus human-readable progress lines
 along the way, so a crash mid-way still leaves useful evidence in the log.
@@ -24,6 +26,13 @@ import sys
 import traceback
 
 os.environ.setdefault("TRITON_ALL_BLOCKS_PARALLEL", "1")
+
+# 进程内引擎（非多进程）：步骤 npu_memory_allocated_after_inference 要在本进程读到
+# 推理真实占用的 NPU 显存作为"没有静默回落 CPU"的证据；多进程引擎下 KV cache 与
+# 权重都在子进程里，父进程读到 0。只在未显式设置时生效，调用方仍可覆盖（覆盖后该
+# 步骤会退化为设备级查询，见下）。这是本脚本自身的取证需要，不是 shmem 解堵条件，
+# 故不写进 demo 运行环境的 compose。
+os.environ.setdefault("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
 
 result = {"steps": []}
 
@@ -93,7 +102,7 @@ def main():
         return 1
 
     # --- 5. real inference smoke test: Qwen/Qwen3-Embedding-0.6B via vllm-plugin-FL ---
-    model_path = os.environ.get("SMOKE_MODEL_PATH", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
+    model_path = os.environ.get("SMOKE_MODEL_PATH", "/workspace/models/Qwen3-Embedding-0.6B")
     try:
         from vllm import LLM
 
@@ -108,7 +117,12 @@ def main():
         record("llm_construct", True, {"model_path": model_path})
 
         prompts = ["Hello, my name is", "The FlagOS unified multi-chip backend runs vLLM on Ascend NPU."]
-        outputs = llm.encode(prompts)
+        # vLLM 0.20.2：LLM.encode() 必须显式传 pooling_task，且返回的
+        # PoolingOutput 只有 .data（torch.Tensor），没有 .embedding。LLM.embed()
+        # 就是 encode(pooling_task="embed") + EmbeddingOutput.from_base() 的封装，
+        # 返回 EmbeddingRequestOutput，其 .outputs.embedding 为 list[float]——
+        # 用它同时解决上述两处接口不兼容，且语义就是本步骤要的 embedding。
+        outputs = llm.embed(prompts)
 
         embeddings_summary = []
         for i, out in enumerate(outputs):
@@ -144,7 +158,27 @@ def main():
         # a real forward pass (rules out silent CPU fallback).
         try:
             npu_mem = torch.npu.memory_allocated()
-            record("npu_memory_allocated_after_inference", True, {"bytes": npu_mem, "nonzero": npu_mem > 0})
+            npu_reserved = torch.npu.memory_reserved()
+            detail = {
+                "bytes": npu_mem,
+                "reserved_bytes": npu_reserved,
+                "source": "torch.npu.memory_allocated (in-process engine)",
+            }
+            nonzero = npu_mem > 0 or npu_reserved > 0
+            if not nonzero:
+                # 调用方显式打开了多进程引擎：权重与 KV cache 在子进程，本进程的
+                # 分配器计数为 0。退回设备级查询（证据强度较弱，detail 中注明）。
+                free, total = torch.npu.mem_get_info(0)
+                used = total - free
+                detail.update({
+                    "source": "torch.npu.mem_get_info (multiprocess engine: "
+                              "parent allocator sees 0; device-level evidence is weaker)",
+                    "device_used_bytes": used,
+                    "device_total_bytes": total,
+                })
+                nonzero = used > 0
+            detail["nonzero"] = nonzero
+            record("npu_memory_allocated_after_inference", nonzero, detail)
         except Exception as e:
             record("npu_memory_allocated_after_inference", False, {"error": repr(e)})
 
