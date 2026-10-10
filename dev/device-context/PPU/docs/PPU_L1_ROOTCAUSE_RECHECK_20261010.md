@@ -1,4 +1,241 @@
-# L1 根因复核（平头哥 
+# L1 根因复核（平头哥 PPU · 2026-10-10 第二轮）
+
+> 起因：用户质疑「**可能你现在抓的问题依旧只是现象，而没找到根本原因**」。
+> 本文是对同日《同口径自审》§4 与提交 `a6fade3`（「id 键表改强持有」）的**独立复核**。
+> 复核方法：**不复用上一轮的观测方式** —— 先用代码逻辑与本机实验**证伪原根因**，
+> 再做**交替对照**的真机实验（A/B/A/B，排除时间漂移），并让探针在命中登记表时输出现场。
+>
+> **三句话结论**：
+> 1. ⚠️ **原「根因」解释不成立**（弱引用在对象已回收时 `holder()` 返回 `None`，身份复核**同样拦下**）；
+> 2. ✅ **但该改动不是无效的**：在**可复现的探针序列**下，**弱引用 5/5 FAIL · 强持有 5/5 OK**（交替跑）；
+> 3. 🔴 **真正的疑点已收敛到一处**：命中的登记条目里存的对象**就是那条默认流本身**（类型 `Stream`），
+>    而代码上 `_register_owned_stream` 的唯一调用点只登记 `ExternalStream` ⇒ **存在一条尚未定位的「默认流被登记」路径**。
+>    对外只能表述为「**L1 现象在可复现序列下已消除；根因未定位**」，**不得**说「已修复（根因＝持有器强度）」。
+>
+> 证据目录：`../probes/l1_fix_20261010_out/full/`（pre/post 完整 log+JSON）·
+> `../probes/l1_fix_20261010_out/repeat/`（审计 15+15 次）· `../probes/l1_recheck_20261010/out/`（探针 2+10 次、登记来源探针）。
+
+---
+
+## 1. 被复核的原结论
+
+1. `_owned_streams` 以 `id(native_stream)` 为键，归属判定只能靠 `holder() is native_stream`；
+2. 该表原先用**弱引用** ⇒ 对象被回收后 `id` 被新对象复用 ⇒ 误判为"本层拥有" ⇒ 越权销毁；
+3. 证据：修复前 4/4 FAIL（`71/1/6`）→ 修复后 8/8 PASS（`72/0/6`）；
+4. 处置：`base.py::_register_owned_stream` 由 `self._id_holder(...)`（弱引用）改为 `lambda: native_stream`（强持有）。
+
+---
+
+## 2. 第 1 步：证伪「弱引用 ⇒ 越权销毁」
+
+判定代码是**严格同一性**（`base.py` L503–L512）：
+
+```python
+reg = self._reg("_owned_streams")
+ent = reg.get(id(native_stream))
+if ent is None:
+    return False
+handle, holder = ent
+if holder() is not native_stream:      # ← 身份复核
+    return False
+```
+
+| 场景 | 弱引用（原实现） | 强持有（"修法"） |
+|---|---|---|
+| 命中条目且对象**存活** | `holder() is native` → 销毁 | 同左 |
+| 命中条目但对象**已回收** | `holder() is None` → **False，不销毁** | 该场景不会发生 |
+
+⇒ 「弱引用 ⇒ 越权销毁」**在代码上不成立**。
+
+### 2.1 本机判定实验（用真实 `base.py` 代码）
+
+`../probes/l1_recheck_20261010/local_idreuse_test2.py` —— 以弱引用登记、回收对象、
+**反复分配直到新对象拿到同一个 `id`**，再调**真实的** `release_stream()`：
+
+```
+登记: id(A)=0x10395fc50 holder 类型=ReferenceType
+回收后 holder() = None
+id 复用成功: id(B)=0x10395fc50 == id(A)
+release_stream(B) = False            ← 身份复核正确拦下
+场景二（同一对象，真拥有）: release_stream(C) = True   ← 判据有牙齿
+```
+
+> ⚠️ 首版误用 `object()` 做样本 —— 它**不可弱引用**（`weakref.ref` 抛
+> `TypeError: cannot create weak reference to 'object' object`），`_id_holder` 会走
+> `lambda: obj` 回退 ⇒ 样本取错。改用普通类实例后结论成立。
+
+---
+
+## 3. 第 2 步：交替对照（这一步**推翻了我自己的"修法无效"判断**）
+
+`../probes/l1_recheck_20261010/switch_holder.py` 就地切换那一行，**A/B 交替**跑（消除时间漂移）。
+
+### 3.1 审计路径（完整 78 项）
+
+| 版本 | 次数 | 结果 |
+|---|---|---|
+| 强持有 | 3 + 15 | **18/18 全部 `OK 72 / FAIL 0 / SKIP 6`** |
+| 弱引用（=「修复前」实现） | 3 + 15 | **18/18 全部 `OK 72 / FAIL 0 / SKIP 6`** |
+
+⇒ **审计路径下两版都不复现 FAIL** ⇒ 原「修复前 4/4 FAIL → 修复后 8/8 全绿」属**时间混淆**，
+不能作为修法有效的证据（这一点原判断成立）。
+
+### 3.2 探针路径（忠实序列 + 只在命中登记表时记录，`probe_l1_truth.py`）
+
+⭐ **交替跑 5 轮（弱/强相邻），结果完全分离**：
+
+| 版本 | L1 判定 | `[hits]`（命中的登记条目） |
+|---|---|---|
+| **弱引用 ×5** | **5/5 `[FAIL]`** | 每次都命中 **1 条**：`{type:"Stream", holder_kind:"ReferenceType", held_type:"Stream", held_is_native:true}` |
+| **强持有 ×5** | **5/5 `[OK]`** | **`[]`（从未命中任何条目）** |
+
+原始输出（`../probes/l1_recheck_20261010/out/ab_weak_1.log` 与 `ab_strong_1.log`）：
+
+```
+weak   [hits] [{"id": 140694913984320, "type": "Stream", "handle": 94472371533040,
+                "holder_kind": "ReferenceType", "held_type": "Stream", "held_is_native": true}]
+       [reg] [[140694914362944, "ReferenceType", null]]
+strong [hits] []
+```
+
+⇒ **两条结论**：
+1. ✅ **holder 强度确实有因果作用**（在该序列下）：`5/5 FAIL` vs `5/5 OK`，且是**交替**跑 ⇒ 不是时间漂移。
+2. ⚠️ **但原「根因」仍不成立**：hits 显示命中的条目里 `holder()` **有效**（返回对象而非 `None`），
+   且那个对象**就是 native 本身**（`held_is_native=true`）—— 这不是"同一 id 被复用"能解释的形态。
+
+---
+
+## 4. 🔴 第 3 步：疑点已收敛到「默认流被登记」
+
+### 4.1 现场事实
+
+hits 里三个字段放在一起看：
+
+| 字段 | 值 | 含义 |
+|---|---|---|
+| `type` | `Stream` | **L1 传给 `release_stream` 的对象**是默认路径的流（`torch.cuda.Stream()`） |
+| `held_type` | `Stream` | 登记条目里存的对象**也是 `Stream`** |
+| `held_is_native` | `true` | 两者是**同一个对象**（`is`） |
+| `holder_kind` | `ReferenceType` | 该条目用的是**弱引用**持有器，且**未失效**（对象存活） |
+
+⇒ 也就是说：**`_owned_streams` 里存在一条以「默认路径的流」为对象的登记条目。**
+
+### 4.2 与代码的矛盾
+
+全仓 `_owned_streams` 的**唯一写入点**是 `_register_owned_stream()`（`base.py` L485），
+其**唯一调用点**是三家后端的 `_create_stream_raw(priority=<int>)`；
+PPU 那一支（`backend.py` L482–L487）登记的 native 一律是 `torch.cuda.ExternalStream(...)`。
+
+⇒ **`Stream` 类型的对象不该出现在这张表里。**
+
+### 4.3 登记来源探针的结果（并暴露插桩扰动）
+
+`../probes/l1_recheck_20261010/probe_reg_trace.py`（对 `_register_owned_stream` 打点）输出：
+
+```
+[L1] FAIL :: release_stream(默认路径的流) 返回 True
+[REG ] register 调用（caller, 类型, id）:
+        ('_create_stream_raw', 'ExternalStream', 140322179458320)
+        ('_create_stream_raw', 'ExternalStream', 140322179820560)
+[NOTE] note_stream_created 调用数 = 19  类型集合 = ['ExternalStream', 'Stream']
+[表 ] _owned_streams 现存条目：
+       key=140322179820560 handle=94358942332192 holder=ReferenceType held_type=None
+```
+
+⇒ 加了这层插桩后，**登记记录里只有 `ExternalStream`**（2 次），但 **L1 仍 FAIL** ⇒
+说明插桩**改变了触发形态**（与 §3.2 的现场不一致）⇒ **该缺陷对扰动敏感，必须用"不插桩的现场"取据**。
+
+### 4.4 因此，下一步该查什么（不是"持有器强度"）
+
+1. **默认流的登记路径**：为什么 `torch.cuda.Stream()` 造出的对象会出现在 `_owned_streams`？
+   —— 建议在**临时分支**上给登记条目加"来源标记"（登记序号 + `type(native).__name__` + 调用者），
+   再跑探针序列；**该改动只用于诊断，不进产品代码**。
+2. **为什么审计序列不触发**：探针与审计的差异点（探针在 `bk.release_stream` 上做了一次实例属性替换）
+   ⇒ 需要确认"实例属性替换"本身是否改变行为（例如它使 `release_stream` 走 MRO 的方式不同）。
+3. `K6` 的"建两条优先级流且从不释放"是否与触发相关（它在两个路径下都存在，但只有探针路径报 FAIL）。
+
+---
+
+## 4.5 🔴 根因现场（第二轮续：已定位到**可修的点**）
+
+**决定性事实（同进程对齐，`../probes/l1_recheck_20261010/probe_l1_h.py`；弱引用实现）**：
+
+```
+[命中] key=139640986064992   native 类型=Stream
+       holder repr=<weakref at 0x7f00b34cfd80; to 'Stream' at 0x7f00b35ed860>   w() 返回 Stream
+       owned 键=[139640986064992, 139640985078816]
+[L1] FAIL :: release_stream(默认路径的流) 返回 True
+[register 调用栈全量] 共 2 次
+  id=139640986064992 type=ExternalStream   ← 第 1 次登记，**id 与命中 key 完全相同**
+  id=139640985078816 type=ExternalStream
+```
+
+三条事实合起来即可定案：
+
+1. 该 key 上的条目**是 `register` 为 `ExternalStream` 建的**（同进程、id 一致、类型 `ExternalStream`）；
+2. 命中时**同一地址**上的对象已经是 **`Stream`**（默认路径的流）⇒ **地址复用**；
+3. 而该条目的持有器 `weakref` **解析出了那个新 `Stream`**
+   （`key == weakref 目标 == native`，`repr` 为 `to 'Stream' at 0x…`，**非 dead**）。
+
+⇒ `holder() is native_stream` 复核**通过** ⇒ 误判「本层拥有」⇒ 真的调用 `cuStreamDestroy_v2` 并返回 `True`
+⇒ **越权销毁厂商流**（契约 §1.10 规则 2 禁止）。
+
+**量化**：弱引用实现 **5/5 FAIL**、强持有实现 **5/5 OK**（交替跑，见 §3.2）。
+**旁证**：条目里的 `handle` 与 native 的 `cuda_stream` **不是同一个值**
+（`0x556db73fc430` vs `0x556d83fe32f0`）⇒ 该条目确实是为**另一条流**登记的，只因地址相同才被命中。
+
+**⚠️ 机制细节仍有一处未解（如实登记）**：单独的最小实验
+（`../probes/l1_recheck_20261010/probe_weakref_dangling.py`、`probe_weakref_external.py`）显示
+`torch.cuda.Stream()` **与** `torch.cuda.ExternalStream(...)` 被回收后 weakref **都被正确置死**（`w() = None`）
+⇒ **"weakref 悬垂"这一假说被否证**。所以"现场那个 weakref 为何会解析出新对象"**没有第一性解释**；
+但**可修的点已明确**：`id()` 作键 + 任何形式的持有器复核，都**无法区分「同地址的不同对象」**。
+
+---
+
+## 4.6 ✅ 修复：加一道**与持有器机制无关**的「类型复核」
+
+**判据**：登记时的 `type(native).__name__` 必须与查询对象一致（`ExternalStream ≠ Stream`）。
+
+**实现**（`../../prototype/runtime/backends/base.py` 三处）：
+- `_register_owned_stream`：value 由 2 元组 → **3 元组** `(厂商句柄, 持有器, 登记类型名)`；
+- `_owned_handle` 与 `release_stream`：在身份复核之外**追加类型复核**。
+
+**为什么它能挡住**：类型复核**不依赖弱引用是否可靠、也不依赖对象是否被回收**
+⇒ 对"地址复用"**直接免疫**（本次是跨类型复用，类型名必然不同）。
+
+**验证**：
+
+| 项 | 结果 |
+|---|---|
+| 真机 · **弱引用**实现 + 类型复核 | **3/3 `[OK]`** —— `[hits]` **仍命中**（`held_type=Stream`）但判定为 `False` ⇒ **正是类型复核挡下** |
+| 真机 · 强持有 + 类型复核 | **3/3 `[OK]`**（`[hits]` 为空） |
+| 四家离线自检 | **无回归**：`ascend 90/0/1 · kunlun 108/0/1 · cambricon 97/0/0 · ppu 112→114/0/1` |
+| 新判据**非空转**（台账第 37 条） | 临时禁用类型复核 ⇒ 新判据立刻 **FAIL**（`owns_stream(_o)=True`）⇒ 恢复后 `114/0/1` |
+
+⇒ **两道防线互补，都不删**：
+- **类型复核**：挡住「**跨类型**地址复用」（本次现象）；
+- **强持有**：让「地址复用」这一前提**不发生** —— 对「**同类型**地址复用」是唯一防线。
+
+> 台账第 37 条已写入 `../../prototype/scripts/backend_offline_check.py`（离线可跑，无需设备）。
+
+---
+
+## 5. 处置结论（最终）
+
+1. ✅ **根因已定位到「可修的点」**：`_owned_streams` 以 `id(native)`（**内存地址**）为键，
+   登记对象被回收后地址被**另一种类型**的流对象复用；该条目的持有器**解析出了新对象**
+   ⇒ `holder() is native` 复核被绕过 ⇒ 误判「本层拥有」⇒ **越权销毁**（现场见 §4.5）。
+2. ✅ **已修复（机制无关）**：加「**类型复核**」——登记时记类型名、判定时要求一致
+   ⇒ 对"地址复用"**直接免疫**（实现与验证见 §4.6）。
+3. ✅ **强持有保留**（纵深防御）：让"地址复用"这一前提**不发生** —— 它是「**同类型**地址复用」的唯一防线。
+4. ⚠️ **诚实边界**：原「根因＝持有器强度」的**机制解释仍是错的**（弱引用在对象已死时返回 `None`）；
+   且"现场 weakref 为何解析出新对象"**无第一性解释**（最小实验否证了"悬垂"假说，见 §4.5 末）。
+   ⇒ 本次修复的定位是：**针对「可修的点」（跨类型复用）给出机制无关的判据**，
+   **不是**"解释清了全部机制"。
+5. 📌 **`L1` 标记为「已收口」（附机制无关判据 + 非空转验证）**；但**跨后端基类改动仍应补三台真机复跑**
+   （P800 / 910C / MLU590，已有 10-12 提醒）。
+6. 🧾 **历史处置记录（保留供追溯）**：本报告早期版本曾建议"回退该改动"（依据是"弱引用 3/3 全绿"），
+   该依据被**交替对照 5/5 vs 0/5** 推翻 ⇒ 建议已撤回；更早版本曾把根因写成"持有器强度" ⇒ 已更正。
 
 ---
 
