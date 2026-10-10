@@ -23,6 +23,7 @@ dev/images/
   image_list.md              # 索引：所有归档镜像的 tag / 层级视图 / repro_status / 链接（保持简洁）
   PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）
   .gitignore                 # 大文件与 *.local 护栏
+  CASE-TEMPLATE.md           # case 目录标准（§7）
   <name>/                    # 一个镜像血统一目录（去 registry 前缀与 tag 的稳定短名）
     v<N>/                    # 一个版本一目录，多版本共存
       Dockerfile             # 原始构造还原（逐字节复现目标；可能缺 owner 私有件）
@@ -86,3 +87,9 @@ dev/images/
 ## 6. 迁移前置
 
 把归档整套迁到新机器，需要：① 仓内配方（本目录，随 git）② 各 `ARCHIVE.md` 指向的离线包（三个 `docker save` tar.gz + `recovered/` 资产，当前在 raid 盘，不随 git）③ 上游可达（`harbor.baai.ac.cn` 的 **BAAI 内部** CANN 底座、`quay.io` 的**华为昇腾官方** vLLM 镜像）。三者缺一：缺 ② 退化到"从 ① + ③ 功能等价重建"；缺 ③ 且缺 ② 则阻塞。逐字节复现另需 owner 私有 FlagCX commit + patch（见 `TODO.md`）。
+
+## 7. Case 目录标准
+
+`v<N>/` 目录同时作为对外交付的 case 包(他组据此复现问题、验证修复)。目录构成、
+README 三段式(用途与现状 / 复现 / 验证)、脚本三分类(复现 / 验证 / 收数)与四条硬规则
+(单入口、外部依赖声明、验证脚本自判定、完整日志不进仓)见 [`CASE-TEMPLATE.md`](CASE-TEMPLATE.md)。
