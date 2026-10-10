@@ -1271,8 +1271,34 @@ def run(proto_dir, backend):
                         _reg[id(_b)] = _ent_b
                 bk.release_stream(_a)
                 bk.release_stream(_b)
+                # ── G) **跨类型**地址复用也不得越权销毁（台账第 37 条，2026-10-10）──
+                #
+                # 与 F 的差别：F 是「**同类型**对象的 id 复用」——靠身份复核 ① 就够了；
+                # 这里造的是「**不同类型**的对象复用同一地址」。真机实测（平头哥 PPU）：
+                # 登记的 `torch.cuda.ExternalStream` 回收后，默认路径的 `torch.cuda.Stream`
+                # 落在**同一地址**，而该条目的持有器**解析出了那个新对象**（现场：key ==
+                # weakref 目标 == native，5/5 复现）⇒ 仅靠 ① 会误判为「本层拥有」⇒
+                # `release_stream()` **越权销毁**并返回 `True`。
+                # ⇒ 必须靠**类型复核 ②**（登记时记类型名，判定时要求一致）。
+                # ⚠️ **非空转**：把 ② 去掉，本条即 FAIL（已实测）。
+                class _OtherStream:                 # 伪装另一种类型的流对象
+                    pass
+
+                _o = _OtherStream()
+                _ent_keep = _reg.get(id(_o))
+                _reg[id(_o)] = (_ent_a[0], lambda: _o, "ExternalStream")
+                try:
+                    check("跨类型地址复用：owns_stream 必须因**类型不符**而不认（第二道判据）",
+                          bk.owns_stream(_o) is False, f"owns_stream(_o)={bk.owns_stream(_o)}")
+                    _relo = bk.release_stream(_o)
+                    check("跨类型地址复用：release_stream **不得返回 True**（不得越权销毁）",
+                          _relo is False, f"release_stream(_o)={_relo!r}")
+                finally:
+                    _reg.pop(id(_o), None)
+                    if _ent_keep is not None:
+                        _reg[id(_o)] = _ent_keep
             except BaseException as e:                                    # noqa: BLE001
-                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用", False,
+                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用 / 跨类型复用", False,
                       f"{type(e).__name__}: {str(e)[:90]}")
         else:
             # 非驱动原语路径（**当前无实例**；cambricon 自 2026-10-08 起也走驱动 C API 口径）

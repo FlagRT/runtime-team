@@ -447,12 +447,31 @@ class RuntimeBackend(ABC):
             return lambda: obj
 
     def _owned_handle(self, native_stream):
-        """本层拥有 ⇒ 返回厂商句柄；否则 `None`。**按对象身份判定**（不看 id 复用）。"""
+        """本层拥有 ⇒ 返回厂商句柄；否则 `None`。**两道判据**（2026-10-10 加第 ② 道）。
+
+        ① **身份复核**：`holder() is native_stream` —— 挡住"同类型对象的 id 复用"；
+        ② **类型复核**：登记时的 `type(native).__name__` 必须与查询对象一致。
+
+        为什么必须加 ②（平头哥 PPU 真机实测，2026-10-10）
+        -------------------------------------------------
+        本表以 `id(native)`（**对象内存地址**）为键。登记对象一旦被回收，其地址可被
+        **另一种类型**的流对象复用：实测登记的是 `torch.cuda.ExternalStream`（优先级路径），
+        回收后默认路径的 `torch.cuda.Stream` 落在**同一地址**，而该条目的持有器**解析出了
+        那个新对象**（现场：`key == weakref 目标 == native`，5/5 复现）⇒ 仅靠 ① 会
+        **误判为「本层拥有」** ⇒ `release_stream()` 越权销毁厂商流并返回 `True`。
+
+        类型复核**与持有器机制无关**（不依赖弱引用是否可靠、也不依赖对象是否被回收），
+        故它是"地址复用"这类问题的**直接免疫**判据。
+        """
         ent = self._reg("_owned_streams").get(id(native_stream))
         if ent is None:
             return None
-        handle, holder = ent
-        return handle if holder() is native_stream else None
+        handle, holder, tname = ent
+        if holder() is not native_stream:
+            return None
+        if tname is not None and type(native_stream).__name__ != tname:
+            return None
+        return handle
 
     def _register_owned_stream(self, native_stream, handle) -> None:
         """登记「本层拥有、需显式释放」的流（`id(native)` → (厂商句柄, 身份持有器)）。
@@ -482,7 +501,10 @@ class RuntimeBackend(ABC):
         弱引用足够；本表误判的后果是**越权销毁**（不可恢复），故必须强持有。
         """
         try:
-            self._reg("_owned_streams")[id(native_stream)] = (int(handle), lambda: native_stream)
+            # ⚠️ value 是 **3 元组**（注意：不是 2 元组）：(厂商句柄, 持有器, 登记时的类型名)。
+            #    第 3 项是 **2026-10-10 加的「类型复核」依据**，见 `_owned_handle` 的说明。
+            self._reg("_owned_streams")[id(native_stream)] = (
+                int(handle), lambda: native_stream, type(native_stream).__name__)
         except Exception:                                     # noqa: BLE001
             pass
 
@@ -504,8 +526,9 @@ class RuntimeBackend(ABC):
         ent = reg.get(id(native_stream))
         if ent is None:
             return False
-        handle, holder = ent
-        if holder() is not native_stream:
+        handle, holder, tname = ent
+        if holder() is not native_stream or (
+                tname is not None and type(native_stream).__name__ != tname):
             # ⚠️ **id 被复用**：这条不是本层拥有的那条流 ⇒ 既**不得**越权销毁（契约 §1.10 规则 2），
             #    也**不得**报 True（返回值语义是"是否真的销毁了"）。原条目**保留在册**
             #    —— 它记录的是"有一条本层拥有的流被回收却没释放"这个**泄漏事实**，不掩盖。
