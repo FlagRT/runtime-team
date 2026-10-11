@@ -18,7 +18,7 @@ start_srv() {
   curl -sf localhost:$PORT/v1/models >/dev/null || { echo SERVER_NOT_READY; exit 1; }
 }
 stop_srv() { pkill -f "vllm serve" 2>/dev/null; sleep 8; }
-load() { python3 $HERE/gen-load_910c.py --port $PORT --model $NAME --out $OUT "$@"; }
+load() { python3 $HERE/gen-load_910c.py --port $PORT --model $NAME --out $OUT --tokenizer-path ${TOKENIZER:-$MODEL} "$@"; }
 
 case $STAGE in
   smoke)
@@ -38,7 +38,7 @@ case $STAGE in
     done
     # E: 完成×3轮 + 取消归还
     load --tag ${NAME}-E-done-r3 --prompt-tokens 128 --max-tokens 256 --concurrency 1 --rounds 3
-    load --tag ${NAME}-E-cancel --prompt-tokens 128 --max-tokens 4096 --concurrency 2 --rounds 1 --cancel-after 5
+    load --tag ${NAME}-E-cancel --prompt-tokens 128 --max-tokens 3000 --concurrency 2 --rounds 1 --cancel-after 5
     sleep 10
     load --tag ${NAME}-E-after-cancel-probe --prompt-tokens 32 --max-tokens 16 --concurrency 1 --rounds 1 --warmup 0
     stop_srv ;;
