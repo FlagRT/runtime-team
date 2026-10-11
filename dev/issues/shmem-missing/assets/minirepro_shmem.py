@@ -9,7 +9,7 @@ import triton.experimental.tle，该模块顶层经 experimental/tle/backends.py
 无条件 import shmem（experimental/tle/language/dsa/ascend/communication.py:6），
 而 shmem 不在镜像内。因此本 kernel 的编译即命中缺陷，与用哪个算子、是否加载模型无关。
 
-判定（统一约定见 dev/issues/README.md）：
+判定（统一三态口径见 dev/images/CASE-TEMPLATE.md §2 规则 3）：
   overall: PASS   退出码 0   kernel 编译通过且数值正确 -> 本环境不存在该缺陷
   overall: FAIL   退出码 1   编译失败于 No module named 'shmem' -> 缺陷复现（repro: CONFIRMED）
   overall: ERROR  退出码 2   其他失败或数值不符 -> 另一个问题，本脚本不下判定
