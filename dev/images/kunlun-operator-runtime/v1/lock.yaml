@@ -1,6 +1,10 @@
 # kunlun-operator-runtime / v1
 # 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
 
+superseded_by: v2   # 本目录配方与归档镜像的对应关系不成立，见 known_issues: v1-image-is-docker-commit-not-build
+# 归档镜像本身仍可用、其运行时验证结论仍成立；**从零重建请用 v2**（同组件集合与 pin，
+# 走正规 docker build）。本目录整体保留为历史记录，配方文件不再改动。
+
 image_tag: "flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
 image_id: "sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f"
 flagtree_line: >-
@@ -14,7 +18,16 @@ flagtree_line: >-
   无需源码编译。
 built_at: "2026-09-22"
 builder: "Docker 20.10.8 (BuildKit 未启用, DOCKER_BUILDKIT=0) / x86_64"
-repro_status: "🟢 functional-repro"   # 2026-09-22 实机构建 + pytest 真机验证，见 REBUILD.md（GEMM 已知崩溃不影响本判定，理由见下）
+# 注（2026-10-11）：本字段不可信——归档镜像并非 docker build 产物而是 docker commit
+# 产物（见 known_issues: v1-image-is-docker-commit-not-build）；此处记的版本号也与同
+# 文件 known_issues: docker-save-broken-on-this-host 记的本机 Docker Engine 29.1.3 不符。
+# 按历史记录原样保留，不臆测修正。v2 的 builder 字段以其自身实机构建记录为准。
+repro_status: "🟡 配方在手，未实机验证"   # 2026-10-11 由 🟢 降级，见 known_issues: v1-image-is-docker-commit-not-build
+# 原记述为「🟢 functional-repro — 2026-09-22 实机构建 + pytest 真机验证，见 REBUILD.md」。
+# pytest 真机验证本身成立（那是对归档镜像的实测，见 repro_result）；不成立的是"本目录
+# Dockerfile.repro 构建出了该镜像"这一条——归档镜像已查实为 docker commit 产物。按
+# README §5，🟢 = 「Dockerfile.repro + assets 已实机重建，且与原镜像比对通过」，本条目
+# 不满足；🟡 = 「配方在手，未实机验证」。
 
 recommended_default: >-
   本层同时包含训练（transformers+FlagCX）与推理（vLLM+vllm-plugin-fl）所需
@@ -29,13 +42,21 @@ recommended_default: >-
     反复被其他租户占用，应优先避开（见 REBUILD.md「GPU/机器纪律」）。
   消费前需知晓上述两条 + GEMM 编译崩溃 + `XPU_EVENT_KL3_ENABLE` 挂死共四条
   已知限制（见 known_issues）。
-  回退路径：本层是从 `parent_image`（官方基座）按 `Dockerfile.repro` 单向
-  构建而成，若本层不满足需求，基于 `parent_image` 自行按 `Dockerfile.repro`
-  的模式重建、更改 pin 后验证即可，不依赖本层。
+  回退路径：本层相对 `parent_image`（官方基座）只多一层（flagtree 安装 +
+  FlagGems 非 editable 重装）；但**归档镜像的实际产出方式是 `docker commit`，
+  不是按本目录 `Dockerfile.repro` 构建**（见 known_issues:
+  v1-image-is-docker-commit-not-build）。若本层不满足需求，基于 `parent_image`
+  按 `../v2/Dockerfile.repro`（已修正、已走正规 `docker build`）的模式重建、
+  更改 pin 后验证即可，不依赖本层。
 
 dockerfile: |
-  Dockerfile.repro = 唯一配方（从官方基座直接 pip/git 安装构建，无需从既有
-  镜像 docker history 还原）。build.sh 驱动。
+  Dockerfile.repro = 本目录唯一配方（从官方基座直接 pip/git 安装构建，无需从
+  既有镜像 docker history 还原）。build.sh 驱动。
+  **注（2026-10-11）**：该配方从未被实机验证能重建出本条目的归档镜像——归档镜像
+  是 docker commit 产物，且配方文本与当时的实际操作已漂移（FlagGems 源目录、
+  静态自检在无设备容器下不可通过）。证据与影响见 known_issues:
+  v1-image-is-docker-commit-not-build。配方文件按历史记录原样保留，可重建的配方
+  在 ../v2/Dockerfile.repro。
 
 parent_image:
   name: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base"
@@ -100,8 +121,12 @@ repro_result:
     `-e git+...@73c5aff1...#egg=flag_gems` 变为 `flag_gems @ file:///root/FlagGems`
     （同 commit，非 editable 重装，见上）；新增一行 `flagtree==0.6.1+xpu3.6`。
     其余 269 个包完全一致（含 torch/torchvision/torchaudio/pybind11 版本）。
-    判定依据见 README §5：关键包（torch/flagtree/flag_gems/triton）版本
-    逐一致，🟢 达标。基线文件见 assets/provenance/GOLDEN-pipfreeze-base-official.txt
+    **注（2026-10-11）**：该比对是"归档镜像 vs 官方基座"的差异记录，**不是**
+    "配方重建产物 vs 原镜像"的比对；原据此得出的 🟢 判定已撤销（见
+    known_issues: v1-image-is-docker-commit-not-build，其中 `flag_gems @
+    file:///root/FlagGems` 这一行本身就是该镜像非本配方产物的证据之一）。
+    关键包（torch/flagtree/flag_gems/triton）版本一致这一事实本身成立。
+    基线文件见 assets/provenance/GOLDEN-pipfreeze-base-official.txt
     与 assets/provenance/repro-pipfreeze.txt。
   device_verify: >-
     真机验证（P800，8× XPU，单卡 CUDA_VISIBLE_DEVICES=4，容器
@@ -157,6 +182,47 @@ repro_result:
     assets/provenance/infer-smoke-embed-requests.txt。
 
 known_issues:
+  - id: "v1-image-is-docker-commit-not-build"
+    description: >-
+      **本目录的归档镜像（`image_id` 为 `sha256:466ee5c617931f…`）不是由
+      `Dockerfile.repro` 构建的，而是一个 `docker commit` 产物**——2026-10-11
+      查实，五条独立证据：
+      ① `docker history` 显示该镜像只比 `parent_image` 多 1 层（27 层 vs 26 层），
+      且该层的 CREATED BY 是裸 `bash`。对照实验：本机真跑一次
+      `DOCKER_BUILDKIT=0 docker build`，history 渲染出的是 `/bin/sh -c true` 与
+      `/bin/sh -c #(nop) LABEL …`——证明"裸 bash"不是 history 的渲染差异，而是
+      `docker commit` 的特征。
+      ② 镜像内 `flag_gems` 的 pip `direct_url.json` 是
+      `{"dir_info": {}, "url": "file:///root/FlagGems"}`（本轮复核再次确认），
+      而 `Dockerfile.repro:39-42` 写的是从 `/env/FlagGems` 安装；`/root/FlagGems`
+      在 `parent_image` 里并不存在，该路径不可能由本配方产生。
+      ③ `Dockerfile.repro:45-52` 的静态自检 `import flag_gems` 在无设备容器里
+      必然失败（`RuntimeError: No device were detected on your machine !`），而
+      `DOCKER_BUILDKIT=0 docker build` 无法传 `--device`——该 RUN 层在普通构建
+      流程中不可能通过。
+      ④ 漂移痕迹本就留在本目录自身的文本里：`lock.yaml:115-117` 的
+      `repro_result.pip_freeze_diff_vs_base` 已记 `flag_gems @ file:///root/FlagGems`，
+      `REBUILD.md:70,96,119` 也多处写 `/root/FlagGems`（含 `/root/FlagGems/tests`）
+      ——说明这是配方文本与实际操作之间的漂移，不是一次观测错误。
+      ⑤ `docker save` 对本镜像只导出 manifest/config blob、**零 layer blob**；而
+      对 registry 拉取的镜像（`python:3.10-slim`，47MB / 12 blob）与本机
+      `docker build` 产出的镜像（66MB / 8 blob）`docker save` 均正常——"docker
+      save 坏了"是 `docker commit` 的下游后果，不是宿主 containerd snapshotter
+      缺陷（见 known_issues: docker-save-broken-on-this-host，该条原诊断已被证伪）。
+      按 `dev/images/README.md` §5 对 🟢 的定义（`Dockerfile.repro` + `assets`
+      已实机重建且与原镜像比对通过），本条目的 🟢 判定不成立，`repro_status`
+      2026-10-11 降为 🟡。
+    impact: >-
+      归档镜像可用，且其运行时行为的全部验证结论仍然成立——FlagGems pytest
+      **771 passed**、训练 smoke **`TRAIN_LEG_PASS 6/6`**、推理 smoke **PASSED**，
+      以及其余四条 known_issues 记录的现象，都是对**这个镜像**的实测，与它由何种
+      方式产出无关。不成立的只有一条："该配方能重建出这个镜像"。**从零重建请用
+      v2**（`../v2/`，组件集合与 pin 与本条目完全相同——flagtree `0.6.1+xpu3.6`
+      + FlagGems `73c5aff1e304c293ab525ecb03e9449644496fbb`——配方已修正为
+      `COPY src/FlagGems/` 自备构建上下文、静态自检改为无设备可跑，并走正规
+      `docker build`）。本目录的 `Dockerfile.repro` / `build.sh` / `REBUILD.md` /
+      `ARCHIVE.md` / `assets/**` 一律不改，作为历史记录保留；配方漂移的事实只记
+      在本条目。
   - id: "gemm-compile-sigabrt"
     description: >-
       FlagGems 的 GEMM 类算子（mm/bmm/addmm）在本 pin 组合
@@ -180,9 +246,9 @@ known_issues:
       当前无可用 workaround（官方发布栈用 triton 3.0.0 线可绕开，
       但那是另一条不同的版本线，不在本条目复现范围内）。
     impact: >-
-      不影响本条目 repro_status 判定为 🟢——入档门槛（README §5）要求的是
-      "配方可重建 + 关键包版本对齐基线"，GEMM 崩溃是**镜像内容本身的真实
-      运行时行为**且已被证据完整记录，不是"配方未验证"。消费方（阶段3
+      本条**不是** repro_status 降为 🟡 的原因（降级原因见 known_issues:
+      v1-image-is-docker-commit-not-build）——GEMM 崩溃是**镜像内容本身的真实
+      运行时行为**且已被证据完整记录，该结论在降级后依然成立。消费方（阶段3
       推理链路，需要 GEMM 重的模型/算子路径）在引用本镜像前必须知晓此
       限制；是否需要等上游修复、切换 triton 版本线或寻找 workaround，
       由消费方文档/总组裁定，不在本目录职责内。
@@ -251,7 +317,27 @@ known_issues:
       修复 flagtree/FlagGems 使 flagos 路径在该 pin 组合下可用，不在本目录
       职责范围内。
   - id: "docker-save-broken-on-this-host"
+    # 2026-10-11：**本条原诊断（归因于宿主存储后端）已被证伪**，真实原因是归档镜像
+    # 为 docker commit 产物，见 known_issues: v1-image-is-docker-commit-not-build。
+    # 原记述保留在 description 末尾，便于追溯当时的判断依据。
     description: >-
+      **现象成立、诊断已被证伪。**现象：`docker save` 对本镜像只导出
+      manifest/config blob，不导出任何 layer blob，产出的 tar 仅 ~14KB，
+      `docker load` 该 tar 会因 blob 缺失而无法正确重建镜像。
+      **2026-10-11 证伪对照组**：同一宿主上，registry 拉取的镜像
+      （`python:3.10-slim`，`docker save` 产出 47MB / 12 blob）与本机
+      `DOCKER_BUILDKIT=0 docker build` 产出的镜像（66MB / 8 blob）`docker save`
+      **均正常**——因此这不是"本机 containerd snapshotter 后端的缺陷"。真实原因：
+      本镜像是 `docker commit` 产物（证据见 known_issues:
+      v1-image-is-docker-commit-not-build 的 ①②③④），`docker save` 取不到其
+      layer blob 是该产出方式的下游后果。
+      原记述中"对未改动的基座官方镜像均如此"一句与上述对照组结论相抵，本轮未重新
+      验证基座镜像，如实保留并标注**待复核**。
+      **不受影响的事实**：本条目的离线归档本来就改用 `docker export`（导出容器
+      展平后的 rootfs 单层 tar）+ 手工在 `docker import --change` 里重放
+      ENV/CMD/WORKDIR/LABEL 以保留功能等价性，`ARCHIVE.md` 的这套用法说明**仍然
+      有效**，与本次诊断更正无关。
+      ---- 以下为 2026-09-22 原记述（诊断部分已被证伪，仅存档）----
       本机 Docker Engine 29.1.3 + containerd snapshotter 存储后端
       （`docker info` 显示 `driver-type: io.containerd.snapshotter.v1`）
       下，`docker save`（对本镜像、对未改动的基座官方镜像均如此，非本
@@ -263,7 +349,11 @@ known_issues:
       这是本机 Docker 环境的缺陷，不是镜像本身的问题；换一台不用
       containerd snapshotter 后端的机器上 `docker save`/`docker load`
       预期正常。
-    impact: "ARCHIVE.md 的 docker load 用法一节实际是 docker import 用法，已注明差异及原因。"
+    impact: >-
+      `ARCHIVE.md` 的 docker load 用法一节实际是 `docker import` 用法，已注明差异
+      及原因——该用法说明不受本次更正影响，仍然有效。更正后的影响面变化：不能再据
+      本条推断"换一台机器 `docker save` 本镜像就正常"（镜像是 `docker commit`
+      产物，换机器同样取不到 layer blob）；需要可 `docker save` 的镜像请用 v2。
 
 changelog:
   - date: "2026-09-22"
@@ -283,3 +373,17 @@ changelog:
       定稿：训练/推理均可用，各自一条使用前提（推理需
       `VLLM_FL_PREFER=vendor`；训练需按共享机纪律选卡、避开历史占用记录较多
       的卡 1，见 REBUILD.md「GPU/机器纪律」）。
+  - date: "2026-10-11"
+    what: >-
+      **事实更正：`repro_status` 🟢 → 🟡**，顶部加 `superseded_by: v2`。依据：查实
+      本目录归档镜像（`sha256:466ee5c617931f…`）是 `docker commit` 产物，而非
+      `Dockerfile.repro` 的构建结果，五条独立证据见新增的 known_issues:
+      v1-image-is-docker-commit-not-build；按 `dev/images/README.md` §5，🟢 要求
+      "`Dockerfile.repro` + `assets` 已实机重建且与原镜像比对通过"，该条不成立，
+      改按 §5 的 🟡 口径"配方在手，未实机验证"记录。同时**修正** known_issues:
+      docker-save-broken-on-this-host——现象保留，但"宿主 containerd snapshotter
+      缺陷"这一诊断被对照组证伪（registry 拉取镜像与本机 `docker build` 产物
+      `docker save` 均正常），真实原因是 `docker commit`；原记述存档保留。
+      镜像运行时行为的既有验证结论（771 passed、训练 6/6、推理 PASSED）不受影响，
+      仍然成立。未改本目录 `Dockerfile.repro` / `build.sh` / `REBUILD.md` /
+      `ARCHIVE.md` / `BACKUP.local` / `assets/**`（历史记录）。从零重建用 `../v2/`。

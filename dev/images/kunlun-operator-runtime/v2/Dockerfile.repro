@@ -1,0 +1,80 @@
+# kunlun-operator-runtime / v2
+# 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
+# 基座为 BAAI·FlagTree 官方发布的预构建镜像（公开 harbor，非本组产物）。
+#
+# 与 v1 的关系：组件集合与 pin 完全相同（flagtree 0.6.1+xpu3.6 + FlagGems @73c5aff1），
+# v2 只改配方形态，使其落在 dev/ENV-SPEC.md §4.2 的判定规则内、可被 baseline.py 机器核对：
+#   ① FlagGems 改为 COPY src/FlagGems/ 自备构建上下文（§4.2 模式 1），不再依赖父镜像内
+#      /env/FlagGems 这个本仓无法寻址、无法核验的可变源码目录（v1 的做法，见 v1/lock.yaml
+#      known_issues: v1-image-is-docker-commit-not-build）。commit 锚由宿主 checkout +
+#      ARG + 镜像标签三方成立。
+#   ② flagtree 保持 pip 索引预编译 wheel（§4.2 模式 6），版本锚由
+#      ARG == LABEL == 镜像内实装 dist 版本三方核对，无 commit（记在 baked_packages[]）。
+#   ③ 静态自检改为无设备可跑：import flag_gems 需要真实 XPU 设备，而 docker build
+#      不能传 --device，v1 配方的自检层在普通构建中不可能通过。
+#
+# 不含 vLLM/vllm-plugin-FL/FlagCX 等消费方组件——父基座已内置（均为 editable，源码在镜像内，
+# 按 §2.1 记为固化资产 install: editable-in-image），本层不新增。
+
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
+FROM ${BASE_IMAGE}
+
+# conda 基座：PYTHON_BIN 是目标 env 解释器的绝对路径，所有 pip 安装经它直达目标 env。
+# 不用 conda activate——PATH 上的 python3 是 miniconda base 的 3.13.11，不是目标 env；
+# baseline.py 读镜像内 pip 元数据时也以这个 ARG 为入口（§4.2 模式 3）。
+ARG PYTHON_BIN=/root/miniconda/envs/python310_torch29_cuda/bin/python3
+ARG FLAGTREE_VERSION=0.6.1+xpu3.6
+ARG FLAGTREE_INDEX_URL=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+ARG FLAG_GEMS_COMMIT=73c5aff1e304c293ab525ecb03e9449644496fbb
+
+LABEL org.opencontainers.image.title="FlagRT Kunlun operator runtime" \
+      org.opencontainers.image.version="2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64" \
+      io.flagrt.python.version="3.10.18" \
+      io.flagrt.flagtree.version="${FLAGTREE_VERSION}" \
+      io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# --- flagtree（§4.2 模式 6：pip 索引预编译 wheel，版本 pin，无 commit） ---
+# 基座本身不含 triton/flagtree，无法编译/运行 FlagGems 的 triton 后端。
+# --no-deps 是必须的：不加会让 pip 解析 torch 的可选依赖，拉起 PyPI 通用 triton==3.5.0
+# 覆盖 flagtree 提供的 triton/ 命名空间，冲掉 xpu 编译后端
+# （见 v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing）。
+# 注：该 wheel ~3.3GB，经代理下载易 IncompleteRead 中断，构建期建议直连（见 REBUILD.md）。
+RUN ${PYTHON_BIN} -m pip install --no-deps "flagtree===${FLAGTREE_VERSION}" \
+      --index-url=${FLAGTREE_INDEX_URL}
+
+# --- FlagGems（§4.2 模式 1：COPY 构建上下文 + 非 editable pip install） ---
+# 构建上下文由 build.sh 从宿主 checkout 按 ARG FLAG_GEMS_COMMIT 做 git archive 自备，
+# 只含已提交内容。安装为非 editable，覆盖父基座的 /env/FlagGems editable 安装，
+# 使镜像不依赖任何可变源码目录。--no-deps 同上（其余依赖基座已满足）。
+COPY src/FlagGems/ /opt/flagrt/src/FlagGems/
+RUN cd /opt/flagrt/src/FlagGems \
+    && ${PYTHON_BIN} -m pip install --no-deps .
+
+# --- 静态自检：全部无设备可跑（docker build 不能传 --device） ---
+# 不 import flag_gems：它在无 XPU 设备的容器里必抛
+# "RuntimeError: No device were detected on your machine !"。
+# 决定性断言是 from triton._C.libtriton import xpu —— 若 PyPI 通用 triton 覆盖了
+# flagtree 的 triton/ 目录，这一句即 ImportError。
+#
+# 版本比较一律经 packaging 的 PEP 440 归一化，不比裸字符串：同一个版本在不同 setuptools
+# 下写出的 Version 字段形态不同（FlagGems 的 4.2.1.rc.0 与 4.2.1rc0 是同一版本，
+# 父基座的 editable 安装记作后者、本层重装记作前者），裸字符串比较会误判。
+RUN ${PYTHON_BIN} -c "\
+import importlib.metadata as m, json; \
+from packaging.version import Version as V; \
+assert V(m.version('flagtree')) == V('${FLAGTREE_VERSION}'), m.version('flagtree'); \
+assert V(m.version('flag_gems')) == V('4.2.1.rc.0'), m.version('flag_gems'); \
+import triton; \
+assert V(triton.__version__) == V('3.6.0'), triton.__version__; \
+from triton._C.libtriton import xpu; \
+d = json.loads(m.distribution('flag_gems').read_text('direct_url.json') or '{}'); \
+assert not (d.get('dir_info') or {}).get('editable'), d; \
+import torch; \
+print('static check OK:', torch.__version__, m.version('flagtree'), m.version('flag_gems'), triton.__version__)"
+
+# 源码目录在安装后即删除：镜像内不留可变源码（版本事实由 commit 标签 + image id 承载）。
+RUN rm -rf /opt/flagrt/src /root/.cache/pip
+
+WORKDIR /root

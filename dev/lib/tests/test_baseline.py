@@ -292,8 +292,22 @@ RUN ${PYTHON_BIN} -m pip install -e /opt/src/FlagGems
         with self.assertRaises(baseline.BaselineError):
             baseline.analyze_dockerfile(d)
 
-    def test_pip_install_from_index_errors(self):
+    def test_pip_install_from_index_without_index_url_errors(self):
+        # §4.2 模式 6 要求写出来源索引：版本 pin 住了，但「从哪个索引装的」也是版本事实
         d = self.image_dir(DF_HEAD + "RUN ${PYTHON_BIN} -m pip install flagtree==0.4.0\n")
+        with self.assertRaises(baseline.BaselineError) as cm:
+            baseline.analyze_dockerfile(d)
+        self.assertIn("--index-url", str(cm.exception))
+
+    def test_pip_install_from_index_unpinned_errors(self):
+        d = self.image_dir(DF_HEAD + "RUN ${PYTHON_BIN} -m pip install flagtree -i http://idx/s\n")
+        with self.assertRaises(baseline.BaselineError) as cm:
+            baseline.analyze_dockerfile(d)
+        self.assertIn("未固定版本", str(cm.exception))
+
+    def test_pip_install_local_path_not_registered_still_errors(self):
+        # 带路径特征的目标仍走原来的报错分支，不被模式 6 吞掉
+        d = self.image_dir(DF_HEAD + "RUN ${PYTHON_BIN} -m pip install /opt/somewhere\n")
         with self.assertRaises(baseline.BaselineError) as cm:
             baseline.analyze_dockerfile(d)
         self.assertIn("未登记为固化 repo", str(cm.exception))
@@ -713,6 +727,330 @@ class TestInfoBlock(TempCase):
     def test_info_branch_hint_fallback(self):
         info = baseline.repo_info("FlagGems", "d" * 40, branch_hint="triton_v3.5.x")
         self.assertEqual(info, {"branch": "triton_v3.5.x"})
+
+
+# --------------------------------------------------------------------------
+# §4.2 模式 6（pip 索引发行包）与无 commit 资产的版本锚 —— 昆仑芯接入带出来的规则
+# --------------------------------------------------------------------------
+
+KL_DF = """ARG BASE_IMAGE=ext/kbase:1
+FROM ${BASE_IMAGE}
+ARG PYTHON_BIN=/opt/conda/envs/py310/bin/python3
+ARG FLAGTREE_VERSION=0.6.1+xpu3.6
+ARG FLAGTREE_INDEX_URL=https://idx.example/simple
+LABEL io.flagrt.flagtree.version="${FLAGTREE_VERSION}"
+RUN ${PYTHON_BIN} -m pip install --no-deps "flagtree===${FLAGTREE_VERSION}" \\
+      --index-url=${FLAGTREE_INDEX_URL}
+"""
+
+
+class TestIndexPackagePattern(TempCase):
+    """§4.2 模式 6：pip install <pkg>===<version>，版本锚取代 commit 锚。"""
+
+    def _report(self, installed_flagtree="0.6.1+xpu3.6", **kw):
+        r = {"python_version": "3.10.18",
+             "versions": {"torch": "2.9.0+cu129", **kw.pop("versions", {})},
+             "editables": {}, "base_files": {}}
+        if installed_flagtree:
+            r["versions"]["flagtree"] = installed_flagtree
+        r.update(kw)
+        return r
+
+    def test_recipe_records_package_with_version_and_index(self):
+        r = baseline.analyze_dockerfile(self.image_dir(KL_DF))
+        pkg = r.packages["flagtree"]
+        self.assertEqual(pkg["version"], "0.6.1+xpu3.6")
+        self.assertEqual(pkg["index_url"], "https://idx.example/simple")
+        self.assertEqual(pkg["install"], "pip (index wheel, --no-deps)")
+        self.assertEqual(r.repos, {})          # 不是 repo，不进 baked_repos
+
+    def test_index_url_as_separate_token_is_not_a_second_target(self):
+        """G10：`-i <url>` 的取值不能被当成第二个安装目标。"""
+        d = self.image_dir(KL_DF.replace('--index-url=${FLAGTREE_INDEX_URL}',
+                                         '-i ${FLAGTREE_INDEX_URL}'))
+        self.assertEqual(baseline.analyze_dockerfile(d).packages["flagtree"]["index_url"],
+                         "https://idx.example/simple")
+
+    def test_export_writes_baked_packages_block(self):
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/usr/bin"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=self._report()):
+            self.assertEqual(baseline.export_image(d), 0)
+        data = baseline.load_yaml(d / "image.baseline.yaml")
+        self.assertEqual(data["baked_repos"], {})
+        pkg = data["baked_packages"][0]
+        self.assertEqual(pkg["name"], "flagtree")
+        self.assertEqual(pkg["version"], "0.6.1+xpu3.6")
+        self.assertEqual(pkg["layer"], "L2")           # LAYER 表里登记过
+        self.assertEqual(pkg["index_url"], "https://idx.example/simple")
+        self.assertIn("io.flagrt.flagtree.version", pkg["pin"])
+        self.assertNotIn("sha256", pkg)
+
+    def test_export_fails_when_image_label_version_differs(self):
+        """G14：版本锚标签与 ARG 不一致要报错（此前版本类 LABEL 完全不参与核对）。"""
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.7.0rc3+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=self._report()):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_image(d)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("交叉核对失败", str(cm.exception))
+
+    def test_export_fails_when_installed_version_differs(self):
+        """第三条边：镜像内实装 dist 版本与标签/ARG 不一致要报错。"""
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "image_python_report",
+                               return_value=self._report(installed_flagtree="0.5.0+xpu3.6")):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_image(d)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("实装版本", str(cm.exception))
+
+    def test_export_fails_when_package_absent_from_image(self):
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "image_python_report",
+                               return_value=self._report(installed_flagtree=None)):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_image(d)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("未安装", str(cm.exception))
+
+    def test_unregistered_package_points_at_where_to_register(self):
+        d = self.image_dir(KL_DF.replace("flagtree", "mystery"), tag="flagrt/kl:2")
+        with mock.patch.object(baseline, "inspect_image", fake_inspect({}, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=self._report()):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_image(d)
+        self.assertIn("VERSION_LABEL", str(cm.exception))
+
+    def test_check_image_verifies_version_label(self):
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=self._report()):
+            self.assertEqual(baseline.export_image(d), 0)
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])):
+            self.assertEqual(baseline.check_image(d), 0)
+        # 标签漂了：check 必须 FAIL，而不是「无 commit 标签，跳过」
+        with mock.patch.object(baseline, "inspect_image",
+                               fake_inspect({"io.flagrt.flagtree.version": "9.9.9"},
+                                            env=["PATH=/x"])):
+            self.assertEqual(baseline.check_image(d), 1)
+        # 标签整个丢了：同样 FAIL —— 它是该资产唯一的版本锚
+        with mock.patch.object(baseline, "inspect_image", fake_inspect({}, env=["PATH=/x"])):
+            self.assertEqual(baseline.check_image(d), 1)
+
+    def test_check_image_accepts_base_image_commit_without_label(self):
+        """基座继承来的 commit 取自 pip 元数据，本来就没有标签可核对 -> INFO，不是 FAIL。
+
+        昇腾 v3 的 vllm 条目正是这个形状（from: base_image + commit + 无标签）；把它当
+        FAIL 会让昇腾侧 check 从 PASS 变 FAIL。"""
+        d = self.image_dir(DF_HEAD, name="img3")
+        (d / "image.baseline.yaml").write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/img3:1", "id": "sha256:" + "a" * 64},
+            "baked_repos": {"vllm": {"layer": "L3", "from": "base_image", "commit": "c" * 40,
+                                     "install": "editable-in-image"}},
+        }), encoding="utf-8")
+        with mock.patch.object(baseline, "inspect_image", fake_inspect({})):
+            self.assertEqual(baseline.check_image(d), 0)
+
+    def test_check_image_fails_when_commit_label_lost(self):
+        """G13：基线记了 commit 但镜像没有该标签时，不能再以 INFO「跳过」放过。"""
+        d = self.image_dir(DF_HEAD, name="img2")
+        (d / "image.baseline.yaml").write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/img2:1", "id": "sha256:" + "a" * 64},
+            "baked_repos": {"FlagGems": {"layer": "L2", "from": "img2/v3 Dockerfile.repro(...)",
+                                         "commit": "3" * 40,
+                                         "install": "pip (non-editable)"}},
+        }), encoding="utf-8")
+        with mock.patch.object(baseline, "inspect_image", fake_inspect({})):
+            self.assertEqual(baseline.check_image(d), 1)
+
+    def test_package_cannot_be_a_mounted_repo_key(self):
+        """G17：索引发行包不可下放为挂载资产。"""
+        img = self.tmp / "image.baseline.yaml"
+        img.write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/kl:2", "id": "sha256:" + "a" * 64},
+            "baked_repos": {},
+            "baked_packages": [{"name": "flagtree", "layer": "L2", "version": "0.6.1+xpu3.6"}],
+        }), encoding="utf-8")
+        env = self.tmp / "demo"
+        env.mkdir()
+        (env / "docker-compose.yml").write_text("""services:
+  dev: {image: 'flagrt/kl:2'}
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos:
+    flagtree: {activation: pip-editable}
+""", encoding="utf-8")
+        with mock.patch.object(baseline, "compose_binds", return_value=[]):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_env(env)
+        self.assertIn("不可下放", str(cm.exception))
+
+    def test_env_export_copies_baked_packages(self):
+        img = self.tmp / "image.baseline.yaml"
+        img.write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/kl:2", "id": "sha256:" + "a" * 64},
+            "baked_repos": {},
+            "baked_packages": [{"name": "flagtree", "layer": "L2", "version": "0.6.1+xpu3.6"}],
+        }), encoding="utf-8")
+        env = self.tmp / "demo"
+        env.mkdir()
+        (env / "docker-compose.yml").write_text("""services:
+  dev: {image: 'flagrt/kl:2'}
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {}
+""", encoding="utf-8")
+        with mock.patch.object(baseline, "compose_binds", return_value=[]):
+            self.assertEqual(baseline.export_env(env), 0)
+        data = baseline.load_yaml(env / "env.baseline.yaml")
+        self.assertEqual(data["baked_packages"][0]["version"], "0.6.1+xpu3.6")
+        self.assertEqual(data["mounted_repos"], {})
+
+
+class TestBaseImageFacts(TempCase):
+    """父基座事实的取数：声明式探针表 + pip 发行名归一化（原先全是昇腾专属硬编码）。"""
+
+    def _export(self, report, labels=None, env=None, df=None):
+        d = self.image_dir(df or DF_HEAD, tag="my/img:1")
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels or {}, env=env)), \
+             mock.patch.object(baseline, "image_python_report", return_value=report), \
+             mock.patch.object(baseline, "repo_info", return_value=None):
+            self.assertEqual(baseline.export_image(d), 0)
+        return baseline.load_yaml(d / "image.baseline.yaml")
+
+    def test_file_probe_supplies_l1_versions(self):
+        """G6：昆仑芯的 L1 版本事实在镜像内文件里，不在任何环境变量里。"""
+        data = self._export({
+            "python_version": "3.10.18", "versions": {"torch": "2.9.0+cu129"}, "editables": {},
+            "base_files": {"torch_xmlir/_versions.txt":
+                           "XTDK: 3.6.0.1\nXRE: 5.13.0.0\nXCCL: 20260209_9\nOTHER: x\n"},
+        }, env=["PATH=/usr/bin"])
+        provides = data["base_image"]["provides"]
+        self.assertEqual(provides["xtdk"], "3.6.0.1")
+        self.assertEqual(provides["xre"], "5.13.0.0")
+        self.assertEqual(provides["xccl"], "20260209_9")
+        self.assertNotIn("cann", provides)      # 昆仑芯没有 CANN
+        self.assertNotIn("other", provides)     # 未登记的键不收录
+
+    def test_env_probe_still_supplies_cann(self):
+        """昇腾路径不回归：CANN 仍从 ASCEND_TOOLKIT_HOME 取。"""
+        data = self._export({"python_version": "3.11.15",
+                             "versions": {"torch": "2.10.0+cpu", "torch_npu": "2.10.0"},
+                             "editables": {}, "base_files": {}})
+        self.assertEqual(data["base_image"]["provides"]["cann"], "9.0.0")
+        self.assertEqual(data["base_image"]["provides"]["torch_npu"], "2.10.0")
+
+    def test_provides_covers_more_packages(self):
+        """G7：provides 的包白名单不再只有 torch/torch_npu/vllm。"""
+        data = self._export({
+            "python_version": "3.10.18", "editables": {}, "base_files": {},
+            "versions": {"torch": "2.9.0+cu129", "torchvision": "0.24.0+cu129",
+                         "torchaudio": "2.9.0+cu129", "xmlir": "1.0"},
+        }, env=["PATH=/usr/bin"])
+        provides = data["base_image"]["provides"]
+        self.assertEqual(provides["torchvision"], "0.24.0+cu129")
+        self.assertEqual(provides["torchaudio"], "2.9.0+cu129")
+        self.assertEqual(provides["xmlir"], "1.0")
+
+    def test_editable_dist_name_is_normalised_to_repo_name(self):
+        """G5：pip 发行名 flag_gems 要归一成仓库名 FlagGems，层级表才认得出 L2。"""
+        data = self._export({
+            "python_version": "3.10.18", "versions": {"flag_gems": "4.2.1rc0"},
+            "base_files": {},
+            "editables": {"flag_gems": {"source": "file:///env/FlagGems", "commit": "7" * 40}},
+        }, env=["PATH=/usr/bin"])
+        self.assertIn("FlagGems", data["baked_repos"])
+        self.assertNotIn("flag_gems", data["baked_repos"])
+        self.assertEqual(data["baked_repos"]["FlagGems"]["layer"], "L2")
+        self.assertEqual(data["baked_repos"]["FlagGems"]["commit"], "7" * 40)
+        self.assertEqual(data["baked_repos"]["FlagGems"]["source_path"], "/env/FlagGems")
+
+    def test_editable_without_commit_records_unavailable_not_null(self):
+        """G2：取不到 commit 要显式 unavailable，不能静默写 null。"""
+        data = self._export({
+            "python_version": "3.10.18", "versions": {"vllm_fl": "0.1.0"}, "base_files": {},
+            "editables": {"vllm_fl": {"source": "file:///env/xvllm-plugin-FL", "commit": None}},
+        }, env=["PATH=/usr/bin"])
+        entry = data["baked_repos"]["vllm_fl"]
+        self.assertEqual(entry["commit"], "unavailable")
+        self.assertEqual(entry["install"], "editable-in-image")
+        self.assertNotIn("version: null", (self.tmp / "dev/images/img/v3/image.baseline.yaml")
+                         .read_text(encoding="utf-8"))
+
+    def test_subdirectory_fragment_keeps_commit(self):
+        """G3：`#egg=flagcx&subdirectory=plugin/torch` 此前整行不匹配，commit 被吞掉。"""
+        def _run(*args):
+            if args[:2] == ("-m", "pip") and args[2] == "inspect":
+                return json.dumps({"installed": [{"metadata": {"name": "flagcx",
+                                                               "version": "0.1"},
+                                                  "direct_url": {"url": "file:///env/FlagCX",
+                                                                 "dir_info": {"editable": True}}}],
+                                   "environment": {"python_full_version": "3.10.18"}})
+            return ("-e git+https://github.com/flagos-ai/FlagCX.git@" + "3" * 40
+                    + "#egg=flagcx&subdirectory=plugin/torch\n")
+
+        with mock.patch.object(baseline.subprocess, "run") as m:
+            m.side_effect = lambda cmd, **kw: mock.Mock(
+                returncode=0, stdout=_run(*cmd[cmd.index("ext/base:1") + 1:]), stderr="")
+            report = baseline.image_python_report("ext/base:1", "/usr/bin/python3")
+        self.assertEqual(report["editables"]["flagcx"]["commit"], "3" * 40)
+        self.assertEqual(report["editables"]["flagcx"]["package_subdir"], "plugin/torch")
+
+    def test_this_layer_supersedes_inherited_same_name_asset(self):
+        """G4：父基座 editable 装了 FlagGems，本层又 COPY 固化同名资产 -> 只留一条 + 留痕。"""
+        df = (DF_HEAD + """ARG FLAG_GEMS_COMMIT=%s
+LABEL io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}"
+COPY src/FlagGems/ /opt/src/FlagGems/
+RUN ${PYTHON_BIN} -m pip install --no-deps /opt/src/FlagGems
+""" % ("4" * 40))
+        data = self._export({
+            "python_version": "3.10.18", "versions": {"flag_gems": "4.2.1rc0"},
+            "base_files": {},
+            "editables": {"flag_gems": {"source": "file:///env/FlagGems", "commit": "7" * 40}},
+        }, labels={"io.flagrt.flag_gems.commit": "4" * 40}, env=["PATH=/usr/bin"], df=df)
+        entries = [n for n in data["baked_repos"]]
+        self.assertEqual(entries.count("FlagGems"), 1)
+        entry = data["baked_repos"]["FlagGems"]
+        self.assertEqual(entry["commit"], "4" * 40)            # 本层的 commit 赢
+        self.assertEqual(entry["install"], "pip (non-editable)")
+        self.assertIn("base_image", entry["supersedes"])       # 被覆盖的那条留痕
+        self.assertIn("7" * 12, entry["supersedes"])
+
+
+class TestPackagesField(TempCase):
+    def _mk(self, names):
+        d = self.image_dir(DF_HEAD, tag="my/img:1")
+        for n in names:
+            (d / "assets" / "provenance").mkdir(parents=True, exist_ok=True)
+            (d / "assets" / "provenance" / n).write_text("x==1\n", encoding="utf-8")
+        with mock.patch.object(baseline, "inspect_image", fake_inspect()), \
+             mock.patch.object(baseline, "image_python_report",
+                               return_value={"python_version": "3.11.15", "versions": {},
+                                             "editables": {}, "base_files": {}}):
+            self.assertEqual(baseline.export_image(d), 0)
+        return baseline.load_yaml(d / "image.baseline.yaml").get("packages")
+
+    def test_ascend_naming_still_selects_the_npu_snapshot(self):
+        got = self._mk(["pipfreeze-comm-v3.txt", "pipfreeze-comm-v3-round4.txt",
+                        "pipfreeze-comm-v3-round4-npu11.txt"])
+        self.assertTrue(got.endswith("pipfreeze-comm-v3-round4-npu11.txt"), got)
+
+    def test_kunlun_naming_is_found(self):
+        got = self._mk(["repro-pipfreeze-v2.txt"])
+        self.assertTrue(got.endswith("repro-pipfreeze-v2.txt"), got)
 
 
 class TestUsage(TempCase):

@@ -1,0 +1,82 @@
+# kunlun-operator-runtime v2 的 demo 运行环境（规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 共享机礼貌：先看本机有哪些容器（不要动他人容器）
+#   xpu-smi                         # 挑 0% 利用率、0MiB 显存的空闲卡
+#   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/kunlun-operator-runtime/v2/demo --strict
+#   # 跑负载时用 CUDA_VISIBLE_DEVICES 指定上一步挑中的卡号
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+#
+# ── P800 的设备模型（本机实测，与昇腾不同，不要照抄昇腾话术）─────────────────
+# · **无「带卡容器独占」**：实测 9 个容器并存，同一张卡（xpu4）被 2 个 privileged 容器与
+#   本探针容器同时映射，探针仍能正常 init、分配显存、跑通 FlagGems 算子。昇腾那条
+#   「驱动对带卡容器独占」是昇腾专属，P800 不成立。真实约束是显存与算力竞争，
+#   靠 `xpu-smi` 挑空闲卡 + `CUDA_VISIBLE_DEVICES` 自律，驱动不做强制。
+# · **不需要 `--privileged`**：本文件用声明式 `devices:` 授予设备。实测
+#   group_add video / SYS_ADMIN / seccomp=unconfined 对算子与通信路径均非必需，
+#   故不写入（共享机上不把 privileged 当推荐用法）。
+# · **`/dev/xpuctrl` 必需**：缺它 `torch.cuda.device_count()` 为 0。
+# · **不需要挂宿主驱动目录**：整套 XRE 在镜像内 torch_xmlir 里（与昇腾挂
+#   /usr/local/Ascend/driver 相反）。宿主驱动 5.0.21.47 与镜像内 XRE 5.13.0.0
+#   不同版本，实测可用。
+# · **设备按授予顺序从 0 密集重编号**：只授予 /dev/xpu4 时，容器内它是 0 号，
+#   此时写 CUDA_VISIBLE_DEVICES=4 会得到 device_count()==0。本文件**映射全部 8 张卡**，
+#   使容器内逻辑号 == 宿主物理号，`CUDA_VISIBLE_DEVICES=<物理卡号>` 才成立；
+#   若自建环境只授予卡的子集，必须按重编号后的逻辑号写。
+# ──────────────────────────────────────────────────────────────────────
+
+name: flagrt-kunlun-v2-demo
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  # v2 的 repo 均为固化资产（见镜像基线 baked_repos / baked_packages），本环境不以可编辑
+  # 方式挂载任何 repo：仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  # 注：flagtree 是索引发行包，按 ENV-SPEC §2.3 不可下放为挂载资产。
+  mounted_repos: {}
+
+services:
+  runtime-dev:
+    container_name: flagrt-kunlun-v2-demo-p800
+    image: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+    network_mode: host
+    shm_size: 32g
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    devices:
+      # 全部 8 张卡 + xpuctrl：保证容器内逻辑号 == 宿主物理号（见文件头设备模型）
+      - /dev/xpu0:/dev/xpu0
+      - /dev/xpu1:/dev/xpu1
+      - /dev/xpu2:/dev/xpu2
+      - /dev/xpu3:/dev/xpu3
+      - /dev/xpu4:/dev/xpu4
+      - /dev/xpu5:/dev/xpu5
+      - /dev/xpu6:/dev/xpu6
+      - /dev/xpu7:/dev/xpu7
+      - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 是指向宿主个人目录的软链，容器内无法解析，须显式给值。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    environment:
+      # 推理腿（vLLM）的必需开关：默认 dispatch（flagos 优先）下 rotary embedding 的
+      # index_select 经 FlagGems OOT 路径触发 "CUDA error: invalid device function"，
+      # EngineCore 初始化即失败。vendor 优先是 vllm-plugin-fl 自带的标准配置项。
+      # 依据见 ../lock.yaml known_issues: flagos-index-select-invalid-device-function。
+      - VLLM_FL_PREFER=vendor
+      - PYTHONDONTWRITEBYTECODE=1   # 否则宿主 checkout 中出现 root 属主的 __pycache__
+      # 注：**不要设置 XPU_EVENT_KL3_ENABLE**（厂商手册要求，但实测单卡单进程即挂死，
+      # 见 ../lock.yaml known_issues: xpu-event-kl3-enable-hang）。此处刻意不设，
+      # 也不要在自建环境里加回来。
+      #
+      # 注：CUDA_VISIBLE_DEVICES 刻意不设默认值 —— 选哪张卡是每次运行的纪律
+      # （先 xpu-smi 看空闲），写死默认值会把某台机器的卡号固化成全组默认。
+    restart: "no"

@@ -1,0 +1,189 @@
+# kunlun-operator-runtime / v2
+# 昆仑芯 P800（XPU，x86_64）flagtree + FlagGems 运行时底座。
+# 版本事实（image id、各 repo commit、索引发行包 version、资源 sha256）以同目录
+# image.baseline.yaml 为准，本文件不重复填写（dev/images/README.md §2、dev/ENV-SPEC.md §3.1）。
+
+image_tag: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+image_id: "sha256:eda3e0ae14ebc8755c746ac70c7b04ff28e341d17b56023d8bbca5187cf3fa6f"
+flagtree_line: >-
+  BAAI·FlagTree 官方 xpu 用户手册
+  （https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu），线号 xpu3.6
+  （CANN 概念不适用于昆仑芯）。宿主驱动与运行时：XPU-RT 5.0.21 / driver 5.0.21.47
+  （`xpu-smi` 实测）；**镜像内另有一套 XRE 5.13.0.0 / XTDK 3.6.0.1 / XCCL 20260209_9**
+  （在 <site-packages>/torch_xmlir/_versions.txt，见 image.baseline.yaml
+  base_image.provides），与宿主驱动版本不同，实测可用。
+  手册给出的 flagtree 安装方式是预编译 wheel
+  （`pip install flagtree===<ver>+xpu3.6 --index-url=...flagos-pypi-hosted...`），
+  无需源码编译——这是本血统与昇腾侧的根本差异：**没有 git commit，只有版本号**，
+  故记在 image.baseline.yaml 的 baked_packages 块（dev/ENV-SPEC.md §4.2 模式 6）。
+  本条目沿用 v1 的 pin 0.6.1+xpu3.6（memory、device-context 两个子方向已各自验证过
+  该具体组合可用），不跟随手册最新版本。
+built_at: "2026-10-11"
+builder: "Docker 29.1.3 (BuildKit 未启用, DOCKER_BUILDKIT=0) / x86_64 / VM-0-2-ubuntu"
+repro_status: "🟢 functional-repro"   # 2026-10-11 由 build.sh 走正规 docker build 实机重建，构建期静态自检通过；带卡自判定验证见 repro_result.device_verify
+superseded_by: null
+
+supersedes: >-
+  v1。组件集合与 pin 完全相同（flagtree 0.6.1+xpu3.6 + FlagGems
+  73c5aff1e304c293ab525ecb03e9449644496fbb），v2 只改配方形态，使其落在
+  dev/ENV-SPEC.md §4.2 的判定规则内、可被 baseline.py 机器核对。三处改动与理由见
+  REBUILD.md「方式」。v1 的归档镜像实为 docker commit 产物、与自身配方不一致
+  （见 ../v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build），
+  因此「从零重建」一律走 v2。
+
+recommended_default: >-
+  训练（transformers + FlagCX）与推理（vLLM + vllm-plugin-fl）所需组件均已在父基座内
+  （见 parent_image.note），本层补 flagtree 并固化 FlagGems，是两类场景的**推荐默认底座**，
+  无需按场景拆两个镜像。使用前须知晓 known_issues 的四条限制，其中两条已由
+  demo/docker-compose.yml 以声明式配置落实（`VLLM_FL_PREFER=vendor` 必设、
+  `XPU_EVENT_KL3_ENABLE` 必不设），不再依赖手工步骤。
+  回退路径：本层是从 parent_image（官方基座）按 Dockerfile.repro 单向构建而成，
+  若本层不满足需求，基于 parent_image 自行按同样模式重建、改 pin 后验证即可，不依赖本层。
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方，build.sh 驱动。build.sh 自备构建上下文：
+  src/FlagGems <- 仓库根 FlagGems/ @ ARG FLAG_GEMS_COMMIT（git archive，只含已提交内容，
+  并检查该 commit 已推送到远端）。无需从既有镜像 docker history 还原。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base"
+  digest: "sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+  note: >-
+    BAAI·FlagTree 官方发布的预构建基座镜像（公开 harbor 仓库，本机已存在，非本组产物）。
+    已内置 Python 3.10.18 / torch 2.9.0+cu129（CUDA 兼容层，昆仑芯 xpytorch）/
+    torchvision 0.24.0+cu129 / torchaudio 2.9.0+cu129 / vllm 0.13.0 / transformers 4.57.1，
+    并以 **editable** 方式预装 FlagGems（/env/FlagGems）、FlagCX（/env/FlagCX）、
+    vllm-plugin-fl（/env/xvllm-plugin-FL）——按 dev/ENV-SPEC.md §2.1，父镜像继承来的
+    editable 安装、源码位于镜像内即为固化资产，记 install: editable-in-image，
+    详见 image.baseline.yaml baked_repos。
+    基座**不含** flagtree/triton（pip freeze 无相关条目），这是本层唯一新增的包。
+    注：/env/xvllm-plugin-FL 的 pip 元数据无 VCS 信息、远端是厂商内网仓
+    （ssh://...icode.baidu.com/baidu/xpu/xvllm-plugin-FL），与仓内 vllm-plugin-FL
+    **不是同一个仓**，故其 commit 记为 unavailable、未登记到 ENV-SPEC §3.2 的仓库名表
+    （待定项，见 dev/images/TODO.md）。
+
+# --- official / custom 边界（见 ../../README.md §4.0/§4.1）。
+#     P800 侧目前没有任何 FlagRT/FlagOS 私有 fork 层，layers 里没有 custom 项。---
+layers:
+  - name: "FlagTree xpu3.6 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base@sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+    note: "BAAI·FlagTree 官方发布，公开 harbor，无需 BAAI 内部账号，本机已存在"
+  - name: "flagtree（提供 triton 编译器/运行时，import 名为 triton）"
+    origin: official
+    pin: "flagtree===0.6.1+xpu3.6（BAAI·FlagTree 官方 PyPI 索引 resource.flagos.net/repository/flagos-pypi-hosted，预编译 wheel，非源码构建）"
+    note: >-
+      pip dist 名为 flagtree，但安装内容落在 triton/ 顶层命名空间下（"forked from
+      triton-lang/triton"），import 后 triton.__version__ == 3.6.0。**无 git commit**，
+      版本锚是 version：ARG == 镜像标签 io.flagrt.flagtree.version == 镜像内实装 dist 版本
+      三方核对（dev/ENV-SPEC.md §4.2 模式 6），由 baseline.py export/check 机器执行。
+      不记 sha256：pip 索引不提供稳定直链，且该 wheel ~3.3GB，下载成本与收益不匹配
+      （见 dev/images/TODO.md 待定项）。
+      必须 --no-deps 安装，否则 pip 解析 torch 的可选依赖会额外装 PyPI 通用
+      triton==3.5.0，物理覆盖 flagtree 的 triton/ 目录
+      （见 ../v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing）。
+  - name: "FlagGems（flag_gems 4.2.1.rc.0，即 v4.2.1.rc.0-177）"
+    origin: official
+    pin: "git commit 73c5aff1e304c293ab525ecb03e9449644496fbb（flagos-ai/FlagGems 公开上游主干，非 FlagRT/FlagOS fork）"
+    note: >-
+      v2 改为 COPY src/FlagGems/ 自备构建上下文（§4.2 模式 1），上下文由 build.sh 从宿主
+      checkout 按 ARG commit 做 git archive；v1 是 `cd /env/FlagGems && pip install .`
+      （父镜像内的可变源码目录，本仓无法寻址也无法核验）。改动后 commit 锚由
+      宿主 checkout + ARG + 镜像标签 io.flagrt.flag_gems.commit 三方自动成立。
+      安装为非 editable，覆盖父基座的 editable 安装（image.baseline.yaml 中该条目的
+      supersedes 字段留痕）。该 commit 的 pyproject.toml 没有 kunlunxin extras 组，
+      见 ../v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing。
+
+# 无 gaps 段：基座 = 公开 harbor 直接可拉；flagtree = 公开索引直接可装；
+# FlagGems = 公开上游仓库直接可 clone/checkout，且 pin commit 已在 origin/master、
+# origin/dev-1.0 上（build.sh 会检查未推送即拒绝构建）——无 owner 私有资产依赖。
+
+# 重建验证（2026-10-11，详见 REBUILD.md）
+repro_result:
+  image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+  build: >-
+    本机 `build.sh <ctx>` 走正规 DOCKER_BUILDKIT=0 docker build，14 个 Step 全部通过
+    （含构建期静态自检，输出 `static check OK: 2.9.0+cu129 0.6.1+xpu3.6 4.2.1.rc.0 3.6.0`）。
+    与 v1 的根本差别：v1 的归档镜像是 docker commit 产物，其配方从未实机构建通过
+    （配方里的 `import flag_gems` 静态自检在无设备容器中必失败，而 docker build 不能传
+    --device）；v2 的自检全部改为无设备可跑，配方因此真正可重建。
+  static_check: >-
+    flagtree 0.6.1+xpu3.6 / flag_gems 4.2.1.rc.0 / triton 3.6.0 / torch 2.9.0+cu129；
+    `from triton._C.libtriton import xpu` 成功（证明 PyPI 通用 triton 未覆盖 flagtree
+    的 triton/ 命名空间）；flag_gems 的 direct_url 不含 editable 标记。
+    版本比较一律经 packaging 的 PEP 440 归一化，不比裸字符串——同一版本在不同 setuptools
+    下写出 4.2.1.rc.0 与 4.2.1rc0 两种形态，裸比较会误判（本轮首次构建即踩到）。
+  packages: "assets/provenance/repro-pipfreeze-v2.txt（完整 pip freeze，由 build.sh 自动写出）"
+  device_verify: >-
+    真机验证（VM-0-2-ubuntu，P800 8× XPU x86_64，2026-10-11）：按 README「验证」的单入口
+    执行 —— `dev/lib/up.sh dev/images/kunlun-operator-runtime/v2/demo --strict`（基线核对
+    PASS 后启动，容器 flagrt-kunlun-v2-demo-p800，非 privileged、声明式 devices 授予全部
+    8 卡 + /dev/xpuctrl），再在容器内以 CUDA_VISIBLE_DEVICES=7 跑
+    assets/verify_kunlun_runtime.py。
+    **结果：`overall: PASS`，退出码 0，11 项通过、1 项已知缺陷不计入**：
+    flagtree 0.6.1+xpu3.6 / flag_gems 4.2.1.rc.0 / torch 2.9.0+cu129 / triton 3.6.0 四项版本锚；
+    `from triton._C.libtriton import xpu` 成功；flag_gems 为非 editable 且 direct_url 指向
+    `/opt/flagrt/src/FlagGems`（即本层 COPY 进来的构建上下文——这同时证明本镜像确由本配方构建，
+    对照 v1 的 `/root/FlagGems`）；XPU_EVENT_KL3_ENABLE 未设置；device_count=1 且显存分配通过；
+    FlagGems rms_norm 与 torch 参考最大偏差 7.153e-07、softmax 7.451e-09。
+    证据：assets/evidence/verify-v2-card7-PASS.txt。
+    **并发事实**：验证期间本机另有 9 个他人容器在跑（含 2 个 privileged 全设备容器），
+    本容器非 privileged 仍正常工作，证据 assets/evidence/device-model-coexistence-20261011.txt
+    —— 昇腾的「驱动对带卡容器独占」在 P800 不成立，设备模型结论写在 demo/docker-compose.yml 文件头。
+    验证后已 `docker compose ... down` 收干净，未对任何他人容器做操作。
+  known_issues_inherited: >-
+    v2 与 v1 是同一 pin 组合，v1 的四条技术 known_issues 原样继承，不在此重复：
+    gemm-compile-sigabrt / flagos-index-select-invalid-device-function /
+    xpu-event-kl3-enable-hang / flaggems-kunlunxin-extras-missing，见 ../v1/lock.yaml。
+    其中后两条已由 demo/docker-compose.yml 声明式落实（必设 VLLM_FL_PREFER=vendor、
+    刻意不设 XPU_EVENT_KL3_ENABLE、两层安装均 --no-deps）。
+
+known_issues:
+  - id: "gemm-failure-signature-differs-from-v1"
+    description: >-
+      v1 记录的 GEMM 失败形态是**编译期 SIGABRT**，栈顶
+      `triton/backends/xpu/compiler.py:486 make_llir`（见 ../v1/lock.yaml
+      known_issues: gemm-compile-sigabrt）。本轮在 v2 上以 64×64 的
+      `torch.mm` 探同一路径，实测失败形态是
+      `triton.runtime.errors.OutOfResources: out of resource: uni_sram PassManager::run`，
+      退出码 1（进程正常抛异常，未 SIGABRT）。证据：
+      assets/evidence/verify-v2-card7-PASS.txt 的 `[KNOWN] flag_gems/mm` 行。
+      两者都指向「该 flagtree/triton 版本线下 FlagGems 的 GEMM 编译路径不可用」，
+      但**是不是同一个缺陷未定论**：本轮用的矩阵形状（64×64）与 v1 走的
+      FlagGems 自带 pytest 用例形状不同，形态差异可能来自形状，也可能是两个不同缺陷。
+      本条目只记录观测到的事实，不把两者并为一条。
+    impact: >-
+      不改变消费结论——GEMM 类算子在本 pin 组合下都不可用，消费方该绕的还是要绕。
+      影响的是根因定位：若后续要向上游报缺陷或验证修复，需要先用 v1 的
+      pytest 用例形状在 v2 上复跑一次，确认 SIGABRT 形态是否仍然复现
+      （已登记到 dev/images/TODO.md）。
+  - id: "flagtree-wheel-no-sha256"
+    description: >-
+      flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），基线只记
+      version + index_url，**不记 sha256**。pip 索引不提供稳定直链，要算 sha256 需先
+      解析索引页或 `pip download --no-deps`，而该 wheel ~3.3GB、经代理必断流
+      （见 REBUILD.md 踩坑 1）。因此若上游以同一版本号重新发布不同内容（index 重发），
+      基线无法察觉——这是本血统相对「commit + sha256」锚定方式的真实弱点。
+    impact: >-
+      缓解手段有两条：① 版本锚三方核对（ARG == 镜像标签 == 镜像内实装 dist 版本）由
+      export/check 机器执行，能发现「配方说装 A、镜像里实际是 B」；② 版本事实最终由
+      image id 唯一确定（§2），只要用的是归档镜像就不受 index 重发影响。
+      要不要为该 wheel 补 sha256 是待定项，见 dev/images/TODO.md。
+  - id: "shared-host-disk-pressure"
+    description: >-
+      本机 /var/lib/docker 使用率 99%（5.9T 中剩 ~105G），本层构建增量约 11GB
+      （绝大部分是 flagtree wheel 解包后的体积）。共享机上多人各存若干 100GB 级镜像，
+      余量随时可能被他人占用。
+    impact: >-
+      重建前先 `df -h /var/lib/docker` 确认 ~15GB 余量（build.sh 前置已注明）。
+      本条目不是镜像缺陷，是重建该镜像的环境前提。
+
+changelog:
+  - date: "2026-10-11"
+    what: >-
+      首次登记。v1 的配方形态不被 dev/ENV-SPEC.md §4.2 识别（flagtree 是 pip 索引
+      预编译 wheel、FlagGems 从父镜像内源码目录安装），`baseline.py export --image`
+      对 v1 目录直接报错；v2 在不改组件与 pin 的前提下改配方形态使其可被机器核对，
+      并走正规 docker build 实机重建。同轮对规范与工具做了反向修正（§4.2 新增模式 6、
+      新增 baked_packages 块、commit: unavailable 一档、昇腾专属取数改为声明式探针表），
+      见 dev/ENV-SPEC.md 与 docs/运行时基座建设-黄金准则与方案存档.v1.md §7。

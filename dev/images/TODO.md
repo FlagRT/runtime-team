@@ -18,6 +18,13 @@
 | 10 | `ascend-infer-vllm` 离线副本（可选加固） | 按 digest `sha256:5cf8a2b6…` 存一份，防 quay rc 标签被 GC；连带留存拷出的 `triton_ascend 3.2.1` wheel。见 `ascend-infer-vllm/v1/ARCHIVE.md` |
 | 11 | `image_list.md` 维护（常设） | 新镜像/新版本入档时更新索引表与"当前生效版本" |
 | 12 | Torch-FL pin commit 可达性 | v3 固化的 Torch-FL `162582d6` 不在本机记录的任何远端分支上，可能无法从零重建；若后续镜像不再安装 Torch-FL 则随之关闭 |
+| 13 | 昆仑芯 v1 离线归档去留（待定） | `kunlun-operator-runtime/v1/ARCHIVE.md` 记的是 `docker export` + `docker import --change` 重放（归档镜像是 `docker commit` 产物，`docker save` 取不到 layer blob，见该目录 `lock.yaml` 的 `known_issues: v1-image-is-docker-commit-not-build`）。v2 可用后该离线副本是否还需保留，待定 |
+| 14 | ~~昆仑芯 v2 带卡验收收尾~~（已完成 2026-10-11） | 带卡自判定 `overall: PASS`，`image_list.md` 已改 🟢，证据 `kunlun-operator-runtime/v2/assets/evidence/verify-v2-card7-PASS.txt` |
+| 15 | 昆仑芯 v2 离线归档（待定） | 当前无离线实体：本版本可从公开源头 ~15 分钟重建，且本机 `/var/lib/docker` 99% 满（共享机）。v2 是正规 `docker build` 产物，**预期** `docker save` 可用（v1 的「save 坏了」已证伪为 `docker commit` 的后果），但**尚未实测**。前置与做法见 `kunlun-operator-runtime/v2/ARCHIVE.md` |
+| 16 | flagtree wheel 要不要补 sha256（需拍板） | 该 wheel ~3.3GB、pip 索引无稳定直链、经代理必断流；不补则「index 以同版本号重发不同内容」无法被基线察觉。现状：版本锚三方核对 + image id 兜底。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: flagtree-wheel-no-sha256` |
+| 17 | `/env/xvllm-plugin-FL` 的仓库身份（需拍板） | 昆仑芯基座内该 editable 安装的 pip 元数据无 VCS 信息，远端是厂商内网仓（`ssh://…icode.baidu.com/baidu/xpu/xvllm-plugin-FL`），与仓内 `vllm-plugin-FL` 不是同一个仓。故其 `commit` 记 `unavailable`、未登记到 `../ENV-SPEC.md` §3.2 仓库名表。要不要加一行、叫什么名，待定 |
+| 18 | 昆仑芯 GEMM 失败形态复核 | v1 记 SIGABRT（`make_llir`），v2 以 64×64 `torch.mm` 实测为 `OutOfResources: uni_sram`，是否同一缺陷未定论。需用 v1 的 pytest 用例形状在 v2 上复跑确认。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: gemm-failure-signature-differs-from-v1` |
+| 19 | 昇腾侧 `check --image` 在 P800 机器上无法复验 | 本轮改了 `baseline.py`，但昇腾镜像是 arm64、不在本机，`check --image` 只能走到「本机没有该镜像」就停。回归证据是 74 条单测 + 改动前后 CLI 输出逐字节一致；**仍需在 npu1-11 上复跑一次** `baseline.py check --image dev/images/ascend-*/v3` 与 `export --image`（export 应产出与仓内 `image.baseline.yaml` 无差异的内容） |
 
 ## 已完成
 

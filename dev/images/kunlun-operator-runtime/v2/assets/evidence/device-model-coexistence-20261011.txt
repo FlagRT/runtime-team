@@ -1,0 +1,40 @@
+# P800 设备模型实测证据：多容器并存 + 不需要 privileged
+# 来源：VM-0-2-ubuntu（P800，8× XPU，x86_64），2026-10-11
+# 截取范围：docker ps 全量 + 本容器与他人容器的设备授予方式对照 + 同卡并发事实
+# 结论（写进 ../../demo/docker-compose.yml 文件头）：
+#   昇腾的「驱动对带卡容器独占」在 P800 不成立；本 demo 不用 --privileged，
+#   用声明式 devices: 授予全部 8 卡 + /dev/xpuctrl。
+
+## 1) 本 demo 容器与他人容器同时在跑（docker ps，名字已保留原样，未对他人容器做任何操作）
+   flagrt-kunlun-v2-demo-p800	Up About a minute	flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+   xray-client	Up 5 hours	ghcr.io/xtls/xray-core:latest
+   mwy-dev-xpu4	Up 47 hours	harbor.kunlunxin.com/public/sglang-p800-pd-disagg-c-0510-pt29:20260928_178
+   liyanz-flaggems-p800	Up 47 hours	flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+   mwy-dev-xpu3	Up 2 days	flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202606-base
+   bahejiang-desktop	Up 5 days	6c05883f3806
+   evalx-p800	Up 3 days	chenyunlong/vllm-kunlun-runtime:0.11.0-xpytorch20260226
+   mwy-dev-xpu	Up 2 days	flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+   daizijian-flaggems	Up 5 days	flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+   flagos-p800-fullstack-test-20260823	Up 4 days	harbor.baai.ac.cn/flagrelease-public/qwen3.6-35b-a3b-nomtp-kunlunxin-gems_4.2.1rc0-vllm_0.13-plugin_0.1-cx_0.10.0-python_3.10.18-x86_64-driver_515.58:2604161518
+
+## 2) 设备授予方式对照（docker inspect，只读）
+   容器                                     Privileged   Devices
+   flagrt-kunlun-v2-demo-p800                 false        /dev/xpu0 /dev/xpu1 /dev/xpu2 /dev/xpu3 /dev/xpu4 /dev/xpu5 /dev/xpu6 
+   mwy-dev-xpu4                               true         
+   liyanz-flaggems-p800                       true         
+   evalx-p800                                 false        /dev/xpu1 /dev/xpuctrl 
+
+   -> 本 demo：Privileged=false，仅靠 devices: 授予，算子路径实测通过（见 verify-v2-card7-PASS.txt）。
+   -> mwy-dev-xpu4 / liyanz-flaggems-p800：Privileged=true（全设备可见），与本容器并存无冲突。
+   -> evalx-p800：非 privileged + 显式 devices，与本容器是同一种授予方式。
+
+## 3) 宿主侧卡状态（xpu-smi，验证前确认空闲；本次用卡 7）
+   Sun Oct 11 16:06:34 2026       
+   +-----------------------------------------------------------------------------+
+   | XPU-SMI               Driver Version: 5.0.21.47    XPU-RT Version: 5.0.21   |
+   |-------------------------------+----------------------+----------------------+
+   | XPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+   | Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | XPU-Util  Compute M. |
+   |                               |             L3-Usage |            SR-IOV M. |
+   |===============================+======================+======================|
+   （8 张卡验证前均为 0MiB / 0%，完整输出见执行机器）

@@ -68,6 +68,12 @@
 | 晋升（挂载 → 固化） | 该组件本阶段验证冻结 | 写入新版本镜像 `v<N+1>/` 的构建配方，构建后 export 镜像基线 |
 | 下放（固化 → 挂载） | 需要在现有镜像上快速迭代该组件 | 在运行环境 compose 中声明挂载，形成 §2.2 的覆盖关系；镜像不变 |
 
+**不可下放的固化资产**：从包索引装入的预编译发行包（§3.1 `baked_packages`）没有对应的源码
+checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下放」——把它写进
+`x-flagrt.mounted_repos` 是配置错误，`export` 直接报错。需要改这类组件的代码时，要么换成
+从源码构建的固化方式（晋升路径，落到 §4.2 模式 1/2），要么等上游发新版本后改 pin。
+实例：昆仑芯的 `flagtree`（[`images/kunlun-operator-runtime/v2/image.baseline.yaml`](images/kunlun-operator-runtime/v2/image.baseline.yaml)）。
+
 ## 3. 文件形态
 
 ### 3.1 镜像基线：`image.baseline.yaml`
@@ -81,12 +87,23 @@
 | `generated_by` / `generated_at` | 生成命令与时间 |
 | `image.ref` / `image.id` | 镜像 ref 与 image id（`id` 是 check 项） |
 | `image.recipe` / `image.demo` | 构建配方（含父层配方）；demo 运行环境目录 |
-| `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（无 commit 的包版本：CANN / Python / torch / torch_npu）；能对应到 commit 的包只记在 `baked_repos`，不在此重复 |
-| `baked_repos.<名称>` | `layer`、`from`（来源层与方式）、`commit`、`install`，可选 `version`、`patches`（文件名 + sha256）、`source_path`、`info` |
+| `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（无 commit 的版本事实：CANN / XTDK / XRE / XCCL / Python / torch 等）；能对应到 commit 的包只记在 `baked_repos`，不在此重复。取数来源是 `baseline.py` 的三张声明式探针表（`BASE_PROVIDES_ENV` 环境变量 / `BASE_PROVIDES_FILES` 镜像内文件 / `BASE_PROVIDES_PKGS` 包白名单），接新芯片只加数据 |
+| `baked_repos.<名称>` | 有仓库身份、以 commit 为版本锚的固化资产：`layer`、`from`（来源层与方式）、`commit`、`install`，可选 `version`、`patches`（文件名 + sha256）、`source_path`、`supersedes`、`info`。键一律是 §3.2 的仓库名，不是 pip 发行名 |
+| `baked_packages[]` | 从包索引装入的预编译发行包（无仓库身份、无 commit，以 `version` 为版本锚）：`name`（pip 发行名）、`layer`、`version`、`index_url`、`install`、`pin`。不可下放为挂载资产（§2.3） |
 | `baked_resources[]` | 固化资源：`name`、`layer`、`url` 或 `path`、`sha256`；构建期未固定版本的记 `pin: unpinned (...)` |
 | `packages` | 完整包清单（pip freeze）路径，仅供查阅 |
 
-`info`（分支、提交时间）仅供阅读，不参与任何校验；无法获取时记为 `unavailable`。
+**版本锚**：每项固化资产至少要有一个可机器核对的版本锚——`baked_repos` 是 `commit`，
+`baked_packages` 是 `version`，两者都以镜像标签为准（§4.2）。`check` 核对全部**存在**的锚。
+
+`commit` 有三档取值，不可混用：40 位 sha（核对项）、`unavailable`（已知不可得，export 告警一次，
+版本事实退回由 image id 兜底——父镜像继承的 editable 安装可能取不到 commit）、以及配方写法
+超出 §4.2 时的**报错**（不写文件）。`info`（分支、提交时间）仅供阅读，不参与任何校验；
+无法获取时同样记为 `unavailable`。
+
+`supersedes`：本层固化的资产与父层/基座继承来的同名资产重名时，就近者赢（本层覆盖父层），
+基线只留本层这一条，被覆盖的那条记入 `supersedes` 留痕。实例：昆仑芯 v2 的 `FlagGems`
+（父基座内是 `/env/FlagGems` 的 editable 安装，本层 COPY 固化同一 commit 的非 editable 安装）。
 
 ### 3.2 运行环境目录
 
@@ -147,7 +164,7 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 | 动作 | 镜像场景（`--image <image-dir>`） | 运行环境场景（`<env-dir>`） |
 |---|---|---|
 | `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
-| `check` | 本地镜像 id 与 commit 标签是否与基线一致 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净；结果写 `.last-check.json` |
+| `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净；结果写 `.last-check.json` |
 | `load` | 不适用（镜像只能重新构建） | 将每个挂载 repo 切换到基线 commit；不拉取、不构建镜像 |
 | `show` | 以表格打印资产、版本、层级与 info | 同左，并标出覆盖关系 |
 | `list` | 列出仓内全部 `dev/images/*/v*/image.baseline.yaml` 的资产与版本 | — |
@@ -162,12 +179,24 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 1. `COPY src/<Repo>/ …`，随后对该路径执行非 editable 的 `pip install` → 固化 repo（构建上下文来源）。
 2. `git remote add origin <url>` + `git fetch … ${<X>_COMMIT|REF}` → 固化 repo（构建期拉取来源）。
 3. `FROM ${…}` → 父镜像：有自己的 `image.baseline.yaml` 则展开继承；外部基座则从镜像读取
-   `pip list --editable` 与 pip freeze 补全 L1 资产。
+   `pip list --editable` 与 pip freeze 补全 L1 资产。读镜像内 pip 元数据的入口是
+   `ARG PYTHON_BIN`（目标解释器绝对路径），缺它即报错；conda 多环境基座须给出目标 env 内
+   解释器的绝对路径，不能依赖 `PATH` 上的 `python3`（实测昆仑芯基座 `PATH` 上的是 miniconda
+   base 的 3.13.11，不是目标 env 的 3.10.18）。
 4. `curl … ${<X>_URL}` / `COPY assets/<file>` → 固化资源。
 5. 本层出现 `pip install -e` → 报错（§2.1）。
+6. `pip install <pkg>==<version>`（或 `===`）+ `--index-url|-i <url>` → 固化索引发行包
+   （`baked_packages`，版本锚，无 commit）。未固定版本、或未写出来源索引，均报错。
 
-commit 以已构建镜像的 `io.flagrt.*.commit` 标签为准，Dockerfile 的 ARG 只用于交叉核对，不一致即报错。
-配方写法变化导致 export 报错时，同步扩展规则，不放宽为猜测。
+**版本锚以已构建镜像的标签为准**，Dockerfile 的 ARG 只用于交叉核对，不一致即报错：
+模式 1/2 用 `io.flagrt.*.commit`（登记在 `baseline.py` 的 `COMMIT_LABEL`），模式 6 用
+`io.flagrt.*.version`（登记在 `VERSION_LABEL`）。模式 6 另有第三条边——镜像内实际安装的
+dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不一致即报错；这条边是 commit
+情形做不到的（源码固化后可能已删），所以无 commit 的资产可核对性并不弱于有 commit 的资产。
+
+配方写法变化导致 export 报错时，同步扩展规则，不放宽为猜测。**接入新芯片时，先对其配方跑一遍
+`export --image`，把报错逐条当成规范缺口清单**——本规范的模式 6 与 `baked_packages` 就是这么
+发现的（昆仑芯 v1 的 flagtree 是 pip 索引预编译 wheel，五种模式全不覆盖）。
 
 ### 4.3 运行环境场景的行为
 
@@ -202,6 +231,12 @@ commit 以已构建镜像的 `io.flagrt.*.commit` 标签为准，Dockerfile 的 
     command: ["bash", "-c", "pip install --no-deps --no-build-isolation -e /workspace/vllm-plugin-FL && exec sleep infinity"]
 ```
 
+- 上面的写法假定 `PATH` 上的 `pip` 就是目标解释器的 pip。**conda 多环境基座不成立**：须把
+  `pip` 换成目标 env 解释器的绝对路径（与该镜像 `Dockerfile.repro` 的 `ARG PYTHON_BIN` 同一个值），
+  例如昆仑芯基座写
+  `/root/miniconda/envs/python310_torch29_cuda/bin/python3 -m pip install --no-deps …`；
+  用 `conda activate` 亦可，但绝对路径少一层环境依赖。实例见
+  [`images/kunlun-operator-runtime/v2/demo/docker-compose.yml`](images/kunlun-operator-runtime/v2/demo/docker-compose.yml)。
 - 安装过程只写入 setuptools-scm 的 `_version.py`（上游已 gitignore），其内容在重新安装前不更新。
 - 代码改动在容器内直接生效；入口点、依赖或版本号的改动须重新安装（重启容器）。
 - `pythonpath` 方式下，包元数据、入口点与版本号仍是镜像内固化版本的；且 compose 中须写出镜像
@@ -221,7 +256,8 @@ commit 以已构建镜像的 `io.flagrt.*.commit` 标签为准，Dockerfile 的 
   即如此）。不影响校验；在可联网的机器上重新 export 即可补全。
 - **load 修改宿主 repo 状态**：共享机器上可能影响同一 checkout 的其他使用者，运行环境目录宜在
   个人 checkout 上使用。
-- v1/v2 镜像没有 commit 标签，不纳入本机制。
+- **昇腾** `ascend-operator-runtime` / `ascend-train-comm` 的 v1/v2 没有 commit 标签，不纳入本机制；这是那两个具体目录的事实，不是「凡 v1/v2 都排除」。能提供版本锚的旧版本照样可纳入——例如 `kunlun-operator-runtime/v1` 带 `io.flagrt.flag_gems.commit`，
+  但它的归档镜像与配方不一致（见该目录 `lock.yaml` known_issues: `v1-image-is-docker-commit-not-build`），接入工作放在 v2。
 
 ## 7. 常用流程
 

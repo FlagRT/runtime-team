@@ -69,6 +69,7 @@
 
 **昆仑芯 P800**（厂商官方发布镜像内）
 - python 3.10 + 厂商 CUDA 兼容 torch 2.9 + vllm 0.13 + **vllm-plugin-FL** + FlagGems + FlagCX + triton 3.0.0；口径见 `dev/memory/README.md`
+- **候选血统（flagtree xpu3.6 统一底座，v2）**：版本事实见 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml`；运行环境 `dev/images/kunlun-operator-runtime/v2/demo/`，用 `dev/lib/up.sh <env-dir> [--strict]` 启动（启动前核对基线）；机制见 `dev/ENV-SPEC.md`。v1 的归档镜像仍可用，但其 `repro_status` 2026-10-11 由 🟢 降为 🟡（归档镜像是 `docker commit` 产物，其 `Dockerfile.repro` 从未验证能重建它，见 `dev/images/kunlun-operator-runtime/v1/lock.yaml`）；**从零重建用 v2**。索引与状态见 `dev/images/image_list.md`
 
 > `clone_all.sh` 会将 FlagPerf 源码收拢到 `/workspace/FlagPerf`；FlagPerf 的运行环境和依赖不自动安装到上述任一组合，使用时按其仓库说明单独准备。
 
@@ -84,6 +85,7 @@
 
 ## 5. 变更记录
 
+- 2026-10-11：§3 昆仑芯 P800 增加候选血统指针（`dev/images/kunlun-operator-runtime/v2/` 的 `image.baseline.yaml` + `demo/`）；同步 v1 状态变化（`repro_status` 🟢 → 🟡，归档镜像为 `docker commit` 产物）。版本号与索引不在本文件重复，仍以 `dev/images/image_list.md` 和各 `image.baseline.yaml` 为准
 - 2026-09-09：§2 加注——910C 原型阶段锁定镜像自成一套，索引见 `dev/images/image_list.md`，状态见 `dev/stack.lock.910c.v1.yaml`；本节通用 dev 底座不用于原型结论性验证。不新开 VERSIONS 版本文件（镜像索引归 `dev/images/image_list.md`）。
 - 2026-09-03：§2 基础镜像加注——明确该镜像为「昇腾工具链底座」而非设备层交付物；`pytorch-plugin-fl` 名与 `/data_lib` 挂载为 B 线（已冻结）血统残留、保留无害；harbor 源与本地副本同一 IMAGE ID；大小订正 13.7GB→11.2GB。同步 `compose.base.yml` 顶部与 `/data_lib` 挂载注释
 - 2026-09-03：§2/§3 按芯片口径整理——设备层以各芯片厂商设备插件为准（昇腾 torch_npu、昆仑芯厂商 torch），其上 FlagGems / FlagCX / vllm-plugin-FL / vLLM；各芯片镜像 / venv / 环境变量的权威 pin 归对应子方向 README

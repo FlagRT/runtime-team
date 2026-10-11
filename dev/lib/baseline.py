@@ -39,7 +39,8 @@ REPO_DIR = {
     "vllm-plugin-FL": "vllm-plugin-FL",
     "FlagPerf": "FlagPerf",
 }
-# 固化 repo 的 commit 以镜像标签为准，Dockerfile ARG 只做交叉核对
+# 固化资产的版本锚以镜像标签为准，Dockerfile ARG / pip pin 只做交叉核对。
+# 每个固化资产至少要有一个可机器核对的版本锚：commit 标签或 version 标签（ENV-SPEC §4.2）。
 COMMIT_LABEL = {
     "FlagTree": "io.flagrt.flagtree.commit",
     "FlagGems": "io.flagrt.flag_gems.commit",
@@ -47,10 +48,39 @@ COMMIT_LABEL = {
     "vllm-plugin-FL": "io.flagrt.vllm_plugin_fl.ref",
     "FlagCX": "io.flagrt.flagcx.commit",
 }
+# 与 COMMIT_LABEL 平行的版本锚：没有仓库身份的 pip 索引发行包以 pip 发行名为键
+VERSION_LABEL = {"flagtree": "io.flagrt.flagtree.version"}
 BRANCH_LABEL = {"FlagTree": "io.flagrt.flagtree.branch"}
+# PYTHON_BIN 指向的解释器版本声明；存在时与镜像内实际读数交叉核对（§4.2 模式 3）
+PYTHON_VERSION_LABEL = "io.flagrt.python.version"
+# pip 发行名 -> 仓库名。只登记确认是同一个仓的；不确定的保持 pip 发行名作键，
+# 否则 REPO_DIR 会指向错误的宿主 checkout（例：/env/xvllm-plugin-FL 的远端是厂商
+# 内网仓，与仓内 vllm-plugin-FL 不是同一个仓，故不登记）。
+PKG_TO_REPO = {"flag_gems": "FlagGems", "flagcx": "FlagCX", "vllm": "vllm"}
+# pip install 的「带取值选项」：解析目标时必须跳过它们的取值（否则 -i <url> 被当成目标）
+PIP_OPTS_WITH_VALUE = {"-i", "--index-url", "--extra-index-url", "-f", "--find-links",
+                       "-c", "--constraint", "-r", "--requirement", "--target", "-t",
+                       "--prefix", "--root"}
+PIP_INDEX_OPTS = {"-i", "--index-url"}
+# L1 基座事实的探针，按芯片族扩展，不在代码里硬编码某一款芯片
+BASE_PROVIDES_ENV = {        # 环境变量名 -> (provides 键, 取值正则)
+    "ASCEND_TOOLKIT_HOME": ("cann", r".*/cann-([0-9.]+)$"),
+}
+BASE_PROVIDES_FILES = [      # 镜像内文件探针：KEY: VALUE 文件，取哪几个键
+    {"path": "torch_xmlir/_versions.txt", "relative_to": "site-packages",
+     "keys": {"XTDK": "xtdk", "XRE": "xre", "XCCL": "xccl"}},
+]
+BASE_PROVIDES_PKGS = ("torch", "torch_npu", "torchvision", "torchaudio", "vllm",
+                      "xmlir", "xtorch_ops")
+LOCAL_VERSION_STRIP = ("+empty",)   # 需要从包版本尾部剥掉的 local version 后缀
+# 完整包清单（pip freeze）的优先标记，按顺序匹配文件名；各血统的命名惯例登记在这里。
+# 都不命中时取名字最大的一份并告警。("npu" = 昇腾验收机快照，"repro" = 重建校验快照)
+PACKAGES_PREFER = ("npu", "repro")
 # 四层模型层级（与交付方式正交，ENV-SPEC §2）；未登记的按 L3
 LAYER = {
-    "FlagTree": "L2", "FlagGems": "L2", "llvm-toolchain": "L2", "triton-build-deps": "L2",
+    # flagtree 是 FlagTree 的 pip 索引发行物（提供 triton 编译器/运行时），与 FlagTree 同层
+    "FlagTree": "L2", "flagtree": "L2", "FlagGems": "L2",
+    "llvm-toolchain": "L2", "triton-build-deps": "L2",
     "patch_triton_ascend_flagtree.py": "L2", "FlagGems-DSA-__init__.py": "L2",
     "verify_runtime.py": "L2",
 }
@@ -141,8 +171,12 @@ def inspect_image(ref: str) -> dict:
     return json.loads(proc.stdout)[0]
 
 
-def image_python_report(ref: str, python_bin: str) -> dict:
-    """无设备、无挂载地读取镜像内 pip 元数据（关键包版本 + editable 安装）。"""
+def image_python_report(ref: str, python_bin: str, probes=()) -> dict:
+    """无设备、无挂载地读取镜像内 pip 元数据（关键包版本 + editable 安装）与文件探针。
+
+    `probes` 是 BASE_PROVIDES_FILES 那样的声明式表，读出的内容放在返回值的 `base_files`
+    里（文件不存在的探针不出现 —— 别的芯片族没有该文件，不是错误）。与 pip 元数据共用
+    同一个 ref，但各自一次 docker run。"""
     def _run(*args):
         proc = subprocess.run(["docker", "run", "--rm", "--entrypoint", python_bin, ref, *args],
                               capture_output=True, text=True, timeout=900)
@@ -161,14 +195,57 @@ def image_python_report(ref: str, python_bin: str) -> dict:
         if (direct.get("dir_info") or {}).get("editable"):
             editables[name] = {"source": direct.get("url", ""), "commit": None}
     for line in _run("-m", "pip", "freeze").splitlines():
-        m = re.match(r"^-e\s+(\S+?)@([0-9a-f]{40})#egg=(\S+)$", line.strip())
-        if m:
-            e = editables.setdefault(m.group(3).replace("-", "_"), {"source": ""})
-            e["commit"] = m.group(2)
-            e["repo_url"] = re.sub(r"^git\+", "", m.group(1))
+        # fragment 可带多个参数（#egg=flagcx&subdirectory=plugin/torch），egg 名只取 & 前的部分
+        m = re.match(r"^-e\s+(\S+?)@([0-9a-f]{40})#(\S+)$", line.strip())
+        if not m:
+            continue
+        frag = dict(kv.split("=", 1) for kv in m.group(3).split("&") if "=" in kv)
+        if not frag.get("egg"):
+            continue
+        e = editables.setdefault(frag["egg"].replace("-", "_"), {"source": ""})
+        e["commit"] = m.group(2)
+        e["repo_url"] = re.sub(r"^git\+", "", m.group(1))
+        if frag.get("subdirectory"):
+            e["package_subdir"] = frag["subdirectory"]
     env = data.get("environment") or {}
     return {"python_version": env.get("python_full_version") or env.get("python_version"),
-            "versions": versions, "editables": editables}
+            "versions": versions, "editables": editables,
+            "base_files": image_base_files(ref, python_bin, probes)}
+
+
+def image_base_files(ref: str, python_bin: str, probes) -> dict:
+    """一次 docker run 读齐镜像内的全部文件探针，返回 {probe path: 文件内容}。
+
+    文件不存在的探针不出现在结果里（别的芯片族没有该文件，不是错误）。直接读文件而不
+    import 任何厂商包：import 会往 stdout 打加载噪声（实测 torch_xmlir 即如此），
+    故这里只取最后一行 JSON。"""
+    want = [[p.get("path"), p.get("relative_to") or ""] for p in probes or [] if p.get("path")]
+    if not want:
+        return {}
+    code = ("import json, os, sysconfig\n"
+            "roots = {'': '', 'site-packages': sysconfig.get_paths()['purelib']}\n"
+            "out = {}\n"
+            "for path, rel in " + json.dumps(want) + ":\n"
+            "    root = roots.get(rel)\n"
+            "    if root is None:\n"
+            "        continue\n"
+            "    try:\n"
+            "        with open(os.path.join(root, path), encoding='utf-8', errors='replace') as f:\n"
+            "            out[path] = f.read()\n"
+            "    except OSError:\n"
+            "        pass\n"
+            "print(json.dumps(out))\n")
+    proc = subprocess.run(["docker", "run", "--rm", "--entrypoint", python_bin, ref, "-c", code],
+                          capture_output=True, text=True, timeout=900)
+    if proc.returncode != 0:
+        raise BaselineError(f"读取镜像内文件探针失败: {ref}\n{proc.stderr.strip()}", code=1)
+    lines = [ln for ln in proc.stdout.splitlines() if ln.strip()]
+    if not lines:
+        raise BaselineError(f"读取镜像内文件探针无输出: {ref}", code=1)
+    try:
+        return json.loads(lines[-1])
+    except json.JSONDecodeError as e:
+        raise BaselineError(f"文件探针输出不是 JSON: {ref}\n{e}", code=1)
 
 
 def compose_binds(compose: Path):
@@ -363,6 +440,7 @@ class _Recipe:
         self.repos = {}       # name -> 判定信息（按出现顺序）
         self.dir_repo = {}    # 镜像内目录 -> repo 名
         self.resources = []
+        self.packages = {}    # pip 发行名 -> 索引发行包（§4.2 模式 6，版本 pin、无 commit）
         self.patch_dirs = {}  # 镜像内 patches 目录 -> assets 相对路径
         self.warnings = []
 
@@ -373,6 +451,27 @@ class _Recipe:
         if kw.get("dir"):
             self.dir_repo[kw["dir"]] = name
         return self.repos[name]
+
+    def add_package(self, dist, version, opts, seg):
+        """§4.2 模式 6：pip 索引发行包。版本锚是 version，没有 commit，不可下放为挂载资产。"""
+        if dist in self.packages:
+            raise BaselineError(f"同一索引发行包在本层安装两次，无法判定: {dist}")
+        index_url = None
+        for k, o in enumerate(opts):
+            if o in PIP_INDEX_OPTS and k + 1 < len(opts):
+                index_url = opts[k + 1]
+            else:
+                m = re.fullmatch(r"(--index-url|-i)=(.+)", o)
+                if m:
+                    index_url = m.group(2)
+        if not index_url:
+            raise BaselineError(f"{dist}: pip install 从索引安装但未写出 --index-url/-i，"
+                                f"无法记录来源索引（§4.2 模式 6）: {seg[:80]}")
+        self.packages[dist] = {
+            "name": dist, "version": version, "index_url": index_url,
+            "install": "pip (index wheel" + (", --no-deps" if "--no-deps" in opts else "") + ")",
+        }
+        return self.packages[dist]
 
     def copy(self, src: str, dest: str):
         s, dest = src.lstrip("./"), dest.rstrip("/")
@@ -478,11 +577,31 @@ class _Recipe:
                       if t == "install" and i and toks[i - 1].endswith("pip")), None)
             if i is None:
                 raise BaselineError(f"无法解析的 pip install: {seg[:80]}")
-            targets = [t for t in toks[i + 1:] if not t.startswith("-")]
+            # 选项解析：带独立取值的选项要跳过它的取值，否则 `-i <url>` 的 url 被当成第二个目标
+            targets, opts, skip = [], [], False
+            for t in toks[i + 1:]:
+                if skip:
+                    opts.append(t)
+                    skip = False
+                elif t.startswith("-"):
+                    opts.append(t)
+                    skip = t in PIP_OPTS_WITH_VALUE
+                else:
+                    targets.append(t)
             if len(targets) != 1:
                 raise BaselineError(f"pip install 的目标不唯一，拒绝猜测: {seg[:80]}")
+            # §4.2 模式 6：pip install <pkg>==<pinned version>（索引发行包，版本 pin、无 commit）
+            m_req = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9._-]*)===?([A-Za-z0-9][A-Za-z0-9.+!_-]*)",
+                                 targets[0])
+            if m_req:
+                self.add_package(m_req.group(1), m_req.group(2), opts, seg)
+                continue
             d = cd_dir if targets[0] in (".", "./") else targets[0].rstrip("/")
             if d not in self.dir_repo:
+                if not re.search(r"[/.]", targets[0]):
+                    raise BaselineError(
+                        f"pip install 从索引安装但未固定版本（§4.2 模式 6 要求 "
+                        f"<pkg>==<version> 或 ===<version>），拒绝猜测: {seg[:80]}")
                 raise BaselineError(f"pip install 的来源未登记为固化 repo（§4.2 只识别 COPY src/<Repo>/ 与"
                                     f" 构建期 git fetch 两种来源）: {seg[:80]}")
             repo = self.repos[self.dir_repo[d]]
@@ -539,6 +658,13 @@ def image_baselines():
     return sorted((REPO_ROOT / "dev" / "images").glob("*/v*/image.baseline.yaml"))
 
 
+def _strip_local(version: str) -> str:
+    """剥掉基座包版本里只表示构建形态、不表示版本的 local version 后缀（见 LOCAL_VERSION_STRIP）。"""
+    for suffix in LOCAL_VERSION_STRIP:
+        version = version.replace(suffix, "")
+    return version
+
+
 def _parent_baseline(ref: str):
     for p in image_baselines():
         try:
@@ -558,33 +684,68 @@ def _external_base(recipe: _Recipe, warnings: list):
     python_bin = recipe.args.get("PYTHON_BIN")
     if not python_bin:
         raise BaselineError("Dockerfile 未声明 ARG PYTHON_BIN，无法读取基座 pip 元数据")
-    report = image_python_report(recipe.from_ref, python_bin)
+    report = image_python_report(recipe.from_ref, python_bin, BASE_PROVIDES_FILES)
     provides = {}
+    # L1 版本事实：① 环境变量探针 ② 镜像内文件探针 ③ 包版本白名单。三者都是声明式表，
+    # 接新芯片只加数据，不改代码（昇腾的 CANN 在环境变量里，昆仑芯的 XTDK/XRE/XCCL 在
+    # <site-packages>/torch_xmlir/_versions.txt 里，不在任何环境变量里）。
+    env_vals = {}
     for e in (base_info.get("Config") or {}).get("Env") or []:
-        m = re.match(r"ASCEND_TOOLKIT_HOME=.*/cann-([0-9.]+)$", e)
+        k, _, v = e.partition("=")
+        env_vals[k] = v
+    for var, (key, pattern) in BASE_PROVIDES_ENV.items():
+        m = re.match(pattern, env_vals.get(var, "")) if var in env_vals else None
         if m:
-            provides["cann"] = m.group(1)
+            provides[key] = m.group(1)
+    for path, text in (report.get("base_files") or {}).items():
+        keys = next((p["keys"] for p in BASE_PROVIDES_FILES if p.get("path") == path), {})
+        for line in text.splitlines():
+            name, sep, val = line.partition(":")
+            if sep and name.strip() in keys:
+                provides[keys[name.strip()]] = val.strip()
     if report["python_version"]:
         provides["python"] = report["python_version"]
-    for pkg in ("torch", "torch_npu", "vllm"):
+    for pkg in BASE_PROVIDES_PKGS:
         if report["versions"].get(pkg):
-            provides[pkg] = report["versions"][pkg].replace("+empty", "")
+            provides[pkg] = _strip_local(report["versions"][pkg])
     repos = []
-    for name, e in sorted(report["editables"].items()):
+    for dist, e in sorted(report["editables"].items()):
         src = e.get("source", "")
+        name = PKG_TO_REPO.get(dist, dist)   # pip 发行名 -> 仓库名，三张表才认得出层级与标签
         if not src.startswith("file:/"):
             warnings.append(f"{name}: 父镜像的 editable 安装源码不在镜像内（{src}），不记为固化资产")
             continue
-        provides.pop(name, None)  # 能对应到 commit 的包只记在 baked_repos，不在 provides 重复
+        provides.pop(dist, None)  # 能对应到 commit 的包只记在 baked_repos，不在 provides 重复
         repos.append({"_name": name, "layer": LAYER.get(name, DEFAULT_LAYER), "from": "base_image",
                       "commit": e.get("commit"),
-                      "version": (report["versions"].get(name) or "").replace("+empty", "") or None,
+                      "version": _strip_local(report["versions"].get(dist) or "") or None,
                       "source_path": re.sub(r"^file://", "", src),
                       "install": "editable-in-image",
                       "info": repo_info(name, e.get("commit"), repo_url=e.get("repo_url"))})
         warnings.append(f"{name}: 继承自父镜像的 editable 安装，源码位于镜像内 {src}，"
                         "记为固化资产（install: editable-in-image，ENV-SPEC §2.1）")
     return {"ref": recipe.from_ref, "digest": digest, "provides": provides}, repos
+
+
+def _merge_baked_repos(entries, warnings):
+    """按名字合并固化 repo，后出现者（本层）覆盖先出现者（父层/基座），保留原顺序。
+
+    被覆盖的条目不是错误：父基座里 editable 装着同一个组件，本层又把它非 editable 固化一遍，
+    是昆仑芯这条线的常态。但基线文件里只能留一条，且必须说清留下的是哪一条。"""
+    merged = {}
+    for e in entries:
+        name = e["_name"]
+        old = merged.get(name)
+        if old is None:
+            merged[name] = e
+            continue
+        e = dict(e)
+        e["supersedes"] = f"{old.get('from', 'unknown')} (commit={_short(old.get('commit'))}," \
+                          f" install={old.get('install')})"
+        merged[name] = e
+        warnings.append(f"{name}: 本层固化覆盖了 {old.get('from', 'unknown')} 继承来的同名资产，"
+                        f"基线只记本层这一条（supersedes 字段留痕）")
+    return list(merged.values())
 
 
 def export_image(image_dir, demo=None, image_ref=None) -> int:
@@ -594,15 +755,25 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
     if not ref and (image_dir / "build.sh").is_file():
         tags = re.findall(r"-t\s+(\S+)", (image_dir / "build.sh").read_text(encoding="utf-8"))
         ref = tags[-1] if tags else None
+        # build.sh 的 -t 必须是字面 tag：这里只做文本抽取，不展开 shell 变量。抽到
+        # "$TAG" 之类就直接报错，不要把它当 ref 丢给 docker（否则报错出在 docker 那层，
+        # 看起来像镜像不存在，实际是配方写法问题）。
+        if ref and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*(:[A-Za-z0-9._-]+)?", ref):
+            raise BaselineError(
+                f"build.sh 的 -t 不是字面镜像 tag（抽到 {ref}），本工具不展开 shell 变量："
+                f"请在 build.sh 的 -t 后写出完整 tag（参照 ascend-train-comm/v3/build.sh），"
+                f"或用 --image-ref 显式指定")
     if not ref:
         raise BaselineError(f"无法确定镜像 ref（build.sh 里没有 -t，可用 --image-ref 指定）: {image_dir}")
     info = inspect_image(ref)
     img_labels = (info.get("Config") or {}).get("Labels") or {}
     warnings = list(recipe.warnings)
 
-    # Dockerfile LABEL（ARG 展开后）与镜像标签交叉核对
+    # Dockerfile LABEL（ARG 展开后）与镜像标签交叉核对。版本锚标签与 commit 标签同等对待：
+    # 无 commit 的固化资产全靠 version 标签做核对项（§4.2）。
+    anchor_labels = set(COMMIT_LABEL.values()) | set(VERSION_LABEL.values())
     for key, val in recipe.labels.items():
-        if key in COMMIT_LABEL.values():
+        if key in anchor_labels:
             if key not in img_labels:
                 raise BaselineError(f"镜像缺少标签 {key}（Dockerfile 声明为 {val}）", code=1)
             if img_labels[key] != val:
@@ -659,6 +830,10 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
                                   or img_labels.get(bl))
         baked_repos.append(entry)
 
+    # 同名资产：本层固化覆盖父层/基座继承来的同名条目（就近者赢），覆盖关系留痕。
+    # 不去重会写出重复 YAML 键，yaml.safe_load 静默取后者——基线文件必须无歧义。
+    baked_repos = _merge_baked_repos(baked_repos, warnings)
+
     for res in recipe.resources:
         entry = {"name": res["name"], "layer": LAYER.get(res["name"], DEFAULT_LAYER)}
         if res["kind"] == "asset":
@@ -670,10 +845,61 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
                          pin="unpinned (构建期 git clone --depth 1)")
         baked_resources.append(entry)
 
-    # 完整包清单：assets/provenance/pipfreeze-*.txt，优先带 npu 的最新一份
-    freezes = sorted((image_dir / "assets" / "provenance").glob("pipfreeze-*.txt"))
-    packages = rel_to_repo(max([f for f in freezes if "npu" in f.name] or freezes,
-                               key=lambda f: f.name)) if freezes else None
+    # 索引发行包（§4.2 模式 6）：版本锚三方核对 —— ARG（已随 LABEL 核对过）== 镜像标签
+    # == 镜像内实装 dist 版本。第三条边是 commit 情形做不到的（源码固化后可能已删），
+    # 所以无 commit 的资产可核对性并不弱于有 commit 的资产。
+    baked_packages = []
+    if recipe.packages:
+        python_bin = recipe.args.get("PYTHON_BIN")
+        if not python_bin:
+            raise BaselineError("Dockerfile 未声明 ARG PYTHON_BIN，无法读取镜像内实装版本"
+                                "以核对索引发行包的版本锚（§4.2 模式 6）")
+        installed = image_python_report(ref, python_bin)["versions"]
+        for dist, pkg in recipe.packages.items():
+            key = dist.replace("-", "_")
+            label_key = VERSION_LABEL.get(dist)
+            if not label_key:
+                raise BaselineError(f"{dist}: 未登记版本标签（请在 baseline.py 的 VERSION_LABEL "
+                                    f"里登记，§4.2 模式 6 要求版本锚可机器核对）")
+            label_val = img_labels.get(label_key)
+            if not label_val:
+                raise BaselineError(f"{dist}: 镜像缺少 {label_key} 标签，无法确定版本锚", code=1)
+            if label_val != pkg["version"]:
+                raise BaselineError(f"{dist}: ARG 版本 {pkg['version']} 与镜像标签 "
+                                    f"{label_key}={label_val} 不一致", code=1)
+            actual = installed.get(key)
+            if not actual:
+                raise BaselineError(f"{dist}: 镜像内未安装该包（pip 元数据查无此项），"
+                                    f"配方声称从 {pkg['index_url']} 安装", code=1)
+            if actual != pkg["version"]:
+                raise BaselineError(f"{dist}: 镜像标签/ARG 版本 {pkg['version']} 与镜像内实装版本 "
+                                    f"{actual} 不一致", code=1)
+            baked_packages.append({
+                "name": dist, "layer": LAYER.get(dist, DEFAULT_LAYER),
+                "version": pkg["version"], "index_url": pkg["index_url"],
+                "install": pkg["install"],
+                "pin": f"version (标签 {label_key} 与镜像内实装版本双向核对；"
+                       f"索引不提供稳定直链，不记 sha256)",
+            })
+
+    # 完整包清单：assets/provenance/ 下名字含 pipfreeze 的快照。多份时按 PACKAGES_PREFER
+    # 的标记顺序挑（各血统的命名惯例登记在那张表里），同一标记内取名字最大的一份；
+    # 一个标记都不命中时取名字最大的并告警 —— 这是「仅供查阅」字段，不是 check 项。
+    freezes = sorted(f for f in (image_dir / "assets" / "provenance").glob("*.txt")
+                     if "pipfreeze" in f.name)
+    packages = None
+    if freezes:
+        picked = []
+        for marker in PACKAGES_PREFER:
+            picked = [f for f in freezes if marker in f.name]
+            if picked:
+                break
+        packages = rel_to_repo(max(picked or freezes, key=lambda f: f.name))
+        if not picked and len(freezes) > 1:
+            warnings.append(
+                f"assets/provenance/ 下有 {len(freezes)} 份 pipfreeze 快照，没有一份命中 "
+                f"PACKAGES_PREFER（{', '.join(PACKAGES_PREFER)}），取名字最大的一份 "
+                f"{Path(packages).name}；要换别的请在 baseline.py 的 PACKAGES_PREFER 里登记标记")
 
     L = [f"schema: {SCHEMA}", "kind: image",
          f"generated_by: dev/lib/baseline.py export --image {rel_to_repo(image_dir)}",
@@ -691,17 +917,28 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
     L += ["", "baked_repos: {}" if not baked_repos else "baked_repos:"]
     for e in baked_repos:
         e = dict(e)
-        L.append(f"  {e.pop('_name')}:")
+        e_name = e.pop("_name")
+        L.append(f"  {e_name}:")
         L.append(f"    layer: {e.pop('layer', DEFAULT_LAYER)}")
         L.append(f"    from: {y(e.pop('from', 'unknown'))}")
-        L.append(f"    commit: {y(e.pop('commit', None))}")
+        # 取不到 commit 不是错误也不能静默成 null：显式 unavailable + 告警，由 image id 兜底
+        commit_v = e.pop("commit", None)
+        L.append(f"    commit: {y(commit_v) if commit_v else 'unavailable'}")
+        if not commit_v:
+            warnings.append(f"{e_name}: 取不到 commit，已记 commit: unavailable，"
+                            f"版本事实由 image id 兜底（ENV-SPEC §3.1）")
         for k in ("version", "patches", "source_path"):
             if e.get(k):
                 L.append(f"    {k}: {y(e.pop(k))}")
+            else:
+                e.pop(k, None)   # 空值不泄漏到字段块末尾，字段顺序才稳定
         L.append(f"    install: {y(e.pop('install', None))}")
         info_v = e.pop("info", None)
         L.append(f"    info: {y(info_v) if info_v else 'unavailable'}")
-        L += [f"    {k}: {y(v)}" for k, v in e.items()]
+        L += [f"    {k}: {y(v)}" for k, v in e.items() if v is not None]
+    if baked_packages:
+        L += ["", "baked_packages:                                # 索引发行包：版本 pin，无 commit"]
+        L += [f"  - {y(p)}" for p in baked_packages]
     L += ["", "baked_resources: []" if not baked_resources else "baked_resources:"]
     L += [f"  - {y(r)}" for r in baked_resources]
     if packages:
@@ -741,11 +978,39 @@ def check_image(image_dir) -> int:
     for name, item in baked.items():
         key = COMMIT_LABEL.get(name)
         if key not in labels:
-            report.append(("INFO", name, "镜像无对应 commit 标签，跳过（由 image id 兜底）"))
+            # 标签是本组构建层打的，只有「本层固化」的资产才该有：
+            #  · from: base_image —— commit 取自基座的 pip 元数据，本来就没有标签可核对，
+            #    报 INFO（由 image id 兜底）。昇腾 v3 的 vllm 即属此类。
+            #  · 本层固化却没有标签 —— 标签丢了，必须 FAIL，不能以「跳过」放过。
+            if item.get("from") == "base_image":
+                anchor = f"commit={str(item.get('commit'))[:12]}" if item.get("commit") else "无 commit"
+                where = f"无 {key} 标签可核对" if key else "未登记 commit 标签（COMMIT_LABEL）"
+                report.append(("INFO", name, f"{anchor} 取自基座 pip 元数据，{where}，"
+                                             f"由 image id 兜底"))
+            elif SHA40.fullmatch(str(item.get("commit") or "")):
+                report.append(("FAIL", name, f"基线记了 commit {str(item['commit'])[:12]}，"
+                                             f"但镜像缺少标签 {key}，无法核对"))
+            else:
+                report.append(("INFO", name, "无 commit 锚（commit: unavailable），"
+                                             "由 image id 兜底（ENV-SPEC §3.1）"))
         elif labels[key] != item.get("commit"):
             report.append(("FAIL", name, f"标签 {key} 不一致: 基线 {item.get('commit')} 镜像 {labels[key]}"))
         else:
             report.append(("PASS", name, f"{key}={labels[key][:12]}"))
+    # 索引发行包：核对项是 version 标签（§4.2 模式 6）。缺标签即 FAIL —— 它是该资产
+    # 唯一的版本锚，跳过就等于零校验。
+    for pkg in (data.get("baked_packages") or []) if labels is not None else []:
+        name = pkg.get("name")
+        key = VERSION_LABEL.get(name)
+        if not key:
+            report.append(("FAIL", name, "未登记版本标签（baseline.py 的 VERSION_LABEL），无法核对"))
+        elif key not in labels:
+            report.append(("FAIL", name, f"镜像缺少版本标签 {key}，该资产无其他版本锚，无法核对"))
+        elif labels[key] != pkg.get("version"):
+            report.append(("FAIL", name, f"标签 {key} 不一致: 基线 {pkg.get('version')} "
+                                         f"镜像 {labels[key]}"))
+        else:
+            report.append(("PASS", name, f"{key}={labels[key]}"))
     return 0 if _print_report(report) else 1
 
 
@@ -790,8 +1055,14 @@ def export_env(env_dir, require_clean=False) -> int:
     baked = image_baseline.get("baked_repos") or {}
     binds = compose_binds(compose) if declared else []
     mounted, dirty = {}, []
+    baked_pkgs = image_baseline.get("baked_packages") or []
     for name, spec in declared.items():
         spec = spec or {}
+        # 索引发行包不可下放：没有源码 checkout 可挂，挂载也不会改变已装好的 wheel（§2.3）
+        if any(p.get("name") == name for p in baked_pkgs):
+            raise BaselineError(
+                f"{name} 是镜像基线里的索引发行包（baked_packages），不是可挂载的代码仓，"
+                f"不能作 mounted_repos 的键（ENV-SPEC §2.3「不可下放的固化资产」）")
         host_rel = spec.get("host_path") or REPO_DIR.get(name, name)
         host = (workspace_root() / host_rel).resolve()
         head, is_dirty, err = _host_head(host)
@@ -846,6 +1117,10 @@ def export_env(env_dir, require_clean=False) -> int:
             L.append(f"  {name}:")
             L += [f"    {k}: {'unavailable' if v is None else y(v)}" for k, v in item.items()]
         L.append("")
+        if key == "baked_repos" and baked_pkgs:
+            L.append("baked_packages:            # 原样抄录自镜像基线，只读；不可下放为挂载资产")
+            L += [f"  - {y(p)}" for p in baked_pkgs]
+            L.append("")
     out = env_dir / "env.baseline.yaml"
     out.write_text("\n".join(L[:-1]) + "\n", encoding="utf-8")
     print(f"[OK] 运行环境基线已生成 -> {rel_to_repo(out)}")
@@ -992,6 +1267,12 @@ def show(target, image: bool) -> int:
         print(_table([[i.get("layer"), n, str(i.get("commit"))[:12], i.get("install"),
                        _info_str(i.get("info")), i.get("from")] for n, i in baked.items()],
                      ["层级", "资产", "commit", "安装方式", "info（只读）", "来源层"]))
+        pkgs = data.get("baked_packages") or []
+        if pkgs:
+            print("\n固化索引发行包（baked_packages，版本 pin、无 commit、不可下放为挂载资产）:")
+            print(_table([[p.get("layer"), p.get("name"), p.get("version"), p.get("install"),
+                           p.get("index_url")] for p in pkgs],
+                         ["层级", "包", "version", "安装方式", "来源索引"]))
         res = data.get("baked_resources") or []
         if res:
             print("\n固化资源（baked_resources）:")
@@ -1029,6 +1310,8 @@ def list_baselines() -> int:
                 str((data.get("image") or {}).get("id", ""))[7:19]]
         items = [[i.get("layer"), n, str(i.get("commit"))[:12], i.get("install")]
                  for n, i in (data.get("baked_repos") or {}).items()]
+        items += [[p.get("layer"), p.get("name"), p.get("version"), p.get("install")]
+                  for p in data.get("baked_packages") or []]
         items += [[r.get("layer"), r.get("name"), _short(r.get("sha256")), "资源"]
                   for r in data.get("baked_resources") or []]
         for k, it in enumerate(items or [["", "(无固化资产)", "", ""]]):
