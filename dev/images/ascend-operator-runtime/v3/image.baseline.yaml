@@ -1,7 +1,7 @@
 schema: flagrt.baseline/v1
 kind: image
 generated_by: dev/lib/baseline.py export --image dev/images/ascend-operator-runtime/v3
-generated_at: 2026-10-10T16:41:29+08:00
+generated_at: 2026-10-11T09:35:37+08:00
 
 image:
   ref: flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64
@@ -11,13 +11,14 @@ image:
 base_image:                                    # L1
   ref: harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
   digest: sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a
-  provides: {cann: 9.0.0, python: 3.11.15, torch: 2.10.0+cpu, torch_npu: 2.10.0, vllm: 0.20.2}
+  provides: {cann: 9.0.0, python: 3.11.15, torch: 2.10.0+cpu, torch_npu: 2.10.0}
 
 baked_repos:
   vllm:
     layer: L3
     from: base_image
     commit: bc150f50299199599673614f80d12a196f377655
+    version: 0.20.2
     source_path: /vllm-workspace/vllm
     install: editable-in-image
     info: unavailable

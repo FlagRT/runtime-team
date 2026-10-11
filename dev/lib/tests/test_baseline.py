@@ -158,8 +158,10 @@ RUN cd /root/FlagTree && ${PYTHON_BIN} -m pip install .
         self.assertEqual(data["base_image"]["ref"], "ext/base:1")
         self.assertEqual(data["base_image"]["digest"], "sha256:" + "b" * 64)
         self.assertEqual(data["base_image"]["provides"]["cann"], "9.0.0")
-        self.assertEqual(data["base_image"]["provides"]["vllm"], "0.20.2")
+        # 能对应到 commit 的包只出现一次：在 baked_repos，带版本；provides 不重复
+        self.assertNotIn("vllm", data["base_image"]["provides"])
         vllm = data["baked_repos"]["vllm"]
+        self.assertEqual(vllm["version"], "0.20.2")
         self.assertEqual(vllm["install"], "editable-in-image")
         self.assertEqual(vllm["from"], "base_image")
         self.assertEqual(vllm["commit"], "c" * 40)
@@ -428,6 +430,28 @@ x-flagrt:
         data = baseline.load_yaml(self.env / "env.baseline.yaml")
         self.assertTrue(data["mounted_repos"]["vllm-plugin-FL"]["dirty"])
         self.assertEqual(self._export(require_clean=True), 1)
+
+    def test_export_separator_and_unpushed(self):
+        # 本地新建的 repo 没有远端：pushed=false，--require-clean 拒绝
+        self.assertEqual(self._export(), 0)
+        text = (self.env / "env.baseline.yaml").read_text(encoding="utf-8")
+        self.assertIn("环境挂载（env）", text)
+        self.assertLess(text.index("baked_repos:"), text.index("环境挂载（env）"))
+        self.assertLess(text.index("环境挂载（env）"), text.index("mounted_repos:"))
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertFalse(data["mounted_repos"]["vllm-plugin-FL"]["pushed"])
+        self.assertEqual(self._export(require_clean=True), 1)
+
+    def test_pushed_commit_passes_require_clean(self):
+        repo = self.ws / "vllm-plugin-FL"
+        remote = self.tmp / "remote.git"
+        git("init", "-q", "--bare", str(remote), cwd=self.tmp)
+        git("remote", "add", "origin", str(remote), cwd=repo)
+        git("push", "-q", "origin", "HEAD:refs/heads/dev", cwd=repo)
+        git("fetch", "-q", "origin", cwd=repo)
+        self.assertEqual(self._export(require_clean=True), 0)
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertTrue(data["mounted_repos"]["vllm-plugin-FL"]["pushed"])
 
     def test_check_env_commit_mismatch_and_last_check(self):
         self._export()

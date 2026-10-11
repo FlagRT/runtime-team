@@ -81,8 +81,8 @@
 | `generated_by` / `generated_at` | 生成命令与时间 |
 | `image.ref` / `image.id` | 镜像 ref 与 image id（`id` 是 check 项） |
 | `image.recipe` / `image.demo` | 构建配方（含父层配方）；demo 运行环境目录 |
-| `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（CANN / Python / torch 等版本） |
-| `baked_repos.<名称>` | `layer`、`from`（来源层与方式）、`commit`、`install`，可选 `patches`（文件名 + sha256）、`source_path`、`info` |
+| `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（无 commit 的包版本：CANN / Python / torch / torch_npu）；能对应到 commit 的包只记在 `baked_repos`，不在此重复 |
+| `baked_repos.<名称>` | `layer`、`from`（来源层与方式）、`commit`、`install`，可选 `version`、`patches`（文件名 + sha256）、`source_path`、`info` |
 | `baked_resources[]` | 固化资源：`name`、`layer`、`url` 或 `path`、`sha256`；构建期未固定版本的记 `pin: unpinned (...)` |
 | `packages` | 完整包清单（pip freeze）路径，仅供查阅 |
 
@@ -117,8 +117,8 @@ x-flagrt:
 | `Torch-FL` | `PyTorch-Plugin-FL` | `FlagPerf` | `FlagPerf` |
 
 **`env.baseline.yaml`**：`kind: container`；`image`（`ref`、`id`、`baseline`）抄录自镜像基线；
-`baked_repos` 原样抄录、只读；`mounted_repos.<名称>` 记录 `host_path`、`container_path`、
-`activation`、`commit`、`dirty`，覆盖固化版本时另记 `overrides_baked`、`baked_commit`、
+`baked_repos` 原样抄录、只读；分割线「环境挂载（env）」之后的 `mounted_repos.<名称>` 记录 `host_path`、
+`container_path`、`activation`、`commit`、`dirty`、`pushed`（commit 是否已在某个远端分支上），覆盖固化版本时另记 `overrides_baked`、`baked_commit`、
 `baked_patches`（§2.2）。实例见 [`images/ascend-train-comm/v3/demo/env.baseline.yaml`](images/ascend-train-comm/v3/demo/env.baseline.yaml)。
 
 **复用镜像 demo**：运行环境目录可经 compose `extends`（按服务）复用镜像 demo，只写差异。
@@ -146,7 +146,7 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 
 | 动作 | 镜像场景（`--image <image-dir>`） | 运行环境场景（`<env-dir>`） |
 |---|---|---|
-| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净即拒绝导出 |
+| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
 | `check` | 本地镜像 id 与 commit 标签是否与基线一致 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净；结果写 `.last-check.json` |
 | `load` | 不适用（镜像只能重新构建） | 将每个挂载 repo 切换到基线 commit；不拉取、不构建镜像 |
 | `show` | 以表格打印资产、版本、层级与 info | 同左，并标出覆盖关系 |
@@ -171,9 +171,10 @@ commit 以已构建镜像的 `io.flagrt.*.commit` 标签为准，Dockerfile 的 
 
 ### 4.3 运行环境场景的行为
 
-- **export**：工作区不干净时记录 `dirty: true` 并警告；验收或出结论的环境加 `--require-clean`。
+- **export**：工作区不干净时记录 `dirty: true` 并警告；commit 不在任何远端分支上时记录 `pushed: false`
+  并警告（他人 load 时无法取得）。验收、出结论或交给他人复现的环境加 `--require-clean`，两者任一不满足即拒绝导出。
 - **check**：镜像 id 不一致、挂载 repo commit 不一致、容器内挂载来源与核对的宿主目录不一致，
-  均报告为不一致；工作区不干净只警告；固化部分不与宿主比对。
+  均报告为不一致；工作区不干净、commit 未推送只警告；固化部分不与宿主比对。
 - **load**：任一挂载 repo 工作区不干净 → 整体中止（退出码 3），不做部分切换；本地缺少目标 commit
   时先 `git fetch`；切换结果为 detached HEAD，并打印切换前的 commit 与分支以便回退；切换后
   检出不完整即报错。
@@ -244,6 +245,7 @@ python3 dev/lib/baseline.py list
 
 ## 8. 与其他文档的关系
 
+- [`../docs/运行时基座-使用与维护指南.md`](../docs/运行时基座-使用与维护指南.md)：面向维护者与使用者的流程入口（发布新镜像、接入新芯片、分支开发与固化）。
 - [`images/README.md`](images/README.md) 与各 `lock.yaml`：`lock.yaml` 记录构建过程、已知问题与验证结果；
   版本事实以 `image.baseline.yaml` 为准。
 - [`../VERSIONS.md`](../VERSIONS.md)：指向镜像基线与 demo 目录，不重复版本号。

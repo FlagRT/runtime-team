@@ -575,8 +575,10 @@ def _external_base(recipe: _Recipe, warnings: list):
         if not src.startswith("file:/"):
             warnings.append(f"{name}: 父镜像的 editable 安装源码不在镜像内（{src}），不记为固化资产")
             continue
+        provides.pop(name, None)  # 能对应到 commit 的包只记在 baked_repos，不在 provides 重复
         repos.append({"_name": name, "layer": LAYER.get(name, DEFAULT_LAYER), "from": "base_image",
                       "commit": e.get("commit"),
+                      "version": (report["versions"].get(name) or "").replace("+empty", "") or None,
                       "source_path": re.sub(r"^file://", "", src),
                       "install": "editable-in-image",
                       "info": repo_info(name, e.get("commit"), repo_url=e.get("repo_url"))})
@@ -693,7 +695,7 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
         L.append(f"    layer: {e.pop('layer', DEFAULT_LAYER)}")
         L.append(f"    from: {y(e.pop('from', 'unknown'))}")
         L.append(f"    commit: {y(e.pop('commit', None))}")
-        for k in ("patches", "source_path"):
+        for k in ("version", "patches", "source_path"):
             if e.get(k):
                 L.append(f"    {k}: {y(e.pop(k))}")
         L.append(f"    install: {y(e.pop('install', None))}")
@@ -776,6 +778,12 @@ def _host_head(host: Path):
     return head, bool(run_git("status", "--porcelain", cwd=host)[0]), None
 
 
+def _on_remote(host: Path, commit: str) -> bool:
+    """commit 是否已在某个远端跟踪分支上（依据本地已 fetch 的远端信息）。"""
+    out, _ = run_git("branch", "-r", "--contains", commit, cwd=host)
+    return bool(out)
+
+
 def export_env(env_dir, require_clean=False) -> int:
     env_dir, compose, image_baseline_rel, declared = _env(env_dir)
     image_baseline = load_yaml(env_dir / image_baseline_rel)
@@ -800,18 +808,26 @@ def export_env(env_dir, require_clean=False) -> int:
             entry["baked_commit"] = baked[name].get("commit")
             if baked[name].get("patches"):
                 entry["baked_patches"] = baked[name]["patches"]
+        entry["pushed"] = _on_remote(host, head)
         info = repo_info(name, head)
         if info:
             entry["info"] = info
         mounted[name] = entry
         if is_dirty:
             dirty.append(name)
-    if dirty and require_clean:
-        print(f"[FAIL] --require-clean: 以下挂载 repo 工作区不干净，拒绝导出: {', '.join(dirty)}",
-              file=sys.stderr)
+    unpushed = [n for n, e in mounted.items() if not e["pushed"]]
+    if require_clean and (dirty or unpushed):
+        if dirty:
+            print(f"[FAIL] --require-clean: 以下挂载 repo 工作区不干净，拒绝导出: {', '.join(dirty)}",
+                  file=sys.stderr)
+        if unpushed:
+            print(f"[FAIL] --require-clean: 以下挂载 repo 的 commit 不在任何远端分支上，他人无法 load，"
+                  f"拒绝导出: {', '.join(unpushed)}", file=sys.stderr)
         return 1
     for name in dirty:
         print(f"[WARN] {name}: 工作区不干净，已记录 dirty: true")
+    for name in unpushed:
+        print(f"[WARN] {name}: commit 不在任何远端分支上（未 push 或远端信息未 fetch），他人无法 load")
 
     img = image_baseline.get("image") or {}
     L = [f"schema: {SCHEMA}", "kind: container",
@@ -823,6 +839,8 @@ def export_env(env_dir, require_clean=False) -> int:
     for key, items, comment in (
             ("baked_repos", baked, "                 # 原样抄录自镜像基线，只读；check 与 load 均不处理"),
             ("mounted_repos", mounted, "               # check 与 load 的对象")):
+        if key == "mounted_repos":
+            L.append("# " + "─" * 30 + " 环境挂载（env） " + "─" * 30)
         L.append(f"{key}:{' {}' if not items else ''}{comment}")
         for name, item in items.items():
             L.append(f"  {name}:")
@@ -860,6 +878,8 @@ def check_env(env_dir) -> int:
             report.append(("PASS", name, f"commit={head[:12]}"))
         if dirty:
             report.append(("WARN", name, "工作区有未提交改动（不阻断）"))
+        if not _on_remote(host, head):
+            report.append(("WARN", name, "当前 commit 不在任何远端分支上，他人无法按基线 load（不阻断）"))
         if item.get("overrides_baked"):
             report.append(("INFO", name, f"覆盖镜像内固化版本 {str(item.get('baked_commit'))[:12]}，"
                                          f"生效方式 {item.get('activation')}"))
@@ -1036,7 +1056,7 @@ def build_parser():
             sp.add_argument("--demo", help="镜像场景：demo 运行环境目录（写入 image.demo）")
             sp.add_argument("--image-ref", help="镜像场景：显式指定镜像 ref（默认取 build.sh 的 -t）")
             sp.add_argument("--require-clean", action="store_true",
-                            help="运行环境场景：挂载 repo 不干净时拒绝导出")
+                            help="运行环境场景：挂载 repo 不干净或 commit 未推送时拒绝导出")
     sub.add_parser("load", help="按基线切换挂载 repo（仅运行环境场景）").add_argument(
         "env_dir", help="运行环境目录")
     sub.add_parser("list", help="列出仓内全部镜像基线的资产与版本")

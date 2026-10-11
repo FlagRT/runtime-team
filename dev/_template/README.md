@@ -52,6 +52,9 @@ docker ps | grep flagos-__NAME__-dev-910c
 [`ascend-train-comm/v3/demo`](../images/ascend-train-comm/v3/demo/docker-compose.yml)；以可编辑方式
 挂载 repo 的写法见 `dev/ENV-SPEC.md` §5。
 
+修改 repo 代码的流程（挂载覆盖、开发分支提交并推送、`export --require-clean` 记录 commit、固化进新镜像）见
+[运行时基座-使用与维护指南](../../docs/运行时基座-使用与维护指南.md) §4。
+
 ## 常用命令（环境速查）
 
 ```bash

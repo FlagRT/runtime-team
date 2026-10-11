@@ -31,7 +31,7 @@ dev/
 
 使用基准：
 - 日常启动（沿用 `compose.base.yml` 的现有子方向）：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
-- 启动带环境基线的运行环境（如 v3 demo `dev/images/ascend-train-comm/v3/demo/`）：用 `dev/lib/up.sh <env-dir> [--strict]` 而非裸 `docker compose up`，会先核对基线再启动，规范见 `dev/ENV-SPEC.md`；新建子方向按 `dev/_template/` 建运行环境目录
+- 启动带环境基线的运行环境（如 v3 demo `dev/images/ascend-train-comm/v3/demo/`）：用 `dev/lib/up.sh <env-dir> [--strict]` 而非裸 `docker compose up`，会先核对基线再启动，规范见 `dev/ENV-SPEC.md`；新建子方向按 `dev/_template/` 建运行环境目录；使用与维护流程入口见 `docs/运行时基座-使用与维护指南.md`
 - `compose.base.yml` 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，仍引用它的子方向自动生效 → 同步 `VERSIONS.md`
 - 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
 - 每个子方向 compose 必须声明独立 `name:`（如 `flagos-<方向>`）：默认 project 取首个 -f 文件目录名（`dev`），不声明会跨方向重建同名 `runtime-dev` 服务
