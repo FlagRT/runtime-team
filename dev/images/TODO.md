@@ -6,9 +6,9 @@
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 1 | v3 case 包缺口 | round 4 的部分结果由仅存于 npu1-11 `~/tmp-reproV3-r4/` 的脚本得出：`train_manual_ddp.py`（手动 DDP loss）、`probe_agit.py`（`all_gather_into_tensor` 探针）、推理 `minirepro.py`，未入仓 |
+| 1 | v3 case 包缺口 | round 4 的部分结果由仅存于 npu1-11 `~/tmp-reproV3-r4/` 的脚本得出：`train_manual_ddp.py`（手动 DDP loss）、`probe_agit.py`（`all_gather_into_tensor` 探针），未入仓。推理最小复现已以修正版入仓为 `../issues/shmem-missing/assets/minirepro_shmem.py` |
 | 2 | 原生 DDP 验证脚本 | FlagCX 修复到货后需补 `DistributedDataParallel` 封装、不含手动同步的双卡自判定脚本（[移交指导第七节 B](../../docs/v3-round4-真机验证结果与移交指导-20261009.md)） |
-| 3 | 跨组需求 | shmem 根治 → 算子编译方向（[决策备忘录附录 B](../../docs/v3-决策备忘录与shmem跨组需求-20261008.md)）；FlagCX c10d 两类缺陷（异步返回；列表形式 `all_gather` 结果错位，2026-10-10 复验修正）→ FlagCX 通信方向（附录 B-2 及其修正段）。需求文本以仓内文档形式保留，下发方式由用户决定 |
+| 3 | 跨组需求 | shmem 根治 → 算子编译方向（[决策备忘录附录 B](../../docs/v3-决策备忘录与shmem跨组需求-20261008.md)）；FlagCX c10d 两类缺陷（异步返回；列表形式 `all_gather` 结果错位，2026-10-10 复验修正）→ FlagCX 通信方向（附录 B-2 及其修正段）。需求文本以仓内文档形式保留，下发方式由用户决定。两项已按 `CASE-TEMPLATE` 发布为 case 包：[`../issues/`](../issues/README.md)（`shmem-missing`、`flagcx-c10d-collectives`） |
 | 4 | 上游 PR | vllm-plugin-FL sync 修复（决策备忘录附录 A 草稿就绪），由用户提交；合入后删除 `ascend-operator-runtime/v3/assets/patches/vllm-plugin-FL/` 覆盖层补丁 |
 | 5 | 训练脚本默认学习率 | 默认 5e-5 在 bf16 + AdamW 下第 16 步出现 NaN，改为 1e-5（`ascend-train-comm/v3/REBUILD.md`「ROUND 4 真机验证——训练腿」③） |
 | 6 | framework-adapter 三级回退需求对接 | round 4 实证编译期失败（`CompilationError`）不触发 dispatch 自动回退，算子级回退目前只能手工黑名单 |

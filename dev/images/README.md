@@ -20,7 +20,7 @@
 ```
 dev/images/
   README.md                  # 本文件：职责 + 规范 + 结构
-  image_list.md              # 索引：所有归档镜像的 tag / 层级视图 / repro_status / 链接（保持简洁）
+  image_list.md              # 索引：所有归档镜像的 tag / repro_status / 目录链接（只做索引，层级构成见各 lock.yaml 的 layers）
   PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）
   .gitignore                 # 大文件与 *.local 护栏
   CASE-TEMPLATE.md           # case 目录标准（§7）
@@ -88,7 +88,7 @@ dev/images/
 - 🟡 = 配方在手，未实机验证
 - 🔴 = 黑盒，无配方（不得作为归档终态；须有 `ARCHIVE.md` 记录离线包）
 
-上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的备注列会写明是哪一种。
+上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的 `repro_status` 列会写明是哪一种。
 
 ## 6. 迁移前置
 

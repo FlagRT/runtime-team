@@ -54,6 +54,11 @@ docker exec -w /workspace -e VLLM_FL_FLAGOS_BLACKLIST= -e ASCEND_RT_VISIBLE_DEVI
 `CompilationError ... ModuleNotFoundError("No module named 'shmem'")`,触发点为模型加载阶段
 `freqs.cos()` → `flag_gems.ops.cos` 的 grid-stride-loop kernel;退出码 1。
 
+> 注意:Triton 编译缓存(容器内 `~/.triton/cache`)跨运行累积,同一容器内重复执行本命令可能
+> 命中已编译产物而不再复现。只需最小复现(不加载模型、自建全新缓存目录)时用
+> [`dev/issues/shmem-missing/`](../../../issues/shmem-missing/README.md) 的
+> `assets/minirepro_shmem.py`。
+
 ### 带规避配置运行(当前可用形态)
 
 ```bash

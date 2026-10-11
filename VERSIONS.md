@@ -20,7 +20,7 @@
 
 > 原 5 个仓的基线 commit 与上游一致（见 §1 表格）；FlagPerf 按 FlagRT fork 的 `main` 对齐。成员直接 clone FlagRT 组织仓，无需 fork。
 > **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（2026-08-18 确认，旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
-> **FlagTree 版本线**：**BAAI·FlagTree 官方指南**（非华为）见 **FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2）。本表 FlagTree 行的 `triton_v3.2.x` 是通用 dev 底座口径；**910C 原型锁定镜像走 ascend3.5**（triton 3.5.0 + 华为 triton_ascend 3.2.1，**不含 FlagTree 构建物**），见 `dev/images/image_list.md`。原型不触发 fork 分支变更；日后若 FlagTree 构建物要进 ascend3.5 镜像，fork 须先切到 `triton_v3.5.x`。
+> **FlagTree 版本线**：**BAAI·FlagTree 官方指南**（非华为）见 **FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2）。本表 FlagTree 行的 `triton_v3.2.x` 是通用 dev 底座口径，与 910C 原型镜像所走的 ascend3.5 线是两套东西；两条线的对照、`triton_ascend` 版本号的常见误读、fork 分支切换的前置条件统一见 `dev/images/image_list.md`「版本线」节，此处不重复。
 
 | 仓（fork 名） | 上游链接 | 基线 | 版本标识 | 角色 | 依赖（源码核实） |
 |---|---|---|---|---|---|
