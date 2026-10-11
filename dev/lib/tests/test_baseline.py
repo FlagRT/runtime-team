@@ -1030,6 +1030,199 @@ RUN ${PYTHON_BIN} -m pip install --no-deps /opt/src/FlagGems
         self.assertIn("7" * 12, entry["supersedes"])
 
 
+# --------------------------------------------------------------------------
+# §3.1 provenance 分组（分割线）与继承资产的 commit 断言
+# --------------------------------------------------------------------------
+
+BASE_HEADER = "厂商基座自带"
+RECIPE_HEADER = "本组配方带入"
+GEMS_DF = (DF_HEAD + 'ARG FLAG_GEMS_COMMIT=%s\n'
+           'LABEL io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}"\n')
+GEMS_COPY = """COPY src/FlagGems/ /opt/src/FlagGems/
+RUN ${PYTHON_BIN} -m pip install --no-deps /opt/src/FlagGems
+"""
+
+
+def base_report(versions=None, editables=None):
+    return {"python_version": "3.10.18", "versions": dict(versions or {}),
+            "editables": dict(editables or {}), "base_files": {}}
+
+
+class TestBakedReposGrouping(TempCase):
+    """ENV-SPEC §3.1：baked_repos 按 provenance 分两组输出，组内保持原顺序（不重排）。"""
+
+    def _export(self, df, report, labels=None):
+        d = self.image_dir(df, tag="my/img:1")
+        with mock.patch.object(baseline, "inspect_image",
+                               fake_inspect(labels or {}, env=["PATH=/usr/bin"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=report), \
+             mock.patch.object(baseline, "repo_info", return_value=None):
+            self.assertEqual(baseline.export_image(d), 0)
+        return d, (d / "image.baseline.yaml").read_text(encoding="utf-8")
+
+    def test_both_groups_get_headers_vendor_side_first(self):
+        d, text = self._export(
+            GEMS_DF % ("4" * 40) + GEMS_COPY,
+            base_report({"vllm": "0.20.2"},
+                        {"vllm": {"source": "file:///vllm-workspace/vllm", "commit": "c" * 40}}),
+            labels={"io.flagrt.flag_gems.commit": "4" * 40})
+        for marker in (BASE_HEADER, "\n  vllm:", RECIPE_HEADER, "\n  FlagGems:"):
+            self.assertIn(marker, text)
+        self.assertLess(text.index(BASE_HEADER), text.index("\n  vllm:"))
+        self.assertLess(text.index("\n  vllm:"), text.index(RECIPE_HEADER))
+        self.assertLess(text.index(RECIPE_HEADER), text.index("\n  FlagGems:"))
+        # 分组只是分组，条目本身不变
+        self.assertEqual(list(baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]),
+                         ["vllm", "FlagGems"])
+
+    def test_only_recipe_group_still_prints_its_header(self):
+        _d, text = self._export(GEMS_DF % ("4" * 40) + GEMS_COPY, base_report(),
+                                labels={"io.flagrt.flag_gems.commit": "4" * 40})
+        self.assertIn(RECIPE_HEADER, text)
+        self.assertNotIn(BASE_HEADER, text)
+
+    def test_only_base_group_still_prints_its_header(self):
+        _d, text = self._export(DF_HEAD, base_report(
+            {"vllm": "0.20.2"},
+            {"vllm": {"source": "file:///vllm-workspace/vllm", "commit": "c" * 40}}))
+        self.assertIn(BASE_HEADER, text)
+        self.assertNotIn(RECIPE_HEADER, text)
+
+    def test_empty_baked_repos_prints_no_header(self):
+        _d, text = self._export(DF_HEAD, base_report())
+        self.assertIn("baked_repos: {}", text)
+        self.assertNotIn(BASE_HEADER, text)
+        self.assertNotIn(RECIPE_HEADER, text)
+
+    def test_parent_recipe_entries_are_not_pushed_to_vendor_side(self):
+        """昇腾形状：父镜像是本仓自建镜像，从父基线继承来的条目 from 是父层的
+        Dockerfile.repro(...)，仍属本组可控，不能被误划到厂商侧。"""
+        parent = self.image_dir(DF_HEAD, name="parent")
+        (parent / "image.baseline.yaml").write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/parent:1", "id": "sha256:" + "a" * 64,
+                      "recipe": ["dev/images/parent/v3/Dockerfile.repro"]},
+            "base_image": {"ref": "ext/base:1", "digest": "sha256:" + "b" * 64,
+                           "provides": {"python": "3.11.15"}},
+            "baked_repos": {
+                "vllm": {"layer": "L3", "from": "base_image", "commit": "c" * 40,
+                         "install": "editable-in-image"},
+                "FlagTree": {"layer": "L2",
+                             "from": "parent/v3 Dockerfile.repro(构建期 git fetch)",
+                             "commit": "1" * 40, "install": "pip (non-editable)"},
+                "FlagGems": {"layer": "L2",
+                             "from": "parent/v3 Dockerfile.repro(COPY 构建上下文)",
+                             "commit": "2" * 40, "install": "pip (non-editable)"}},
+            "baked_resources": [],
+        }), encoding="utf-8")
+        child = self.image_dir("""ARG PARENT_IMAGE=flagrt/parent:1
+FROM ${PARENT_IMAGE}
+ARG PYTHON_BIN=/usr/bin/python3
+ARG FLAGCX_COMMIT=%s
+LABEL io.flagrt.flagcx.commit="${FLAGCX_COMMIT}"
+COPY src/FlagCX/ /opt/src/FlagCX/
+RUN cd /opt/src/FlagCX && USE_ASCEND=1 ${PYTHON_BIN} -m pip install .
+""" % ("e" * 40), name="child", tag="flagrt/child:1")
+        with mock.patch.object(baseline, "REPO_ROOT", self.tmp), \
+             mock.patch.object(baseline, "inspect_image",
+                               fake_inspect({"io.flagrt.flagcx.commit": "e" * 40})), \
+             mock.patch.object(baseline, "repo_info", return_value=None):
+            self.assertEqual(baseline.export_image(child), 0)
+        out = child / "image.baseline.yaml"
+        text = out.read_text(encoding="utf-8")
+        # 只有 vllm 在厂商侧；父层配方的 FlagTree/FlagGems 与本层的 FlagCX 都在本组侧
+        self.assertLess(text.index(BASE_HEADER), text.index("\n  vllm:"))
+        self.assertLess(text.index("\n  vllm:"), text.index(RECIPE_HEADER))
+        for name in ("\n  FlagTree:", "\n  FlagGems:", "\n  FlagCX:"):
+            self.assertLess(text.index(RECIPE_HEADER), text.index(name))
+        self.assertEqual(list(baseline.load_yaml(out)["baked_repos"]),
+                         ["vllm", "FlagTree", "FlagGems", "FlagCX"])
+
+    def test_grouping_does_not_reorder_shipped_ascend_baseline(self):
+        """昇腾回归：对仓内 ascend-* 基线的条目集合，分组后顺序与现有文件逐项一致。"""
+        for rel in ("dev/images/ascend-operator-runtime/v3/image.baseline.yaml",
+                    "dev/images/ascend-train-comm/v3/image.baseline.yaml"):
+            path = baseline.REPO_ROOT / rel
+            if not path.is_file():
+                self.skipTest(f"{rel} 不在本机")
+            entries = [{"_name": n, **i} for n, i
+                       in (baseline.load_yaml(path).get("baked_repos") or {}).items()]
+            grouped = [e["_name"] for _g, es in baseline._baked_repo_groups(entries) for e in es]
+            self.assertEqual(grouped, [e["_name"] for e in entries], rel)
+
+
+class TestInheritedCommitAssertion(TempCase):
+    """§4.2：对 from: base_image 的条目，本组的 commit 标签是「对基座内容的断言」。"""
+
+    def _export(self, df, report, labels=None):
+        """导出成功的路径；返回 (镜像目录, 导出过程打印的内容)。"""
+        d = self.image_dir(df, tag="my/img:1")
+        with mock.patch.object(baseline, "inspect_image",
+                               fake_inspect(labels or {}, env=["PATH=/usr/bin"])), \
+             mock.patch.object(baseline, "image_python_report", return_value=report), \
+             mock.patch.object(baseline, "repo_info", return_value=None), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.export_image(d), 0)
+            printed = out.getvalue()
+        return d, printed
+
+    def _gems(self, commit):
+        return base_report({"flag_gems": "4.2.1rc0"},
+                           {"flag_gems": {"source": "file:///env/FlagGems", "commit": commit}})
+
+    def test_label_matching_base_metadata_passes(self):
+        d, _out = self._export(GEMS_DF % ("7" * 40), self._gems("7" * 40),
+                               labels={"io.flagrt.flag_gems.commit": "7" * 40})
+        entry = baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]["FlagGems"]
+        self.assertEqual(entry["from"], "base_image")
+        self.assertEqual(entry["commit"], "7" * 40)
+        self.assertEqual(entry["install"], "editable-in-image")
+
+    def test_label_mismatch_is_export_error(self):
+        d = self.image_dir(GEMS_DF % ("4" * 40), tag="my/img:1")
+        with mock.patch.object(baseline, "inspect_image",
+                               fake_inspect({"io.flagrt.flag_gems.commit": "4" * 40},
+                                            env=["PATH=/usr/bin"])), \
+             mock.patch.object(baseline, "image_python_report",
+                               return_value=self._gems("7" * 40)), \
+             mock.patch.object(baseline, "repo_info", return_value=None):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.export_image(d)
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn("基座内容与本组声明不符", str(cm.exception))
+        self.assertIn("7" * 40, str(cm.exception))   # 两个值都要打出来
+        self.assertIn("4" * 40, str(cm.exception))
+
+    def test_missing_label_is_not_an_error(self):
+        """绝大多数继承资产没有标签（昇腾 v3 的 vllm 即如此）：不核对、不报错。"""
+        d, _out = self._export(DF_HEAD, self._gems("7" * 40))
+        entry = baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]["FlagGems"]
+        self.assertEqual(entry["commit"], "7" * 40)
+
+    def test_base_commit_unavailable_warns_and_keeps_unavailable(self):
+        """基座取不到 commit 时不拿标签值冒充观测值，只追加一条 warning。"""
+        d, out = self._export(GEMS_DF % ("7" * 40), self._gems(None),
+                              labels={"io.flagrt.flag_gems.commit": "7" * 40})
+        entry = baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]["FlagGems"]
+        self.assertEqual(entry["commit"], "unavailable")
+        self.assertIn("无法核对", out)
+        self.assertIn("io.flagrt.flag_gems.commit", out)
+
+    def test_superseded_base_entry_is_not_asserted_against_this_layer_label(self):
+        """本层固化覆盖同名基座资产时，标签属于本层资产，不能再拿去核对基座的 commit。"""
+        d = self.image_dir(GEMS_DF % ("4" * 40) + GEMS_COPY, tag="my/img:1")
+        with mock.patch.object(baseline, "inspect_image",
+                               fake_inspect({"io.flagrt.flag_gems.commit": "4" * 40},
+                                            env=["PATH=/usr/bin"])), \
+             mock.patch.object(baseline, "image_python_report",
+                               return_value=self._gems("7" * 40)), \
+             mock.patch.object(baseline, "repo_info", return_value=None):
+            self.assertEqual(baseline.export_image(d), 0)
+        entry = baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]["FlagGems"]
+        self.assertEqual(entry["commit"], "4" * 40)
+        self.assertIn("base_image", entry["supersedes"])
+
+
 class TestPackagesField(TempCase):
     def _mk(self, names):
         d = self.image_dir(DF_HEAD, tag="my/img:1")

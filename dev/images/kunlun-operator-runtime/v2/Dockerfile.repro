@@ -2,19 +2,23 @@
 # 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
 # 基座为 BAAI·FlagTree 官方发布的预构建镜像（公开 harbor，非本组产物）。
 #
+# 本层相对基座**只新增 flagtree 一个包**，不变更基座已有的任何资源。FlagGems 直接用基座
+# 自带的那份（/env/FlagGems，editable，源码在镜像内 —— 按 dev/ENV-SPEC.md §2.1 即固化资产
+# install: editable-in-image）：既不 COPY 进来，也不重装一遍。取舍见 lock.yaml
+# known_issues: flaggems-version-fact-comes-from-base。
+#
 # 与 v1 的关系：组件集合与 pin 完全相同（flagtree 0.6.1+xpu3.6 + FlagGems @73c5aff1），
-# v2 只改配方形态，使其落在 dev/ENV-SPEC.md §4.2 的判定规则内、可被 baseline.py 机器核对：
-#   ① FlagGems 改为 COPY src/FlagGems/ 自备构建上下文（§4.2 模式 1），不再依赖父镜像内
-#      /env/FlagGems 这个本仓无法寻址、无法核验的可变源码目录（v1 的做法，见 v1/lock.yaml
-#      known_issues: v1-image-is-docker-commit-not-build）。commit 锚由宿主 checkout +
-#      ARG + 镜像标签三方成立。
-#   ② flagtree 保持 pip 索引预编译 wheel（§4.2 模式 6），版本锚由
-#      ARG == LABEL == 镜像内实装 dist 版本三方核对，无 commit（记在 baked_packages[]）。
-#   ③ 静态自检改为无设备可跑：import flag_gems 需要真实 XPU 设备，而 docker build
-#      不能传 --device，v1 配方的自检层在普通构建中不可能通过。
+# 差别只剩两处：
+#   ① FlagGems 连装都不装。v1 是 `cd /env/FlagGems && pip install .`——从基座的源码目录
+#      重新安装一遍，既多一层，又依赖那个可变目录在构建期存在；v2 直接用基座已装好的那份。
+#   ② 静态自检改为无设备可跑：import flag_gems 需要真实 XPU 设备，而 docker build
+#      不能传 --device，v1 配方的自检层在普通构建中不可能通过
+#      （见 ../v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build）。
+# flagtree 的形态两版相同：pip 索引预编译 wheel（§4.2 模式 6），版本锚由
+# ARG == LABEL == 镜像内实装 dist 版本三方核对，无 commit（记在 baked_packages[]）。
 #
 # 不含 vLLM/vllm-plugin-FL/FlagCX 等消费方组件——父基座已内置（均为 editable，源码在镜像内，
-# 按 §2.1 记为固化资产 install: editable-in-image），本层不新增。
+# 同样按 §2.1 记为固化资产），本层不新增。
 
 ARG BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
 FROM ${BASE_IMAGE}
@@ -25,6 +29,12 @@ FROM ${BASE_IMAGE}
 ARG PYTHON_BIN=/root/miniconda/envs/python310_torch29_cuda/bin/python3
 ARG FLAGTREE_VERSION=0.6.1+xpu3.6
 ARG FLAGTREE_INDEX_URL=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+# FLAG_GEMS_COMMIT 不是本层固化资产的版本锚（本层不带入 FlagGems），而是**本组对基座内容
+# 的断言**：声明「我预期这个基座里装的 FlagGems 就是这个 commit」——形同 lockfile 对不受本组
+# 控制的上游制品记 digest。baseline.py export 会核对「从基座 pip 元数据读出的 commit ==
+# 下面 LABEL io.flagrt.flag_gems.commit」，不一致即报错，厂商以同一 tag 悄悄换基座内容时
+# 立刻暴露。该断言只在标签存在时生效，见 lock.yaml known_issues:
+# flaggems-version-fact-comes-from-base。
 ARG FLAG_GEMS_COMMIT=73c5aff1e304c293ab525ecb03e9449644496fbb
 
 LABEL org.opencontainers.image.title="FlagRT Kunlun operator runtime" \
@@ -44,23 +54,20 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN ${PYTHON_BIN} -m pip install --no-deps "flagtree===${FLAGTREE_VERSION}" \
       --index-url=${FLAGTREE_INDEX_URL}
 
-# --- FlagGems（§4.2 模式 1：COPY 构建上下文 + 非 editable pip install） ---
-# 构建上下文由 build.sh 从宿主 checkout 按 ARG FLAG_GEMS_COMMIT 做 git archive 自备，
-# 只含已提交内容。安装为非 editable，覆盖父基座的 /env/FlagGems editable 安装，
-# 使镜像不依赖任何可变源码目录。--no-deps 同上（其余依赖基座已满足）。
-COPY src/FlagGems/ /opt/flagrt/src/FlagGems/
-RUN cd /opt/flagrt/src/FlagGems \
-    && ${PYTHON_BIN} -m pip install --no-deps .
-
 # --- 静态自检：全部无设备可跑（docker build 不能传 --device） ---
 # 不 import flag_gems：它在无 XPU 设备的容器里必抛
 # "RuntimeError: No device were detected on your machine !"。
 # 决定性断言是 from triton._C.libtriton import xpu —— 若 PyPI 通用 triton 覆盖了
 # flagtree 的 triton/ 目录，这一句即 ImportError。
 #
+# flag_gems 这一项期望的恰好与通常相反：**期望它是 editable**，且 url 指向镜像内的
+# /env/FlagGems。按 §2.1，本组构建层不允许 editable 安装，但父镜像继承来的 editable 安装、
+# 源码位于镜像内即为固化资产（install: editable-in-image）——本层既不 COPY 也不重装，
+# 这条断言的作用正是确认「用的确实是基座那份，没有被本层或任何中间步骤意外覆盖」。
+#
 # 版本比较一律经 packaging 的 PEP 440 归一化，不比裸字符串：同一个版本在不同 setuptools
-# 下写出的 Version 字段形态不同（FlagGems 的 4.2.1.rc.0 与 4.2.1rc0 是同一版本，
-# 父基座的 editable 安装记作后者、本层重装记作前者），裸字符串比较会误判。
+# 下写出的 Version 字段形态不同（基座这份 editable 安装记作 4.2.1rc0，重装过的记作
+# 4.2.1.rc.0，是同一版本的两种形态），裸字符串比较会误判（上一轮构建已踩过这个坑）。
 RUN ${PYTHON_BIN} -c "\
 import importlib.metadata as m, json; \
 from packaging.version import Version as V; \
@@ -70,11 +77,13 @@ import triton; \
 assert V(triton.__version__) == V('3.6.0'), triton.__version__; \
 from triton._C.libtriton import xpu; \
 d = json.loads(m.distribution('flag_gems').read_text('direct_url.json') or '{}'); \
-assert not (d.get('dir_info') or {}).get('editable'), d; \
+assert (d.get('dir_info') or {}).get('editable'), d; \
+assert d.get('url') == 'file:///env/FlagGems', d; \
 import torch; \
-print('static check OK:', torch.__version__, m.version('flagtree'), m.version('flag_gems'), triton.__version__)"
+print('static check OK:', torch.__version__, m.version('flagtree'), m.version('flag_gems'), triton.__version__, d['url'])"
 
-# 源码目录在安装后即删除：镜像内不留可变源码（版本事实由 commit 标签 + image id 承载）。
-RUN rm -rf /opt/flagrt/src /root/.cache/pip
+# 构建缓存不留在镜像文件系统里（flagtree wheel ~3.3GB）。
+# 本层不带入任何源码，因此没有源码目录需要清理。
+RUN rm -rf /root/.cache/pip
 
 WORKDIR /root

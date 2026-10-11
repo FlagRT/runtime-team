@@ -52,6 +52,7 @@ easydict==1.13
 # Editable Git install with no remote (vllm-plugin-fl==0.1.0)
 -e /env/xvllm-plugin-FL
 -e git+https://github.com/flagos-ai/FlagCX.git@3b43bdb237fc93736eddf3e118edf32f664b7861#egg=flagcx&subdirectory=plugin/torch
+-e git+https://github.com/flagos-ai/FlagGems.git@73c5aff1e304c293ab525ecb03e9449644496fbb#egg=flag_gems
 einops==0.8.2
 email_validator==2.2.0
 evaluate==0.4.3
@@ -63,7 +64,6 @@ fastapi-cli==0.0.8
 fastapi-cloud-cli==0.1.5
 fastrlock==0.8.3
 filelock==3.18.0
-flag_gems @ file:///opt/flagrt/src/FlagGems
 flagtree==0.6.1+xpu3.6
 flash_attn @ file:///tmp/selfgz454548/flash_attn-2.4.2%2B7e2dd4d-cp310-cp310-linux_x86_64.whl#sha256=307d1aa1409916c01193813ac21648a6732833e1d19c11bd1dacc97bcc69c651
 fonttools==4.60.1

@@ -25,6 +25,7 @@
 | 17 | `/env/xvllm-plugin-FL` 的仓库身份（需拍板） | 昆仑芯基座内该 editable 安装的 pip 元数据无 VCS 信息，远端是厂商内网仓（`ssh://…icode.baidu.com/baidu/xpu/xvllm-plugin-FL`），与仓内 `vllm-plugin-FL` 不是同一个仓。故其 `commit` 记 `unavailable`、未登记到 `../ENV-SPEC.md` §3.2 仓库名表。要不要加一行、叫什么名，待定 |
 | 18 | 昆仑芯 GEMM 失败形态复核 | v1 记 SIGABRT（`make_llir`），v2 以 64×64 `torch.mm` 实测为 `OutOfResources: uni_sram`，是否同一缺陷未定论。需用 v1 的 pytest 用例形状在 v2 上复跑确认。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: gemm-failure-signature-differs-from-v1` |
 | 19 | 昇腾侧 `check --image` 在 P800 机器上无法复验 | 本轮改了 `baseline.py`，但昇腾镜像是 arm64、不在本机，`check --image` 只能走到「本机没有该镜像」就停。回归证据是 74 条单测 + 改动前后 CLI 输出逐字节一致；**仍需在 npu1-11 上复跑一次** `baseline.py check --image dev/images/ascend-*/v3` 与 `export --image`（export 应产出与仓内 `image.baseline.yaml` 无差异的内容） |
+| 20 | 昆仑芯 v2 旧镜像 `eda3e0ae14eb` 为 dangling | 配方简化前那次构建的产物，可回收约 40MB（独有层：COPY 22MB + 非 editable 重装 18.1MB；7.38GB 的 flagtree 层与新镜像共享）。共享机上未自行 `docker rmi`，需要时执行 |
 
 ## 已完成
 

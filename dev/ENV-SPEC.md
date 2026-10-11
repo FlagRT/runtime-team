@@ -102,8 +102,41 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 无法获取时同样记为 `unavailable`。
 
 `supersedes`：本层固化的资产与父层/基座继承来的同名资产重名时，就近者赢（本层覆盖父层），
-基线只留本层这一条，被覆盖的那条记入 `supersedes` 留痕。实例：昆仑芯 v2 的 `FlagGems`
-（父基座内是 `/env/FlagGems` 的 editable 安装，本层 COPY 固化同一 commit 的非 editable 安装）。
+基线只留本层这一条，被覆盖的那条记入 `supersedes` 留痕——否则会写出重复的 YAML 键，
+`yaml.safe_load` 静默取后者。
+
+**但首选是不产生第二份**：基座已带着某个组件、且版本正是本组要的，就直接用它，不要再固化
+一遍同一 commit。重复声明同一事实会制造「哪份生效」的歧义，`supersedes` 只是把歧义记录下来，
+并没有消除它。昆仑芯 v2 原先 `COPY` 固化了与基座同 commit 的 `FlagGems`，正是按这条口径
+去掉的（见 [`images/kunlun-operator-runtime/v2/lock.yaml`](images/kunlun-operator-runtime/v2/lock.yaml)
+`changelog` 2026-10-11）；`supersedes` 留给确有覆盖必要的场景（本组需要的版本与基座不同）。
+基座版本不是本组要的、又只需在运行实例里临时改动时，用 §2.2 的挂载覆盖，不要改镜像。
+
+#### 怎么读镜像基线
+
+一条资产要同时读三个互相独立、不能互推的维度：**记在哪个块**（资产形态）、**`from`**（代码从哪来）、**`install`**（怎么装的）。
+
+| 维度 A：记在哪个块 | 判别（有仓库身份？能拿到 commit？是 python 包？） | 版本锚 |
+|---|---|---|
+| `base_image.provides` | 无仓库身份、拿不到 commit 的 L1 事实（CANN / XTDK / Python / torch …） | 基座 digest |
+| `baked_repos.<名称>` | 有仓库身份且能拿到 commit | `commit` |
+| `baked_packages[]` | 无仓库身份、是 python 包（包索引的预编译 wheel） | `version` |
+| `baked_resources[]` | 两者都不是（tarball、脚本、补丁素材） | `sha256` / `pin` |
+| `packages`（单数） | 指向 pip freeze 快照的指针：不是资产块，也不是核对项 | — |
+
+| 维度 B：`from` = 代码从哪来（也是基线里分组分割线的划分依据） | 维度 C：`install` = 怎么装的 |
+|---|---|
+| `base_image`：厂商基座自带，被动继承，本组配方未声明、改不了 | `pip (non-editable)`：源码装入，非 editable |
+| `<name>/v<N> Dockerfile.repro(COPY 构建上下文)`：本组配方带入，源码在 `src/` 下 | `pip (non-editable, USE_*=1)`：同上，带构建开关 |
+| `<name>/v<N> Dockerfile.repro(构建期 git fetch)`：本组配方带入，commit 由 ARG 固定 | `editable-in-image`：editable 安装，但源码在镜像内 |
+| `… + 补丁`：同上，另有 `patches`（文件名 + sha256） | `pip (index wheel, --no-deps)`：从包索引装的 wheel |
+
+父镜像是本仓自建镜像时，继承来的条目 `from` 是父层的 `Dockerfile.repro(...)`，仍属本组配方带入。两处易混：
+
+- `install: editable-in-image` 讲的是 pip 的安装形态，不是「代码来自宿主挂载」：源码在**镜像内**（`source_path` 是容器内绝对路径），随 image id 不可变，**是固化资产**；
+  代码来自宿主、运行时挂载的是 §3.2 `mounted_repos` 的 `activation: pip-editable`（其 `host_path` 相对 `WORKSPACE_ROOT`）。
+- `layer`（L1–L4）与「从哪继承」**正交**：基座里装的组件该是哪层就是哪层（昆仑芯基座自带的 `FlagGems` 是 L2、`FlagCX` 是 L3），不因来自基座就变成 L1；
+  `base_image.provides` 里只放**没有仓库身份、拿不到 commit** 的那部分 L1 事实。
 
 ### 3.2 运行环境目录
 
@@ -193,6 +226,12 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 `io.flagrt.*.version`（登记在 `VERSION_LABEL`）。模式 6 另有第三条边——镜像内实际安装的
 dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不一致即报错；这条边是 commit
 情形做不到的（源码固化后可能已删），所以无 commit 的资产可核对性并不弱于有 commit 的资产。
+
+**版本锚也可以是「对基座内容的断言」**：继承资产（`from: base_image`）本来没有本层标签——它不是本组
+固化的。本组若为它在 `COMMIT_LABEL` 里登记并在配方中打出该标签，标签语义就从「本层固化资产的锚」
+变为「本组对基座内容的断言」（类似 lockfile 对不受控上游的 digest 断言）：`export` 把基座 pip 元数据
+读出的 commit 与标签值比对，不等即报错（厂商换了基座，须核对后更新标签）；标签不存在时不核对，
+基座取不到 commit 时只告警并仍记 `commit: unavailable`，绝不以标签值冒充观测值。
 
 配方写法变化导致 export 报错时，同步扩展规则，不放宽为猜测。**接入新芯片时，先对其配方跑一遍
 `export --image`，把报错逐条当成规范缺口清单**——本规范的模式 6 与 `baked_packages` 就是这么

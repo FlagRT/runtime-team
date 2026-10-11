@@ -86,6 +86,16 @@ LAYER = {
 }
 DEFAULT_LAYER = "L3"
 SHA40 = re.compile(r"[0-9a-f]{40}")
+# baked_repos 的 provenance 分组头（ENV-SPEC §3.1「怎么读镜像基线」维度 B）。划分依据就是
+# 已有的 from 字段，不新增字段：`base_image` 是被动继承的现状，其余（含父层配方继承来的
+# Dockerfile.repro(...)）是本组配方带入、可控的资产。风格同 env.baseline.yaml 的
+# 「环境挂载（env）」分割线，缩进到 baked_repos 条目所在层级。
+BAKED_GROUP_HEADERS = {
+    "base": ["  # " + "─" * 16 + " 厂商基座自带（被动继承，不可重建） " + "─" * 16,
+             "  # 本组配方未声明这些资产，只能记录其版本事实；要变更须按 §2.2 在运行环境挂载覆盖。"],
+    "recipe": ["  # " + "─" * 16 + " 本组配方带入（可控，重建即可变更） " + "─" * 16,
+               "  # 由 image.recipe 列出的 Dockerfile.repro 声明并固化（含父层配方继承来的）。"],
+}
 
 
 class BaselineError(Exception):
@@ -748,6 +758,44 @@ def _merge_baked_repos(entries, warnings):
     return list(merged.values())
 
 
+def _baked_repo_groups(entries):
+    """按 provenance 把固化 repo 分成两组，组内保持入参顺序（不重排）。
+
+    返回 [("base", 厂商基座自带), ("recipe", 本组配方带入)]。划分依据是 from 字段：
+    `base_image` 一组是被动继承的现状（本组配方未声明，改不了）；其余一组是本组配方带入
+    （父镜像是本仓自建镜像时，从父基线继承来的条目 from 是父层的 Dockerfile.repro(...)，
+    那仍属本组可控，不划到厂商侧）。先 base 后 recipe 与 export_image 的自然追加顺序一致
+    （_external_base()/父基线的条目先、本层 recipe 条目后），故分组不会引起条目重排。"""
+    base, ours = [], []
+    for e in entries:
+        (base if (e.get("from") or "") == "base_image" else ours).append(e)
+    return [("base", base), ("recipe", ours)]
+
+
+def _assert_inherited_commits(entries, img_labels, warnings):
+    """继承资产（from: base_image）的 commit 与本组声明的 commit 标签交叉核对。
+
+    对这类条目，标签不再是「本层固化资产的锚」（本组没固化它），而是「本组对基座内容的
+    断言」——类似 lockfile 对不受控上游的 digest 断言：基座换了内容就必须炸，而不是静默
+    跟随。标签不存在时不核对（绝大多数继承资产没有标签，例如昇腾 v3 的 vllm）；基座读不出
+    commit 时也不拿标签值去填 commit（那是拿断言冒充观测），只告警。"""
+    for e in entries:
+        if (e.get("from") or "") != "base_image":
+            continue
+        key = COMMIT_LABEL.get(e.get("_name"))
+        declared = img_labels.get(key) if key else None
+        if not declared:
+            continue
+        if not e.get("commit"):
+            warnings.append(f"{e['_name']}: 本组声明了标签 {key}={declared}，但基座 pip 元数据取不到 "
+                            f"commit，无法核对（不以标签值冒充观测值，仍记 commit: unavailable）")
+        elif e["commit"] != declared:
+            raise BaselineError(
+                f"{e['_name']}: 基座内容与本组声明不符（可能是厂商换了基座）：基座 pip 元数据读出 "
+                f"commit={e['commit']}，本组标签 {key}={declared}。"
+                f"核对基座后更新该标签，或改回在本层固化该资产", code=1)
+
+
 def export_image(image_dir, demo=None, image_ref=None) -> int:
     image_dir = Path(image_dir).resolve()
     recipe = analyze_dockerfile(image_dir)
@@ -833,6 +881,8 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
     # 同名资产：本层固化覆盖父层/基座继承来的同名条目（就近者赢），覆盖关系留痕。
     # 不去重会写出重复 YAML 键，yaml.safe_load 静默取后者——基线文件必须无歧义。
     baked_repos = _merge_baked_repos(baked_repos, warnings)
+    # 合并之后再核对继承资产：被本层覆盖掉的同名条目已经不在了，标签该归属谁没有歧义。
+    _assert_inherited_commits(baked_repos, img_labels, warnings)
 
     for res in recipe.resources:
         entry = {"name": res["name"], "layer": LAYER.get(res["name"], DEFAULT_LAYER)}
@@ -911,35 +961,46 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
         L.append(f"  demo: {y(demo)}")
     if base_block:
         L += ["", "base_image:                                    # L1",
+              "  # 厂商基座：被动继承、按 digest 锁定、本组无法重建 —— 这是设计边界，不是缺陷（§3.1）。",
               f"  ref: {y(base_block.get('ref'))}",
               f"  digest: {y(base_block.get('digest'))}",
               f"  provides: {y(base_block.get('provides') or {})}"]
+    # 分组输出（ENV-SPEC §3.1）：读者必须一眼看出这项资产是本组可控的带入，还是被动继承的
+    # 现状。只有该组有条目时才出组头；全部条目同属一组时也要出那一组的组头。
     L += ["", "baked_repos: {}" if not baked_repos else "baked_repos:"]
-    for e in baked_repos:
-        e = dict(e)
-        e_name = e.pop("_name")
-        L.append(f"  {e_name}:")
-        L.append(f"    layer: {e.pop('layer', DEFAULT_LAYER)}")
-        L.append(f"    from: {y(e.pop('from', 'unknown'))}")
-        # 取不到 commit 不是错误也不能静默成 null：显式 unavailable + 告警，由 image id 兜底
-        commit_v = e.pop("commit", None)
-        L.append(f"    commit: {y(commit_v) if commit_v else 'unavailable'}")
-        if not commit_v:
-            warnings.append(f"{e_name}: 取不到 commit，已记 commit: unavailable，"
-                            f"版本事实由 image id 兜底（ENV-SPEC §3.1）")
-        for k in ("version", "patches", "source_path"):
-            if e.get(k):
-                L.append(f"    {k}: {y(e.pop(k))}")
-            else:
-                e.pop(k, None)   # 空值不泄漏到字段块末尾，字段顺序才稳定
-        L.append(f"    install: {y(e.pop('install', None))}")
-        info_v = e.pop("info", None)
-        L.append(f"    info: {y(info_v) if info_v else 'unavailable'}")
-        L += [f"    {k}: {y(v)}" for k, v in e.items() if v is not None]
+    for group, group_entries in _baked_repo_groups(baked_repos):
+        if not group_entries:
+            continue
+        L += BAKED_GROUP_HEADERS[group]
+        for e in group_entries:
+            e = dict(e)
+            e_name = e.pop("_name")
+            L.append(f"  {e_name}:")
+            L.append(f"    layer: {e.pop('layer', DEFAULT_LAYER)}")
+            L.append(f"    from: {y(e.pop('from', 'unknown'))}")
+            # 取不到 commit 不是错误也不能静默成 null：显式 unavailable + 告警，由 image id 兜底
+            commit_v = e.pop("commit", None)
+            L.append(f"    commit: {y(commit_v) if commit_v else 'unavailable'}")
+            if not commit_v:
+                warnings.append(f"{e_name}: 取不到 commit，已记 commit: unavailable，"
+                                f"版本事实由 image id 兜底（ENV-SPEC §3.1）")
+            for k in ("version", "patches", "source_path"):
+                if e.get(k):
+                    L.append(f"    {k}: {y(e.pop(k))}")
+                else:
+                    e.pop(k, None)   # 空值不泄漏到字段块末尾，字段顺序才稳定
+            L.append(f"    install: {y(e.pop('install', None))}")
+            info_v = e.pop("info", None)
+            L.append(f"    info: {y(info_v) if info_v else 'unavailable'}")
+            L += [f"    {k}: {y(v)}" for k, v in e.items() if v is not None]
+    # 模式 4/6 只可能出现在本组配方里，父基线继承来的也是本组自建镜像的产物：恒为本组带入。
     if baked_packages:
-        L += ["", "baked_packages:                                # 索引发行包：版本 pin，无 commit"]
+        L += ["", "baked_packages:                                # 索引发行包：版本 pin，无 commit",
+              "  # 恒为本组配方带入（§4.2 模式 6）：改 pin + 重新构建即可变更。"]
         L += [f"  - {y(p)}" for p in baked_packages]
     L += ["", "baked_resources: []" if not baked_resources else "baked_resources:"]
+    if baked_resources:
+        L.append("  # 恒为本组配方带入（§4.2 模式 4）：改配方 + 重新构建即可变更。")
     L += [f"  - {y(r)}" for r in baked_resources]
     if packages:
         L += ["", f"packages: {packages}   # 完整包清单，仅供查阅"]

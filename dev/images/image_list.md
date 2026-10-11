@@ -86,7 +86,7 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 | 版本 | tag（image id） | repro_status | 目录 |
 |---|---|---|---|
 | v1 | `flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（`466ee5c61793`） | 🟡 配方在手，未实机验证 | `kunlun-operator-runtime/v1/` |
-| v2 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（`eda3e0ae14eb`） | 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 `overall: PASS`） | `kunlun-operator-runtime/v2/` |
+| v2 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（`cac5ddae5f62`） | 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 `overall: PASS`） | `kunlun-operator-runtime/v2/` |
 
 > v1 2026-10-11 由 🟢 降为 🟡：归档镜像经查实是 `docker commit` 产物，不是其
 > `Dockerfile.repro` 的构建产物，🟢 的定义（README §5）不成立；镜像本身可用，其运行时

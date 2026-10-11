@@ -11,6 +11,12 @@
       /workspace/dev/images/kunlun-operator-runtime/v2/assets/verify_kunlun_runtime.py
   --static  只跑无设备可跑的检查（构建期自检用；带卡机器上不要只跑这个）
 
+检查项：flagtree / flag_gems / triton / torch 四项版本锚；`from triton._C.libtriton import xpu`
+（flagtree 的 xpu 编译后端在位、triton 命名空间未被 PyPI 通用 triton 覆盖）；flag_gems 为
+父基座那份 editable-in-image 安装（本镜像不带入 FlagGems，见 flag_gems/editable-in-image-from-base
+一项的注释）；XPU_EVENT_KL3_ENABLE 未设置；设备可用与显存分配；FlagGems rms_norm/softmax
+与 torch 参考比对。
+
 已知缺陷不计入 PASS/FAIL：GEMM（mm/bmm/addmm）在本 pin 组合下编译期 SIGABRT，
 本脚本在**子进程**里探它（否则会把验证进程一起带走），结果以 KNOWN 行报告。
 依据见 ../lock.yaml known_issues: gemm-compile-sigabrt。
@@ -29,6 +35,10 @@ EXPECT = {
     "triton": "3.6.0",
     "torch": "2.9.0+cu129",
 }
+
+# FlagGems 来自父基座、不由本层带入：其 direct_url 必须指向镜像内的 /env/FlagGems
+# （见下面 _from_base_editable 的注释）。
+EXPECT_FLAG_GEMS_URL = "file:///env/FlagGems"
 
 results = []      # (status, name, detail)；status ∈ PASS/FAIL/KNOWN/SKIP
 
@@ -75,12 +85,16 @@ def static_checks():
         return xpu is not None, "flagtree 的 xpu 编译后端在位，triton 命名空间未被覆盖"
     check("triton/libtriton.xpu", _libtriton_xpu)
 
-    def _non_editable():
+    def _from_base_editable():
+        # 期望的恰好与通常相反：**期望 flag_gems 是 editable**，且 url 指向镜像内的
+        # /env/FlagGems。本镜像不带入 FlagGems，直接用父基座已装好的那份；按
+        # dev/ENV-SPEC.md §2.1，父镜像继承来的 editable 安装、源码位于镜像内即为固化资产
+        # （install: editable-in-image）。这条检查确认「用的确实是基座那份，没有被覆盖」。
         raw = m.distribution("flag_gems").read_text("direct_url.json") or "{}"
         d = json.loads(raw)
         editable = bool((d.get("dir_info") or {}).get("editable"))
-        return not editable, f"direct_url={raw.strip()}"
-    check("flag_gems/non-editable", _non_editable)
+        return editable and d.get("url") == EXPECT_FLAG_GEMS_URL, f"direct_url={raw.strip()}"
+    check("flag_gems/editable-in-image-from-base", _from_base_editable)
 
     def _no_kl3():
         # 厂商手册要求设这个变量，但实测单卡单进程即挂死；设了就不该下 PASS

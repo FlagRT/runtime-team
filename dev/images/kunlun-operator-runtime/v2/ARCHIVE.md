@@ -9,10 +9,13 @@
 
 **为什么暂时不做**：
 
-1. **本版本可从公开可达源头重建**，不依赖任何 owner 私有资产：父基座在公开 harbor、
-   flagtree 在公开索引、FlagGems 的 pin commit 已在 `origin/master` / `origin/dev-1.0`
-   （`build.sh` 会检查，未推送即拒绝构建）。单入口
-   `build.sh <构建上下文目录>`，本轮实测约 15 分钟。这与 v1 的处境不同：
+1. **本版本可从公开可达源头重建**，不依赖任何 owner 私有资产，**也不依赖宿主的任何
+   checkout**：重建输入只有两样——公开 harbor 的父基座 + 公开索引的 flagtree wheel。
+   2026-10-11 配方简化后（FlagGems 改为直接用基座自带那份，不再 COPY + 重装）这件事
+   **比原先更简单了**：原先还需要宿主仓根有 `FlagGems/` 且 pin commit 已推送到远端
+   （`build.sh` 会检查，未推送即拒绝构建），现在这条前置整条消失，构建上下文只剩一个
+   `Dockerfile`。单入口 `build.sh <构建上下文目录>`，首轮（含 3.3GB wheel 下载）实测约
+   15 分钟。这与 v1 的处境不同：
    v1 的归档镜像是 `docker commit` 产物、其配方从未实机构建通过
    （见 [`../v1/lock.yaml`](../v1/lock.yaml) `known_issues: v1-image-is-docker-commit-not-build`），
    所以 v1 的离线包是**唯一**的还原途径；v2 的配方本身就是还原途径。
@@ -38,7 +41,7 @@
 ## 还原（当前途径）
 
 ```bash
-# 从零重建（公开源头，~15 分钟，需 /var/lib/docker ~15GB 余量）
+# 从零重建（公开源头，~15 分钟，基座已在本机时需 /var/lib/docker ~12GB 余量）
 dev/images/kunlun-operator-runtime/v2/build.sh <构建上下文目录>
 
 # 核对重建产物与本条目记录的版本事实一致

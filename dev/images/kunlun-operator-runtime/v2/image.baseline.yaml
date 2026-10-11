@@ -1,27 +1,31 @@
 schema: flagrt.baseline/v1
 kind: image
 generated_by: dev/lib/baseline.py export --image dev/images/kunlun-operator-runtime/v2
-generated_at: 2026-10-11T16:03:13+08:00
+generated_at: 2026-10-11T20:43:29+08:00
 
 image:
   ref: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
-  id: sha256:eda3e0ae14ebc8755c746ac70c7b04ff28e341d17b56023d8bbca5187cf3fa6f                 # check 项
+  id: sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a                 # check 项
   recipe: [dev/images/kunlun-operator-runtime/v2/Dockerfile.repro]
   demo: dev/images/kunlun-operator-runtime/v2/demo/
 
 base_image:                                    # L1
+  # 厂商基座：被动继承、按 digest 锁定、本组无法重建 —— 这是设计边界，不是缺陷（§3.1）。
   ref: harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
   digest: sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34
   provides: {xtdk: 3.6.0.1, xre: 5.13.0.0, xccl: '20260209_9', python: 3.10.18, torch: 2.9.0+cu129, torchvision: 0.24.0+cu129, torchaudio: 2.9.0+cu129, vllm: 0.13.0, xmlir: 1.0.0.1, xtorch_ops: 0.1.2640+9bc36a18}
 
 baked_repos:
+  # ──────────────── 厂商基座自带（被动继承，不可重建） ────────────────
+  # 本组配方未声明这些资产，只能记录其版本事实；要变更须按 §2.2 在运行环境挂载覆盖。
   FlagGems:
     layer: L2
-    from: kunlun-operator-runtime/v2 Dockerfile.repro(COPY 构建上下文)
+    from: base_image
     commit: 73c5aff1e304c293ab525ecb03e9449644496fbb
-    install: pip (non-editable)
+    version: 4.2.1rc0
+    source_path: /env/FlagGems
+    install: editable-in-image
     info: {branch: 'master, dev-1.0', committed_at: '2026-03-08 21:06:18 +0800'}
-    supersedes: base_image (commit=73c5aff1e304, install=editable-in-image)
   FlagCX:
     layer: L3
     from: base_image
@@ -40,6 +44,7 @@ baked_repos:
     info: unavailable
 
 baked_packages:                                # 索引发行包：版本 pin，无 commit
+  # 恒为本组配方带入（§4.2 模式 6）：改 pin + 重新构建即可变更。
   - {name: flagtree, layer: L2, version: 0.6.1+xpu3.6, index_url: 'https://resource.flagos.net/repository/flagos-pypi-hosted/simple', install: 'pip (index wheel, --no-deps)', pin: version (标签 io.flagrt.flagtree.version 与镜像内实装版本双向核对；索引不提供稳定直链，不记 sha256)}
 
 baked_resources: []

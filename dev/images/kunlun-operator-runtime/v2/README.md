@@ -3,9 +3,12 @@
 ## 用途与现状
 
 昆仑芯 P800（XPU，x86_64）的 **flagtree + FlagGems 算子运行时底座**，可作训练与推理的推荐默认
-底座：父基座已内置 vLLM 0.13.0 / transformers 4.57.1 / vllm-plugin-fl / FlagCX，本层补上基座
-缺失的 flagtree（提供 `triton` 编译器与运行时），并把 FlagGems 固化为不依赖可变源码目录的
-非 editable 安装。
+底座：父基座已内置 vLLM 0.13.0 / transformers 4.57.1 / vllm-plugin-fl / FlagCX / FlagGems，
+本层**只补上基座缺失的 flagtree**（提供 `triton` 编译器与运行时），不变更基座已有的任何资源。
+FlagGems 用基座自带的那份（`/env/FlagGems`，editable，源码在镜像内，按
+[`ENV-SPEC.md`](../../../ENV-SPEC.md) §2.1 即固化资产 `install: editable-in-image`），
+既不 COPY 进来也不重装——取舍见 [`lock.yaml`](lock.yaml)
+`known_issues: flaggems-version-fact-comes-from-base`。
 
 - 镜像 tag：`flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`
 - image id：见 [`image.baseline.yaml`](image.baseline.yaml) 的 `image.id`（版本事实以该文件为准，
@@ -13,9 +16,9 @@
 - 组件版本：同上文件的 `baked_repos` / `baked_packages` / `base_image.provides`
 - `repro_status`：见 [`lock.yaml`](lock.yaml)（本层走正规 `docker build`，配方已实机重建）
 
-**与 v1 的关系**：组件集合与 pin 完全相同，v2 只改配方形态使其落在
-[`../../ENV-SPEC.md`](../../../ENV-SPEC.md) §4.2 的判定规则内、可被机器核对；三处改动与理由见
-[`REBUILD.md`](REBUILD.md)「方式」。v1 保留不改并标 `superseded_by: v2`——其归档镜像实为
+**与 v1 的关系**：组件集合与 pin 完全相同，v2 只改配方形态，差别只剩两处——① FlagGems
+连装都不装（v1 是 `cd /env/FlagGems && pip install .`，从基座的源码目录重新安装一遍）；
+② 静态自检改为无设备可跑。两处改动与理由见 [`REBUILD.md`](REBUILD.md)「方式」。v1 保留不改并标 `superseded_by: v2`——其归档镜像实为
 `docker commit` 产物、与自身配方不一致（见 [`../v1/lock.yaml`](../v1/lock.yaml)
 `known_issues: v1-image-is-docker-commit-not-build`）。
 
@@ -28,7 +31,8 @@
 - `XPU_EVENT_KL3_ENABLE=1` 单卡单进程即**挂死**，厂商手册要求设、实测不能设 —
   `xpu-event-kl3-enable-hang`（demo 刻意不设）。
 - FlagGems 在该 commit 无 `kunlunxin` extras 组，`pip install .[kunlunxin]` 静默退化并污染
-  `triton` 命名空间，两层安装都**必须** `--no-deps` — `flaggems-kunlunxin-extras-missing`。
+  `triton` 命名空间；本层唯一的那条 pip 安装（flagtree）**必须** `--no-deps` —
+  `flaggems-kunlunxin-extras-missing`。
 
 ## 复现
 
@@ -41,8 +45,9 @@
 dev/images/kunlun-operator-runtime/v2/build.sh <构建上下文目录>
 ```
 
-前置条件见 [`REBUILD.md`](REBUILD.md)「构建前置」（基座镜像、flagtree 索引可达、宿主
-`FlagGems/` 含已推送的 pin commit、`/var/lib/docker` ~15GB 余量）。
+构建上下文只有一个文件（脚本自己拷进去的 `Dockerfile`），**不依赖宿主任何 checkout**。
+前置条件见 [`REBUILD.md`](REBUILD.md)「构建前置」（基座镜像、flagtree 索引可达、
+`/var/lib/docker` ~12GB 余量）。
 
 ## 验证
 
@@ -52,7 +57,7 @@ dev/images/kunlun-operator-runtime/v2/build.sh <构建上下文目录>
 |---|---|---|
 | 镜像 | 本目录 tag，image id 与 `image.baseline.yaml` 一致 | `build.sh` 重建，或 [`ARCHIVE.md`](ARCHIVE.md) 的离线包；由 `up.sh --strict` 机器核对 |
 | 卡数 | ≥ 1 张空闲 XPU（算子验证）；多卡集合通信另见 `REBUILD.md`「GPU/机器纪律」 | `docker ps` 看本机容器，`xpu-smi` 挑 0% 利用率 / 0MiB 显存的卡 |
-| 代码仓 | 无（本环境 `mounted_repos: {}`，全部为固化资产） | — |
+| 代码仓 | 无（本环境 `mounted_repos: {}`，全部为固化资产；要调试 FlagGems 代码时按 [`ENV-SPEC.md`](../../../ENV-SPEC.md) §2.2 在自己的运行环境目录里挂载宿主 checkout 覆盖，不改镜像） | — |
 | 模型与数据 | 本验证脚本不需要模型；训练/推理 smoke 需 Qwen3-Embedding-0.6B | `FLAGRT_MODELS_DIR` 指向模型目录 |
 
 单入口命令（仓根执行）：
@@ -71,7 +76,7 @@ docker compose -f dev/images/kunlun-operator-runtime/v2/demo/docker-compose.yml 
 
 | 脚本 | 类别 | 命令 | 通过判据 | 最近一次结果与证据 |
 |---|---|---|---|---|
-| [`assets/verify_kunlun_runtime.py`](assets/verify_kunlun_runtime.py) | 验证 | 见上单入口（`--static` 为无设备子集） | 退出码 0 且末行 `overall: PASS`；含 flagtree/flag_gems/triton 版本、`from triton._C.libtriton import xpu`、`flag_gems` 非 editable、设备可用与显存分配、FlagGems `rms_norm`/`softmax` 与 torch 参考比对 | 2026-10-11 卡 7 **`overall: PASS`，退出码 0**（11 项通过、1 项已知缺陷不计入）：[`assets/evidence/verify-v2-card7-PASS.txt`](assets/evidence/verify-v2-card7-PASS.txt) |
+| [`assets/verify_kunlun_runtime.py`](assets/verify_kunlun_runtime.py) | 验证 | 见上单入口（`--static` 为无设备子集） | 退出码 0 且末行 `overall: PASS`；含 flagtree/flag_gems/triton 版本、`from triton._C.libtriton import xpu`、`flag_gems` 为基座那份 editable-in-image 安装（`url` 指向 `/env/FlagGems`）、`XPU_EVENT_KL3_ENABLE` 未设、设备可用与显存分配、FlagGems `rms_norm`/`softmax` 与 torch 参考比对 | 2026-10-11 卡 7 **`overall: PASS`，退出码 0**（11 项通过、1 项已知缺陷不计入），镜像 `cac5ddae5f62`：[`assets/evidence/verify-v2-card7-PASS.txt`](assets/evidence/verify-v2-card7-PASS.txt) |
 
 判据说明：
 
@@ -82,6 +87,11 @@ docker compose -f dev/images/kunlun-operator-runtime/v2/demo/docker-compose.yml 
   注意本轮实测到的失败形态（`OutOfResources: uni_sram`）与 v1 记录的 SIGABRT **不同**，
   是否同一缺陷未定论，见 [`lock.yaml`](lock.yaml)
   `known_issues: gemm-failure-signature-differs-from-v1`。
+- **`flag_gems` 一项的判据是"期望它是基座那份 editable"**，与通常相反：本层既不 `COPY`
+  也不重装 FlagGems，所以验证要确认的恰恰是"用的就是基座 `/env/FlagGems` 那份、没被意外覆盖"。
+  实测 `direct_url` = `{"dir_info": {"editable": true}, "url": "file:///env/FlagGems"}`。
+  按 [`../../ENV-SPEC.md`](../../../ENV-SPEC.md) §2.1，父镜像继承来的 editable 安装、
+  源码位于镜像内即为固化资产（`install: editable-in-image`）。
 - 完整运行日志留在执行机器，仓内只放 `assets/evidence/` 截选（机器名与绝对路径见各截选文件头）。
 
 设备模型与用卡纪律（P800 与昇腾不同，勿照抄）：实测证据
