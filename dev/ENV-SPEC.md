@@ -88,8 +88,8 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 | `image.ref` / `image.id` | 镜像 ref 与 image id（`id` 是 check 项） |
 | `image.recipe` / `image.demo` | 构建配方（含父层配方）；demo 运行环境目录 |
 | `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（无 commit 的版本事实：CANN / XTDK / XRE / XCCL / Python / torch 等）；能对应到 commit 的包只记在 `baked_repos`，不在此重复。取数来源是 `baseline.py` 的三张声明式探针表（`BASE_PROVIDES_ENV` 环境变量 / `BASE_PROVIDES_FILES` 镜像内文件 / `BASE_PROVIDES_PKGS` 包白名单），接新芯片只加数据 |
-| `baked_repos.<名称>` | 有仓库身份、以 commit 为版本锚的固化资产：`layer`、`from`（来源层与方式）、`commit`、`install`，可选 `version`、`patches`（文件名 + sha256）、`source_path`、`supersedes`、`info`。键一律是 §3.2 的仓库名，不是 pip 发行名 |
-| `baked_packages[]` | 从包索引装入的预编译发行包（无仓库身份、无 commit，以 `version` 为版本锚）：`name`（pip 发行名）、`layer`、`version`、`index_url`、`install`、`pin`。不可下放为挂载资产（§2.3） |
+| `baked_repos.<名称>` | 有仓库身份、以 commit 为版本锚的固化资产：`layer`、`from`（来源层与方式）、`commit`、`install`，可选 `commit_source`、`version`、`patches`（文件名 + sha256）、`source_path`、`supersedes`、`info`。键一律是 §3.2 的仓库名，不是 pip 发行名 |
+| `baked_packages[]` | 从包索引装入的预编译发行包（无仓库身份、无 commit，以 `version` 为版本锚）：`name`（pip 发行名）、`layer`、`version`、`index_url`、`install`、`pin`，可选 `wheel`（`filename`、`sha256`、`source`、`fetched_at`）。不可下放为挂载资产（§2.3） |
 | `baked_resources[]` | 固化资源：`name`、`layer`、`url` 或 `path`、`sha256`；构建期未固定版本的记 `pin: unpinned (...)` |
 | `packages` | 完整包清单（pip freeze）路径，仅供查阅 |
 
@@ -100,6 +100,19 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 版本事实退回由 image id 兜底——父镜像继承的 editable 安装可能取不到 commit）、以及配方写法
 超出 §4.2 时的**报错**（不写文件）。`info`（分支、提交时间）仅供阅读，不参与任何校验；
 无法获取时同样记为 `unavailable`。
+
+`commit` 的取数口径有两个，由 `commit_source` 区分：**缺省不写该字段 = 取自 pip 元数据**
+（`pip freeze` 的 `-e <url>@<40hex>#egg=…`）；`commit_source: in-image-git` = pip 元数据没记，
+回退读镜像内 `source_path` 下 `.git` 的 HEAD。回退**只填空、不改写**——已有 commit 的条目一律
+以 pip 元数据为准，否则换一个取数口径就会让既有基线漂移。这条回退把一部分
+`commit: unavailable` 降级成了真正的版本锚（实例：昆仑芯 v2 的 `vllm_plugin_fl`，厂商内网仓
+取不到 pip VCS 元数据，但镜像内带 `.git`）。
+
+**`install: editable-in-image` 的第二版本锚**：这类资产的 commit 来自基座，而镜像标签只是
+「本组对基座内容的断言」、标签不存在时不核对（见 §4.2）。`check --image` 因此额外比对
+**镜像内 `source_path`/.git 的 HEAD 与基线 `commit`**——这是一条不依赖任何标签、镜像自证的锚：
+不一致即 FAIL；镜像内没有 `.git`、或配方未声明 `ARG PYTHON_BIN`（取不到目标解释器）一律 INFO，
+不 FAIL——**带 `.git` 不是对厂商基座的要求**。
 
 `supersedes`：本层固化的资产与父层/基座继承来的同名资产重名时，就近者赢（本层覆盖父层），
 基线只留本层这一条，被覆盖的那条记入 `supersedes` 留痕——否则会写出重复的 YAML 键，
@@ -226,6 +239,28 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 `io.flagrt.*.version`（登记在 `VERSION_LABEL`）。模式 6 另有第三条边——镜像内实际安装的
 dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不一致即报错；这条边是 commit
 情形做不到的（源码固化后可能已删），所以无 commit 的资产可核对性并不弱于有 commit 的资产。
+
+**模式 6 的第四条边：wheel 的 sha256。** 版本号本身防不住「上游以同一版本号重发不同内容」。
+索引页按 PEP 503 在 `href` 上直接公布 `#sha256=`，一次小 HTTP 请求即可取，不必下载 wheel
+（昆仑芯的 flagtree wheel 是 3.3GB）。`export` 把它记进 `baked_packages[].wheel`，
+`check --image --online` 与索引页当前内容比对。四条规则：
+
+1. **定位 wheel 条目按解析匹配，不按字符串匹配。** 文件名由「dist 名 + 镜像内实装版本 +
+   dist-info 的 `WHEEL: Tag`」从镜像内事实完整推出，但只作观测值：匹配时解析索引页每个条目的
+   wheel 文件名、按 PEP 440 做版本相等比较。两个坑都是实测到的——子串匹配会误命中（真索引页上
+   子串 `0.6.1` 命中 20 条，还有 `0.6.1a1+xpu3.6` 这种近邻干扰项）；而 PEP 427 规定文件名的
+   version 段应把非字母数字串转义成 `_`，该索引实际未转义，所以「自己拼文件名再比字符串」会在
+   上游换构建工具时失配。同版本多 wheel 时用 `Tag` 消歧，仍不唯一即报错，不猜。
+   `dist-info` 的 `WHEEL` 有多条 `Tag` 行（压缩 tag 集）时同样不猜，只告警并不记 `wheel`。
+2. **`export` 尽力而为，取不到只告警不报错**——构建机可能无外网，离线建得出镜像就该导得出基线；
+   此时该资产只剩 `version` 一个锚，`pin` 字段写明这一点。
+3. **`check` 默认不联网，核对须显式 `--online`**：`check` 在 `dev/lib/up.sh --strict` 的启动
+   路径上，默认联网会破坏离线/气隙使用并可能挂住。`--online` 下取不到索引页记 FAIL（显式要求
+   核对却无法下判定，静默放过会让这个开关失去意义）；基线里没有 `wheel` 块记 INFO（向后兼容，
+   旧基线不因此 FAIL）。代理不在命令里硬编码，走 curl 的标准环境变量（需绕过时 `export no_proxy='*'`）。
+4. **语义边界**：它发现的是「索引当前内容 ≠ 基线当初记的值」，**不证明镜像内装的字节就是这个
+   指纹**——要证明得留着整个 wheel。镜像内字节的唯一性仍由 image id 承载（§2）。
+   上游合法重建同版本 wheel 时这条会 FAIL，属需人工裁定的情形，不是缺陷。
 
 **版本锚也可以是「对基座内容的断言」**：继承资产（`from: base_image`）本来没有本层标签——它不是本组
 固化的。本组若为它在 `COMMIT_LABEL` 里登记并在配方中打出该标签，标签语义就从「本层固化资产的锚」

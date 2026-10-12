@@ -15,6 +15,7 @@
 """
 import argparse
 import hashlib
+import html
 import json
 import os
 import re
@@ -328,6 +329,208 @@ def cached_download_sha256(url: str) -> str:
     digest = sha256_file(target)
     side.write_text(digest + "\n", encoding="utf-8")
     return digest
+
+
+# ---- 索引发行包的 wheel sha256：PEP 503 索引页的 `#sha256=` fragment ----
+#
+# 模式 6（ENV-SPEC §4.2）的资产以 version 为锚，但上游以同一版本号重发时版本锚察觉不到。
+# 索引页按 PEP 503 在 href 上直接公布 `#sha256=`，一次小 HTTP 请求即可取，无需下载 wheel
+# （flagtree 那个 wheel 是 3.3GB）。这里只取、只比对，不下载。
+#
+# 代理：**不在命令里硬编码 --noproxy**，走 curl 的标准环境变量。需要绕过代理的机器
+# （实测本机访问 resource.flagos.net 即需要）在调用前 `export no_proxy='*'`。
+INDEX_HTTP_TIMEOUT = 30
+
+
+def _packaging():
+    """软依赖 packaging：只有 wheel sha256 这条路径需要它，缺它不影响其余任何功能。
+
+    baseline.py 的硬依赖只有 yaml（包版本的常规归一化由 _strip_local 自己处理）。
+    wheel 文件名解析与 PEP 440 版本相等属规范细节，手搓容易错，故这一条按需引入。"""
+    try:
+        from packaging.utils import canonicalize_name, parse_wheel_filename
+        from packaging.version import Version
+    except ImportError as e:
+        raise BaselineError(
+            f"wheel sha256 核对需要 packaging 包（仅此功能需要，其余功能不依赖它）: {e}\n"
+            f"安装：python3 -m pip install packaging", code=1)
+    return canonicalize_name, parse_wheel_filename, Version
+
+
+def index_wheel_entries(index_url: str, dist: str):
+    """取 PEP 503 索引页，返回 [(wheel 文件名, sha256 或 None)]，只含 .whl 条目。"""
+    canonicalize_name, _, _ = _packaging()
+    url = f"{index_url.rstrip('/')}/{canonicalize_name(dist)}/"
+    proc = subprocess.run(["curl", "-fsSL", "--max-time", str(INDEX_HTTP_TIMEOUT), url],
+                          capture_output=True, text=True, timeout=INDEX_HTTP_TIMEOUT + 30)
+    if proc.returncode != 0:
+        raise BaselineError(
+            f"取索引页失败: {url}\n{proc.stderr.strip()}\n"
+            f"若本机需绕过代理，先 export no_proxy='*' 再重试", code=1)
+    out = []
+    for href in re.findall(r'href="([^"]+)"', proc.stdout):
+        name = html.unescape(href).rsplit("/", 1)[-1]
+        base, _, frag = name.partition("#")
+        if not base.endswith(".whl"):
+            continue
+        m = re.search(r"sha256=([0-9a-f]{64})", frag)
+        out.append((base, m.group(1) if m else None))
+    if not out:
+        raise BaselineError(f"索引页没有任何 .whl 条目，无法取 sha256: {url}", code=1)
+    return out
+
+
+def resolve_index_wheel(index_url: str, dist: str, version: str, tag=None) -> dict:
+    """在索引页上定位 dist==version 的那个 wheel，返回 {filename, sha256}。
+
+    **按解析匹配，不按字符串匹配**，两个坑都是实测到的（见 kunlun-operator-runtime/v2/
+    lock.yaml known_issues: flagtree-wheel-sha256-in-check-chain）：
+      · 子串匹配会误命中 —— 该索引上子串 `0.6.1` 命中 20 条，还有 `0.6.1a1+xpu3.6` 这种
+        近邻干扰项，故按 PEP 440 的 Version 相等比较。
+      · 不能「自己拼出文件名再比字符串」—— PEP 427 规定文件名的 version 段应把非字母
+        数字串转义成 `_`，而该索引实际未转义（原样 `0.6.1+xpu3.6`），上游换构建工具即失配。
+    `tag` 是镜像内 dist-info 的 `WHEEL: Tag`，用于同版本多 wheel 时消歧；命中唯一时用它
+    反向核对，不一致即报错（说明装进镜像的那个 wheel 与索引现在的不是同一个）。
+    """
+    canonicalize_name, parse_wheel_filename, Version = _packaging()
+    want_name, want_ver = canonicalize_name(dist), Version(version)
+    hits = []
+    for base, sha in index_wheel_entries(index_url, dist):
+        try:
+            n, v, _build, tags = parse_wheel_filename(base)
+        except Exception:
+            continue          # 非规范文件名不参与匹配，也不报错（索引上可能挂着别的东西）
+        if canonicalize_name(str(n)) == want_name and v == want_ver:
+            hits.append((base, sha, {str(t) for t in tags}))
+    if not hits:
+        raise BaselineError(f"索引页上没有 {dist}=={version} 的 wheel: {index_url}", code=1)
+    if len(hits) > 1:
+        if not tag:
+            raise BaselineError(
+                f"{dist}=={version} 在索引页上有 {len(hits)} 个 wheel 且无 tag 可消歧: "
+                f"{', '.join(h[0] for h in hits)}", code=1)
+        narrowed = [h for h in hits if tag in h[2]]
+        if len(narrowed) != 1:
+            raise BaselineError(
+                f"{dist}=={version} 按 tag {tag} 消歧后仍有 {len(narrowed)} 个候选: "
+                f"{', '.join(h[0] for h in hits)}", code=1)
+        hits = narrowed
+    base, sha, tags = hits[0]
+    if not sha:
+        raise BaselineError(f"索引页条目没有 #sha256= fragment，拿不到指纹: {base}", code=1)
+    if tag and tag not in tags:
+        raise BaselineError(
+            f"{dist}=={version}: 镜像内 dist-info 的 WHEEL Tag={tag} 与索引页条目 {base} "
+            f"的 tag {sorted(tags)} 不一致 —— 装进镜像的 wheel 与索引现在的不是同一个", code=1)
+    return {"filename": base, "sha256": sha}
+
+
+def image_wheel_tags(ref: str, python_bin: str, dists) -> dict:
+    """读镜像内各 dist 的 dist-info/WHEEL 的 `Tag:` 行，返回 {dist: [tag, ...]}。
+
+    wheel 文件名由「dist 名 + dist 版本 + tag」三段构成，前两段 pip 元数据已有，tag 只在
+    dist-info 里 —— 这是把文件名从镜像内事实完整推出的最后一段。多条 Tag 行（压缩 tag 集）
+    原样返回，由调用方决定报错还是消歧，不在这里猜。"""
+    dists = sorted(set(dists))
+    if not dists:
+        return {}
+    code = ("import json\n"
+            "import importlib.metadata as m\n"
+            "out = {}\n"
+            "for d in " + json.dumps(dists) + ":\n"
+            "    try:\n"
+            "        dist = m.distribution(d)\n"
+            "    except Exception:\n"
+            "        continue\n"
+            "    for f in dist.files or []:\n"
+            "        if not str(f).endswith('.dist-info/WHEEL'):\n"
+            "            continue\n"
+            "        try:\n"
+            "            text = dist.read_text(str(f))\n"
+            "        except Exception:\n"
+            "            text = None\n"
+            "        if text is None:\n"
+            "            break\n"
+            "        out[d] = [ln.split(':', 1)[1].strip() for ln in text.splitlines()\n"
+            "                  if ln.startswith('Tag:')]\n"
+            "        break\n"
+            "print(json.dumps(out))\n")
+    proc = subprocess.run(["docker", "run", "--rm", "--entrypoint", python_bin, ref, "-c", code],
+                          capture_output=True, text=True, timeout=900)
+    if proc.returncode != 0:
+        raise BaselineError(f"读取镜像内 dist-info 的 WHEEL Tag 失败: {ref}\n"
+                            f"{proc.stderr.strip()}", code=1)
+    lines = [ln for ln in proc.stdout.splitlines() if ln.strip()]
+    if not lines:
+        raise BaselineError(f"读取镜像内 WHEEL Tag 无输出: {ref}", code=1)
+    try:
+        return json.loads(lines[-1])
+    except json.JSONDecodeError as e:
+        raise BaselineError(f"WHEEL Tag 探针输出不是 JSON: {ref}\n{e}", code=1)
+
+
+def image_git_heads(ref: str, python_bin: str, paths) -> dict:
+    """读镜像内若干 git 工作树的 HEAD commit，返回 {路径: 40 位 sha}；取不到的键不出现。
+
+    用途是给 `install: editable-in-image` 的继承资产一个**镜像自证**的第二版本锚：它们的
+    commit 目前只来自基座 pip 元数据，而镜像标签只是「本组对基座内容的断言」、标签不存在
+    时不核对（ENV-SPEC §3.1）。不要求镜像里有 git 可执行文件，纯读 .git 下的文件。"""
+    paths = sorted(set(paths))
+    if not paths:
+        return {}
+    code = ("import json, os, re\n"
+            "def head(repo):\n"
+            "    g = os.path.join(repo, '.git')\n"
+            "    if os.path.isfile(g):\n"
+            "        try:\n"
+            "            line = open(g).read().strip()\n"
+            "        except OSError:\n"
+            "            return None\n"
+            "        if not line.startswith('gitdir:'):\n"
+            "            return None\n"
+            "        g = line.split(':', 1)[1].strip()\n"
+            "    if not os.path.isdir(g):\n"
+            "        return None\n"
+            "    try:\n"
+            "        h = open(os.path.join(g, 'HEAD')).read().strip()\n"
+            "    except OSError:\n"
+            "        return None\n"
+            "    if re.fullmatch('[0-9a-f]{40}', h):\n"
+            "        return h\n"
+            "    if not h.startswith('ref:'):\n"
+            "        return None\n"
+            "    ref_name = h.split(':', 1)[1].strip()\n"
+            "    try:\n"
+            "        v = open(os.path.join(g, ref_name)).read().strip()\n"
+            "        if re.fullmatch('[0-9a-f]{40}', v):\n"
+            "            return v\n"
+            "    except OSError:\n"
+            "        pass\n"
+            "    try:\n"
+            "        for ln in open(os.path.join(g, 'packed-refs')):\n"
+            "            parts = ln.split()\n"
+            "            if len(parts) == 2 and parts[1] == ref_name:\n"
+            "                return parts[0]\n"
+            "    except OSError:\n"
+            "        pass\n"
+            "    return None\n"
+            "out = {}\n"
+            "for p in " + json.dumps(paths) + ":\n"
+            "    v = head(p)\n"
+            "    if v:\n"
+            "        out[p] = v\n"
+            "print(json.dumps(out))\n")
+    proc = subprocess.run(["docker", "run", "--rm", "--entrypoint", python_bin, ref, "-c", code],
+                          capture_output=True, text=True, timeout=900)
+    if proc.returncode != 0:
+        raise BaselineError(f"读取镜像内 .git HEAD 失败: {ref}\n{proc.stderr.strip()}", code=1)
+    lines = [ln for ln in proc.stdout.splitlines() if ln.strip()]
+    if not lines:
+        raise BaselineError(f"读取镜像内 .git HEAD 无输出: {ref}", code=1)
+    try:
+        return json.loads(lines[-1])
+    except json.JSONDecodeError as e:
+        raise BaselineError(f".git HEAD 探针输出不是 JSON: {ref}\n{e}", code=1)
 
 
 # ---- info 块（只供阅读，不参与校验） ----
@@ -719,20 +922,46 @@ def _external_base(recipe: _Recipe, warnings: list):
         if report["versions"].get(pkg):
             provides[pkg] = _strip_local(report["versions"][pkg])
     repos = []
+    in_image = {}        # dist -> 镜像内源码绝对路径
     for dist, e in sorted(report["editables"].items()):
         src = e.get("source", "")
         name = PKG_TO_REPO.get(dist, dist)   # pip 发行名 -> 仓库名，三张表才认得出层级与标签
         if not src.startswith("file:/"):
             warnings.append(f"{name}: 父镜像的 editable 安装源码不在镜像内（{src}），不记为固化资产")
             continue
+        in_image[dist] = re.sub(r"^file://", "", src)
+    # pip 元数据没记 commit 时，回退读镜像内源码目录的 .git HEAD。**只填空，不改写**：
+    # 已有 commit 的条目一律以 pip 元数据为准，避免换一个取数口径就让既有基线漂移。
+    # 这条回退把「commit: unavailable 由 image id 兜底」降级成了真正的版本锚（§3.1）。
+    heads = {}
+    missing = [in_image[d] for d, e in report["editables"].items()
+               if d in in_image and not e.get("commit")]
+    if missing:
+        try:
+            heads = image_git_heads(recipe.from_ref, python_bin, missing)
+        except BaselineError as e:
+            warnings.append(f"镜像内 .git HEAD 探针未能执行，取不到 commit 的条目仍记 "
+                            f"unavailable: {e}")
+    for dist, e in sorted(report["editables"].items()):
+        if dist not in in_image:
+            continue
+        src_path, name = in_image[dist], PKG_TO_REPO.get(dist, dist)
+        commit, commit_source = e.get("commit"), None
+        if not commit and heads.get(src_path):
+            commit, commit_source = heads[src_path], "in-image-git"
+            warnings.append(f"{name}: pip 元数据无 commit，回退取镜像内 {src_path}/.git 的 "
+                            f"HEAD={commit[:12]} 作为版本锚（commit_source: in-image-git）")
         provides.pop(dist, None)  # 能对应到 commit 的包只记在 baked_repos，不在 provides 重复
-        repos.append({"_name": name, "layer": LAYER.get(name, DEFAULT_LAYER), "from": "base_image",
-                      "commit": e.get("commit"),
-                      "version": _strip_local(report["versions"].get(dist) or "") or None,
-                      "source_path": re.sub(r"^file://", "", src),
-                      "install": "editable-in-image",
-                      "info": repo_info(name, e.get("commit"), repo_url=e.get("repo_url"))})
-        warnings.append(f"{name}: 继承自父镜像的 editable 安装，源码位于镜像内 {src}，"
+        entry = {"_name": name, "layer": LAYER.get(name, DEFAULT_LAYER), "from": "base_image",
+                 "commit": commit,
+                 "version": _strip_local(report["versions"].get(dist) or "") or None,
+                 "source_path": src_path,
+                 "install": "editable-in-image",
+                 "info": repo_info(name, commit, repo_url=e.get("repo_url"))}
+        if commit_source:
+            entry["commit_source"] = commit_source
+        repos.append(entry)
+        warnings.append(f"{name}: 继承自父镜像的 editable 安装，源码位于镜像内 file://{src_path}，"
                         "记为固化资产（install: editable-in-image，ENV-SPEC §2.1）")
     return {"ref": recipe.from_ref, "digest": digest, "provides": provides}, repos
 
@@ -905,6 +1134,7 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
             raise BaselineError("Dockerfile 未声明 ARG PYTHON_BIN，无法读取镜像内实装版本"
                                 "以核对索引发行包的版本锚（§4.2 模式 6）")
         installed = image_python_report(ref, python_bin)["versions"]
+        wheel_tags = image_wheel_tags(ref, python_bin, recipe.packages.keys())
         for dist, pkg in recipe.packages.items():
             key = dist.replace("-", "_")
             label_key = VERSION_LABEL.get(dist)
@@ -924,13 +1154,35 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
             if actual != pkg["version"]:
                 raise BaselineError(f"{dist}: 镜像标签/ARG 版本 {pkg['version']} 与镜像内实装版本 "
                                     f"{actual} 不一致", code=1)
-            baked_packages.append({
+            # 第四条边（§4.2 模式 6）：索引页 PEP 503 的 `#sha256=`。wheel 文件名由
+            # 「dist 名 + 实装版本 + dist-info 的 WHEEL Tag」从镜像内事实完整推出，再在索引页
+            # 上按解析匹配定位同一条目，取其指纹。**尽力而为**：构建机可能无外网，取不到
+            # 只告警并省略 wheel 块，不让 export 失败（离线建得出镜像就该导得出基线）。
+            wheel = None
+            tags = wheel_tags.get(key) or wheel_tags.get(dist) or []
+            if len(tags) > 1:
+                warnings.append(f"{dist}: dist-info 的 WHEEL 有 {len(tags)} 条 Tag 行"
+                                f"（压缩 tag 集 {tags}），不猜文件名，本项不记 wheel sha256")
+            else:
+                try:
+                    wheel = resolve_index_wheel(pkg["index_url"], dist, actual,
+                                                tag=tags[0] if tags else None)
+                    wheel["source"] = "index-page-pep503"
+                    wheel["fetched_at"] = now_iso()
+                except BaselineError as e:
+                    warnings.append(f"{dist}: 未能取到 wheel sha256，本项只有 version 一个锚"
+                                    f"（上游以同一版本号重发时察觉不到）；原因: {e}")
+            anchors = f"version (标签 {label_key} 与镜像内实装版本双向核对"
+            anchors += "；wheel sha256 见 wheel 块，由 check --online 核对)" if wheel else \
+                       "；本次未取到 wheel sha256，见 export 告警)"
+            entry = {
                 "name": dist, "layer": LAYER.get(dist, DEFAULT_LAYER),
                 "version": pkg["version"], "index_url": pkg["index_url"],
-                "install": pkg["install"],
-                "pin": f"version (标签 {label_key} 与镜像内实装版本双向核对；"
-                       f"索引不提供稳定直链，不记 sha256)",
-            })
+                "install": pkg["install"], "pin": anchors,
+            }
+            if wheel:
+                entry["wheel"] = wheel
+            baked_packages.append(entry)
 
     # 完整包清单：assets/provenance/ 下名字含 pipfreeze 的快照。多份时按 PACKAGES_PREFER
     # 的标记顺序挑（各血统的命名惯例登记在那张表里），同一标记内取名字最大的一份；
@@ -984,6 +1236,9 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
             if not commit_v:
                 warnings.append(f"{e_name}: 取不到 commit，已记 commit: unavailable，"
                                 f"版本事实由 image id 兜底（ENV-SPEC §3.1）")
+            # commit 的取数口径：缺省（不写该字段）= pip 元数据；写出来的只有回退来源
+            if e.get("commit_source"):
+                L.append(f"    commit_source: {y(e.pop('commit_source'))}")
             for k in ("version", "patches", "source_path"):
                 if e.get(k):
                     L.append(f"    {k}: {y(e.pop(k))}")
@@ -996,8 +1251,17 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
     # 模式 4/6 只可能出现在本组配方里，父基线继承来的也是本组自建镜像的产物：恒为本组带入。
     if baked_packages:
         L += ["", "baked_packages:                                # 索引发行包：版本 pin，无 commit",
-              "  # 恒为本组配方带入（§4.2 模式 6）：改 pin + 重新构建即可变更。"]
-        L += [f"  - {y(p)}" for p in baked_packages]
+              "  # 恒为本组配方带入（§4.2 模式 6）：改 pin + 重新构建即可变更。",
+              "  # wheel 块（若有）是索引页 PEP 503 的 `#sha256=`，由 check --online 核对；",
+              "  # 它防的是「上游以同一版本号重发不同内容」，不证明镜像内字节即此指纹（§4.2）。"]
+        for pkg in baked_packages:
+            # 块式映射：wheel 是嵌套块，平铺进一行流式映射会长到不可读（index_url 已经很长）
+            wheel = pkg.pop("wheel", None)
+            items = list(pkg.items())
+            L.append(f"  - {items[0][0]}: {y(items[0][1])}")
+            L += [f"    {k}: {y(v)}" for k, v in items[1:]]
+            if wheel:
+                L.append(f"    wheel: {y(wheel)}")
     L += ["", "baked_resources: []" if not baked_resources else "baked_resources:"]
     if baked_resources:
         L.append("  # 恒为本组配方带入（§4.2 模式 4）：改配方 + 重新构建即可变更。")
@@ -1030,7 +1294,84 @@ def _print_report(report) -> bool:
     return not any(s == "FAIL" for s, _, _ in report)
 
 
-def check_image(image_dir) -> int:
+def _image_python_bin(image_dir):
+    """从配方取 ARG PYTHON_BIN（镜像内目标解释器）。取不到返回 None —— 它只给可选的
+    附加核对用，不能让 check 本体失败（v1 那种不被 §4.2 识别的配方就取不到）。"""
+    try:
+        return analyze_dockerfile(Path(image_dir).resolve()).args.get("PYTHON_BIN")
+    except BaselineError:
+        return None
+
+
+def _check_editable_git(image_dir, ref, baked, report):
+    """附加核对：`install: editable-in-image` 的资产，镜像内 .git 的 HEAD 与基线 commit 比对。
+
+    这些资产的 commit 只来自基座 pip 元数据，而镜像标签只是「本组对基座内容的断言」、
+    标签不存在时不核对（ENV-SPEC §3.1）。镜像内源码目录若带 .git，就是一个**不依赖标签、
+    镜像自证**的第二锚。取不到（无 .git / 无 PYTHON_BIN / 探针失败）一律 INFO，不 FAIL ——
+    带 .git 不是对基座的要求。"""
+    want = {name: item.get("source_path") for name, item in baked.items()
+            if item.get("install") == "editable-in-image" and item.get("source_path")}
+    if not want:
+        return
+    python_bin = _image_python_bin(image_dir)
+    if not python_bin:
+        report.append(("INFO", "editable-in-image", "配方未声明 ARG PYTHON_BIN，跳过镜像内 "
+                                                    ".git HEAD 这项附加核对"))
+        return
+    try:
+        heads = image_git_heads(ref, python_bin, want.values())
+    except BaselineError as e:
+        report.append(("INFO", "editable-in-image", f"镜像内 .git HEAD 探针未能执行，跳过该项"
+                                                    f"附加核对: {e}"))
+        return
+    for name, path in sorted(want.items()):
+        head, commit = heads.get(path), str(baked[name].get("commit") or "")
+        if not head:
+            report.append(("INFO", name, f"镜像内 {path} 无 .git，该资产只有 pip 元数据这一个 "
+                                         f"commit 来源"))
+        elif not SHA40.fullmatch(commit):
+            report.append(("INFO", name, f"基线记 commit: {commit or 'unavailable'}，但镜像内 "
+                                         f"{path}/.git HEAD={head[:12]} —— 可作为第二版本锚，"
+                                         f"重新 export 后即可纳入核对"))
+        elif head != commit:
+            report.append(("FAIL", name, f"镜像内 {path}/.git HEAD={head[:12]} 与基线 commit "
+                                         f"{commit[:12]} 不一致"))
+        else:
+            report.append(("PASS", name, f"{path}/.git HEAD={head[:12]}（镜像自证，不依赖标签）"))
+
+
+def _check_wheel_sha256(pkg, name, online, report):
+    """附加核对：索引页 PEP 503 的 `#sha256=` 与基线记的 wheel.sha256 比对。
+
+    **必须 opt-in（--online）**：check 在 up.sh --strict 的启动路径上，默认联网会破坏
+    离线/气隙使用、而且可能挂住。语义边界要说清 —— 它发现的是「索引当前内容 ≠ 基线当初
+    记的值」，**不证明镜像内装的字节就是这个指纹**（要证明就得留着整个 wheel）。"""
+    wheel = pkg.get("wheel") or {}
+    want = wheel.get("sha256")
+    if not want:
+        report.append(("INFO", name, "基线未记 wheel sha256（export 时未取到，或基线由旧版"
+                                     "工具生成），该项不核对；version 标签仍是硬核对项"))
+        return
+    if not online:
+        report.append(("INFO", name, f"wheel sha256 未核对（需 check --online）: "
+                                     f"{wheel.get('filename')} {want[:12]}…"))
+        return
+    try:
+        got = resolve_index_wheel(pkg.get("index_url"), name, pkg.get("version"))
+    except BaselineError as e:
+        # --online 是显式要求核对，取不到就是「无法下判定」，静默放过会让这个开关失去意义
+        report.append(("FAIL", name, f"--online 要求核对 wheel sha256，但未能取到索引页条目: {e}"))
+        return
+    if got["sha256"] != want:
+        report.append(("FAIL", name, f"索引页 sha256 与基线不一致 —— 上游可能以同一版本号重发了"
+                                     f"不同内容，须人工裁定: 基线 {want} 索引 {got['sha256']}"
+                                     f"（{got['filename']}）"))
+    else:
+        report.append(("PASS", name, f"wheel sha256 与索引页一致: {got['filename']} {want[:12]}…"))
+
+
+def check_image(image_dir, online=False) -> int:
     data = load_yaml(Path(image_dir).resolve() / "image.baseline.yaml")
     img = data.get("image") or {}
     line, labels = _check_image_id(img.get("ref"), img.get("id"))
@@ -1072,6 +1413,9 @@ def check_image(image_dir) -> int:
                                          f"镜像 {labels[key]}"))
         else:
             report.append(("PASS", name, f"{key}={labels[key]}"))
+        _check_wheel_sha256(pkg, name, online, report)
+    if labels is not None:
+        _check_editable_git(image_dir, img.get("ref"), baked, report)
     return 0 if _print_report(report) else 1
 
 
@@ -1401,6 +1745,11 @@ def build_parser():
             sp.add_argument("--image-ref", help="镜像场景：显式指定镜像 ref（默认取 build.sh 的 -t）")
             sp.add_argument("--require-clean", action="store_true",
                             help="运行环境场景：挂载 repo 不干净或 commit 未推送时拒绝导出")
+        if action == "check":
+            sp.add_argument("--online", action="store_true",
+                            help="镜像场景：额外联网核对 baked_packages 的 wheel sha256"
+                                 "（PEP 503 索引页的 #sha256=）。默认不联网 —— check 在 "
+                                 "up.sh --strict 的启动路径上。需绕代理时先 export no_proxy='*'")
     sub.add_parser("load", help="按基线切换挂载 repo（仅运行环境场景）").add_argument(
         "env_dir", help="运行环境目录")
     sub.add_parser("list", help="列出仓内全部镜像基线的资产与版本")
@@ -1425,7 +1774,11 @@ def main(argv=None) -> int:
             return (export_image(args.image, demo=args.demo, image_ref=args.image_ref) if args.image
                     else export_env(args.env_dir, require_clean=args.require_clean))
         if args.action == "check":
-            return check_image(args.image) if args.image else check_env(args.env_dir)
+            if args.online and not args.image:
+                print("用法错误: --online 只用于镜像场景（--image <image-dir>）", file=sys.stderr)
+                return 2
+            return (check_image(args.image, online=args.online) if args.image
+                    else check_env(args.env_dir))
         return show(args.image or args.env_dir, image=bool(args.image))
     except BaselineError as e:
         print(f"[FAIL] {e}", file=sys.stderr)

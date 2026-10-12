@@ -25,7 +25,16 @@ FlagGems 用基座自带的那份（`/env/FlagGems`，editable，源码在镜像
 **已知限制**（四条，消费前必须知晓；每条的完整证据与根因见 [`../v1/lock.yaml`](../v1/lock.yaml)
 的 `known_issues`，v2 与 v1 是同一 pin 组合，这些限制原样继承）：
 
-- GEMM（`mm`/`bmm`/`addmm`）编译期 **SIGABRT**，无可用 workaround — `gemm-compile-sigabrt`。
+- **GEMM（`mm`/`bmm`/`addmm`）编译期即失败，无一个形状可用，无 workaround** — 这是本底座最大的
+  能力边界，需要 GEMM 重的算子路径的消费方必须绕开 FlagGems 的 GEMM。
+  失败形态有两种（原生 abort @`make_llir` / `OutOfResources: uni_sram` @`ttxir`），
+  2026-10-12 已复核定论为**同一个缺陷**，形态由 shape × dtype 决定。
+  **`OutOfResources: uni_sram` 这个报错会骗人**：`Required: 0, Hardware limit: 0` 是硬编码的零，
+  照字面去调小 block size / `num_stages` 是死路。
+  缺陷 case 包（单入口复现 + 修复验收判据）：
+  [`dev/issues/kunlunxin-gemm-triton-compile/`](../../../issues/kunlunxin-gemm-triton-compile/README.md)；
+  镜像侧结论见 [`lock.yaml`](lock.yaml) `known_issues: gemm-same-defect-two-failure-stages`
+  与 [`../v1/lock.yaml`](../v1/lock.yaml) `gemm-compile-sigabrt`。
 - 推理默认 dispatch 下 `index_select` 触发 `CUDA error: invalid device function`，**必须**设
   `VLLM_FL_PREFER=vendor` — `flagos-index-select-invalid-device-function`（demo 已内置）。
 - `XPU_EVENT_KL3_ENABLE=1` 单卡单进程即**挂死**，厂商手册要求设、实测不能设 —

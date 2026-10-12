@@ -79,6 +79,16 @@ class TempCase(unittest.TestCase):
         self.env_patch.start()
         self.addCleanup(self.env_patch.stop)
         (self.tmp / "ws").mkdir(parents=True, exist_ok=True)
+        # 三个「会真的出网/起容器」的探针默认全部封死：假 ref 上 docker run 会去 pull、
+        # curl 会真连索引页，单测里两者都不许发生（实测漏掉会把测试挂死而不是报错）。
+        # 要测它们自身行为的用例在自己的 with 块里覆盖这些默认值。
+        for name, kw in (("image_wheel_tags", {"return_value": {}}),
+                         ("image_git_heads", {"return_value": {}}),
+                         ("resolve_index_wheel",
+                          {"side_effect": baseline.BaselineError("单测默认不联网", code=1)})):
+            p = mock.patch.object(baseline, name, **kw)
+            p.start()
+            self.addCleanup(p.stop)
 
     def image_dir(self, dockerfile, name="img", version="v3", assets=None, tag=None):
         d = self.tmp / "dev" / "images" / name / version
@@ -785,7 +795,10 @@ class TestIndexPackagePattern(TempCase):
         self.assertEqual(pkg["layer"], "L2")           # LAYER 表里登记过
         self.assertEqual(pkg["index_url"], "https://idx.example/simple")
         self.assertIn("io.flagrt.flagtree.version", pkg["pin"])
-        self.assertNotIn("sha256", pkg)
+        # 本用例走的是「取不到 wheel sha256」的降级路径（TempCase 默认不联网）：
+        # 不写 wheel 块、pin 里说明未取到，但 export 仍成功 —— 离线建得出镜像就该导得出基线。
+        self.assertNotIn("wheel", pkg)
+        self.assertIn("未取到 wheel sha256", pkg["pin"])
 
     def test_export_fails_when_image_label_version_differs(self):
         """G14：版本锚标签与 ARG 不一致要报错（此前版本类 LABEL 完全不参与核对）。"""
@@ -1253,6 +1266,304 @@ class TestUsage(TempCase):
     def test_no_scenario_is_usage_error(self):
         self.assertEqual(baseline.main(["check"]), 2)
 
+    def test_online_flag_is_image_scope_only(self):
+        self.assertEqual(baseline.main(["check", "--online", str(self.tmp)]), 2)
+
+
+# --------------------------------------------------------------------------
+# 模式 6 的第四条边：索引发行包的 wheel sha256（PEP 503 索引页 `#sha256=`）
+# --------------------------------------------------------------------------
+
+# 索引页片段，形状照抄真实的 resource.flagos.net/.../simple/flagtree/：
+# 同一基础版本号下挂着多个 local version，还有 0.6.1a1+xpu3.6 这种近邻干扰项。
+IDX_PAGE = """<html><body>
+<a href="../../packages/flagtree/0.6.1/flagtree-0.6.1-cp312-cp312-linux_x86_64.whl#sha256={d}">x</a>
+<a href="../../packages/flagtree/0.6.1a1%2Bxpu3.6/flagtree-0.6.1a1+xpu3.6-cp310-cp310-linux_x86_64.whl#sha256={a}">x</a>
+<a href="../../packages/flagtree/0.6.1%2Bmthreads3.6/flagtree-0.6.1+mthreads3.6-cp310-cp310-linux_x86_64.whl#sha256={m}">x</a>
+<a href="../../packages/flagtree/0.6.1%2Bxpu3.6/flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl#sha256={t}">x</a>
+<a href="../../packages/flagtree/0.7.0%2Bxpu3.6/flagtree-0.7.0+xpu3.6-cp310-cp310-linux_x86_64.whl#sha256={n}">x</a>
+</body></html>""".format(t="1" * 64, a="2" * 64, m="3" * 64, d="4" * 64, n="5" * 64)
+
+TARGET_WHL = "flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl"
+
+
+def fake_curl(page, rc=0, stderr=""):
+    """只拦 index_wheel_entries 里那次 curl，其余 subprocess.run 原样放过。"""
+    real = subprocess.run
+
+    def _inner(cmd, *a, **kw):
+        if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "curl":
+            return subprocess.CompletedProcess(cmd, rc, page, stderr)
+        return real(cmd, *a, **kw)
+    return _inner
+
+
+class TestIndexWheelSha256(TempCase):
+    """坑都是 2026-10-12 在真索引页上实测到的，逐条钉死，见
+    kunlun-operator-runtime/v2/lock.yaml known_issues: flagtree-wheel-sha256-in-check-chain。"""
+
+    def _resolve(self, page=IDX_PAGE, **kw):
+        # TempCase 默认把 resolve_index_wheel 封死了，这里要测的正是它本体，故直接调
+        # 导入时留存的真函数（_REAL_RESOLVE），只把它内部那次 curl 换成假页面。
+        with mock.patch.object(baseline.subprocess, "run", fake_curl(page)):
+            return _REAL_RESOLVE("https://idx.example/simple", "flagtree", "0.6.1+xpu3.6", **kw)
+
+    def test_entries_parse_pep503_fragment_and_unescape_href(self):
+        with mock.patch.object(baseline.subprocess, "run", fake_curl(IDX_PAGE)):
+            entries = dict(baseline.index_wheel_entries("https://idx.example/simple", "flagtree"))
+        self.assertEqual(entries[TARGET_WHL], "1" * 64)
+        self.assertEqual(len(entries), 5)
+
+    def test_curl_failure_hints_at_no_proxy(self):
+        with mock.patch.object(baseline.subprocess, "run", fake_curl("", rc=7, stderr="refused")):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                baseline.index_wheel_entries("https://idx.example/simple", "flagtree")
+        self.assertIn("no_proxy", str(cm.exception))
+
+    def test_matches_by_pep440_not_by_substring(self):
+        """子串 `0.6.1` 在真索引页上命中 20 条，`0.6.1a1+xpu3.6` 是近邻干扰项。"""
+        got = self._resolve()
+        self.assertEqual(got["filename"], TARGET_WHL)
+        self.assertEqual(got["sha256"], "1" * 64)      # 不是 a1 预发布那条的 "2"*64
+
+    def test_tag_cross_check_passes_on_unique_hit(self):
+        got = self._resolve(tag="cp310-cp310-linux_x86_64")
+        self.assertEqual(got["filename"], TARGET_WHL)
+
+    def test_tag_mismatch_on_unique_hit_errors(self):
+        """唯一命中但 tag 对不上 —— 装进镜像的 wheel 与索引现在的不是同一个，必须报错。"""
+        with self.assertRaises(baseline.BaselineError) as cm:
+            self._resolve(tag="cp311-cp311-linux_aarch64")
+        self.assertIn("不是同一个", str(cm.exception))
+
+    def test_version_absent_from_index_errors(self):
+        with mock.patch.object(baseline.subprocess, "run", fake_curl(IDX_PAGE)):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                _REAL_RESOLVE("https://idx.example/simple", "flagtree", "9.9.9+xpu3.6")
+        self.assertIn("没有", str(cm.exception))
+
+    def test_ambiguous_same_version_needs_tag(self):
+        """同版本号多 tag：无 tag 时必须报错而不是静默挑一个。"""
+        extra = IDX_PAGE.replace("</body>",
+                                 '<a href="../flagtree-0.6.1+xpu3.6-cp311-cp311-linux_x86_64.whl'
+                                 '#sha256=%s">x</a></body>' % ("6" * 64))
+        with mock.patch.object(baseline.subprocess, "run", fake_curl(extra)):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                _REAL_RESOLVE("https://idx.example/simple", "flagtree", "0.6.1+xpu3.6")
+            self.assertIn("无 tag 可消歧", str(cm.exception))
+            got = _REAL_RESOLVE("https://idx.example/simple", "flagtree", "0.6.1+xpu3.6",
+                                tag="cp311-cp311-linux_x86_64")
+        self.assertEqual(got["sha256"], "6" * 64)
+
+    def test_missing_sha256_fragment_errors_not_null(self):
+        page = IDX_PAGE.replace("#sha256=" + "1" * 64, "")
+        with mock.patch.object(baseline.subprocess, "run", fake_curl(page)):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                _REAL_RESOLVE("https://idx.example/simple", "flagtree", "0.6.1+xpu3.6")
+        self.assertIn("没有 #sha256=", str(cm.exception))
+
+
+class TestWheelSha256InBaseline(TempCase):
+    def _report(self, **kw):
+        r = {"python_version": "3.10.18",
+             "versions": {"torch": "2.9.0+cu129", "flagtree": "0.6.1+xpu3.6"},
+             "editables": {}, "base_files": {}}
+        r.update(kw)
+        return r
+
+    def _export(self, wheel=None, tags=("cp310-cp310-linux_x86_64",)):
+        d = self.image_dir(KL_DF, tag="flagrt/kl:2")
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        ctx = [mock.patch.object(baseline, "inspect_image",
+                                 fake_inspect(labels, env=["PATH=/x"])),
+               mock.patch.object(baseline, "image_python_report", return_value=self._report()),
+               mock.patch.object(baseline, "image_wheel_tags",
+                                 return_value={"flagtree": list(tags)})]
+        if wheel is not None:
+            ctx.append(mock.patch.object(baseline, "resolve_index_wheel", return_value=dict(wheel)))
+        with ctx[0], ctx[1], ctx[2]:
+            if wheel is not None:
+                with ctx[3]:
+                    rc = baseline.export_image(d)
+            else:
+                rc = baseline.export_image(d)
+        self.assertEqual(rc, 0)
+        return d, baseline.load_yaml(d / "image.baseline.yaml")
+
+    def test_export_records_wheel_block(self):
+        d, data = self._export(wheel={"filename": TARGET_WHL, "sha256": "1" * 64})
+        pkg = data["baked_packages"][0]
+        self.assertEqual(pkg["wheel"]["filename"], TARGET_WHL)
+        self.assertEqual(pkg["wheel"]["sha256"], "1" * 64)
+        self.assertEqual(pkg["wheel"]["source"], "index-page-pep503")
+        self.assertIn("fetched_at", pkg["wheel"])
+        self.assertIn("wheel sha256", pkg["pin"])
+
+    def test_export_degrades_with_warning_when_offline(self):
+        """构建机无外网时 export 必须仍然成功，只是少一个锚（不是报错）。"""
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            d, data = self._export(wheel=None)
+        self.assertNotIn("wheel", data["baked_packages"][0])
+        self.assertIn("未能取到 wheel sha256", out.getvalue())
+
+    def test_export_refuses_to_guess_on_compressed_tag_set(self):
+        """dist-info 有多条 Tag 行时不猜文件名。"""
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            d, data = self._export(wheel={"filename": "x", "sha256": "1" * 64},
+                                   tags=("cp310-cp310-linux_x86_64", "cp311-cp311-linux_x86_64"))
+        self.assertNotIn("wheel", data["baked_packages"][0])
+        self.assertIn("不猜文件名", out.getvalue())
+
+    def _baseline_with_wheel(self, wheel=True):
+        d = self.image_dir(KL_DF, name="kl", tag="flagrt/kl:2")
+        pkg = {"name": "flagtree", "layer": "L2", "version": "0.6.1+xpu3.6",
+               "index_url": "https://idx.example/simple",
+               "install": "pip (index wheel, --no-deps)", "pin": "version (...)"}
+        if wheel:
+            pkg["wheel"] = {"filename": TARGET_WHL, "sha256": "1" * 64,
+                            "source": "index-page-pep503"}
+        (d / "image.baseline.yaml").write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/kl:2", "id": "sha256:" + "a" * 64},
+            "baked_repos": {}, "baked_packages": [pkg],
+        }), encoding="utf-8")
+        return d
+
+    def test_check_offline_reports_info_and_stays_rc0(self):
+        """默认不联网：check 在 up.sh --strict 启动路径上，不能因为没网就 FAIL。"""
+        d = self._baseline_with_wheel()
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.check_image(d), 0)
+        self.assertIn("需 check --online", out.getvalue())
+
+    def test_check_online_passes_when_index_unchanged(self):
+        d = self._baseline_with_wheel()
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "resolve_index_wheel",
+                               return_value={"filename": TARGET_WHL, "sha256": "1" * 64}):
+            self.assertEqual(baseline.check_image(d, online=True), 0)
+
+    def test_check_online_detects_index_republish(self):
+        """同一版本号、不同内容 —— 这正是本条核对要防的事，必须 FAIL。"""
+        d = self._baseline_with_wheel()
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch.object(baseline, "resolve_index_wheel",
+                               return_value={"filename": TARGET_WHL, "sha256": "9" * 64}), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.check_image(d, online=True), 1)
+        self.assertIn("重发", out.getvalue())
+
+    def test_check_online_fetch_failure_is_fail_not_silent_pass(self):
+        """--online 是显式要求核对，取不到就不能静默放过（否则这个开关没有意义）。"""
+        d = self._baseline_with_wheel()
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])):
+            self.assertEqual(baseline.check_image(d, online=True), 1)
+
+    def test_check_old_baseline_without_wheel_block_still_passes(self):
+        """向后兼容：旧版工具生成的基线没有 wheel 块，不能因此 FAIL。"""
+        d = self._baseline_with_wheel(wheel=False)
+        labels = {"io.flagrt.flagtree.version": "0.6.1+xpu3.6"}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels, env=["PATH=/x"])), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.check_image(d, online=True), 0)
+        self.assertIn("基线未记 wheel sha256", out.getvalue())
+
+
+class TestEditableInImageGitAnchor(TempCase):
+    """`editable-in-image` 资产的第二版本锚：镜像内 .git 的 HEAD（不依赖镜像标签）。"""
+
+    SRC = "/env/FlagGems"
+
+    def _dir(self, commit="7" * 40):
+        d = self.image_dir(DF_HEAD, name="kg", tag="flagrt/kg:1")
+        (d / "image.baseline.yaml").write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/kg:1", "id": "sha256:" + "a" * 64},
+            "baked_repos": {"FlagGems": {"layer": "L2", "from": "base_image",
+                                         "commit": commit, "source_path": self.SRC,
+                                         "install": "editable-in-image"}},
+        }), encoding="utf-8")
+        return d
+
+    def _check(self, d, heads, labels=None):
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(labels or {})), \
+             mock.patch.object(baseline, "image_git_heads", return_value=heads), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            rc = baseline.check_image(d)
+        return rc, out.getvalue()
+
+    def test_git_head_matching_baseline_commit_passes(self):
+        rc, out = self._check(self._dir(), {self.SRC: "7" * 40})
+        self.assertEqual(rc, 0)
+        self.assertIn("镜像自证", out)
+
+    def test_git_head_drift_fails(self):
+        rc, out = self._check(self._dir(), {self.SRC: "8" * 40})
+        self.assertEqual(rc, 1)
+        self.assertIn("不一致", out)
+
+    def test_absent_git_is_info_not_fail(self):
+        """带 .git 不是对厂商基座的要求，取不到只能是 INFO。"""
+        rc, out = self._check(self._dir(), {})
+        self.assertEqual(rc, 0)
+        self.assertIn("无 .git", out)
+
+    def test_unavailable_commit_with_git_head_reports_candidate(self):
+        rc, out = self._check(self._dir(commit="unavailable"), {self.SRC: "7" * 40})
+        self.assertEqual(rc, 0)
+        self.assertIn("第二版本锚", out)
+
+    def _export_with_editable(self, pip_commit, git_head):
+        d = self.image_dir(DF_HEAD, name="ke", tag="flagrt/ke:1")
+        report = dict(BASE_REPORT)
+        report["base_files"] = {}
+        report["editables"] = {"flag_gems": {"source": "file://" + self.SRC,
+                                             "commit": pip_commit}}
+        report["versions"] = dict(report["versions"], flag_gems="4.2.1rc0")
+        heads = {self.SRC: git_head} if git_head else {}
+        with mock.patch.object(baseline, "inspect_image", fake_inspect()), \
+             mock.patch.object(baseline, "image_python_report", return_value=report), \
+             mock.patch.object(baseline, "image_git_heads", return_value=heads), \
+             mock.patch.object(baseline, "repo_info", return_value=None), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.export_image(d), 0)
+        return baseline.load_yaml(d / "image.baseline.yaml")["baked_repos"]["FlagGems"], \
+            out.getvalue()
+
+    def test_export_fills_unavailable_commit_from_in_image_git(self):
+        """pip 元数据没记 commit 时回退读 .git，把 unavailable 降级成真正的版本锚。"""
+        repo, out = self._export_with_editable(pip_commit=None, git_head="7" * 40)
+        self.assertEqual(repo["commit"], "7" * 40)
+        self.assertEqual(repo["commit_source"], "in-image-git")
+        self.assertIn("回退取镜像内", out)
+
+    def test_export_never_overwrites_pip_metadata_commit(self):
+        """只填空、不改写：否则换一个取数口径就会让既有基线漂移。"""
+        repo, _ = self._export_with_editable(pip_commit="c" * 40, git_head="7" * 40)
+        self.assertEqual(repo["commit"], "c" * 40)
+        self.assertNotIn("commit_source", repo)
+
+    def test_export_keeps_unavailable_when_no_git(self):
+        repo, _ = self._export_with_editable(pip_commit=None, git_head=None)
+        self.assertEqual(repo["commit"], "unavailable")
+        self.assertNotIn("commit_source", repo)
+
+    def test_probe_failure_does_not_break_check(self):
+        d = self._dir()
+        with mock.patch.object(baseline, "inspect_image", fake_inspect({})), \
+             mock.patch.object(baseline, "image_git_heads",
+                               side_effect=baseline.BaselineError("探针炸了", code=1)), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(baseline.check_image(d), 0)
+        self.assertIn("跳过该项", out.getvalue())
+
+
+_REAL_RESOLVE = baseline.resolve_index_wheel
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

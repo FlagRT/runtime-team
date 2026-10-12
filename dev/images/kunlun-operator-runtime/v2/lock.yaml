@@ -171,6 +171,13 @@ known_issues:
       baseline.py export 核对「基座 pip 元数据读出的 commit == 该标签」，厂商以同一 tag
       悄悄换基座内容时即报错暴露。但这个机制**只在标签存在时生效**：标签被删、或在没有
       该标签的同血统镜像上，断言不成立，版本事实退回由 base_image digest + image id 兜底。
+      **2026-10-12 补了一条不依赖标签的第二锚**（dev/ENV-SPEC.md §3.1）：本基座的
+      /env/FlagGems 带着 .git，`check --image` 直接比对镜像内 .git 的 HEAD 与基线 commit，
+      实测 `[PASS] FlagGems: /env/FlagGems/.git HEAD=73c5aff1e304（镜像自证，不依赖标签）`。
+      这把上面「标签一删就只剩 image id 兜底」的缺口补上了大半 —— 但**不是对基座的要求**：
+      同血统镜像若没有 .git，该项只报 INFO 不 FAIL（本基座的 /env/FlagCX/plugin/torch
+      就没有 .git，实测即报 INFO）。同一机制还把 vllm_plugin_fl 的
+      `commit: unavailable` 升级成了真实 commit（`commit_source: in-image-git`）。
       ② 不再有「本层自备、可从仓内寻址的 FlagGems 源码」这条退路——本层的重建输入里
       已经没有 FlagGems（这同时让重建更简单：不依赖宿主任何 checkout、不要求 commit 已推送）。
     impact: >-
@@ -237,10 +244,16 @@ known_issues:
       **复跑陷阱**（已写进证据文件）：pytest 不加 `-s` 时 abort 形态的输出整段丢失
       （落盘 0 字节、rc=1），须用 `pytest -x -s`；另设 `PYTHONFAULTHANDLER=1` 反而会
       压掉 faulthandler 的 Python 栈 dump。
-  - id: "flagtree-wheel-sha256-not-in-check-chain"
+      **已按 CASE-TEMPLATE 发布为独立 case 包**（单入口复现 + 三态自判定 + 修复验收判据，
+      可直接交付算子编译方向）：dev/issues/kunlunxin-gemm-triton-compile/。
+      该包把本条目拆成三件可独立处理的事：主缺陷、`compiler.py:362-367` 的错误误标、
+      `compiler.py:486` 无错误处理。
+  - id: "flagtree-wheel-sha256-in-check-chain"
     description: >-
+      **2026-10-12 已接入核对链，本条目由缺口转为机制说明。** 原 id 为
+      flagtree-wheel-sha256-not-in-check-chain。
       flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），
-      image.baseline.yaml 的 baked_packages 只记 version + index_url，**不记 sha256**，
+      原先 image.baseline.yaml 的 baked_packages 只记 version + index_url、**不记 sha256**，
       因此若上游以同一版本号重新发布不同内容（index 重发），基线无法察觉——这是本血统
       相对「commit + sha256」锚定方式的真实弱点。
       **2026-10-11 更正一处此前的判断**：原先记作「pip 索引不提供稳定直链，要算 sha256
@@ -283,12 +296,26 @@ known_issues:
       ⑥ 语义边界必须写清：该核对只能发现「索引当前内容 ≠ 基线记录值」，**不能证明
       镜像里装的字节就是这个 sha256**（要证明就得留着 3.3GB wheel）。
       ⑦ 上游合法重建同版本 wheel 时该核对会 FAIL，属噪声，需要人工裁定路径。
-      **另有一处工具侧的陈旧措辞需你同步**（本轮只读、未改）：dev/lib/baseline.py:930-931
-      把 `pin` 字段硬编码为 "version (标签 … 双向核对；**索引不提供稳定直链，不记 sha256**)"，
-      这句已于 2026-10-11 被实测推翻，却仍被写进每一份生成的基线
-      （见 image.baseline.yaml 的 baked_packages 条目）。基线由工具生成、不手工编辑，
-      故此处无法自行修正。
-      是否实现见 dev/images/TODO.md #16。
+      **七个坑在实现里的处置（2026-10-12 落地，规范见 dev/ENV-SPEC.md §4.2「模式 6 的第四条边」）**：
+      ①② 用 packaging 的 parse_wheel_filename 解析索引条目 + PEP 440 Version 相等匹配，
+      推出的文件名只作观测值与消歧用，绝不做字符串相等（`resolve_index_wheel`）；
+      ③ packaging 作**软依赖**按需引入（`_packaging()`），baseline.py 的硬依赖仍只有 yaml，
+      缺 packaging 时只有这一个功能不可用、其余照常；
+      ④ index_url 仍取自配方 ARG，基线的 wheel 块记 `source: index-page-pep503` 标明取数口径；
+      ⑤ 核对由 `check --image --online` 显式触发，默认不联网；代理不硬编码在命令里，
+      走 curl 标准环境变量（本机需 `export no_proxy='*'`），超时 30s；
+      ⑥ 语义边界写进 ENV-SPEC §4.2 与基线文件的注释；
+      ⑦ FAIL 文案明写「上游可能以同一版本号重发了不同内容，须人工裁定」。
+      同时修掉了 baseline.py 里把「索引不提供稳定直链，不记 sha256」硬编码进每份基线的
+      陈旧措辞（该判断 2026-10-11 已被实测推翻）。单测 85 → 110 条，新增的钉死：
+      PEP 440 匹配不被 `0.6.1a1+xpu3.6` 误命中、同版本多 tag 无 tag 时报错而非静默挑一个、
+      href 缺 `#sha256=` 时报错而非记 null、唯一命中但 tag 对不上要报错、
+      export 离线降级只告警不报错、压缩 tag 集不猜文件名、
+      check 离线 INFO 且 rc=0、--online 发现重发要 FAIL、--online 取不到也 FAIL、
+      旧基线无 wheel 块仍 rc=0（向后兼容）。
+      **本机实测**：`export --image` 取到 sha256 `31863cfe…` 并写入基线；
+      `check --image --online` 报 `[PASS] flagtree: wheel sha256 与索引页一致`，rc=0；
+      不加 --online 时报 INFO、rc=0。见 dev/images/TODO.md #16。
   - id: "shared-host-disk-pressure"
     description: >-
       本机 /var/lib/docker 使用率 99%（5.9T 中剩 ~105G），本层构建增量实测 7.38GB
@@ -307,6 +334,24 @@ known_issues:
       任何往 / 或 /tmp 写大文件的动作都要避开。
 
 changelog:
+  - date: "2026-10-12"
+    what: >-
+      **发版前的版本锚加固与缺陷归档，镜像与配方一字未动**（image id 仍为
+      sha256:cac5ddae5f62…，`check --image` rc=0）。三件事：
+      ① **wheel sha256 接进核对链**（§4.2 模式 6 的第四条边）：image.baseline.yaml 的
+      baked_packages 新增 wheel 块（filename / sha256 / source / fetched_at），
+      由 `check --image --online` 与索引页当前内容比对，实测 PASS；
+      见 known_issues: flagtree-wheel-sha256-in-check-chain。
+      ② **editable-in-image 资产新增镜像自证的第二锚**：`check --image` 比对镜像内
+      source_path/.git 的 HEAD 与基线 commit；同一机制把 vllm_plugin_fl 的
+      `commit: unavailable` 升级成真实 commit f9d95f433855…（commit_source: in-image-git）。
+      本条同时收窄了 dev/images/TODO.md #17 的讨论面 —— 该条目「不登记到 ENV-SPEC §3.2
+      仓库名表」的结论不变（远端仍是取不到的厂商内网仓），但它的版本事实不再是空的。
+      ③ **GEMM 缺陷按 CASE-TEMPLATE 发布为独立 case 包**
+      dev/issues/kunlunxin-gemm-triton-compile/，单入口复现 + 三态自判定 + 修复验收判据。
+      基线文件由 `baseline.py export --image` 重新生成（未手工编辑）：与上一版的差异只有
+      generated_at、baked_packages 改块式并新增 wheel 块、vllm_plugin_fl 的
+      commit/commit_source —— image.id / base_image / 其余 baked_repos 的值一字未变。
   - date: "2026-10-11"
     what: >-
       **配方简化：去掉本层的 FlagGems COPY + 非 editable 重装**，直接用父基座已装好的
