@@ -79,8 +79,13 @@ layers:
       triton-lang/triton"），import 后 triton.__version__ == 3.6.0。**无 git commit**，
       版本锚是 version：ARG == 镜像标签 io.flagrt.flagtree.version == 镜像内实装 dist 版本
       三方核对（dev/ENV-SPEC.md §4.2 模式 6），由 baseline.py export/check 机器执行。
-      不记 sha256：pip 索引不提供稳定直链，且该 wheel ~3.3GB，下载成本与收益不匹配
-      （见 dev/images/TODO.md 待定项）。
+      wheel 的 sha256（官方索引页 PEP 503 的 `#sha256=` fragment 直接公布，无需下载 3.3GB）：
+      `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl`
+      sha256 `31863cfecc6b14a42a4cbe92a85a5a10885a7ecfcd25b85e8a54d53ab4a3bdea`
+      （2026-10-11 取自 https://resource.flagos.net/repository/flagos-pypi-hosted/simple/flagtree/ ，
+      须 `--noproxy`）。wheel 的 python/平台 tag 由镜像内 dist-info 的
+      `WHEEL: Tag: cp310-cp310-linux_x86_64` 确定，故文件名可由镜像内事实完整推出、无需猜测。
+      该值**尚未**进入 image.baseline.yaml 的核对链（工具侧自动化见 dev/images/TODO.md）。
       必须 --no-deps 安装，否则 pip 解析 torch 的可选依赖会额外装 PyPI 通用
       triton==3.5.0，物理覆盖 flagtree 的 triton/ 目录
       （见 ../v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing）。
@@ -192,18 +197,23 @@ known_issues:
       影响的是根因定位：若后续要向上游报缺陷或验证修复，需要先用 v1 的
       pytest 用例形状在 v2 上复跑一次，确认 SIGABRT 形态是否仍然复现
       （已登记到 dev/images/TODO.md）。
-  - id: "flagtree-wheel-no-sha256"
+  - id: "flagtree-wheel-sha256-not-in-check-chain"
     description: >-
-      flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），基线只记
-      version + index_url，**不记 sha256**。pip 索引不提供稳定直链，要算 sha256 需先
-      解析索引页或 `pip download --no-deps`，而该 wheel ~3.3GB、经代理必断流
-      （见 REBUILD.md 踩坑 1）。因此若上游以同一版本号重新发布不同内容（index 重发），
-      基线无法察觉——这是本血统相对「commit + sha256」锚定方式的真实弱点。
+      flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），
+      image.baseline.yaml 的 baked_packages 只记 version + index_url，**不记 sha256**，
+      因此若上游以同一版本号重新发布不同内容（index 重发），基线无法察觉——这是本血统
+      相对「commit + sha256」锚定方式的真实弱点。
+      **2026-10-11 更正一处此前的判断**：原先记作「pip 索引不提供稳定直链，要算 sha256
+      得先下载 3.3GB」，实测该官方索引页按 PEP 503 在 href 上直接公布
+      `#sha256=`（一次小 HTTP 请求即可取，无需下载 wheel），本条目的 layers 段已记下
+      该值。所以这是「尚未接进核对链」，不是「拿不到」。
     impact: >-
-      缓解手段有两条：① 版本锚三方核对（ARG == 镜像标签 == 镜像内实装 dist 版本）由
+      现有缓解手段两条：① 版本锚三方核对（ARG == 镜像标签 == 镜像内实装 dist 版本）由
       export/check 机器执行，能发现「配方说装 A、镜像里实际是 B」；② 版本事实最终由
-      image id 唯一确定（§2），只要用的是归档镜像就不受 index 重发影响。
-      要不要为该 wheel 补 sha256 是待定项，见 dev/images/TODO.md。
+      image id 唯一确定（§2），用归档镜像不受 index 重发影响。
+      仍缺的是「重建时拿到的 wheel 与当初同一字节」这一条。接进核对链的做法不需要猜测：
+      wheel 文件名可由镜像内 dist 版本 + dist-info 的 `WHEEL: Tag` 完整推出，再到索引页
+      查同名条目的 `#sha256=` 即可。待拍板，见 dev/images/TODO.md。
   - id: "shared-host-disk-pressure"
     description: >-
       本机 /var/lib/docker 使用率 99%（5.9T 中剩 ~105G），本层构建增量实测 7.38GB

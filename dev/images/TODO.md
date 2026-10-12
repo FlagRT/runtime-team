@@ -20,12 +20,12 @@
 | 12 | Torch-FL pin commit 可达性 | v3 固化的 Torch-FL `162582d6` 不在本机记录的任何远端分支上，可能无法从零重建；若后续镜像不再安装 Torch-FL 则随之关闭 |
 | 13 | 昆仑芯 v1 离线归档去留（待定） | `kunlun-operator-runtime/v1/ARCHIVE.md` 记的是 `docker export` + `docker import --change` 重放（归档镜像是 `docker commit` 产物，`docker save` 取不到 layer blob，见该目录 `lock.yaml` 的 `known_issues: v1-image-is-docker-commit-not-build`）。v2 可用后该离线副本是否还需保留，待定 |
 | 14 | ~~昆仑芯 v2 带卡验收收尾~~（已完成 2026-10-11） | 带卡自判定 `overall: PASS`，`image_list.md` 已改 🟢，证据 `kunlun-operator-runtime/v2/assets/evidence/verify-v2-card7-PASS.txt` |
-| 15 | 昆仑芯 v2 离线归档（待定） | 当前无离线实体：本版本可从公开源头 ~15 分钟重建，且本机 `/var/lib/docker` 99% 满（共享机）。v2 是正规 `docker build` 产物，**预期** `docker save` 可用（v1 的「save 坏了」已证伪为 `docker commit` 的后果），但**尚未实测**。前置与做法见 `kunlun-operator-runtime/v2/ARCHIVE.md` |
-| 16 | flagtree wheel 要不要补 sha256（需拍板） | 该 wheel ~3.3GB、pip 索引无稳定直链、经代理必断流；不补则「index 以同版本号重发不同内容」无法被基线察觉。现状：版本锚三方核对 + image id 兜底。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: flagtree-wheel-no-sha256` |
-| 17 | `/env/xvllm-plugin-FL` 的仓库身份（需拍板） | 昆仑芯基座内该 editable 安装的 pip 元数据无 VCS 信息，远端是厂商内网仓（`ssh://…icode.baidu.com/baidu/xpu/xvllm-plugin-FL`），与仓内 `vllm-plugin-FL` 不是同一个仓。故其 `commit` 记 `unavailable`、未登记到 `../ENV-SPEC.md` §3.2 仓库名表。要不要加一行、叫什么名，待定 |
+| 15 | 昆仑芯 v2 离线归档（待定） | 当前无离线实体：本版本可从公开源头 ~15 分钟重建（且不再依赖宿主任何 checkout），而本机 `/var/lib/docker` 99% 满（共享机）。**已实测：`docker save` 对本镜像不可用**（14336 字节 / 零 layer blob，未改动的官方基座镜像同样如此），要归档须沿用 v1 的 `docker export` + `docker import --change` 变通。前置与做法见 `kunlun-operator-runtime/v2/ARCHIVE.md` |
+| 16 | flagtree wheel 的 sha256 接进核对链（需拍板） | **原判断已更正**：官方索引页按 PEP 503 在 href 上直接公布 `#sha256=`，一次小 HTTP 请求即可取，不需下载 3.3GB；值已记在 `kunlun-operator-runtime/v2/lock.yaml` 的 `layers` 段。接进 `baked_packages` 核对链不需猜测：wheel 文件名由镜像内 dist 版本 + dist-info 的 `WHEEL: Tag` 完整推出，再查索引页同名条目。待拍板是否实现（约 40 行 + 测试）。见该 `lock.yaml` `known_issues: flagtree-wheel-sha256-not-in-check-chain` |
+| 17 | ~~`/env/xvllm-plugin-FL` 的仓库身份~~（建议关闭） | 远端是厂商内网仓（`ssh://…icode.baidu.com/baidu/xpu/xvllm-plugin-FL`），本仓没有也无法取得其 checkout，**不应**登记到 `../ENV-SPEC.md` §3.2 的「仓库名 → 宿主目录」表——那张表是挂载资产的 `host_path` 缺省来源，登记一个指向不存在目录的映射只会误导。现状（`commit: unavailable` + `source_path` 记镜像内路径 + `kunlun-operator-runtime/v2/lock.yaml` `parent_image.note` 已写明与仓内 `vllm-plugin-FL` 不是同一个仓）即正确表达。待你确认后可关闭 |
 | 18 | 昆仑芯 GEMM 失败形态复核 | v1 记 SIGABRT（`make_llir`），v2 以 64×64 `torch.mm` 实测为 `OutOfResources: uni_sram`，是否同一缺陷未定论。需用 v1 的 pytest 用例形状在 v2 上复跑确认。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: gemm-failure-signature-differs-from-v1` |
 | 19 | 昇腾侧 `check --image` 在 P800 机器上无法复验 | 本轮改了 `baseline.py`，但昇腾镜像是 arm64、不在本机，`check --image` 只能走到「本机没有该镜像」就停。回归证据是 74 条单测 + 改动前后 CLI 输出逐字节一致；**仍需在 npu1-11 上复跑一次** `baseline.py check --image dev/images/ascend-*/v3` 与 `export --image`（export 应产出与仓内 `image.baseline.yaml` 无差异的内容） |
-| 20 | 昆仑芯 v2 旧镜像 `eda3e0ae14eb` 为 dangling | 配方简化前那次构建的产物，可回收约 40MB（独有层：COPY 22MB + 非 editable 重装 18.1MB；7.38GB 的 flagtree 层与新镜像共享）。共享机上未自行 `docker rmi`，需要时执行 |
+| 20 | ~~昆仑芯 v2 旧镜像 `eda3e0ae14eb` 回收~~（已完成 2026-10-11） | 配方简化前那次构建的产物，已 `docker rmi`（只删该 id，未 prune）；实际回收约 40MB，7.38GB 的 flagtree 层与新镜像共享故未删，删后 `check --image` 仍 rc=0 |
 
 ## 已完成
 
@@ -38,3 +38,4 @@
 - 2026-10-09：npu1-11 重建 v3 两镜像并完成 round 4 真机双腿验证；镜像离线归档至 `/mnt/raid/user_cache/xliu969/v3-round4-archive/`；结论见 [`docs/v3-round4-真机验证结果与移交指导-20261009.md`](../../docs/v3-round4-真机验证结果与移交指导-20261009.md)。
 - 2026-10-10：`v3_step5_validate.py` 按 vLLM 0.20.2 接口修正；v3 接入环境基线机制（两份 `image.baseline.yaml` + demo 运行环境目录，见 `../ENV-SPEC.md`）；挂载资产试点（vllm-plugin-FL）跑通。
 - 2026-10-10：v3 demo 运行环境带卡复验——推理腿 9/9 PASS（脚本原样执行）；`flagcx_sync_test.py` 重写为唯一数据 + 跨 rank 汇总 + 迭代，修正 FlagCX 结论（列表形式 `all_gather` 同步无效）；两个 v3 目录建立 `assets/evidence/`。见 `ascend-train-comm/v3/REBUILD.md`「2026-10-10 demo 环境带卡复验」。
+| 21 | `docker save` 对巨型厂商派生镜像失效的机制未定位 | 本机实测：官方基座（94GB，拉取）、v1（105GB，commit）、v2（105GB，build）`docker save` 均只出 14336 字节 / 1 blob，而本机构建的 50MB 合成镜像正常。与产出方式、拉取/构建均无关。推测是这些镜像的 layer blob 不在本机 containerd content store 内（惰性/远端快照），**未深究**；「换一台机器就正常」同样未验证。影响离线归档方式的选择，见 `kunlun-operator-runtime/v2/ARCHIVE.md` |

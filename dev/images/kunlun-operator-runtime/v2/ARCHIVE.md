@@ -25,13 +25,17 @@
 
 **要补归档时怎么做**：
 
-- v2 是正规 `docker build` 产物，**预期可以用标准 `docker save` / `docker load`**，不需要
-  v1 那套 `docker export` + `docker import --change` 重放元数据的变通。依据：本轮实测
-  `docker save` 对 registry 拉取的镜像与本机 `docker build` 产出的镜像均正常导出 layer blob，
-  只对 v1 那个 `docker commit` 产物异常——v1 `lock.yaml` 原先把这归因为「本机 containerd
-  snapshotter 后端缺陷」，该诊断已被证伪（见 v1 `lock.yaml` 该条目的更正）。
-  **注：v2 的 `docker save` 本身尚未实测**（受上述磁盘限制），上面是基于对照组的推断，
-  执行时请先用 `docker save <tag> | tar -t | head` 确认有 layer blob 再落盘。
+- **`docker save` 在本机对本镜像不可用，必须沿用 v1 那套 `docker export` + `docker import
+  --change` 重放元数据的变通。** 2026-10-11 实测（`docker save <ref> | head -c 20M | wc -c`）：
+  本镜像 **14336 字节 / 1 blob**（只有 config blob，零 layer blob）；未改动的官方基座镜像
+  （94GB，从 harbor 拉取）**同样 14336 字节 / 1 blob**；而本机 `docker build` 产出的 50MB
+  合成镜像完整产出 **52453376 字节 / 3 blob（含 layer）**。
+  所以这与「镜像是不是 `docker commit` 产物」无关（v2 是正规 build 产物、同样失败），
+  只与这几个巨型厂商派生镜像相关，详见 [`../v1/lock.yaml`](../v1/lock.yaml)
+  `known_issues: docker-save-broken-on-this-host`（该条原诊断成立）。
+  变通做法与注意事项照抄 [`../v1/ARCHIVE.md`](../v1/ARCHIVE.md)：`docker export` 导出容器
+  展平后的 rootfs 单层 tar，再用 `docker import --change` 重放 `ENV`/`CMD`/`WORKDIR`/`LABEL`；
+  代价是 layer 历史丢失（`docker history` 只剩一层），rootfs 内容与运行行为等价。
 - 落盘后按 [`../v1/ARCHIVE.md`](../v1/ARCHIVE.md) 的表格形态在本文件补：文件名、大小、
   sha256、内容、`docker load` 用法；并新建 `BACKUP.local` 记本机实体绝对路径与校验日期
   （该文件不追踪，见 [`../README.md`](../../README.md) §2）。
