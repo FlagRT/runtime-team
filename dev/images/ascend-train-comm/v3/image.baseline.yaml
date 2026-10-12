@@ -1,7 +1,7 @@
 schema: flagrt.baseline/v1
 kind: image
 generated_by: dev/lib/baseline.py export --image dev/images/ascend-train-comm/v3
-generated_at: 2026-10-11T09:35:37+08:00
+generated_at: 2026-10-12T10:01:04+08:00
 
 image:
   ref: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
@@ -10,11 +10,14 @@ image:
   demo: dev/images/ascend-train-comm/v3/demo/
 
 base_image:                                    # L1
+  # 厂商基座：被动继承、按 digest 锁定、本组无法重建 —— 这是设计边界，不是缺陷（§3.1）。
   ref: harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
   digest: sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a
-  provides: {cann: 9.0.0, python: 3.11.15, torch: 2.10.0+cpu, torch_npu: 2.10.0}
+  provides: {cann: 9.0.0, python: 3.11.15, torch: 2.10.0+cpu, torch_npu: 2.10.0, torchvision: 0.25.0+cpu, torchaudio: 2.10.0+cpu}
 
 baked_repos:
+  # ──────────────── 厂商基座自带（被动继承，不可重建） ────────────────
+  # 本组配方未声明这些资产，只能记录其版本事实；要变更须按 §2.2 在运行环境挂载覆盖。
   vllm:
     layer: L3
     from: base_image
@@ -23,6 +26,8 @@ baked_repos:
     source_path: /vllm-workspace/vllm
     install: editable-in-image
     info: unavailable
+  # ──────────────── 本组配方带入（可控，重建即可变更） ────────────────
+  # 由 image.recipe 列出的 Dockerfile.repro 声明并固化（含父层配方继承来的）。
   FlagTree:
     layer: L2
     from: ascend-operator-runtime/v3 Dockerfile.repro(构建期 git fetch)
@@ -56,6 +61,7 @@ baked_repos:
     info: {branch: 'dev-1.0, kistich/ascend-flagcx-adapt', committed_at: '2026-08-20 12:57:17 +0800'}
 
 baked_resources:
+  # 恒为本组配方带入（§4.2 模式 4）：改配方 + 重新构建即可变更。
   - {name: llvm-toolchain, layer: L2, url: 'https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/llvm-7d5de303-ubuntu-aarch64-python311-compat_v0.6.0.tar.gz', sha256: d604ec238eb9049fad3804da2ada2625f9e309c00338b36a74746bec90cd4954}
   - {name: triton-build-deps, layer: L2, url: 'https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/build-deps-triton_3.5.x-linux-aarch64.tar.gz', sha256: b5265d65cdba576b10169d948a33dd7a5c6d55e793f020cf1ae0abb3fd821259}
   - {name: FlagGems-DSA-__init__.py, layer: L2, path: dev/images/ascend-operator-runtime/v3/assets/FlagGems-DSA-__init__.py, sha256: 9b93dded6fff582f205de60ba99547d8ed7d0ffa8c75b6d93fe65e33a6d50700}

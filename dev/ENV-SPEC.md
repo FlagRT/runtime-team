@@ -291,8 +291,11 @@ dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不�
 - **首次 `export --image` 会下载 URL 资源计算 sha256**（大 tarball，缓存于
   `~/.cache/flagrt-baseline`，可用 `FLAGRT_BASELINE_CACHE` 改位置）。npu1-11 上代理对
   `baai-cp-web.ks3-cn-beijing.ksyuncs.com` 限速，必要时将其加入 `no_proxy`。
-- **`info: unavailable`**：经代理访问 GitHub 失败时无法取得分支与提交时间（当前 v3 的 `vllm`
-  即如此）。不影响校验；在可联网的机器上重新 export 即可补全。
+- **`info: unavailable`**：`repo_info()` 的浅取（`git fetch --depth 1`）取不到时无法记录分支与
+  提交时间（当前 v3 的 `vllm` 即如此）。**不是 GitHub 不可达**：npu1-11 上实测可达，是代理的
+  HTTP/2 处理在传输中途断流（`RPC failed; curl 92 HTTP/2 stream not closed cleanly`，已传
+  数十 MB 后断，可重现）；同一条 fetch 改走 HTTP/1.1 即一次成功。各机器代理行为不同，按机器
+  试即可。`info` 仅供阅读、不参与任何校验，故取不到不作为缺口跟踪。
 - **load 修改宿主 repo 状态**：共享机器上可能影响同一 checkout 的其他使用者，运行环境目录宜在
   个人 checkout 上使用。
 - **昇腾** `ascend-operator-runtime` / `ascend-train-comm` 的 v1/v2 没有 commit 标签，不纳入本机制；这是那两个具体目录的事实，不是「凡 v1/v2 都排除」。能提供版本锚的旧版本照样可纳入——例如 `kunlun-operator-runtime/v1` 带 `io.flagrt.flag_gems.commit`，
