@@ -336,6 +336,20 @@ known_issues:
       （例如基座按惰性/远端快照拉取，快照可用但 blob 未落地，`docker save` 取不到），
       **但该机制本轮未深究、属推测**；原记述"换一台不用 containerd snapshotter 后端的
       机器上预期正常"同样未验证。
+      ---- 2026-10-12 两处修正与进展（详见 dev/images/TODO.md #21）----
+      ① 措辞修正：上面写"只导出 manifest/config blob"**不准确**。实测解开那个 14336 字节的
+      tar，`blobs/` 下只有**一个**文件，就是 **OCI manifest 本身**（containerd image store 下
+      `docker images` 显示的 image id 即 manifest digest，不是 config digest）；
+      它引用的 config blob（v2 上为 15646 字节）**同样不在** tar 里，layer blob 0/28。
+      ② 上面"最可能的机制是 layer blob 不在 content store"**作为解释已被证伪**：
+      在 v2 之上新建一个 137 字节的层后 `docker save`，那个几秒前由本机构建器生成的层、
+      以及新建的 15870 字节 config blob **也都不在**导出里 —— 不可能是远端惰性 blob。
+      真相是 `docker save` **整体放弃 child walk**，所以"某个 blob 不在 tar 里"不能当作
+      "该 blob 不在 store 里"的证据。失败与成功的分界已用 6 个数据点的判别矩阵定位到
+      **基座血统 / 体量**（≥94GB 的全失败，≤182MB 的全成功），而非产出方式；
+      且全程报告成功（CLI rc=0、`--log-level debug` 无输出、Engine API `/images/get`
+      HTTP 200 + tar 结构完好、流尾无错误）——静默数据丢失。
+      content store 的直接确认仍未做（`ctr` 已装但 containerd socket root 独占、sudo 需密码）。
       ---- 2026-10-11 上午的"已证伪"判断为何是错的（留作教训）----
       当时的对照组只用了小镜像（`python:3.10-slim` 47MB/12 blob、本机构建 66MB/8 blob），
       据此推断"小镜像能 save ⇒ 本机 save 没坏 ⇒ 失败只能是 docker commit 导致"。

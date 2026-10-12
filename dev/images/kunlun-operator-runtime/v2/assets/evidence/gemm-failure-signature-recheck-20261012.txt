@@ -1,0 +1,166 @@
+# GEMM 失败形态复核：v1 的 SIGABRT 在 v2 上是否复现（lock.yaml known_issues:
+# gemm-failure-signature-differs-from-v1 / dev/images/TODO.md #18）
+# 来源：VM-0-2-ubuntu（P800，8× XPU，x86_64），2026-10-12，卡 7（xpu-smi 实测 0% 利用率 / 0MiB 显存）
+# 容器：flagrt-kunlun-v2-demo-p800（dev/lib/up.sh ... --strict 启动，rc=0），非 privileged
+# 解释器：/root/miniconda/envs/python310_torch29_cuda/bin/python3（3.10.18）
+# 截取范围：用例形状来源核对 + 18 组参数逐组形态 + 完整 abort 栈 + 与 v1 栈逐行 diff
+#          + v1 镜像上的对称验证
+#
+# 结论：**v1 的 SIGABRT 形态在 v2 上完全复现，两者是同一个缺陷**，形态差异来自
+#       矩阵形状与 dtype，不是两个缺陷。
+
+## 0) 用例形状的可比性（前置：形状对不上则整个复核无意义）
+镜像内 FlagGems 为基座自带那份（install: editable-in-image），带 tests 目录，且带 .git：
+   $ docker exec flagrt-kunlun-v2-demo-p800 bash -c 'cd /env/FlagGems && git rev-parse HEAD'
+   73c5aff1e304c293ab525ecb03e9449644496fbb          <- 与 lock.yaml 的 pin commit 一致
+   $ git diff --stat HEAD -- tests/test_blas_ops.py
+   (空)                                              <- 该测试文件无本地改动
+=> 用的就是 pin commit 的原始 tests/test_blas_ops.py，无需从上游另取。
+
+用例本体（/env/FlagGems/tests/test_blas_ops.py:287 即 v1 栈顶所指那一行）：
+   res_out = torch.mm(mat1, mat2)
+参数化（normal 模式，非 QUICK_MODE）：
+   MNK_SHAPES   = [(1, 1, 32), (15, 160, 1024), (495, 5333, 71)]
+   FLOAT_DTYPES = [torch.float16, torch.float32, torch.bfloat16]   (bf16 受支持)
+   b_column_major = [True, False]
+   => 18 组。**没有一组是 64×64** —— v2 上一轮那个手写探针用的正是 64×64。
+测试文件自带注释（test_accuracy_mm 定义上方原文）：
+   # TODO: failed at (1, 1, 2)                       <- 上游已知小形状有问题
+
+## 1) 18 组逐组形态（每组独立进程，命令形态与 TODO #18 要求的一致：pytest -x -s）
+   $ docker exec flagrt-kunlun-v2-demo-p800 env CUDA_VISIBLE_DEVICES=7 \
+       /root/miniconda/envs/python310_torch29_cuda/bin/python3 -m pytest -x -s \
+       '/env/FlagGems/tests/test_blas_ops.py::test_accuracy_mm[<组>]'
+
+M-N-K                    dtype      b_column_major  rc   形态
+1-1-32                   float16    True            1    原生 abort @make_llir:486（LLVM CallInst 断言）
+15-160-1024              float16    True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              float16    True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+1-1-32                   float32    True            1    原生 abort @make_llir:486（LLVM CallInst 断言）
+15-160-1024              float32    True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              float32    True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+1-1-32                   bfloat16   True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+15-160-1024              bfloat16   True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              bfloat16   True            1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+1-1-32                   float16    False           1    原生 abort @make_llir:486（LLVM CallInst 断言）
+15-160-1024              float16    False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              float16    False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+1-1-32                   float32    False           1    原生 abort @make_llir:486（LLVM CallInst 断言）
+15-160-1024              float32    False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              float32    False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+1-1-32                   bfloat16   False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+15-160-1024              bfloat16   False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+495-5333-71              bfloat16   False           1    OutOfResources: uni_sram @make_ttxir(compiler.py:367)
+
+18/18 全部失败（无一组 PASS），4 组原生 abort / 14 组 OutOfResources。
+形态由 **shape × dtype** 共同决定；b_column_major 对形态无影响（True/False 两侧完全对称）。
+确定性：(1,1,32)+float32 连跑 3 次，3/3 均为原生 abort，形态不变。
+
+## 2) 原生 abort 的完整形态（整文件 pytest -x -s，第一组即 (1,1,32)+float16）
+底层断言原文（v1 的证据文件里没有这一行，本轮新取到）：
+   python3: /peixin/projects/upgrade_llvm_22/fix-llvm-22/llvm/llvm/lib/IR/Instructions.cpp:758:
+   void llvm::CallInst::init(llvm::FunctionType*, llvm::Value*, llvm::ArrayRef<llvm::Value*>,
+   llvm::ArrayRef<llvm::OperandBundleDefT<llvm::Value*> >, const llvm::Twine&):
+   Assertion `(Args.size() == FTy->getNumParams() || (FTy->isVarArg() &&
+   Args.size() > FTy->getNumParams())) && "Calling a function with bad signature!"' failed.
+   Fatal Python error: Aborted
+
+   Current thread 0x0000746d529b9480 (most recent call first):
+     File ".../site-packages/triton/backends/xpu/compiler.py", line 486 in make_llir
+     File ".../site-packages/triton/backends/xpu/compiler.py", line 583 in <lambda>
+     File ".../site-packages/triton/compiler/compiler.py", line 332 in run_stage
+     File ".../site-packages/triton/compiler/compiler.py", line 378 in compile
+     File ".../site-packages/triton/runtime/jit.py", line 862 in _do_compile
+     File ".../site-packages/triton/runtime/jit.py", line 733 in run
+     File ".../site-packages/triton/runtime/autotuner.py", line 519 in run
+     File ".../site-packages/triton/runtime/autotuner.py", line 306 in run
+     File "/env/FlagGems/src/flag_gems/utils/libentry.py", line 721 in run
+     File ".../site-packages/triton/runtime/jit.py", line 370 in <lambda>
+     File "/env/FlagGems/src/flag_gems/runtime/backend/_kunlunxin/ops/mm.py", line 168 in mm
+     File "/env/FlagGems/tests/test_blas_ops.py", line 287 in test_accuracy_mm
+     （以下 36 帧为 pytest/pluggy/runpy 框架帧，与 v1 逐行一致）
+
+退出码：**1，进程未被信号杀死**。以 os.waitpid 实测：
+   WIFSIGNALED = False / WEXITSTATUS = 1
+   （即 shell 看到的是 rc=1，不是 134；v1 的证据文件
+     ../../../v1/assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt
+     底部记的也是 EXIT=1 —— 所以 rc 不是两种形态的区分点，见下「口径更正」）
+
+## 3) 与 v1 栈逐行 diff（只取 File 行，共 48 帧）
+   $ diff <(v1 证据的 File 行) <(本轮的 File 行)
+   9c9
+   < File "/root/FlagGems/src/flag_gems/utils/libentry.py", line 721 in run
+   ---
+   > File "/env/FlagGems/src/flag_gems/utils/libentry.py", line 721 in run
+   11,12c11,12
+   < File "/root/FlagGems/src/flag_gems/runtime/backend/_kunlunxin/ops/mm.py", line 168 in mm
+   < File "/root/FlagGems/tests/test_blas_ops.py", line 287 in test_accuracy_mm
+   ---
+   > File "/env/FlagGems/src/flag_gems/runtime/backend/_kunlunxin/ops/mm.py", line 168 in mm
+   > File "/env/FlagGems/tests/test_blas_ops.py", line 287 in test_accuracy_mm
+=> 48 帧中仅 3 帧有差异，差异**只是 FlagGems 的前缀路径**（v1 的归档镜像是 docker commit
+   产物、装在 /root/FlagGems；v2 用基座自带的 /env/FlagGems），行号与函数名无一处不同。
+
+## 4) 两种形态在编译流水线上的位置（同一条路径的两个不同失败阶段）
+triton/backends/xpu/compiler.py:581-585 的 stage 注册顺序：
+   stages["ttir"] -> stages["ttxir"] -> stages["llir"] -> stages["elf"] -> stages["xpubin"]
+
+·「OutOfResources: uni_sram」= 第 2 阶段 ttxir 失败，被 compiler.py:362-367 包装：
+       try:
+           pm.run(mod, 'make_ttxir')
+       except Exception as e:
+           from triton import OutOfResources
+           raise OutOfResources(0, 0, f"uni_sram {e}")
+   注意这是**误标**：它把 pm.run 抛出的任何异常一律包成 OutOfResources，消息里的
+   "Required: 0, Hardware limit: 0" 是硬编码的零，并非真的显存/uni_sram 不足。
+   e 的原文是 "PassManager::run failed"。
+·「原生 abort」= 第 3 阶段 llir 失败，compiler.py:486 的 `pm.run(mod, 'make_llir')`
+   **没有 try/except**，而 LLVM 的 assert 是不可捕获的原生断言 -> abort()。
+=> 早一步（ttxir）就失败的形状/dtype 永远走不到 llir，于是拿到「礼貌的」包装异常；
+   能过 ttxir 的那些接着在 llir 撞上 LLVM 断言，于是原生死掉。
+   **两种形态是同一个缺陷在不同阶段暴露，差别只在该阶段有没有错误处理。**
+
+## 5) 对称验证：同样两种形态在 v1 镜像上也都能出现（排除「镜像」这个变量）
+v1 镜像仍在本机（docker images: flagrt/kunlun-operator-runtime:1.0.0-... id 466ee5c61793，
+与 v1/lock.yaml 记的 sha256:466ee5c617931f… 一致）。起一个 --rm 临时容器，
+**只授予 /dev/xpu7 + /dev/xpuctrl**，按 demo/docker-compose.yml 文件头的重编号规则，
+容器内逻辑号为 0，故用 CUDA_VISIBLE_DEVICES=0：
+
+   # FlagGems HEAD in v1 image: 73c5aff1e304c293ab525ecb03e9449644496fbb
+   # device_count (only /dev/xpu7 granted -> logical 0): 1
+   64x64 fp16  -> RESULT: OutOfResources: out of resource: uni_sram PassManager::run failed, Required: 0, Hardware limit: 0. ...   rc=0
+   64x64 fp32  -> RESULT: OutOfResources: out of resource: uni_sram PassManager::run failed, Required: 0, Hardware limit: 0. ...   rc=0
+   64x64 bf16  -> RESULT: OutOfResources: out of resource: uni_sram PassManager::run failed, Required: 0, Hardware limit: 0. ...   rc=0
+   ---- pytest test_accuracy_mm[True-dtype1-1-1-32] on v1 image ----
+   EXIT=1
+   ...Instructions.cpp:758: ... "Calling a function with bad signature!"' failed.
+   Fatal Python error: Aborted
+     File ".../triton/backends/xpu/compiler.py", line 486 in make_llir
+
+同一组 64×64 在 v2 容器内复测（三种 dtype）：同样全部 OutOfResources: uni_sram。
+
+2×2 交叉表：
+                      (1,1,32) fp32            64×64 任一 dtype
+   v1 镜像            原生 abort @make_llir:486  OutOfResources: uni_sram
+   v2 镜像            原生 abort @make_llir:486  OutOfResources: uni_sram
+=> 形态是 shape/dtype 的函数，与镜像无关。镜像、FlagGems 安装形态（非 editable vs
+   editable-in-image）作为变量被排除。
+
+## 6) 口径更正（仓内两处现有记述不准确）
+① v2/lock.yaml known_issues: gemm-failure-signature-differs-from-v1 的 description 写
+   v2 形态是「退出码 1（进程正常抛异常，未 SIGABRT）」，并以此与 v1 的 SIGABRT 对比。
+   实测：**v1 那次的退出码也是 1**（见 v1 证据文件底部 EXIT=1），且 v2 上的 abort 形态
+   同样是 rc=1、未被信号杀死。rc 在两种形态下都是 1，**不能用来区分形态**。
+   真正的区分点是「有没有 Fatal Python error: Aborted / LLVM 原生断言」。
+② 本轮一次性观测到过 rc=134（首次整文件 -x -s 跑，当时 triton 编译缓存为冷）。
+   随后以相同命令形态复测 5 次（含 os.waitpid 直读 WTERMSIG）均为 rc=1 / 未被信号杀死，
+   该 134 未能复现。**本文件以可复现的 rc=1 为结论**，134 仅作为一次性观测记录在此。
+
+## 7) 一个取数陷阱（复跑时务必注意）
+pytest 不加 -s（即启用 capture）时，abort 形态的**输出会整段丢失**：进程在 pytest 写出
+报告之前就死了，被捕获的 stdout/stderr 随之丢弃，落到文件里是 **0 字节、rc=1**。
+实测同一用例：
+   -s  三次：rc=1，880 字节，均含 LLVM 断言
+   -q  三次：rc=1，**0 字节**，无任何标记
+另：设 PYTHONFAULTHANDLER=1 反而会压掉 faulthandler 的 Python 栈 dump（只剩 LLVM 断言行）；
+要拿到 Python 栈，用 TODO #18 里那条原始命令形态（pytest -x -s，不额外设该变量）。

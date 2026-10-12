@@ -82,11 +82,15 @@ docker compose -f dev/images/kunlun-operator-runtime/v2/demo/docker-compose.yml 
 
 - 三态口径（[`../CASE-TEMPLATE.md`](../../CASE-TEMPLATE.md) §2 规则 3）：`overall: PASS` / 0 = 镜像可用；
   `overall: FAIL` / 1 = 有检查项不通过；`overall: ERROR` / 2 = 无法下判定。
-- **GEMM 不计入判定**：脚本在子进程里探 `mm`（否则 SIGABRT 会把验证进程一起带走），结果以
-  `KNOWN` 行报告。若它反而通过了，脚本会提示去复核 `gemm-compile-sigabrt` 是否已失效。
-  注意本轮实测到的失败形态（`OutOfResources: uni_sram`）与 v1 记录的 SIGABRT **不同**，
-  是否同一缺陷未定论，见 [`lock.yaml`](lock.yaml)
-  `known_issues: gemm-failure-signature-differs-from-v1`。
+- **GEMM 不计入判定**：脚本在子进程里探 `mm`（否则 `make_llir` 阶段的 LLVM 原生断言会 abort
+  整个进程、把验证进程一起带走），结果以 `KNOWN` 行报告。若它反而通过了，脚本会提示去复核
+  `gemm-compile-sigabrt` 是否已失效。
+  脚本探的是 64×64，落在 `ttxir` 阶段，故报出的是 `OutOfResources: uni_sram`；
+  **2026-10-12 已复核定论：它与 v1 记录的 `make_llir` 原生 abort 是同一个缺陷的两个失败阶段**，
+  形态由 shape × dtype 决定（FlagGems 自带 `test_accuracy_mm` 18 组全失败，4 组 abort /
+  14 组 `OutOfResources`），见 [`lock.yaml`](lock.yaml)
+  `known_issues: gemm-same-defect-two-failure-stages` 与
+  [`assets/evidence/gemm-failure-signature-recheck-20261012.txt`](assets/evidence/gemm-failure-signature-recheck-20261012.txt)。
 - **`flag_gems` 一项的判据是"期望它是基座那份 editable"**，与通常相反：本层既不 `COPY`
   也不重装 FlagGems，所以验证要确认的恰恰是"用的就是基座 `/env/FlagGems` 那份、没被意外覆盖"。
   实测 `direct_url` = `{"dir_info": {"editable": true}, "url": "file:///env/FlagGems"}`。

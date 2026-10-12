@@ -179,24 +179,64 @@ known_issues:
       标注 overrides_baked: true 与 baked_commit，由 baseline.py check 核对宿主 HEAD。
       只有当某个 FlagGems 版本需要**固化**进镜像时，才按 §2.3「晋升」新开 v<N+1>、
       落到 §4.2 模式 1/2（那正是本次去掉的那一层——在用户决策下它属于「非必要的追加」）。
-  - id: "gemm-failure-signature-differs-from-v1"
+  - id: "gemm-same-defect-two-failure-stages"
     description: >-
-      v1 记录的 GEMM 失败形态是**编译期 SIGABRT**，栈顶
-      `triton/backends/xpu/compiler.py:486 make_llir`（见 ../v1/lock.yaml
-      known_issues: gemm-compile-sigabrt）。本轮在 v2 上以 64×64 的
-      `torch.mm` 探同一路径，实测失败形态是
-      `triton.runtime.errors.OutOfResources: out of resource: uni_sram PassManager::run`，
-      退出码 1（进程正常抛异常，未 SIGABRT）。证据：
-      assets/evidence/verify-v2-card7-PASS.txt 的 `[KNOWN] flag_gems/mm` 行。
-      两者都指向「该 flagtree/triton 版本线下 FlagGems 的 GEMM 编译路径不可用」，
-      但**是不是同一个缺陷未定论**：本轮用的矩阵形状（64×64）与 v1 走的
-      FlagGems 自带 pytest 用例形状不同，形态差异可能来自形状，也可能是两个不同缺陷。
-      本条目只记录观测到的事实，不把两者并为一条。
+      **2026-10-12 复核定论：v1 与 v2 观测到的两种失败形态是同一个缺陷**，形态差异来自
+      矩阵形状与 dtype，不是两个不同缺陷。本条目原 id 为
+      gemm-failure-signature-differs-from-v1（记录「是否同一缺陷未定论」），定论后改名。
+      做法：用 v1 那个 pytest 用例（FlagGems 自带 tests/test_blas_ops.py:287
+      test_accuracy_mm，normal 模式下参数化为 3 形状 × 3 dtype × b_column_major
+      两值 = 18 组）在 v2 上逐组复跑，每组独立进程。镜像内 FlagGems 为基座自带那份，
+      `git rev-parse HEAD` == pin commit 73c5aff1e304c293ab525ecb03e9449644496fbb 且
+      该测试文件无本地改动，故形状可比。
+      **实测事实**：
+      ① 18/18 全部失败，无一组 PASS；形态按 shape × dtype 二分 ——
+      (1,1,32) + float16/float32 共 4 组为**原生 abort**，其余 14 组为
+      `OutOfResources: uni_sram`；b_column_major 对形态无影响。
+      ② abort 形态与 v1 记录**逐帧一致**：`Fatal Python error: Aborted`，栈顶
+      `triton/backends/xpu/compiler.py:486 make_llir`，48 帧 File 行 diff 只有 3 处，
+      差异仅为 FlagGems 前缀路径（v1 的 /root/FlagGems vs v2 的 /env/FlagGems），
+      行号与函数名无一处不同。本轮另新取到 v1 证据里没有的底层断言原文：
+      LLVM `llvm/lib/IR/Instructions.cpp:758 llvm::CallInst::init`
+      断言 `"Calling a function with bad signature!"`。
+      ③ 两种形态是**同一条编译路径上的两个不同失败阶段**：stage 注册顺序为
+      ttir → ttxir → llir → elf → xpubin；`OutOfResources: uni_sram` 是 ttxir 阶段失败、
+      被 compiler.py:362-367 的 try/except 包装（**误标**——它把 `pm.run` 抛出的任何异常
+      一律包成 `OutOfResources(0, 0, f"uni_sram {e}")`，消息里的
+      `Required: 0, Hardware limit: 0` 是硬编码的零，并非真的资源不足，`e` 原文是
+      `PassManager::run failed`）；abort 是 llir 阶段失败，而 compiler.py:486 的
+      `pm.run(mod, 'make_llir')` 没有 try/except，LLVM 原生断言不可捕获故 abort()。
+      早一步在 ttxir 失败的形状走不到 llir，于是得到包装异常；过了 ttxir 的才撞上断言。
+      ④ 对称验证排除「镜像」这个变量：v1 镜像（本机仍在，id 466ee5c61793）上跑 64×64
+      同样得 `OutOfResources: uni_sram`（三种 dtype 皆然），跑 (1,1,32)+float32 同样得
+      `Fatal Python error: Aborted` @make_llir:486。两种形态在两个镜像上都能出现。
+      ⑤ v2 上一轮那个手写探针用的 64×64 不在该 pytest 用例的形状集合里，在 v2 与 v1 上
+      都落在 ttxir 一侧 —— 这就是上一轮只看到 `OutOfResources` 的原因。
+      **同时更正本条目此前的一处记述**：原写 v2 形态是「退出码 1（进程正常抛异常，
+      未 SIGABRT）」并以 rc 与 v1 的 SIGABRT 对比。实测 **rc 不能区分两种形态**：
+      v1 那次的退出码也是 1（见 ../v1/assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt
+      底部 `EXIT=1`），v2 上的 abort 同样 rc=1 且未被信号杀死（os.waitpid 实测
+      `WIFSIGNALED = False` / `WEXITSTATUS = 1`）。真正的区分点是有没有
+      `Fatal Python error: Aborted` / LLVM 原生断言。
+      证据：assets/evidence/gemm-failure-signature-recheck-20261012.txt。
     impact: >-
-      不改变消费结论——GEMM 类算子在本 pin 组合下都不可用，消费方该绕的还是要绕。
-      影响的是根因定位：若后续要向上游报缺陷或验证修复，需要先用 v1 的
-      pytest 用例形状在 v2 上复跑一次，确认 SIGABRT 形态是否仍然复现
-      （已登记到 dev/images/TODO.md）。
+      **消费结论不变**：GEMM 类算子在本 pin 组合下都不可用（18/18 失败），消费方该绕的
+      还是要绕，见 ../v1/lock.yaml known_issues: gemm-compile-sigabrt。
+      本次定论改变的是**向上游报缺陷的形态**：不再需要按两个缺陷分别报，一条即可，
+      且报告里应给出 (1,1,32)+float32 这组最小复现（原生 abort + LLVM 断言原文，
+      信息量最大），而不是 64×64（那组只会得到被误标的 `OutOfResources`，把上游引向
+      「调小 block size / num_stages」这条错误线索）。
+      验证修复时的判据：该 18 组全部 PASS 才算修复；只验 64×64 不足以说明 llir 阶段
+      的 LLVM 断言已修。
+      **顺带两条可独立上报的上游问题**（本条目不并入，仅记录）：
+      ① compiler.py:362-367 把 ttxir 阶段的任意异常误标为 `OutOfResources` 且硬编码
+      `Required: 0, Hardware limit: 0`，掩盖了真实失败原因；
+      ② compiler.py:486 的 `pm.run(mod, 'make_llir')` 无错误处理，LLVM 断言直接
+      abort 整个进程，调用方无法降级或黑名单该算子——这也是本目录
+      assets/verify_kunlun_runtime.py 必须在子进程里探 mm 的原因。
+      **复跑陷阱**（已写进证据文件）：pytest 不加 `-s` 时 abort 形态的输出整段丢失
+      （落盘 0 字节、rc=1），须用 `pytest -x -s`；另设 `PYTHONFAULTHANDLER=1` 反而会
+      压掉 faulthandler 的 Python 栈 dump。
   - id: "flagtree-wheel-sha256-not-in-check-chain"
     description: >-
       flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），
@@ -207,13 +247,48 @@ known_issues:
       得先下载 3.3GB」，实测该官方索引页按 PEP 503 在 href 上直接公布
       `#sha256=`（一次小 HTTP 请求即可取，无需下载 wheel），本条目的 layers 段已记下
       该值。所以这是「尚未接进核对链」，不是「拿不到」。
+      **2026-10-12 实测核对可行性，结论：技术上可行，但发现 7 个坑，其中 2 个影响方案形态。**
+      三项实测读数：
+      ① 索引页仍按 PEP 503 公布 `#sha256=`，值**未变**：
+      `curl -sS --noproxy '*' https://resource.flagos.net/repository/flagos-pypi-hosted/simple/flagtree/`
+      → http_code=200、46998 字节、0.41s、162 个 href 条目；
+      `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl#sha256=31863cfecc6b14a42a4cbe92a85a5a10885a7ecfcd25b85e8a54d53ab4a3bdea`
+      与 layers 段 2026-10-11 记的值逐字符相同 → 上游未重发该版本号。
+      ② wheel 文件名**可由镜像内事实完整推出**，推导链四步实读：
+      dist 名 `flagtree` / dist 版本 `0.6.1+xpu3.6` / dist-info 目录
+      `flagtree-0.6.1+xpu3.6.dist-info` / 该目录 `WHEEL` 文件的
+      `Tag: cp310-cp310-linux_x86_64`（`Wheel-Version: 1.0`、`Generator: setuptools (79.0.1)`、
+      `Root-Is-Purelib: false`，只有一条 Tag 行）
+      → `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl`，与索引页条目一致。
+      ③ **唯一命中**：按 PEP 440 归一化精确等于 `flagtree==0.6.1+xpu3.6` 的条目
+      命中数 = 1，无同版本号多 tag（无其他 cp 版本 / manylinux 变体），该索引上
+      也没有任何 sdist 条目（162 条全部解析为 wheel）。
     impact: >-
       现有缓解手段两条：① 版本锚三方核对（ARG == 镜像标签 == 镜像内实装 dist 版本）由
       export/check 机器执行，能发现「配方说装 A、镜像里实际是 B」；② 版本事实最终由
       image id 唯一确定（§2），用归档镜像不受 index 重发影响。
-      仍缺的是「重建时拿到的 wheel 与当初同一字节」这一条。接进核对链的做法不需要猜测：
-      wheel 文件名可由镜像内 dist 版本 + dist-info 的 `WHEEL: Tag` 完整推出，再到索引页
-      查同名条目的 `#sha256=` 即可。待拍板，见 dev/images/TODO.md。
+      仍缺的是「重建时拿到的 wheel 与当初同一字节」这一条。
+      **2026-10-12 实测发现的 7 个坑（方案必须回避，详见交付说明）**：
+      ① 不能子串匹配：子串 `0.6.1` 在该索引页命中 20 条，相邻干扰项 `0.6.1a1+xpu3.6`
+      是不同版本；必须解析 wheel 文件名并按 PEP 440 做版本相等比较。
+      ② 不能「构造文件名再做字符串相等」：PEP 427 规定文件名的 version 段应把非字母数字
+      串转义为 `_`，而该索引实际未转义（原样 `0.6.1+xpu3.6`）；上游换构建工具即失配。
+      推出的文件名只能当观测值，匹配必须走「解析索引条目 + 版本相等」。
+      ③ baseline.py 现在只依赖 yaml 一个第三方包（PEP 440 的事它用自己的 `_strip_local`
+      手搓），接入要么新增 packaging 依赖，要么手搓 wheel 文件名解析——这是取舍点。
+      ④ 镜像不自证来源：flagtree 的 dist-info **没有** direct_url.json（INSTALLER 只写
+      `pip`），index_url 只能继续取自配方 ARG，核对的是「配方声称的那个索引」。
+      ⑤ 这是网络动作，本机必须 `--noproxy '*'`；而 `check` 在 `up.sh --strict` 的启动
+      路径上，默认联网会破坏离线/气隙使用并可能挂住 → 必须 opt-in + 短超时。
+      ⑥ 语义边界必须写清：该核对只能发现「索引当前内容 ≠ 基线记录值」，**不能证明
+      镜像里装的字节就是这个 sha256**（要证明就得留着 3.3GB wheel）。
+      ⑦ 上游合法重建同版本 wheel 时该核对会 FAIL，属噪声，需要人工裁定路径。
+      **另有一处工具侧的陈旧措辞需你同步**（本轮只读、未改）：dev/lib/baseline.py:930-931
+      把 `pin` 字段硬编码为 "version (标签 … 双向核对；**索引不提供稳定直链，不记 sha256**)"，
+      这句已于 2026-10-11 被实测推翻，却仍被写进每一份生成的基线
+      （见 image.baseline.yaml 的 baked_packages 条目）。基线由工具生成、不手工编辑，
+      故此处无法自行修正。
+      是否实现见 dev/images/TODO.md #16。
   - id: "shared-host-disk-pressure"
     description: >-
       本机 /var/lib/docker 使用率 99%（5.9T 中剩 ~105G），本层构建增量实测 7.38GB
@@ -224,6 +299,12 @@ known_issues:
       **~12GB** 足够——实测本层只加两个 layer，flagtree 层 7.38GB（容器内
       site-packages/triton 6.9GB）、清缓存层 0B，构建期另有 ~3.3GB wheel 下载为瞬时占用。
       本条目不是镜像缺陷，是重建该镜像的环境前提。
+      **不要把这条外推成「本机没地方落盘」**（2026-10-12 实测更正一处此前的混淆）：
+      本机有两块独立 NVMe —— /var/lib/docker（= /data1，/dev/nvme0n1p1）5.9T 剩 104G、99%，
+      而 /data2（/dev/nvme1n1p1）5.9T 剩 5.5T、7%。本条约束只落在**镜像存储**
+      （构建、docker import 都写 /var/lib/docker）；**归档落盘**用 /data2，不受本条约束，
+      见 ARCHIVE.md「磁盘实测」。另：/（/dev/vda3）只剩 187M、100%，
+      任何往 / 或 /tmp 写大文件的动作都要避开。
 
 changelog:
   - date: "2026-10-11"
