@@ -1,109 +1,42 @@
 # dev/images TODO —— 镜像归档 / 重建的待办
 
-> 只跟踪本目录职责内的事（归档、重建、索引）。项目层面的诉求（谁用、路线选型、验收）见 `dev/stack.lock.910c.*.yaml`（当前生效版本见该文件自身状态）/ `docs/`。
-
-## 已完成（2026-09-09 ~ 09-10）
-
-- **离线归档**：`ascend-operator-runtime-0.2.0` / `ascend-train-comm-0.1.3` / `cann-base-manual-20260807` 三个 `docker save` 压缩包 + `recovered/` 重建资产，迁移到 raid（清单见各 `v1/ARCHIVE.md`，本机路径见 `v1/BACKUP.local`）。
-- **配方还原**：从 npu1-27 本地镜像 `docker history` 还原 `Dockerfile`（逐字节目标）；写出 `Dockerfile.repro`（功能等价）+ `build.sh`。
-- **重建验证**：`Dockerfile.repro` 实机重建两镜像，`pip freeze` 逐行一致、FlagCX `.so` 逐字节一致（详见各 `v1/REBUILD.md`）。两镜像 `repro_status` → 🟢。
+> 只跟踪本目录职责内的事（归档、重建、索引、case 包）。项目层面的诉求（谁用、路线选型、验收）见 `dev/stack.lock.910c.*.yaml`（当前生效版本见该文件自身状态）/ `docs/`。
 
 ## 待办
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 1 | 逐字节复现（可选金标准） | 需 owner 交出 FlagCX 私有 commit `55eb2ff` + 2 个 patch + 干净 python3.11.15 构建上下文。见各 `v1/lock.yaml:gaps`。总组以 issue 形式向 owner 索取。 |
-| 2 | `ascend-infer-vllm` 离线副本（可选加固） | 按 digest `sha256:5cf8a2b6…` 存一份，防 quay rc 标签被 GC；连带留存拷出的 `triton_ascend 3.2.1` wheel。见 `ascend-infer-vllm/v1/ARCHIVE.md`。 |
-| 3 | `image_list.md` 维护 | 新镜像/新版本入档时更新索引表与"当前生效版本"。 |
-| 4 | v3 真机验证收尾 | **技术验证已完成，见下方「N2 完成」**；剩余是两项需总组拍板的决策（是否吸收私有 fork 的 sync 修复；`shmem` 依赖缺口三个候选方向），详见 `ascend-train-comm/v3/REBUILD.md`「ROUND 3」与 `ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」。 |
+| 1 | v3 case 包缺口 | round 4 的部分结果由仅存于 npu1-11 `~/tmp-reproV3-r4/` 的脚本得出：`train_manual_ddp.py`（手动 DDP loss）、`probe_agit.py`（`all_gather_into_tensor` 探针），未入仓。推理最小复现已以修正版入仓为 `../issues/shmem-missing/assets/minirepro_shmem.py` |
+| 2 | 原生 DDP 验证脚本 | FlagCX 修复到货后需补 `DistributedDataParallel` 封装、不含手动同步的双卡自判定脚本（[移交指导第七节 B](../../docs/v3-round4-真机验证结果与移交指导-20261009.md)） |
+| 3 | 跨组需求 | shmem 根治 → 算子编译方向（[决策备忘录附录 B](../../docs/v3-决策备忘录与shmem跨组需求-20261008.md)）；FlagCX c10d 两类缺陷（异步返回；列表形式 `all_gather` 结果错位，2026-10-10 复验修正）→ FlagCX 通信方向（附录 B-2 及其修正段）。需求文本以仓内文档形式保留，下发方式由用户决定。昆仑芯 GEMM 编译失败（本 pin 组合下 18/18 形状全失败、无 workaround）→ 算子编译方向。三项已按 `CASE-TEMPLATE` 发布为 case 包：[`../issues/`](../issues/README.md)（`shmem-missing`、`flagcx-c10d-collectives`、`kunlunxin-gemm-triton-compile`） |
+| 4 | 上游 PR | vllm-plugin-FL sync 修复（决策备忘录附录 A 草稿就绪），由用户提交；合入后删除 `ascend-operator-runtime/v3/assets/patches/vllm-plugin-FL/` 覆盖层补丁 |
+| 5 | 训练脚本默认学习率 | 默认 5e-5 在 bf16 + AdamW 下第 16 步出现 NaN，改为 1e-5（`ascend-train-comm/v3/REBUILD.md`「ROUND 4 真机验证——训练腿」③） |
+| 6 | framework-adapter 三级回退需求对接 | round 4 实证编译期失败（`CompilationError`）不触发 dispatch 自动回退，算子级回退目前只能手工黑名单 |
+| 7 | npu1-27 docker 存储报修 | 层校验和损坏（numpy libopenblas 层），`docker save` 不可用，运行不受影响 |
+| 8 | ~~v3 镜像基线 `vllm` 的 `info: unavailable`~~（已关闭 2026-10-12，不追） | **主动取舍，不是遗留缺口**：`info` 仅供阅读、不参与任何校验（`../ENV-SPEC.md` §3.1），缺它不影响 `check` 与任何版本锚。原归因「经代理访问 GitHub 失败」已更正：GitHub 可达，是代理的 HTTP/2 中途断流（npu1-11 上两次独立重现），改走 HTTP/1.1 即可取到——但那不是 `baseline.py` 走的路径，基线只记文档化命令自己能产出的内容，故保持 `unavailable`。归因已同步进 §6 |
+| 9 | v1 逐字节复现（可选金标准） | 需 owner 交出 FlagCX 私有 commit `55eb2ff` + 2 个 patch + 干净 python3.11.15 构建上下文。见各 `v1/lock.yaml:gaps` |
+| 10 | `ascend-infer-vllm` 离线副本（可选加固） | 按 digest `sha256:5cf8a2b6…` 存一份，防 quay rc 标签被 GC；连带留存拷出的 `triton_ascend 3.2.1` wheel。见 `ascend-infer-vllm/v1/ARCHIVE.md` |
+| 11 | `image_list.md` 维护（常设） | 新镜像/新版本入档时更新索引表与"当前生效版本" |
+| 12 | Torch-FL pin commit 可达性 | v3 固化的 Torch-FL `162582d6` 不在本机记录的任何远端分支上，可能无法从零重建；若后续镜像不再安装 Torch-FL 则随之关闭 |
+| 13 | 昆仑芯 v1 离线归档去留（待定） | `kunlun-operator-runtime/v1/ARCHIVE.md` 记的是 `docker export` + `docker import --change` 重放（归档镜像是 `docker commit` 产物，`docker save` 取不到 layer blob，见该目录 `lock.yaml` 的 `known_issues: v1-image-is-docker-commit-not-build`）。v2 可用后该离线副本是否还需保留，待定 |
+| 14 | ~~昆仑芯 v2 带卡验收收尾~~（已完成 2026-10-11） | 带卡自判定 `overall: PASS`，`image_list.md` 已改 🟢，证据 `kunlun-operator-runtime/v2/assets/evidence/verify-v2-card7-PASS.txt` |
+| 15 | ~~昆仑芯 v2 离线归档~~（已完成 2026-10-12） | **前置「本机磁盘不允许」已被实测推翻**：那个判断把「`/var/lib/docker` 满」等同于「本机没地方落盘」。实测本机有两块独立 NVMe：`/var/lib/docker`（= `/data1`，`/dev/nvme0n1p1`）5.9T 剩 104G、99%，而 `/data2`（`/dev/nvme1n1p1`）5.9T 剩 **5.5T**、7% —— 且 v1 的归档实体一直就在这块盘（`../v1/BACKUP.local`：`/data2/xliu969/flagrt-image-backup/20260922/`）。故「磁盘不允许」只对 `/var/lib/docker` 成立，对归档落盘不成立。已按 v1 的 `docker export` + `docker import --change` 变通产出：`kunlun-operator-runtime-2.0.0-rootfs.tar.gz`，33065409282 字节（30.80 GiB），sha256 `2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5`，`gunzip -t` rc=0；源容器用 `docker create` 的纯净容器（v1 导出的是跑过验证的容器），导出约 4 分钟、全程 `/var/lib/docker` 可用量未变。**未做还原验证**：`docker import` 会在 `/var/lib/docker` 展开约 105GB 而该盘只剩 104G，共享机上压到危险水位代价更大；校验深度与 v1 一致（`gunzip -t` + `sha256sum`）。清单见 `kunlun-operator-runtime/v2/ARCHIVE.md`，本机实体路径见该目录 `BACKUP.local`（不追踪） |
+| 16 | ~~flagtree wheel 的 sha256 接进核对链~~（已完成 2026-10-12） | 已实现并本机实测：`export --image` 取索引页 PEP 503 的 `#sha256=` 写入 `baked_packages[].wheel`（filename / sha256 / source / fetched_at），`check --image --online` 与索引页当前内容比对 —— 实测 `[PASS] flagtree: wheel sha256 与索引页一致`、rc=0；不加 `--online` 报 INFO、rc=0（`check` 在 `up.sh --strict` 启动路径上，默认不能联网）。实测发现的 7 个坑逐条处置：按 PEP 440 解析匹配而非子串/字符串相等（子串 `0.6.1` 会命中 20 条，干扰项 `0.6.1a1+xpu3.6`；PEP 427 本应转义 version 段而该索引未转义）、`packaging` 作软依赖（baseline.py 硬依赖仍只有 yaml）、代理走 curl 标准环境变量不硬编码（本机需 `export no_proxy='*'`）、语义边界写进规范（只发现索引重发，**不证明镜像内字节即此指纹**）。同时修掉 baseline.py 里把已被推翻的「索引不提供稳定直链，不记 sha256」硬编码进每份基线的措辞。规范见 `../ENV-SPEC.md` §4.2「模式 6 的第四条边」，单测 85 → 110 条 |
+| 17 | ~~`/env/xvllm-plugin-FL` 的仓库身份~~（建议关闭，2026-10-12 讨论面已收窄） | 远端是厂商内网仓（`ssh://…icode.baidu.com/baidu/xpu/xvllm-plugin-FL`），本仓没有也无法取得其 checkout，**不应**登记到 `../ENV-SPEC.md` §3.2 的「仓库名 → 宿主目录」表——那张表是挂载资产的 `host_path` 缺省来源，登记一个指向不存在目录的映射只会误导。该结论**不变**。**但它的版本事实不再是空的**：2026-10-12 实测镜像内 `/env/xvllm-plugin-FL` 带着 `.git`，HEAD 为 `f9d95f4338556a5657d7fbbe496a9d671a432d8b`，`export` 已按新增的 in-image-git 回退把原 `commit: unavailable` 升级为真实 commit（`commit_source: in-image-git`，见 `../ENV-SPEC.md` §3.1）。现状（真实 commit + `source_path` 记镜像内路径 + `kunlun-operator-runtime/v2/lock.yaml` `parent_image.note` 已写明与仓内 `vllm-plugin-FL` 不是同一个仓 + 不登记仓库名表）即正确表达。待你确认后可关闭 |
+| 18 | ~~昆仑芯 GEMM 失败形态复核~~（已完成 2026-10-12，**定论：同一缺陷**） | 用 v1 那个 pytest 用例（FlagGems 自带 `tests/test_blas_ops.py::test_accuracy_mm`，normal 模式 3 形状 × 3 dtype × `b_column_major` 两值 = 18 组）在 v2 上逐组复跑（每组独立进程）：**18/18 全失败**，形态按 shape × dtype 二分 —— `(1,1,32)` + float16/float32 共 4 组是**原生 abort**，栈顶 `triton/backends/xpu/compiler.py:486 make_llir`，与 v1 记录**逐帧一致**（48 帧 File 行 diff 只有 3 处，差异仅 FlagGems 前缀路径 `/root/FlagGems` vs `/env/FlagGems`）；其余 14 组是 `OutOfResources: uni_sram`。两种形态是同一条编译路径（`ttir → ttxir → llir → elf → xpubin`）上的**两个不同失败阶段**：`ttxir` 失败点有 try/except 包装（`compiler.py:362-367`，把任意异常误标为 `OutOfResources`、`Required: 0, Hardware limit: 0` 是硬编码零），`llir` 失败点（`compiler.py:486`）无包装，LLVM 原生断言不可捕获故 abort。对称验证排除「镜像」变量：v1 镜像上跑 64×64 也得 `OutOfResources`、跑 `(1,1,32)`+float32 也得 abort。另新取到 v1 证据里没有的底层断言原文（LLVM `Instructions.cpp:758 CallInst::init` 的 `"Calling a function with bad signature!"`）。**更正**：rc 不能区分两种形态 —— v1 那次退出码也是 1。见 `kunlun-operator-runtime/v2/lock.yaml` `known_issues: gemm-same-defect-two-failure-stages`，证据 `kunlun-operator-runtime/v2/assets/evidence/gemm-failure-signature-recheck-20261012.txt` |
+| 19 | ~~昇腾侧 `check --image` 在 P800 机器上无法复验~~（已完成 2026-10-12） | 已在 npu1-11 真镜像上复跑，无回归：85 条单测全过；`check --image` 两镜像与 demo `check` 均 rc=0。两处新逻辑在昇腾上的表现符合预期——`vllm`（`from: base_image`、有 commit、镜像无对应标签）报 **INFO**「取自基座 pip 元数据…由 image id 兜底」而非 FAIL；`_assert_inherited_commits` 对其跳过（`COMMIT_LABEL` 无 `vllm` 条目）。`export --image` 重新生成两份基线转入新格式，差异只有注释/分组/`generated_at`，外加 `base_image.provides` 增 `torchvision: 0.25.0+cpu`/`torchaudio: 2.10.0+cpu`（`BASE_PROVIDES_PKGS` 扩容，与仓内 `pipfreeze-*-round4-npu11.txt` 一致，L1 事实更完整）；`commit`/`sha256`/`image.id`/`digest`/`version`/`install`/`from`/`layer` 的值与 `baked_repos` 顺序均未变，`packages` 仍指向 `pipfreeze-*-round4-npu11.txt`。带卡复核亦通过：`up.sh --strict` rc=0 起容器，`verify_flagcx_runtime.py --static` rc=0（`flagcx_commit` 与镜像标签一致），`--device` 双卡两 rank 均 `device_all_reduce_ok: true` / `device_backend_str: "flagcx"` / `torch_npu_default_check: passed`；退出期复现已知的 `teardown-sigabrt`（`free(): invalid pointer`，故 torchrun rc=1），形态与 round 1 记录一致，不影响判定 |
+| 20 | ~~昆仑芯 v2 旧镜像 `eda3e0ae14eb` 回收~~（已完成 2026-10-11） | 配方简化前那次构建的产物，已 `docker rmi`（只删该 id，未 prune）；实际回收约 40MB，7.38GB 的 flagtree 层与新镜像共享故未删，删后 `check --image` 仍 rc=0 |
+| 21 | `docker save` 对巨型厂商派生镜像失效的机制**部分定位**（2026-10-12） | **已排除的假设**：① 与「`docker commit` 还是 `build` 产物」无关（2026-10-11 已排除）；② 与「拉取还是构建」无关 —— 本轮用 6 个数据点的判别矩阵确认：官方基座 94GB（拉取）→ 14336 字节 / 1 blob **失败**；v2 105GB（FROM 基座构建）→ 14336 / 1 **失败**；v2 再加一个 137 字节的层（本机构建）→ 14848 / 1 **失败**；`FROM scratch` + 50MB（构建）→ 52453376 / 3 blob **成功**；`python:3.10-slim` 182MB（拉取）→ 47235072 / 11 blob **成功**；`FROM python:3.10-slim` + 小层（构建）→ 45004800 / 7 blob **成功**。基座与 python 都有 `RepoDigests`、都是拉取来的，一失败一成功，故 pull/load 不是判别点；③ **原推测「layer blob 不在 content store（惰性/远端快照）」作为解释已被证伪**：连那个几秒前由本机构建器生成的 **137 字节**层、以及**新建的 15870 字节 config blob** 都不在导出里，这不可能是远端惰性 blob；且存储后端是标准 `overlayfs` snapshotter，不是远端 snapshotter。**新结构性事实**：tar 里唯一存在的 blob 是 **OCI manifest 本身**（containerd image store 下 `docker images` 显示的 image id 即 manifest digest，不是 config digest），它引用的 config blob（15646 字节）与全部 28 个 layer blob 一个都没有 → `docker save` 是**整体放弃 child walk**，不是「能导多少导多少」，所以「某个 blob 不在 tar 里」不能当作「该 blob 不在 store 里」的证据。**且全程报告成功**：CLI rc=0、`--log-level debug` 无任何输出；直连 Engine API `/images/get` 为 HTTP 200 + `Content-Type: application/x-tar`、tar 结构完好、流尾无错误 JSON —— 这是静默数据丢失，危险形态本身值得记录。**当前领先假设**（未证实）：唯一横跨 6 个数据点的相关量是**体量** —— 失败的都 ≥94GB（基座压缩内容 33.8GB），成功的都 ≤182MB；最可能是这几个巨型镜像的压缩 layer blob 已被 containerd content GC 回收（`/var/lib/docker` 99% 满，snapshot 存活而 blob 不存活），导出遂整体放弃。**剩下的一步未做**：直接查 content store 确认 `bee6caef…` 与那 28 个 digest 是否真的缺失 —— `ctr` 已装但 `/run/containerd/containerd.sock` 是 root 独占（`srw-rw---- root root`），`sudo` 需密码、本会话非交互，无法只读查询。「换一台机器就正常」仍未验证。本项不阻塞任何人：替代路径见 `kunlun-operator-runtime/v2/ARCHIVE.md`（export/import，v2 已据此产出离线包） |
+| 22 | 本轮工具改动在昇腾真镜像上复验（**发版前**） | 2026-10-12 为昆仑芯 v2 发版加的两条版本锚（模式 6 的 wheel sha256、`editable-in-image` 的镜像内 `.git` 第二锚）只在 P800 真镜像上实测过 —— 这台机器没有昇腾镜像、无法验证。影响面已尽量压小：昇腾两份基线的 `baked_packages` 均为 0 条（wheel 一路对它们是死代码）、`commit: unavailable` 条目也是 0 个（in-image-git 回退不会改写已有 commit），所以**预期昇腾两份基线重新 export 后无差异**，`check --image` 新增的 `.git` 比对对无 `.git` 的条目只报 INFO。但「预期」不等于「实测」，按 #19 的先例须在 npu1-11 上复跑：110 条单测 + 两镜像 `check --image` + demo `check` + `export --image` 后比对基线无差异。风险点一条：若昇腾基座里某个 `editable-in-image` 资产带 `.git` 且其 HEAD 与 pip 元数据记的 commit 不同，新增的比对会报 **FAIL**（那是真实漂移、值得暴露，但会让既有绿变红，须先看清） |
 
-## N1 完成（2026-09-12）——按 BAAI·FlagTree 官方手册 ascend3.5 线重建训练腿祖先镜像
+## 已完成
 
-**结论：候选血统已产出并实测通过，`dev/images/ascend-operator-runtime/v2/` +
-`dev/images/ascend-train-comm/v2/`。未改 `dev/stack.lock.910c.v1.yaml`——是否
-切换现网生效版本由总组另行裁定。**
+过程叙述见 `PROCESS.md` 与各 `REBUILD.md`，此处只列结论。
 
-- **基座**：`harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2`（BAAI·FlagTree 官方公开预构建镜像，本机已存在，公开可拉，非 BAAI 内部手搭），取代 v1 的 `pytorch-plugin-fl:manual-*`。
-- **triton**：FlagTree 上游仓库 `triton_v3.5.x` 分支 pinned commit `15ec1a6cbc8d51f597f46459a500e96f3812c58f`（只读上游，未动 FlagRT fork），`FLAGTREE_BACKEND=ascend` 现场编译。**实测版本 `triton.__version__ == 3.5.1`**（手册版本线表格暗示 3.5.0，按实测记录，未采信假设）。
-- **triton-ascend 后端补丁**：FlagTree 的 triton 3.5.1 已把 ascend 后端重构为插件式 `backend_strategy_registry`，v1 的补丁脚本对新代码 13 条规则 12 条不命中。写了新脚本 `assets/patch_triton_ascend_flagtree.py`（新增 `"torch_fl"` category，纯增量，不影响华为官方 torch_npu 主线）。真机测试中额外发现并修复 triton 顶层驱动"2 active drivers"误判（Torch-FL 的 `torch.cuda.is_available()` 生态兼容 shim 与 FlagTree nvidia 驱动自检的冲突）。
-- **FlagCX（训练腿通信层核心目标）**：改用 `FlagRT/FlagCX` 组织仓公开主干 tip commit `4e0e0cbcbf721169ca82348080f8353aebfe2c31`（同步自 flagos-ai/FlagCX 公开上游），`USE_ASCEND=1 pip install . --no-build-isolation` 端到端源码构建，**无需任何 owner 私有 commit / patch / vendor 回收件**——`dev/images/ascend-train-comm/v2/lock.yaml` 不再有 `gaps` 段，逐字节可复现（因为源头本身就是可复现的公开构建，不是"逐字节匹配一个黑盒终点"的意义上）。
-- **torch_npu 共存问题实测结论**（任务书要求的关键判断）：**是进程内 import 顺序约束，不是"两个包不能共装"的约束**。先 `torch_fl` 后 `torch_npu`：安全，无异常，PrivateUse1 仍是 `"flagos"`；反过来先 `torch_npu` 后 `torch_fl`：`torch_fl` 立即抛出清晰 `RuntimeError`，fail-loud 不损坏状态。v2 因此不卸载基座自带的 `torch_npu`，也不再复用 v1 的"构建期断言不存在"，改为验证"import 顺序安全"这一真正不变量。详见 `ascend-operator-runtime/v2/REBUILD.md`「torch_npu 共存问题」。
-- **真机验证**（2 卡，容器 `flagos-cand-train-910c-v2`，验证完已释放）：Torch-FL/FlagGems 算子自检通过；FlagCX `verify_flagcx_runtime.py --device` 两个 rank 均 `device_all_reduce_ok: true`；复用 `dev/communication/probes/communication_correctness.py`（未重复造轮子）40/40 all_reduce/all_gather/p2p/async_all_reduce 通过（fp32+bf16）。
-- **已知遗留问题（未修复，已记录）**：集合通信成功完成、结果数值正确之后，进程退出阶段有 `free(): invalid pointer` SIGABRT（已隔离验证与 torch_npu 无关，疑似 FlagCX/Torch-FL 退出期清理顺序冲突，需 FlagCX/Torch-FL 侧协作定位）；不影响训练期间通信正确性，只影响"用退出码判断成功"的批处理式脚本。见 `ascend-train-comm/v2/lock.yaml:known_issues`。
-- **归档**：两镜像 `docker save` + gzip 至 `/mnt/raid/xliu969/flagrt-image-backup/20260912/`，清单见各 `v2/ARCHIVE.md`。
-
-## N2 完成（2026-09-23）——v3 待验证项真机跑完，两个新 STOP CONDITION 澄清/发现
-
-**结论：本机（npu1-27）带卡容器并发数从交接时的 5 回落到 2，未换机器即在原机器
-继续完成。训练腿"缺 sync"假说证实成立；推理腿 coexistence 检查通过，但发现一个
-全新的、跟原先担心的两个 bug 无关的 STOP CONDITION。两项都不是"验证通过"，
-是"技术层面查清楚了，剩两个需要总组拍板的决策"。详见
-`ascend-train-comm/v3/REBUILD.md`「ROUND 3」与
-`ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」。**
-
-- **训练腿 sync 假说验证**（2 卡，容器 `v3-validate-flagcx-sync-910c` /
-  `-followup-910c`，验证完已释放）：`flagcx_sync_test.py` 真机直接测试
-  ——`broadcast`/`all_gather` 无 `torch.npu.synchronize()` 时复现原 STOP
-  CONDITION（broadcast 目标 rank 收不到数据，all_gather 恒返回全零），加 sync
-  后两个原语两个 rank 全部转为 PASS。**结论：2026-09-22 的原诊断是测试遗漏
-  同步导致的误报，不是 FlagCX 本体数据损坏。** 追加跑
-  `train_qwen_1_5b_npu_syncpatch.py`（猴子补丁 `dist.broadcast`/`all_gather`
-  后跑真实训练脚本）确认了预先记录的限制：DDP 内部走 C++ 层
-  `torch._C._distributed_c10d._verify_params_across_processes`，不经过
-  Python 猴子补丁，仍报参数不一致——**真正的修复点必须落在 FlagCX/vllm_fl 自己
-  的 c10d 实现里（私有 fork commit `5d545c9` 实际打的位置），不能靠训练脚本
-  调用方绕过**，真实 loss/吞吐数据仍待"是否吸收私有修复"这个决策落地。
-- **推理腿 coexistence + 推理烟雾测试**（1 卡，容器
-  `v3-validate-train-910c-r2`，验证完已释放）：torch_npu Route A、FlagCX
-  import、triton driver、vllm+vllm_fl platform 注册**全部 PASS**——之前担心的
-  两个私有 fork PrivateUse1 类型提升 bug **均未在本血统触发**。真实
-  `LLM(...).encode()` 调用：第一次撞上验证脚本自身的 API 版本问题（`task=`
-  参数在本血统实装的 vllm 0.20.2 里已拆成 `runner`/`convert`，已修复脚本）；
-  修复后重跑，**发现新 STOP CONDITION**：FlagGems 的 Triton-Ascend
-  grid-stride-loop kernel 代码路径（RoPE cos/sin cache 计算触发）间接
-  `import shmem`，这个模块既未装在镜像里也不是公开 PyPI 包（
-  `pypi.tuna.tsinghua.edu.cn/simple/shmem/` 404），`Dockerfile.repro` 从未
-  提及，vLLM engine core 初始化失败。round 1/2 的静态自检/训练侧验证从未触发
-  这条代码路径，是本轮真实跑一次模型前向计算才第一次暴露。**按任务书要求未
-  尝试绕过**（候选绕过方式均属"自行决定"，已记录三个候选方向待拍板）。
-- **两个脚本迁入永久归档**：`flagcx_sync_test.py`、
-  `train_qwen_1_5b_npu_syncpatch.py` → `ascend-train-comm/v3/assets/`；
-  `v3_step5_validate.py`（已修复 API 用法）→
-  `ascend-operator-runtime/v3/assets/`。临时目录
-  `dev/images/v3-pending-validation/` 已按其自身 README 的"验证完应删除"要求
-  整体删除。
-- **仍未解决（需拍板，非技术阻塞）**：① 是否吸收 FlagRT 私有 fork 的 sync 修复
-  进 v3 默认血统；② `shmem` 依赖缺口三个候选方向（找官方来源补进 Dockerfile /
-  关闭 grid-stride-loop kernel 路径 / 评估对 embedding 模型完全不激活
-  FlagGems）。两项都已把技术判断依据写清楚，等总组/接手人拍板后回填
-  `Dockerfile.repro` + `lock.yaml` provenance。`repro_status` 两条血统均维持
-  🟡 partial-repro，不升级为 🟢。
-
-
-## N3 完成（2026-10-08）——两项决策拍板落地：声明式覆盖层 + 官方开关解堵
-
-**结论：决策①（吸收 sync 修复）以"公开基座 + 声明过的补丁"方式落地；决策②
-（shmem 缺口）用插件官方黑名单开关临时解堵并同步提跨组需求。镜像重建+真机
-验证 PENDING（本机带卡容器 5 个超上限 3，排队）。** 详见
-`ascend-operator-runtime/v3/lock.yaml` changelog 2026-10-08 条目与
-`docs/v3-决策备忘录与shmem跨组需求-20261008.md`。
-
-- **决策①落地物**：`assets/patches/vllm-plugin-FL/0001-fix-ascend-int64-mask-promote-flagcx-sync.patch`
-  （git format-patch 原样导出自 FlagRT fork `5d545c9`，sha256
-  `b97d0d8b…e23b5f928`，实测在上游 pin `8b059122e` 上干净套用零冲突）；
-  `Dockerfile.repro` vllm-plugin-FL 层新增 `git apply --check`（fail-closed）；
-  `build.sh` 同步拷贝补丁；lock.yaml 该层 origin → `official+custom-overlay`，
-  记录 overlay_patches（来源/sha256/套用基线/保质期）。不切换私有 fork。
-- **决策②落地物**：`docker-compose.flaggems-cos-off.yml`（opt-in 层，
-  `VLLM_FL_FLAGOS_BLACKLIST=cos`）——vllm-plugin-FL 官方一级开关
-  （`vllm_fl/worker/worker.py` 读取），把 torch.cos 拉回 torch_npu 原生，
-  零代码改动；`docker compose config` 实测两层合并正确。选黑名单而非总开关：
-  影响面最小、可逆、不遮掩问题。
-- **upstream-first 同步启动**：修复已具备提交上游条件（干净 patch + 真机证据），
-  PR 文本草稿见决策备忘录附录。
-- **跨组需求已建档**：shmem 官方出处（FlagTree triton tle/dsa/ascend 扩展的
-  依赖声明缺口）已写成独立需求文档，待转算子编译组。
-- **下一步（按依赖排序）**：① 卡资源释放后重建镜像（Dockerfile.repro 已变，
-  build.sh 驱动）→ ② 叠加 flaggems-cos-off 层跑 round 4 真机验证（训练腿
-  loss/吞吐 + 推理腿 embed/generate）→ ③ 结果回填 lock.yaml/REBUILD.md，
-  视结果决定 repro_status 是否升 🟢；上游 PR 提交与跨组需求发出并行推进。
+- 2026-09-09 ~ 09-10：v1 两镜像离线归档、配方还原、实机重建（`pip freeze` 逐行一致、FlagCX `.so` 逐字节一致），`repro_status` 🟢。
+- 2026-09-12（N1）：按 BAAI·FlagTree 官方手册 ascend3.5 线产出 v2 两镜像并真机验证，见 `PROCESS.md`「v1 → v2」。
+- 2026-09-23（N2）：v3 真机验证查清训练腿缺 sync 与推理腿 shmem 缺口两项 STOP CONDITION，见 `PROCESS.md`「v3」。
+- 2026-10-08（N3）：两项决策落地（vllm-plugin-FL 声明式覆盖层补丁；cos/sin 黑名单解堵），见 `PROCESS.md`「round 4」。
+- 2026-10-09：npu1-11 重建 v3 两镜像并完成 round 4 真机双腿验证；镜像离线归档至 `/mnt/raid/user_cache/xliu969/v3-round4-archive/`；结论见 [`docs/v3-round4-真机验证结果与移交指导-20261009.md`](../../docs/v3-round4-真机验证结果与移交指导-20261009.md)。
+- 2026-10-10：`v3_step5_validate.py` 按 vLLM 0.20.2 接口修正；v3 接入环境基线机制（两份 `image.baseline.yaml` + demo 运行环境目录，见 `../ENV-SPEC.md`）；挂载资产试点（vllm-plugin-FL）跑通。
+- 2026-10-10：v3 demo 运行环境带卡复验——推理腿 9/9 PASS（脚本原样执行）；`flagcx_sync_test.py` 重写为唯一数据 + 跨 rank 汇总 + 迭代，修正 FlagCX 结论（列表形式 `all_gather` 同步无效）；两个 v3 目录建立 `assets/evidence/`。见 `ascend-train-comm/v3/REBUILD.md`「2026-10-10 demo 环境带卡复验」。

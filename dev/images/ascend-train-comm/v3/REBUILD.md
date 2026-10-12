@@ -345,3 +345,95 @@ sync 修复（即下面 P1 拍板项：是否正式吸收私有 fork 的 fix）�
 
 两个脚本已迁入本目录 `assets/flagcx_sync_test.py` / `train_qwen_1_5b_npu_syncpatch.py`。
 `known_issues` 与 `lock.yaml` 已回填真实结果（见下）。
+
+
+## ROUND 4（2026-10-08）：级联重建（继承覆盖层补丁）
+
+- **构建**：父镜像换成 operator-runtime/v3 round 4 新镜像（`be30a952c2eb`），
+  FlagCX 层本身未变（0.13.0@4e0e0cbc，`_C.so`/`libflagcx.so` sha256 由 build.sh
+  静态检查记录）。新 image id `7028028bb62c`（43f3e2f70b4c → 7028028bb62c，
+  旧 id 保留）。
+- **补丁继承机制**：vllm-plugin-FL 覆盖层补丁（flagcx all_reduce/all_gather 缺
+  torch.npu.synchronize() 修复）在父镜像的 vllm-plugin-FL 层内构建期应用，本
+  血统经 FROM 继承，无需（也没有）自己的补丁层。round 3 证实的"修复必须落在
+  c10d/communicator 实现层、Python 猴子补丁绕不过"由此闭环。
+- **provenance**：`assets/provenance/pipfreeze-comm-v3-round4.txt`。
+- **真机训练腿验证 PENDING**（真实 loss/吞吐，补丁的直接受益验证）：npu1-27
+  卡窗口无望，迁移至 npu1-11 执行（与推理腿同批）。
+
+### ROUND 4 真机验证——训练腿（npu1-11，2026-10-09）
+
+镜像在本机级联重建（image id `e13a15d0d02b`，父镜像 62bcaae3f839，三重证据同
+operator-runtime REBUILD.md「ROUND 4 真机验证」；归档
+`/mnt/raid/user_cache/xliu969/v3-round4-archive/`）。日志均在
+~/tmp-reproV3-r4/train-leg/outputs/。
+
+**① flagcx_sync_test 四组合（2 卡 NPU2,3，双 rank 一致）**：
+
+| 组合 | 结果 |
+|---|---|
+| broadcast+nosync | PASS |
+| broadcast+sync | PASS |
+| all_gather+nosync | **FAIL**（读回 [[0,0,0,0],[0,0,0,0]]，复现 round 3 原堵点） |
+| all_gather+sync | **PASS**（sync-fix 假设再次证实） |
+
+（与 round 3 的差异：本环境 broadcast nosync 也 PASS——异步返回 bug 的暴露面
+依 collective 类型而异，all_gather 是稳定复现点。）
+
+**② DDP 封装仍阻塞在 c10d 层（与 round 3 结论一致，非本镜像缺陷）**：
+DDP.__init__ 的 C++ `_verify_params_across_processes` 走
+all_gather_into_tensor + 立即读取，命中同一异步返回 bug（probe_agit.log：
+nosync FAIL，读前加 synchronize 后双 rank PASS）。镜像的 SYNC-FIX 补的是
+vllm_fl/distributed/communicator.py（推理侧 Python communicator），不覆盖
+flagcx c10d ProcessGroup。**修复必须落在 FlagCX 自己的 c10d 层**——round 3
+结论经新镜像再次闭环，升级为 c10d 层修复需求的第二份实证。
+
+**③ 手动 DDP 训练 PASS（comm+训练路径端到端走通）**：显式梯度 all_reduce +
+torch.npu.synchronize() 替代 DDP 封装（SYNC-FIX 惯用语），Qwen2.5-1.5B bf16，
+wikitext-2，batch 1/rank，2×910C：**loss 2.8911 → 2.5528（24 步，~5s/步）**。
+数值注意：脚本默认 LR 5e-5 第 16 步起 NaN（bf16+AdamW 数值问题，非 comm
+正确性问题——LR 1e-5 全程稳定，曲线见 train_lr1e5.log）。
+
+**④ 环境发现（影响后续所有多腿验证）**：Ascend 驱动容器级 davinci 独占——
+本机已有带卡容器在跑时，第二个带卡容器无论挂哪些卡一律 EBUSY（不同镜像/
+设备组合均复现）。多腿验证须单容器多 NPU 分区
+（docker exec -e ASCEND_RT_VISIBLE_DEVICES=…）而非多容器。
+
+**⑤ 遗留**：训练子代理曾在推理容器内 pip 安装 datasets 3.6.0 /
+huggingface-hub 1.33.0（已降回兼容版）——容器运行层残留，重建容器即消失，
+不影响镜像内容；teardown SIGABRT（free(): invalid pointer）为已知 flagcx
+销毁问题，不影响结果。
+
+**repro_status 维持 🟡**：训练腿 comm 正确性（sync 惯用语）与端到端训练已实证，
+但 DDP 封装仍阻 c10d 层，"补丁的直接受益验证"以手动 DDP 形式达成而非原生
+DDP。升 🟢 条件：FlagCX c10d 层 sync 修复落地（跨组需求第二条）。
+
+### 2026-10-10 demo 环境带卡复验：FlagCX collective 结论修正
+
+运行环境 `demo/`（image id `e13a15d0d02b`，`up.sh --strict` 核对通过），npu1-11，2×910C。
+
+round 3/4 的 `flagcx_sync_test.py` 每次调用使用相同数据（rank+1），上一次调用遗留的结果与
+本次结果无法区分。脚本已重写：每次调用使用唯一数据；`broadcast`、`all_reduce`、列表形式 `all_gather`、
+`all_gather_into_tensor` 各做未同步 / 同步两组；每组读取后统一同步，避免未完成的调用经
+缓存分配器复用污染下一组；跨 rank（`all_reduce` MIN）与 `--iters` 迭代汇总；判定后
+`os._exit`，退出码不再被退出期 SIGABRT 覆盖。
+
+`--iters 20` 连续 3 次，结论一致（证据 `assets/evidence/flagcx-collectives-20261010.txt`）：
+
+| collective | 未同步 | 同步后 |
+|---|---|---|
+| `broadcast` | FAIL | PASS |
+| `all_reduce` | FAIL | PASS |
+| `all_gather_into_tensor` | FAIL | PASS |
+| 列表形式 `all_gather` | FAIL | **FAIL**（得到上一次调用的数据，如期望 `[1210, 1211]` 得到 `[1200, 1201]`，即紧邻的上一次调用的数据） |
+
+- 异步返回类缺陷（`broadcast`、`all_reduce`、`all_gather_into_tensor`）同步后正确。vllm-plugin-FL 覆盖层补丁
+  使用 `all_reduce` / `all_gather_into_tensor` + 同步，结论不受影响；DDP 启动检查所用原语属此类。
+- 列表形式 `all_gather` 为结果错位类缺陷，同步无效。代码位置
+  `FlagCX/plugin/torch/flagcx/src/backend_flagcx.cpp` `flagcxBackend::allgather`：结果先写入
+  临时缓冲 `outputFlattened`，再 `copy_(..., non_blocking=true)` 拷回列表。推断（待 FlagCX 方向
+  确认）：拷贝与 `flagcxAllGather` 所在流之间缺少先后顺序，且临时缓冲未 `recordStream`。
+- round 3「同步后 broadcast/all_gather 均 PASS」的结论对列表形式 `all_gather` 不成立。
+
+同次复验推理腿：`ascend-operator-runtime/v3/assets/v3_step5_validate.py` 原样执行
+9/9 PASS，撤除规避配置的对照组按预期失败（证据见该目录 `assets/evidence/infer-demo-20261010.txt`）。

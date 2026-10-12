@@ -20,9 +20,9 @@
 ```
 dev/
 ├── clone_all.sh              # 新成员一键 clone FlagRT 6 仓（团队公共）
-├── compose.base.yml           # [LEGACY，2026-09-23 起] 原公共资源配置；已被各芯片 dev/images/<chip>/vN/ 下的 docker-compose.<tag>.yml 取代，现有子方向 compose 迁移前继续沿用，机制见 ENV-SPEC.md
-├── ENV-SPEC.md                # 候选血统的版本声明 + 启动前校验规范（总组发版与子方向预研共用，现行机制）
-├── lib/                        # ENV-SPEC.md 配套工具：verify_env.sh / verify_env.py / up.sh
+├── compose.base.yml           # [LEGACY，2026-09-23 起] 原公共资源配置；已被运行环境目录（镜像 demo + 子方向 extends）取代，现有子方向 compose 迁移前继续沿用，机制见 ENV-SPEC.md
+├── ENV-SPEC.md                # 环境基线规范：镜像基线 / 运行环境目录 / 启动前核对（总组发版与子方向预研共用）
+├── lib/                        # ENV-SPEC.md 配套工具：baseline.py（export/check/load/show/list）/ up.sh
 └── <子方向>/                 # 如 memory/；未来 kv/ 等，对应成员维护
     ├── README.md             # 本子方向看板入口（目标/任务/重要发现/环境速查）
     ├── docker-compose.yml    # 本子方向专属：-f 合并公共配置 + 容器名/专属环境变量
@@ -30,8 +30,8 @@ dev/
 ```
 
 使用基准：
-- 日常启动（沿用 `compose.base.yml` 的现有子方向）：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
-- 启动带版本声明的候选血统（如 v3 Route A，现行机制）：用 `dev/lib/up.sh` 而非裸 `docker compose up`，会先校验版本再启动，规范见 `dev/ENV-SPEC.md`
+- **启动运行环境（现行方式）**：`dev/lib/up.sh <env-dir> [--strict]`，而非裸 `docker compose up`——会先按基线核对镜像 id 与挂载 repo 再启动。入口文档 `docs/运行时基座-使用与维护指南.md`，机制规范 `dev/ENV-SPEC.md`；新建子方向按 `dev/_template/` 建运行环境目录；可直接用的实例是 v3 demo `dev/images/ascend-train-comm/v3/demo/`
+- 日常启动（**LEGACY**，仍沿用 `compose.base.yml` 且未迁移的子方向）：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
 - `compose.base.yml` 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，仍引用它的子方向自动生效 → 同步 `VERSIONS.md`
 - 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
 - 每个子方向 compose 必须声明独立 `name:`（如 `flagos-<方向>`）：默认 project 取首个 -f 文件目录名（`dev`），不声明会跨方向重建同名 `runtime-dev` 服务

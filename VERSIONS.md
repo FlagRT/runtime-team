@@ -20,7 +20,7 @@
 
 > 原 5 个仓的基线 commit 与上游一致（见 §1 表格）；FlagPerf 按 FlagRT fork 的 `main` 对齐。成员直接 clone FlagRT 组织仓，无需 fork。
 > **注**：PyTorch-Plugin-FL 上游已改名 **Torch-FL**（2026-08-18 确认，旧名 301 重定向）；本地目录/容器路径沿用 PyTorch-Plugin-FL（clone 时指定目录名）。
-> **FlagTree 版本线**：**BAAI·FlagTree 官方指南**（非华为）见 **FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2）。本表 FlagTree 行的 `triton_v3.2.x` 是通用 dev 底座口径；**910C 原型锁定镜像走 ascend3.5**（triton 3.5.0 + 华为 triton_ascend 3.2.1，**不含 FlagTree 构建物**），见 `dev/images/image_list.md`。原型不触发 fork 分支变更；日后若 FlagTree 构建物要进 ascend3.5 镜像，fork 须先切到 `triton_v3.5.x`。
+> **FlagTree 版本线**：**BAAI·FlagTree 官方指南**（非华为）见 **FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2）。本表 FlagTree 行的 `triton_v3.2.x` 是通用 dev 底座口径，与 910C 原型镜像所走的 ascend3.5 线是两套东西；两条线的对照、`triton_ascend` 版本号的常见误读、fork 分支切换的前置条件统一见 `dev/images/image_list.md`「版本线」节，此处不重复。
 
 | 仓（fork 名） | 上游链接 | 基线 | 版本标识 | 角色 | 依赖（源码核实） |
 |---|---|---|---|---|---|
@@ -65,10 +65,11 @@
 **昇腾 910C**
 - 推理结论性测试：`quay.io/ascend/vllm-ascend` 镜像自带 python 3.11 + torch 2.10.0+cpu + **torch_npu 2.10.0** + vllm 0.20.2 + vllm_ascend（device-context P0–P3 在此验证）
 - 训练 / device-context / conformance / 通信：容器内装 **torch_npu 2.10.0** + FlagCX（`plugin/torch`）+ FlagGems（± vllm-plugin-FL）；具体镜像与 venv 组合以 `dev/device-context/README.md`、`dev/communication/README.md` 为准
-- **候选血统（Route A 默认 + 训练/推理统一基座，v3）**：`dev/images/ascend-operator-runtime/v3/docker-compose.routeA.yml` + `pins.routeA.yaml`，用 `dev/lib/up.sh` 启动、`dev/lib/verify_env.sh` 校验；版本声明格式与用法见 `dev/ENV-SPEC.md`，血统详情见 `dev/images/ascend-operator-runtime/v3/lock.yaml`
+- **候选血统（Route A 默认 + 训练/推理统一基座，v3）**：版本事实见 `dev/images/ascend-train-comm/v3/image.baseline.yaml`；运行环境 `dev/images/ascend-train-comm/v3/demo/`，用 `dev/lib/up.sh <env-dir> [--strict]` 启动（启动前核对基线）；机制见 `dev/ENV-SPEC.md`，构建与验证记录见 `dev/images/ascend-operator-runtime/v3/lock.yaml`、`dev/images/ascend-train-comm/v3/lock.yaml`
 
 **昆仑芯 P800**（厂商官方发布镜像内）
 - python 3.10 + 厂商 CUDA 兼容 torch 2.9 + vllm 0.13 + **vllm-plugin-FL** + FlagGems + FlagCX + triton 3.0.0；口径见 `dev/memory/README.md`
+- **候选血统（flagtree xpu3.6 统一底座，v2）**：版本事实见 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml`；运行环境 `dev/images/kunlun-operator-runtime/v2/demo/`，用 `dev/lib/up.sh <env-dir> [--strict]` 启动（启动前核对基线）；机制见 `dev/ENV-SPEC.md`。v1 的归档镜像仍可用，但其 `repro_status` 2026-10-11 由 🟢 降为 🟡（归档镜像是 `docker commit` 产物，其 `Dockerfile.repro` 从未验证能重建它，见 `dev/images/kunlun-operator-runtime/v1/lock.yaml`）；**从零重建用 v2**。索引与状态见 `dev/images/image_list.md`
 
 > `clone_all.sh` 会将 FlagPerf 源码收拢到 `/workspace/FlagPerf`；FlagPerf 的运行环境和依赖不自动安装到上述任一组合，使用时按其仓库说明单独准备。
 
@@ -84,6 +85,7 @@
 
 ## 5. 变更记录
 
+- 2026-10-11：§3 昆仑芯 P800 增加候选血统指针（`dev/images/kunlun-operator-runtime/v2/` 的 `image.baseline.yaml` + `demo/`）；同步 v1 状态变化（`repro_status` 🟢 → 🟡，归档镜像为 `docker commit` 产物）。版本号与索引不在本文件重复，仍以 `dev/images/image_list.md` 和各 `image.baseline.yaml` 为准
 - 2026-09-09：§2 加注——910C 原型阶段锁定镜像自成一套，索引见 `dev/images/image_list.md`，状态见 `dev/stack.lock.910c.v1.yaml`；本节通用 dev 底座不用于原型结论性验证。不新开 VERSIONS 版本文件（镜像索引归 `dev/images/image_list.md`）。
 - 2026-09-03：§2 基础镜像加注——明确该镜像为「昇腾工具链底座」而非设备层交付物；`pytorch-plugin-fl` 名与 `/data_lib` 挂载为 B 线（已冻结）血统残留、保留无害；harbor 源与本地副本同一 IMAGE ID；大小订正 13.7GB→11.2GB。同步 `compose.base.yml` 顶部与 `/data_lib` 挂载注释
 - 2026-09-03：§2/§3 按芯片口径整理——设备层以各芯片厂商设备插件为准（昇腾 torch_npu、昆仑芯厂商 torch），其上 FlagGems / FlagCX / vllm-plugin-FL / vLLM；各芯片镜像 / venv / 环境变量的权威 pin 归对应子方向 README

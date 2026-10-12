@@ -20,7 +20,8 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
-dev/lib/.env_provenance.json
+# 每个运行环境目录各自的 check 结果（baseline.py check / up.sh 写入，不追踪）
+.last-check.json
 
 # --- 部署本地配置（每人自己的宿主路径等，.env 不入仓） ---
 .env
@@ -31,3 +32,5 @@ AGENTS.md
 
 # macOS
 .DS_Store
+# 容器内以 /workspace(仓根)为工作目录运行推理验证后出现的 64 位哈希名空文件锁
+/[0-9a-f][0-9a-f][0-9a-f][0-9a-f]*[0-9a-f].lock

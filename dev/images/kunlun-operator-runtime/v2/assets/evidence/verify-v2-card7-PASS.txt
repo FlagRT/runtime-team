@@ -1,0 +1,42 @@
+# 来源：VM-0-2-ubuntu（P800，8× XPU，x86_64），2026-10-11
+# 镜像：flagrt/kunlun-operator-runtime:2.0.0-…-x86_64
+#       image id sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a
+# 完整日志：/tmp/claude-1013/-data2-xliu969-code-runtime-team/b75509d7-6a05-44ee-997a-ed844aa6d809/scratchpad/verify-v2c-card7.log（留在执行机器，不进仓）
+# 截取范围：全量（该脚本输出本身即判定；已剔除 torch/triton 的 ANSI 色码）
+# 命令（单入口，见 ../../README.md「验证」）：
+#   dev/lib/up.sh dev/images/kunlun-operator-runtime/v2/demo --strict
+#   docker exec flagrt-kunlun-v2-demo-p800 env CUDA_VISIBLE_DEVICES=7 \
+#     /root/miniconda/envs/python310_torch29_cuda/bin/python3 \
+#     /workspace/dev/images/kunlun-operator-runtime/v2/assets/verify_kunlun_runtime.py
+# 退出码：0（overall: PASS）
+#
+# 关键一行是 flag_gems/editable-in-image-from-base：direct_url 指向镜像内 /env/FlagGems
+# 且 editable=true —— 直接证明本层既没 COPY 也没重装，用的就是基座自带那份。
+
+python: /root/miniconda/envs/python310_torch29_cuda/bin/python3
+[PASS] version/flagtree: 0.6.1+xpu3.6 (期望 0.6.1+xpu3.6)
+[PASS] version/flag_gems: 4.2.1rc0 (期望 4.2.1.rc.0)
+[PASS] version/torch: 2.9.0+cu129 (期望 2.9.0+cu129)
+[PASS] version/triton: 3.6.0 (期望 3.6.0)
+[PASS] triton/libtriton.xpu: flagtree 的 xpu 编译后端在位，triton 命名空间未被覆盖
+[PASS] flag_gems/editable-in-image-from-base: direct_url={"dir_info": {"editable": true}, "url": "file:///env/FlagGems"}
+[PASS] env/XPU_EVENT_KL3_ENABLE-unset: XPU_EVENT_KL3_ENABLE 未设置（设置会挂死，见 known_issues: xpu-event-kl3-enable-hang）
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+SYMBOL_REWRITE torch success
+[PASS] device/available: device_count=1 CUDA_VISIBLE_DEVICES=7
+[PASS] device/alloc: 在设备上分配并求和 (256, 1024) 通过
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/library.py:364: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::_log_softmax(Tensor self, int dim, bool half_to_float) -> Tensor
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: CUDA
+  previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:3798
+       new kernel: registered at /env/FlagGems/src/flag_gems/__init__.py:473 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:218.)
+  self.m.impl(
+[PASS] flag_gems/rms_norm: FlagGems rms_norm 与 torch 参考最大偏差 7.153e-07
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/triton/backends/xpu/compiler.py:252: UserWarning: XRE Version Must Be More than 5.0.21.37 (After 2025.07.22). And echo 1 > /proc/kunlun/dev4/dma_excp_mask
+  warnings.warn(
+[PASS] flag_gems/softmax: FlagGems softmax 与 torch 参考最大偏差 7.451e-09
+[KNOWN] flag_gems/mm: 按 known_issues: gemm-compile-sigabrt 预期崩溃，实测 rc=1（triton.runtime.errors.OutOfResources: out of resource: uni_sram PassManager::run）；不计入判定
+
+overall: PASS (11 项通过，1 项已知缺陷不计入)

@@ -171,6 +171,16 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
   torch.cos 拉回 torch_npu 原生。选黑名单而非 USE_FLAGGEMS=false 总开关：
   影响面最小、可逆、不遮掩问题。根因是 FlagTree triton tle/dsa/ascend 扩展的
   依赖声明缺口（跨组协调事项），需求文本见决策备忘录附录 B。
-- **状态**：两条血统 `repro_status` 仍维持 🟡 partial-repro——镜像未重建
-  （本机带卡容器并发超限），round 4 真机验证 PENDING；重建+双腿验证通过后
-  视结果升 🟢。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是候选，非生效）。
+- **状态（2026-10-09 真机验证后更新）**：双腿验证已在 npu1-11 执行完毕。
+  推理腿 9/9 PASS（真实 .encode()，embedding 正确、identical=false、显存
+  16.8GB），但解堵配置升级为 `VLLM_FL_FLAGOS_BLACKLIST=cos,sin` + shmem
+  loud-fail stub（运行时注入）——实测发现黑名单单独不足：vllm 核心自己的
+  triton kernel 也走 tle→import shmem 崩溃路径，黑名单只管 FlagGems 接管的
+  torch 算子（详见 operator-runtime/v3 REBUILD.md「ROUND 4 真机验证」）。
+  训练腿：flagcx_sync_test 证实 sync-fix 假设（all_gather nosync FAIL /
+  sync PASS）；手动 DDP 端到端 loss 2.89→2.55 走通；但原生 DDP 封装仍阻塞
+  flagcx c10d 层（SYNC-FIX 不覆盖 c10d ProcessGroup）。两条血统
+  `repro_status` **维持 🟡**：解堵依赖镜像外配置（推理）/ c10d 层未修
+  （训练），不满足纯镜像复现标准；升 🟢 条件分别为算子编译组根治 shmem、
+  FlagCX c10d 层 sync 修复。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是
+  候选，非生效）。

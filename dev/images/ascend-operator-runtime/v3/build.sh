@@ -1,20 +1,43 @@
 #!/usr/bin/env bash
 # 重建 ascend-operator-runtime v3 —— Route A 默认血统 + 训练/推理统一基座。
+# 已在 round 2–4 真机构建并验收(见 REBUILD.md / ARCHIVE.md)。
 #
-# 【阶段声明】本脚本本身未在 phase 1 执行过——phase 1 明确禁止 docker build /
-# docker run。写出本脚本是"起草"的一部分（与 v2 的 build.sh 保持同构，供 phase 2
-# 直接拿去跑），不代表已验证可用。执行前请先看 REBUILD.md「开放问题」一节，
-# 特别是 VLLM_ASCEND_REF 的精确 pin 是否已经核实过。
-#
-# 前置（准备构建上下文）：
-#   src/FlagGems   git archive 自本机 checkout 的 pin commit（见 lock.yaml，与 v2 相同 commit）
-#   src/Torch-FL   git archive 自本机 checkout 的 pin commit（见 lock.yaml，与 v2 相同 commit）
-# llvm 工具链 / triton 编译依赖 / FlagTree 源码 / vllm-ascend 源码均由
-# Dockerfile.repro 在构建期从公开资源现场拉取，不需要预置进构建上下文。
+# 用法: build.sh [--prepare-only] <构建上下文目录>
+#   构建上下文由本脚本自行准备:
+#     src/FlagGems   <- 仓库根 FlagGems/          @ ARG FLAG_GEMS_COMMIT
+#     src/Torch-FL   <- 仓库根 PyTorch-Plugin-FL/ @ ARG TORCH_FL_COMMIT
+#   --prepare-only 只准备上下文,不 docker build。
+# llvm 工具链 / triton 编译依赖 / FlagTree / vllm-plugin-FL 源码由
+# Dockerfile.repro 在构建期从公开资源拉取,不需要预置进构建上下文。
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CTX="${1:?用法: build.sh <构建上下文目录>（含 Dockerfile.repro + src/FlagGems + src/Torch-FL）}"
+REPO_ROOT="$(cd "$HERE/../../../.." && pwd)"
+PREPARE_ONLY=0
+if [[ "${1:-}" == "--prepare-only" ]]; then PREPARE_ONLY=1; shift; fi
+CTX="${1:?用法: build.sh [--prepare-only] <构建上下文目录>}"
+mkdir -p "$CTX"
+CTX="$(cd "$CTX" && pwd)"
 
+# 从同目录 Dockerfile.repro 的 ARG 默认值读 commit(唯一来源),git archive 到 $CTX/src/<name>。
+prep_src() {  # prep_src <ARG 名> <仓库根下的 checkout 目录> <src 下的目标名>
+  local arg="$1" repo="$REPO_ROOT/$2" dst="$CTX/src/$3" commit
+  commit="$(sed -n "s/^ARG $arg=\([0-9a-f]\{40\}\)\$/\1/p" "$HERE/Dockerfile.repro")"
+  [[ -n "$commit" ]] || { echo "错误: Dockerfile.repro 中未找到 ARG $arg=<40 位 commit>" >&2; exit 1; }
+  if [[ -d "$dst" && -n "$(ls -A "$dst")" ]]; then
+    echo "错误: $dst 已存在且非空,请先删除后重跑(避免混入旧上下文)" >&2; exit 1
+  fi
+  if ! git -C "$repo" cat-file -e "$commit^{commit}" 2>/dev/null; then
+    git -C "$repo" fetch origin "$commit" || true
+    git -C "$repo" cat-file -e "$commit^{commit}" 2>/dev/null \
+      || { echo "错误: $repo 中不存在 commit $commit($arg),fetch 后仍缺失" >&2; exit 1; }
+  fi
+  mkdir -p "$dst"
+  git -C "$repo" archive "$commit" | tar -x -C "$dst"
+  echo "src/$3 <- $2@$commit"
+}
+
+prep_src FLAG_GEMS_COMMIT FlagGems FlagGems
+prep_src TORCH_FL_COMMIT PyTorch-Plugin-FL Torch-FL
 cp "$HERE/Dockerfile.repro" "$CTX/Dockerfile"
 mkdir -p "$CTX/assets"
 cp "$HERE/assets/verify_runtime.py" \
@@ -24,13 +47,14 @@ cp "$HERE/assets/verify_runtime.py" \
 # assets/patches/vllm-plugin-FL/（决策①，详见该目录 README.md）。
 mkdir -p "$CTX/assets/patches/vllm-plugin-FL"
 cp "$HERE"/assets/patches/vllm-plugin-FL/*.patch "$CTX/assets/patches/vllm-plugin-FL/"
+if (( PREPARE_ONLY )); then echo "构建上下文已就绪: $CTX"; exit 0; fi
 
 cd "$CTX"
 DOCKER_BUILDKIT=0 docker build --network=host \
   --build-arg BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2 \
   -t flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64 .
 
-echo "校验:pip freeze 快照 -> assets/provenance/pipfreeze-operator-runtime-v3.txt（phase 2 补齐,当前目录只有 PENDING.md）"
+echo "校验:pip freeze 快照写到 /tmp,可与 assets/provenance/pipfreeze-operator-runtime-v3-round4*.txt 对比"
 docker run --rm --entrypoint /usr/local/python3.11.15/bin/python3 \
   flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64 -m pip freeze | sort > /tmp/reproV3-pipfreeze.txt
 echo "见 /tmp/reproV3-pipfreeze.txt"

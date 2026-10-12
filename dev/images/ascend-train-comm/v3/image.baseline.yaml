@@ -1,0 +1,75 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: dev/lib/baseline.py export --image dev/images/ascend-train-comm/v3
+generated_at: 2026-10-12T10:01:04+08:00
+
+image:
+  ref: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+  id: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15                 # check 项
+  recipe: [dev/images/ascend-operator-runtime/v3/Dockerfile.repro, dev/images/ascend-train-comm/v3/Dockerfile.repro]
+  demo: dev/images/ascend-train-comm/v3/demo/
+
+base_image:                                    # L1
+  # 厂商基座：被动继承、按 digest 锁定、本组无法重建 —— 这是设计边界，不是缺陷（§3.1）。
+  ref: harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
+  digest: sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a
+  provides: {cann: 9.0.0, python: 3.11.15, torch: 2.10.0+cpu, torch_npu: 2.10.0, torchvision: 0.25.0+cpu, torchaudio: 2.10.0+cpu}
+
+baked_repos:
+  # ──────────────── 厂商基座自带（被动继承，不可重建） ────────────────
+  # 本组配方未声明这些资产，只能记录其版本事实；要变更须按 §2.2 在运行环境挂载覆盖。
+  vllm:
+    layer: L3
+    from: base_image
+    commit: bc150f50299199599673614f80d12a196f377655
+    version: 0.20.2
+    source_path: /vllm-workspace/vllm
+    install: editable-in-image
+    info: unavailable
+  # ──────────────── 本组配方带入（可控，重建即可变更） ────────────────
+  # 由 image.recipe 列出的 Dockerfile.repro 声明并固化（含父层配方继承来的）。
+  FlagTree:
+    layer: L2
+    from: ascend-operator-runtime/v3 Dockerfile.repro(构建期 git fetch)
+    commit: 15ec1a6cbc8d51f597f46459a500e96f3812c58f
+    install: pip (non-editable)
+    info: {branch: triton_v3.5.x, committed_at: '2026-09-11 16:36:47 +0800'}
+  FlagGems:
+    layer: L2
+    from: ascend-operator-runtime/v3 Dockerfile.repro(COPY 构建上下文)
+    commit: f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+    install: pip (non-editable)
+    info: {branch: 'master, 3.5, 5.4.0-rc0 等共 39 个分支', committed_at: '2026-08-13 15:26:12 +0800'}
+  Torch-FL:
+    layer: L3
+    from: ascend-operator-runtime/v3 Dockerfile.repro(COPY 构建上下文)
+    commit: 162582d678e40f133924a4d3b5b6df1cb8154dc7
+    install: pip (non-editable)
+    info: {committed_at: '2026-08-19 13:19:46 +0800'}
+  vllm-plugin-FL:
+    layer: L3
+    from: ascend-operator-runtime/v3 Dockerfile.repro(构建期 git fetch + 补丁)
+    commit: 8b059122e32b9ac47b9820a9c7b1bb95077481a4
+    patches: [{file: 0001-fix-ascend-int64-mask-promote-flagcx-sync.patch, sha256: b97d0d8b2a22539a2d2887bc0345d9e229ea77cc4414c24e8e5fe6ce23b5f928}]
+    install: pip (non-editable)
+    info: {branch: release/0.2, committed_at: '2026-09-22 17:02:55 +0800'}
+  FlagCX:
+    layer: L3
+    from: ascend-train-comm/v3 Dockerfile.repro(COPY 构建上下文)
+    commit: 4e0e0cbcbf721169ca82348080f8353aebfe2c31
+    install: pip (non-editable, USE_ASCEND=1)
+    info: {branch: 'dev-1.0, kistich/ascend-flagcx-adapt', committed_at: '2026-08-20 12:57:17 +0800'}
+
+baked_resources:
+  # 恒为本组配方带入（§4.2 模式 4）：改配方 + 重新构建即可变更。
+  - {name: llvm-toolchain, layer: L2, url: 'https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/llvm-7d5de303-ubuntu-aarch64-python311-compat_v0.6.0.tar.gz', sha256: d604ec238eb9049fad3804da2ada2625f9e309c00338b36a74746bec90cd4954}
+  - {name: triton-build-deps, layer: L2, url: 'https://baai-cp-web.ks3-cn-beijing.ksyuncs.com/trans/build-deps-triton_3.5.x-linux-aarch64.tar.gz', sha256: b5265d65cdba576b10169d948a33dd7a5c6d55e793f020cf1ae0abb3fd821259}
+  - {name: FlagGems-DSA-__init__.py, layer: L2, path: dev/images/ascend-operator-runtime/v3/assets/FlagGems-DSA-__init__.py, sha256: 9b93dded6fff582f205de60ba99547d8ed7d0ffa8c75b6d93fe65e33a6d50700}
+  - {name: patch_triton_ascend_flagtree.py, layer: L2, path: dev/images/ascend-operator-runtime/v3/assets/patch_triton_ascend_flagtree.py, sha256: 0de0309273c925a46ab5d38b38a3552fda942a661461ddfe652225ea5a7cf5b5}
+  - {name: verify_runtime.py, layer: L2, path: dev/images/ascend-operator-runtime/v3/assets/verify_runtime.py, sha256: f93851142c53db8b129b341293473fb72d4c4429f1275a6ed90b2f78a5d86088}
+  - {name: verify_flagcx_runtime.py, layer: L3, path: dev/images/ascend-train-comm/v3/assets/verify_flagcx_runtime.py, sha256: 510bf00ba59173188c4ae2f52aae96e35fc80f4f15be975c07f61882f35f4b23}
+  - {name: verify_flagcx_p2p.py, layer: L3, path: dev/images/ascend-train-comm/v3/assets/verify_flagcx_p2p.py, sha256: ab3b7836d4a9c3f7ae2a2f8f835dc766a2574b8977bf4e3f9a236b78ea1be741}
+  - {name: json, layer: L3, url: 'https://github.com/nlohmann/json.git', path_in_image: third-party/json, pin: unpinned (构建期 git clone --depth 1)}
+  - {name: googletest, layer: L3, url: 'https://github.com/google/googletest.git', path_in_image: third-party/googletest, pin: unpinned (构建期 git clone --depth 1)}
+
+packages: dev/images/ascend-train-comm/v3/assets/provenance/pipfreeze-comm-v3-round4-npu11.txt   # 完整包清单，仅供查阅

@@ -1,0 +1,50 @@
+# 截选自 npu1-11 运行日志(用户 xliu969),2026-10-10/11,demo 运行环境 dev/images/ascend-train-comm/v3/demo
+# 命令: torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py --iters 20(ASCEND_RT_VISIBLE_DEVICES=0,1),连续 3 次,退出码均为 1
+
+## run1 判定段(原样)
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL
+
+## run2 判定段(原样)
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL
+
+## run3 判定段(原样)
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL
+
+## run1 各失败组样例(每组前 2 条,原样)
+[rank1] iter1 broadcast+nosync: got=-1 expected=2000 -> FAIL
+[rank1] iter3 broadcast+nosync: got=-1 expected=4000 -> FAIL
+[rank1] iter0 all_reduce+nosync: got=1101 expected=2201 -> FAIL
+[rank1] iter1 all_reduce+nosync: got=2101 expected=4201 -> FAIL
+[rank0] iter0 all_gather_list+nosync: got=[0, 0] expected=[1200, 1201] -> FAIL
+[rank1] iter0 all_gather_list+nosync: got=[0, 0] expected=[1200, 1201] -> FAIL
+[rank0] iter0 all_gather_list+sync: got=[1200, 1201] expected=[1210, 1211] -> FAIL
+[rank1] iter0 all_gather_list+sync: got=[1200, 1201] expected=[1210, 1211] -> FAIL
+[rank0] iter0 all_gather_into_tensor+nosync: got=[-1, -1] expected=[1300, 1301] -> FAIL
+[rank1] iter0 all_gather_into_tensor+nosync: got=[-1, -1] expected=[1300, 1301] -> FAIL
