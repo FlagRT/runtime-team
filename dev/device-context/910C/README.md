@@ -47,6 +47,7 @@
 |---|---|---|
 | ⭐ **D2 调度效果对照实验（10-08 · 第十三轮续补跑）· 最新** | `NOT_APPLICABLE`（**如预期**）· `instrument_valid=True`（工作量级 **13.651 ms** · 分辨力 **0.021%** · 正对照 **8/8 / +12.75 ms**）。本实例**区间可读** `(7,0)` 但**未声明 `control`** ⇒ 与 P800 的「单档」是**两种不同的不适用** | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L123–L150**（§4.5） |
 | ⭐ **台账 E1：职责审计扩到 78 项（10-08）** | `DUTY_RESPONSE_PASS` **73 / 0 / 5**（SKIP 均如实不具备）· 非空转 **34 抓到 / 5 不适用 / 0 未抓到** · 顺带修 2 处真缺陷（统一面缺 `context_set` / `stream_priority_range` 出口） | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92**（§二 · §三·补） |
+| ⭐ **台账 T1：跨后端基类改动后复跑（10-13）** | ✅ `DUTY_RESPONSE_PASS` **73 / 0 / 5** —— 与 10-08 基线（d2/e1）**逐项状态零差异**；**`L1` 流归属与释放 = `OK`**（本轮改动的直接守护用例）；契约不变式 **4/4**（i1 入口覆盖 **16/17**） | `../prototype/docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **§3 A1** · `probes/t1_duty_ascend_20261013.json` |
 | ⭐ **r10 第 10 轮复跑（10-08 · 台账 D4 收尾）** | **20 项全绿** · 离线 **90/0/1** · 冒烟 52/0 · conformance 13+6 · **两条腿 6/6 + 14/14** · 服务化 **4 形态全 PASS** · `MULTIPROC_REAL_RECOVER_PASS` | `docs/ASCEND_910C_R10_RERUN_20261008.md` **L10–L49**（§0）· 两个偏离项 **L89–L222** |
 | ⭐ **「不适用」自证审计（10-08）** | 结论**成立**，且根因**升级**：**不是设备限制** —— ACL 侧 `aclrtCreateStreamWithConfig(0/3/7)` 全部保留；是**插件 Python 绑定缺失**（C++ 已有 `getStreamFromExternal`） | `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L46–L62**（§2.1 逐条读数） |
 | 流优先级统一 API 落地（09-30 第九轮） | `STREAM_PRIORITY_API_PASS` **8/8**；本家**如实结论 = 只读**（范围 `(7,0)` 可读、**不声明设置**） | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L152–L169**（§4.3 六条证据） |

@@ -15,6 +15,7 @@
 |---|---|---|
 | ⭐ **D2 调度效果对照实验（10-08 · 第十三轮）· 最新** | ✅ **如实 `NOT_APPLICABLE`**（区间 `(0,0)` **唯一档** ⇒ 无从对照）· 仪器有效性已验（正对照 **8/8 / +9.87 ms**）· ⭐ 已通过**「不适用自证审计」**（逐卡 **7/8** · driver(`cu*`)+runtime(`cuda*`) **两层一致** · 全量 `nm -D` 扫描） | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** · `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
 | ⭐ **台账 E1：职责审计扩到 78 项（10-08）** | ✅ `DUTY_RESPONSE_PASS` **67 / 0 / 11**（SKIP 均如实不具备）· 非空转 **31 / 8 / 0** · 离线 **106/0/1** | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
+| ⭐ **台账 T1：跨后端基类改动后复跑（10-13）** | ✅ `DUTY_RESPONSE_PASS` **68 / 0 / 10** —— 与 10-08 基线（d2/r12）**逐项状态零差异**；**`L1`–`L5` 全 `OK`**；契约不变式 **4/4**（i1 入口覆盖 **14/17**） | `../prototype/docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **§3 A1** · `probes/t1_duty_kunlun_20261013.json` |
 | ⭐ **(A) 真落地后的全套复跑（09-30 r8）** | ✅ 全绿无回归：离线 **106/0/1** · 释放探针 **10/10**（该流**真能承载算子**）· 训练腿 6/6 · 推理腿 13/13 | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L265–L348**（§7 v2 更新段） |
 | 流优先级统一 API 落地（09-30 r7） | ✅ **`STREAM_PRIORITY_API_PASS` 7/7**；范围查询走**真原语** ⇒ `(0,0)` **退化单点**（旧版返回 `None` 的「根因表述」已更正） | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L11–L28** · **L273–L301**（§7.2 为何可以声明） |
 | 工作包 B/C 接口落地（09-29） | ✅ B **3/3** · C 改为**只读观测** `context_query`（真机 `managed_by="external"`、`readonly_safe=true`） | `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md` **L24–L40 / L252–L297** · `docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md` |

@@ -83,6 +83,7 @@ prototype/
 | 推理腿（vLLM 服务化） | **`SERVE_STANDARD_PASS`**（35 s 就绪） | **`SERVE_STANDARD_PASS`**（25 s） | **`SERVE_STANDARD_PASS`**（150 s；⚠️ 须 **vLLM 应用镜像**容器） | `scripts/serve_standard.sh` · `docs/SERVICE_STARTUP_STANDARD_20260920.md` |
 | 错误注入 → 恢复闭环 | 推理腿 **5/0/0** · 训练腿 **5/0/0** | 设/不设 KL3 **各 5/0/0**（逐字节一致） | **5/0/0**（四类注入） | `runtime/proto/proto_error_recovery_loop.py` |
 | ⭐ **职责响应审计（78 项 · 10-08）** | **73 / 0 / 5** | **67 / 0 / 11** | **62 / 0 / 16** | `docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
+| ⭐ **同上 · 跨后端基类改动后复跑（T1 · 10-13）** | ✅ **73 / 0 / 5**（逐项状态零差异） | ✅ **68 / 0 / 10**（逐项状态零差异） | ⬜ **待做** | `docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **§3 A1** |
 | 离线契约自检（**无设备**） | **90/0/1** | **108/0/1** | **97/0/0** | `scripts/backend_offline_check.py` |
 | 官方镜像等价性 | — | ✅ 全部结论复现 ⇒ **缺陷与镜像无关** | — | `../P800/docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` |
 | ⭐ 流优先级「调度效果」 | ⚪ `NOT_APPLICABLE`（未声明 `control`） | ⚪ `NOT_APPLICABLE`（单档 `(0,0)`） | ✅ **分场景**：同时就绪 ⇒ 无实质效果 / 排队争用 ⇒ 有实质效果 | `docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** |
