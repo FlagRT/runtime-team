@@ -21,6 +21,13 @@
 > 证据：`probes/t1_duty_cambricon_20261014.json` · `probes/t1_coninvariants_cambricon_20261014.json` ·
 > `probes/t2_preflight_env_cambricon_20261014.log` · `probes/t8_a2_skip_cambricon_20261014.log`。
 >
+> ⭐ **2026-10-14 再更新（T1-re：共享层**再次**改动后复跑）**：T11 修法又落在共享层
+> `prototype/runtime/backends/base.py` ⇒ 同日真机复跑：**`DUTY_RESPONSE_PASS` 62/0/16**（FAIL=0，`L1`–`L5` 全 OK）·
+> 契约不变式 **4/4**（i1 覆盖 11/17）· 离线自检 **103 / 0 / 0**；与**首轮（10-14）基线逐项状态零差异**，
+> 唯一 `detail` 差异 = **厂商句柄地址**（`0x55d8064027b0` → `0x559388c7b4d0`，环境量）⇒ **无回归**。
+> 证据：`probes/t1_duty_cambricon_20261014re.json` · `probes/t1_coninvariants_cambricon_20261014re.log` ·
+> 脚本：`probes/run_t1re_mlu590_20261014_in.sh`。
+>
 > ⭐ **本实例的三个「唯一」**（三家对照时信息量最大）：
 > ① **唯一**声明 `stream_priority_control` **且区间非单点**（`(0,-3)`）⇒ **唯一能出「调度效果」结论**的实例；
 > ② **唯一**经**统一面**行使契约 §1.10 **L5**（流所有权/释放）的实例 —— 整条优先级路径走**厂商 CNRT C API**
