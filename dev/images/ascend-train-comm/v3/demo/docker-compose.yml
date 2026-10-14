@@ -14,7 +14,8 @@
 #   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
 #   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
 #     dev/images/ascend-train-comm/v3/demo --strict
-# 推理腿与训练腿共用这一个容器，以 ASCEND_RT_VISIBLE_DEVICES 分区（见两个 README「验证」）。
+# 本容器只跑训练腿；多项训练侧验证共用该容器，以 ASCEND_RT_VISIBLE_DEVICES 分区（见两个 README「验证」）。
+# 推理腿走华为昇腾官方 vllm-ascend，见 dev/stack.lock.910c.v4.yaml 的 lock.infer。
 # 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
 
 name: flagrt-v3-demo
@@ -65,20 +66,10 @@ services:
       # 仓根 models/ 当前是指向宿主个人目录的软链，容器内无法解析，本机须显式给值：
       #   FLAGRT_MODELS_DIR=/home/xliu969/models（npu1-11）
       - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
-      # shmem 占位模块（round 4 推理腿的决定性解堵件，不在镜像内）：以模块名 shmem
-      # 只读挂到专用目录，再由 PYTHONPATH 前置该目录。属临时解堵，shmem 由算子编译
-      # 方向根治后，本挂载、PYTHONPATH 前置与 VLLM_FL_FLAGOS_BLACKLIST 一并删除。
-      - ${WORKSPACE_ROOT}/dev/images/ascend-operator-runtime/v3/assets/shmem_stub.py:/opt/flagrt-stub/shmem.py:ro
+    # 训练腿无专项规避配置：A-1（shmem）的占位模块与 PYTHONPATH 前置已不再需要（训练腿
+    # 标准路径不编译 Triton kernel），PYTHONPATH 沿用镜像自带值；历史装配见文件头 round 4 记录。
     environment:
       - HCCL_WHITELIST_DISABLE=1
-      # FlagGems 侧稳妥保险：把 cos/sin 排除出 FlagGems 接管名单，落回 torch_npu 原生
-      # （插件一级支持的官方开关；与 stub 合起来才是完整解堵组合，依据见
-      # ascend-operator-runtime/v3/REBUILD.md「ROUND 4 真机验证——推理腿」）。
-      - VLLM_FL_FLAGOS_BLACKLIST=cos,sin
-      # compose 设置 PYTHONPATH 是整体覆盖而非追加，故须写出镜像内既有的完整值
-      # （含 CANN 路径，取自 docker image inspect .Config.Env），只在最前面加 stub 目录。
-      # （镜像内该值以 ":" 结尾，原样保留；YAML 中须加引号，否则尾部冒号会被当成映射）
-      - "PYTHONPATH=/opt/flagrt-stub:/usr/local/Ascend/ascend-toolkit/latest/python/site-packages:/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe:/usr/local/Ascend/cann-9.0.0/python/site-packages:/usr/local/Ascend/cann-9.0.0/opp/built-in/op_impl/ai_core/tbe:"
       # 注：round 4 另用过 VLLM_ENABLE_V1_MULTIPROCESSING=0，仅为让父进程读到显存证据，
       # 不是解堵条件，故不设为本环境默认（会改变所有推理负载的引擎形态）。需要它的
       # assets/v3_step5_validate.py 已在脚本内自行 setdefault。

@@ -32,3 +32,10 @@ changelog:
     what: "首次登记：华为昇腾官方镜像，digest 锁定。"
   - date: "2026-09-10"
     what: "去除非归档内容（消费方定位/治理）。"
+  - date: "2026-10-14"
+    what: |
+      登记式基线接入（ADR-0007，修订 ADR-0006）：新增 image.baseline.yaml（manual-registration，
+      commit 取镜像内 .git：vllm bc150f50 / vllm_ascend 367b8e62）与 demo/ 运行环境
+      （compose + env.baseline.yaml，baseline.py export 生成）。up.sh --strict 照常核对
+      image id（sha256:2e56022a…）；版本主锚仍为 registry digest。服务启动仍统一经
+      serve_standard.sh（组内启动标准，唯一服务入口）。

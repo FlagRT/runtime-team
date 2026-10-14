@@ -21,7 +21,7 @@
 
 | id | 芯片 | 归属方向 | 状态 | 目录 |
 |---|---|---|---|---|
-| `shmem-missing` | 昇腾 910C | 算子编译方向 | 未修复，有不彻底的临时规避 | [`shmem-missing/`](shmem-missing/README.md) |
+| `shmem-missing` | 昇腾 910C | 算子编译方向 | 挂起，不跟进（V4 两腿标准路径均不触发；缺陷路径仍在训练腿发布物镜像内） | [`shmem-missing/`](shmem-missing/README.md) |
 | `flagcx-c10d-collectives` | 昇腾 910C | FlagCX 通信方向 | 未修复，部分可由调用方规避 | [`flagcx-c10d-collectives/`](flagcx-c10d-collectives/README.md) |
 | `kunlunxin-gemm-triton-compile` | 昆仑芯 P800 | 算子编译方向 | 未修复，**无可用 workaround** | [`kunlunxin-gemm-triton-compile/`](kunlunxin-gemm-triton-compile/README.md) |
 

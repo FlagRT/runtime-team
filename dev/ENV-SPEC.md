@@ -118,6 +118,13 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 基线只留本层这一条，被覆盖的那条记入 `supersedes` 留痕——否则会写出重复的 YAML 键，
 `yaml.safe_load` 静默取后者。
 
+**登记式基线（上游官方镜像的例外形态）**：当镜像整体是上游官方产物（本组无 `Dockerfile.repro`、
+无法 `export`）时，允许手工登记 `image.baseline.yaml` —— 字段口径与上表一致，外加两条纪律：
+① 全部条目 `from: base_image`（被动继承，无本组配方层），`check` 走 INFO 分支、由 `image.id`
+（及 `image.digest`）兜底；② `generated_by` 必须写明 `manual-registration` 与依据的 ADR。
+commit 可用 `commit_source: in-image-git` 的口径取自镜像内 `.git`（自证锚）。实例：
+[`ascend-infer-vllm/v1/image.baseline.yaml`](images/ascend-infer-vllm/v1/image.baseline.yaml)（ADR-0007）。
+
 **但首选是不产生第二份**：基座已带着某个组件、且版本正是本组要的，就直接用它，不要再固化
 一遍同一 commit。重复声明同一事实会制造「哪份生效」的歧义，`supersedes` 只是把歧义记录下来，
 并没有消除它。昆仑芯 v2 原先 `COPY` 固化了与基座同 commit 的 `FlagGems`，正是按这条口径
