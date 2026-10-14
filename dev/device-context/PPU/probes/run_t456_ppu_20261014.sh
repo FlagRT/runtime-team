@@ -11,7 +11,13 @@ HO=/bmcp_lvm_fs/hliu553/probes_ppu/dc_t456_20261014
 DEV=${DEV:-1}
 PY=/usr/local/bin/python3
 
-rm -rf "$HO"; mkdir -p "$HO"
+# ⚠️ **2026-10-14 修（自审发现）**：原实现 `rm -rf "$HO"` 会**删掉整个证据目录** ⇒
+#    复跑一次就把上一批原始证据全部销毁（同族：另有 5 个驱动脚本用 `: >`/`rm -rf` 覆盖落盘）。
+#    现改为**按 run-id 分目录**：新批次落在 $HO/<runid>/，历史批次永久保留。
+RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
+HO=$HO/$RUNID
+mkdir -p "$HO"
+echo "证据目录（本轮）: $HO"
 echo "===== 前置：确认无服务残留并显示用卡 ====="
 docker exec "$C" bash -lc 'ps -eo pid,cmd | grep -E "[v]llm|[s]erve_standard" | wc -l'
 docker exec "$C" bash -lc "CUDA_VISIBLE_DEVICES=$DEV $PY -c \"import torch;f,t=torch.cuda.mem_get_info(0);print('dev free=%.1f GiB / total %.1f'%(f/2**30,t/2**30))\""

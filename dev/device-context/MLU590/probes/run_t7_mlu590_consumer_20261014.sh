@@ -69,7 +69,8 @@ leg() {   # $1=tag  $2=TP  $3=EAGER  $4=DEV
     printf "%s TP=%s EAGER=%s ready=%s\n" "$tag" "$TPX" "$EGX" "$ready" >> "$HO/consumer_legs.log"
 }
 
-: > "$HO/consumer_legs.log"
+# ⚠️ 2026-10-14 修（自审发现）：原为清空 ⇒ 复跑销毁上一批腿记录。改为只追加。
+echo "===== run=${RUNID:-$(date +%Y%m%d_%H%M%S)} 开始 $(date '+%F %T') =====" >> "$HO/consumer_legs.log"
 leg "tp1_eager1" 1 1 "0"       # 主腿：与 10-08 同形态，且与另两家消费方腿同口径
 leg "tp2_eager0" 2 0 "0,1"     # 对照：本轮新形态上再验一次
 

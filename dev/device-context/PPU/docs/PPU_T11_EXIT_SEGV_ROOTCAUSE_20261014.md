@@ -12,7 +12,7 @@
 | 问题 | 结论 |
 |---|---|
 | **崩溃点在哪** | 解释器**退出期**、`Py_Exit → Py_FinalizeEx → … → **_PyWeakref_ClearRef**` 内；原生采集到 `si_code=1`（SEGV_MAPERR）、**`si_addr=0xab`**（垃圾指针）、RIP 在 `libpython3.12.so.1.0`。**判据与产物不受影响**（崩溃发生在判据打印、结果落盘之后） |
-| **根因** | **平台侧「弱引用书签」不可信**：PPU 的 torch 流对象被回收后，其 `weakref` 悬垂（对象死、书签未置死、内存被复用）⇒ finalize 阶段清理弱引用时解引用垃圾指针。⚠️ **不含本层**的最小复现同样崩：30 条原生 `torch.cuda.Stream()` 各挂一个 `weakref.ref` 后丢弃 ⇒ `rc=139`（2/2；N=1 时不崩） |
+| **根因** | **平台侧「弱引用书签」不可信**：PPU 的 torch 流对象被回收后，其 `weakref` 悬垂（对象死、书签未置死、内存被复用）⇒ finalize 阶段清理弱引用时解引用垃圾指针。⚠️ **不含本层**的最小复现同样崩：30 条原生 `torch.cuda.Stream()` 各挂一个 `weakref.ref` 后丢弃 ⇒ `rc=139`（2/2；N=1 时不崩）。⚠️ **自审见 §10**：该变体所在脚本**也 `import runtime` 并 `runtime.use()`**（日志首行即 `backend=ppu`）⇒ 严格说只是「**不调用本层的流 API**」；**进程内完全不含本层**的纯净复现与**缺项对照**已备脚本待跑 |
 | **本层的角色** | **暴露面**（不是根因）：本层为**每条流**建 `weakref`（`note_stream_created` 的 `_stream_ctx`；`release_stream` 的 `_released_streams`）⇒ 把"潜在"变成"必然"。这也解释了 10-10 的旧观察"去掉 `runtime.create_stream()` 那一行即干净" |
 | **修法（本层，已真机验证）** | ① `note_stream_created`：**无本层上下文时不登记**（该条目本就无信息）；② `_released_streams` 改**强持有**；③ 两张按 `id()` 键的登记表加**条数上限**（强持有会 pin 住对象）。修后三个载体（本层最小复现 / T4 / T6）**全部 `rc=0`**，且判据读数与修前**逐字相同** |
 | **平台侧是否修好** | ❌ **没有**（本层不声称、也无力修平台）。`vendor_weakref_many`（不含本层）修后**仍然 `rc=139` 2/2** ⇒ 该缺陷保留为**厂商侧诉求**，最小复现见 §5.2 |
@@ -86,8 +86,21 @@ BACKTRACE_FRAMES=17
   FRAME#7 module=libpython3.12.so.1.0 offset=0x302fec symbol=Py_Exit
 ```
 
-**三个载体（T4×2、T6×1）落在完全同一位置**：`Py_Exit → Py_FinalizeEx → … → _PyWeakref_ClearRef`，
-`si_code=1`、`si_addr=0xab`。⇒ 不是"某个探针的特殊路径"，而是**同一处**。
+**三个载体（T4×2、T6×1）的**故障签名一致**：`si_code=1`（SEGV_MAPERR）、`si_addr=0xab`（垃圾指针）、
+RIP 均在 `libpython3.12.so.1.0` 的 **`0x2569xx`–`0x256axx` 区域**（无导出符号）。
+⇒ 不是"某个探针的特殊路径"，而是**同一处**。
+
+⚠️ **2026-10-14 自审更正（据原始日志，原文写"落在完全同一位置"——过强）**：三者的**帧链并不相同**：
+
+| 载体 | `RIP_OFFSET` | 关键帧（由内向外） | 证据 |
+|---|---|---|---|
+| T4（错误闭环，两次） | `0x2569de` | RIP ← `0x23b07a` ← … ← `_PyModule_ClearDict` ← `Py_FinalizeEx` ← `Py_RunMain`（17 帧） | `t11_20261014_out/t4_native1.log` · `t4_native2.log` |
+| T6（调度效果） | `0x256ad5` | RIP ← **`_PyWeakref_ClearRef`** ← `0x30e480` ← `0x30ec74` ← `Py_FinalizeEx` ← **`Py_Exit`** ← `Py_RunMain`（17 帧） | `t11_20261014_out/t6_native.log` |
+
+正确表述 = **「同一区域 + 同一故障签名（`si_code=1`/`si_addr=0xab`），但帧链不同」**：
+T6 明确经 `_PyWeakref_ClearRef`；T4 走的是**模块清理**路径（`_PyModule_ClearDict`）后落在相邻区域。
+⇒ 这不推翻「弱引用悬垂」这一根因（注入对照仍是决定性证据：关掉本层的弱引用登记即不崩，见 §4），
+但**不得**再写成"三者同址/同一帧"。RIP 偏移相差 `0x1F7` 字节、二者都为无符号静态函数，属同一代码区域。
 
 **读法**：`si_addr=0xab` 属"被复用过的垃圾内存"，说明被处理的**弱引用对象本身**已被释放/被改写
 （CPython 在给一个将死对象清理弱引用列表时，列表里挂着已死的书签）——与 10-14 已确证的
@@ -254,7 +267,7 @@ bash -s < run_t11_after_fix_20261014.sh
 
 | 证据 | 文件 |
 |---|---|
-| 原生现场（三载体同址） | `t11_20261014_out/t4_native1.log` · `t4_native2.log` · `t6_native.log` |
+| 原生现场（三载体：**同一区域 + 同一故障签名，帧链不同**，见 §2.3 更正） | `t11_20261014_out/t4_native1.log` · `t4_native2.log` · `t6_native.log` |
 | 采集器非空转自检 | `t11_20261014_out/native_selftest.log`（故意 SIGSEGV ⇒ 采到 RIP 落在 `libc`） |
 | 最小复现矩阵 | `t11_20261014_out/log/*.log` · `*.rc` · `rc_matrix.log` |
 | 同期阳性对照（载体确实会崩） | `t11_20261014_out/vehicle_t4.log` · `vehicle_t6.log` · `vehicle_rc.log` |
@@ -262,3 +275,36 @@ bash -s < run_t11_after_fix_20261014.sh
 | 修后真机验证 | `t11_20261014_out/after_matrix.log` · `after_*.log` · `after_*.json` |
 | 库卸载顺序旁证 | `t11_20261014_out/ldd3.47408` · `lddebug.47192`（`LD_DEBUG=libs`） |
 | 脚本 | `../probes/t11_exit_segv_matrix.py` · `t11_segv_handler.c` · `t11_patch.py` · `run_t11_*.sh` · `check_t11_*.sh` |
+
+---
+
+## 10 自审复核（2026-10-14 晚）：本报告的四处问题与处置
+
+> 起因：对「平台侧弱引用缺陷」这一**归属结论**做独立复核（"确保不是自己犯错"）。
+> 方法：**不采信报告转述，直接读归档原始日志**。
+
+| # | 问题 | 证据 | 处置 |
+|---|---|---|---|
+| **1** | **表述过强**：原文写三载体"落在**完全同一位置**" | 实为**同一区域 + 同一故障签名、帧链不同**：T4 `RIP_OFFSET=0x2569de` 经 `_PyModule_ClearDict`；T6 `0x256ad5` 经 `_PyWeakref_ClearRef`（差 `0x1F7` 字节） | ✅ **已更正 §2.3**（加帧链对照表） |
+| **2** | **「不含本层」不精确** | `t11_exit_segv_matrix.py` **所有变体统一引导**：`import runtime` + `_bk = runtime.use("ppu")`；原始日志首行即 `backend=ppu`（**自证**）⇒ `vendor_weakref_many` 只是"**不调用本层流 API**"，不是"进程内无本层" | ⬜ **待补**：纯净复现脚本已备（`../probes/t11_attrib_verify_20261014.py`，末尾打印 `runtime_loaded=[...]` 自证），待联网跑 |
+| **3** | **逻辑缺项**：矩阵没有「**N=30 原生流建完即丢、但不挂弱引用**」这一对照 | 现有对照只有「N=1 + 弱引用 + 持有 → 干净」与「N=30 + 弱引用 + 丢弃 → 崩」，**无法区分**触发因素是「弱引用悬垂」还是「大量流对象被回收」（后者与弱引用无关） | ⬜ **待补**：同脚本已加 4 组判别（无弱引用丢弃 / 弱引用但持有 / 弱引用但对象非流 / 弱引用但对象为张量）+ 剂量组 N=5/10 |
+| **4** | ⭐ **证据完整性（最严重的一类）**：报告 §3 表格 15 个变体，**归档里只剩 3 个** | 驱动脚本原实现为**扁平 `log/` + `rm -rf log`、`rc_matrix.log` 用 `: >` 截断** ⇒ 复跑即销毁上一批：现存仅 `ours_default_dropped` / `vendor_weakref_many` / `vendor_weakref_many_gc`（各 2 轮），**其余 12 个变体（含 `native_plain`、`ours_wrapper`、`ours_prio_*`、`driver_*`）的原始日志已不可回读**；`N=1 不崩` 一行同属被覆盖批次 | ✅ **脚本已修**（按 `RUNID` 分目录 + 只追加）；⬜ **待重跑补档**（全 15 变体） |
+| **4b** | 同类问题**不止本脚本**：普查得 6 个驱动脚本默认覆盖式落盘 | `run_t456_ppu_20261014.sh` / `run_t3_ppu_serve_20261014.sh` 用 **`rm -rf "$HO"`（删整个证据目录）**；`run_t11_patch_matrix` / `run_t11_after_fix` / MLU 两个 T7 脚本用 `: >` 截断 | ✅ **全部已修**（`rm -rf` → `RUNID` 子目录；`: >` → 只追加），9 个脚本 `bash -n` 通过 |
+
+### 10.1 复核后**仍然成立**的部分（这些是决定性的，未受影响）
+
+| 环节 | 为什么仍然成立 |
+|---|---|
+| **原生现场真实** | `LD_PRELOAD` C 采集器有**非空转自检**（故意 `SIGSEGV` 时 RIP 落在 `libc`，`native_selftest.log`）；三载体均采到 `si_code=1`/`si_addr=0xab`/libpython 区域 |
+| **暴露面二分（决定性）** | 注入对照**轮次交替**且**每行带 `T11_PATCH_LOADED` 自证**：`control` 稳定 139 → `note_off` 救 min/T4 → `strong` 救全部（含 T6）⇒ 「本层挂的弱引用」与崩溃**因果相关**，这一条不依赖上述任何待补项 |
+| **修后真机验证** | 无注入复跑：三载体 `rc=0`、`vendor_weakref_many` 仍 139（不声称修好平台）、判据读数逐字不变（`after_matrix.log`） |
+| **归属方向** | 修后**平台侧形态仍崩** ⇒ 至少可确定「**不是本层能修好的东西**」；至于"弱引用是否唯一触发因素"，见问题 3（待补） |
+
+### 10.2 待跑清单（联网即执行，判据先写死）
+
+| 序 | 命令 | 通过/读法 |
+|---|---|---|
+| 1 | `VARIANTS="pure_baseline pure_stream_30_dropped pure_wref_30_dropped pure_wref_30_held pure_wref_30_plainobj_dropped" ROUNDS=2 bash -s < run_t11_attrib_verify_20261014.sh` | 全部行须带 `runtime_loaded=[]`（否则读数不能用于归属）；`pure_wref_30_dropped` 若 139 ⇒ 归属成立 |
+| 2 | 同上，`pure_nowref_30_dropped` | 若**也** 139 ⇒ **§0 根因表述须改为「大量流对象被回收」这一更宽因素**（仍属平台侧，但"弱引用"不再是必要条件） |
+| 3 | `VARIANTS="<全 15 变体>" ROUNDS=2 bash -s < run_t11_ppu_20261014.sh` | 补回 12 个缺失原始日志（新批次落在 `log/<runid>/`，历史批次不再被覆盖） |
+

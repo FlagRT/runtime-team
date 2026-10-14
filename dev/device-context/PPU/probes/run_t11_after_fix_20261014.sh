@@ -12,7 +12,8 @@ docker exec "$C" bash -lc "cd $P && sha256sum runtime/backends/base.py && grep -
 
 echo
 echo "===== [1] 载体复跑（修后，无注入）×2 轮交替 ====="
-: > "$HO/after_matrix.log"
+# ⚠️ 2026-10-14 修（自审发现）：原为清空 ⇒ 复跑销毁上一批记录。改为只追加。
+echo "===== run=${RUNID:-$(date +%Y%m%d_%H%M%S)}  开始 $(date '+%F %T') =====" >> "$HO/after_matrix.log"
 for r in 1 2; do
     for V in ours_default_dropped vendor_weakref_many; do
         docker exec -e DC_ROOT=$P -e DC_BACKEND=ppu -e CUDA_VISIBLE_DEVICES=1 \

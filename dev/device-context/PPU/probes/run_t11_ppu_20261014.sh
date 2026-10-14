@@ -31,15 +31,22 @@ echo "===== [2] 自证「跑的是当前版本」 ====="
 docker exec "$C" bash -lc "grep -c tname $P/runtime/backends/base.py; ls -l --time-style=+%F_%H:%M $P/runtime/backends/ppu/backend.py $P/runtime/__init__.py"
 
 echo "===== [3] 矩阵（每轮内跑遍所有变体 ⇒ 轮次交替，避免时间漂移混入变量效应）====="
-: > "$HO/rc_matrix.log"
+# ⚠️ **2026-10-14 修（自审发现）**：原实现用 `: > rc_matrix.log` + 扁平 `log/`，
+#    每跑一次新矩阵就把**上一批的原始日志覆盖掉** ⇒ 报告表格里 15 个变体，
+#    归档目录里只剩最后一批的 3 个，「读数无法从证据回读」。
+#    现改为**按 run-id 分目录 + rc_matrix.log 只追加**，历史批次互不覆盖。
+RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
+LD=$HO/log/$RUNID
+mkdir -p "$LD"
+echo "===== run=$RUNID  variants=[$VARIANTS]  rounds=$ROUNDS  开始 $(date '+%F %T') =====" >> "$HO/rc_matrix.log"
 for r in $(seq 1 "$ROUNDS"); do
     for V in $VARIANTS; do
         docker exec -e DC_ROOT=$P -e DC_BACKEND=ppu -e CUDA_VISIBLE_DEVICES=$DEV \
             -e PYTHONDONTWRITEBYTECODE=1 -e PYTHONFAULTHANDLER=1 \
-            "$C" bash -lc "cd $P && $PY -u $M $V" > "$HO/log/${V}_r${r}.log" 2>&1
+            "$C" bash -lc "cd $P && $PY -u $M $V" > "$LD/${V}_r${r}.log" 2>&1
         rc=$?
-        echo "$rc" > "$HO/log/${V}_r${r}.rc"
-        printf "round=%s variant=%-24s rc=%s\n" "$r" "$V" "$rc" | tee -a "$HO/rc_matrix.log"
+        echo "$rc" > "$LD/${V}_r${r}.rc"
+        printf "run=%s round=%s variant=%-24s rc=%s\n" "$RUNID" "$r" "$V" "$rc" | tee -a "$HO/rc_matrix.log"
     done
 done
 
@@ -52,7 +59,7 @@ import collections, pathlib
 hd = pathlib.Path("$HO")
 rows = collections.defaultdict(list)
 marks = collections.defaultdict(set)
-for p in sorted(hd.glob("log/*.log")):
+for p in sorted(hd.glob("log/**/*.log", recursive=True)):
     variant, rnd = p.stem.rsplit("_r", 1)
     rc = p.with_suffix(".rc").read_text().strip() if p.with_suffix(".rc").exists() else "?"
     txt = p.read_text(errors="ignore")
@@ -78,7 +85,7 @@ fi
 
 echo
 echo "===== [5] 退出期段错误的 Python 侧现场（若有）====="
-grep -alE "Fatal Python error" "$HO"/log/*.log 2>/dev/null | head -5 | while read -r f; do
+grep -alrE "Fatal Python error" "$HO"/log 2>/dev/null | head -5 | while read -r f; do
     echo "--- $f ---"
     grep -aA4 "Fatal Python error" "$f" | head -8
 done

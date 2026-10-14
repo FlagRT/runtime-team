@@ -18,7 +18,12 @@ HO=/bmcp_lvm_fs/hliu553/probes_ppu/dc_t3_20261014       # 宿主视角（= /work
 DEV=${DEV:-1}   # ⚠️ 2026-10-14 实测：容器 dev0=ppu0 被他人占 30.7 GiB ⇒ vLLM 默认 0.9 利用率要 86.4 GiB 会直接 ValueError；dev1=ppu1 完全空闲
 PORT=8100
 
-rm -rf "$HO"; mkdir -p "$HO/form" "$HO/consumer"
+# ⚠️ **2026-10-14 修（自审发现）**：原实现 `rm -rf "$HO"` 会**删掉整个证据目录**（复跑即销毁上一批）。
+#    现改为按 run-id 分目录：新批次落在 $HO/<runid>/{form,consumer}/，历史批次永久保留。
+RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
+HO=$HO/$RUNID
+mkdir -p "$HO/form" "$HO/consumer"
+echo "证据目录（本轮）: $HO"
 
 echo "===== [0] 容器与版本 ====="
 date "+[%H:%M:%S]"

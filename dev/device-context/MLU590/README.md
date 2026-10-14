@@ -172,5 +172,5 @@ sudo usermod -aG docker hliu553
 
 **后续（不阻塞发布）**：
 1. ✅ **多卡 TP / 关闭 `--enforce-eager`** 的服务化形态**已于 10-14 补齐四形态**（`TP∈{1,2} × EAGER∈{1,0}` 全 PASS；含本层消费方腿 `SERVE_LEG_PASS 10/10`）⇒ `docs/CAMBRICON_MLU590_SERVE_FOUR_FORMS_20261014.md`。⚠️ 遗留两条如实登记项（客户端 `SERVE_REQ_TIMEOUT` 开关、`VLLM::Worker_TP*` 清理）已修并写进该报告 §5。
-2. **CNCL 的 RDMA 路径未验证**（当前走 `MLU_LINK` 片间互联，训练数据仅代表单机 2 卡）。
+2. **CNCL 的 RDMA 路径未验证**（当前走 `MLU_LINK` 片间互联，训练数据仅代表单机 2 卡）——⚠️ 属**本方向范围外**（多机多卡在验收文档里标 ❌、设备方向只负责 ≤2 卡、manifest 无跨机联机步骤）；但"厂商/网络层"这一**归因待实测**（CNCL 告警本身给的是"把 `libibverbs.so` 加进 `LD_LIBRARY_PATH`"的可操作指引）：`probes/check_cncl_rdma_mlu590_20261014.sh`。
 3. 档位升级（→ `neuware4.7.2` / 驱动 6.5.48）仍为**上报预案**，非当前诉求（见 §3）。

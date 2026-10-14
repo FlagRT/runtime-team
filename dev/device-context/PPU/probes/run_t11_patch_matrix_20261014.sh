@@ -38,7 +38,9 @@ run_one() {  # $1=载体标识 $2=命令
     printf "  round=%s patch=%-9s carrier=%-14s rc=%-4s injection=%s\n" "$r" "$PATCH" "$tag" "$rc" "$mk" | tee -a "$HO/patch_matrix.log"
 }
 
-: > "$HO/patch_matrix.log"
+# ⚠️ 2026-10-14 修（自审发现）：原为 `: > patch_matrix.log`（清空）⇒ 复跑销毁上一批记录。
+#    改为**只追加**，每批带 run 头；阅读时取最新 run 段。
+echo "===== run=${RUNID:-$(date +%Y%m%d_%H%M%S)}  patches=[$PATCHES] rounds=$ROUNDS  开始 $(date '+%F %T') =====" >> "$HO/patch_matrix.log"
 for r in $(seq 1 "$ROUNDS"); do
     for PATCH in $PATCHES; do
         run_one "min_dropped"   "$O/t11_exit_segv_matrix.py ours_default_dropped"

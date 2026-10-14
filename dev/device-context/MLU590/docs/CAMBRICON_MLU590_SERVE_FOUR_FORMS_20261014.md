@@ -122,7 +122,10 @@
 
 1. **不给性能结论**：本任务判据是"能不能起、能不能算"，吞吐读数被首请求编译主导（max 85269 ms），**不得**用于比较形态优劣或与另两家横比。
 2. **未测 `TP>2`**（8 卡机器，但本任务口径只要求 `TP>1`）。
-3. **CNCL 的 RDMA 路径仍未验证**（审计 **A4**）：当前走 `MLU_LINK` 片间互联 ⇒ 本轮多卡数据**只代表单机 2 卡**，发结论时须连同该告警一起引用。**非本层缺口**。
+3. **CNCL 的 RDMA 路径仍未验证**（审计 **A4**）：当前走 `MLU_LINK` 片间互联 ⇒ 本轮多卡数据**只代表单机 2 卡**，发结论时须连同该告警一起引用。
+   ⚠️ **2026-10-14 自审更正**：原文此处写「**非本层缺口**」——该**归因**当时无证据（详见 `../../prototype/docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **A4**）。
+   能成立的只有：① **不在本方向验收范围**（多机多卡在验收文档里标 ❌、两家对照配置文档明确"设备方向只负责 ≤2 卡"、manifest 写明"五域验证没有跨机联机步骤"）；
+   ② CNCL 告警给的是**可操作指引**（"add libibverbs.so path to `LD_LIBRARY_PATH`"）⇒ 归因（环境不提供 vs 我方容器未配置）**待实测**，核查脚本 `../probes/check_cncl_rdma_mlu590_20261014.sh`。
 4. **停机期的 CNCL 噪声**：`TP=2` 形态停机时日志出现
    `torch_mlu::ProcessGroupCNCL::heartbeatMonitor()` → `c10d::TCPStore::check` 抛 `c10::Error` 的 C++ 回溯，
    伴随 `Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early)`。

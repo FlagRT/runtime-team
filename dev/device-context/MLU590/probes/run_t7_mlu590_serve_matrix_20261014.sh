@@ -64,7 +64,8 @@ for i in range(n):
 "' 2>&1 | tail -5
 
 mkdir -p "$HO"
-: > "$HO/form_matrix.log"
+# ⚠️ 2026-10-14 修（自审发现）：原为清空 ⇒ 复跑销毁上一批形态记录。改为只追加。
+echo "===== run=${RUNID:-$(date +%Y%m%d_%H%M%S)}  forms=[$FORMS] 开始 $(date '+%F %T') =====" >> "$HO/form_matrix.log"
 
 echo
 echo "########## [1] 四形态矩阵 ##########"
