@@ -44,15 +44,15 @@ device_registration:
 # 锁定镜像（两腿分栈）
 # ---------------------------------------------------------------
 lock:
-  train:                                # 训练腿：2 卡分布式微调（与推理共用 v3 完整镜像）
+  train:                                # 训练腿：2 卡分布式微调（组内完整镜像）
     image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
-    notes: "= 推理+训练超集（本芯片唯一对外发布物，无需按场景选镜像）；训练侧须手动同步写法（FlagCX c10d 缺陷，见已知限制 A-2：不用原生 DDP 封装、不用列表形式 all_gather，每个 collective 后显式 torch.npu.synchronize()）；带 4 条已知限制（A-1~A-4），清单与规避配置见 docs/基座发版说明-20261014.md"
-    container_name: "flagrt-v3-demo-910c（demo 运行环境容器，推理/训练共用：dev/images/ascend-train-comm/v3/demo/）"
+    notes: "= 基座镜像超集（含推理栈组件，V4 用于训练腿）；训练侧须手动同步写法（FlagCX c10d 缺陷，见已知限制 A-2：不用原生 DDP 封装、不用列表形式 all_gather，每个 collective 后显式 torch.npu.synchronize()）；带 3 条已知限制（A-2~A-4），清单见 docs/基座发版说明-20261014.md"
+    container_name: "flagrt-v3-demo-910c（训练腿 demo 运行环境容器：dev/images/ascend-train-comm/v3/demo/）"
     base_image_entry: "dev/images/ascend-train-comm/v3"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
     registry_status: "组内镜像无 registry 要求；离线包在 npu1-11 /mnt/raid/user_cache/xliu969/v3-round4-archive/，含 SHA256SUMS；也可按仓内配方重建（先建 dev/images/ascend-operator-runtime/v3 基座再执行 build.sh，见各目录 REBUILD.md）。image id：npu1-11 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15（npu1-27 侧同源 7028028bb62c，不作分发源）｜ repro_status 🟡 partial-repro"
   infer:                                # 推理腿：单卡推理服务（华为昇腾官方镜像）
     image: "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3"
-    notes: "推理框架 vLLM 0.20.2 由华为昇腾官方镜像自带。显式禁用 vllm-plugin-FL：起服务前 unset VLLM_PLUGINS（该插件无 ascend 后端，开启即 RuntimeError: Device string must not be empty）。统一经 dev/device-context/prototype/scripts/serve_standard.sh 起服务。不携带 A-1~A-4 任何一条（已知限制均属训练腿）"
+    notes: "推理框架 vLLM 0.20.2 由华为昇腾官方镜像自带。显式禁用 vllm-plugin-FL：起服务前 unset VLLM_PLUGINS（该插件无 ascend 后端，开启即 RuntimeError: Device string must not be empty）。统一经 dev/device-context/prototype/scripts/serve_standard.sh 起服务。不携带任何已知限制条目（训练腿限制为 A-2~A-4，与本腿无关）"
     container_name: "flagos-proto-infer-910c"
     base_image_entry: "dev/images/ascend-infer-vllm/v1"
     registry_status: "华为昇腾官方镜像，公开可拉取（digest sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7）｜ repro_status 🟢"
@@ -75,29 +75,22 @@ candidates:
       lock.yaml 均 superseded_by: null，索引见 dev/images/image_list.md 版本索引。
 
 # ---------------------------------------------------------------
-# FL 追赶线政策（910C 推理）
+# vllm-plugin-FL 在 910C 的状态（挂起）
 # ---------------------------------------------------------------
 fl_catchup_policy:
-  status: "vllm-plugin-FL 为 910C 推理的追赶线（catch-up track），不是现行推理腿；现行推理腿见 lock.infer"
+  status: "挂起（suspended）。vllm-plugin-FL 不是 910C 的推理栈，910C 推理腿见 lock.infer（华为昇腾官方 vllm-ascend）。本段缺陷不跟进、不排期、无回切计划；若将来重启由总组另行裁定"
   scope: "本段只管 910C。其他芯片（如昆仑芯 P800）上 vllm-plugin-FL 是必需项，不受本段约束"
-  gaps:
+  gaps:            # 事实保留，仅记录，不跟催
     - id: FL-1
       symptom: "KV 池写死减半"
-      owner: "vllm-plugin-FL 上游（经 framework-adapter 跟催）"
-      in_repo: "case 包待建（T-024），建成后在 dev/issues/README.md 索引登记"
-      schedule: "case 包补齐后进入跟催"
+      status: "挂起，不跟进"
     - id: FL-2
       symptom: "decode 慢约 400 倍"
-      owner: "vllm-plugin-FL 上游（经 framework-adapter 跟催）"
-      in_repo: "case 包待建（T-024），建成后在 dev/issues/README.md 索引登记"
-      schedule: "case 包补齐后进入跟催"
+      status: "挂起，不跟进"
     - id: FL-3
-      symptom: "shmem 缺失（= 发版说明 A-1）"
-      owner: "算子编译方向（组外）"
-      in_repo: "dev/issues/shmem-missing/（已有 case 包）"
-      schedule: "已具备 case 包，按该包修复验收判据跟催"
-  schedule: "排期机制：每坑须有 dev/issues/ case 包（单入口复现 + 三态自判定 + 修复验收判据）方进入跟催；FL-1/FL-2 的 case 包为 T-024，补齐后在 dev/issues/README.md 索引登记"
-  switch_back: "回切条件：三坑全部具备 case 包且各自修复验收判据成立，并在官方栈与 FL 栈间完成同口径对照（同模型 / 同卡数 / 同服务参数）；追平判据由总组届时裁定，本文件不预设数值门槛与日期"
+      symptom: "shmem 缺失：FlagTree triton 的 triton/experimental/tle 顶层无条件 import shmem，凡在该 triton 下编译含 for 循环的 Triton kernel 即失败"
+      status: "挂起，不跟进（归属算子编译方向，组外）。V4 两条腿的标准路径均不触发：训练腿不编译 Triton kernel，推理腿走官方栈。该路径仍在训练腿发布物镜像内 —— 凡在该镜像内编译含 for 循环的 Triton kernel（例如启用 FlagGems 接管算子）仍会命中"
+      case: "dev/issues/shmem-missing/"
 
 # ---------------------------------------------------------------
 # 基座组件（设备上下文已交付，全组下游使用）
@@ -154,13 +147,11 @@ per_leg:
   train:
     device_backend: "npu（torch_npu autoload + FlagCX 原生 flagcx c10d 后端，Route A）"
     note: |
-      v3 完整镜像是推理+训练超集，两腿共用同一镜像与 demo 容器，多项验证以
+      训练腿在其 demo 容器内运行，多项训练侧验证共用该容器、以
       ASCEND_RT_VISIBLE_DEVICES 分区（昇腾驱动对带卡容器独占，第二个带卡容器
       一律 EBUSY）。训练侧受已知限制约束：须手动多卡写法，每个 collective 后
       显式 torch.npu.synchronize()，不用列表形式 all_gather、不用原生 DDP 封装
       （A-2）；学习率显式用 1e-5（默认 5e-5 在 bf16+AdamW 下第 16 步 NaN，A-4）。
-      v2 时代「禁止 torch_npu 与 Torch-FL 共存、必须先 import torch_fl」的约束
-      是旧镜像的口径，v3 默认路径不 import torch_fl。
     python: "/usr/local/python3.11.15/bin/python3（= 两目录 Dockerfile.repro 的 ARG PYTHON_BIN；镜像内 Python 3.11.15）"
   infer:
     device_backend: "npu（torch_npu，Route A）"
@@ -270,3 +261,19 @@ changelog:
       推理腿降级（官方推理腿不需要）。A-1~A-4 全部收缩为训练腿限制，推理腿不携带。
       rules 追加「两腿不同栈」一条；per_leg.infer 改写为官方栈口径；per_leg.concurrency
       补明两腿两容器须串行。依据：指挥台 ADR-0004（取代 ADR-0003 §3.5）。
+  - date: "2026-10-14"
+    who: "总组"
+    what: |
+      清除 v3 口径残留：lock.train 的「本芯片唯一对外发布物，无需按场景选镜像」、
+      行尾注释与 container_name 的「推理/训练共用」、per_leg.train.note 的「两腿共用
+      同一镜像与 demo 容器」均删除；lock.train.notes 的「推理+训练超集」改写为
+      「基座镜像超集（含推理栈组件，V4 用于训练腿）」。A-1（shmem 缺失）退出 V4 已知
+      限制清单：训练腿标准路径只 import torch/torch_npu/transformers/datasets/DDP，不编译
+      Triton kernel（证据见 ADR-0005 §1①），推理腿已走官方栈；训练腿限制收为 A-2~A-4
+      三条，无专项规避配置（HCCL_WHITELIST_DISABLE=1 为血统沿用配置）。vllm-plugin-FL
+      在 910C 挂起、不再跟进、无回切计划（取代 ADR-0004 §3.4 的追赶线机制）：
+      fl_catchup_policy 段名保留（已有引用），改为挂起口径，删除 schedule / switch_back
+      字段与各 gap 的 owner / in_repo / schedule 跟催字段，三坑均标挂起。删除
+      per_leg.train 的 v2 时代对比句（「禁止 torch_npu 与 Torch-FL 共存、必须先 import
+      torch_fl」为 v2 旧镜像口径，v3 默认路径不 import torch_fl）。依据：指挥台 ADR-0005
+      （更正 ADR-0004 §3.4/§3.5）。
