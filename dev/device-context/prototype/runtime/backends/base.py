@@ -236,9 +236,22 @@ class RuntimeBackend(ABC):
             pass
 
     def check_stream_usable(self, native_stream) -> None:
-        """使用点拦截：流所属上下文已销毁 ⇒ **如实报错**（不得静默成功）。"""
+        """使用点拦截：流所属上下文已销毁 / 流已被释放 ⇒ **如实报错**（不得静默成功）。
+
+        ⚠️ 「已释放」这一条的判据在 **2026-10-14** 加固为**两道复核**（原先只有身份复核）：
+          ① 身份复核 `holder() is native_stream`；
+          ② **类型复核** 释放时登记的类型名必须与当前对象一致。
+        为什么加 ②：平台侧 `weakref` 会**悬垂**（详见 `_owned_handle` 的注），悬垂弱引用可
+        解析出**后来落在同一地址**的对象；若那是**另一种类型**（如 `Stream` vs `ExternalStream`），
+        ② 立刻挡下。**同类型复用**由 `_register_owned_stream` 在**新建时清除**旧记录解决 ——
+        两者互补，且都**不依赖弱引用语义**。
+        """
         _ent = self._reg("_released_streams").get(id(native_stream))
-        rel = _ent[0] if (_ent is not None and _ent[1]() is native_stream) else None
+        _tname = _ent[2] if (_ent is not None and len(_ent) > 2) else None
+        rel = None
+        if _ent is not None and len(_ent) >= 2 and _ent[1]() is native_stream:
+            if _tname is None or type(native_stream).__name__ == _tname:
+                rel = _ent[0]
         if rel is not None:
             raise RuntimeError(
                 f"该流已被 `release_stream()` 释放（厂商句柄 {int(rel):#x}）⇒ 不可继续使用。"
@@ -495,9 +508,21 @@ class RuntimeBackend(ABC):
         ❌ **已否证的部分**：原先写的「弱引用只能给出 `None` ⇒ 无法区分同一 id 与同一对象
         ⇒ 必然越权销毁」**不成立** —— 对象已回收时 `holder()` 返回 `None`，
         `None is native_stream` 为假 ⇒ 同样 `return False`（已用真实代码构造 id 复用场景验证）。
-        ❓ **仍未定位**：现场「弱引用为何解析出新对象」的成因。最小实验（`torch.cuda.Stream`
-        与 `ExternalStream` 各自回收后 weakref 均**被正确置死**）已**否证**「weakref 悬垂」假说，
-        故本文件**不臆造机制**。全文 `PPU/docs/PPU_L1_ROOTCAUSE_RECHECK_20261010.md`。
+
+        ✅ **2026-10-14 已复现并定位「弱引用为何解析出新对象」**（原先 10-10 记为"未定位"）：
+        平台侧 `weakref` **悬垂** —— PPU 的 torch 流对象被回收后，其 weakref **未随对象死亡置死**；
+        当地址被后续对象复用时，该 weakref 会**解析出那个新对象**。2×2 判据实验（唯一变量=是否插入
+        `gc.collect()`，各 8 轮，显式 `w_old() is new_obj` 复核）：
+
+          | 条件 | 同 id | w() 已置死 | **w() 跟随新对象** | 使用点失败 |
+          |---|---|---|---|---|
+          | 不 gc | 8/8 | 0/8 | **8/8** | 8/8 |
+          | gc.collect() | 6/8 | 2/8 | **6/8** | 7/8 |
+
+        ⇒ 10-10 那次"最小实验显示 weakref 被正确置死"只落在**少数不跟随的路径**上，故当时误判为
+        「悬垂假说被否证」。全文与复现器见 `PPU/docs/PPU_L1_ROOTCAUSE_RECHECK_20261010.md` §4.7 与
+        `PPU/probes/repro_release_recreate_20261014/`。
+        ⚠️ 该悬垂**只在平台侧**，本层无法修平台；本层的义务是**不依赖弱引用语义**（见下）。
 
         ⇒ 因此保留强持有**只作为纵深防御**：它消除「id 可被复用」这一前提，
         是同类型地址复用场景下唯一的第二道保险；而**判据本身不依赖它**。
@@ -506,15 +531,30 @@ class RuntimeBackend(ABC):
         按契约**该流本来就该被显式释放**（否则泄漏的是设备级流，代价大得多），
         故这个代价是正确方向上的取舍。
 
-        ⚠️ 注意与 `_released_streams` / `_stream_ctx` 的区别：那两张表只做
-        「是否已释放 / 绑定在哪个上下文」的**拦截**判断，误判的后果是**误拦**（保守、可恢复），
-        故仍用弱引用；且它们**目前没有类型复核**（同族风险已登记，见复核报告 §7）。
+        ⚠️ `_released_streams` / `_stream_ctx` 的处置（**2026-10-14 修订**）：
+          · `_stream_ctx`：每次 `note_stream_created` **覆盖写** ⇒ 陈旧条目会自愈，且其判据是
+            「上下文是否已销毁」，**不在本类缺陷的暴露面上**；
+          · `_released_streams`：⚠️ 原先"误判后果是**误拦**（保守、可恢复）"的说法**已被否证** ——
+            2026-10-14 实测：误拦会让**合法的使用点抛 `RuntimeError`**（T6 D2 探针全线 FAIL），
+            属**硬失败**而非可恢复的保守行为。故该表已按「机制无关」原则加固（类型复核 + 见
+            `_register_owned_stream` 的"新建即失效旧释放记录"）。
         """
         try:
             # ⚠️ value 是 **3 元组**（注意：不是 2 元组）：(厂商句柄, 持有器, 登记时的类型名)。
             #    第 3 项是 **2026-10-10 加的「类型复核」依据**，见 `_owned_handle` 的说明。
             self._reg("_owned_streams")[id(native_stream)] = (
                 int(handle), lambda: native_stream, type(native_stream).__name__)
+            # ⭐ **2026-10-14 新增（机制无关的主防线）**：新建的流**使同 id 的旧"已释放"记录失效**。
+            #
+            #    为什么必须在这里清（而不是只加类型复核）：
+            #      平台侧 `weakref` 悬垂（见上）⇒ `_released_streams` 里为**已回收对象**建的
+            #      弱引用会解析出**后来落在同一地址的新对象**，而新对象**类型相同**
+            #      （同为 `ExternalStream`），故**类型复核挡不住**（实测 T6 D2 探针全线 FAIL）。
+            #      判定"新对象曾被释放"在**语义上不可能成立** —— 任何落在该 id 上的旧记录都属于
+            #      一条**已死**的对象（否则它的地址不可能被复用）⇒ 清掉它是精确语义，不是绕过。
+            #      且**不会削弱**原保护：若某条被释放的流还被调用方持有，它的地址就无法被复用
+            #      ⇒ 这条清除根本不会命中它，`check_stream_usable` 仍会如期报错。
+            self._reg("_released_streams").pop(id(native_stream), None)
         except Exception:                                     # noqa: BLE001
             pass
 
@@ -544,8 +584,11 @@ class RuntimeBackend(ABC):
             #    —— 它记录的是"有一条本层拥有的流被回收却没释放"这个**泄漏事实**，不掩盖。
             return False
         reg.pop(id(native_stream), None)
+        # value 是 **3 元组**（2026-10-14 由 2 元组升为 3 元组，与 `_owned_streams` 同形）：
+        #   (厂商句柄, 持有器, 释放时的类型名) —— 第 3 项供 `check_stream_usable` 做**类型复核**，
+        #   挡"跨类型地址复用"造成的误拦（同类型复用由 `_register_owned_stream` 的清除负责）。
         self._reg("_released_streams")[id(native_stream)] = (
-            int(handle), self._id_holder(native_stream))
+            int(handle), self._id_holder(native_stream), type(native_stream).__name__)
         return bool(self._destroy_stream_raw(handle))
 
     def _destroy_stream_raw(self, handle) -> bool:

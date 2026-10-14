@@ -1297,9 +1297,45 @@ def run(proto_dir, backend):
                     _reg.pop(id(_o), None)
                     if _ent_keep is not None:
                         _reg[id(_o)] = _ent_keep
+                # ── H) 「已释放」记录**不得误拦新建的流**（台账第 38 条，2026-10-14）──
+                #
+                # 真机实测（平头哥 PPU；复现器 `PPU/probes/repro_release_recreate_20261014/`）：
+                #   平台侧 `weakref` **悬垂** —— 流对象回收后其 weakref **未随对象死亡置死**，
+                #   当地址被后续对象复用时，该 weakref **解析出那个新对象**
+                #   （2×2 判据实验：不 gc 时 8/8 跟随、gc 时 6/8 跟随；使用点失败 8/8、7/8）。
+                #   于是 `_released_streams`（按 `id` 键 + 身份复核 ①）会把**刚建好的流**
+                #   判成"已释放" ⇒ **合法的使用点抛 `RuntimeError`**（实测：T6 D2 调度效果探针
+                #   全线 FAIL，6 个场景全部拿不到读数）。
+                # ⚠️ 这也**否证**了此前"该表误判只是**误拦**（保守、可恢复）"的判断 ——
+                #   误拦在这里是**硬失败**。
+                # ⇒ 修法（**机制无关**）：**新建登记时清除同 id 的旧「已释放」记录**。
+                #   语义精确：能落在该 id 上的旧记录必然属于一条**已死**的对象（否则其地址不可能
+                #   被复用）⇒ 清除是精确语义；且不削弱原保护（被释放的流若仍被持有 ⇒ 地址不会被
+                #   复用 ⇒ 这条清除不会命中它，使用点仍会如期报错）。
+                # ⚠️ **非空转**：把 `_register_owned_stream` 里那次 `pop` 去掉，本条即 FAIL（已实测）。
+                _t = bk.create_stream(2)
+                _h_t = bk._owned_handle(_t)
+                _relt = bk._reg("_released_streams")
+                _ent_rel_keep = _relt.get(id(_t))
+                # 注入真机现场（逐字同形：同 id 上存在一条**解析到当前对象**的已释放记录）
+                _relt[id(_t)] = (int(_h_t) if _h_t else 0, lambda: _t, type(_t).__name__)
+                try:
+                    bk._register_owned_stream(_t, _h_t if _h_t else 0)   # 等价于「这条流刚被新建」
+                    try:
+                        bk.check_stream_usable(_t)
+                        check("悬垂弱引用：新建登记后，使用点**不得**被旧「已释放」记录误拦",
+                              True, "放行 ✓")
+                    except BaseException as e:                            # noqa: BLE001
+                        check("悬垂弱引用：新建登记后，使用点**不得**被旧「已释放」记录误拦",
+                              False, f"误拦：{type(e).__name__}: {str(e)[:70]}")
+                finally:
+                    _relt.pop(id(_t), None)
+                    if _ent_rel_keep is not None:
+                        _relt[id(_t)] = _ent_rel_keep
+                bk.release_stream(_t)
             except BaseException as e:                                    # noqa: BLE001
-                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用 / 跨类型复用", False,
-                      f"{type(e).__name__}: {str(e)[:90]}")
+                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用 / 跨类型复用 / 悬垂弱引用",
+                      False, f"{type(e).__name__}: {str(e)[:90]}")
         else:
             # 非驱动原语路径（**当前无实例**；cambricon 自 2026-10-08 起也走驱动 C API 口径）
             # ⇒ 只验「建流 + 回读一致」

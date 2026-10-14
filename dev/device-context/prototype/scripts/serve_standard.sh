@@ -27,6 +27,14 @@
 #         · 推理形态**待实测**：寒武纪有厂商移植版 vLLM（Cambricon/vllm-mlu），
 #           但是否需要在社区 vLLM 之外额外装插件、--runner pooling 是否被支持，均未验证
 #           ⇒ 首次跑请保留本脚本日志，按实际报错回填本节
+#   PPU（平头哥，2026-10-14 新增，✅ 2026-10-14 真机首验）：
+#         · 形态判定 = **路径 B**：设备 API 走 torch.cuda 命名空间，vLLM 平台自识别
+#           NvmlCudaPlatform ⇒ 不需要任何厂商插件/平台环境变量
+#         · 选卡 CUDA_VISIBLE_DEVICES（同 kunlun）
+#         · 容器前置（已在 hliu553-dc-dev.run.sh 固化）：-e NCCL_SOCKET_IFNAME=bond0
+#           （镜像默认写死 eth0，而本机真网卡是 bond0 —— 多卡路径会静默失败；
+#           TP=1 单卡 embedding 不受影响）+ --add-host=ai-server:127.0.0.1
+#         · 镜像自带 vllm 0.19.0（flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130 基座）
 #
 # 【统一的服务参数口径】（两实例同口径，便于横向比对）
 #     --runner pooling --convert embed --max-model-len 4096 --port 8100
@@ -59,9 +67,12 @@
 #   # MLU590（寒武纪，容器内；首次建议 STOP_AFTER=1 起完即停）
 #   DC_BACKEND=cambricon DEV=0 STOP_AFTER=1 MODEL=/srv/hliu553/models/Qwen3-Embedding-0.6B \
 #     bash prototype/scripts/serve_standard.sh
+#   # PPU（平头哥，容器内；工作区挂载为 /bmcp_lvm_fs/hliu553 → /workspace）
+#   DC_BACKEND=ppu DEV=0 STOP_AFTER=1 \
+#     bash prototype/scripts/serve_standard.sh
 #
 # 【环境变量】
-#   DC_BACKEND      后端名（ascend | kunlun | cambricon），默认 ascend
+#   DC_BACKEND      后端名（ascend | kunlun | cambricon | ppu），默认 ascend
 #   SERVE_FORM      服务形态 `embed` | `generate`（留空=按后端默认：
 #                   ascend→generate 沿用 910C 既有口径，kunlun/cambricon→embed。
 #                   2026-09-22 补：验收模型统一为 Qwen3-Embedding-0.6B 后，
@@ -168,8 +179,23 @@ case "$BACKEND" in
     SKIP_EXTRA=0        # 本方向的验收模型是 embedding 模型 ⇒ 走 embedding 服务形态
     DEV_API=mlu         # 供 card_snapshot 的 torch 侧降级查询使用
     ;;
+  ppu)
+    # ⭐ 平头哥 PPU（2026-10-14 新增；**形态判定 = 路径 B**：设备 API 走 torch.cuda 命名空间，
+    #    vLLM 平台自识别为 NvmlCudaPlatform ⇒ **不需要任何厂商插件/平台环境变量**，
+    #    也不踩 910C 的坑 A5（VLLM_PLUGINS）与 P800 的 PYTHONPATH/FlagGems 硬前置）。
+    #    2026-10-10 真机实测：镜像自带 vllm 0.19.0（flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130 基座）。
+    MODEL=${MODEL:-/workspace/models/Qwen3-Embedding-0.6B}
+    SERVED_NAME=${SERVED_NAME:-qwen3-embedding-0.6b}
+    # 选卡：与 kunlun 同为 CUDA_VISIBLE_DEVICES（容器内 0 基索引）
+    [ -n "$DEV" ] && export CUDA_VISIBLE_DEVICES="$DEV"
+    # NCCL_SOCKET_IFNAME 由容器启动时带入（hliu553-dc-dev.run.sh 内 -e NCCL_SOCKET_IFNAME=bond0，
+    # 本机真网卡是 bond0、无 eth0 —— 写死 eth0 的镜像默认会让多卡路径静默失败）；
+    # TP=1 单卡 embedding 不走集合通信，此处不重复设置。
+    SKIP_EXTRA=0        # 验收模型是 embedding 模型 ⇒ 走 embedding 服务形态
+    DEV_API=cuda        # 供 card_snapshot 的 torch 侧降级查询使用（torch.cuda.mem_get_info）
+    ;;
   *)
-    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon）"; exit 2 ;;
+    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon | ppu）"; exit 2 ;;
 esac
 
 # ── 1a-bis) 前置条件显式化：模型路径必须真的可用（2026-10-08 补）─────────────

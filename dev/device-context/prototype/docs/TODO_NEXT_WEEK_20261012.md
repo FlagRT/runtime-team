@@ -12,7 +12,7 @@
 
 | 序 | 项 | 一句话理由 |
 |---|---|---|
-| **1** | 🔄 **三家真机复跑 78 项职责审计**（T1）—— **910C ✅ / P800 ✅ 已于 10-13 完成（无回归）· MLU590 ⬜ 待做** | 2026-10-10 的跨后端**基类改动**破坏面 = 共享层 ⇒ **910C / P800 / MLU590 三家全在破坏面内**，而三家最后取数都在 **10-08** ⇒ 现有结论**不覆盖当前版本**。**10-13 实测**：910C `73/0/5` · P800 `68/0/10`（均 PASS、FAIL=0），与 10-08 基线**逐项状态零差异** |
+| **1** | ✅ **三家真机复跑 78 项职责审计**（T1）—— **三家全部完成、均无回归**（910C/P800 = 10-13 · **MLU590 = 10-14**） | 2026-10-10 的跨后端**基类改动**破坏面 = 共享层 ⇒ **910C / P800 / MLU590 三家全在破坏面内**，而三家最后取数都在 **10-08** ⇒ 现有结论**不覆盖当前版本**。**10-13 实测**：910C `73/0/5` · P800 `68/0/10`（均 PASS、FAIL=0），与 10-08 基线**逐项状态零差异** |
 | **2** | **PPU 推理腿服务化**（T3） | 同时解锁「逐芯片职责验收 12 项」整行；容器内已带 vLLM `0.19.0` |
 | **3** | **PPU 错误闭环四类注入**（T4） | 手册 §7 第 6 步，四家验收的固定项（PPU 是唯一缺的） |
 
@@ -25,16 +25,16 @@
 | **T1** | 三家真机复跑 78 项职责审计（跨后端基类改动） | 🔴 最高 | `scripts/duty_response_audit.py --backend <b>` | 三家各 `DUTY_RESPONSE_PASS`（**0 FAIL**）；重点看 `L1` 流归属与释放 | ✅ ×3 台（910C/P800=10-13 · **MLU590=10-14**） | 1 次/台 |
 | **T1-a** | ✅ **910C 已完成（10-13）** | — | 见 §2.5 执行记录 | `DUTY_RESPONSE_PASS` **73 / 0 / 5**（与 10-08 基线逐项状态零差异）· 契约不变式 **4/4** | — | — |
 | **T1-b** | ✅ **P800 已完成（10-13）** | — | 见 §2.5 执行记录 | `DUTY_RESPONSE_PASS` **68 / 0 / 10**（与 10-08 基线逐项状态零差异）· 契约不变式 **4/4** | — | — |
-| **T1-c** | ⬜ **MLU590 待做** | 🔴 最高 | 同 T1（`--backend cambricon`） | 同 T1；⚠️ 前置 = `Mlu-1` / `Mlu-2` **网络打通**（10-13 仍 SSH 超时） | ✅ ×1 台 | 1 次 |
+| **T1-c** | ✅ **MLU590 已完成（10-14）** | — | 见 §2.5 执行记录 | `DUTY_RESPONSE_PASS` **62 / 0 / 16**（与 d2 基线逐项状态零差异）· 契约不变式 **4/4** | — | — |
 | **T2** | ✅ **三家全部完成**（910C/P800=10-13 · MLU590=10-14） | 🟠 需卡（只读） | `bash scripts/preflight_env.sh` | ✅ 三台均 `rc=0`：`910C/probes/t2_preflight_env_ascend_20261013.log`（12.9 KB）· `P800/probes/t2_preflight_env_kunlun_20261013.log`（11.7 KB）· `MLU590/probes/t2_preflight_env_cambricon_20261014.log`（11.4 KB） | ✅ 三家已闭环 | 已闭环 |
-| **T3** | PPU 推理腿服务化 | 🔴 高 | 给 `scripts/serve_standard.sh` **补 `ppu` 分支**后跑 | `SERVE_STANDARD_PASS (ready=1 smoke=1)` | ✅ | 与 T4 同窗口 |
-| **T4** | PPU 错误闭环四类注入 | 🔴 高 | `runtime/proto/proto_error_recovery_loop.py --backend ppu` | 四类注入分级处置正确 + 业务继续（对齐三家 `5/0/0`） | ✅ | 与 T3 同窗口 |
-| **T5** | PPU 多流 16 项基线逐项比对报告 | 🟡 中 | `probes/probe_stream_semantics_full.py` + 参照文档 | 出一份 `PPU/docs/*STREAM_BASELINE_16*`（S-1…S-16 逐项） | ⚠️ 部分 | 与 T3/T4 同窗口 |
-| **T6** | PPU D2 流优先级「调度效果」实证 | 🟡 中 | `probes/probe_stream_priority_sched_effect.py --backend ppu` | 同口径对照（含正对照 + 分辨力判据）；**测不出也要如实记录** | ✅ | 与 T3/T4 同窗口 |
+| **T3** | ✅ **已完成（10-14）** | — | `serve_standard.sh` 已补 **`ppu` 分支**（脚本内注释含路径 B 与前置） | ✅ `SERVE_STANDARD_PASS (ready=1 smoke=1)`（就绪 35 s · dim 1024 · 范数 1.000000）· 消费方 **`SERVE_LEG_PASS 10/10`**（103.15 句/s） | — | — |
+| **T4** | ✅ **已完成（10-14）** | — | 同左 | ✅ **`ERROR_RECOVERY_LOOP_PASS` 闭环 5 / 跳过 0 / 失败 0**（与三家同口径）；⚠️ 判据通过后 `rc=139`（退出期段错误，见 T11） | — | — |
+| **T5** | ✅ **已完成（10-14）** | 无需额外 | 同左（另补跑 S-13 两卡 / S-16 配额 / S-7 图捕获） | ✅ `PPU/docs/THEAD_PPU_STREAM_BASELINE_16_20261014.md`：**16 项全部有 PPU 读数**（10 项本轮新测 + conformance/两条腿/错误闭环覆盖 + 1 项三家一致不适用）；⚠️ 唯一差异在 S-12 的**调度效果**（见 T6） | — | — |
+| **T6** | ✅ **已完成（10-14）** | — | 同左 | ✅ `STREAM_PRIORITY_SCHED_EFFECT_PASS` · **`effect_observed=False`**（如实记录：gated 胜率临界但幅度 0.48–0.51 ms ≪ 阈值 8.7–8.9 ms；ungated 由**提交顺序主导**、两向不一致）；⭐ **途中抓出并修复一处跨后端缺陷**（平台侧弱引用悬垂 ⇒ 本层误拦，见 `PPU/docs/PPU_T3_T6_AND_WEAKREF_20261014.md` §4） | — | — |
 | **T7** | MLU590 多卡 TP / 关闭 `--enforce-eager` 服务化 | 🟡 中 | 走 `serve_standard.sh`（**需 vLLM 应用镜像容器**） | `TP>1` 起服务 + 冒烟通过；`EAGER=0` 至少一轮 | ✅ | 需应用镜像 |
 | **T8** | ✅ **P800 + MLU590 均完成**（P800=10-13 · MLU590=10-14） | 🟢 低 | `probes/recover_multiproc_stress.py --backend <b>` | ✅ 两后端均 `A2_BOUNDARY: SKIP_UNSUPPORTED`（`rc=3`，**未做任何设备操作**）⇒ `P800/probes/t8_a2_skip_kunlun_20261013.log` · `MLU590/probes/t8_a2_skip_cambricon_20261014.log`（未声明 `recovery_real` ⇒ 如实跳过留档） | ✅ 已闭环 | 已闭环 |
-| **T9** | PPU 证据索引 `EVIDENCE_INDEX_PPU.md` | 🟢 低（不需卡） | 纯文档 | 列出 `probes/` 全量 + 判读纪律（只作复核入口） | ❌ | 任意 |
-| **T10** | PPU 证据命名对齐 manifest §5 | 🟢 低（不需卡） | 纯文档 | 后续新证据按 `<层标识>_<项目>_<后端>_<条件>_<YYYYMMDD>` | ❌ | 随 T9 |
+| **T9** | ✅ **已完成（10-14）** | 🟢 低（不需卡） | 纯文档 | ✅ `PPU/docs/EVIDENCE_INDEX_PPU.md`（按 T 号索引 + 判读纪律三条 + 已知 `rc=139` 覆盖表 + 命名现状） | ❌ | 已闭环 |
+| **T10** | 🔶 **部分完成**（如实登记偏离） | 🟢 低（不需卡） | 纯文档 | 任务级产物已按 §5 命名（`t1_duty_cambricon_20261014.json` · `t2_preflight_env_cambricon_20261014.log` · `t8_a2_skip_cambricon_20261014.log`）；⚠️ **目录名未逐字对齐**（用 `<T号>_<用途>_<YYYYMMDD>_out`）⇒ 已在 `EVIDENCE_INDEX_PPU.md` §5 登记现状，**约定统一后再改** | ❌ | 待约定 |
 | **T11** | PPU 退出期段错误收口 | ⚪ 需外部 | — | 需**带调试器的镜像**或厂商协助 | ⚠️ | 依赖外部 |
 | **T12** | 契约修订建议剩余 2 条（`vendor` 字段 / smoke 打印 `known_issues`） | 🟢 低（不需卡） | 纯代码 | 第 6 条 3 行打印即可；第 1 条**先定"是否还要 `vendor`"** | ❌ | 任意 |
 
