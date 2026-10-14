@@ -8,12 +8,12 @@
 - **归属方向**：算子编译方向。需求文本（现象、根因、三级请求、证据链）：
   [`决策备忘录 附录 B`](../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md)。
 - **状态（2026-10-14）**：**挂起，不跟进**。root cause 仍在，case 包与复现判据继续有效，归属不变
-  （算子编译方向，组外），但不排期跟催；**不作为 V4 发版限制条目**。
-  - **V4 两条腿的标准路径均不触发**：训练腿不编译 Triton kernel（训练脚本只 import
+  （算子编译方向，组外），但不排期跟催；**不作为现行发版限制条目**。
+  - **现行两条腿的标准路径均不触发**：训练腿不编译 Triton kernel（训练脚本只 import
     torch / torch_npu / transformers / datasets / DDP）；推理腿走华为昇腾官方 `vllm-ascend`
     （见 [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.infer`），其 triton 为华为
     `triton-ascend`，不含本缺陷路径。
-  - **残留影响**：该缺陷路径仍在 **V4 训练腿发布物镜像**内（其 triton 为 FlagTree triton）——
+  - **残留影响**：该缺陷路径仍在 **现行训练腿发布物镜像**内（其 triton 为 FlagTree triton）——
     凡在该镜像内编译含 for 循环的 Triton kernel（例如启用 FlagGems 接管算子）仍会命中。
   - **训练腿发布物 demo 内的遗留装配**（两项，均写在
     [`demo/docker-compose.yml`](../../images/ascend-train-comm/v3/demo/docker-compose.yml)）：shmem 占位模块
@@ -45,7 +45,7 @@
 
 | 项 | 要求 | 获取方式 |
 |---|---|---|
-| 镜像 | **V4 训练腿发布物**：`flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 image id `e13a15d0d02b`）—— [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.train`，血统目录 [`dev/images/ascend-train-comm/v3`](../../images/ascend-train-comm/v3/README.md) | 按 [`ascend-train-comm/v3/REBUILD.md`](../../images/ascend-train-comm/v3/REBUILD.md) 构建，或从其 `ARCHIVE.md` 所列离线包 `docker load`；image id 由 `up.sh --strict` 按镜像基线核对 |
+| 镜像 | **现行训练腿发布物**：`flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 image id `e13a15d0d02b`）—— [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.train`，血统目录 [`dev/images/ascend-train-comm/v3`](../../images/ascend-train-comm/v3/README.md) | 按 [`ascend-train-comm/v3/REBUILD.md`](../../images/ascend-train-comm/v3/REBUILD.md) 构建，或从其 `ARCHIVE.md` 所列离线包 `docker load`；image id 由 `up.sh --strict` 按镜像基线核对 |
 | 运行环境 | **训练腿** demo 运行环境 [`dev/images/ascend-train-comm/v3/demo/`](../../images/ascend-train-comm/v3/demo/docker-compose.yml) | 随仓。该镜像全部 repo 为固化资产，宿主检出不影响运行 |
 | 卡 | 1 × 910C | 启动前 `docker ps` 确认本机无其他带卡容器（昇腾驱动对带卡容器独占） |
 | 模型与数据 | **不需要**（最小复现不加载模型、不联网） | — |

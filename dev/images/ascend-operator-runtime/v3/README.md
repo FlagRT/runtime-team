@@ -7,7 +7,7 @@
   (npu1-11 image id `62bcaae3f839`):PyTorch 2.10 + torch_npu(Route A 默认)+
   FlagTree Triton 3.5.1 + FlagGems + vLLM 0.20.2 + vllm-plugin-FL。基座为内部构建层,
   照常构建并归档,**不作为发布物**。
-- 其超集完整镜像为 V4 训练腿发布物(见 [`dev/stack.lock.910c.v4.yaml`](../../../stack.lock.910c.v4.yaml) 的 `lock.train`),见 [`../../ascend-train-comm/v3/`](../../ascend-train-comm/v3/README.md)。
+- 其超集完整镜像为 现行训练腿发布物(见 [`dev/stack.lock.910c.v4.yaml`](../../../stack.lock.910c.v4.yaml) 的 `lock.train`),见 [`../../ascend-train-comm/v3/`](../../ascend-train-comm/v3/README.md)。
   推理验证在完整镜像上执行,运行环境为其 demo 目录
   [`../../ascend-train-comm/v3/demo/`](../../ascend-train-comm/v3/demo/docker-compose.yml)。
   本镜像的版本事实见 [`image.baseline.yaml`](image.baseline.yaml)。

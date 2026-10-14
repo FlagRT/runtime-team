@@ -4,7 +4,7 @@
 
 - 本目录登记**华为昇腾官方**推理镜像 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`
   （image id `sha256:2e56022ae5b3…`，registry digest `sha256:5cf8a2b6…`，rc 标签防 GC 主锚），
-  **V4 推理腿发布物**，见 [`dev/stack.lock.910c.v4.yaml`](../../../stack.lock.910c.v4.yaml) 的 `lock.infer`。
+  **现行推理腿发布物（2026-10-14 发版）**，见 [`dev/stack.lock.910c.v4.yaml`](../../../stack.lock.910c.v4.yaml) 的 `lock.infer`。
   非本组构建、非 FlagTree 血统：版本纪元对齐 ascend3.5（CANN 9.0.0 / py3.11 / torch 2.10.0 / vLLM 0.20.2），
   整体为被动继承的官方产物 —— 上游配方在 `vllm-project/vllm-ascend` 仓 `docker/`。
 - **登记式基线（ADR-0007）**：本目录 `image.baseline.yaml` 为手工登记，字段口径同 ENV-SPEC §3.1；
