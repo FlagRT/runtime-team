@@ -38,7 +38,7 @@
 
 | 项 | 要求 | 获取方式 |
 |---|---|---|
-| 镜像 | **V4 训练腿发布物**：`flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 image id `e13a15d0d02b`，FlagCX 公开主干 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`）—— [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.train`，血统目录 [`dev/images/ascend-train-comm/v3`](../../images/ascend-train-comm/v3/README.md) | 按 [`ascend-train-comm/v3/REBUILD.md`](../../images/ascend-train-comm/v3/REBUILD.md) 构建，或从其 `ARCHIVE.md` 所列离线包 `docker load`；image id 由 `up.sh --strict` 按镜像基线核对 |
+| 镜像 | **现行训练腿发布物**：`flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 image id `e13a15d0d02b`，FlagCX 公开主干 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`）—— [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.train`，血统目录 [`dev/images/ascend-train-comm/v3`](../../images/ascend-train-comm/v3/README.md) | 按 [`ascend-train-comm/v3/REBUILD.md`](../../images/ascend-train-comm/v3/REBUILD.md) 构建，或从其 `ARCHIVE.md` 所列离线包 `docker load`；image id 由 `up.sh --strict` 按镜像基线核对 |
 | 运行环境 | **训练腿** demo 运行环境 [`dev/images/ascend-train-comm/v3/demo/`](../../images/ascend-train-comm/v3/demo/docker-compose.yml) | 随仓。该镜像全部 repo 为固化资产，宿主检出不影响运行 |
 | 卡 | 2 × 910C | 启动前 `docker ps` 确认本机无其他带卡容器（昇腾驱动对带卡容器独占） |
 | 模型与数据 | **不需要**（脚本只跑 collective，不加载模型、不联网） | — |
