@@ -37,7 +37,8 @@
   6. KV 卸载到 Host（W2 最小闭环 + W3 开关对照）—— ✅ **vllm-ascend 锁定栈完成**（2026-10-14，npu1-27 davinci4，
      外挂 NPU connector 适配件，vllm-ascend 本体零改动）。
      卸→存→召回→结果正确四步实测闭环（召回 15 批 CPU→GPU DMA 实锤、12/12 请求正确）；
-     等效扩容 +20.4%、decode 代价 7-8%（第一版，未优化）；**Host 池 > GPU 池（>39.2 GiB）才成真两级缓存**。
+     **64 GiB 生产池型（K=1.63×G）召回实测（2026-10-14 夜）：召回率 40/40=100%、收益 0.112 s/请求、真实等效扩容 +63.2%**；
+     8 GiB 边界档（上游默认值）：等效扩容 +20.4%（账面）、decode 代价 7-8%（第一版，未优化）；**Host 池 > GPU 池（>39.2 GiB）才成真两级缓存（64 GiB 档实测验证）**。
      FL 栈未测卸载（decode 性能限制，结论可平移，实测排 v3 验证窗口）。
      报告：[docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md](docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md)。
 
