@@ -6,11 +6,15 @@
 # 记录：2026-09-09 ｜ v2 更新：2026-09-12 ｜ v3 更新：2026-10-14 ｜ 状态：生效
 # 版本化规范见战略文档 §8（v1/v2 已按该规范标 LEGACY，文件头各有说明）
 #
-# 本版本相对 v2 的变化：lock.train 切换到 ascend-train-comm v3 完整镜像
-# （推理+训练超集，本芯片唯一对外发布物，repro_status 🟡 partial-repro）；
-# 训练腿设备注册回归 Route A 默认（torch_npu），torch_fl 降为 opt-in；
-# 推理腿镜像不变。v3 带 4 条已知限制（A-1~A-4），发版事实、限制清单与规避
-# 配置见 docs/基座发版说明-20261014.md（本文件只留指针，不重复抄录）。
+# 本版本相对 v2 的变化：
+# ① lock.train 切换到 ascend-train-comm v3 完整镜像（推理+训练超集，本芯片唯一
+#    对外发布物，repro_status 🟡 partial-repro）；
+# ② 训练腿设备注册回归 Route A 默认（torch_npu），torch_fl 降为 opt-in；
+# ③ 【V3 核心使命】训练腿与推理腿收敛到同一基座：lock.infer 不再单用华为昇腾
+#    官方 vllm-ascend 镜像，改为与 lock.train 指向同一 v3 完整镜像，使用方无需
+#    按场景选镜像；原官方推理镜像降为历史血统（见 lock.infer.superseded_lineages）。
+# v3 带 4 条已知限制（A-1~A-4），发版事实、限制清单与规避配置见
+# docs/基座发版说明-20261014.md（本文件只留指针，不重复抄录）。
 # =====================================================================
 
 version: 3
@@ -57,12 +61,18 @@ lock:
     container_name: "flagrt-v3-demo-910c（demo 运行环境容器，推理/训练共用：dev/images/ascend-train-comm/v3/demo/）"
     base_image_entry: "dev/images/ascend-train-comm/v3"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
     registry_status: "组内镜像无 registry 要求；离线包在 npu1-11 /mnt/raid/user_cache/xliu969/v3-round4-archive/，含 SHA256SUMS；也可按仓内配方重建（先建 dev/images/ascend-operator-runtime/v3 基座再执行 build.sh，见各目录 REBUILD.md）。image id：npu1-11 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15（npu1-27 侧同源 7028028bb62c，不作分发源）｜ repro_status 🟡 partial-repro"
-  infer:                                # 推理腿：单卡推理服务（本次未换）
-    image: "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3"
-    notes: "推理框架 0.20.2 华为昇腾官方镜像自带"
-    container_name: "flagos-proto-infer-910c"
-    base_image_entry: "dev/images/ascend-infer-vllm/v1"
-    registry_status: "华为昇腾官方镜像，已验证可拉取（2026-09-09，digest sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7）｜ repro_status 🟢"
+  infer:                                # 推理腿：单卡推理服务 —— 【与训练腿同一镜像，V3 使命：两腿收敛同一基座】
+    image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
+    notes: "与 lock.train 同一镜像（v3 完整镜像 = 推理+训练超集）。v3 起推理腿不再单用华为昇腾官方 vllm-ascend 镜像，两腿收敛到同一基座，使用方无需按场景选镜像。推理环境同样受 A-1（shmem 缺失）约束，须落实 demo 的三项规避配置（见 docs/基座发版说明-20261014.md）"
+    container_name: "flagrt-v3-demo-910c（与训练腿同一 demo 容器，以 ASCEND_RT_VISIBLE_DEVICES 分区）"
+    base_image_entry: "dev/images/ascend-train-comm/v3"
+    registry_status: "同 lock.train（同一镜像，同一 image id）｜ repro_status 🟡 partial-repro；本轮推理验证（1 卡、Qwen3-Embedding-0.6B、9/9 通过）即在完整镜像上完成，结论直接适用于发布物"
+    superseded_lineages: |
+      v1/v2 时代的推理腿是独立的华为昇腾官方镜像
+      quay.io/ascend/vllm-ascend:v0.20.2rc1-a3（归档 dev/images/ascend-infer-vllm/v1，
+      已验证可拉取 digest sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7，
+      repro_status 🟢）。v3 起该镜像不再是原型锁定基座的推理腿，仅作历史血统保留；
+      需要单独拉起官方推理栈做外部对照时仍可拉取，但不作为结论性验证的锁定环境。
 
 # ---------------------------------------------------------------
 # 候选血统 —— v3 起无在途候选；已进入 lock 的历史血统在此注明 superseded（不列 v3 自己）
@@ -98,17 +108,26 @@ runtime:
 # ---------------------------------------------------------------
 rules:
   - |
-    【最高优先级】带卡容器并发上限 3：同一时刻最多 3 个挂载 NPU 设备的容器同时运行。
-    超限后新容器内 acl.init() 返回 500000（ACL_ERROR_INTERNAL_ERROR），
-    伴随 DrvMngGetConsoleLogLevel failed(ret=4) / path string is NULL，
-    表现为 torch.npu.device_count()=0、设备"凭空消失"。
-    → 出现 500000 / 设备不可见，第一时间核查并发容器数（docker ps 数带卡容器），
+    【最高优先级 · 2026-10-14 修订】一台机器同时只跑一个带卡容器。
+    机制：容器默认挂满 16 张 davinci 设备（compose 的 devices: 整值给出），设备级独占，
+    因此第二个带卡容器一律 EBUSY —— 这是真实的硬约束。
+    → 需要同时做多项验证时：**共用一个容器**，以 ASCEND_RT_VISIBLE_DEVICES 分区，
+      把不同验证绑到不同的卡上（设备模型与实测证据见 dev/issues/README.md「共享机器」节）。
+    → 两条腿（训练/推理）串行执行即可：跑完一条停掉再起下一条。v3 两腿同镜像同容器，
+      本身就以分区方式共用。
+    → 出现 acl.init() 返回 500000（ACL_ERROR_INTERNAL_ERROR）、伴随
+      DrvMngGetConsoleLogLevel failed(ret=4) / path string is NULL、
+      torch.npu.device_count()=0（设备"凭空消失"）时，第一时间核查带卡容器数与设备占用，
       不要先怀疑镜像、驱动或代码。
-    → 两条腿（训练/推理）不需要同时跑：串行执行即可，跑完一条停掉再起下一条。
-    ⚠️ 待核：本条写上限 3，实测有 1（第二个带卡容器 EBUSY）与 2（-8020 device is used）两种现象，且与"每个容器挂满 16 设备"有关；三份材料三个数（本规则写 3 / 实测量 2 / `dev/issues/README.md`「共享机器」节记带卡容器独占 1），由总组核实后更新
+    ⚠️ 历史口径澄清（三个数为什么不一样）：本条 2026-09-08 原写「并发上限 3」（观测 4 个
+      并发时 acl.init()=500000，降到 3 个后恢复），另有实测「上限 2」（-8020 device is used）
+      的记录，而 dev/issues/README.md 记带卡容器独占（= 1）。三者的差异来自两件事被混为一谈：
+      ① 设备级独占（挂满 16 设备 ⇒ 只能 1 个容器）；② 驱动 DrvMng 名额（历史观测 2~3）。
+      当前操作口径 =「1 个带卡容器 + 容器内用 ASCEND_RT_VISIBLE_DEVICES 分区」；
+      驱动名额的真实上限待专项实测后回填本节。
   - "结论性验证只在锁定镜像内做；日常调试容器结果不作为验收依据"
   - "任何镜像变更必须更新本文件并知会全组"
-  - "起容器前自查：并发容器数 ≤3、镜像与本文件一致（含 registry_status）、容器名符合规范、卡资源空闲"
+  - "起容器前自查：本机无其他带卡容器（有则与占用方共用容器或约时间）、镜像与本文件一致（含 registry_status）、容器名符合规范、卡资源空闲"
   - "合入把关五条：镜像与 stack.lock 一致 ｜ 容器/分支命名合规 ｜ 接口约定章节完稿且下游确认 ｜ 能跑自己那段 demo ｜ 无环境分叉"
   - |
     基座镜像入锁门槛：任何镜像进入本文件 lock: 前，dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，
@@ -133,8 +152,12 @@ per_leg:
       是旧镜像的口径，v3 默认路径不 import torch_fl。
     python: "/usr/local/python3.11.15/bin/python3（= 两目录 Dockerfile.repro 的 ARG PYTHON_BIN；镜像内 Python 3.11.15）"
   infer:
-    device_backend: "npu（torch_npu）"
-    note: "lock.infer 镜像自带 torch_npu，我们的原型通过 runtime/backends/ascend 后端接入；v3 完整镜像亦可用于推理（超集，见 lock.train.notes）"
+    device_backend: "npu（torch_npu，Route A）"
+    note: |
+      与训练腿同一镜像、同一 demo 容器（V3 使命 = 两腿收敛同一基座）。原型的推理接入
+      方式是 runtime/backends/ascend 后端 + vLLM 0.20.2（父基座自带）+ vllm-plugin-FL
+      插件；受 A-1 约束，须落实 demo 的三项规避配置（shmem 占位模块挂载、PYTHONPATH
+      前置、VLLM_FL_FLAGOS_BLACKLIST=cos,sin）方能启动。
   concurrency: "推理/训练共用容器时以 ASCEND_RT_VISIBLE_DEVICES 分区、串行执行；另起容器须遵守上方「带卡容器并发上限」规则"
 
 # ---------------------------------------------------------------
@@ -206,3 +229,19 @@ changelog:
       （A-1~A-4）不在本文件抄录，指针：docs/基座发版说明-20261014.md。依据文件：
       dev/images/ascend-train-comm/v3/lock.yaml、image.baseline.yaml、ARCHIVE.md，
       dev/images/ascend-operator-runtime/v3/lock.yaml，docs/基座发版说明-20261014.md。
+  - date: "2026-10-14"
+    who: "总组"
+    what: |
+      落实 V3 核心使命——训练腿与推理腿收敛到同一基座：lock.infer 由华为昇腾官方
+      vllm-ascend 镜像改为与 lock.train 指向同一 v3 完整镜像；原官方镜像降为历史血统
+      （lock.infer.superseded_lineages）。依据 docs/v3-round4-真机验证结果与移交指导
+      -20261009.md §二「发布口径：单镜像发布」——对外只发布完整镜像，使用方无需区分
+      推理/训练场景；本轮推理 9/9 验证即在完整镜像上完成，结论直接适用于发布物。
+  - date: "2026-10-14"
+    who: "总组"
+    what: |
+      修订带卡容器并发规则（裁决 B6）：原「并发上限 3」改为「一台机器同时只跑一个
+      带卡容器；多项验证共用一个容器、以 ASCEND_RT_VISIBLE_DEVICES 分区」。澄清三个
+      观测值（3 / 2 / 1）的差异来自两件事被混为一谈——设备级独占（挂满 16 设备 ⇒ 1）
+      与驱动 DrvMng 名额（历史观测 2~3）；驱动名额真实上限待专项实测后回填。
+      同步修正「起容器前自查」条中残留的「并发容器数 ≤3」表述。

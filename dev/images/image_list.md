@@ -108,9 +108,9 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 |---|---|---|---|
 | 昇腾 910C | ascend-operator-runtime | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（**基座镜像：内部构建层，不对外发布**） | `ascend-operator-runtime/v3/` |
 | 昇腾 910C | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**唯一对外发布物** = 推理+训练超集，🟡 带已知限制） | `ascend-train-comm/v3/` |
-| 昇腾 910C | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
 
+> 昇腾 910C **训练腿与推理腿收敛到同一基座**（v3 完整镜像，使用方无需按场景选镜像）；原独立的华为昇腾官方推理镜像 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`ascend-infer-vllm/v1/`）自 v3 起降为历史血统，不再作为原型锁定基座的推理腿。
 > 旧血统 v1/v2 保留供历史结论追溯。`kunlun-operator-runtime v1` 已 `superseded_by: v2`，
 > **不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录 `lock.yaml` known_issues）。
 > 本次发版未向任何 registry 推送：组内镜像无 registry 要求，分发走离线包与仓内配方重建。
