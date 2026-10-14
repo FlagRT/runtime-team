@@ -93,3 +93,37 @@
   `../prototype/RELEASE_NOTES_v0.2.0.md`（使用规则）·
   `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §4.3
 - 当日回归：`ASCEND_910C_REGRESS_AFTER_FIX_20260929.md`
+- **2026-10-14 复核原始留档**：`../probes/pick_die_20261014.log`（逐 die 试 INIT 的过程记录）
+
+---
+
+## 6 ⭐ 2026-10-14 复核（T1-re 复跑时再次踩到，故补两条操作细节）
+
+本节**不改变** §1 的规则，只是把"选卡"这一步说细 —— 因为当天**规则文档已写明"不要挂全 16 张"，
+执行时仍然踩了**，两次失败形态如下（都属于"看起来像设备故障"）：
+
+| 尝试 | 建法 | 容器内症状 | 真因 |
+|---|---|---|---|
+| A | 只挂 `davinci4` | `torch.npu.device_count() = 0`、`AssertionError: Invalid device id`、`aclInit error 507899` | **`davinci4` 已被他人容器 `fl-profile-910c` 映射且已 init**（`npu-smi` 进程表里**看不到**它 —— 它当时没有进程） |
+| B | 挂**全 16 张** + 3 个管理设备（想"照抄历史可用容器"） | 容器内 `npu-smi info` 直接失败：`dcmi model initialized failed, because the device is used. ret is -8020` + `Different containers share the same device` | **违反 §1 纪律**：全量挂载与所有活跃容器相交 ⇒ 必失败（历史那台**全挂也成功**，是因为当时整机只有它一个活跃容器） |
+| C | 只挂 `davinci5`（**无任何容器映射**） | `count=1` · `name=Ascend910_9382` · 小算子真算 `sum=349.2` ✅ | —— 正确做法 |
+
+**两条新增操作细节**
+
+1. ⭐ **选卡的依据是「容器映射表」，不是 `npu-smi` 的进程表**。空闲卡的判据 =
+   **没有任何其他容器在 `docker inspect` 里映射它**；`npu-smi` 只显示"正在算的进程"，
+   **一个已 init 但空闲的容器在进程表里是隐形的**，却足以让你的 `aclInit` 失败。
+   ```bash
+   # 逐容器列出映射到的 davinci 号（本机实测用法）
+   for c in $(docker ps --format '{{.Names}}'); do
+       d=$(docker inspect -f '{{range .HostConfig.Devices}}{{.PathOnHost}} {{end}}' "$c" \
+           | tr ' ' '\n' | grep -oE 'davinci[0-9]+$' | sed 's/davinci//' | sort -n | tr '\n' ',')
+       printf '%-28s -> %s\n' "$c" "${d:-（无带卡设备）}"
+   done
+   ```
+   ⚠️ **"全映射"容器**（如 `x-benchmark`、`flaggems-cann9.0.0` 这类挂 0–15 的）会让任何卡都"看起来被占"；
+   它们**未 init 时不占名额**（§1 第 2 条），**init 过则占**。判不准时**别猜，直接逐 die 试 INIT**。
+2. ⭐ **逐 die 试 INIT = 唯一可靠的判据**（本机用法见 `../probes/pick_910c_die_20261014.sh`）：
+   每试一个候选就**重建容器并且只挂那一个 die**，跑一句"真算一个小算子"的探针，
+   第一个 `count≥1 且能算出结果` 的即采用；**成功即等于占住名额，故不再继续试**。
+   本次实测顺序与结果：`die5 ✅`（首个即中）→ 未继续 `die0/7/6/1/2/3/4`。
