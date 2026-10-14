@@ -29,6 +29,7 @@
 | T5 | `../probes/t5_20261014_out/t5_graph_capture_v2.log` | `GRAPH_CAPTURE_PASS`（契约内 4/4 + 1 观察项） | S-7 |
 | T6 | `../probes/t456_20261014_out/t6_sched_effect_ppu_fixed.{json,log}` | `STREAM_PRIORITY_SCHED_EFFECT_PASS` · **`effect_observed=False`** | ⚠️ 修法后；`rc=139` |
 | T6（修前） | `../probes/t456_20261014_out/t6_sched_effect_ppu.{json,log}` | `…FAIL`（6 个场景 `RuntimeError`） | **保留作缺陷现场**，勿当"当前状态"读 |
+| **T11** | `../probes/t11_20261014_out/` | **本层侧已收口**：修后 `rc=0`（三载体）· 平台侧最小复现仍 `rc=139` | 原生现场 `t4_native*.log` · `t6_native.log`；矩阵 `log/` · `rc_matrix.log`；注入对照 `patch_matrix.log`；修后 `after_matrix.log`；全文 `docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md` |
 | — | 见 §2 | 缺陷复现与修前/修后对照 | |
 | T8（**MLU590**，非本实例） | `../../MLU590/probes/t8_a2_skip_cambricon_20261014.log` | `A2_BOUNDARY: SKIP_UNSUPPORTED`（`rc=3`，未做任何设备操作） | 能力如实不具备；⚠️ PPU 侧的 A2 留档在 `../probes/parity_fill_20261010_out/` |
 
@@ -71,7 +72,15 @@
 | `probe_stream_semantics_full.py`（T5） | **0** | 8/8 通过 |
 | `probe_stream_quota.py` / `probe_graph_capture_stream_v2.py` | 0 | 3/3 · 4/4 |
 
-⇒ 与 `runtime.create_stream()`（优先级路径）相关的一组探针会崩；不建优先级流的探针干净退出。**归属未定**（T11：需带调试器镜像或厂商协助）。
+⇒ 与 `runtime.create_stream()`（优先级路径）相关的一组探针会崩；不建优先级流的探针干净退出。
+
+**⭐ 2026-10-14 已定位并收口（本层侧）**：原生现场 = `Py_Exit → Py_FinalizeEx → … → **_PyWeakref_ClearRef**`，
+`si_code=1`、**`si_addr=0xab`**（垃圾指针）；根因 = **平台侧弱引用书签失效**（**不含本层**的最小复现
+「30 条原生流各挂一个 `weakref.ref` 后丢弃」同样 `rc=139` 2/2）；本层是**暴露面**（为每条流建弱引用）。
+修法 = ① 无本层上下文时不登记 `_stream_ctx` ② `_released_streams` 改强持有 ③ 登记表加条数上限
+⇒ 修后三个载体（本层最小复现 / T4 / T6）真机 **全部 `rc=0`**，判据读数逐字不变。
+⚠️ **平台侧缺陷未修**（纯 torch 最小复现修后**仍崩**）⇒ 转厂商。
+全文与全部对照：**`docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`**；证据 `probes/t11_20261014_out/`。
 
 ## 5. 命名约定（T10 现状，如实登记）
 

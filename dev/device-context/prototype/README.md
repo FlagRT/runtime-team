@@ -93,7 +93,10 @@ prototype/
 > ⚠️ **职责审计 72/0/6**：`L1`「`release_stream` 越权销毁」**已收口**：根因＝**跨类型地址复用**（`ExternalStream` 回收后 `Stream` 落在同地址）；修复＝**类型复核**（机制无关，弱引用下亦 3/3 OK）+ 强持有纵深防御（`../PPU/docs/PPU_L1_ROOTCAUSE_RECHECK_20261010.md`）；
 > ✅ **契约不变式 I1–I4 真机 `4/4`**（2026-10-10 补跑；i1 入口覆盖 **15/17**）· ✅ **A2 压测如实跳过留档**（未声明 `recovery_real` ⇒ `A2_BOUNDARY: SKIP_UNSUPPORTED`，不计失败）；
 > ⚪ **未跑**：服务化（`serve_standard.sh` 待补 `ppu` 分支）· 错误闭环四类注入 · **多流 16 项基线逐项比对报告** · **D2 调度效果实证** · **证据索引**（三家均有，PPU 缺）。
-> ⚠️ 两条腿均在**判据通过后于解释器退出阶段段错误**（与 `runtime.create_stream()` 强相关，**归属未定**）。
+> ⚠️ 两条腿均在**判据通过后于解释器退出阶段段错误** —— ✅ **10-14 已定位并收口（本层侧）**：
+> 崩溃在 `Py_Exit → Py_FinalizeEx → _PyWeakref_ClearRef`（`si_code=1`、`si_addr=0xab`），根因 = **平台侧弱引用书签失效**
+> （**不含本层**的纯 torch 最小复现同样崩）；本层修法 = 不依赖弱引用语义（无上下文不登记 / 强持有 / 登记表上限），
+> 三载体真机 `rc=0`；⚠️ 平台侧缺陷转厂商 ⇒ `../PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`
 > 详见 `../PPU/README.md` §0 · `../PPU/docs/PPU_MODEL_AND_TWO_LEGS_20261010.md` **§2–§4**
 
 > **换芯片只改一行**：同一条命令，只把 `--backend` / `DC_BACKEND` 在 `ascend`／`kunlun`／`cambricon`／`ppu`

@@ -1352,6 +1352,65 @@ def run(proto_dir, backend):
     if not bk.supports("graph_capture"):
         print("  [INFO] 未声明 graph_capture：`torch.<ns>.graph` 存在性须容器内实测后决定")
 
+    # ── 7b. 登记表的**弱引用暴露面**（台账第 39 条，2026-10-14 · T11 退出期段错误）──
+    #
+    # 真机实测（平头哥 PPU；原生现场与全部对照见 `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）：
+    #   平台侧**弱引用书签失效** ⇒ 厂商流对象回收后弱引用悬垂 ⇒ 解释器退出期
+    #   `Py_Exit → Py_FinalizeEx → … → _PyWeakref_ClearRef` 解引用垃圾指针 ⇒ SIGSEGV
+    #   （原生采集：`si_code=1`、**`si_addr=0xab`**、RIP 在 libpython3.12 内）。
+    #   ⚠️ **不含本层**的最小复现同样崩：30 条原生 `torch.cuda.Stream()` 各挂一个 `weakref.ref`
+    #   后丢弃 ⇒ `rc=139` 2/2（N=1 时不崩）⇒ **根因在平台侧**，本层是**暴露面**
+    #   （本层为每条流建 `weakref`：`note_stream_created` / `release_stream`）。
+    # ⇒ 本层义务 = **不依赖弱引用语义**（不是要求平台先修好）：
+    #   ① 无本层上下文时**不登记** `_stream_ctx`（条目本就无信息，却会挂一个弱引用）；
+    #   ② `_released_streams` 用**强持有**。两处必须**都**收 —— 注入对照显示：
+    #      只关掉 ① 时最小复现与 T4 变 `rc=0`，但 **T6 仍 139**（它走 `release_stream` 这第二条）；
+    #      把 ② 也换成强持有后三个载体全部 `rc=0`。
+    #   ③ 两张按 `id()` 键的表加**条数上限**（强持有会让条目 pin 住对象 ⇒ 不设上限会无界增长）。
+    # ⚠️ **非空转**：去掉 `note_stream_created` 里的 `cid is not None` ⇒ ① FAIL；
+    #    把 `_released_streams` 的强持有改回 `self._id_holder(...)` ⇒ ② FAIL（均已实测）。
+    print("\n[7b] 登记表的弱引用暴露面（台账第 39 条）")
+    try:
+        # ① 无本层上下文 ⇒ 不登记（⇒ 不在厂商对象上挂弱引用）
+        _n0 = len(bk._reg("_stream_ctx"))
+        _s_ctx = bk.create_stream(None)
+        bk.note_stream_created(_s_ctx)
+        check("① 无本层上下文时不登记 `_stream_ctx`（⇒ 不给厂商流对象挂弱引用）",
+              bk.current_context_id() is None and len(bk._reg("_stream_ctx")) == _n0,
+              f"current_context_id={bk.current_context_id()!r}；|_stream_ctx| {_n0} -> "
+              f"{len(bk._reg('_stream_ctx'))}")
+
+        # ② `_released_streams` 必须是**强持有**（行为特征：外部引用消失后条目仍取回同一对象）
+        if bk.supports("stream_priority_control"):
+            import weakref as _weakref
+            _b2 = bk._priority_bounds()
+            _o = bk.create_stream(_b2[0] if _b2 else 0)
+            bk.release_stream(_o)
+            _ent = bk._reg("_released_streams").get(id(_o))
+            _w = _weakref.ref(_o)
+            del _o
+            check("② 「已释放」记录的持有器是**强持有**（弱引用语义在该平台不可信）",
+                  _ent is not None and _w() is not None and _ent[1]() is _w(),
+                  "条目仍在且外部引用消失后对象仍活 ⇒ 强持有 ✓" if (
+                      _ent is not None and _w() is not None)
+                  else f"entry={_ent is not None} alive_after_del={_w() is not None}")
+        else:
+            skip("② 「已释放」记录的持有器是强持有",
+                 "该后端不声明 `stream_priority_control` ⇒ 不产生「已释放」记录")
+
+        # ③ 上限生效：写超上限后长度被夹住、且丢的是**最旧**条目
+        _lm = bk._LEDGER_MAX
+        for _i in range(_lm + 5):
+            bk._ledger_put("_scratch_ledger", _i, _i)
+        _reg3 = bk._reg("_scratch_ledger")
+        check("③ 按 id 键的登记表有条数上限（防长驻服务无界增长）",
+              len(_reg3) == _lm and (0 not in _reg3) and ((_lm + 4) in _reg3),
+              f"|reg|={len(_reg3)}（上限 {_lm}）；最旧已丢={0 not in _reg3}；最新仍在={(_lm + 4) in _reg3}")
+        bk.__dict__.pop("_scratch_ledger", None)
+    except BaseException as e:                                            # noqa: BLE001
+        check("弱引用暴露面（① 无上下文不登记 / ② 强持有 / ③ 表上限）",
+              False, f"{type(e).__name__}: {str(e)[:90]}")
+
     # ── 8. 缺厂商扩展时不得静默降级 ──
     print("\n[8] 缺厂商扩展时的行为（应报错并给出下一步，不得静默降级）")
     if caps.get("stub_vendor_extension", True):

@@ -228,10 +228,24 @@ class RuntimeBackend(ABC):
         直到**进程退出清理阶段**才暴露 `stream not in current ctx`（107003）
         —— 属"静默延迟暴露"。契约要求「销毁后使用其流必须**明确**」⇒
         本层必须自己把这条关联记下来，才能在使用点上**主动拦截**。
+
+        ⭐ **2026-10-14 修（T11，按语义收窄登记条件）**：`current_context_id()` 为 `None` 时
+        **不登记**。理由是该条目的**全部语义**就是"这条流属于哪个本层上下文"：
+          · `check_stream_usable()` 也**只在 `cid is not None`** 时才用它 ⇒ 不登记**不改变**
+            任何拦截行为（`cid is None` 意味着"不属于本层上下文"，本来就无从拦截）；
+          · 但登记会在**厂商流对象上挂一个弱引用**。PPU 真机实测（原生现场见
+            `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）：平台侧**弱引用书签失效**，
+            对象回收后弱引用悬垂 ⇒ 解释器退出期 `Py_FinalizeEx → _PyWeakref_ClearRef`
+            解引用垃圾指针 ⇒ SIGSEGV（`si_code=1`、`si_addr=0xab`）。
+        ⇒ **不登记的那条路径就不建弱引用、也就不暴露**（注入对照：关掉本函数后，
+          最小复现与 T4 由 `rc=139` 变 `rc=0`；同轮对照的 control 组稳定 139）。
+        一句话：本层的义务是**不依赖弱引用语义**（平台缺陷不归本层修），而非"多留一条用不上的记录"。
         """
         try:
-            self._reg("_stream_ctx")[id(native_stream)] = (
-                self.current_context_id(), self._id_holder(native_stream))
+            cid = self.current_context_id()
+            if cid is not None:                  # 无本层上下文 ⇒ 条目无信息、只留风险 ⇒ 不登记
+                self._ledger_put("_stream_ctx", id(native_stream),
+                                 (cid, self._id_holder(native_stream)))
         except Exception:                                     # noqa: BLE001
             pass
 
@@ -452,7 +466,17 @@ class RuntimeBackend(ABC):
     def _id_holder(obj):
         """返回一个"取回原对象"的持有器：优先 `weakref`（对象回收后返回 `None`），
         类型不支持弱引用时退化为**强引用** lambda —— 强引用同样保证身份可复核
-        （且保住对象 ⇒ 其 id 不会被复用）。"""
+        （且保住对象 ⇒ 其 id 不会被复用）。
+
+        ⚠️ **2026-10-14（T11）后本函数的实际使用面已收窄**：`_owned_streams` 与
+        `_released_streams` 都改用了**强持有**，只有 `_stream_ctx` 仍然用它（且该表
+        只在"确有本层上下文"时才登记，见 `note_stream_created`）。原因是 PPU 真机实测到
+        **平台侧弱引用书签不可信**：对象回收后弱引用悬垂，解释器退出期清理弱引用时
+        `Py_FinalizeEx → _PyWeakref_ClearRef` 解引用垃圾指针 ⇒ SIGSEGV
+        （`si_code=1`、`si_addr=0xab`；纯 torch 最小复现见
+        `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）。
+        本层的处置原则是**不依赖弱引用语义**，而不是要求平台先修好。
+        """
         try:
             import weakref
             return weakref.ref(obj)
@@ -542,8 +566,8 @@ class RuntimeBackend(ABC):
         try:
             # ⚠️ value 是 **3 元组**（注意：不是 2 元组）：(厂商句柄, 持有器, 登记时的类型名)。
             #    第 3 项是 **2026-10-10 加的「类型复核」依据**，见 `_owned_handle` 的说明。
-            self._reg("_owned_streams")[id(native_stream)] = (
-                int(handle), lambda: native_stream, type(native_stream).__name__)
+            self._ledger_put("_owned_streams", id(native_stream), (
+                int(handle), lambda: native_stream, type(native_stream).__name__))
             # ⭐ **2026-10-14 新增（机制无关的主防线）**：新建的流**使同 id 的旧"已释放"记录失效**。
             #
             #    为什么必须在这里清（而不是只加类型复核）：
@@ -587,8 +611,16 @@ class RuntimeBackend(ABC):
         # value 是 **3 元组**（2026-10-14 由 2 元组升为 3 元组，与 `_owned_streams` 同形）：
         #   (厂商句柄, 持有器, 释放时的类型名) —— 第 3 项供 `check_stream_usable` 做**类型复核**，
         #   挡"跨类型地址复用"造成的误拦（同类型复用由 `_register_owned_stream` 的清除负责）。
-        self._reg("_released_streams")[id(native_stream)] = (
-            int(handle), self._id_holder(native_stream), type(native_stream).__name__)
+        # ⭐ **持有器 = 强持有**（2026-10-14 修，T11）：原先用弱引用，理由是"对象死了条目也就不该再命中"。
+        #    但 PPU 真机实测（见 `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）证明
+        #    **该平台上的弱引用书签不可信**：对象回收后弱引用悬垂，且解释器退出期清理弱引用时
+        #    `_PyWeakref_ClearRef` 会解引用垃圾指针 ⇒ SIGSEGV（`si_code=1`、`si_addr=0xab`）。
+        #    T6 探针（会建/释放优先级流）在"只关掉 `_stream_ctx` 登记"的注入下**仍然崩**，
+        #    说明这条释放记录是**独立**的第二处暴露面 ⇒ 这里也改为强持有（与 `_owned_streams` 一致）。
+        #    代价：条目会 pin 住已释放的 Python 包装对象（设备级流已真销毁，对象本身是惰性的），
+        #    故与 `_ledger_put` 的容量上限配套，避免长驻服务无界增长。
+        self._ledger_put("_released_streams", id(native_stream), (
+            int(handle), (lambda _o=native_stream: _o), type(native_stream).__name__))
         return bool(self._destroy_stream_raw(handle))
 
     def _destroy_stream_raw(self, handle) -> bool:
@@ -971,6 +1003,26 @@ class RuntimeBackend(ABC):
             reg = {}
             setattr(self, name, reg)
         return reg
+
+    #: 按 `id()` 键的登记表**容量上限**（2026-10-14 新增，理由见 `_ledger_put`）。
+    _LEDGER_MAX = 4096
+
+    def _ledger_put(self, name: str, key: int, value) -> None:
+        """写入按 `id()` 键的登记表；**超上限则丢最旧条目**（`dict` 保序 ⇒ 丢首个键）。
+
+        为什么需要上限（2026-10-14 引入强持有后必须一起做）：
+          这两张表的条目**不会**随对象生命周期自动回收 —— 回收只可能发生在"同一 id 再次登记"
+          时，而 `_owned_streams`/`_released_streams` 现在用**强持有**（强持有正是为了不让 id
+          被复用、避免误判为"另一条流"）⇒ 条目只增不减。长驻服务里"建流/释放流"是热路径，
+          无界增长会真的吃内存。
+        取舍（如实写明）：上限只牺牲**极旧条目**的诊断/拦截能力（丢的是最久以前登记的），
+          近期语义不受影响 —— 「宁可少拦截一条陈年记录，也不要无界增长」。
+        """
+        reg = self._reg(name)
+        reg[key] = value
+        if len(reg) > self._LEDGER_MAX:
+            for k in list(reg.keys())[: len(reg) - self._LEDGER_MAX]:
+                reg.pop(k, None)
 
     #: 登记表名 → 期望的句柄种类（**防两类句柄互相误用**）
     _REG_KINDS = {"_alloc_handles": "memory", "_ctx_handles": "context"}
