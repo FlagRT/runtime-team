@@ -179,6 +179,14 @@ P800 `DUTY_RESPONSE_PASS` **68 / 0 / 10** · MLU590 **62 / 0 / 16**；两台均 
 ⑪ ✅ **T10 证据命名约定（10-14 · A 方案）**：目录级命名 **`<T号>_<用途>_<YYYYMMDD>[_out]`** 写入
 `prototype/docs/VERIFICATION_MANIFEST_20260920.md` **§5.1** 作为**补充约定**（目录 = 按任务检索；文件 = 仍按 §5 模板；**旧证据不追溯改名**）。
 
+⑫ ✅ **T7 MLU590 服务化四形态补全（10-14）**：在 **vLLM 应用镜像容器** `dc-mlu590-vllm-hliu553` 上跑
+`TP∈{1,2} × EAGER∈{1,0}` **四形态，全部 `SERVE_STANDARD_PASS (ready=1 smoke=1)`**（就绪 175/530/345/440 s · 维度 1024 · 范数 1.000001；
+形态生效的正证据 = vLLM 自身 config dump 的 `enforce_eager` 与 `tensor_parallel_size`/`world_size` 逐形态吻合）⇒ 与 **910C（09-29 四形态）对称**；
+本层消费方主腿 **`SERVE_LEG_PASS 10/10`**（区分度 0.4091，与 10-08 逐字相同）；对照腿 `TP=2/EAGER=0` 首跑撞客户端窗口 ⇒ 补跑（`SERVE_REQ_TIMEOUT=600`，服务侧一字未改）**亦 `SERVE_LEG_PASS 10/10`** ⇒ 定性为**客户端观测窗口不足**（max 87467 ms）。⚠️ **两处如实登记**：① 消费方客户端观测窗口原硬编码 **120 s**
+（`TP=1/EAGER=1` 实测首请求 85 s、`TP=2/EAGER=0` 第 2 请求超时）⇒ 新增 `SERVE_REQ_TIMEOUT`（**默认值不变**）；
+② 停机漏杀大写进程名 **`VLLM::Worker_TP*`** ⇒ 卡 0/1 各占 89 GiB 未释放，按 `VLLM::` 前缀清后回落 **94.6/94.8 GiB**（脚本已修）。
+⇒ `MLU590/docs/CAMBRICON_MLU590_SERVE_FOUR_FORMS_20261014.md` · `MLU590/probes/t7_serve_20261014_out/`。
+
 ⭐ **10-14 新增**：**平台侧 `weakref` 悬垂 ⇒ 本层误拦**（T6 首跑全线 `RuntimeError`）已定位并**机制无关修复**
 （新建登记即清除同 id 旧「已释放」记录 + 类型复核；交替对照 + 非空转判据）⇒ `PPU/docs/PPU_T3_T6_AND_WEAKREF_20261014.md`。
 ⭐ **10-14 再新增**：**退出期段错误根因定位与收口（T11）** —— 容器内**无 gdb**（宿主有、但无免密 sudo 且容器进程属 root ⇒ 不能 attach），

@@ -28,6 +28,17 @@
 > 证据：`probes/t1_duty_cambricon_20261014re.json` · `probes/t1_coninvariants_cambricon_20261014re.log` ·
 > 脚本：`probes/run_t1re_mlu590_20261014_in.sh`。
 >
+> ⭐ **2026-10-14 三更新（T7：服务化**四形态**补全 + 消费方腿）**：在 **vLLM 应用镜像容器** `dc-mlu590-vllm-hliu553`
+> 上补齐 **`TP∈{1,2} × EAGER∈{1,0}` 四形态**，**全部 `SERVE_STANDARD_PASS (ready=1 smoke=1)`**
+> （就绪 175 / 530 / 345 / 440 s；维度 1024、范数 1.000001；形态生效的正证据 = vLLM config dump 的
+> `enforce_eager` 与 `tensor_parallel_size`/`world_size` 逐形态吻合）⇒ 与 **910C（09-29 已四形态）对称**。
+> 本层消费方腿主腿 **`SERVE_LEG_PASS 10/10`**（区分度 0.4091，与 10-08 逐字相同）；对照腿 `TP=2/EAGER=0` 首跑撞客户端观测窗口，
+> 补跑（`SERVE_REQ_TIMEOUT=600`、服务侧一字未改）**亦 `SERVE_LEG_PASS 10/10`** ⇒ 定性为**客户端窗口不足**（max 87467 ms）。
+> ⚠️ **两处如实登记**：① 消费方客户端观测窗口原硬编码 **120 s**（`TP=1/EAGER=1` 实测首请求 85 s、`TP=2/EAGER=0` 第 2 请求超时）
+> ⇒ 新增 `SERVE_REQ_TIMEOUT`（**默认不变**）；② 停机漏杀大写进程名 **`VLLM::Worker_TP*`** ⇒ 卡 0/1 各占 89 GiB 未释放，
+> 按 `VLLM::` 前缀清后立即回落 94.6/94.8 GiB（脚本已修）。
+> ⇒ 全文 **`docs/CAMBRICON_MLU590_SERVE_FOUR_FORMS_20261014.md`**；证据 `probes/t7_serve_20261014_out/`。
+>
 > ⭐ **本实例的三个「唯一」**（三家对照时信息量最大）：
 > ① **唯一**声明 `stream_priority_control` **且区间非单点**（`(0,-3)`）⇒ **唯一能出「调度效果」结论**的实例；
 > ② **唯一**经**统一面**行使契约 §1.10 **L5**（流所有权/释放）的实例 —— 整条优先级路径走**厂商 CNRT C API**
@@ -137,6 +148,7 @@ sudo usermod -aG docker hliu553
 | 路径 | 内容 |
 |---|---|
 | `docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` | **环境报告（第 0 步）**：两机并列明细 · docker 数据盘归属的证据链 · 版本组合 · 开通需求 · 探测边界 |
+| `docs/CAMBRICON_MLU590_SERVE_FOUR_FORMS_20261014.md` | ⭐ **服务化四形态补全（T7）**：`TP∈{1,2} × EAGER∈{1,0}` **四形态全 PASS**（就绪 175/530/345/440 s · 维度 1024 · 范数 1.000001）· **形态生效正证据**（vLLM config dump 的 `enforce_eager`/`tensor_parallel_size`/`world_size`）· 本层消费方主腿 **`SERVE_LEG_PASS 10/10`**（与 10-08 同口径可比）· ⚠️ **两处如实登记**（客户端观测窗口 120 s 硬编码 ⇒ 新增 `SERVE_REQ_TIMEOUT`（默认不变）；停机须按 **`VLLM::` 前缀**清，否则 `VLLM::Worker_TP*` 孤儿持卡 89 GiB×2）· 边界与不声称项 |
 | `docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md` | **镜像渠道调研 + 更正 + 定档**：§0 更正段（FlagOS 官方 BAAI Harbor 已有寒武纪三代镜像、实测可匿名拉取）· §0.1 **定档 `neuware4.4.3`** · §0.2 **驱动升级上报预案**（四条门槛 + 上报模板）· FlagTree 无寒武纪手册（26 页证据）· 三私仓实测 |
 | `docs/CAMBRICON_MLU_STREAM_BASELINE_16_20260922.md` | ⭐ **多流 Stream 验收基线 16 项逐项比对报告**：16 项 MLU590 结论（**15 通过 / 1 不适用 / 0 不支持**）· **三实例逐项对照**（唯一差异 = S-12 流优先级，**与 P800 相反**）· S-7 图捕获 5/5 与 S-16 配额 2000 流 · 证据形态差异（含 **CNCL 走 MLU_LINK 非 RDMA**）· 复现命令 · 未覆盖项 |
 | `docs/CAMBRICON_MLU_ADAPT_PLAN_20260922.md` | ⭐ **接入方案 + 真机执行手册**：进度表 · 厂商栈判别（预期路径 C）· 已完成的代码层动作与能力声明理由 · 本地验证（离线自检 35/0）· **A1–A10 真机执行序列（含确切命令）** · 验收清单 13 项当前状态 · 风险与应对 · 职责边界 |
@@ -159,6 +171,6 @@ sudo usermod -aG docker hliu553
 `../prototype/scripts/serve_standard.sh`（服务启动；**寒武纪需先起 vLLM 应用镜像容器**）。
 
 **后续（不阻塞发布）**：
-1. **多卡 TP / 关闭 `--enforce-eager`** 的服务化形态未跑（本次为 `TP=1` + eager）。
+1. ✅ **多卡 TP / 关闭 `--enforce-eager`** 的服务化形态**已于 10-14 补齐四形态**（`TP∈{1,2} × EAGER∈{1,0}` 全 PASS；含本层消费方腿 `SERVE_LEG_PASS 10/10`）⇒ `docs/CAMBRICON_MLU590_SERVE_FOUR_FORMS_20261014.md`。⚠️ 遗留两条如实登记项（客户端 `SERVE_REQ_TIMEOUT` 开关、`VLLM::Worker_TP*` 清理）已修并写进该报告 §5。
 2. **CNCL 的 RDMA 路径未验证**（当前走 `MLU_LINK` 片间互联，训练数据仅代表单机 2 卡）。
 3. 档位升级（→ `neuware4.7.2` / 驱动 6.5.48）仍为**上报预案**，非当前诉求（见 §3）。
