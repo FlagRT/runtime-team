@@ -22,17 +22,17 @@
 
 | # | 项 | 类别 | 入口 | 验收判据 | 需卡 | 窗口 |
 |---|---|---|---|---|---|---|
-| **T1** | 三家真机复跑 78 项职责审计（跨后端基类改动） | 🔴 最高 | `scripts/duty_response_audit.py --backend <b>` | 三家各 `DUTY_RESPONSE_PASS`（**0 FAIL**）；重点看 `L1` 流归属与释放 | ✅ ×3 台 | 1 次/台 |
+| **T1** | 三家真机复跑 78 项职责审计（跨后端基类改动） | 🔴 最高 | `scripts/duty_response_audit.py --backend <b>` | 三家各 `DUTY_RESPONSE_PASS`（**0 FAIL**）；重点看 `L1` 流归属与释放 | ✅ ×3 台（910C/P800=10-13 · **MLU590=10-14**） | 1 次/台 |
 | **T1-a** | ✅ **910C 已完成（10-13）** | — | 见 §2.5 执行记录 | `DUTY_RESPONSE_PASS` **73 / 0 / 5**（与 10-08 基线逐项状态零差异）· 契约不变式 **4/4** | — | — |
 | **T1-b** | ✅ **P800 已完成（10-13）** | — | 见 §2.5 执行记录 | `DUTY_RESPONSE_PASS` **68 / 0 / 10**（与 10-08 基线逐项状态零差异）· 契约不变式 **4/4** | — | — |
 | **T1-c** | ⬜ **MLU590 待做** | 🔴 最高 | 同 T1（`--backend cambricon`） | 同 T1；⚠️ 前置 = `Mlu-1` / `Mlu-2` **网络打通**（10-13 仍 SSH 超时） | ✅ ×1 台 | 1 次 |
-| **T2** | ✅ **910C / P800 已完成（10-13）**；MLU590 待做 | 🟠 需卡（只读） | `bash scripts/preflight_env.sh` | ✅ 两台均 `rc=0`：`910C/probes/t2_preflight_env_ascend_20261013.log`（12.9 KB）· `P800/probes/t2_preflight_env_kunlun_20261013.log`（11.7 KB） | ✅ 连机即可 | 与 T1 同窗口 |
+| **T2** | ✅ **三家全部完成**（910C/P800=10-13 · MLU590=10-14） | 🟠 需卡（只读） | `bash scripts/preflight_env.sh` | ✅ 三台均 `rc=0`：`910C/probes/t2_preflight_env_ascend_20261013.log`（12.9 KB）· `P800/probes/t2_preflight_env_kunlun_20261013.log`（11.7 KB）· `MLU590/probes/t2_preflight_env_cambricon_20261014.log`（11.4 KB） | ✅ 三家已闭环 | 已闭环 |
 | **T3** | PPU 推理腿服务化 | 🔴 高 | 给 `scripts/serve_standard.sh` **补 `ppu` 分支**后跑 | `SERVE_STANDARD_PASS (ready=1 smoke=1)` | ✅ | 与 T4 同窗口 |
 | **T4** | PPU 错误闭环四类注入 | 🔴 高 | `runtime/proto/proto_error_recovery_loop.py --backend ppu` | 四类注入分级处置正确 + 业务继续（对齐三家 `5/0/0`） | ✅ | 与 T3 同窗口 |
 | **T5** | PPU 多流 16 项基线逐项比对报告 | 🟡 中 | `probes/probe_stream_semantics_full.py` + 参照文档 | 出一份 `PPU/docs/*STREAM_BASELINE_16*`（S-1…S-16 逐项） | ⚠️ 部分 | 与 T3/T4 同窗口 |
 | **T6** | PPU D2 流优先级「调度效果」实证 | 🟡 中 | `probes/probe_stream_priority_sched_effect.py --backend ppu` | 同口径对照（含正对照 + 分辨力判据）；**测不出也要如实记录** | ✅ | 与 T3/T4 同窗口 |
 | **T7** | MLU590 多卡 TP / 关闭 `--enforce-eager` 服务化 | 🟡 中 | 走 `serve_standard.sh`（**需 vLLM 应用镜像容器**） | `TP>1` 起服务 + 冒烟通过；`EAGER=0` 至少一轮 | ✅ | 需应用镜像 |
-| **T8** | 🔄 **P800 已完成（10-13）**；MLU590 待做 | 🟢 低 | `probes/recover_multiproc_stress.py --backend <b>` | ✅ P800 产出 `A2_BOUNDARY: SKIP_UNSUPPORTED`（`rc=3`，**未做任何设备操作**）⇒ `P800/probes/t8_a2_skip_kunlun_20261013.log` | ⚠️ 弱 | 与 T1 同窗口 |
+| **T8** | ✅ **P800 + MLU590 均完成**（P800=10-13 · MLU590=10-14） | 🟢 低 | `probes/recover_multiproc_stress.py --backend <b>` | ✅ 两后端均 `A2_BOUNDARY: SKIP_UNSUPPORTED`（`rc=3`，**未做任何设备操作**）⇒ `P800/probes/t8_a2_skip_kunlun_20261013.log` · `MLU590/probes/t8_a2_skip_cambricon_20261014.log`（未声明 `recovery_real` ⇒ 如实跳过留档） | ✅ 已闭环 | 已闭环 |
 | **T9** | PPU 证据索引 `EVIDENCE_INDEX_PPU.md` | 🟢 低（不需卡） | 纯文档 | 列出 `probes/` 全量 + 判读纪律（只作复核入口） | ❌ | 任意 |
 | **T10** | PPU 证据命名对齐 manifest §5 | 🟢 低（不需卡） | 纯文档 | 后续新证据按 `<层标识>_<项目>_<后端>_<条件>_<YYYYMMDD>` | ❌ | 随 T9 |
 | **T11** | PPU 退出期段错误收口 | ⚪ 需外部 | — | 需**带调试器的镜像**或厂商协助 | ⚠️ | 依赖外部 |
@@ -74,8 +74,8 @@ P800 vs `r12_duty_kunlun.json` / `d2_duty_kunlun.json`）。3 处 `detail` 差�
 
 | 项 | 机 | 结果 | 证据 |
 |---|---|---|---|
-| **T2** 环境普查留档 | 910C / P800 | ✅ 均 `rc=0` | `910C/probes/t2_preflight_env_ascend_20261013.log`（12.9 KB）· `P800/probes/t2_preflight_env_kunlun_20261013.log`（11.7 KB） |
-| **T8** A2 如实跳过留档 | P800 | ✅ `rc=3`、`A2_BOUNDARY: SKIP_UNSUPPORTED`（**未做任何设备操作**） | `P800/probes/t8_a2_skip_kunlun_20261013.log` |
+| **T2** 环境普查留档 | 910C / P800 / MLU590 | ✅ 均 `rc=0`（MLU590=10-14） | `910C/probes/t2_preflight_env_ascend_20261013.log`（12.9 KB）· `P800/probes/t2_preflight_env_kunlun_20261013.log`（11.7 KB）· `MLU590/probes/t2_preflight_env_cambricon_20261014.log`（11.4 KB） |
+| **T8** A2 如实跳过留档 | P800 / MLU590 | ✅ 均 `rc=3`、`A2_BOUNDARY: SKIP_UNSUPPORTED`（**未做任何设备操作**；MLU590=10-14） | `P800/probes/t8_a2_skip_kunlun_20261013.log` · `MLU590/probes/t8_a2_skip_cambricon_20261014.log` |
 
 > T2 顺带拿到两条与"环境漂移"相关的旁证：910C 宿主 `python3` 只剩 **3.9.9**
 > （`/usr/local/python3.12.13` 确已被移除 ⇒ 与 §2.5 第 1 条互相印证）；

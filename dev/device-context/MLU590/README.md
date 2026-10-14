@@ -14,6 +14,13 @@
 > 非空转 **26/13/0** · 训练腿 6/6 · 推理腿 13/13 · 服务化 `SERVE_STANDARD_PASS` + `SERVE_LEG_PASS` 10/10）。
 > 数字与证据：`docs/CAMBRICON_MLU_M1_RERUN_20261008.md` **L10–L46**（§0）。
 >
+> ⭐ **2026-10-14 更新（T1 复跑）**：10-10 共享层改动（`_owned_streams` 3 元组 + 类型复核）后
+> **真机复跑 78 项职责审计：`DUTY_RESPONSE_PASS` 62/0/16**（FAIL=0，`L1`–`L5` 全 OK）· 契约不变式 **4/4**
+> （i1 覆盖 11/17）⇒ **与 10-08 基线逐项状态零差异，无回归**。同窗口完成 T2 环境普查（`rc=0`）与
+> T8 A2 如实跳过留档（`A2_BOUNDARY: SKIP_UNSUPPORTED`）。
+> 证据：`probes/t1_duty_cambricon_20261014.json` · `probes/t1_coninvariants_cambricon_20261014.json` ·
+> `probes/t2_preflight_env_cambricon_20261014.log` · `probes/t8_a2_skip_cambricon_20261014.log`。
+>
 > ⭐ **本实例的三个「唯一」**（三家对照时信息量最大）：
 > ① **唯一**声明 `stream_priority_control` **且区间非单点**（`(0,-3)`）⇒ **唯一能出「调度效果」结论**的实例；
 > ② **唯一**经**统一面**行使契约 §1.10 **L5**（流所有权/释放）的实例 —— 整条优先级路径走**厂商 CNRT C API**
@@ -137,6 +144,7 @@ sudo usermod -aG docker hliu553
 
 **已完成（09-28 收口）**：第三实例 **12 项判定全部通过**（见 §0 状态块与阶段表），
 接入路径闭环＝`环境普查 → 镜像定档 → 后端落地 → 离线自检 → conformance 13+6 → 多流 16 项 → 训练腿 → 推理腿两形态 → 错误闭环`。
+**追加（10-14）**：T1 真机复跑 78 项无回归 + T2/T8 留档（见 §0 更新块）。
 
 **资产复用（三实例同构，换芯片只改 `DC_BACKEND`）**：
 `../prototype/scripts/preflight_env.sh`（环境普查）· `../prototype/scripts/backend_offline_check.py`（离线契约自检，无设备可跑）·

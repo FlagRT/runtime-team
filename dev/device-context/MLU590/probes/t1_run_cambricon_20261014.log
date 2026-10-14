@@ -1,0 +1,35 @@
+########## [0] 跑的是当前版本吗（版本自证）##########
+类型复核 tname 命中（期望 4）  = 4
+审计项数 @item（期望 78）      = 78
+registry 后端表                = _KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon", "ppu"
+契约不变式入口                 = runtime/conformance/contract_invariants.py
+存在
+@ tza-0a06-ai01-em9 2026-10-14 08:57:12  MLU_VISIBLE_DEVICES=0（容器内 0 基）
+
+########## [1] 设备可见性 ##########
+  torch     = 2.7.1+cpu
+  torch_mlu = 1.29.2+torch2.7.1
+  mlu_count = 1
+  dev0      = MLU590-M9
+
+########## [2] 契约不变式 I1–I4（真机）##########
+[08:57:18] start
+rc=0
+    [PASS   ] i1_honest_declaration        ④ 入口存在性覆盖 11/17 项能力
+    [PASS   ] i2_no_fabrication            陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+    [PASS   ] i3_invalidated_governed      不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`（如实不具备；**未验证 ≠ 已确认不具备**）
+    [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓
+  === 汇总: 4/4 通过 ===
+  结论: CONTRACT_INVARIANTS_PASS
+[08:57:25] end
+
+########## [3] 职责响应审计 78 项（主判据）##########
+[08:57:25] start
+rc=0
+[08:58:03] end
+
+########## [4] 汇总 ##########
+  duty     : ok=62 fail=0 skip=16 total=78 verdict=DUTY_RESPONSE_PASS
+  L 域     : [('L1', 'OK'), ('L2', 'OK'), ('L3', 'OK'), ('L4', 'OK'), ('L5', 'OK')]
+  coninv   : passed=4/4 verdict=CONTRACT_INVARIANTS_PASS
+T1_MLU_DONE
