@@ -69,7 +69,7 @@
 
 | 版本 | tag | repro_status | 目录 |
 |---|---|---|---|
-| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉 | `ascend-infer-vllm/v1/` |
+| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + demo（ADR-0007） | `ascend-infer-vllm/v1/` |
 
 > 该系列为**现行推理腿**（华为昇腾官方镜像，digest 锁定，🟢），公开 registry 按 digest 拉取；
 > 不携带已知限制 A-1~A-4 任何一条。起服务纪律（`unset VLLM_PLUGINS`、经
@@ -119,7 +119,8 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
-> `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。
+> `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。三条自建血统 + 官方推理镜像均
+> 已接入基线机制（推理腿为登记式，ADR-0007）。
 > 三条自建血统 v1/v2/v3 并存归档，v1/v2 供历史结论追溯。`kunlun-operator-runtime v1` 已
 > `superseded_by: v2`，**不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录
 > `lock.yaml` known_issues）。

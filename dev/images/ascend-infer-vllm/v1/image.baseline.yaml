@@ -12,7 +12,7 @@ image:
 
 # ── 与自建基线的差异（ADR-0007）──────────────────────────────────────────
 # ① 本镜像整体 = 被动继承的厂商官方产物，没有「本组配方带入」的层 ⇒ 全部条目 from: base_image。
-# ② commit 取自镜像内 .git（自证锚，2026-10-14 于 910c-27 探针实测），无本组标签可核对
+# ② commit 取自镜像内 .git（commit_source: in-image-git，自证锚，2026-10-14 于 910c-27 探针实测），无本组标签可核对
 #    —— check 走 from: base_image 分支（INFO，由 image id + digest 兜底），机制同自建基线的
 #    厂商基座段，不新增核对路径。
 # ③ install: editable-in-image + source_path 声明齐全 ⇒ check 的「镜像内 .git HEAD」附加核对
@@ -24,6 +24,7 @@ baked_repos:
     layer: L3
     from: base_image
     commit: bc150f50299199599673614f80d12a196f377655
+    commit_source: in-image-git
     version: 0.20.2+empty
     source_path: /vllm-workspace/vllm
     install: editable-in-image
@@ -32,6 +33,7 @@ baked_repos:
     layer: L3
     from: base_image
     commit: 367b8e62da799870a7476ce34f5f7658589a8aad
+    commit_source: in-image-git
     version: 0.20.2rc1
     source_path: /vllm-workspace/vllm-ascend
     install: editable-in-image
