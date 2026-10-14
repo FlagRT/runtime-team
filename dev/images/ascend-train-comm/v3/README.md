@@ -6,10 +6,12 @@
   `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`
   (npu1-11 image id `e13a15d0d02b`)。内容为基座镜像
   [`../../ascend-operator-runtime/v3/`](../../ascend-operator-runtime/v3/README.md) 全部组件 +
-  FlagCX(公开主干 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`)。v3 对外仅发布本镜像;
+  FlagCX(公开主干 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`)。本镜像为 V4 训练腿发布物
+  (见 [`dev/stack.lock.910c.v4.yaml`](../../../stack.lock.910c.v4.yaml) 的 `lock.train`);
+  推理腿为华为昇腾官方 `vllm-ascend`,见同文件 `lock.infer`;
   tag 中的 `comm` 字样为历史命名,保留不改。
 - 版本事实见 [`image.baseline.yaml`](image.baseline.yaml);demo 运行环境(验收配置与推荐用法)
-  见 [`demo/`](demo/docker-compose.yml),推理与训练共用。
+  见 [`demo/`](demo/docker-compose.yml)(训练腿运行环境)。
 - `repro_status`:🟡 partial-repro。
   - 推理:可用,前提为两项运行时配置(已写入 demo,见基座目录 README「复现」节)。
   - 训练:2 卡手动 DDP 写法(梯度 all_reduce 后显式 `torch.npu.synchronize()`)可用,

@@ -14,7 +14,8 @@
 #   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
 #   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
 #     dev/images/ascend-train-comm/v3/demo --strict
-# 推理腿与训练腿共用这一个容器，以 ASCEND_RT_VISIBLE_DEVICES 分区（见两个 README「验证」）。
+# 本容器只跑训练腿；多项训练侧验证共用该容器，以 ASCEND_RT_VISIBLE_DEVICES 分区（见两个 README「验证」）。
+# 推理腿走华为昇腾官方 vllm-ascend，见 dev/stack.lock.910c.v4.yaml 的 lock.infer。
 # 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
 
 name: flagrt-v3-demo
