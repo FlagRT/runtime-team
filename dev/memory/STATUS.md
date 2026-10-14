@@ -1,7 +1,7 @@
 # memory · STATUS
 
 > 总组速览入口（战略文档 §8.2 格式）｜ 详细看板见 [PROGRESS.md](PROGRESS.md) / [README.md](README.md)
-> 最近更新：2026-09-27
+> 最近更新：2026-10-14
 
 ## 设备接入路线
 
@@ -28,6 +28,18 @@
      **双指标方法论**：设备 HBM（npu-smi）+ 引擎 KV 使用率（/metrics `kv_cache_usage_perc`）同步采集。
      报告：[docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md)；
      探针 [probes/910c/](probes/910c/) gen-{load,matrix,parse}；原始数据 `benchmarks/out/gen910c/`（gitignored，服务器本地）。
+
+  5. FL 双栈显存画像 —— ✅ **完成**（2026-10-12，npu1-27 davinci4，v3 统一基座 `vllm-plugin-fl 0.0.0+g8b059122e`）。
+     14 组全矩阵（A/C/E/B/D/F）对照 vllm-ascend 基线：池精确减半（`vllm_fl/worker/worker.py` 静态 50% 预留，
+     双模型复现）、decode ~400× 慢（prefill 正常）、shmem 缺失两层三触发点；KV token 账目两栈一致
+     （≈0.14 MiB/tok）——卸载结论结构性可平移，池大小/并发数字须标栈。
+     报告：[docs/goals/proto-910c-202610/profile_FL双栈显存画像对照_910c.md](docs/goals/proto-910c-202610/profile_FL双栈显存画像对照_910c.md)。
+  6. KV 卸载到 Host（W2 最小闭环 + W3 开关对照）—— ✅ **vllm-ascend 锁定栈完成**（2026-10-14，npu1-27 davinci4，
+     外挂 NPU connector 适配件，vllm-ascend 本体零改动）。
+     卸→存→召回→结果正确四步实测闭环（召回 15 批 CPU→GPU DMA 实锤、12/12 请求正确）；
+     等效扩容 +20.4%、decode 代价 7-8%（第一版，未优化）；**Host 池 > GPU 池（>39.2 GiB）才成真两级缓存**。
+     FL 栈未测卸载（decode 性能限制，结论可平移，实测排 v3 验证窗口）。
+     报告：[docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md](docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md)。
 
 ## 关键结论（供总组 / device-context / 调度）
 
