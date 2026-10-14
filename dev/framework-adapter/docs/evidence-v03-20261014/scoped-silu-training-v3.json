@@ -1,0 +1,17 @@
+{
+  "status": "fail",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "native_control": false,
+  "same_state": false,
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [],
+  "adapter_environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0",
+    "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4"
+  },
+  "registration_mode": "temporary per forward/backward invocation",
+  "error": "Traceback (most recent call last):\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu-v3.py\", line 200, in <module>\n    run(args, result)\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu-v3.py\", line 84, in run\n    actual_grad = torch.autograd.grad(actual, x, dy)[0]\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py\", line 464, in grad\n    return handle_torch_function(\n           ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/overrides.py\", line 1740, in handle_torch_function\n    result = mode.__torch_function__(public_api, types, args, kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/scoped-adapter-20261014/silu_training_adapter.py\", line 102, in __torch_function__\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py\", line 515, in grad\n    result = _engine_run_backward(\n             ^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py\", line 865, in _engine_run_backward\n    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/function.py\", line 317, in apply\n    return user_fn(self, *args)\n           ^^^^^^^^^^^^^^^^^^^^\n  File \"/work/scoped-adapter-20261014/silu_training_adapter.py\", line 130, in backward\n    adapter.check()\n  File \"/work/scoped-adapter-20261014/silu_training_adapter.py\", line 42, in check\n    raise RuntimeError(\"Forward and backward must remain in the owning adapter scope\")\nRuntimeError: Forward and backward must remain in the owning adapter scope\n"
+}

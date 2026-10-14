@@ -1,0 +1,28 @@
+Environment: macOS, existing tablerag Python, torch 2.12.0; CPU fake registration only.
+Commands: python -m unittest discover -s dev/framework-adapter/probes -p test_silu_policy.py -v
+          python -m unittest discover -s dev/framework-adapter/probes -p test_silu_training_adapter.py -v
+test_admitted_experimental_case (test_silu_policy.PolicyTests) ... ok
+test_default_closed (test_silu_policy.PolicyTests) ... ok
+test_empty_allowlist (test_silu_policy.PolicyTests) ... ok
+test_environment_fields (test_silu_policy.PolicyTests) ... ok
+test_input_rejections (test_silu_policy.PolicyTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.000s
+
+OK
+test_backward_failure_no_update (test_silu_training_adapter.Controls) ... ok
+test_backward_outside_scope (test_silu_training_adapter.Controls) ... ok
+test_body_error_exit (test_silu_training_adapter.Controls) ... ok
+test_default_native (test_silu_training_adapter.Controls) ... ok
+test_forward_backward_restore (test_silu_training_adapter.Controls) ... ok
+test_higher_order_rejected (test_silu_training_adapter.Controls) ... ok
+test_inference (test_silu_training_adapter.Controls) ... ok
+test_nested_rejected (test_silu_training_adapter.Controls) ... ok
+test_registration_exit_failure (test_silu_training_adapter.Controls) ... ok
+test_target_failure_not_retried (test_silu_training_adapter.Controls) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.371s
+
+OK

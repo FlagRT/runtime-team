@@ -1,0 +1,31 @@
+can not use command: npu-smi info
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py:53: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  dy = torch.randn_like(x)
+/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py:72: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  "forward_max_abs": float((actual-y).abs().max()),
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  30%|███       | 93/310 [00:00<00:00, 482.20it/s]Loading weights:  46%|████▌     | 142/310 [00:00<00:00, 191.86it/s]Loading weights:  55%|█████▍    | 169/310 [00:00<00:00, 185.82it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 360.72it/s]
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 4516.21it/s]
+{"step": 0, "status": "pass", "calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}, "loss_native": 18.12961196899414, "loss_target": 18.12961196899414, "gradient_tensors_compared": 310, "gradient_max_abs": 6.198883056640625e-06, "parameter_tensors_compared": 310, "parameter_max_abs": 2.6030465960502625e-07}
+{"step": 1, "status": "pass", "calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}, "loss_native": 14.135724067687988, "loss_target": 14.135723114013672, "gradient_tensors_compared": 310, "gradient_max_abs": 4.00543212890625e-05, "parameter_tensors_compared": 310, "parameter_max_abs": 4.76837158203125e-07}
+{"step": 2, "status": "pass", "calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}, "loss_native": 11.439703941345215, "loss_target": 11.439702987670898, "gradient_tensors_compared": 310, "gradient_max_abs": 4.57763671875e-05, "parameter_tensors_compared": 310, "parameter_max_abs": 4.76837158203125e-07}
+Traceback (most recent call last):
+  File "/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py", line 153, in <module>
+    run(args, result)
+  File "/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py", line 121, in run
+    torch.testing.assert_close(q.grad, p.grad, atol=1e-5, rtol=1e-4, msg=lambda msg: name+": "+msg)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/testing/_comparison.py", line 1600, in assert_close
+    raise error_metas[0].to_error(msg)
+AssertionError: model.layers.2.mlp.down_proj.weight: Tensor-likes are not close!
+
+Mismatched elements: 2 / 3145728 (0.0%)
+Greatest absolute difference: 1.4327466487884521e-05 at index (317, 55) (up to 1e-05 allowed)
+Greatest relative difference: 0.0007897663745097816 at index (317, 55) (up to 0.0001 allowed)
+

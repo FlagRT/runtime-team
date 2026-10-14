@@ -1,0 +1,987 @@
+{
+  "status": "pass",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "native_control": false,
+  "same_state": false,
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [
+    {
+      "dtype": "torch.float32",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 4.76837158203125e-07,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 1e-05
+    },
+    {
+      "dtype": "torch.float16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.00048828125,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.005
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.0,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.03
+    }
+  ],
+  "adapter_environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0",
+    "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4"
+  },
+  "registration_mode": "temporary per forward/backward invocation",
+  "steps": [
+    {
+      "step": 0,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 18.129610061645508,
+      "loss_target": 18.12961196899414,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 6.198883056640625e-06,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 2.6030465960502625e-07
+    },
+    {
+      "step": 1,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 14.135723114013672,
+      "loss_target": 14.135723114013672,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.00543212890625e-05,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 4.76837158203125e-07
+    },
+    {
+      "step": 2,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 11.439704895019531,
+      "loss_target": 11.439702987670898,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.57763671875e-05,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 4.76837158203125e-07
+    }
+  ],
+  "model_tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "sampled_parameter_update": 3.0055642127990723e-05,
+  "dispatcher_restored": true,
+  "adapter_events": [
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ],
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ],
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ],
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ],
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ],
+    [
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "forward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      },
+      {
+        "backend": "flaggems",
+        "stage": "backward",
+        "reason": "completed"
+      }
+    ]
+  ]
+}

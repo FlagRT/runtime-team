@@ -1,0 +1,107 @@
+{
+  "status": "fail",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [
+    {
+      "dtype": "torch.float32",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 4.76837158203125e-07,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 1e-05
+    },
+    {
+      "dtype": "torch.float16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.00048828125,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.005
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.0,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.03
+    }
+  ],
+  "registered_ops": [
+    "silu_backward",
+    "silu"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 18.12961196899414,
+      "loss_target": 18.12961196899414,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 6.198883056640625e-06,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 2.6030465960502625e-07
+    },
+    {
+      "step": 1,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 14.135724067687988,
+      "loss_target": 14.135723114013672,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.00543212890625e-05,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 4.76837158203125e-07
+    },
+    {
+      "step": 2,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 11.439703941345215,
+      "loss_target": 11.439702987670898,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.57763671875e-05,
+      "parameter_tensors_compared": 310,
+      "parameter_max_abs": 4.76837158203125e-07
+    },
+    {
+      "step": 3,
+      "status": "started",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 8.768452644348145,
+      "loss_target": 8.768450736999512
+    }
+  ],
+  "model_tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "error": "Traceback (most recent call last):\n  File \"/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py\", line 153, in <module>\n    run(args, result)\n  File \"/work/framework-v03-NwoBpG/probes/test_silu_training_npu.py\", line 121, in run\n    torch.testing.assert_close(q.grad, p.grad, atol=1e-5, rtol=1e-4, msg=lambda msg: name+\": \"+msg)\n  File \"/usr/local/python3.11.15/lib/python3.11/site-packages/torch/testing/_comparison.py\", line 1600, in assert_close\n    raise error_metas[0].to_error(msg)\nAssertionError: model.layers.2.mlp.down_proj.weight: Tensor-likes are not close!\n\nMismatched elements: 2 / 3145728 (0.0%)\nGreatest absolute difference: 1.4327466487884521e-05 at index (317, 55) (up to 1e-05 allowed)\nGreatest relative difference: 0.0007897663745097816 at index (317, 55) (up to 0.0001 allowed)\n"
+}

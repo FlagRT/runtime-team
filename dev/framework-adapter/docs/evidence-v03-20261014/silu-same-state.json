@@ -1,0 +1,198 @@
+{
+  "status": "pass",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "native_control": false,
+  "same_state": true,
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [
+    {
+      "dtype": "torch.float32",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 4.76837158203125e-07,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 1e-05
+    },
+    {
+      "dtype": "torch.float16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.00048828125,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.005
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "gradient_max_abs": 0.0,
+      "calls": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "tolerance": 0.03
+    }
+  ],
+  "registered_ops": [
+    "silu",
+    "silu_backward"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 18.12961196899414,
+      "loss_target": 18.129613876342773,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 6.198883056640625e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 1,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 14.135722160339355,
+      "loss_target": 14.135721206665039,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.76837158203125e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 2,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 11.439703941345215,
+      "loss_target": 11.439702987670898,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.76837158203125e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 3,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 8.768453598022461,
+      "loss_target": 8.768453598022461,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 5.066394805908203e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 4,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 6.074375152587891,
+      "loss_target": 6.074375629425049,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.291534423828125e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 5,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 3.8006372451782227,
+      "loss_target": 3.80063796043396,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 4.813075065612793e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 6,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 2.109623908996582,
+      "loss_target": 2.109623670578003,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 3.337860107421875e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 7,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 1.027241587638855,
+      "loss_target": 1.027241587638855,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 2.682209014892578e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 8,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 0.6413484215736389,
+      "loss_target": 0.6413482427597046,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 5.543231964111328e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    },
+    {
+      "step": 9,
+      "status": "pass",
+      "calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "loss_native": 0.5323446989059448,
+      "loss_target": 0.5323446989059448,
+      "gradient_tensors_compared": 310,
+      "gradient_max_abs": 1.341104507446289e-06,
+      "same_state": true,
+      "target_optimizer_step": false
+    }
+  ],
+  "model_tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "sampled_parameter_update": 8.772872388362885e-05,
+  "dispatcher_restored": true
+}

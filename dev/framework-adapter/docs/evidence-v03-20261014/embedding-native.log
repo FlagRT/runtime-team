@@ -1,0 +1,22 @@
+can not use command: npu-smi info
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 3627.84it/s]
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+{"step": 0, "query_ids": ["PLAIN-10", "PLAIN-100"], "loss": 0.04722127318382263, "gradient_norm": 9.033690452575684, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 1, "query_ids": ["PLAIN-1000", "PLAIN-1002"], "loss": 0.8805950880050659, "gradient_norm": 95.58567810058594, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 2, "query_ids": ["PLAIN-1003", "PLAIN-1004"], "loss": 0.07369661331176758, "gradient_norm": 17.616878509521484, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 3, "query_ids": ["PLAIN-1005", "PLAIN-1009"], "loss": 0.17730185389518738, "gradient_norm": 37.92551803588867, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 4, "query_ids": ["PLAIN-1010", "PLAIN-1011"], "loss": 2.2024471759796143, "gradient_norm": 161.94703674316406, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 5, "query_ids": ["PLAIN-1012", "PLAIN-1013"], "loss": 0.5830660462379456, "gradient_norm": 78.50082397460938, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 6, "query_ids": ["PLAIN-1014", "PLAIN-1015"], "loss": 0.717207670211792, "gradient_norm": 115.2042236328125, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 7, "query_ids": ["PLAIN-1016", "PLAIN-1019"], "loss": 1.374502182006836, "gradient_norm": 158.6013946533203, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 8, "query_ids": ["PLAIN-1020", "PLAIN-1022"], "loss": 0.434368759393692, "gradient_norm": 140.61871337890625, "gradient_tensors": 310, "gems_calls": {}}
+{"step": 9, "query_ids": ["PLAIN-1023", "PLAIN-1024"], "loss": 0.6107449531555176, "gradient_norm": 88.19685363769531, "gradient_tensors": 310, "gems_calls": {}}
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.93s/it]Writing model shards: 100%|██████████| 1/1 [00:01<00:00,  1.93s/it]

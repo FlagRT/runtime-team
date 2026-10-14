@@ -1,0 +1,76 @@
+{
+  "status": "pass",
+  "scope": "native_fp32_single_device_synthetic_causal_lm",
+  "operator_replacement": false,
+  "model": "/work/model-verified-20261014",
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "loading_info": {
+    "missing_keys": [],
+    "unexpected_keys": [],
+    "mismatched_keys": [],
+    "error_msgs": []
+  },
+  "steps": [
+    {
+      "step": 0,
+      "loss": 18.12961196899414,
+      "grad_norm": 189.7991943359375,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 1,
+      "loss": 14.135722160339355,
+      "grad_norm": 130.99151611328125,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 2,
+      "loss": 11.439702033996582,
+      "grad_norm": 128.85906982421875,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 3,
+      "loss": 8.768453598022461,
+      "grad_norm": 118.76679992675781,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 4,
+      "loss": 6.074375629425049,
+      "grad_norm": 108.26480102539062,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 5,
+      "loss": 3.8006374835968018,
+      "grad_norm": 97.4028091430664,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 6,
+      "loss": 2.109623670578003,
+      "grad_norm": 84.93179321289062,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 7,
+      "loss": 1.0272414684295654,
+      "grad_norm": 62.58587646484375,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 8,
+      "loss": 0.6413482427597046,
+      "grad_norm": 65.5867919921875,
+      "parameters_with_gradient": 310
+    },
+    {
+      "step": 9,
+      "loss": 0.5323447585105896,
+      "grad_norm": 42.013484954833984,
+      "parameters_with_gradient": 310
+    }
+  ],
+  "sampled_parameter_max_update": 9.731203317642212e-05
+}

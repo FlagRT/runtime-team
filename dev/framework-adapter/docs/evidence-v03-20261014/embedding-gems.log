@@ -1,0 +1,22 @@
+can not use command: npu-smi info
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:   2%|▏         | 7/310 [00:00<00:05, 60.29it/s]Loading weights:  17%|█▋        | 53/310 [00:00<00:00, 266.27it/s]Loading weights:  37%|███▋      | 114/310 [00:00<00:00, 408.66it/s]Loading weights:  50%|█████     | 156/310 [00:00<00:00, 391.96it/s]Loading weights:  63%|██████▎   | 196/310 [00:00<00:00, 378.33it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 552.52it/s]
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/pointwise_dynamic.py:1536: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.empty_like(tensors[0], dtype=dtype)
+{"step": 0, "query_ids": ["PLAIN-10", "PLAIN-100"], "loss": 0.04722127318382263, "gradient_norm": 9.033690452575684, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 1, "query_ids": ["PLAIN-1000", "PLAIN-1002"], "loss": 0.880596399307251, "gradient_norm": 95.58576965332031, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 2, "query_ids": ["PLAIN-1003", "PLAIN-1004"], "loss": 0.07369660586118698, "gradient_norm": 17.61688804626465, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 3, "query_ids": ["PLAIN-1005", "PLAIN-1009"], "loss": 0.1773027777671814, "gradient_norm": 37.92564392089844, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 4, "query_ids": ["PLAIN-1010", "PLAIN-1011"], "loss": 2.202444314956665, "gradient_norm": 161.94700622558594, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 5, "query_ids": ["PLAIN-1012", "PLAIN-1013"], "loss": 0.583063542842865, "gradient_norm": 78.50048065185547, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 6, "query_ids": ["PLAIN-1014", "PLAIN-1015"], "loss": 0.7172048687934875, "gradient_norm": 115.20394134521484, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 7, "query_ids": ["PLAIN-1016", "PLAIN-1019"], "loss": 1.3744993209838867, "gradient_norm": 158.60134887695312, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 8, "query_ids": ["PLAIN-1020", "PLAIN-1022"], "loss": 0.4343736469745636, "gradient_norm": 140.619384765625, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+{"step": 9, "query_ids": ["PLAIN-1023", "PLAIN-1024"], "loss": 0.6107472777366638, "gradient_norm": 88.19713592529297, "gradient_tensors": 310, "gems_calls": {"GEMS SILU FORWARD": 28, "GEMS SILU BACKWARD": 28}}
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:13<00:00, 13.62s/it]Writing model shards: 100%|██████████| 1/1 [00:13<00:00, 13.62s/it]

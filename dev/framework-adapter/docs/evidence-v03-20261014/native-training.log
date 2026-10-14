@@ -1,0 +1,32 @@
+can not use command: npu-smi info
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 3799.69it/s]
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+{"step": 0, "loss": 18.12961196899414, "grad_norm": 189.7991943359375, "parameters_with_gradient": 310}
+{"step": 1, "loss": 14.135723114013672, "grad_norm": 130.99151611328125, "parameters_with_gradient": 310}
+{"step": 2, "loss": 11.439702987670898, "grad_norm": 128.85906982421875, "parameters_with_gradient": 310}
+{"step": 3, "loss": 8.768452644348145, "grad_norm": 118.76679992675781, "parameters_with_gradient": 310}
+{"step": 4, "loss": 6.074375629425049, "grad_norm": 108.26480102539062, "parameters_with_gradient": 310}
+{"step": 5, "loss": 3.800637722015381, "grad_norm": 97.4028091430664, "parameters_with_gradient": 310}
+{"step": 6, "loss": 2.109623670578003, "grad_norm": 84.93179321289062, "parameters_with_gradient": 310}
+{"step": 7, "loss": 1.027241587638855, "grad_norm": 62.58587646484375, "parameters_with_gradient": 310}
+{"step": 8, "loss": 0.6413482427597046, "grad_norm": 65.5867919921875, "parameters_with_gradient": 310}
+{"step": 9, "loss": 0.5323446393013, "grad_norm": 42.013484954833984, "parameters_with_gradient": 310}
+Traceback (most recent call last):
+  File "/work/framework-v03-NwoBpG/probes/qwen_training_smoke.py", line 77, in <module>
+    json.dump(result, output, indent=2)
+  File "/usr/local/python3.11.15/lib/python3.11/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+  File "/usr/local/python3.11.15/lib/python3.11/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/usr/local/python3.11.15/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/usr/local/python3.11.15/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/usr/local/python3.11.15/lib/python3.11/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type set is not JSON serializable
+[ERROR] 2026-10-14-09:55:07 (PID:275, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception

@@ -1,0 +1,16 @@
+{
+  "status": "fail",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "native_control": false,
+  "same_state": false,
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [],
+  "adapter_environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "torch_npu": "2.10.0",
+    "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4"
+  },
+  "error": "Traceback (most recent call last):\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu-v2.py\", line 197, in <module>\n    run(args, result)\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu-v2.py\", line 79, in run\n    result[\"registered_ops\"] = flag_gems.all_registered_ops()\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py\", line 1216, in all_registered_ops\n    return current_work_registrar.get_all_ops()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'get_all_ops'\n"
+}

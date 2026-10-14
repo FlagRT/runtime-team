@@ -1,0 +1,10 @@
+{
+  "status": "fail",
+  "scope": "isolated-process experimental SiLU ATen training registration",
+  "native_control": false,
+  "same_state": false,
+  "runtime_file": "/work/framework-v03-NwoBpG/dev/device-context/prototype/runtime/__init__.py",
+  "gems_file": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "operator_cases": [],
+  "error": "Traceback (most recent call last):\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu.py\", line 196, in <module>\n    run(args, result)\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu.py\", line 77, in run\n    with scope():\n         ^^^^^^^\n  File \"/work/scoped-adapter-20261014/test_silu_training_npu.py\", line 49, in scope\n    revision = subprocess.check_output(\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/subprocess.py\", line 466, in check_output\n    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.11.15/lib/python3.11/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['git', '-C', '/work/FlagGems-f7ae8e6-20260922', 'rev-parse', 'HEAD']' returned non-zero exit status 128.\n"
+}

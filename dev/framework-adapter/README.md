@@ -1,10 +1,28 @@
 # 框架接入与算子调用适配（framework-adapter）
 
-负责人：顾宬 / cgu135。入口整理：2026-09-22。
+负责人：顾宬 / cgu135。入口整理：2026-10-09。
 
 复用框架入口和统一算子库，明确何时优先调用目标实现、何时保持原生，以及执行失败后的安全边界。本目录保存方向原型、部署配置与验证材料；正式算子内核和子库改动不搬入协调仓。
 
+## 开发纲领（2026-10-14用户确认）
+
+先把机制做完整，再扩大覆盖；本方向负责接入、准入条件、安全回退和证据，不开发内核或调优模型任务效果。
+
+1. 第一阶段：910C + PyTorch eager + Qwen3-Embedding-0.6B + SiLU，打通训推接入、显式开关、输入/环境准入、原生保留、退出恢复和异常停止。训练数值尚未正式准入，默认原生，替换仅显式实验。
+2. 第二阶段：增加一个清单中已有算子和一个模型，证明同一机制可复用；依据实际前反向支持选择，不预先承诺算子或模型数量。
+3. 第三阶段：复用设备方向基座扩第二芯片，逐组合记录芯片/软件版本/算子/输入/训练或推理支持矩阵。多模型不等于多框架，不默认覆盖vLLM/Megatron。
+
+机制验收包括：启停与恢复、执行前准入与原生路径、执行后失败不重试、调用和原因记录、前反向数值及异常测试。芯片不兼容在任务启动前处理；不做失败算子的逐算子跨芯片迁移。完整三级回退仍按方案逐项实现，不以一个开关代替。
+
+本轮不扩大模型训练轮数或优化检索指标。新实现先通过控制测试，再在重新核验资源的本人容器运行真实NPU回归；模拟测试不能计作设备通过。后续状态见STATUS。
+
 ## 从哪里看
+
+技术材料统一导航：[文档目录](docs/README.md)。`docs/handoff/`放近期交接材料，已发布报告及原始证据保留原位置。
+
+最新实测：[10-14设备v0.3系列推理、原生训练及SiLU训练替换对照](docs/910C-v03推理与训练验证-20261014.md)。训练入口：[qwen_training_smoke.py](probes/qwen_training_smoke.py)；替换测试：[test_silu_training_npu.py](probes/test_silu_training_npu.py)。真实前/反向调用已命中，模型第4步梯度超差，尚未准入。
+
+进一步定位：同权重10轮梯度对照通过；[真实文本Embedding训练测试](probes/qwen_embedding_train_test.py)原生/替换各10步完成，含独立验证与权重保存重载。指标两组均下降，不能称正式业务模型效果验收；详情同日报告末节。
 
 | 你想知道什么 | 只需先看 |
 |---|---|
@@ -12,6 +30,9 @@
 | 接着开发、恢复环境、运行测试 | [HANDOFF.md](HANDOFF.md) |
 | 最新模型结果及RMSNorm问题细节 | [09-22实验报告](docs/910C模型接入与安全回退-20260922.md)，RMSNorm定位见§8 |
 | 找对应日志、失败结果、版本和源码哈希 | [09-22证据目录说明](docs/evidence-model-20260922/README.md) |
+| 给算子组沟通：清单、接口、替换/融合及回退规则 | [对接Issue](docs/handoff/算子组对接Issue.md)（已发布，10-13已沟通分工；不代表全部接口/精度标准已确认） |
+| 给周报作证：实现、测试和复跑入口 | [实验复现说明](docs/handoff/实验复现说明.md)（10-09整理，实机数据为09-22） |
+| 三级回退边界、实现状态和设备方向对接 | [原型与三级回退方案v0.2](docs/handoff/原型与三级回退方案.md)（待跨组评审） |
 
 日常不必逐个读日志。当前结论看STATUS，核对数字再进报告和对应证据。
 
@@ -22,6 +43,8 @@
 
 | 用途 | 文件（probes/下） | 模式 |
 |---|---|---|
+| 新训推SiLU实验接入及准入策略（10-14局部NPU回归通过） | [silu_training_adapter.py](probes/silu_training_adapter.py) / [silu_policy.py](probes/silu_policy.py) | 默认原生；独占eager进程、一阶梯度，允许autograd反向引擎线程；环境身份由启动方实测 |
+| 新机制本地控制 | [test_silu_policy.py](probes/test_silu_policy.py) / [test_silu_training_adapter.py](probes/test_silu_training_adapter.py) | unittest；模拟注册，不作为目标内核验证 |
 | 当前模型接入逻辑 | [qwen_scoped_adapter.py](probes/qwen_scoped_adapter.py) | 被测试脚本调用；默认不准入任何算子 |
 | 原生模型与算子基线 | [qwen_embedding_baseline.py](probes/qwen_embedding_baseline.py) | `model-baseline` |
 | 接入、回退与模型对照 | [qwen_gems_validation.py](probes/qwen_gems_validation.py) | `qwen-gems`，保守示例显式准入SiLU |
