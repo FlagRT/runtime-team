@@ -43,7 +43,7 @@
 
 | 项 | 要求 | 获取方式 |
 |---|---|---|
-| 镜像 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（本机 image id `sha256:cac5ddae5f62…`） | 按 [`kunlun-operator-runtime/v2/REBUILD.md`](../../images/kunlun-operator-runtime/v2/REBUILD.md) 从公开源头重建（~15 分钟），或用 [`其 ARCHIVE.md`](../../images/kunlun-operator-runtime/v2/ARCHIVE.md) 的离线包 `docker import`；image id 由 `up.sh --strict` 按镜像基线机器核对 |
+| 镜像 | **昆仑芯发布物 `kunlun-operator-runtime v2`**：`flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（本机 image id `sha256:cac5ddae5f62…`）—— [`dev/stack.lock.kunlunxin.v1.yaml`](../../stack.lock.kunlunxin.v1.yaml) `lock.runtime`，血统目录 [`dev/images/kunlun-operator-runtime/v2`](../../images/kunlun-operator-runtime/v2/README.md) | 按 [`kunlun-operator-runtime/v2/REBUILD.md`](../../images/kunlun-operator-runtime/v2/REBUILD.md) 从公开源头重建（~15 分钟），或用 [`其 ARCHIVE.md`](../../images/kunlun-operator-runtime/v2/ARCHIVE.md) 的离线包 `docker import`；image id 由 `up.sh --strict` 按镜像基线机器核对 |
 | 运行环境 | [`kunlun-operator-runtime/v2/demo/`](../../images/kunlun-operator-runtime/v2/demo/docker-compose.yml) | 随仓。v2 全部 repo 为固化资产，宿主检出不影响运行 |
 | 卡 | 1 × P800 XPU | **P800 没有「带卡容器独占」**（与昇腾相反）：`docker ps` 只是共享机礼貌，用 `xpu-smi` 挑 0% 利用率 / 0MiB 显存的卡，跑负载时以 `CUDA_VISIBLE_DEVICES=<该物理卡号>` 自律。设备模型四条实测结论见 demo 的 `docker-compose.yml` 文件头 |
 | 模型与数据 | **不需要**（最小复现不加载模型、不联网） | — |
