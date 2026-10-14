@@ -19,7 +19,9 @@
 ## 版本线：FlagTree ascend3.5
 
 **BAAI·FlagTree 官方指南**：FlagTree ascend 用户手册 <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>
-（分 ascend3.5 / ascend3.2 两条线）。本目录归档的三个系列整套栈均落在 **ascend3.5** 线：
+（分 ascend3.5 / ascend3.2 两条线）。本目录归档的三个系列整套栈均落在 **ascend3.5** 线。其中
+`ascend-infer-vllm`（现行推理腿）是华为昇腾官方镜像：版本纪元对齐 ascend3.5
+（CANN 9.0.0 / Python 3.11 / torch 2.10.0 / vLLM 0.20.2），但**不是 FlagTree 构建物**。
 
 | 轴 | 本组镜像 | ascend3.5 | ascend3.2 |
 |---|---|---|---|
@@ -58,7 +60,7 @@
 | v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40） | `ascend-train-comm/v2/` |
 | v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 `e13a15d0d02b`） | 🟡 partial-repro | [`ascend-train-comm/v3/`](ascend-train-comm/v3/README.md) |
 
-> v3 是**对外唯一发布物**（基座超集，推理 + 训练），demo 运行环境
+> v3 是**训练腿发布物**（🟡 带 4 条已知限制），demo 运行环境
 > [`ascend-train-comm/v3/demo/`](ascend-train-comm/v3/demo/docker-compose.yml)；两条 v3 的 🟡 成因与升 🟢
 > 条件见各自 README 的「已知限制」，待修缺陷的 case 包见 [`../issues/`](../issues/README.md)。
 > 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见各 `lock.yaml`。
@@ -68,6 +70,11 @@
 | 版本 | tag | repro_status | 目录 |
 |---|---|---|---|
 | v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉 | `ascend-infer-vllm/v1/` |
+
+> 该系列为**现行推理腿**（华为昇腾官方镜像，digest 锁定，🟢），公开 registry 按 digest 拉取；
+> 不携带已知限制 A-1~A-4 任何一条。起服务纪律（`unset VLLM_PLUGINS`、经
+> `dev/device-context/prototype/scripts/serve_standard.sh`）见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
+> 的 `lock.infer` 与 `per_leg.infer`。`triton_ascend 3.2.1` wheel 即取自该镜像。
 
 ---
 
@@ -100,17 +107,33 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 
 # 当前生效版本
 
-> 2026-10-14 发版后口径。锁定声明见 [`../stack.lock.910c.v3.yaml`](../stack.lock.910c.v3.yaml)
+> 2026-10-14 发版后口径。锁定声明见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
 > 与 [`../stack.lock.kunlunxin.v1.yaml`](../stack.lock.kunlunxin.v1.yaml)；限制清单、规避配置与
 > 删除条件见 [`../../docs/基座发版说明-20261014.md`](../../docs/基座发版说明-20261014.md)。
 
 | 芯片 | 系列 | 生效 tag | 目录 |
 |---|---|---|---|
 | 昇腾 910C | ascend-operator-runtime | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（**基座镜像：内部构建层，不对外发布**） | `ascend-operator-runtime/v3/` |
-| 昇腾 910C | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**唯一对外发布物** = 推理+训练超集，🟡 带已知限制） | `ascend-train-comm/v3/` |
+| 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
+| 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
 
-> 昇腾 910C **训练腿与推理腿收敛到同一基座**（v3 完整镜像，使用方无需按场景选镜像）；原独立的华为昇腾官方推理镜像 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`ascend-infer-vllm/v1/`）自 v3 起降为历史血统，不再作为原型锁定基座的推理腿。
-> 旧血统 v1/v2 保留供历史结论追溯。`kunlun-operator-runtime v1` 已 `superseded_by: v2`，
-> **不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录 `lock.yaml` known_issues）。
-> 本次发版未向任何 registry 推送：组内镜像无 registry 要求，分发走离线包与仓内配方重建。
+> 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
+> `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。
+> 三条自建血统 v1/v2/v3 并存归档，v1/v2 供历史结论追溯。`kunlun-operator-runtime v1` 已
+> `superseded_by: v2`，**不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录
+> `lock.yaml` known_issues）。
+> 分发方式：组内镜像（训练腿）无 registry 要求，走离线包与仓内配方重建；推理腿为公开
+> registry 官方镜像，按 digest 拉取。
+
+<!-- changelog: 2026-10-14 —— 本文件对齐 dev/stack.lock.910c.v4.yaml 口径（依据指挥台
+     ADR-0004「推理腿切回官方 vllm-ascend」，取代 ADR-0003 §3.5）。修订点：
+     ① 版本线节补明 ascend-infer-vllm 为版本纪元对齐 ascend3.5、非 FlagTree 构建物；
+     ② ascend-infer-vllm 系列加表注，标为现行推理腿（官方镜像 / digest 锁定 / 🟢 / 不带 A 条目）；
+     ③ 「当前生效版本」表新增昇腾 910C 推理腿行；ascend-operator-runtime-comm 行与
+        ascend-train-comm 版本索引表注统一改为「训练腿发布物（🟡 带 4 条已知限制）」
+        —— 单一发布物（推理+训练超集）的旧口径作废，对外发布物按腿两件；
+     ④ 表下说明段删除「两腿收敛到同一基座 / 官方推理镜像降为历史血统」整句，改为两腿分栈现状；
+        锁定声明指针 v3 → v4（v3 已标 LEGACY）；分发方式按腿分述。
+     过程痕迹只留在本注释段，渲染后不可见。 -->
+
