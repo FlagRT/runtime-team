@@ -1,0 +1,5 @@
+{
+  "command": "docker exec -w /workspace flagrt-communication-1014-910c timeout -k 20 900 python3 -m torch.distributed.run --nproc_per_node=2 --master_port=29674 dev/communication/training/onerec_smoke.py --runtime-root /workspace/dev/device-context/prototype --model-root /workspace/OneRec-8B --collective hccl --mode fused --output /workspace/onerec-hccl-fused-smoke",
+  "exit_code": 0,
+  "wall_seconds": 99.2484381198883
+}

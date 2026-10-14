@@ -1,0 +1,18 @@
+{
+  "host": "npu1-11",
+  "driver": "25.5.0",
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "base_lock_commit": "c81479eda2dad3a1ddb847e9467f96bc97154cb0",
+  "runtime_commit": "3c62d59f0becaa503036ce118e65ced62ae40aad",
+  "device_latest_reviewed": "2c0434e4bcdc2f7fd6efeafe6ba11de6a86afa0a",
+  "physical_devices": [0, 1],
+  "container": "flagrt-communication-1014-910c",
+  "network": "default bridge (no host network)",
+  "ipc": "private",
+  "shm_bytes": 1073741824,
+  "storage": "user shared storage; originals retained; copied back to Mac",
+  "test_backend": "hccl",
+  "scope": "same-image diagnostic control; does not establish FlagCX acceptance",
+  "code_note": "Six HCCL trials ran before the additive final-parameter SHA/optional NPY export was added for FlagCX diagnosis. Reducer and timed training region unchanged. Final delivery CPU tests rerun after that addition.",
+  "cleanup": "Own container stopped after docker top showed only sleep; npu-smi showed no remaining compute processes. No other containers stopped."
+}

@@ -21,8 +21,8 @@ def shard_bounds(global_batch, rank, world_size):
 
 class TrainingGroup:
     def __init__(self, backend, rank, world_size, synchronize, timeout_seconds=60):
-        if backend not in ('hccl', 'gloo'):
-            raise ValueError('This increment supports hccl or explicit CPU/gloo only')
+        if backend not in ('hccl', 'gloo', 'flagcx'):
+            raise ValueError('Supported backends: hccl, gloo, flagcx')
         if not 0 <= rank < world_size or timeout_seconds <= 0:
             raise ValueError('Invalid rank, world size or timeout')
         if dist.is_initialized():
@@ -41,6 +41,23 @@ class TrainingGroup:
     def require_open(self):
         if self.state != 'OPEN':
             raise RuntimeError(f'Communication group is {self.state}')
+
+    def collective(self, function, tensor, **kwargs):
+        """Complete device work before consuming/reusing collective tensors.
+
+        v3 FlagCX may return before writes complete even with async_op=False.
+        A device recovery is NOT a process-group recovery; failure is terminal.
+        """
+        self.require_open()
+        try:
+            # Producer kernels (backward/clone/packing) may still be queued.
+            # This conservative baseline does not assume FlagCX stream ordering.
+            self.synchronize()
+            function(tensor, **kwargs)
+            self.synchronize()
+        except BaseException:
+            self.state = 'FAILED'
+            raise
 
     def reset_stats(self):
         self.calls = 0
@@ -80,3 +97,50 @@ def observed_mean_hook(group, bucket):
     future = torch.futures.Future()
     future.set_result(tensor)
     return future
+
+
+def manual_mean_gradients(model, group, fused=False):
+    """Dense, same-dtype DeepFM gradients only; no DDP, list gather or overlap.
+
+    All ranks must execute the same model/parameter order. Not a general unused
+    parameter or uneven-input implementation. Packing/copying are timed.
+    """
+    group.require_open()
+    gradients = [p.grad for p in model.parameters() if p.requires_grad]
+    if not gradients or any(g is None or g.is_sparse for g in gradients):
+        raise ValueError('Manual reducer requires all dense gradients on all ranks')
+    if len({(g.dtype, g.device) for g in gradients}) != 1:
+        raise ValueError('Manual reducer requires one dtype/device')
+    start = time.perf_counter()
+    tensors = [torch.cat([g.reshape(-1) for g in gradients])] if fused else gradients
+    for tensor in tensors:
+        group.collective(dist.all_reduce, tensor, op=dist.ReduceOp.SUM)
+        tensor.div_(group.world_size)
+        group.calls += 1
+        group.payload_bytes += tensor.numel() * tensor.element_size()
+    if fused:
+        offset = 0
+        for gradient in gradients:
+            gradient.copy_(tensors[0][offset:offset + gradient.numel()].view_as(gradient))
+            offset += gradient.numel()
+    try:
+        group.synchronize()
+    except BaseException:
+        group.state = 'FAILED'
+        raise
+    group.seconds += time.perf_counter() - start
+
+
+class ManualDataParallel(torch.nn.Module):
+    """Explicit initialization/buffer broadcasts; gradients reduced by caller."""
+    def __init__(self, model, group):
+        super().__init__()
+        self.module, self.group = model, group
+        for tensor in model.state_dict().values():
+            group.collective(dist.broadcast, tensor, src=0)
+
+    def forward(self, *args, **kwargs):
+        # Match DDP's rank-zero buffer broadcast, not synchronized BatchNorm.
+        for tensor in self.module.buffers():
+            self.group.collective(dist.broadcast, tensor, src=0)
+        return self.module(*args, **kwargs)

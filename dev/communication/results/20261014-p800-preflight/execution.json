@@ -1,0 +1,16 @@
+{
+  "image": "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64",
+  "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+  "image_inspect_exit": 0,
+  "exit_code": 0,
+  "physical_devices": [
+    2,
+    3
+  ],
+  "logical_devices": [
+    0,
+    1
+  ],
+  "scope": "environment only; no collective or training",
+  "command": "docker run --rm -i --name flagrt-communication-preflight-p800 --network none --device /dev/xpu2 --device /dev/xpu3 --device /dev/xpuctrl -e CUDA_VISIBLE_DEVICES=0,1 -e PYTHONDONTWRITEBYTECODE=1 -e VLLM_FL_PREFER=vendor flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64 /root/miniconda/envs/python310_torch29_cuda/bin/python3 -"
+}
