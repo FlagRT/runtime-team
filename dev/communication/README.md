@@ -1,6 +1,12 @@
 # communication — 多卡通信项目
 
-本轮交付 [DeepFM 双卡训练接入](docs/DEEPFM_INTEGRATION_20260923.md)：复用公共模型、设备统一API与DDP，
+## 📋 本周更新：v3 通信接入
+
+新增逐张量/合并梯度路径、重复验证入口与失败证据保护；统一 v3 镜像内 HCCL 六轮对照通过，FlagCX 参数不一致与退出崩溃仍未解决。P800 完成锁定环境接入准备，未进行训练验收。详见[实测报告](docs/V3_DEEPFM_COMMUNICATION_20261014.md)与[当前状态](STATUS.md)。
+
+## 📚 历史交付
+
+此前交付 [DeepFM 双卡训练接入](docs/DEEPFM_INTEGRATION_20260923.md)：复用公共模型、设备统一API与DDP，
 在910C/HCCL完成原生/观测模式各50步验证，17/17梯度对照通过、跨Rank参数差0。
 [本周周报](docs/WEEKLY_REPORT_20260923.md) · [当前状态](STATUS.md) · [实测摘要](results/20260923-npu/summary.json)。
 本批为开发态代码与证据交付，尚待下游确认；不修改公共镜像锁，不表示组级发布验收完成。

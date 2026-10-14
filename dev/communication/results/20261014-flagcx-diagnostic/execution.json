@@ -1,0 +1,47 @@
+{
+  "scope": "Ascend integration",
+  "prototype_revision": "3c62d59f0becaa503036ce118e65ced62ae40aad",
+  "runs": [
+    {
+      "name": "01-manual",
+      "mode": "manual",
+      "repeat": 1,
+      "argv": [
+        "/usr/local/python3.11.15/bin/python3",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes=1",
+        "--nproc_per_node=2",
+        "--rdzv_backend=static",
+        "--master_addr=127.0.0.1",
+        "--master_port=47155",
+        "/workspace/dev/communication/training/deepfm_train.py",
+        "--backend",
+        "ascend",
+        "--comm-mode",
+        "manual",
+        "--global-batch",
+        "64",
+        "--steps",
+        "50",
+        "--warmup",
+        "5",
+        "--seed",
+        "923",
+        "--prototype-revision",
+        "3c62d59f0becaa503036ce118e65ced62ae40aad",
+        "--model-root",
+        "/workspace/dev/model-defs/deepfm/v1",
+        "--output",
+        "/workspace/results-flagcx-diagnostic/01-manual",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype",
+        "--collective",
+        "flagcx"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "launcher_seconds": 59.944533348083496
+    }
+  ]
+}
