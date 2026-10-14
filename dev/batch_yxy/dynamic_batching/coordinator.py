@@ -1,6 +1,6 @@
 """BatchCoordinator：动态组批与长度感知分桶决策核心（与 vLLM 解耦）。
 
-决策规则（对齐实现文档第 4 节）：
+决策规则（对齐实现文档第 4 节；优先级扩展见下）：
 - 兼容键（模型ID|模型版本|执行profile）是硬约束，长度桶是优化分组；
 - 组批以兼容键+策略版本分组，桶内以最早到达请求为种子贪心装入，
   同时候选扫描有界（scan_window）；
@@ -12,6 +12,14 @@
   执行资源触发由调用方自行调用 flush/poll_ready 表达；
 - 相邻桶合并仅在 allow_adjacent_bucket_merge 开启时发生，且仍受全部硬预算
   与 max_padding_ratio 约束，跨桶信息记录在 bucket_ids 与统计中。
+
+优先级规则（priority，越大越先出队，默认 0；缺省时行为与历史版本一致）：
+- 桶内队列按 (-priority, arrival_mono_ns) 有序，同优先级按到达时间、再按
+  提交顺序 FIFO —— 取队规则确定、可测试；
+- 满批扫描（batch_limit/token_limit）按桶头的 (-priority, arrival) 排序，
+  高优先级桶先派发；
+- wait_limit 兜底按组内全部排队请求的最早到达时间计算：优先级不得延长
+  低优先级请求的最长等待时间（反饥饿），也不得绕过任何硬预算。
 
 本类不做线程同步，调用方需串行调用（事件循环/单线程）。
 """
@@ -64,9 +72,22 @@ class _Group:
 
     def push(self, entry: _Entry) -> None:
         queue = self.buckets.setdefault(entry.bucket, [])
+        # 取队序：优先级降序、同优先级按到达时间升序；insort 相等键后插，
+        # 提交顺序构成第三级 FIFO 决胜。priority 缺省 0 时退化为纯到达序。
         bisect.insort(
-            queue, entry, key=lambda e: e.request.arrival_mono_ns
+            queue,
+            entry,
+            key=lambda e: (-e.request.priority, e.request.arrival_mono_ns),
         )
+
+    @staticmethod
+    def scan_key(entry: _Entry) -> tuple[int, int]:
+        return (-entry.request.priority, entry.request.arrival_mono_ns)
+
+    @staticmethod
+    def earliest_arrival(queue: list[_Entry]) -> int:
+        """桶内全部请求（含低优先级）的最早到达时间，供 wait_limit 兜底。"""
+        return min(e.request.arrival_mono_ns for e in queue)
 
 
 class _BatchDraft:
@@ -145,6 +166,11 @@ class BatchCoordinator:
             raise DuplicateRequestError(f"request_id 重复: {rid}")
         if not isinstance(request.model_version, str) or not request.model_version:
             raise RequestValidationError(f"[{rid}] model_version 必须为非空字符串")
+        if (
+            not isinstance(request.priority, int)
+            or isinstance(request.priority, bool)
+        ):
+            raise RequestValidationError(f"[{rid}] priority 必须为 int")
         tokens = request.input_token_count
         if (
             not isinstance(tokens, int)
@@ -207,14 +233,15 @@ class BatchCoordinator:
         """所有待排队列中最早请求的 wait_limit 到期时间；无排队返回 None。
 
         max_wait_ms 是合批等待上限而非固定睡眠时间：打满预算的批次在
-        poll_ready 时立即派发，无需等到该时间点。
+        poll_ready 时立即派发，无需等到该时间点。到期时间按各桶全部排队
+        请求（含低优先级）的最早到达时间计算，优先级不改变唤醒时刻。
         """
         wakeup = None
         for group in self._groups.values():
             for queue in group.buckets.values():
                 if queue:
                     candidate = (
-                        queue[0].request.arrival_mono_ns
+                        _Group.earliest_arrival(queue)
                         + group.policy.wait_window_ns
                     )
                     if wakeup is None or candidate < wakeup:
@@ -256,19 +283,22 @@ class BatchCoordinator:
         if not active:
             del self._groups[key]
             return None
-        ordered = sorted(
-            active, key=lambda b: active[b][0].request.arrival_mono_ns
-        )
+        # 满批扫描序：优先级高（同优先级则最早到达）的桶先尝试派发。
+        ordered = sorted(active, key=lambda b: _Group.scan_key(active[b][0]))
         for bucket in ordered:
             draft = self._fill(group, policy, bucket)
             if len(draft.selected) >= policy.max_batch_size:
                 return self._emit(group, key, policy, draft, DISPATCH_BATCH_LIMIT, now_mono_ns)
             if draft.total >= policy.max_total_tokens:
                 return self._emit(group, key, policy, draft, DISPATCH_TOKEN_LIMIT, now_mono_ns)
-        head_bucket = ordered[0]
-        head = active[head_bucket][0]
-        if now_mono_ns - head.request.arrival_mono_ns >= policy.wait_window_ns:
-            draft = self._fill(group, policy, head_bucket)
+        # wait_limit 反饥饿兜底：组内最早到达的请求（任意优先级）达到等待
+        # 上限即派发其所在桶。优先级不得延长低优先级请求的最长等待时间。
+        earliest_bucket = min(
+            active, key=lambda b: (_Group.earliest_arrival(active[b]), b)
+        )
+        earliest = _Group.earliest_arrival(active[earliest_bucket])
+        if now_mono_ns - earliest >= policy.wait_window_ns:
+            draft = self._fill(group, policy, earliest_bucket)
             return self._emit(group, key, policy, draft, DISPATCH_WAIT_LIMIT, now_mono_ns)
         return None
 
@@ -372,11 +402,12 @@ class BatchCoordinator:
             padded_length=draft.max_len,
             padding_ratio=padding_ratio(lengths),
             created_mono_ns=now_mono_ns,
+            priorities=tuple(r.priority for r in requests),
         )
         self.stats.append(record)
         logger.info(
             "dispatch %s reason=%s compat=%s buckets=%s size=%d tokens=%d/%d "
-            "padded=%d padding_ratio=%.3f cross_bucket=%s",
+            "padded=%d padding_ratio=%.3f cross_bucket=%s priorities=%s",
             batch_id,
             reason,
             group.compat,
@@ -387,5 +418,6 @@ class BatchCoordinator:
             draft.max_len,
             record.padding_ratio,
             record.cross_bucket_merge,
+            record.priorities,
         )
         return plan

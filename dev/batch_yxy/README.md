@@ -6,11 +6,13 @@
 ## 目标（一句话）
 
 Qwen3-Embedding-0.6B 动态组批与长度感知分桶：可外部调用的 `BatchCoordinator` 决策核心 + vLLM 上层适配（`LLM.embed` 外层分组，不替换内部调度），A/B/C 对照验证。
+在此之上构建与模型、推理框架、芯片解耦的调度引擎 `sched_engine/`（四层架构：调度核心/模型画像/框架适配器/设备画像）。
 
 ## 现状（快照）
 
 - 2026-09-23：核心模块 + 53 个单元测试 + fake/NPU 双执行器 bench 完成；接入路径与控制边界见 `docs/note_动态组批接入说明.md`
 - 2026-09-23：**发现 vllm-ascend 0.20.2rc1 pooling 跨调用非确定缺陷**（复现探针 `probes/qwen3_embed_nondeterminism_probe.py`），阻塞 NPU 数值一致性验收，待独立上报
+- 2026-10-14：调度引擎 `sched_engine/` 落地（四层架构，15 模型/6 芯片画像注册表，优先级队列+恰好一次结果回填+原路径开关）；`BatchCoordinator` 向后兼容扩展 priority；测试 117 全绿（容器内）。**910C 真机联调待有空闲卡后执行**（`examples/sched_engine_910c_vllm.py`）；架构与矩阵见 `docs/note_调度引擎四层架构说明.md`
 
 ## 目录约定（本子方向，位于 dev/batch_yxy/ 下）
 
@@ -20,13 +22,15 @@ dev/batch_yxy/
 ├── docker-compose.yml  # 容器配置（-f ../compose.base.yml 合并公共配置）
 ├── .env.example        # 环境变量模板（cp 成 .env 按需调整）
 ├── requirements.txt    # Python 依赖（setup_env.sh 安装）
+├── dynamic_batching/   # 组批决策核心 + 执行器（vLLM 零侵入）
+├── sched_engine/       # 调度引擎（四层：core/models/frameworks/devices）
 ├── scripts/            # 环境初始化/建库/入库等脚本
 ├── docs/               # 调研笔记、方案摘录、执行记录（按需建）
 ├── probes/             # 探针/画像脚本（按需建）
 └── benchmarks/         # A/B 对比与负载脚本（按需建）
 ```
 
-代码改造主战场不在本目录：本任务零侵入 vLLM（组批核心独立成包 `dynamic_batching/`，仅上层调用 `LLM.embed`）
+代码改造主战场不在本目录：本任务零侵入 vLLM（组批核心独立成包 `dynamic_batching/` + `sched_engine/`，仅上层调用 `LLM.embed`）
 
 ## 任务看板
 
@@ -38,6 +42,7 @@ dev/batch_yxy/
 | 4 | T3 长度分桶（固定桶/相邻合并/Padding 约束） | xianyiyuan | ✅ | 3 | 桶边界/低流量不饥饿测试 |
 | 5 | T4 vLLM 适配（VllmEmbedExecutor + A/B 开关） | xianyiyuan | ✅ | 4 | 结果按 ID 无错位映射 |
 | 6 | T5 对照与交付（bench A/B/C + 接入说明） | xianyiyuan | ✅ | 5 | 结果在 `benchmarks/results/`；NPU 数值验收被平台缺陷阻塞（见接入说明 §7.1，组批检测关键输入） |
+| 7 | T6 调度引擎四层架构（队列/优先级/统一组批/结果回填/路径开关；15 模型与 6 芯片画像契约） | xianyiyuan | 🔄 | 6 | 代码+117 测试完成；**910C 真机 32 请求联调待有空闲卡**（`examples/sched_engine_910c_vllm.py`），口径见 `docs/note_调度引擎四层架构说明.md` §8 |
 
 > 状态图例：⬜ 待认领 ｜ 🔄 进行中 ｜ ✅ 完成 ｜ ❌ 取消
 
@@ -93,6 +98,14 @@ opencode
 - venv / 代码都在 `/workspace` 挂载盘，容器重建后仍在；ssh-client / opencode 装在容器内，重建后重跑 `setup_env.sh` 即可
 - 环境可复现：`scripts/setup_env.sh` + `requirements.txt` 均已入 git，`.venv/` 已 ignore
 - git 身份默认 `YoannFang`，可用 `GIT_USER_NAME` / `GIT_USER_EMAIL` 环境变量覆盖
+
+## 运行测试（容器内）
+
+```bash
+docker exec flagos-batch-yxy-dev-910c bash -c \
+  "source /workspace/dev/batch_yxy/.venv/bin/activate && cd /workspace/dev/batch_yxy && python -m pytest tests/ -q"
+# 2026-10-14：117 passed（dynamic_batching 53 + sched_engine 64）
+```
 
 ## 工作原则
 

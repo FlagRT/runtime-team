@@ -22,7 +22,7 @@ def padding_ratio(token_lengths: Sequence[int]) -> float:
 
 @dataclass(frozen=True)
 class BatchDispatchRecord:
-    """每批派发记录（第 4.3 节最小可观测集）。"""
+    """每批派发记录（第 4.3 节最小可观测集）。priorities 与 request_ids 逐项对应。"""
 
     batch_id: str
     policy_version: str
@@ -40,6 +40,7 @@ class BatchDispatchRecord:
     padded_length: int
     padding_ratio: float
     created_mono_ns: int
+    priorities: tuple[int, ...] = ()
 
 
 def _percentile(sorted_values: Sequence[float], pct: float) -> float:

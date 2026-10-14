@@ -17,6 +17,11 @@ class BatchRequest:
     input_token_count 必须与实际执行输入一致（同一 tokenizer、含特殊 token、
     截断之后的值）；payload_ref 由执行适配层解释，调度核心不复制大张量；
     arrival_mono_ns 使用单调时钟；deadline_mono_ns 仅记录，本次不做 SLA 控制。
+
+    priority 为取队优先级（int，越大越先出队，默认 0）。优先级只影响同一
+    兼容键同桶内的选择顺序与满批扫描次序，不改变任何硬约束：兼容键隔离、
+    max_batch_size、max_total_tokens、max_wait_ms 均优先于优先级生效；
+    同优先级内严格按 (arrival_mono_ns, 提交顺序) FIFO。
     """
 
     request_id: str
@@ -27,6 +32,7 @@ class BatchRequest:
     arrival_mono_ns: int
     execution_profile: str | None = None
     deadline_mono_ns: int | None = None
+    priority: int = 0
 
 
 def compatibility_key(request: BatchRequest) -> str:
