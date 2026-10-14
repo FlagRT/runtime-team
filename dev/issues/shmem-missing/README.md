@@ -7,13 +7,18 @@
   包括 vLLM 框架自带的 kernel；与用哪个算子、是否加载模型无关。
 - **归属方向**：算子编译方向。需求文本（现象、根因、三级请求、证据链）：
   [`决策备忘录 附录 B`](../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md)。
-- **状态（2026-10-11）**：未修复。本组在 v3 demo 运行环境中以两项配置临时规避，推理 1 卡 9/9 PASS：
-  shmem 占位模块 [`shmem_stub.py`](../../images/ascend-operator-runtime/v3/assets/shmem_stub.py) 以模块名
-  `shmem` 挂载并前置于 `PYTHONPATH`、`VLLM_FL_FLAGOS_BLACKLIST=cos,sin`（均写在
-  [`demo/docker-compose.yml`](../../images/ascend-train-comm/v3/demo/docker-compose.yml)）。
-  **规避不彻底**：占位模块的函数被调用即报错，只适用于不触发分布式共享内存的单卡场景；
-  `VLLM_FL_FLAGOS_BLACKLIST` 只作用于 FlagGems 接管的 torch 算子，管不到 vLLM 核心 kernel
-  （`vllm/v1/worker/block_table.py::_compute_slot_mapping_kernel` 同样命中），下游无法用配置完全规避。
+- **状态（2026-10-14）**：未修复，root cause 仍在，case 包继续有效、继续跟催。
+  - **适用面**：v3 完整镜像（训练腿）+ FL 追赶线（vllm-plugin-FL 推理栈）。910C 现行推理腿为华为昇腾官方
+    `vllm-ascend`（见 [`dev/stack.lock.910c.v4.yaml`](../../stack.lock.910c.v4.yaml) `lock.infer`），
+    不含本 case 的触发路径，本 case 不阻塞现行推理腿。
+  - **训练腿临时规避**（两项，均写在
+    [`demo/docker-compose.yml`](../../images/ascend-train-comm/v3/demo/docker-compose.yml)）：shmem 占位模块
+    [`shmem_stub.py`](../../images/ascend-operator-runtime/v3/assets/shmem_stub.py) 以模块名 `shmem` 挂载，
+    并前置于 `PYTHONPATH`。**规避不彻底**：占位模块的函数被调用即报错，只适用于不触发分布式共享内存的场景；
+    两项撤除须实测验证（T-025）。
+  - **FL 栈上的结论（追赶线）**：`VLLM_FL_FLAGOS_BLACKLIST=cos,sin` 不是现行规避配置。它只作用于 FlagGems
+    接管的 torch 算子，管不到 vLLM 核心 kernel（`vllm/v1/worker/block_table.py::_compute_slot_mapping_kernel`
+    同样命中），因此在 FL 推理栈上下游无法用配置完全规避；该栈在 v3 镜像上同时带 shmem 占位模块与该配置时推理 1 卡 9/9 PASS。
 - **调用链**（路径相对镜像内 `.../site-packages/triton/`，2026-10-11 在 image id `e13a15d0d02b` 内逐行核对）：
   `spec/ascend/compiler/code_generator.py:1177 visit_For` → 同函数 `:1197`
   `importlib.import_module("triton.experimental.tle")`（对任何 for 循环无条件执行）→
