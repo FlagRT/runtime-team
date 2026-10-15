@@ -6,11 +6,10 @@
 # dev/lib/baseline.py export 生成，不手工编辑）。
 #
 # 【定位】demo 只管容器生命周期（起容器 / 停容器 / 环境核对）；本组统一服务入口
-# serve_standard.sh 尚无 ppu 分支（device-context 方向的 PPU 交接在 kistich/device-context
-# 分支待合入，由该方向自行推进）——服务化口径以该方向合入后的 serve_standard.sh 为准，
-# 本 demo 不另设第二服务入口。
+# serve_standard.sh 尚无 ppu 分支（服务化口径由 device-context 方向推进）——该口径
+# 就绪后服务启动统一走 serve_standard.sh，本 demo 不另设第二服务入口。
 #
-# 【与昇腾两腿的差异（PPU 实测，2026-10-10~14，证据在 kistich/device-context 分支）】
+# 【与昇腾两腿的差异（PPU 真机实测，2026-10-10~14，device-context 方向留痕）】
 #   · 本镜像自带整套 PPU 运行时（PPU SDK v2.1.0 / CUDA wrapper cu130 在镜像内），无需挂宿主驱动
 #     （同推理腿、同 P800）。
 #   · 无带卡容器独占（同 P800、与昇腾相反）：多容器可并存；选卡纪律 = ppu-smi 挑空闲卡，

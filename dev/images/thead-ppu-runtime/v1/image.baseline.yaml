@@ -15,8 +15,8 @@ image:
 # ② 镜像内 /opt/vllm 无 .git（2026-10-15 探针实测）⇒ 无自证 commit 锚；版本主锚 = Harbor
 #    digest（公开可拉），辅锚 = pip 元数据（版本号）。check 走 from: base_image 分支
 #    （INFO，由 image id + digest 兜底），不新增核对路径。
-# ③ 本组 PPU 后端（runtime ppu 0.1.0）不在镜像内 —— 它在仓内 dev/device-context/prototype/runtime/
-#    （kistich 分支），demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
+# ③ 本组 PPU 后端（runtime ppu 0.1.0）不在镜像内 —— 它在仓内 device-context 方向的
+#    prototype/runtime/，demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
 
 baked_repos:
   # ──────────────── FlagTree 官方基座自带（被动继承，不可重建） ────────────────

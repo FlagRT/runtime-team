@@ -25,8 +25,8 @@ gaps:
   - "本组 ppu 后端（runtime 0.1.0）不在镜像内，经仓内挂载使用（不固化）"
 
 notes: |
-  宿主与容器启动纪律（2026-10-10~14 device-context 实测，证据在 kistich/device-context
-  分支 dev/device-context/PPU/probes/）：
+  宿主与容器启动纪律（2026-10-10~14 device-context 方向真机实测，证据由该方向
+  在其资产目录维护）：
   ① 非 privileged；声明式 devices 授 /dev/alixpu + /dev/alixpu_ctl + 所用 alixpu_ppuN。
   ② --network host 下宿主主机名（ai-server）不在 DNS ⇒ torchrun/c10d rendezvous 会静默挂
      300s 后超时 —— 须 --add-host=ai-server:127.0.0.1（mp.spawn + tcp://127.0.0.1 不受影响）。
@@ -42,5 +42,5 @@ changelog:
       digest 锁定（harbor.baai.ac.cn/flagtree）；新增 image.baseline.yaml（manual-registration，
       镜像内 /opt/vllm 无 .git ⇒ 版本锚 = digest + pip 版本号）与 demo/ 运行环境
       （compose + env.baseline.yaml，baseline.py export 生成）。PTG_0 本机已有该镜像
-      真身（5 个工作容器共用，勿动）。PPU 后端接入证据（conformance 13/13 等）在
-      kistich/device-context 分支，由该方向自行合入。
+      真身（多个工作容器共用，勿动）。PPU 后端接入证据（conformance 13/13 等）
+      由 device-context 方向自行维护与合入。

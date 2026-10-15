@@ -3,7 +3,7 @@
 # 文件：dev/stack.lock.thead-ppu.v1.yaml
 # 效力：本文件是全组（平头哥 PPU 线）结论性验证的唯一环境依据；任何变更需更新本文件并知会全组
 # 起草：runtime-team 总组 ｜ 结构参照 dev/stack.lock.kunlunxin.v1.yaml，内容按 PPU 实情如实分叉
-# 记录：2026-10-15 ｜ 定稿：待总组定稿 ｜ 状态：草案（个人分支 xliu969/ppu-baseline）
+# 记录：2026-10-15 ｜ 定稿：2026-10-15 ｜ 状态：生效
 # 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
 #
 # 本文件为平头哥 PPU 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 = thead-ppu-runtime v1
@@ -85,15 +85,15 @@ rules:
 known_issues: []
 # 说明：PPU 侧已定位的平台缺陷（退出期弱引用悬垂 SIGSEGV，根因在平台侧 Py_FinalizeEx→
 # _PyWeakref_ClearRef，本层已规避、不影响正常结论；转厂商跟进）由 device-context 方向
-# 在其目录内跟踪（docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md，kistich/device-context
-# 分支）；属运行时层职责外的平台事实，不入本清单。
+# 在其目录内跟踪（其证据文档路径以该方向目录为准；device-context 方向的 PPU 交接
+# 分支合入后其文档路径以该方向目录为准）；属运行时层职责外的平台事实，不入本清单。
 
 # ---------------------------------------------------------------
 # 变更记录
 # ---------------------------------------------------------------
 changelog:
   - date: "2026-10-15"
-    who: "总组（起草：xliu969，个人分支 xliu969/ppu-baseline）"
+    who: "总组"
     what: |
       首次建立平头哥 PPU 锁定声明（此前该芯片无 stack.lock 文件）：发布物锁定为
       thead-ppu-runtime v1（BAAI·FlagTree 官方基座镜像，登记式基线 ADR-0007，

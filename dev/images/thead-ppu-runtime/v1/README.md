@@ -19,7 +19,7 @@
 - `repro_status`: 🟢 digest 锁定、公开 Harbor registry 可拉（2026-10-15 验证）；镜像不可重建是
   **设计边界**（官方产物）。
 - 已知限制：**无**（本镜像自身）。PPU 侧已知平台缺陷（退出期弱引用悬垂，根因在平台侧、已由
-  本层规避）见 device-context 方向 `docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`（kistich 分支）。
+  本层规避）由 device-context 方向在其目录内跟踪。
 - 分发：公开 Harbor registry 按 digest 拉取
   `docker pull harbor.baai.ac.cn/flagtree/flagtree-ppu-py312-…@sha256:50a906e6ed9d…`。
 
@@ -47,8 +47,8 @@ CUDA_VISIBLE_DEVICES=2 python3 -c "import torch; print(torch.cuda.device_count()
 WORKSPACE_ROOT=$PWD docker compose -f dev/images/thead-ppu-runtime/v1/demo/docker-compose.yml down
 ```
 
-> 服务化口径：组内唯一服务入口 serve_standard.sh 当前无 ppu 分支（该方向的 PPU 交接在
-> kistich/device-context 分支待合入）。该分支合入后，服务启动统一走 serve_standard.sh；
+> 服务化口径：组内唯一服务入口 serve_standard.sh 当前无 ppu 分支（服务化口径由 device-context 方向推进）。该口径
+> 就绪后，服务启动统一走 serve_standard.sh；
 > 本目录不另设第二服务入口。
 
 ## 获取
@@ -64,6 +64,6 @@ PTG_0 本机已有该镜像真身（5 个 FlagTree 工作负载容器共用，�
 changelog:
 2026-10-15 —— 首次登记（登记式基线，ADR-0007 同款流程）：BAAI·FlagTree 官方 PPU 基座镜像，
 digest 锁定；新增 image.baseline.yaml（manual-registration）+ demo/ 运行环境 +
-lock.yaml。PPU 后端接入证据（conformance 13/13 等）在 kistich/device-context 分支，
-由该方向自行合入，本目录只登记镜像基座。
+lock.yaml。PPU 后端接入证据（conformance 13/13 等）由 device-context 方向自行
+维护与合入，本目录只登记镜像基座。
 -->
