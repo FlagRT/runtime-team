@@ -1,0 +1,87 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: manual-registration（ADR-0007 登记式基线：上游官方镜像无仓内配方，export 模式不适用；本文件为手工登记，字段口径同 ENV-SPEC §3.1）
+generated_at: "2026-10-15T19:42:07+08:00"
+
+image:
+  ref: harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+  id: sha256:e887e0ca4333a27185817fb8fef6ce95d5d9220c5a9725641187d602cabeea96            # check 项（本机 docker inspect 实测）
+  digest: sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2        # registry 版本锚（harbor.baai.ac.cn/flagos-runtime，tag 2.2.0）
+  recipe: []                # FlagOS 官方镜像，无仓内 Dockerfile.repro，不可重建；上游配方 = flagos-ai/build-infra @827dc6134603bfe7ce02d02a2c333e9b2dcade88
+  demo: dev/images/cambricon-mlu-runtime/v1/demo/
+
+# ── 与自建基线的差异（ADR-0007，同 ascend-infer-vllm/v1 与 thead-ppu-runtime/v1 先例）──
+# ① 本镜像整体 = 被动继承的 FlagOS 官方产物，没有「本组配方带入」的层 ⇒ 全部条目 from: base_image。
+# ② 镜像内无 .git（2026-10-15 探针实测）⇒ 无自证 commit 锚；版本主锚 = Harbor digest
+#    （公开 registry，匿名可拉），辅锚 = pip 元数据（版本号）与镜像 Label 的上游配方 commit。
+#    check 走 from: base_image 分支（INFO，由 image id + digest 兜底），不新增核对路径。
+# ③ 本组 cambricon 后端（prototype/runtime/backends/cambricon）不在镜像内 —— 它在仓内
+#    device-context 方向，demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
+# ④ flag_gems 由基座自带。按 ENV-SPEC §3.1「首选不产生第二份」，不再固化第二份；
+#    本组尚未在本芯片上对其做结论性验证，见 lock.yaml gaps。
+
+baked_repos:
+  # ──────────────── FlagOS 官方基座自带（被动继承，不可重建） ────────────────
+  torch:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.7.1+cpu
+    install: pip (wheel)
+  torch_mlu:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 1.29.2+torch2.7.1
+    install: pip (wheel)
+    info: 寒武纪官方设备插件（Route A）；PyTorch PrivateUse1 扩展，device_type=mlu，设备 API 走 torch.mlu 命名空间
+  torch_mlu_ops:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 1.8.0+torch2.7.1
+    install: pip (wheel)
+    info: 寒武纪官方融合算子库（TMO）
+  triton:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 3.2.0+mlu1.7.2
+    install: in-image (/opt/triton)
+    info: 寒武纪 triton-mlu 变体，非 FlagTree 构建物（FlagTree 无寒武纪镜像线）；源码在 /opt/triton，不在 site-packages，仅经 shell 启动时进 PYTHONPATH（见 lock.yaml notes ②）
+  flag_gems:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 5.4.0rc2.post3
+    install: pip (wheel)
+    info: 基座自带（镜像 Label flagos.flaggems=5.4.0-rc2.post3 与容器内 pip 实测一致）；本组尚未在本芯片上做结论性验证
+  cambricon_dali:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 0.13.0
+    install: pip (wheel)
+  torchvision:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 0.22.1+cpu
+    install: pip (wheel)
+
+  neuware:
+    layer: L1
+    from: base_image
+    commit: unavailable
+    version: "4.4.3"                 # 容器内 /usr/local/neuware/version.txt 实测
+    install: in-image (/usr/local/neuware)
+    info: >-
+      NEUWARE SDK（宿主无 neuware，全部 MLU 软件栈在镜像内）。包级版本取自镜像 Env 的 TOOLKIT / PKGS 声明：
+      cntoolkit 4.4.3-1.ubuntu22.04 / cnnl 2.1.829-20251127_150207-v2.1.12-0.rc0-3-g54aaee8.ubuntu22.04 /
+      cnnlextra 2.2.7-1.ubuntu22.04 / mluops 1.8.1-1.ubuntu22.04 / cncl 1.29.4-1.ubuntu22.04 /
+      cnclep 1.1.1-1.ubuntu22.04。cncl 版本与训练腿运行期自报 CNCL Version 1.29.4 一致。
+
+baked_packages: []          # 无「本组配方带入的索引发行包」；NEUWARE 为基座被动继承，见上方 neuware 条目
+baked_resources: []
+
+base_image: {}              # 本镜像自身即 FlagOS 官方镜像（harbor.baai.ac.cn/flagos-runtime），无更下层本组可控基座；registry digest 见 image.digest
