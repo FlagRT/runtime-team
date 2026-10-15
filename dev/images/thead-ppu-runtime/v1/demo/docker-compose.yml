@@ -1,0 +1,83 @@
+# thead-ppu-runtime v1 demo —— FlagTree 官方 PPU 基座的 demo 运行环境
+# （规范见 dev/ENV-SPEC.md §3.2；登记式基线见 ADR-0007；结构对齐 ascend-infer-vllm/v1/demo 与
+#  kunlun-operator-runtime/v2/demo）
+#
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【定位】demo 只管容器生命周期（起容器 / 停容器 / 环境核对）；本组统一服务入口
+# serve_standard.sh 尚无 ppu 分支（device-context 方向的 PPU 交接在 kistich/device-context
+# 分支待合入，由该方向自行推进）——服务化口径以该方向合入后的 serve_standard.sh 为准，
+# 本 demo 不另设第二服务入口。
+#
+# 【与昇腾两腿的差异（PPU 实测，2026-10-10~14，证据在 kistich/device-context 分支）】
+#   · 本镜像自带整套 PPU 运行时（PPU SDK v2.1.0 / CUDA wrapper cu130 在镜像内），无需挂宿主驱动
+#     （同推理腿、同 P800）。
+#   · 无带卡容器独占（同 P800、与昇腾相反）：多容器可并存；选卡纪律 = ppu-smi 挑空闲卡，
+#     CUDA_VISIBLE_DEVICES 授予（demo 映射全部 16 卡 ⇒ 容器内逻辑号 == 宿主物理号）。
+#   · 两条 PPU 特有启动坑（hliu553-dc-dev.run.sh 实测留痕，本文件已内置规避）：
+#     ① --network host 下宿主主机名（ai-server）不在 DNS → torchrun/c10d 静默挂 300s，
+#        须 --add-host=ai-server:127.0.0.1；
+#     ② 镜像写死 NCCL_SOCKET_IFNAME=eth0 而本机真网卡是 bond0 → nccl all_reduce 报
+#        Bootstrap: no socket interface found，须覆盖为 bond0。
+#   · 镜像官方入口 /opt/t-head/entrypoint.sh 含 SDK envsetup + UMD 平台变量；本 demo 以
+#     sleep infinity 常驻（对齐机器上 4 个 FlagTree 工作负载容器的实测形态），SDK 环境变量
+#     由镜像 ENV 固化（PPU_SDK / PPU_VERSION 等，2026-10-15 探针实测存在）。
+#
+# 用法（仓根执行，机器 = PTG_0 / ai-server）：
+#   ppu-smi | tail -24                 # 挑空闲卡（0% util / 2MiB 显存），记下卡号
+#   dev/lib/up.sh dev/images/thead-ppu-runtime/v1/demo --strict
+#   docker exec -it flagrt-ppu-v1-demo-ptg0 bash    # 容器内环境核对（本 demo 的验收动作）：
+#     python3 -c "import torch; print(torch.cuda.device_count())"   # 预期 16（映射全卡）
+#     CUDA_VISIBLE_DEVICES=2 python3 -c "import torch; print(torch.cuda.device_count())"  # 预期 1
+#   # 用完收尾（勿动他人容器）：
+#   WORKSPACE_ROOT=$PWD docker compose -f dev/images/thead-ppu-runtime/v1/demo/docker-compose.yml down
+
+name: flagrt-ppu-v1-demo
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  # 官方镜像全部资产为固化（FlagTree 官方自带，无本组配方层），本环境不挂载任何 repo：
+  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-ppu:
+    container_name: flagrt-ppu-v1-demo-ptg0
+    image: flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base
+    network_mode: host
+    ipc: host
+    shm_size: 32g
+    tty: true
+    stdin_open: true
+    devices:
+      # /dev/alixpu + /dev/alixpu_ctl 是设备访问前提（缺 ctl 则 ppu-smi / 设备枚举失效）。
+      # 映射全部 16 卡 ⇒ 容器内逻辑号 == 宿主物理号；实际用卡由 CUDA_VISIBLE_DEVICES 授予。
+      - /dev/alixpu:/dev/alixpu
+      - /dev/alixpu_ctl:/dev/alixpu_ctl
+      - /dev/alixpu_ppu0:/dev/alixpu_ppu0
+      - /dev/alixpu_ppu1:/dev/alixpu_ppu1
+      - /dev/alixpu_ppu2:/dev/alixpu_ppu2
+      - /dev/alixpu_ppu3:/dev/alixpu_ppu3
+      - /dev/alixpu_ppu4:/dev/alixpu_ppu4
+      - /dev/alixpu_ppu5:/dev/alixpu_ppu5
+      - /dev/alixpu_ppu6:/dev/alixpu_ppu6
+      - /dev/alixpu_ppu7:/dev/alixpu_ppu7
+      - /dev/alixpu_ppu8:/dev/alixpu_ppu8
+      - /dev/alixpu_ppu9:/dev/alixpu_ppu9
+      - /dev/alixpu_ppu10:/dev/alixpu_ppu10
+      - /dev/alixpu_ppu11:/dev/alixpu_ppu11
+      - /dev/alixpu_ppu12:/dev/alixpu_ppu12
+      - /dev/alixpu_ppu13:/dev/alixpu_ppu13
+      - /dev/alixpu_ppu14:/dev/alixpu_ppu14
+      - /dev/alixpu_ppu15:/dev/alixpu_ppu15
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+    environment:
+      - DO_NOT_TRACK=1
+      # 坑②：镜像写死 eth0，本机真网卡 bond0；不覆盖则 nccl all_reduce 失败
+      - NCCL_SOCKET_IFNAME=bond0
+    additional_hosts:
+      - "ai-server:127.0.0.1"     # 坑①：--network host 下主机名不解析 → torchrun 挂 300s
+    restart: "no"
+    command: sleep infinity

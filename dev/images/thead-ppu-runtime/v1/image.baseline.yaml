@@ -1,0 +1,49 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: manual-registration（ADR-0007 登记式基线：上游官方镜像无仓内配方，export 模式不适用；本文件为手工登记，字段口径同 ENV-SPEC §3.1）
+generated_at: 2026-10-15T10:30:00+08:00
+
+image:
+  ref: flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base
+  id: sha256:f5366712d6a0856a429f9df3503bc377c929df806acc654973e350e27fed9239                 # check 项（本机 docker inspect 实测）
+  digest: sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53            # registry 版本锚（harbor.baai.ac.cn/flagtree，tag 202607-3.6-base）
+  recipe: []                # FlagTree 官方镜像（BAAI·FlagTree 构建物），无仓内 Dockerfile.repro，不可重建
+  demo: dev/images/thead-ppu-runtime/v1/demo/
+
+# ── 与自建基线的差异（ADR-0007，同 ascend-infer-vllm/v1 先例）────────────
+# ① 本镜像整体 = 被动继承的 FlagTree 官方产物，没有「本组配方带入」的层 ⇒ 全部条目 from: base_image。
+# ② 镜像内 /opt/vllm 无 .git（2026-10-15 探针实测）⇒ 无自证 commit 锚；版本主锚 = Harbor
+#    digest（公开可拉），辅锚 = pip 元数据（版本号）。check 走 from: base_image 分支
+#    （INFO，由 image id + digest 兜底），不新增核对路径。
+# ③ 本组 PPU 后端（runtime ppu 0.1.0）不在镜像内 —— 它在仓内 dev/device-context/prototype/runtime/
+#    （kistich 分支），demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
+
+baked_repos:
+  # ──────────────── FlagTree 官方基座自带（被动继承，不可重建） ────────────────
+  torch:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.10.0
+    install: pip (wheel)
+  vllm:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 0.19.0+cu130
+    install: pip (wheel)
+  transformers:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 4.57.0
+    install: pip (wheel)
+  ppu_sdk:
+    layer: L1
+    from: base_image
+    commit: unavailable
+    version: v2.1.0                 # 镜像内 PPU_VERSION 变量实测
+    install: in-image (/usr/local/PPU_SDK)
+    info: CUDA wrapper cu130（PPU 设备 API 走 torch.cuda 命名空间）；/opt/accl-p = 集合通信库 libpccl；/opt/eic-sdk = 通信/RDMA 组件 deb 包
+
+base_image: {}              # 本镜像自身即 FlagTree 官方镜像（harbor.baai.ac.cn/flagtree），无更下层本组可控基座；registry digest 见 image.digest
