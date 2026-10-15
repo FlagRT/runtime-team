@@ -53,6 +53,7 @@
 | 昇腾 910C 开发 / 构建（harbor 源） | harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev | 11.2GB | 私有 harbor，需 BAAI 账号 |
 | 昇腾 910C 开发 / 构建（本地重建，`compose.base.yml` 默认） | flagos-dev/pytorch-plugin-fl | manual-20260807-ascend-dev-hostnet | 11.2GB | 2026-08-13 快照重建（同 commit）；CANN 9.0.0 + Python 3.12 + 昇腾工具链全套（通用昇腾 dev 底座，A 线在容器内装 torch_npu） |
 | 昇腾 910C 推理结论性测试 | quay.io/ascend/vllm-ascend | v0.20.2rc1-a3 | 18GB | 华为官方，公开可直接 pull（本机现有 `nightly-main-a3`，tag 以实拉为准）；自带 torch_npu + vllm 0.20.2 + vllm_ascend；triton_ascend wheel 来源 |
+| 平头哥 PPU 基座（现行锁定） | harbor.baai.ac.cn/flagtree/flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04 | 202607-3.6-base | 40.3GB | FlagTree 官方，公开 Harbor 按 digest 拉取（`@sha256:50a906e6…`）；自带 PPU SDK v2.1.0 + torch 2.10.0 + vllm 0.19.0+cu130；血统与锁定见 dev/images/thead-ppu-runtime/v1/ 与 dev/stack.lock.thead-ppu.v1.yaml |
 
 > **910C 原型阶段（2026-09 起）另有一套锁定镜像**，与本节的通用 dev 底座不同：训练腿 `flagrt/ascend-operator-runtime-comm:0.1.3-…`（candidate，torch_fl 例外线）、推理腿 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`。血统与内置版本见 `dev/images/image_list.md`，锁定状态见 `dev/stack.lock.910c.*.yaml` 现行版本。本节 dev 底座不用于原型结论性验证。
 

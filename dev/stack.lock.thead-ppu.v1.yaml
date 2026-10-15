@@ -1,0 +1,102 @@
+# =====================================================================
+# 运行时层 · 平头哥 PPU（真武 ZW810E）统一基座 —— 锁定镜像与基座规范（首次建立）
+# 文件：dev/stack.lock.thead-ppu.v1.yaml
+# 效力：本文件是全组（平头哥 PPU 线）结论性验证的唯一环境依据；任何变更需更新本文件并知会全组
+# 起草：runtime-team 总组 ｜ 结构参照 dev/stack.lock.kunlunxin.v1.yaml，内容按 PPU 实情如实分叉
+# 记录：2026-10-15 ｜ 定稿：2026-10-15 ｜ 状态：生效
+# 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
+#
+# 本文件为平头哥 PPU 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 = thead-ppu-runtime v1
+# （BAAI·FlagTree 官方基座镜像，登记式基线 ADR-0007，repro_status 🟢）。
+# 与昆仑芯侧的类似点：无带卡容器独占（实测多容器并存可用）；与昆仑芯的不同点：无 git commit 式
+# FlagTree 构建、也无索引 wheel pin —— 镜像整体 = FlagTree 官方构建物（Harbor digest 锚）。
+# =====================================================================
+
+version: 1
+recorded_at: "2026-10-15"
+updated_at: "2026-10-15"
+owner: 总组
+chip: "平头哥 PPU（真武 ZW810E）"
+acceptance_model: "Qwen/Qwen3-Embedding-0.6B（与 P800 同款基准模型；模型资产在 PTG_0 /bmcp_lvm_fs/hliu553/models/）"
+flagtree_line: |
+  ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。锁定镜像为
+  BAAI·FlagTree 官方构建物（harbor.baai.ac.cn/flagtree），非本组构建、无仓内配方，
+  版本锚 = Harbor digest（公开可拉）。本组 PPU 后端（runtime ppu 0.1.0）不在镜像内，
+  在仓内 dev/device-context/prototype/runtime/，经 WORKSPACE_ROOT 挂载使用。
+  版本事实（image id、内置组件版本）以
+  dev/images/thead-ppu-runtime/v1/image.baseline.yaml 为准。
+
+# ---------------------------------------------------------------
+# 设备注册路线（与 P800 同型：无带卡容器独占；与昇腾相反，勿照抄昇腾纪律）
+# ---------------------------------------------------------------
+device_registration:
+  primary: "Route A（厂商官方栈：FlagTree 官方镜像自带 PPU SDK v2.1.0 + CUDA wrapper cu130；PPU 设备 API 走 torch.cuda 命名空间，torch.xpu.device_count()==0）"
+  selection: |
+    无带卡容器独占（同 P800、与昇腾相反）：多容器可并存，docker ps 只是共享机礼貌；
+    用 ppu-smi 挑 0% 利用率 / 2MiB 显存的空闲卡，以 CUDA_VISIBLE_DEVICES=<物理卡号>
+    自律（demo 映射全部 16 卡使容器内逻辑号 == 宿主物理号；自建环境只授予卡子集时
+    须写重编号后的逻辑号——该变量按授予顺序密集重编号，同 P800）。
+    设备授予：声明式 devices: /dev/alixpu + /dev/alixpu_ctl（缺 ctl 则设备枚举失效）
+    + 所用 alixpu_ppuN；不需要 --privileged，不需要挂宿主驱动（PPU SDK 在镜像内）。
+    本机两条实测启动坑（demo 已内置规避，详见该目录文件头）：
+    ① --network host 下宿主主机名（ai-server）不在 DNS → torchrun/c10d 静默挂 300s，
+       须 --add-host=ai-server:127.0.0.1；
+    ② 镜像写死 NCCL_SOCKET_IFNAME=eth0 而本机真网卡是 bond0 → 须覆盖为 bond0。
+
+# ---------------------------------------------------------------
+# 锁定镜像（FlagTree 官方基座，训练/推理同底座）
+# ---------------------------------------------------------------
+lock:
+  runtime:                              # 训练（transformers DDP）与推理（镜像自带 vllm 0.19.0+cu130）同底座
+    image: "flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base"
+    notes: "BAAI·FlagTree 官方基座镜像（登记式基线，ADR-0007）：无已知镜像限制；两条启动坑（hostname / NCCL 网卡）为环境事实非镜像缺陷，demo 已内置规避。版本事实以 dev/images/thead-ppu-runtime/v1/image.baseline.yaml 为准"
+    container_name: "flagrt-ppu-v1-demo-ptg0（demo 运行环境容器：dev/images/thead-ppu-runtime/v1/demo/）"
+    base_image_entry: "dev/images/thead-ppu-runtime/v1"          # 血统 / 内置版本 / 重建指针 / 登记证据
+    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagtree），digest 锁定可拉。image id：sha256:f5366712d6a0856a429f9df3503bc377c929df806acc654973e350e27fed9239（PTG_0 本机 docker inspect 实测）｜ repro_status 🟢 FlagTree 官方镜像（镜像不可重建是设计边界，官方产物）"
+
+# ---------------------------------------------------------------
+# 候选血统（无；发布物即 v1，无在途候选）
+# ---------------------------------------------------------------
+candidates: {}
+
+# ---------------------------------------------------------------
+# 使用规则（按 PPU 实情；PPU 特有纪律置于最前）
+# ---------------------------------------------------------------
+rules:
+  - "--network host 启动必须带 --add-host=ai-server:127.0.0.1（否则 torchrun/c10d 静默挂 300s 后超时；mp.spawn + tcp://127.0.0.1 不受影响）"
+  - "必须覆盖 NCCL_SOCKET_IFNAME=bond0（镜像写死 eth0，本机无 eth0；不覆盖则 nccl all_reduce 失败 Bootstrap: no socket interface found）"
+  - "结论性验证只在锁定镜像内做；日常调试容器结果不作为验收依据"
+  - "任何镜像变更必须更新本文件并知会全组"
+  - |
+    共享机纪律（PTG_0，同 P800 型）：无带卡容器独占，但绝不 stop/rm 他人容器（本机
+    25+ 容器常在跑，基座镜像被 5 个工作负载容器共用）；选卡纪律见
+    device_registration.selection；根分区 94% / /data 99%（勿写入），docker 与大文件
+    落 /bmcp_lvm_fs（11T，剩 2.1T）。
+  - |
+    基座镜像入锁门槛（沿用既有口径）：任何镜像进入本文件 lock: 前，
+    dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
+    上游发布的镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
+    统一基座的确定/调整/发布由总组裁定；各方向只消费不自建，诉求写进本方向
+    STATUS.md 由总组收拢。
+
+# ---------------------------------------------------------------
+# 已知限制（本镜像自身无；平台侧缺陷归 device-context 方向跟踪）
+# ---------------------------------------------------------------
+known_issues: []
+# 说明：PPU 侧已定位的平台缺陷（退出期弱引用悬垂 SIGSEGV，根因在平台侧 Py_FinalizeEx→
+# _PyWeakref_ClearRef，本层已规避、不影响正常结论；转厂商跟进）由 device-context 方向
+# 在其目录内跟踪；属运行时层职责外的平台事实，不入本清单。
+
+# ---------------------------------------------------------------
+# 变更记录
+# ---------------------------------------------------------------
+changelog:
+  - date: "2026-10-15"
+    who: "总组"
+    what: |
+      首次建立平头哥 PPU 锁定声明（此前该芯片无 stack.lock 文件）：发布物锁定为
+      thead-ppu-runtime v1（BAAI·FlagTree 官方基座镜像，登记式基线 ADR-0007，
+      Harbor digest 锚）；设备注册（无带卡容器独占、ppu-smi 选卡、CUDA_VISIBLE_DEVICES
+      重编号、两条启动坑）按 PPU 实情分叉，不照抄昇腾/昆仑芯。依据文件：
+      dev/images/thead-ppu-runtime/v1/{lock.yaml,image.baseline.yaml,README.md}、
+      dev/images/thead-ppu-runtime/v1/demo/。

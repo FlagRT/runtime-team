@@ -108,7 +108,8 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 # 当前生效版本
 
 > 2026-10-14 发版后口径。锁定声明见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
-> 与 [`../stack.lock.kunlunxin.v1.yaml`](../stack.lock.kunlunxin.v1.yaml)；限制清单、规避配置与
+> 与 [`../stack.lock.kunlunxin.v1.yaml`](../stack.lock.kunlunxin.v1.yaml)；平头哥 PPU 见
+> [`../stack.lock.thead-ppu.v1.yaml`](../stack.lock.thead-ppu.v1.yaml)；限制清单、规避配置与
 > 删除条件见 [`../../docs/基座发版说明-20261014.md`](../../docs/基座发版说明-20261014.md)。
 
 | 芯片 | 系列 | 生效 tag | 目录 |
@@ -117,6 +118,7 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 | 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
 | 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
+| 平头哥 PPU | thead-ppu-runtime | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线） | `thead-ppu-runtime/v1/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
 > `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。三条自建血统 + 官方推理镜像均
@@ -128,6 +130,7 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 > registry 官方镜像，按 digest 拉取。
 
 <!-- changelog: 2026-10-14 —— 本文件对齐 dev/stack.lock.910c.v4.yaml 口径（依据指挥台
+<!-- changelog: 2026-10-15 —— 新增平头哥 PPU 行：thead-ppu-runtime v1（FlagTree 官方基座，登记式基线 ADR-0007 同款，Harbor digest 锚），锁定声明 dev/stack.lock.thead-ppu.v1.yaml。 -->
      ADR-0004「推理腿切回官方 vllm-ascend」，取代 ADR-0003 §3.5）。修订点：
      ① 版本线节补明 ascend-infer-vllm 为版本纪元对齐 ascend3.5、非 FlagTree 构建物；
      ② ascend-infer-vllm 系列加表注，标为现行推理腿（官方镜像 / digest 锁定 / 🟢 / 不带 A 条目）；
