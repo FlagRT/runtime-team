@@ -77,7 +77,7 @@ services:
       - DO_NOT_TRACK=1
       # 坑②：镜像写死 eth0，本机真网卡 bond0；不覆盖则 nccl all_reduce 失败
       - NCCL_SOCKET_IFNAME=bond0
-    additional_hosts:
+    extra_hosts:
       - "ai-server:127.0.0.1"     # 坑①：--network host 下主机名不解析 → torchrun 挂 300s
     restart: "no"
     command: sleep infinity
