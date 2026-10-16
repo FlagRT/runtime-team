@@ -332,9 +332,15 @@ git ls-tree --name-only origin/dev-1.0:dev | grep -c "stack.lock.910c.yaml"     
 | # | 事项 | 状态 |
 |---|---|---|
 | 1 | FlagCX `dev-1.0` | ✅ **`62fe615`**（含修复）⇒ 各方向可**覆盖安装**或换镜像 |
-| 2 | 本仓 `dev-1.0` | ✅ **`2e077fb`** ⇒ 四实例内容 + 910C 新基座适配 + case 包全部入库 |
+| 2 | 本仓 `dev-1.0` | ✅ 已接收本方向全部内容（**首次合并 `2e077fb`**；本 §7 记录随后以另一次无冲突 merge 带入）⇒ 四实例内容 + 910C 新基座适配 + case 包全部入库 |
 | 3 | 本方向个人分支 | ✅ `kistich/device-context`（工作区干净、与远端一致） |
 | 4 | **通道 ④ 镜像侧晋升** | ⏳ **待镜像维护者**：`dev/images/ascend-train-comm/v4`（或 v3 补丁版）的 `ARG FlagCX_COMMIT` pin 到 **`b576fa6a`**；发布后在 **baked 镜像上直接跑** `flagcx_sync_test.py --iters 20` 应为 PASS（不再依赖挂载覆盖） |
 | 5 | 通知各方向 | ⏳ 待发：「FlagCX 已更新到 `62fe615`」—— 10-14 口径是「各自 `fix`/`commit` 后**覆盖安装**最新 FlagCX」 |
 | 6 | 本方向运行环境 | ⏳ 镜像换新后**删除** `910C/env/train` 的 `mounted_repos.FlagCX` 声明（挂载只是过渡态，见 ENV-SPEC §2.3 晋升） |
+
+**2026-10-16 收尾时的实测快照**（带日期 · 是那一刻的读数，**不是**"当前 tip"的永久声明）：FlagCX `dev-1.0` = **`62fe615`** · 本仓 `dev-1.0` = **`6e64bfe`** · 本方向个人分支 = **`2669f0c`**。
+
+> 核对方式（不看工作树）：`git ls-remote origin refs/heads/<分支>` 与本地 `git rev-parse` **逐字比对**。
+> ⚠️ **不要**直接拿 `refs/remotes/origin/*` 判：`git fetch <remote> <branch>`（不带目标 refspec）**只写 `FETCH_HEAD`**，
+> 该远端跟踪 ref 会停在旧值 —— 本轮已因此误判一次（`summary/` 显示 0 文件，真值 3）。
 
