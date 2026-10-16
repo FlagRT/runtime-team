@@ -135,7 +135,7 @@
 |---|---|---|
 | `prototype/`（原型：统一 runtime 层 + 四实例后端） | **L4 挂载装配**下的子方向代码，按路径调用；**不**进 `mounted_repos` | ✅ 已到位（仓根挂载使其可见） |
 | 910C conformance / 多流 / 训推两条腿 / 职责审计的脚本与判据 | 各自 run-env 目录下的调用入口 + `<chip>/probes/` 证据 | ✅ 已到位（判据入口见 [`../910C/README.md`](../910C/README.md)、[`../prototype/docs/`](../prototype/docs/)） |
-| **FlagCX c10d 完成语义 + 异构修复**（镜像固化的 `4e0e0cb` 不含） | **下放**：`910C/env/train/docker-compose.yml` 的 `x-flagrt.mounted_repos.FlagCX`（`pip-editable`） | ✅ 本轮完成（源码分支已推送、真机 A/B 已验证） |
+| **FlagCX c10d 完成语义 + 跨厂商（cross-vendor）修复**（镜像固化的 `4e0e0cb` 不含） | **下放**：`910C/env/train/docker-compose.yml` 的 `x-flagrt.mounted_repos.FlagCX`（`pip-editable`） | ✅ 本轮完成（源码分支已推送、真机 A/B 已验证） |
 | 缺陷 case（两类缺陷 + 修复验收判据 + 原生 DDP 脚本） | `dev/issues/flagcx-c10d-collectives/`（三段式 + 四条硬规则 + 三态口径） | ✅ 本轮更新（内容与证据由本方向提供，发布归总组） |
 | 910C 训练腿 / 推理腿的**运行环境目录** | `910C/env/train/` 与 `910C/env/infer/` | ✅ 完整就位：compose + `.env.example` + README + **两份 `env.baseline.yaml`（`export --require-clean` 生成，rc=0）**；`up.sh` 起容器 rc=0、容器内两项验收 PASS（见 §6.1） |
 | 原 `dev/device-context/README.md` 里的 `-f ../compose.base.yml` 写法 | 退役写法 | ✅ 本轮删除（改指运行环境目录） |

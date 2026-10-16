@@ -125,18 +125,18 @@
 | 分支 / HEAD | `kistich/ascend-flagcx-adapt` @ **`b576fa6a`**（工作区**干净**，已推送） |
 | 相对 `origin/dev-1.0`（`4e0e0cb`） | **领先 17 · 落后 0**（`merge-base` = `4e0e0cb`）⇒ **快进关系** |
 | 推送权限 | `git push --dry-run origin kistich/ascend-flagcx-adapt:dev-1.0` → `4e0e0cb..b576fa6` ✅ 可推 |
-| 遗留检查 | `HETERO-DBG` 命中 **0** 个文件（早期调试打点已清理）；无 `/mnt/raid` 等本机路径硬编码 |
+| 遗留检查 | 早期调试打点（`HETERO-DBG` = FlagCX 源码里的调试标记名，**非对外表述**）命中 **0** 个文件；无 `/mnt/raid` 等本机路径硬编码 |
 
 **17 个提交按主题分组**：
 
 | 主题 | 提交 |
 |---|---|
 | **完成语义（本次 all_gather 修复的核心）** | `a1e7e0f`（P2+P6+P7+P8+P9 五修复）· `d296824`（大模型 DDP step~765 退化：`flagcxCannEvent` 泄漏 aclrtEvent + 完成语义）· `0686805` / `60e0695`（collective 跑 torch_npu 当前流）· `4fbd9e9`（NVIDIA 侧 collective 跑 torch 当前 CUDA 流） |
-| **异构（跨厂商）** | `08535e1`（O4 socket 协议 seq 校验 + 错误终结）· `e9eb435`（irecv recvSeq 递增）· `900f9d2`（uniRunnerAllReduce + launchHostFunc）· `41a0b44`（4090+910C 跨机 allgather 打通） |
+| **跨厂商（cross-vendor）** | `08535e1`（O4 socket 协议 seq 校验 + 错误终结）· `e9eb435`（irecv recvSeq 递增）· `900f9d2`（uniRunnerAllReduce + launchHostFunc）· `41a0b44`（4090+910C 跨机 allgather 打通） |
 | **昇腾适配** | `5f7ad78`（四层根因）· `984e37a`（UVA host-mapped + DAG 持久 kernel + 探测回退）· `4bbbae5`（`flagcxGetLastError` 存根） |
 | **性能** | `8402a93`（`flagcx_collective` 向量化 reduce + 去数据缓冲 dcci） |
 | **构建可编译性（本次新增）** | `5e44b3c`（CUDA 头宏守卫 + DAG 链接项开关化 + `.gitignore`） |
-| **异构结构性问题（本次新增）** | `b576fa6`（adaptor 表布局漂移 / 拓扑空回调 / 簇作用域 bootstrap） |
+| **跨厂商结构性问题（本次新增）** | `b576fa6`（adaptor 表布局漂移 / 拓扑空回调 / 簇作用域 bootstrap） |
 | **文档** | `60a1296` · `80967b8` |
 
 ### 3.2 本仓 `FlagRT/runtime-team`
@@ -184,7 +184,7 @@ git status --porcelain                 # 必须为空（已实测为空）
 git checkout dev-1.0
 git merge --ff-only origin/dev-1.0     # 本地 dev-1.0 先对齐远端
 git merge --no-ff kistich/ascend-flagcx-adapt \
-  -m "Merge kistich/ascend-flagcx-adapt into dev-1.0（昇腾完成语义 + 异构修复，17 提交）"
+  -m "Merge kistich/ascend-flagcx-adapt into dev-1.0（昇腾完成语义 + 跨厂商修复，17 提交）"
 git push origin dev-1.0
 # 三项核验
 git ls-remote origin refs/heads/dev-1.0        # tip 应 = b576fa6a…（含新 merge 提交则为其 sha）
@@ -194,6 +194,8 @@ git checkout kistich/ascend-flagcx-adapt
 - **判据**：`git rev-parse origin/dev-1.0` 的祖先链含 `b576fa6a`；`git show origin/dev-1.0:makefiles/ascend.mk | grep -c FLAGCX_ASCEND_DAG` ≥ 1。
 - ⚠️ **合入后必须通知各方向**：10-14 的口径是「FlagCX 是第二层基础库，各自 `fix`/`commit` 后**覆盖安装**最新 FlagCX」——他们需要重新 `pip install -e` 或拉新镜像。
 - 失败处置：`--ff-only` 失败说明本地 `dev-1.0` 与远端分叉 ⇒ 重跑 `git fetch` + `--ff-only`；merge 冲突（预期无）⇒ 手工解决后 `git merge --continue`。
+> ⚠️ **本次实际执行时该行提交信息写作「异构修复」**（旧口径）。FlagCX `dev-1.0` 的 merge 提交 `62fe615` 已推送到组织仓、不追改；
+> 自本行起统一用「**跨厂商（cross-vendor）**」。
 
 ### 通道 ② 本仓 `runtime-team`（自建仓）—— 冲突最多，按下面顺序
 

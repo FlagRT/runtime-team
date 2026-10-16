@@ -7,7 +7,7 @@
 # 全部组件 + FlagCX）。镜像基线 ../../../../images/ascend-train-comm/v3/image.baseline.yaml。
 #
 # 【为什么挂载 FlagCX】镜像里固化的 FlagCX 是公开主干 4e0e0cb，不含本组的 c10d 完成语义
-# 与异构修复（见 dev/issues/flagcx-c10d-collectives/）。本方向在镜像内需要那份修复，
+# 与跨厂商（cross-vendor）修复（见 dev/issues/flagcx-c10d-collectives/）。本方向在镜像内需要那份修复，
 # 故按 ENV-SPEC §2.2（同一 repo 既固化又挂载）以 pip-editable 覆盖固化版本：
 # env.baseline.yaml 会记 overrides_baked / baked_commit，check 会提示挂载副本不含镜像内
 # 固化版本携带的构建期补丁（FlagCX 在镜像中无补丁，这条不触发）。

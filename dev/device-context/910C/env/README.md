@@ -146,7 +146,7 @@ export DC_DIE_A=5 DC_DIE_B=0
 ## 5. 挂载资产：训练腿的 FlagCX
 
 训练腿镜像里固化的 FlagCX 是公开主干 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`
-（= 本组分支的分叉点），**不含** c10d 完成语义与异构修复（缺陷 case：
+（= 本组分支的分叉点），**不含** c10d 完成语义与跨厂商（cross-vendor）修复（缺陷 case：
 [`dev/issues/flagcx-c10d-collectives/`](../../../issues/flagcx-c10d-collectives/README.md)）。
 本方向需要那份修复，故按 ENV-SPEC §2.2「同一 repo 既固化又挂载」以 pip-editable 覆盖：
 
