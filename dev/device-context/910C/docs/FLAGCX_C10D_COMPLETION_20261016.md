@@ -193,10 +193,12 @@ bash -s < probes/910C/run_p9_alternate_910c_20261016.sh
 bash -s < probes/910C/run_p9_ddp_910c_20261016.sh
 ```
 
-**收尾**（本报告执行后容器仍保留，便于复核；确认后请执行）：
+**收尾**（本报告执行后已执行）：
 
 ```bash
-ssh 910C 'docker stop dc-p9-910c-20261016 && docker rm dc-p9-910c-20261016'
+ssh 910C 'docker stop dc-p9-910c-20261016'      # ✅ 已执行（2026-10-16 10:5x）：Exited (137)、我方无残留进程、die5/die0 已释放
+# 容器**保留**（不删）便于复核；确认后如需彻底清理：docker rm dc-p9-910c-20261016
+# 复核时重起即可：docker start dc-p9-910c-20261016（源码/构建产物/证据都在 /mnt/raid/hliu553/ 下）
 ```
 
 ---
