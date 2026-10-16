@@ -1,0 +1,31 @@
+# 证据截选 —— ⭐ up.sh <train> --strict：rc=0、容器 Created→Started、Up
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/strict/log/strict_run_run2.log
+# 采集时间: 2026-10-16 14:39:46 (npu1-27)
+
+############ 5. up.sh <train> --strict ############
+--- 起前：清我方同名残留（compose 遇同名会 Conflict 起不来）---
+  无同名容器
+  已删旧 flagos-dc-train-910c-dev
+--- 起前：本机带卡容器映射（昇腾驱动对带卡容器独占）---
+  rag-ljy-vllm-910c                  die=7,
+  temp-cp-npu4567                    die=8,9,10,11,12,13,14,15,
+  fl-profile-910c                    die=4,
+  kelvin-w4-lzy                      die=2,3,
+  evalx-910c                         die=1,
+  flagos-batch-yxy-dev-910c          die=6,
+  x-benchmark                        die=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+  flaggems-cann9.0.0                 die=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+--- 启动 ---
+[PASS] image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64 -> sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+[PASS] FlagCX: commit=b576fa6ad977
+[INFO] FlagCX: 覆盖镜像内固化版本 4e0e0cbcbf72，生效方式 pip-editable
+[INFO] baked: 固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）
+check 结果 -> dev/device-context/910C/env/train/.last-check.json
+ Container flagos-dc-train-910c-dev  Creating
+ Container flagos-dc-train-910c-dev  Created
+ Container flagos-dc-train-910c-dev  Starting
+ Container flagos-dc-train-910c-dev  Started
+  up.sh --strict rc=0
+  [OK] 容器在运行: flagos-dc-train-910c-dev|Up 8 seconds
+
+############ 6. 等挂载安装并跑单入口验收 ############

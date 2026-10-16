@@ -53,22 +53,56 @@ python3 -c "import yaml; print(yaml.__version__)"  # 期望 6.0.2
 > 上面走的是"**同版本官方件**"，版本号与 11 上验证过的相同。
 > 另：本机 `sudo -n true` 报 `sudo: a password is required`（非交互不可用）⇒ 未走 sudo。
 
-### 2.1 ⚠️ `up.sh --strict` 在本机**必然拒绝启动**（跨机镜像 id 不同）
+### 2.1 `image.id` 的跨机问题 ⇒ 本机对齐（**已解决，本机 `--strict` 可跑**）
 
-`env.baseline.yaml` 的 `image.id` 是**抄录自镜像基线**的，而镜像基线记的是**制造机（npu1-11）**的 id：
+**问题**：`env.baseline.yaml` 的 `image.id` 由 `baseline.py export` **原样抄录**自镜像基线，而镜像基线记的是
+**制造机（npu1-11）**的 id；`check` 拿它与**本机** id 逐字比对 ⇒ 非制造机上恒 `FAIL`、`up.sh --strict` 恒拒绝启动：
 
 ```
-[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
-                         本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b…（制造机 npu1-11）
+                         本机 sha256:7028028bb62c…（npu1-27）
 ```
 
-- 这不是本方向的配置问题——[`image_list.md`](../../../images/image_list.md) 早已登记"跨机 image id 不同属预期
-  （内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`"。**但它的后果要写清**：`check` 在非制造机上
-  恒 `FAIL`，`--strict` 因此恒拒绝启动。
-- 本方向处置（如实登记，不绕）：本机出结论的运行**用 `up.sh`（不加 `--strict`）**，并在证据里注明
-  "本次未满足 `--strict`"；其余各项仍照核对（`[PASS] FlagCX: commit=…` 是逐字通过的）。
-- 正解在镜像/机制侧（允许记多个等价 id，或统一用 `docker load` 离线包分发使 id 跨机一致），
-  已记入待办；**本方不擅改基线或 `baseline.py`**。
+**为什么「合规地拿到同一制品」在本场景不可得（三条路逐条实测，2026-10-16）**：
+
+| 路径 | 实测结果 |
+|---|---|
+| `docker load` 离线包 | 实体 `train-comm-v3-round4-npu11-e13a15d0d02b.tar.gz`（10.5 G）只在 npu1-11；`hliu553@10.120.72.11` 用三把私钥（`id_kistich`/`id_rsa`/`id_ed25519`）**一律 `Permission denied`**，从 27 直连同样被拒 |
+| registry 按 digest 拉 | 27 的 docker daemon 配的代理 `127.0.0.1:7890` 已失效——连**已知存在的父镜像**都拉不动：`docker manifest inspect harbor.baai.ac.cn/flagtree/flagtree-…` → `proxyconnect tcp: dial tcp 127.0.0.1:7890: connect: connection refused` |
+| 按 `Dockerfile.repro` 重建 | 只能到「功能等价」（该镜像 `repro_status = 🟡 partial-repro`；构建期含 `pin: unpinned` 的 `git clone` 与层时间戳）⇒ **复现不出同一个 id** |
+
+**「内容同源」的依据（实测，不是推断）**：同一 tag；**L1 厂商基座 digest 与本机 `RepoDigests` 逐字相同**
+（`sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a`）；镜像 labels 里 **5 项固化资产的
+commit 与镜像基线逐字相同**（FlagCX `4e0e0cb…` · FlagTree `15ec1a6c…` · FlagGems `f7ae8e6b…` ·
+Torch-FL `162582d6…` · vllm-plugin-FL `8b059122…`）；总组亦在
+`dev/images/ascend-train-comm/v3/lock.yaml` 里并列登记 `image_id`(npu1-11) 与 `image_id_round4_npu27`。
+
+**本方向处置**：把该字段对齐到**本机** id，工具是幂等的 [`pin_local_image_id.sh`](pin_local_image_id.sh)：
+
+```bash
+# 在仓根执行（本机 docker 里已有该 ref 的镜像）
+bash dev/device-context/910C/env/pin_local_image_id.sh dev/device-context/910C/env/train
+#   只改 image.id 一个字段；值取自本机 `docker image inspect <ref> --format '{{.Id}}'`；
+#   写完**回读校验**（`grep` 命中数 + `yaml.safe_load` 解析一致）；幂等（一致即不动）；
+#   并在文件里留下两个 id 与同源依据的注释。
+#   --check 只报告不写；--id sha256:… 用于在**别台机器/开发机**上生成或校对基线文件。
+```
+
+> ⚠️ **与 ENV-SPEC 的关系（如实说明，不粉饰）**：§3 明确要求两类基线文件「由 `baseline.py` 生成和核对，
+> **不手工编辑**」。本脚本不是随机手改——它是**单字段、机器取值、回读校验、幂等、且把依据写进文件**的
+> **机器级对齐动作**，属**已登记的偏离**；正解仍在机制/镜像侧（建议见下），故同时保留了本条待办。
+>
+> ⚠️ **`export` 之后必须重跑本脚本**：`export` 会把该字段抄回制造机 id。实测复现（export → check FAIL →
+> pin → check PASS）见 [`../probes/baseline_strict_20261016_out/SUMMARY.md`](../probes/baseline_strict_20261016_out/SUMMARY.md)。
+
+**推理腿不需要这条对齐**（可自证）：`infer/env.baseline.yaml` 的 `image.id` 与本机**逐字相同**
+（`sha256:2e56022ae5b39…`）——因为它是华为昇腾官方镜像、**按 digest 拉取**，
+`RepoDigests = ["quay.io/ascend/vllm-ascend@sha256:5cf8a2b6…"]`，id 是内容导出、天然跨机一致。**该文件未做任何改动**。
+
+**机制/镜像侧建议（任选其一即可消除本偏离，本方向不擅改基线或 `baseline.py`）**：
+① `image.id` 接受**等价 id 集合**——总组已在 `lock.yaml` 里并列登记两个 id，把这条事实接进 schema 即可；
+② 分发统一走 `docker load` 离线包（id 内容导出、跨机一致）；③ 把本组镜像 push 到可拉取的 registry
+（当前本组镜像 `RepoDigests` 为空 ⇒ **从未 push**；对照推理腿官方镜像即可看出差异）。
 
 ## 3. 选卡：唯一可靠的判据是「逐 die 建容器试 INIT」
 
@@ -132,13 +166,15 @@ python3 dev/lib/baseline.py export dev/device-context/910C/env/infer
 python3 dev/lib/baseline.py show  dev/device-context/910C/env/train
 python3 dev/lib/baseline.py check dev/device-context/910C/env/train
 
-# 启动：验收与出结论的运行应当加 --strict
-#   ⚠️ 本机（npu1-27）例外：镜像 id 与制造机不同 ⇒ check 恒 FAIL、--strict 恒拒绝启动（见 §2.1）。
-#      本机出结论的运行用下面第 2 条，并在证据里注明「本次未满足 --strict」。
+# 启动：验收与出结论的运行加 --strict（本机 npu1-27 已按 §2.1 对齐 ⇒ --strict 可直接用）
+#   ⚠️ 顺序有依赖：`export` 会把 image.id 抄回制造机 id ⇒ **export 之后必须先 pin**，
+#      否则 check 是 FAIL、--strict 会拒绝启动（§2.1 有实测复现）。
+python3 dev/lib/baseline.py export dev/device-context/910C/env/train --require-clean
+bash dev/device-context/910C/env/pin_local_image_id.sh dev/device-context/910C/env/train   # ← 紧跟 export
+python3 dev/lib/baseline.py check dev/device-context/910C/env/train                        # 期望 rc=0
 docker ps        # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
 export DC_DIE_A=<die> DC_DIE_B=<die>          # 见 §3；也可写进本目录 .env
-FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train --strict  # ① 制造机上
-FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train           # ② 本机
+FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train --strict
 
 # 复现他人的环境：先按基线切换挂载 repo，再启动
 python3 dev/lib/baseline.py load dev/device-context/910C/env/train
@@ -151,8 +187,10 @@ export WORKSPACE_ROOT=$PWD DC_DIE_A=<die> DC_DIE_B=<die>
 docker compose -f dev/device-context/910C/env/train/docker-compose.yml down
 ```
 
-- `check` 的留痕写 `<env-dir>/.last-check.json`（已被根 `.gitignore` 挡掉，不入仓；本轮实例见
-  [`../probes/baseline_mechanism_20261016_out/07_last_check.json`](../probes/baseline_mechanism_20261016_out/07_last_check.json)）。
+- `check` 的留痕写 `<env-dir>/.last-check.json`（已被根 `.gitignore` 挡掉，不入仓；实例见
+  [`../probes/baseline_strict_20261016_out/14_last_check_train.json`](../probes/baseline_strict_20261016_out/14_last_check_train.json)）。
+- ⭐ **`--strict` 真机验收的完整读数**（含 `export`→FAIL→pin→PASS 的复现）：
+  [`../probes/baseline_strict_20261016_out/SUMMARY.md`](../probes/baseline_strict_20261016_out/SUMMARY.md)。
 - 出结论的运行另须 `export --require-clean`（工作区不干净或 commit 未推送即拒绝导出）。
 - ⚠️ 从手工 `docker run` 切到 `up.sh` 前，**先 `docker rm -f` 同名容器**：compose 遇到同名残留会
   `Conflict. The container name … is already in use` 而起不来（本轮实测踩到）。

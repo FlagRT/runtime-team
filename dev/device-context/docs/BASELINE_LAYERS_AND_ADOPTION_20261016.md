@@ -162,18 +162,27 @@
 （见 §6 与 [`../910C/probes/baseline_mechanism_20261016_out/SUMMARY.md`](../910C/probes/baseline_mechanism_20261016_out/SUMMARY.md)）。
 **唯一未通过的是 `--strict`** —— 原因不在本方向，见 §5.1。
 
-### 5.1 ⚠️ `up.sh --strict` 在非制造机上**必然拒绝启动**（跨机镜像 id）
+### 5.1 `image.id` 跨机不同 ⇒ 本机对齐（**已落地**，2026-10-16）
 
-```
-[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
-                         本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
-```
+`env.baseline.yaml` 的 `image.id` 由 `export` **抄录**自镜像基线（= 制造机 npu1-11 的 id），而 `check` 拿它比
+**本机** id ⇒ 非制造机上恒 `FAIL`、`up.sh --strict` 恒拒绝启动（`image_list.md` 只登记了「跨机 id 不同」，
+**没写这条后果**）。
 
-`env.baseline.yaml` 的 `image.id` 抄录自镜像基线，而镜像基线记的是**制造机 npu1-11** 的 id。
-[`image_list.md`](../../images/image_list.md) 早已登记"跨机 image id 不同属预期（内容同源）"，
-但**它的后果此前没写下来**：`check` 在非制造机上恒 `FAIL` ⇒ `--strict` 恒拒绝启动。
-本轮处置：本机的结论性运行改用 `up.sh`（spec 明文"默认只报告、不阻止启动"）并**在证据中注明未满足 `--strict`**；
-其余各项照常核对（`[PASS] FlagCX: commit=b576fa6a…` 逐字通过）。正解属镜像/机制侧，见 §7.2 第 10 项。
+**合规拿到同一制品的三条路在本场景全不通**（逐条实测）：① 离线包（10.5 G）实体只在 npu1-11，而
+`hliu553@10.120.72.11` 用三把私钥一律 `Permission denied`；② 27 的 docker daemon 代理 `127.0.0.1:7890`
+已失效——连已知存在的父镜像都 `docker manifest inspect` 不动（`proxyconnect … connect: connection refused`）；
+③ 按 `Dockerfile.repro` 重建只到「功能等价」（🟡 partial-repro，构建期含 `pin: unpinned` 的 clone）⇒ 复现不出同一 id。
+
+**「内容同源」依据**：同 tag · **L1 基座 digest 与本机 `RepoDigests` 逐字相同**（`sha256:9ee5d835…`）·
+镜像 labels 的 **5 项固化资产 commit 与镜像基线逐字相同** · 总组在
+`dev/images/ascend-train-comm/v3/lock.yaml` 并列登记 `image_id`(npu1-11) 与 `image_id_round4_npu27`。
+
+**处置**：按**本机** id 对齐该字段，工具 `910C/env/pin_local_image_id.sh`（单字段 / 本机取值 / 写完回读校验 /
+幂等 / 文件内注明两个 id 与依据）。⚠️ 这是对 ENV-SPEC §3「不手工编辑」的**已登记偏离**（机器级、可复现，
+正解在机制侧）；⚠️ **`export` 之后必须重跑**。细节与三条机制侧建议见
+[`../910C/env/README.md`](../910C/env/README.md) §2.1；实测复现（export → FAIL → pin → PASS）与
+`up.sh --strict` 真机验收证据见
+[`../910C/probes/baseline_strict_20261016_out/SUMMARY.md`](../910C/probes/baseline_strict_20261016_out/SUMMARY.md)。
 
 ## 6. 本轮实测结果
 
@@ -183,13 +192,27 @@
 |---|---|
 | `export <env> --require-clean`（训练腿 / 推理腿） | **rc=0**，生成两份 `env.baseline.yaml` |
 | `show` | 挂载覆盖关系清楚：`FlagCX b576fa6ad977 pip-editable 否 是 <- 4e0e0cbcbf72 /workspace/FlagCX` |
-| `check` | **rc=1**，唯一 `FAIL` = 跨机镜像 id（§5.1）；`[PASS] FlagCX: commit=b576fa6ad977` |
-| `up.sh <env> --strict` | rc=1，**因上述 `FAIL` 拒绝启动**（预期，见 §5.1） |
+| `check` | 未对齐时 **rc=1**（唯一 `FAIL` = 跨机镜像 id，§5.1）；**按本机对齐后 rc=0**（§6.2） |
+| `up.sh <env> --strict` | 未对齐时 rc=1（拒绝启动，见 §5.1）；**按本机对齐后 rc=0**（§6.2） |
 | `up.sh <env>`（不加 `--strict`） | **rc=0**，容器 `flagos-dc-train-910c-dev` Created→Started |
 | `up.sh` 起的容器内两项验收（单入口） | **`overall: PASS` / rc=0**（八组 + 原生 DDP 四项全 PASS） |
 | `docker compose down` | **rc=0**，容器 Removed，我方运行中容器 0、残留进程 0 |
 
-### 6.2 挂载覆盖的 A/B 对照（同一容器、同一命令，只换加载哪份 FlagCX）
+### 6.2 `up.sh --strict` 真机验收（2026-10-16 14:34，npu1-27，die 5 + die 0）
+
+| 步骤 | 结果 |
+|---|---|
+| `export --require-clean` → `check` | 复现机制行为：`export` 把 `image.id` 抄回**制造机** id（`e13a15d0…`）⇒ `check` **rc=1** |
+| `pin_local_image_id.sh <train>` | 写入本机 id（`7028028bb62c…`）；回读 + `yaml.safe_load` 校验通过；幂等复跑 `已对齐，无需改动` |
+| `check` 两腿 | **rc=0 全 PASS**（推理腿官方镜像本就一致，**未做任何对齐**） |
+| **`up.sh <train> --strict`** | **rc=0**，容器 `Created→Starting→Started→Up` |
+| 容器内单入口验收（两项） | **`overall: PASS` / rc=0**（`flagcx_sync_test --iters 20` PASS · 原生 DDP 双卡 PASS） |
+| `down` + 收尾 | **rc=0**，容器 Removed；我方运行中容器 0 · 残留进程 0 |
+
+证据与全部读数（含三条「合规路径均不通」的实测）：
+[`../910C/probes/baseline_strict_20261016_out/SUMMARY.md`](../910C/probes/baseline_strict_20261016_out/SUMMARY.md)。
+
+### 6.3 挂载覆盖的 A/B 对照（同一容器、同一命令，只换加载哪份 FlagCX）
 
 同一容器、同一条命令（`run_910c_p9_acceptance.sh`，两项一起、三态自判定），只换加载哪份 FlagCX：
 
@@ -229,7 +252,7 @@
 |---|---|---|
 | 7 | **FlagCX 修复的晋升** | 本方向已在 `FlagRT/FlagCX` 的 `kistich/ascend-flagcx-adapt` 上给出干净、已推送的修复（`b576fa6a`，相对镜像 pin 的 `4e0e0cb` 领先 17 个提交）与两项验收证据。**镜像接收修复**（新版本 `v4/` 或给 v3 打补丁版）后才可动 `repro_status`。在收到之前，**本方向不得单方面声称 A-2 已解除** |
 | 8 | FlagCX 两处**可编译性**缺陷是否随修复上游 | ① `plugin/torch/flagcx/src/backend_flagcx.cpp` 无条件 `#include <ATen/cuda/CUDAContext.h>`（由本方向 NVIDIA 线提交引入，纯昇腾栈编译失败）；② `makefiles/ascend.mk` 无条件链接 DAG 专用 `-lcust_opapi`（镜像无 `custom_opp` ⇒ 链接失败）。两处已在本方向分支修好，建议随修复一起上游 |
-| 10 | ⭐ **`image.id` 的跨机口径**（本轮新暴露） | `env.baseline.yaml` 的 `image.id` 抄录自镜像基线（= 制造机 npu1-11 的 id）⇒ **除制造机外 `check` 恒 FAIL、`up.sh --strict` 恒拒绝启动**（`image_list.md` 只登记了「跨机 id 不同」，未写这条后果）。可选处置：① 基线允许记多个等价 id；② 分发统一走 `docker load` 离线包（content-derived id，跨机一致）；③ 明确「`--strict` 只在制造机可满足」并给出别机的等价判据 | **总组 / 镜像侧**（本方不擅改基线或 `baseline.py`） |
+| 10 | ⭐ **`image.id` 的跨机口径**（**本方向已按本机对齐落地 2026-10-16**；机制侧仍建议） | `env.baseline.yaml` 的 `image.id` 抄录自镜像基线（= 制造机 npu1-11 id）⇒ 除制造机外 `check` 恒 FAIL、`--strict` 恒拒绝启动（`image_list.md` 只登记了「跨机 id 不同」，未写这条后果）。**本方向**：用 `910C/env/pin_local_image_id.sh` 把该字段对齐到本机 id（幂等 / 回读校验 / 文件内注明两 id 与同源依据），本机 `up.sh --strict` 已 rc=0（证据 `910C/probes/baseline_strict_20261016_out/`）。**仍建议机制侧**：① 基线允许记**等价 id 集合**（总组已在 `lock.yaml` 并列登记两个 id，接进 schema 即可）；② 分发统一走 `docker load` 离线包；③ 镜像 push 到可拉取 registry（当前 `RepoDigests` 为空 ⇒ 从未 push；对照推理腿官方镜像按 digest 拉取，id 天然跨机一致、**未做任何对齐**） | **总组 / 镜像侧**（本方不擅改基线或 `baseline.py`） |
 | 9 | `dev/images/TODO.md` 第 2 项（原生 DDP 验证脚本） | 本方向已补出（`ddp_native_test.py`，双卡自判定，已真机通过），可由总组据此关闭该项 |
 
 ### 7.3 总组文档侧（待修复口径）

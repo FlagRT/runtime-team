@@ -41,6 +41,13 @@ npu1-27 缺 `docker compose` v2 插件与 `pyyaml`（实测见
 | [`device_selfproof.txt`](device_selfproof.txt) | 两臂各自加载的 FlagCX 路径与 `.so` sha256 前 16 位（装置自证） |
 | [`install_proof.txt`](install_proof.txt) | 挂载覆盖的安装自证（`Successfully installed flagcx-0.13.0`、`flagcx -> /workspace/FlagCX/...`）+ 被测源码自证（HEAD、工作区、两处构建开关默认值） |
 
+## 之后（同日 14:34）：`--strict` 也已跑通
+
+本文件抬头那句「**没有**跑 `up.sh --strict`」在当日晚些**已不成立**：按本机 `image.id` 对齐后，
+`up.sh <train> --strict` **rc=0**、容器内两项验收 `overall: PASS`、`down` rc=0 无残留。
+完整证据与「为什么必须本机对齐」见
+[`../baseline_strict_20261016_out/SUMMARY.md`](../baseline_strict_20261016_out/SUMMARY.md)。
+
 ## 后续补充（同日 12:0x，完整证据见 [`../baseline_mechanism_20261016_out/SUMMARY.md`](../baseline_mechanism_20261016_out/SUMMARY.md)）
 
 - **机制侧已补齐并在 `up.sh` 上跑通**：装上用户级的 compose v2.29.7 + pyyaml 6.0.2 后，
