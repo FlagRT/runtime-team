@@ -9,7 +9,7 @@
 
 | 项 | 状态 |
 |---|---|
-| 上午 · 910C `all_gather` 类缺陷（flagcx-c10d-collectives） | ✅ **真机复现 + 本分支修复验收通过**（A/B 交替 ×2 + 原生 DDP 双卡）；修复在 FlagCX 分支未合入上游 |
+| 上午 · 910C `all_gather` 类缺陷（flagcx-c10d-collectives） | ✅ **真机复现 + 本分支修复验收通过**（A/B 交替 ×2 + 原生 DDP 双卡）；修复已于当日以 merge 提交 **`62fe615`** 合入 FlagCX `dev-1.0`（见 §7 执行记录；镜像里那份仍 pin 在 `4e0e0cb`） |
 | 下午 · 新基座规范适配 | ✅ 运行环境目录 `910C/env/{train,infer}/` + 分层关系与执行标准成文 |
 | 下午 · 机制路径 | ✅ 用户级补齐前置（compose v2.29.7 + pyyaml 6.0.2）→ `export --require-clean` 双腿 rc=0 |
 | 下午 · `up.sh --strict` | ✅ 真机 rc=0；容器内两项验收 `overall: PASS`；`down` rc=0 无残留 |
