@@ -1,0 +1,9 @@
+[现场] native id=140565374887744 type=Stream repr=<torch.cuda.Stream device=cuda:0 cuda_stream=0x556d83fe32f0>
+       条目 key=140565374887744
+       ent[0](handle)=93929714205744
+       holder 类型=ReferenceType  repr=<weakref at 0x7fd7ed297380; to 'Stream' at 0x7fd7ed3ce740>
+       w() -> <torch.cuda.Stream device=cuda:0 cuda_stream=0x556d83fe32f0> id=140565374887744 is_native=True
+       对照 w2=weakref.ref(native) repr=<weakref at 0x7fd7ed2973d0; to 'Stream' at 0x7fd7ed3ce740> w2() is native=True w is w2=False
+       owned is ctx = False
+       [owned] 2 条: [(140565374887744, 93929714205744, 'ReferenceType', 'Stream', 140565374887744), (140565375266368, 93929714419776, 'ReferenceType', None, None)]
+timeout: the monitored command dumped core

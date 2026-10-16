@@ -1,0 +1,26 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11-patch] T11_PATCH_LOADED patch=strong
+=== probe_stream_priority_sched_effect.py: 流优先级「调度效果」对照实验（台账 D2）===
+[env] backend=ppu device_type=cuda devices=1 torch=2.10.0 dev=0（PPU-ZW810E）
+[env] rounds=8 pass_n=6 work=2048 iters=60 calib=3 v1_rounds=3
+[E1] range_raw=(0, -3) ⇒ hi(最高)=-3 lo(最低)=0 supports_ctrl=True supports_rb=True applicable=True
+
+STREAM_PRIORITY_SCHED_EFFECT_PASS（applicable=True · instrument_valid=True · effect_observed=False）
+  [PASS] E1_range_and_applicability: raw=(0, -3); hi=-3; lo=0; supports[control]=True; supports[readback]=True; applicable=True
+  [PASS] E2_setup_readback_equals_request: 请求 hi=-3 ⇒ 回读 -3；请求 lo=0 ⇒ 回读 0
+  [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 34.801 ms（单次 ≈ 0.58 ms）；gate 慢活 120 次实测 72.438 ms（下限 30.0 ms）
+  [PASS] D1_measurement_resolution: 一趟扫描 1.13 µs = 工作量级（34.801 ms）的 0.003%（阈值 ≤ 5.0%）⇒ 分辨力足够
+  [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 34.5833 ms ⇒ 测量**能**判出差异（仪器有效）
+  [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 1/8 有效轮（平局 0）；中位差 -0.484 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+  [PASS] V1_gate_actually_gated: 慢活基准 72.438 ms；3 轮的完成时刻 hi=[129.2907, 129.6241, 128.9935] lo=[129.7754, 130.0986, 129.487]（阈值 ≥ 57.95 ms）⇒ 两条流都在 gate 触发**之后**才完成 ⇒ 等待非空操作
+  [PASS] G1_gate_high_priority_wins: 同一 gate 同时就绪、入队顺序随机化：高优先级取值（-3）那条流先完成 8/8 有效轮（平局 0；需 ≥ 6 = 75%）；中位 hi=128.377 ms / lo=128.8907 ms、中位差 0.4828 ms（需 ≥ 8.7004 = 25% 工作量级 34.801 ms）⇒ **未观测到实质性优先级调度效果（如实记录，非探
+  [PASS] G4_naive_submit_order_control: 旧测法（**入队顺序固定**：取值 0 先提交、已进入运行态，随后才提交 取值 -3）：取值 -3（**后提交**）那条流先完成 0/8 有效轮（平局 0）；中位差 -1.0245 ms（**正 = 后提交的取值 -3 反超获胜；负 = 先提交者仍获胜**）⇒ 先提交者仍获胜 ⇒ **提交顺序主导**
+  [PASS] G7_ungated_equal_priority_control: 同 G4 但两流**取值相同**（均 -3）、提交顺序仍为角色 lo 先：后提交的角色 hi 先完成 0/8 有效轮（平局 0）；中位差 -1.0194 ms ⇒ 基本同速/先提交者胜 ⇒ 「恒为后者获胜」被排除，G4 的效应**可**归因于优先级差值
+  [PASS] G8_ungated_reversed_order: 与 G4 顺序相反（取值 -3 **先**提交、取值 0 **后**提交）：取值 -3 那条流先完成 8/8 有效轮（平局 0）；中位差 1.0367 ms ⇒ 未出现大胜 ⇒ 与 G4 不一致，需按 2×2 重新判读
+  [PASS] G5_direction_crosscheck_swapped: **把两个取值在角色间对调**（角色 hi 用取值 0，角色 lo 用取值 -3）：取值 0 那条流先完成 0/8 有效轮（平局 0）；中位差 -0.4843 ms ⇒ 与 G1（取值 -3 先完成 8/8）对照，判断获胜方跟『取值』还是跟『角色』
+  [SKIP] G6_nonzero_vs_zero_crosscheck: 取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过
+  [SKIP] G9_gated_large_vs_mid_crosscheck: 取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过
+  [PASS] G10_ungated_effect_summary: 未 gated 场景汇总：G4（取值 0 先提交）= -1.0245 ms / 0/8；G8（取值 -3 先提交）= 1.0367 ms / 8/8；同序同取值对照 G7 = -1.0194 ms ⇒ 未达到「两向一致 ∧ 幅度阈值 ∧ 与对照可区分」⇒ 如实标 False
+结果 -> /workspace/probes_ppu/dc_t11_20261014/patch_t6_strong_r2.json

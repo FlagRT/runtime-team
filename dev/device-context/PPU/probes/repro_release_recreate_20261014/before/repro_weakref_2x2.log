@@ -1,0 +1,11 @@
+=== 不 gc ===
+  round 1: same_id=True w() is None=False w() is new=True 使用点=RuntimeError
+  round 2: same_id=True w() is None=False w() is new=True 使用点=RuntimeError
+  round 3: same_id=True w() is None=False w() is new=True 使用点=RuntimeError
+  ⇒ 8 轮统计：同 id=8 · 已置死=0 · 跟随新对象=8 · 使用失败=8
+=== gc.collect() ===
+  round 1: same_id=False w() is None=True w() is new=False 使用点=OK
+  round 2: same_id=False w() is None=True w() is new=False 使用点=RuntimeError
+  round 3: same_id=True w() is None=False w() is new=True 使用点=RuntimeError
+  ⇒ 8 轮统计：同 id=6 · 已置死=2 · 跟随新对象=6 · 使用失败=7
+判读：若「不 gc」时 followed>0 而「gc」时为 0 ⇒ 平台弱引用失效**与回收路径相关**

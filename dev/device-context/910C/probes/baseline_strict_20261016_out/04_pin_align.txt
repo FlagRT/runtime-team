@@ -1,0 +1,22 @@
+# 证据截选 —— ⭐ 对齐：pin_local_image_id.sh 写入本机 id + 回读校验 + yaml 解析校验 + 幂等复跑
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/strict/log/strict_run_run2.log
+# 采集时间: 2026-10-16 14:39:46 (npu1-27)
+
+############ 3. 对齐：把 image.id 对齐到本机 id ############
+  env 基线     : /mnt/raid/hliu553/dc-ws/dev/device-context/910C/env/train/env.baseline.yaml
+  image.ref    : flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+  发布(制造机) id: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+  本机 id (本机 docker): sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+  基线当前记录  : sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+  是否一致      : 不一致
+  [OK] 回读校验：id 行数=1 值=sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+  [OK] yaml 解析一致（safe_load 可读，image.id 命中）
+  pin rc=0
+  对齐后 env 基线里的 image.id =   id: sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+  幂等复跑：
+  基线当前记录  : sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+  是否一致      : 一致
+  [OK] 已对齐，无需改动
+  pin(2nd) rc=0
+
+############ 4. check 两腿（应全 PASS）############

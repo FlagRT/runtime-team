@@ -1,0 +1,19 @@
+=== M1–M4 静态度量（口径见文件头，机械计数）===
+  PATH-1: 分支(M1)=0 知识(M2)=0 代码行(M3)=77 厂商API种类(M4)=0
+  PATH-2: 分支(M1)=11 知识(M2)=15 代码行(M3)=163 厂商API种类(M4)=17
+      M4 明细: acl.rt.synchronize_stream_with_timeout, torch.cuda.Stream, torch.cuda.device_count, torch.cuda.mem_get_info, torch.cuda.memory_stats, torch.cuda.set_device, torch.cuda.stream, torch.mlu.Stream …
+
+=== M5 功能等价性（backend=ascend, ordinal=0）===
+  [OK  ] S0_device_enum             expect=值一致性                         path1=值一致              path2=值一致              (real)
+  [OK  ] S1_param_out_of_range      expect=L2_PARAM + raise             path1=L2_PARAM         path2=L2_PARAM         (real)
+  [OK  ] S2_bounded_sync_timeout    expect=L3_EXECUTION + replay        path1=L3_EXECUTION     path2=L3_EXECUTION     (best-effort)
+  [OK  ] S3_out_of_memory           expect=L1_RESOURCE + retry          path1=L1_RESOURCE      path2=L1_RESOURCE      (real)
+  [OK  ] S5_unknown_error           expect=L3_EXECUTION + replay        path1=L3_EXECUTION     path2=L3_EXECUTION     (real)
+  [OK  ] S6_coded_error_ownership   expect=按后端定：声明 error_map 者 L4，否则兜底 L3 path1=L4_FATAL         path2=L4_FATAL         (synthetic)
+
+  等价性：6/6 一致
+
+  ⚠️ 注：「等价」只表示两路径给出同一三元组，**不表示该三元组符合契约期望** —— 后者看上面的『期望未达标』标注。
+
+本脚本只度量「上层实现成本」与「两路径行为等价性」；不替代真机性能结论；synthetic / best-effort 场景不得当真实触发结论。未隔离模式（--no-isolate）的结论不可信（设备类失败会污染后续场景）。
+结果已写入 /mnt/raid/hliu553/dc_regress_20260929/out/exp_divergence_cost_ascend_20260929_r2.json

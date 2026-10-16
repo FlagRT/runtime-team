@@ -155,10 +155,31 @@ def _make_fake_acl(init_rc=0):
     acl.finalize = lambda: 0
     acl.rt = types.SimpleNamespace(
         set_device=lambda o: rc["set_device"],
+        # 2026-09-29（工作包 B/C）：内存句柄与设备上下文原语。
+        # ⚠️ `free` **刻意做成静默**（对重复释放/非法指针返回 0，与 pyACL 实测一致）
+        #    ⇒ "二次释放必须报错"这条判据**只能由本层的句柄登记表兜住**，
+        #    谁把登记表拿掉，判据就 FAIL（非空转可验）。
+        malloc=lambda size, policy=0: (0x20000000 + int(size), 0),
+        free=lambda ptr: 0,
+        create_context=lambda dev: (0x30000000 + int(dev), 0),
+        # 2026-09-29（对齐 P800 第五轮）：`context_query` 用到的只读入口。
+        # ⚠️ 诚实模拟：**离线无设备 ⇒ 确实没有生效上下文**，故 `get_context` 返回
+        #    `(0, 107002)`（真机上的 `ACL_ERROR_RT_CONTEXT_NULL`），使 present=False。
+        #    该 stub 先前缺席，被「声明即承诺」判据当场抓到（AttributeError ⇒ queryable=False）
+        #    ⇒ **stub 的不完整会伪装成实现的缺陷**，故此处补齐而不是在实现里容错掩盖。
+        #    「有上下文」分支由判据内的**可控桩**覆盖（见 C-4 段）。
+        get_context=lambda dev=0: (0, 107002),
+        get_device=lambda: (0, 0),
+        get_primary_ctx_state=lambda dev=0: (0, 0, 0),
+        set_context=lambda ctx: 0,
+        destroy_context=lambda ctx: 0,
         synchronize_device_with_timeout=lambda ms: rc["sync"],
         synchronize_stream_with_timeout=lambda h, ms: rc["sync"],
         get_device_count=lambda: (8, 0),
-        device_get_stream_priority_range=lambda: (0, -1),
+        # ⚠️ 2026-09-30：**真机 pyACL 返回三元组** `(least, greatest, rc)`（实测 `(7, 0, 0)`）。
+        # 旧 stub 返回 2 元组 ⇒ 把 ascend"直接透传三元组"这个**真实契约缺陷**盖住了
+        # （离线绿、真机形状不同）。现按真机形态返回，形状判据才有牙齿。
+        device_get_stream_priority_range=lambda: (7, 0, 0),
     )
     return acl, rc
 
@@ -185,11 +206,28 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     torch = types.ModuleType("torch")
     torch.__version__ = "0.0.0+stub"
     ns = types.ModuleType(f"torch.{ns_name}")
-    state = {"current": 0, "stream_query": True}
+    state = {"current": 0, "stream_query": True,
+             # 2026-09-30：流优先级的可控开关（供判据做**非空转验证**）——
+             #   `drop_priority=True` 精确复现 910C 上 torch_npu 的真实缺陷：
+             #   **收下 priority 却静默丢弃**（真机 `aclrtStreamGetPriority` 回读恒 0）。
+             "drop_priority": False,
+             "priority_range": (0, -3)}
 
     class Stream:
         def __init__(self, *a, **k):
-            pass
+            # 句柄属性：真机上 torch 的各家流过属性名不同（npu_stream / cuda_stream / mlu_stream），
+            # 本层回读要按名取 —— stub 三家都给，且值可控。
+            self.npu_stream = 0x5A0000 + id(self) % 4096
+            self.cuda_stream = self.npu_stream
+            self.mlu_stream = self.npu_stream
+            _p = int(k.get("priority", 0) or 0)
+            # ⭐「静默丢参数」开关：开了就丢弃传入值（模拟 torch_npu 的真实行为）
+            self.priority = 0 if state["drop_priority"] else _p
+
+        @staticmethod
+        def priority_range():
+            return tuple(state["priority_range"])
+
         def query(self):
             return state["stream_query"]
         def synchronize(self):
@@ -251,6 +289,27 @@ def _vendor_stub(ns_name, vendor_modules=(), mem_mode="full"):
     ns.synchronize = lambda *a, **k: None
     ns.get_device_properties = lambda o: Props()
     ns.memory_allocated = lambda o: 1 * 1024 ** 3
+    # 2026-09-29（工作包 B-1）：原始设备内存原语。
+    # 释放原语名按各家实测命名（昆仑芯 = `caching_allocator_delete`；
+    # `caching_allocator_free` 在本栈**不存在**，故不伪造它）。
+    # 同样**刻意静默**：重复释放不报错 ⇒ 把负向判据逼给本层登记表。
+    ns.caching_allocator_alloc = lambda size, device=None, stream=None: 0x10000000 + int(size)
+    ns.caching_allocator_delete = lambda ptr: None
+    class ExternalStream(Stream):
+        """假 `torch.cuda.ExternalStream`（真机实测行为：**句柄逐位保留**）。
+
+        真机依据（P800，2026-09-30）：`ExternalStream(h).cuda_stream == h` 逐位相同，
+        且**丢弃包装对象 + gc 之后句柄仍可计算** ⇒ torch **不拥有**外部流
+        （这正是本层需要 `release_stream()` 的原因）。
+        """
+        def __init__(self, ptr=None, device=None, **k):
+            self._ptr = int(ptr or 0)
+            self.npu_stream = self._ptr
+            self.cuda_stream = self._ptr
+            self.mlu_stream = self._ptr
+            self.priority = 0
+
+    ns.ExternalStream = ExternalStream
     ns.device = lambda o=0: _Dev(o)
     if mem_mode == "full":
         ns.mem_get_info = lambda ordinal=None: (80 * 1024 ** 3, 96 * 1024 ** 3)
@@ -274,6 +333,16 @@ def _stub_kunlun(mode="full"):
     return _vendor_stub("cuda", (), mode)
 
 
+def _stub_ppu(mode="full"):
+    """平头哥 PPU 走 `torch.cuda` 兼容栈 —— 无额外顶层厂商模块（与 kunlun 同形）。
+
+    ⚠️ 这里**只需一行**，但意义与前几家同等重要：本项目有过血证 ——
+    自检工具原先只为一家内置 stub，导致其余后端**从未被自检过**，
+    结果在已上线多日的实例上长期存在两处缺陷（"只有一家能跑的自检 = 其余各家的盲区"）。
+    """
+    return _vendor_stub("cuda", (), mode)
+
+
 def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
     """昇腾 `torch.npu` —— 需伪造顶层 `torch_npu`，并注入**假 pyACL**。
 
@@ -285,6 +354,175 @@ def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
         mods["acl"] = acl_mod
         state["acl_rc"] = rc
     return torch, mods, state
+
+
+def _ctype_value(x):
+    """取 ctypes 参数的数值：**用 `.value`**，不要用 `int(x)`。
+
+    ⚠️ 实测（CPython **3.9 / 3.13 均如此**）：`int(ctypes.c_int(2))` 会抛
+    `ValueError: invalid literal for int() with base 10: b'\x02\x00\x00\x00'`
+    —— ctypes 类型支持 buffer 协议，`int()` 于是**按字节串解析**而非数值转换。
+    `.value` 才是 ctypes 的规范取值方式（`c_void_p(5).value == 5`）。
+    """
+    v = getattr(x, "value", None)
+    return x if v is None else v
+
+
+class _FakeFn:
+    """假厂商原语：**可调用 + 可写属性**（`restype` / `argtypes`）。
+
+    ⚠️ 必须是"对象"而不是**绑定方法**：厂商调用点写的是
+    `fn = lib.xxx; fn.restype = ...; fn.argtypes = ...`；对绑定方法赋值会抛
+    `AttributeError`，而调用点又用 `except AttributeError: return None` **静默吞掉**
+    ⇒ 假库被误判成「库不支持该函数」（2026-09-30 实测踩到：range 明明可读却返回 None）。
+    """
+
+    def __init__(self, impl):
+        self.restype = None
+        self.argtypes = None
+        self.calls = 0
+        self._impl = impl
+
+    def __call__(self, *a, **k):
+        self.calls += 1
+        return self._impl(*a, **k)
+
+
+def _make_fake_cuda_driver(range_=(0, 0), keep=True, destroy_rc=0, default_prio=0):
+    """造一个**可控假驱动库**（按 ctypes 调用约定：byref 参数用 `_obj.value` 写回）。
+
+    为什么要造：`(A)` 方案在 kunlun 上走「厂商 C API 建流 + 包装」⇒ 那条链路在**离线**
+    压根走不到（无设备、无真库），判据会退化成 SKIP 或**误报**。纪律是
+    **「能造可控假原语就别 SKIP」** ⇒ 这里给出可控替身。
+
+    ⚠️ **2026-10-08**：同一份实现**同时挂 CUDA 与 CNRT 两族符号名**
+    （kunlun 用 `cu*`、cambricon 用 `cnrt*`）—— 两侧的调用约定与语义一致
+    （range 出参 / keep 开关 / destroy_rc / 未登记句柄的默认回读），故不必写两份。
+
+    开关（供**非空转验证**）：
+      · `range_`      假 `cuCtxGetStreamPriorityRange` 返回值（默认 `(0, 0)` = 真机单点）
+      · `keep`        `False` ⇒ **收下 priority 却记成 0**（复现「接受但静默丢弃」那一类）
+                      ⇒ 用来证明本层的「回读校验」不是空转
+      · `destroy_rc`  销毁原语返回码（非 0 ⇒ `release_stream` 必须**如实返回 False**）
+      · `default_prio` **未登记的句柄**（= 厂商自建流，如 `torch.cuda.Stream()`）的回读值
+                      —— 真机实测 P800 上为 **0**；基类的「单点区间等价放行」正是靠它校验
+    """
+    class _FakeCuda:
+        def __init__(self):
+            self.range = tuple(range_)
+            self.keep = bool(keep)
+            self.destroy_rc = int(destroy_rc)
+            self.default_prio = int(default_prio)
+            self.created = []            # 建流顺序（句柄）
+            self.destroyed = []          # 已销毁句柄
+            self.priorities = {}         # 句柄 → 设备侧实际保留的优先级
+            self._next = 0x1000
+            self.cuCtxGetStreamPriorityRange = _FakeFn(self._range)
+            self.cuStreamCreateWithPriority = _FakeFn(self._create)
+            self.cuStreamGetPriority = _FakeFn(self._getprio)
+            self.cuStreamDestroy_v2 = _FakeFn(self._destroy)
+            # ⚠️ **2026-10-08 新增：同一份实现挂上寒武纪（CNRT）的符号名。**
+            #    为什么必须补：cambricon 的优先级路径同日改为「厂商 C API 口径」
+            #    （`cnrtQueueCreateWithPriority` / `cnrtQueueGetPriority` / `cnrtQueueDestroy` /
+            #     `cnrtDeviceGetQueuePriorityRange`，见 `runtime/backends/cambricon/backend.py`）。
+            #    若不在这里给出同族符号名，该后端在**离线**会拿不到符号 ⇒
+            #    `stream_priority_range()` 返回 None，而它**声明了** `control`
+            #    ⇒ 判据会被「离线没有真库」**误报**成「声明了能力却没实现」。
+            #    纪律：**「能造可控假原语就别 SKIP」**；厂商符号名只是**被取用的名字**，
+            #    假体按名提供即可，不需要为每家写一份实现。
+            self.cnrtDeviceGetQueuePriorityRange = _FakeFn(self._range)
+            self.cnrtQueueCreateWithPriority = _FakeFn(self._create)
+            self.cnrtQueueGetPriority = _FakeFn(self._getprio)
+            self.cnrtQueueDestroy = _FakeFn(self._destroy)
+            # ⚠️ **2026-10-10 新增：CUDA 上下文系列符号。**
+            #    为什么必须补：平头哥 PPU（`ppu`）实测**允许本层自建多个上下文并切换**
+            #    （`cuCtxCreate_v2`/`cuCtxSetCurrent`/`cuCtxDestroy_v2` 全 rc=0，且不影响 torch）
+            #    ⇒ 它**声明**了 `context_lifecycle`。若不在此给出同族符号，该后端在**离线**
+            #    拿不到原语 ⇒ `context_create()` 直接抛错，判据会被"离线没有真库"**误报**成
+            #    「声明了能力却没实现」。纪律同上：**能造可控假原语就别 SKIP**。
+            #    语义与真机一致：建流→成为当前；切到未登记/已销毁句柄⇒失败(1)；销毁后回读取不到。
+            self.ctx_cur = 0
+            self.ctx_next = 0xC000
+            self.ctx_map = {}          # 句柄 → {"ordinal", "flags"}
+            self.ctx_destroyed = []
+            self.cuCtxCreate_v2 = _FakeFn(self._ctx_create)
+            self.cuCtxSetCurrent = _FakeFn(self._ctx_set)
+            self.cuCtxDestroy_v2 = _FakeFn(self._ctx_destroy)
+            self.cuCtxGetCurrent = _FakeFn(self._ctx_get_current)
+            self.cuCtxGetDevice = _FakeFn(self._ctx_get_device)
+            self.cuCtxGetFlags = _FakeFn(self._ctx_get_flags)
+
+        # ---- 本层用到的厂商原语（实现）---------------------------------
+        def _range(self, least_p, greatest_p):
+            least_p._obj.value = int(self.range[0])
+            greatest_p._obj.value = int(self.range[1])
+            return 0
+
+        def _create(self, handle_p, flag, prio):
+            self._next += 0x10
+            h = self._next
+            self.created.append(h)
+            self.priorities[h] = int(_ctype_value(prio)) if self.keep else 0
+            handle_p._obj.value = h
+            return 0
+
+        def _getprio(self, handle, out_p):
+            h = int(_ctype_value(handle))
+            if h in self.destroyed:
+                return 1                 # 已销毁句柄 ⇒ 失败（读不出）
+            # ⭐ 未登记句柄 = **厂商自建流**（`torch.cuda.Stream()` / `ExternalStream` 之外的）
+            #    ⇒ 回读"厂商默认优先级"（真机 P800 实测为 0）。若这里返回失败，
+            #    基类的「单点区间等价放行」会被误判为"读不回"（v5 即踩到此坑）。
+            out_p._obj.value = int(self.priorities.get(h, self.default_prio))
+            return 0
+
+        def _destroy(self, handle):
+            h = int(_ctype_value(handle))
+            self.destroyed.append(h)
+            self.priorities.pop(h, None)
+            return self.destroy_rc
+
+        # ---- 设备上下文原语（2026-10-10 新增，见 __init__ 处说明）----------
+        def _ctx_create(self, handle_p, flags, ordinal):
+            h = self.ctx_next
+            self.ctx_next += 0x10
+            self.ctx_map[h] = {"ordinal": int(_ctype_value(ordinal)),
+                               "flags": int(_ctype_value(flags))}
+            self.ctx_cur = h
+            handle_p._obj.value = h
+            return 0
+
+        def _ctx_set(self, ctx):
+            h = int(_ctype_value(ctx))
+            if h in self.ctx_map:          # 未登记/已销毁 ⇒ 如实失败
+                self.ctx_cur = h
+                return 0
+            return 1
+
+        def _ctx_destroy(self, ctx):
+            h = int(_ctype_value(ctx))
+            self.ctx_map.pop(h, None)
+            self.ctx_destroyed.append(h)
+            if self.ctx_cur == h:
+                self.ctx_cur = 0
+            return self.destroy_rc
+
+        def _ctx_get_current(self, out_p):
+            # 注意：写 0 时 `c_void_p.value` 读回是 **None**（本层据此判定"无上下文"）
+            out_p._obj.value = self.ctx_cur
+            return 0
+
+        def _ctx_get_device(self, out_p):
+            info = self.ctx_map.get(self.ctx_cur)
+            out_p._obj.value = int(info["ordinal"]) if info else -1
+            return 0
+
+        def _ctx_get_flags(self, out_p):
+            info = self.ctx_map.get(self.ctx_cur)
+            out_p._obj.value = int(info["flags"]) if info else 0
+            return 0
+
+    return _FakeCuda()
 
 
 #: 厂商 stub 注册表 —— 新厂商在这里加一项即可（三家已内置）
@@ -300,6 +538,9 @@ def _stub_ascend(mode="full", acl_init_rc=0, with_fake_acl=True):
 _STUBS = {
     "cambricon": (_stub_cambricon, "mlu", {}),
     "kunlun": (_stub_kunlun, "cuda", {"stub_vendor_extension": False}),
+    # 平头哥 PPU：同样复用 torch.cuda；与 kunlun 的差别**不在 stub**，而在真机实测结论
+    #（优先级多档可设 / 上下文可管理 / 无数值错误码）⇒ 由各后端的 _capabilities 表达。
+    "ppu": (_stub_ppu, "cuda", {"stub_vendor_extension": False}),
     "ascend": (_stub_ascend, "npu", {"stub_real_ops": False, "stub_bounded_sync": False}),
 }
 
@@ -371,11 +612,22 @@ def run(proto_dir, backend):
     check("set_device 生效", state["current"] == 3)
     mem = bk.memory_stats(0)
     if caps.get("stub_mem_stats_shape", True):
-        check("memory_stats 结构 = {total_mb,used_mb,free_mb}",
-              set(mem) == {"total_mb", "used_mb", "free_mb"}, str(mem))
-        check("memory_stats 值有效（>0 且 total=used+free 近似）",
+        # 2026-09-29（工作包 B-2）：判据由"**精确等于三键**"改为"**三键齐备 + 只增键**" ——
+        # 契约承诺三键语义**不变**，但允许（鼓励）新增 `allocated_mb`。
+        # ⚠️ 这不是"把判据放宽到能绿"：原来那条会把**合法的契约扩展**判成失败，
+        #    而新增的"未登记键 ⇒ FAIL"反而收得更紧（防键名漂移）。
+        check("memory_stats 三键齐备（total_mb/used_mb/free_mb）",
+              {"total_mb", "used_mb", "free_mb"} <= set(mem), str(mem))
+        check("memory_stats 三键取值有效（>0 且 total=used+free 近似）",
               mem["total_mb"] > 0 and abs(mem["total_mb"] - mem["used_mb"] - mem["free_mb"]) <= 1,
               str(mem))
+        if "allocated_mb" in mem:
+            check("memory_stats 增键 allocated_mb ⇒ 必须为 int 且 ≥0",
+                  isinstance(mem["allocated_mb"], int) and mem["allocated_mb"] >= 0,
+                  str(mem["allocated_mb"]))
+        check("memory_stats 不得出现**未登记**的多余键（防键名漂移）",
+              not (set(mem) - {"total_mb", "used_mb", "free_mb", "allocated_mb"}),
+              str(sorted(mem)))
     else:
         skip("memory_stats 结构/取值",
              "该后端从厂商命名空间原样透传原始字段；stub 造的原始返回形状与真实厂商栈不一致，"
@@ -502,6 +754,26 @@ def run(proto_dir, backend):
         location="stream:0/op:matmul")
     check("F1：形状不匹配（真实 PyTorch 文案）→ L2_PARAM",
           fe_shape.category.name == "L2_PARAM", fe_shape.category.name)
+    # ⭐ 2026-09-29 新增（第 3 家真机实测暴露的防回归判据：**厂商文案等价类覆盖**）
+    #   背景：共享消息规则表（`conformance/errors.py::_MESSAGE_HINTS`）的 L2 规则原先只认
+    #   `invalid (device|ordinal|data|op|param)` —— 它是**从个别厂商的文案反推**出来的，
+    #   于是同一故障在别家栈下的**等价说法**漏网。
+    #   实测（MLU590 真机，工作包 A 实验 S1）：设备序号越界时 CNRT 原文是
+    #       `CNRT error: invalid argument.`
+    #   → 落不到 L2，只能兜底 **L3_EXECUTION**（`replay`）⇒ 对**永久性参数错误反复重放**，
+    #   **动作反了**（与 09-29 修掉的 `category` 泄漏同一危害家族：分级错了，下游动作就反）。
+    #   本判据用**两家真机抓到的原文**做输入（不发明文案），只碰文本、不碰设备 ——
+    #   正是"无设备先自查"该发挥作用的场合（该缺陷本可以在上机前被拦住）。
+    for _msg, _src in (
+        ("CUDA error: invalid device ordinal", "P800 真机原文 · S1 设备序号越界"),
+        ("CNRT error: invalid argument.", "MLU590 真机原文 · S1 设备序号越界"),
+    ):
+        _fp = bk.translate_error(RuntimeError(_msg), location="self-check:param-phrasing")
+        check(f"参数类文案等价类 ⇒ L2_PARAM：{_msg!r}（{_src}）",
+              _fp.category.name == "L2_PARAM",
+              f"category={_fp.category.name} graded_by={_fp.graded_by}"
+              + ("（L3 说明该厂商措辞漏网 ⇒ 下游会 replay 一个永久性参数错误）"
+                 if _fp.category.name == "L3_EXECUTION" else ""))
     if bk.supports("error_map"):
         check("声明 error_map ⇒ 无码消息不得伪称 code_map",
               fe.graded_by != "code_map", fe.graded_by)
@@ -536,12 +808,170 @@ def run(proto_dir, backend):
               ff.mapped is False, f"mapped={ff.mapped} graded_by={ff.graded_by}")
         check("码表内码串入 ⇒ error_code 必须为 None（该码非本厂商码）",
               ff.error_code is None, str(ff.error_code))
+        # ⭐ 2026-09-29 新增（工作包 A 实验暴露的防回归判据：**决策字段**也要查）
+        #   上面三条只查 `graded_by` / `mapped` / `error_code` —— 全是**置信度字段**，
+        #   于是"`category` 仍冻结在共享码表给出的值"这件事**三套件全都没抓到**：
+        #   实测 P800 喂含昇腾码的消息得到 **L4_FATAL / device_recovery**，而契约 §1.4
+        #   明令「下游必须按 disposition 处理」⇒ 会**误触发设备级重建**。
+        #   本判据补上决策字段：用一条**消息规则不会命中**的消息（`op failed` 无任何
+        #   关键词）携带码表内码 507015 ⇒ 若变成 L4，说明分级来自**外来**昇腾码表。
+        _leak = bk.translate_error(RuntimeError("op failed, error code is 507015"),
+                                   location="self-check")
+        check("外来码表不得影响本后端分类（无依据 ⇒ 兜底 L3，不得升级为 L4）",
+              _leak.category.name == "L3_EXECUTION",
+              f"category={_leak.category.name} graded_by={_leak.graded_by}"
+              + ("（L4 说明分级来自外来昇腾码表）"
+                 if _leak.category.name == "L4_FATAL" else ""))
 
     # ── 6. 恢复与设备状态（R1-R5）──
     print("\n[6] 恢复与设备状态（conformance R1-R5）")
     rec = bk.recover_device(0, mode="probe")
     check("recover_device 返回 dict 且含 recovered（统一契约）",
           isinstance(rec, dict) and "recovered" in rec, str(rec)[:70])
+    # 2026-09-28 新增：**返回契约是五键**（接口约定 §1.5 补充：
+    #   `{ordinal, mode, recovered, state, detail}`）。
+    #   此前只查了 "recovered" 在不在 ⇒ kunlun / cambricon 漏返回 `state` 这件事，
+    #   在离线自检 / smoke / conformance **三套件里都没有判据抓到**（职责响应审计才暴露）。
+    _NEED_KEYS = {"ordinal", "mode", "recovered", "state", "detail"}
+    _miss = _NEED_KEYS - set(rec if isinstance(rec, dict) else {})
+    check("recover_device 返回**契约五键**齐全（ordinal/mode/recovered/state/detail）",
+          not _miss,
+          (f"缺 {sorted(_miss)}（上层按契约读会拿不到）" if _miss
+           else f"{len(_NEED_KEYS)} 键齐全"))
+    # ⭐ 2026-09-29 新增（第 21 条）：probe 模式**不可能**重建上下文 ⇒ 该字段必须如实为 False。
+    check("recover_device(mode=\"probe\") 的 context_recreated 必须为 False"
+          "（probe 只重试探针，不销毁/重建上下文）",
+          isinstance(rec, dict) and rec.get("context_recreated") is False,
+          f"mode={rec.get('mode') if isinstance(rec, dict) else None} "
+          f"context_recreated={rec.get('context_recreated') if isinstance(rec, dict) else None!r}")
+    # ⭐ 2026-09-29 新增：`state` 的**取值域**判据（不只手字段名）。
+    #   来由：三家原写 `str(state)`，而 `DeviceState` 是 `enum.Enum`（非 StrEnum）
+    #   ⇒ 得到 `'DeviceState.AVAILABLE'`，**不是**四态规范取值；下游按契约比较
+    #   `state == "available"` 会**判假**。09-28 的审计只判"五键存在性"故漏过 ——
+    #   §11-⑫ 要再深一层：**字段的取值域也要有判据**。
+    _st = rec.get("state") if isinstance(rec, dict) else None
+    check("recover_device()[\"state\"] 必须是四态规范 token"
+          "（available/degraded/isolated/destroyed）",
+          _st in ("available", "degraded", "isolated", "destroyed"),
+          f"state={_st!r}" + ("（str(enum) 形式 ⇒ 下游比较会判假）"
+                              if isinstance(_st, str) and _st.startswith("DeviceState.")
+                              else ""))
+    # ⭐ 2026-09-29 新增（第 22 条）：**给 `state` 定死时点**。
+    #   来由：契约原先只说"为设备四态之一"，**没说调用前还是调用后**。A2 真机实测出现
+    #   `state='isolated'` + `recovered=True`（从隔离出发、重建后可用）—— 时点不定义就是歧义。
+    #   现按实现口径**定义**为「调用时（恢复前）」，并在此钉死（行为不变，只定口径）。
+    try:
+        import runtime.conformance.device_state as _ds_pin
+        _ds_pin.set_device_state(0, _ds_pin.DeviceState.ISOLATED,
+                                 "self-check: pin state timing (调用前=isolated)")
+        _pre = _ds_pin.query_device_state(0)
+        _rec_pin = bk.recover_device(0, mode="probe", reason="self-check: state timing")
+        check("recover_device() 的 state == **调用时（恢复前）**的状态（时点已定死，不是恢复后）",
+              isinstance(_rec_pin, dict) and _rec_pin.get("state") == _pre.value,
+              f"调用前={_pre.value} 返回的 state={_rec_pin.get('state')!r}"
+              + ("（若为 available 说明取的是恢复后 ⇒ 时点漂移）"
+                 if _rec_pin.get("state") == "available" and _pre.value != "available" else ""))
+    except Exception as e:                                        # noqa: BLE001
+        check("recover_device() 的 state 时点可判", False, f"{type(e).__name__}: {str(e)[:110]}")
+    # 收尾：确保状态机回到 AVAILABLE，别影响后续判据
+    try:
+        import runtime.conformance.device_state as _ds_fix
+        if _ds_fix.query_device_state(0) != _ds_fix.DeviceState.AVAILABLE:
+            _ds_fix.set_device_state(0, _ds_fix.DeviceState.AVAILABLE, "self-check: restore")
+    except Exception:                                             # noqa: BLE001
+        pass
+
+    # ⭐ 2026-09-29 新增（第 23 条）：共享资产**必须全局只有一份实例**。
+    #   来由：同一文件既能以**扁平名**导入（后端与《用法》所用），也能以
+    #   `runtime.conformance.*`（**包路径**）导入 ⇒ Python 会让两条路径**各执行一次文件**，
+    #   得到两个互不相干的状态机（实测 `flat is pkg == False`、`_STATES` 不是同一个 dict）。
+    #   一侧 `set_device_state()` 另一侧**毫无感知**，而且**不报错**
+    #   ⇒ 一切「先置状态、再判定」的判据都会**静默空转**（判的是另一个世界）。
+    #   本判据把「单一事实来源」钉死，防再漂移。
+    try:
+        import importlib as _il
+        import device_state as _ds_flat
+        _ds_pkg = _il.import_module("runtime.conformance.device_state")
+        check("共享状态机全局只有一份实例（扁平名与包路径 == 同一对象；否则判据会「静默空转」）",
+              _ds_flat is _ds_pkg and _ds_flat._STATES is _ds_pkg._STATES,
+              f"flat is pkg={_ds_flat is _ds_pkg}；_STATES 同一 dict="
+              f"{_ds_flat._STATES is _ds_pkg._STATES}")
+    except Exception as e:                                        # noqa: BLE001
+        check("共享状态机单一实例可判", False, f"{type(e).__name__}: {str(e)[:110]}")
+
+    # ⭐ 2026-09-29 新增（A2 收尾 · 补公开入口）：四条，全部离线可判。
+    #   来由：此前**公开面没有把设备置为 ISOLATED 的入口** ⇒ 只走公开 API 时
+    #   `recover_device(mode="real")` 永远走"无需重建"分支，「某卡 L4 故障 → 设备级恢复」
+    #   这条链**在公开面上不可触发**。补上 `set_device_state` / `handle_error` 后，
+    #   下面前三条判据把"可触发"钉死；第四条守编排器的**码表归属**不被共享译码器带偏。
+    _rt_mod = sys.modules.get("runtime") or __import__("runtime")
+
+    # N-A：公开面导出
+    _missing_pub = [n for n in ("set_device_state", "handle_error")
+                    if n not in getattr(_rt_mod, "__all__", []) or not callable(getattr(_rt_mod, n, None))]
+    check("公开面已导出 set_device_state / handle_error（设备状态驱动 + 错误编排入口）",
+          not _missing_pub,
+          f"缺/不可调用 {_missing_pub}" if _missing_pub else "两者均在 __all__ 且可调用")
+
+    # N-B：驱动真的生效（判据侧必须读到 isolated）
+    _drive_err = ""
+    try:
+        _back = bk.set_device_state(0, "isolated", "self-check: 公开入口驱动四态")
+        _read = str(bk.device_state(0)).split(".")[-1].lower()
+    except Exception as e:                                        # noqa: BLE001
+        _back, _read, _drive_err = None, None, f"{type(e).__name__}: {str(e)[:90]}"
+    check("set_device_state('isolated') ⇒ device_state() 读到 isolated"
+          "（公开面确实能驱动四态 ⇒ real 重建路径可由公开 API 触发）",
+          _read == "isolated" and _back == "isolated",
+          _drive_err or f"set 返回={_back!r} 读到={_read!r}")
+    try:                                                          # 收尾：回到 available
+        bk.set_device_state(0, "available", "self-check: 收尾恢复")
+    except Exception:                                             # noqa: BLE001
+        pass
+
+    # N-C：非法取值必须如实报错（不得静默）
+    try:
+        bk.set_device_state(0, "bogus_state")
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", False, "未报错")
+    except ValueError as e:                                       # noqa: BLE001
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", True, str(e)[:70])
+    except Exception as e:                                        # noqa: BLE001
+        check("set_device_state 非法取值 ⇒ ValueError（不静默）", False,
+              f"抛了 {type(e).__name__}（应为本层契约级 ValueError）")
+
+    # N-D：编排器的分级**必须继承本后端码表归属**。
+    #   ⚠️ 用 `ordinal=None` 调用 ⇒ 即便判成 L4 也**不会**碰设备，故离线可判、无副作用。
+    _own_map = bk.supports("error_map")
+    _fe_msg = RuntimeError("op failed, error code is 507015")
+    try:
+        _fe = bk.handle_error(_fe_msg, ordinal=None, location="self-check")
+        _cat = getattr(getattr(_fe, "category", None), "name", None)
+        check("handle_error 的分级继承本后端码表归属"
+              "（未声明 error_map 者不得因他厂码判成 L4 ⇒ 否则会误触发设备级重建）",
+              (_cat == "L4_FATAL") == bool(_own_map),
+              f"category={_cat} supports(error_map)={_own_map} graded_by={getattr(_fe, 'graded_by', None)}")
+        check("handle_error 返回统一错误对象且带 recovery_decision（流程可观测）",
+              hasattr(_fe, "recovery_decision")
+              and isinstance(_fe.recovery_decision, dict)
+              and bool(_fe.recovery_decision.get("steps")),
+              str(getattr(_fe, "recovery_decision", None))[:120])
+    except Exception as e:                                        # noqa: BLE001
+        check("handle_error 可调用并返回统一错误对象", False, f"{type(e).__name__}: {str(e)[:110]}")
+
+    # 2026-09-28 新增：四态**成员名**必须与接口约定一致。
+    #   来由：接口约定曾写 `UNKNOWN`、而三家共用的实现是 `DESTROYED`，
+    #   两者并存 20 天**无任何判据发现**（同样是职责响应审计才暴露）
+    #   ⇒ 把"约定 ↔ 实现"的一致性也变成可执行判据，防再漂移。
+    _CONTRACT_STATES = {"AVAILABLE", "DEGRADED", "ISOLATED", "DESTROYED"}
+    try:
+        import runtime.conformance.device_state as _dsm
+        _got = set(_dsm.DeviceState.__members__)
+        check("DeviceState 四态成员 == 接口约定声明（AVAILABLE/DEGRADED/ISOLATED/DESTROYED）",
+              _got == _CONTRACT_STATES,
+              (f"实现={sorted(_got)} 约定={sorted(_CONTRACT_STATES)}" if _got != _CONTRACT_STATES
+               else f"{sorted(_got)}"))
+    except Exception as e:
+        check("DeviceState 可导入（四态基准）", False, f"{type(e).__name__}: {str(e)[:90]}")
     # 2026-09-22：原先这里直接调 `bk.device_state(0)`，若后端**声明了 device_state 却没实现**
     # 会抛 AttributeError 把整轮自检中斷（只留 traceback，连汇总都打不出来）——
     # 那正好把"声明与实现不符"这类**最重要**的缺陷变成一次崩溃。
@@ -562,6 +992,17 @@ def run(proto_dir, backend):
         rec2 = bk.recover_device(0, mode="real")
         check("未声明 recovery_real ⇒ real 模式如实说明不支持（不伪造重建）",
               isinstance(rec2, dict) and "detail" in rec2, rec2.get("detail", "")[:60])
+        # ⭐ 2026-09-29 新增（A2 实测暴露，第 21 条）：**取值域**判据。
+        #   来由：`context_recreated` 原先由 `mode=="real" and recovered` 反推，
+        #   而 `recovered` 的语义是「设备当前可用」而**不是**「重建动作已执行」
+        #   ⇒ 后端明说"real 不支持"时，它仍然报 `context_recreated=True`。
+        #   只查字段名不查取值，正是 09-28 漏过 kunlun/cambricon 缺 `state` 的同一坑（§11-⑫）。
+        check("未声明 recovery_real ⇒ context_recreated 必须为 False"
+              "（real 不支持就不可能重建上下文）",
+              isinstance(rec2, dict) and rec2.get("context_recreated") is False,
+              f"context_recreated={rec2.get('context_recreated')!r}"
+              + ("（real 不支持却声称已重建 ⇒ 违反 I1 诚实声明）"
+                 if rec2.get("context_recreated") else ""))
 
     # ── 7. 能力声明自洽 + known_issues ──
     print("\n[7] 能力声明自洽 / 已知问题（stub-skip 报告基础）")
@@ -600,8 +1041,375 @@ def run(proto_dir, backend):
     if not bk.supports("stream_priority"):
         check("未声明 stream_priority ⇒ stream_priority_range() 返回 None",
               bk.stream_priority_range() is None)
+
+    # ── 8b. 流优先级：**能读范围 ≠ 能设置**（2026-09-30，(A) 方案落地判据）──
+    #
+    # 来由：统一 API 若照抄 torch 的构造签名，会产出"看起来设了优先级、其实没设"的流
+    # （910C 实测：`torch.npu.Stream(priority=7)` 收下 kwarg 却回读恒 0）。
+    # 本段守四件事：形状合规 / 设置必须可回读校验 / 未声明必须显式拒绝 / 读不出必须 None。
+    print("\n[8b] 流优先级：形状 / 设置+回读 / 未声明则拒绝")
+    # ⭐ 2026-09-30：**先把可控假原语注入好**，再往下判 —— 走厂商 C API 的后端（kunlun）
+    #   在离线（无设备 / 无真库）时 `stream_priority_range()` 返回 None；若等到判据中途才
+    #   注入，前面用到的 `_priority_bounds()` 已经按 None 算过了 ⇒ 会把
+    #   「离线没有真库」**误报**成「声明了能力却没实现」。
+    #   纪律：**「能造可控假原语就别 SKIP」**；且**时序本身会改变结论**（台账第 ⑪ 条同族）。
+    _cls8 = type(bk)
+    _orig_drv8 = getattr(_cls8, "_ctx_driver", None)
+    if hasattr(_cls8, "_ctx_driver"):
+        _cls8._ctx_driver = _make_fake_cuda_driver()      # 默认 (0, 0)，与真机一致
+    _rng = bk.stream_priority_range()
+    check("stream_priority_range() 形状合规（**2 元组**或 None；不得透传厂商三元组）",
+          _rng is None or (isinstance(_rng, tuple) and len(_rng) == 2
+                           and all(isinstance(x, int) and not isinstance(x, bool)
+                                   for x in _rng)),
+          f"得到 {_rng!r}（type={type(_rng).__name__}）")
+
+    _has_set = bk.supports("stream_priority_control")
+    _has_rb = bk.supports("stream_priority_readback")
+    check("声明 stream_priority_control ⇒ 必须同时声明 stream_priority_readback"
+          "（设置必须能校验，否则无法证明参数真的进去了）",
+          (not _has_set) or _has_rb, f"control={_has_set} readback={_has_rb}")
+
+    if not _has_set:
+        # 未声明 ⇒ **显式拒绝**（契约级 NotImplementedError），绝不静默返回一条无优先级的流
+        try:
+            bk.create_stream(0)
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  False, "未报错 —— 静默返回了一条无优先级的流（正是要防的假象）")
+        except NotImplementedError as e:
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  "stream_priority_control" in str(e), f"NotImplementedError: {str(e)[:70]}")
+        except BaseException as e:                                # noqa: BLE001
+            check("未声明 stream_priority_control ⇒ create_stream(priority=…) 必须显式拒绝",
+                  False, f"异常类型不合契约：{type(e).__name__}: {str(e)[:70]}")
+    else:
+        _b = bk._priority_bounds()
+        check("声明 control ⇒ 区间可解析（设置要能做取值域校验）", _b is not None, f"bounds={_b!r}")
+        if _b:
+            for _p in sorted({_b[0], _b[1]}):
+                try:
+                    _s_ = bk.create_stream(_p)
+                    _got = bk.stream_priority_readback(_s_)
+                    check(f"声明 control ⇒ create_stream(priority={_p}) 成功且**回读一致**",
+                          _got == _p, f"回读={_got!r}（请求 {_p}）")
+                except BaseException as e:                        # noqa: BLE001
+                    check(f"声明 control ⇒ create_stream(priority={_p}) 成功且**回读一致**",
+                          False, f"{type(e).__name__}: {str(e)[:80]}")
+            for _bad in (_b[0] - 1, _b[1] + 1):
+                try:
+                    bk.create_stream(_bad)
+                    check(f"越界 priority={_bad} ⇒ ValueError", False, "未报错（静默放行非法值）")
+                except ValueError:
+                    check(f"越界 priority={_bad} ⇒ ValueError", True, "ValueError")
+                except BaseException as e:                        # noqa: BLE001
+                    check(f"越界 priority={_bad} ⇒ ValueError", False,
+                          f"异常类型不对：{type(e).__name__}: {str(e)[:70]}")
+        # 非 int / bool ⇒ ValueError（bool 是 int 子类，最容易漏）
+        for _w in (True, 1.5, "3"):
+            try:
+                bk.create_stream(_w)
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", False, "未报错")
+            except ValueError:
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", True, "ValueError")
+            except BaseException as e:                            # noqa: BLE001
+                check(f"priority 非 int（{_w!r}）⇒ ValueError", False, f"{type(e).__name__}")
+
+    if _has_rb:
+        # 用**可控假原语**驱动回读链路（"能造可控假原语就别 SKIP"）——
+        # 否则在无设备/无真库的离线环境里这条链路压根没被走到。
+        _orig_raw = getattr(bk, "_stream_priority_read_raw", None)
+        try:
+            bk._stream_priority_read_raw = lambda *a, **k: 0      # 可控假原语（返回 0）
+            _got = bk.stream_priority_readback(bk.create_stream())
+            check("声明 readback ⇒ 原语可用时回读必须返回 int（句柄提取 + 分发链路通）",
+                  isinstance(_got, int) and _got == 0, f"得到 {_got!r}")
+            bk._stream_priority_read_raw = lambda *a, **k: None   # 原语不可得
+            _got2 = bk.stream_priority_readback(bk.create_stream())
+            check("原语不可得 ⇒ 回读必须返回 None（**不得补零**：补零会把"
+                  "『读不出』伪装成『优先级就是 0』）",
+                  _got2 is None, f"得到 {_got2!r}")
+        except AttributeError:
+            check("声明 readback ⇒ 有 `_stream_priority_read_raw` 可注入（判据可非空转）",
+                  False, "缺该私有方法 ⇒ 离线无法驱动回读链路")
+        finally:
+            if _orig_raw is not None:
+                bk._stream_priority_read_raw = _orig_raw
+    if hasattr(_cls8, "_ctx_driver"):                     # 假驱动用完即还（不污染后续判据段）
+        _cls8._ctx_driver = _orig_drv8
+
+    # ── 8b-② 2026-09-30（(A) 方案真落地）：**本层拥有**的流 —— 登记 / 释放 / 拦截 ──
+    print("\n[8b-②] 流所有权与释放：按**实际路径**分流（单点等价放行 vs 多档 C API 路径）")
+    # 默认路径（priority=None）⇒ 厂商拥有 ⇒ 不得登记、不得销毁
+    try:
+        _plain = bk.create_stream()
+        check("create_stream()（默认路径）**不得**被登记为『本层拥有』"
+              "（否则 release 会越权销毁厂商的流）",
+              not bk.owns_stream(_plain), f"owns_stream={bk.owns_stream(_plain)}")
+        check("厂商拥有的流 ⇒ release_stream 必须 **no-op 返回 False**（不假装成功、不越权）",
+              bk.release_stream(_plain) is False,
+              f"release_stream={bk.release_stream(_plain)!r}")
+    except BaseException as e:                                        # noqa: BLE001
+        check("默认路径的所有权与释放语义", False, f"{type(e).__name__}: {str(e)[:80]}")
+
+    if _has_set:
+        _has_drv = hasattr(_cls8, "_ctx_driver")
+        if _has_drv:
+            # ── A) 单点区间 ⇒ 基类「等价放行」（走厂商默认流，本层**不拥有**）──
+            try:
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 0))
+                _s0 = bk.create_stream(0)
+                check("单点区间下请求唯一档位 ⇒ 放行且**回读一致**（等价厂商默认，无信息损失）",
+                      bk.stream_priority_readback(_s0) == 0,
+                      f"回读={bk.stream_priority_readback(_s0)!r}")
+                check("『等价放行』的流**由厂商拥有** ⇒ 不得登记、release 必须 no-op",
+                      (not bk.owns_stream(_s0)) and (bk.release_stream(_s0) is False),
+                      f"owns={bk.owns_stream(_s0)} release={bk.release_stream(_s0)!r}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("单点区间：等价放行的回读与所有权", False,
+                      f"{type(e).__name__}: {str(e)[:90]}")
+
+            # ── B) 多档区间 ⇒ 真走「厂商 C API 建流 + 包装」⇒ 本层拥有 + 可释放 + 已释放拦截 ──
+            try:
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                _s1 = bk.create_stream(2)
+                check("多档区间下请求非默认档位 ⇒ 走『厂商 C API 建流 + 包装』，"
+                      "该流**必须**登记为本层拥有（否则用完后泄漏设备级流）",
+                      bk.owns_stream(_s1), f"owns_stream={bk.owns_stream(_s1)}")
+                # ⚠️ detail 必须用**被断言的同一次调用**的值：重复 release 会返回 False
+                #    （幂等语义）⇒ 若 detail 里再调一次，打印的"实测值"与判定依据
+                #    就不是同一次（自相矛盾的证据）。
+                _rel = bk.release_stream(_s1)     # **只调一次** ⇒ detail 与断言同源
+                check("本层拥有的流 ⇒ release_stream 必须**真的销毁**（返回 True）",
+                      _rel is True, f"release={_rel!r}")
+                check("重复 release 幂等（返回 False，不报错）",
+                      bk.release_stream(_s1) is False, "重复调用返回 False")
+                try:
+                    bk.check_stream_usable(_s1)
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          False, "未报错 —— 释放后仍可静默继续用")
+                except RuntimeError as e:
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          ("release" in str(e) or "释放" in str(e)), f"RuntimeError: {str(e)[:70]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("已释放的流**再使用**必须报错（契约：使用已销毁对象必须明确）",
+                          False, f"异常类型不合契约：{type(e).__name__}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("多档区间：C API 路径的建流 / 释放 / 拦截", False,
+                      f"{type(e).__name__}: {str(e)[:90]}")
+
+            try:
+                # ── C) 非空转：多档 + 设备**不保留**请求值 ⇒ 回读校验必须当场报错 ──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3), keep=False)
+                try:
+                    bk.create_stream(2)
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          False, "未报错 —— 静默返回了一条优先级不对的流")
+                except RuntimeError as e:
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          ("回读" in str(e) or "未生效" in str(e)), f"RuntimeError: {str(e)[:70]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("非空转：设备**不保留**请求值 ⇒ create_stream 必须报错"
+                          "（证明『回读校验』有牙齿，不是空转）",
+                          False, f"异常类型不对：{type(e).__name__}: {str(e)[:60]}")
+
+                # ── D) 销毁原语 rc≠0 ⇒ release 必须如实返回 False（不假装成功）──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3), destroy_rc=1)
+                _s2 = bk.create_stream(1)
+                _rel2 = bk.release_stream(_s2)
+                check("销毁原语失败（rc≠0）⇒ release_stream 必须**如实返回 False**（不得假装成功）",
+                      _rel2 is False, f"release={_rel2!r}")
+
+                # ── E) 兜底不得过宽：原语抛**非 AttributeError** ⇒ 必须传播（不静默）──
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                # ⚠️ **必须把两族符号名都换掉**（2026-10-08 踩到）：假驱动同时挂 `cu*` 与
+                #    `cnrt*` 两族名字，而**不同后端取的是不同族**（kunlun→`cu*`、cambricon→`cnrt*`）。
+                #    只换一族 ⇒ 另一族的后端**压根调不到被注入的函数** ⇒ 判据**空转**、
+                #    并把结果读成「未传播」（假失败）。这正是「判据与被测对象不在同一个世界」
+                #    的又一例（同族：台账第 ⑪/⑳/㉑ 条）。注入要打在**被测对象真正会调到的那一面**上。
+                _boom = _FakeFn(
+                    lambda *a: (_ for _ in ()).throw(RuntimeError("INJECTED: 原语内部错误")))
+                _cls8._ctx_driver.cuCtxGetStreamPriorityRange = _boom
+                _cls8._ctx_driver.cnrtDeviceGetQueuePriorityRange = _boom
+                try:
+                    bk.stream_priority_range()
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          False, "未传播 —— 真实错误被兜底吞掉了")
+                except RuntimeError as e:
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          "INJECTED" in str(e), f"RuntimeError: {str(e)[:60]}")
+                except BaseException as e:                                # noqa: BLE001
+                    check("原语抛**非 AttributeError** 异常 ⇒ 必须**传播**（不得静默返回 None）",
+                          False, f"异常类型不对：{type(e).__name__}: {str(e)[:60]}")
+                # ── F) **id 复用**不得让 `release_stream` 越权销毁（台账第 33 条，2026-10-08）──
+                #
+                # 为什么必须验：注册表以 `id(native_stream)` 为键，而 **id 在对象回收后会被复用**
+                # ⇒ 一条**全新**的流可能撞上"已登记/已释放"那条的 id。
+                # 后果最坏的一类是 `release_stream` **越权销毁厂商拥有的流**（契约 §1.10 规则 2
+                # 明令禁止 —— "比泄漏更糟"）。此前的登记表只有 id、没有身份复核 ⇒ 必然误判。
+                # 这里**直接注入该情形**（把 a 的条目搬到 b 的 id 下，等价于"b 拿到了 a 的 id"），
+                # 证明修好的身份复核**真的能挡住**，而不是"看起来修了"。
+                _cls8._ctx_driver = _make_fake_cuda_driver(range_=(0, 3))
+                _a = bk.create_stream(2)
+                _b = bk.create_stream(2)
+                _reg = bk._reg("_owned_streams")
+                _ent_a = _reg.pop(id(_a))
+                _ent_b = _reg.get(id(_b))
+                _reg[id(_b)] = _ent_a                 # ⭐ 注入：b 的 id 指向 a 的条目
+                try:
+                    check("id 复用：owns_stream 必须**按身份**判定"
+                          "（不得把一条新流当成已登记的那条）",
+                          bk.owns_stream(_b) is False, f"owns_stream(_b)={bk.owns_stream(_b)}")
+                    _relx = bk.release_stream(_b)
+                    check("id 复用：release_stream **不得越权销毁**（必须如实返回 False）",
+                          _relx is False, f"release_stream(_b)={_relx!r}")
+                finally:
+                    _reg.pop(id(_b), None)
+                    _reg[id(_a)] = _ent_a             # 还原，避免污染后续判据
+                    if _ent_b is not None:
+                        _reg[id(_b)] = _ent_b
+                bk.release_stream(_a)
+                bk.release_stream(_b)
+                # ── G) **跨类型**地址复用也不得越权销毁（台账第 37 条，2026-10-10）──
+                #
+                # 与 F 的差别：F 是「**同类型**对象的 id 复用」——靠身份复核 ① 就够了；
+                # 这里造的是「**不同类型**的对象复用同一地址」。真机实测（平头哥 PPU）：
+                # 登记的 `torch.cuda.ExternalStream` 回收后，默认路径的 `torch.cuda.Stream`
+                # 落在**同一地址**，而该条目的持有器**解析出了那个新对象**（现场：key ==
+                # weakref 目标 == native，5/5 复现）⇒ 仅靠 ① 会误判为「本层拥有」⇒
+                # `release_stream()` **越权销毁**并返回 `True`。
+                # ⇒ 必须靠**类型复核 ②**（登记时记类型名，判定时要求一致）。
+                # ⚠️ **非空转**：把 ② 去掉，本条即 FAIL（已实测）。
+                class _OtherStream:                 # 伪装另一种类型的流对象
+                    pass
+
+                _o = _OtherStream()
+                _ent_keep = _reg.get(id(_o))
+                _reg[id(_o)] = (_ent_a[0], lambda: _o, "ExternalStream")
+                try:
+                    check("跨类型地址复用：owns_stream 必须因**类型不符**而不认（第二道判据）",
+                          bk.owns_stream(_o) is False, f"owns_stream(_o)={bk.owns_stream(_o)}")
+                    _relo = bk.release_stream(_o)
+                    check("跨类型地址复用：release_stream **不得返回 True**（不得越权销毁）",
+                          _relo is False, f"release_stream(_o)={_relo!r}")
+                finally:
+                    _reg.pop(id(_o), None)
+                    if _ent_keep is not None:
+                        _reg[id(_o)] = _ent_keep
+                # ── H) 「已释放」记录**不得误拦新建的流**（台账第 38 条，2026-10-14）──
+                #
+                # 真机实测（平头哥 PPU；复现器 `PPU/probes/repro_release_recreate_20261014/`）：
+                #   平台侧 `weakref` **悬垂** —— 流对象回收后其 weakref **未随对象死亡置死**，
+                #   当地址被后续对象复用时，该 weakref **解析出那个新对象**
+                #   （2×2 判据实验：不 gc 时 8/8 跟随、gc 时 6/8 跟随；使用点失败 8/8、7/8）。
+                #   于是 `_released_streams`（按 `id` 键 + 身份复核 ①）会把**刚建好的流**
+                #   判成"已释放" ⇒ **合法的使用点抛 `RuntimeError`**（实测：T6 D2 调度效果探针
+                #   全线 FAIL，6 个场景全部拿不到读数）。
+                # ⚠️ 这也**否证**了此前"该表误判只是**误拦**（保守、可恢复）"的判断 ——
+                #   误拦在这里是**硬失败**。
+                # ⇒ 修法（**机制无关**）：**新建登记时清除同 id 的旧「已释放」记录**。
+                #   语义精确：能落在该 id 上的旧记录必然属于一条**已死**的对象（否则其地址不可能
+                #   被复用）⇒ 清除是精确语义；且不削弱原保护（被释放的流若仍被持有 ⇒ 地址不会被
+                #   复用 ⇒ 这条清除不会命中它，使用点仍会如期报错）。
+                # ⚠️ **非空转**：把 `_register_owned_stream` 里那次 `pop` 去掉，本条即 FAIL（已实测）。
+                _t = bk.create_stream(2)
+                _h_t = bk._owned_handle(_t)
+                _relt = bk._reg("_released_streams")
+                _ent_rel_keep = _relt.get(id(_t))
+                # 注入真机现场（逐字同形：同 id 上存在一条**解析到当前对象**的已释放记录）
+                _relt[id(_t)] = (int(_h_t) if _h_t else 0, lambda: _t, type(_t).__name__)
+                try:
+                    bk._register_owned_stream(_t, _h_t if _h_t else 0)   # 等价于「这条流刚被新建」
+                    try:
+                        bk.check_stream_usable(_t)
+                        check("悬垂弱引用：新建登记后，使用点**不得**被旧「已释放」记录误拦",
+                              True, "放行 ✓")
+                    except BaseException as e:                            # noqa: BLE001
+                        check("悬垂弱引用：新建登记后，使用点**不得**被旧「已释放」记录误拦",
+                              False, f"误拦：{type(e).__name__}: {str(e)[:70]}")
+                finally:
+                    _relt.pop(id(_t), None)
+                    if _ent_rel_keep is not None:
+                        _relt[id(_t)] = _ent_rel_keep
+                bk.release_stream(_t)
+            except BaseException as e:                                    # noqa: BLE001
+                check("非空转：回读校验 / 销毁失败 / 兜底宽度 / id 复用 / 跨类型复用 / 悬垂弱引用",
+                      False, f"{type(e).__name__}: {str(e)[:90]}")
+        else:
+            # 非驱动原语路径（**当前无实例**；cambricon 自 2026-10-08 起也走驱动 C API 口径）
+            # ⇒ 只验「建流 + 回读一致」
+            try:
+                _ext = bk.create_stream(_b[0] if _b else 0)
+                check("非驱动原语路径：priority 域内值可建流且**回读一致**",
+                      bk.stream_priority_readback(_ext) == (_b[0] if _b else 0),
+                      f"回读={bk.stream_priority_readback(_ext)!r}")
+            except BaseException as e:                                    # noqa: BLE001
+                check("非驱动原语路径：建流与回读", False, f"{type(e).__name__}: {str(e)[:90]}")
+            skip("非空转：回读校验有牙齿",
+                 "该后端不提供 `_ctx_driver`（非驱动原语路径）⇒ 无法造可控假原语"
+                 "（当时无此分支；三家现均为驱动原语路径）")
     if not bk.supports("graph_capture"):
         print("  [INFO] 未声明 graph_capture：`torch.<ns>.graph` 存在性须容器内实测后决定")
+
+    # ── 7b. 登记表的**弱引用暴露面**（台账第 39 条，2026-10-14 · T11 退出期段错误）──
+    #
+    # 真机实测（平头哥 PPU；原生现场与全部对照见 `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）：
+    #   平台侧**弱引用书签失效** ⇒ 厂商流对象回收后弱引用悬垂 ⇒ 解释器退出期
+    #   `Py_Exit → Py_FinalizeEx → … → _PyWeakref_ClearRef` 解引用垃圾指针 ⇒ SIGSEGV
+    #   （原生采集：`si_code=1`、**`si_addr=0xab`**、RIP 在 libpython3.12 内）。
+    #   ⚠️ **不含本层**的最小复现同样崩：30 条原生 `torch.cuda.Stream()` 各挂一个 `weakref.ref`
+    #   后丢弃 ⇒ `rc=139` 2/2（N=1 时不崩）⇒ **根因在平台侧**，本层是**暴露面**
+    #   （本层为每条流建 `weakref`：`note_stream_created` / `release_stream`）。
+    # ⇒ 本层义务 = **不依赖弱引用语义**（不是要求平台先修好）：
+    #   ① 无本层上下文时**不登记** `_stream_ctx`（条目本就无信息，却会挂一个弱引用）；
+    #   ② `_released_streams` 用**强持有**。两处必须**都**收 —— 注入对照显示：
+    #      只关掉 ① 时最小复现与 T4 变 `rc=0`，但 **T6 仍 139**（它走 `release_stream` 这第二条）；
+    #      把 ② 也换成强持有后三个载体全部 `rc=0`。
+    #   ③ 两张按 `id()` 键的表加**条数上限**（强持有会让条目 pin 住对象 ⇒ 不设上限会无界增长）。
+    # ⚠️ **非空转**：去掉 `note_stream_created` 里的 `cid is not None` ⇒ ① FAIL；
+    #    把 `_released_streams` 的强持有改回 `self._id_holder(...)` ⇒ ② FAIL（均已实测）。
+    print("\n[7b] 登记表的弱引用暴露面（台账第 39 条）")
+    try:
+        # ① 无本层上下文 ⇒ 不登记（⇒ 不在厂商对象上挂弱引用）
+        _n0 = len(bk._reg("_stream_ctx"))
+        _s_ctx = bk.create_stream(None)
+        bk.note_stream_created(_s_ctx)
+        check("① 无本层上下文时不登记 `_stream_ctx`（⇒ 不给厂商流对象挂弱引用）",
+              bk.current_context_id() is None and len(bk._reg("_stream_ctx")) == _n0,
+              f"current_context_id={bk.current_context_id()!r}；|_stream_ctx| {_n0} -> "
+              f"{len(bk._reg('_stream_ctx'))}")
+
+        # ② `_released_streams` 必须是**强持有**（行为特征：外部引用消失后条目仍取回同一对象）
+        if bk.supports("stream_priority_control"):
+            import weakref as _weakref
+            _b2 = bk._priority_bounds()
+            _o = bk.create_stream(_b2[0] if _b2 else 0)
+            bk.release_stream(_o)
+            _ent = bk._reg("_released_streams").get(id(_o))
+            _w = _weakref.ref(_o)
+            del _o
+            check("② 「已释放」记录的持有器是**强持有**（弱引用语义在该平台不可信）",
+                  _ent is not None and _w() is not None and _ent[1]() is _w(),
+                  "条目仍在且外部引用消失后对象仍活 ⇒ 强持有 ✓" if (
+                      _ent is not None and _w() is not None)
+                  else f"entry={_ent is not None} alive_after_del={_w() is not None}")
+        else:
+            skip("② 「已释放」记录的持有器是强持有",
+                 "该后端不声明 `stream_priority_control` ⇒ 不产生「已释放」记录")
+
+        # ③ 上限生效：写超上限后长度被夹住、且丢的是**最旧**条目
+        _lm = bk._LEDGER_MAX
+        for _i in range(_lm + 5):
+            bk._ledger_put("_scratch_ledger", _i, _i)
+        _reg3 = bk._reg("_scratch_ledger")
+        check("③ 按 id 键的登记表有条数上限（防长驻服务无界增长）",
+              len(_reg3) == _lm and (0 not in _reg3) and ((_lm + 4) in _reg3),
+              f"|reg|={len(_reg3)}（上限 {_lm}）；最旧已丢={0 not in _reg3}；最新仍在={(_lm + 4) in _reg3}")
+        bk.__dict__.pop("_scratch_ledger", None)
+    except BaseException as e:                                            # noqa: BLE001
+        check("弱引用暴露面（① 无上下文不登记 / ② 强持有 / ③ 表上限）",
+              False, f"{type(e).__name__}: {str(e)[:90]}")
 
     # ── 8. 缺厂商扩展时不得静默降级 ──
     print("\n[8] 缺厂商扩展时的行为（应报错并给出下一步，不得静默降级）")
@@ -620,6 +1428,225 @@ def run(proto_dir, backend):
              "该后端没有**独立可缺失的厂商扩展模块** —— 它的'扩展'是被替换过的 torch 本身"
              "（如昆仑芯 XPytorch），摘掉模块这一步在本语义空间下无法构造；"
              "真机上表现为 device_count()==0，由 registry/smoke 的 device_count 判据覆盖")
+
+    # ── 9. 内存句柄与设备上下文（工作包 B / C，2026-09-29 新增）──
+    print("\n[9] 内存句柄与生命周期 / 设备上下文（工作包 B/C）")
+
+    # B-2：第四键与能力位必须自洽（"声明即承诺"）
+    if caps.get("stub_mem_stats_shape", True):
+        if bk.supports("memory_alloc_stat"):
+            check("声明 memory_alloc_stat ⇒ memory_stats 必须给出 allocated_mb",
+                  "allocated_mb" in mem, f"keys={sorted(mem)}")
+
+    # B-1：句柄语义 —— 成对释放 + 负向必须报错
+    if bk.supports("memory_alloc"):
+        n0 = bk.memory_handle_count()
+        h = bk.allocate(1 << 20)
+        check("allocate ⇒ 句柄含公共字段、且**不含厂商指针**（防绕过 .native 纪律）",
+              isinstance(h, dict) and set(runtime.MEMORY_HANDLE_KEYS) <= set(h)
+              and "ptr" not in h, str(sorted(h)))
+        check("allocate ⇒ 在世句柄数 +1", bk.memory_handle_count() == n0 + 1,
+              f"{n0} -> {bk.memory_handle_count()}")
+        bk.free(h)
+        check("free ⇒ 在世句柄数回落（成对释放，无泄漏）",
+              bk.memory_handle_count() == n0, str(bk.memory_handle_count()))
+        # ⚠️ stub 的厂商 free **刻意静默** ⇒ 下列两条只能由**本层登记表**兜住
+        try:
+            bk.free(h)
+            check("二次释放必须如实报错（不得静默）", False, "未报错（厂商静默被透传）")
+        except Exception as e:                                # noqa: BLE001
+            check("二次释放必须如实报错（不得静默）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.free({"handle_id": 10 ** 9})
+            check("未见过的句柄必须报错（不得静默）", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("未见过的句柄必须报错（不得静默）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        for bad in (0, -1, "1024"):
+            try:
+                bk.allocate(bad)
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）", False, "未报错")
+            except ValueError:
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）", True, "ValueError")
+            except Exception as e:                            # noqa: BLE001
+                check(f"allocate({bad!r}) 必须报 ValueError（参数类不落到厂商层）",
+                      False, type(e).__name__)
+    else:
+        try:
+            bk.allocate(1024)
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", False, "未报错")
+        except NotImplementedError:
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", True, "NotImplementedError")
+        except Exception as e:                                # noqa: BLE001
+            check("未声明 memory_alloc ⇒ 必须如实报错（不得静默退化）", False, type(e).__name__)
+
+    # B-3：`record_stream` 能力位 + 保守同步路径
+    class _NoRecordStream:
+        """刻意造一个**没有 record_stream** 的对象（模拟不支持该能力的张量/后端）。"""
+
+    st = runtime.create_stream()
+    _d0 = bk.degradations()["total"]
+    import warnings as _warn
+    _rs_exc = None
+    with _warn.catch_warnings(record=True) as _caught:
+        _warn.simplefilter("always")
+        try:
+            st.record_stream(_NoRecordStream())
+        except BaseException as e:                            # noqa: BLE001
+            _rs_exc = e                                        # 判 FAIL，不让整段崩掉
+    check("record_stream 不可用时 ⇒ 走保守同步且**不抛错**（慢，但不发生数据竞争）",
+          _rs_exc is None and bk.degradations()["total"] == _d0 + 1,
+          (f"{type(_rs_exc).__name__}: {_rs_exc}" if _rs_exc
+           else f"degradations={bk.degradations()} warnings={len(_caught)}"))
+    if bk.supports("record_stream"):
+        check("声明 record_stream ⇒ 能力位为真（上层可提前预判）",
+              bk.supports("record_stream") is True, "True")
+
+    # B-4：`.native` 逃生舱审计（公开属性计数、**层内部路径不计数**）
+    bk.reset_native_accesses()
+    _ = st.native
+    check(".native 取用 ⇒ 审计计数 +1", bk.native_accesses()["total"] == 1,
+          str(bk.native_accesses()))
+    bk.reset_native_accesses()
+    ev_i = runtime.create_event()
+    st.wait_event(ev_i)                                       # 层内部走私有 _native_obj
+    st.synchronize() if False else None
+    check("层内部路径（wait_event 等）⇒ **不得**计入 .native 审计",
+          bk.native_accesses()["total"] == 0, str(bk.native_accesses()))
+
+    # C-4：上下文**只读观测**（工作包 C·P800 专项，2026-09-29 新增）
+    # 语义：把"此刻在哪个上下文上、它归谁管"以**同一形态**暴露给上层，
+    #       使上层不必因换芯片而写分支 —— 分歧写进 `managed_by` 字段。
+    # 为何必须单列：「声明即承诺」要求声明了就真能调；而**未声明**时也必须给出
+    #   **具体原因** —— 不许静默返回空结构（那会让上层把"无上下文"与"查不了"混为一谈）。
+    _cq = bk.context_query()
+    _CQ_KEYS = {"queryable", "present", "ordinal", "flags", "managed_by", "reason"}
+    check("context_query 返回固定 6 键（跨后端可比）",
+          isinstance(_cq, dict) and _CQ_KEYS <= set(_cq), str(sorted(_cq or {})))
+    if bk.supports("context_query"):
+        check("声明 context_query ⇒ queryable 为 True", _cq.get("queryable") is True, str(_cq))
+    else:
+        check("未声明 context_query ⇒ queryable=False 且**给出具体原因**（不得静默返回空结构）",
+              _cq.get("queryable") is False and bool(_cq.get("reason")), str(_cq))
+    check("context_query 的 present 为 bool 或 None（不得用 0/1 冒充）",
+          _cq.get("present") is None or isinstance(_cq.get("present"), bool),
+          repr(_cq.get("present")))
+    check("context_query 的 managed_by ∈ {unified, external, None}",
+          _cq.get("managed_by") in ("unified", "external", None), repr(_cq.get("managed_by")))
+
+    if bk.supports("context_query"):
+        # ⭐「有上下文」分支必须**能离线验证** —— 用桩造出可控情形
+        #   （项目纪律：**能造可控假原语就别 SKIP**）。
+        # 必要性来自非空转验证的实测结论：离线无设备 ⇒ 只走 `if not raw` 分支，
+        #   于是"丢掉 managed_by 键"、"声明了却给 queryable=False"两处注入
+        #   **都不会被判据抓到** ⇒ 判据形同虚设。补上此桩后两处均能 FAIL。
+        _orig_raw = bk._ctx_query_raw
+        try:
+            bk._ctx_query_raw = lambda ordinal=0: {"ctx": 20260929, "ordinal": 3, "flags": 8}
+            _cq2 = bk.context_query()
+        finally:
+            bk._ctx_query_raw = _orig_raw
+        check("有上下文时 ⇒ present=True 且 ordinal/flags 原样透传（不臆造）",
+              _cq2.get("present") is True and _cq2.get("ordinal") == 3
+              and _cq2.get("flags") == 8, str(_cq2))
+        check("有上下文时 ⇒ managed_by ∈ {unified, external}（差异写进字段，不给上层留分支）",
+              _cq2.get("managed_by") in ("unified", "external"), str(_cq2))
+
+    # C：设备上下文生命周期（能力位自洽 + 只接受本层句柄）
+    if bk.supports("context_lifecycle"):
+        c0 = bk.context_count()
+        ctx = bk.context_create(0)
+        check("context_create ⇒ 计数 +1，句柄含公共字段且**不含厂商上下文对象**",
+              bk.context_count() == c0 + 1 and "ctx" not in ctx
+              and set(runtime.CONTEXT_HANDLE_KEYS) <= set(ctx), str(sorted(ctx)))
+        try:
+            bk.context_set(ctx)
+            check("context_set ⇒ 可切换到本层创建的上下文", True, "ok")
+        except Exception as e:                                # noqa: BLE001
+            check("context_set ⇒ 可切换到本层创建的上下文", False, f"{type(e).__name__}: {e}")
+        _st_ctx = runtime.create_stream()                     # 在该上下文之下创建流
+        bk.context_destroy(ctx)
+        check("context_destroy ⇒ 计数回落", bk.context_count() == c0, str(bk.context_count()))
+        # C-2 绑定语义：**销毁上下文后使用其流必须如实报错**。
+        # ⚠️ 这条判据的必须性来自真机实测：厂商栈在此处**当场不报错**（静默成功），
+        #    直到进程退出清理阶段才暴露 107003 ⇒ 不拦截就等于"看运气"。
+        try:
+            _st_ctx.context()
+            check("销毁上下文后使用其流必须如实报错（不得静默成功）", False, "未报错（静默成功）")
+        except Exception as e:                                # noqa: BLE001
+            check("销毁上下文后使用其流必须如实报错（不得静默成功）",
+                  isinstance(e, RuntimeError), f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.context_destroy(ctx)
+            check("销毁后重复销毁必须报错", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("销毁后重复销毁必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        try:
+            bk.context_destroy({"handle_id": 10 ** 9})        # 未登记句柄
+            check("非本层句柄必须报错（不得误毁他人/默认上下文）", False, "未报错")
+        except Exception as e:                                # noqa: BLE001
+            check("非本层句柄必须报错（不得误毁他人/默认上下文）", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+        if bk.supports("memory_alloc"):
+            # 跨种类误用：**内存句柄当上下文销毁**（反之亦然）必须报错
+            _mh = bk.allocate(4096)
+            try:
+                bk.context_destroy(_mh)
+                check("跨种类误用（内存句柄当上下文）必须报错", False, "未报错")
+            except Exception as e:                            # noqa: BLE001
+                check("跨种类误用（内存句柄当上下文）必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+            try:
+                bk.free(ctx)                                  # 上下文句柄当内存句柄
+                check("跨种类误用（上下文句柄当内存）必须报错", False, "未报错")
+            except Exception as e:                            # noqa: BLE001
+                check("跨种类误用（上下文句柄当内存）必须报错", isinstance(e, ValueError),
+              f"{type(e).__name__}: {str(e)[:80]}")
+            bk.free(_mh)
+    else:
+        for _call in (lambda: bk.context_create(0), lambda: bk.context_count(),
+                      lambda: bk.context_set({"handle_id": 1}),
+                      lambda: bk.context_destroy({"handle_id": 1})):
+            try:
+                _call()
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", False, "未报错")
+            except NotImplementedError:
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", True, "NotImplementedError")
+            except Exception as e:                            # noqa: BLE001
+                check("未声明 context_lifecycle ⇒ 相关调用必须如实报错", False, type(e).__name__)
+
+    # C-3：`recover_device` **只增不改**
+    check("recover_device 增补 context 三键（契约五键保持不变）",
+          isinstance(rec, dict)
+          and {"context_supported", "context_count", "context_recreated"} <= set(rec)
+          and {"ordinal", "mode", "recovered", "state", "detail"} <= set(rec),
+          str(sorted(rec)))
+
+    # ── [10] 契约不变式 I1–I4（2026-09-29 新增；与真机 conformance **同一套核心函数**）──
+    # 定义见《接口约定》§1.8。此前后者**只有名字没有定义**（G8 登记为"靠人工检查"）。
+    # 为什么在离线也跑一遍：这四条正是本项目反复踩的坑家族（假绿 / 静默退化 / 失效对象可用），
+    #   而它们在**无设备时**同样能判定 ⇒ 能提前拦住回归（本项因此被定为"不需卡"）。
+    # ⚠️ 单一事实来源：核心函数从 conformance 模块**按文件路径加载**，不复制一份（否则两处会漂移）。
+    print("\n[10] 契约不变式 I1–I4（定义见《接口约定》§1.8；与真机 conformance 同一套核心函数）")
+    try:
+        import importlib.util as _ilu
+        _ci_path = Path(proto_dir) / "runtime" / "conformance" / "contract_invariants.py"
+        _spec = _ilu.spec_from_file_location("_contract_invariants_offline", str(_ci_path))
+        _ci = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_ci)
+    except Exception as e:                                        # noqa: BLE001
+        check("[10] 契约不变式模块可加载", False, f"{type(e).__name__}: {str(e)[:120]}")
+        _ci = None
+    if _ci is not None:
+        check("[10] 契约不变式模块可加载", True, f"CHECKS={len(_ci.CHECKS)} 条")
+        for _key, _label, _fn in _ci.CHECKS:
+            try:
+                _ok, _detail = _fn(bk)
+            except Exception as e:                                # noqa: BLE001
+                _ok, _detail = False, f"检查自身抛错 {type(e).__name__}: {str(e)[:120]}"
+            check(f"[10] {_key}（{_label}）", _ok, str(_detail)[:200])
 
     print("\n" + "=" * 74)
     print(f"离线自检结果: {PASS} 通过 / {FAIL} 失败 / {SKIPPED} 跳过（stub 能力边界，非失败）")
@@ -713,6 +1740,27 @@ def symmetry(proto_dir):
         # ④ 声明 error_map 的家必须提供码样例（否则正向 code_map 检查无从下手）
         need = [k for k, v in ok_rows.items() if v["declares_error_map"] and not v["sample_coded"]]
         check("声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR", not need, str(need))
+
+        # ⑥ ⭐ 2026-09-29（B3 复核）新增：info() 必须含**契约承诺的最小键集**。
+        #   来由：`ascend` 覆写 `info()` 时**丢掉了 `device_type`** ⇒ `info()["device_type"]` 直接
+        #   `KeyError`，而契约与 smoke 都写「info 至少含 name/device_type/capabilities」。
+        #   长期未被发现的两处盲区（第 9 条「验证资产可达性」家族）：
+        #     ① 上文矩阵的 device_type 列取的是**类属性** `bk.device_type`，**不是 info()**；
+        #     ② smoke 的同名判据只对 **stub** 跑 —— 真实后端无人守。
+        _INFO_MIN = ("name", "device_type", "capabilities")
+        bad_info = {k: sorted(set(_INFO_MIN) - set(v["info_keys"]))
+                    for k, v in ok_rows.items() if set(_INFO_MIN) - set(v["info_keys"])}
+        check("info() 含契约最小键集 name/device_type/capabilities（真实后端也守）",
+              not bad_info, str(bad_info))
+
+        # ⑦ ⭐ 公共字段一致性：三家 info() 都**手写**了 capabilities/native_accesses/degradations，
+        #   而基类 `_base_info_fields()` **无任何调用方** ⇒ 同一份清单三个来源
+        #   （第 8 条「同一份清单只能有一个来源」的残留形态）。
+        _COMMON = ("capabilities", "native_accesses", "degradations")
+        lack = {k: [c for c in _COMMON if c not in v["info_keys"]] for k, v in ok_rows.items()}
+        check("info() 均含公共字段 capabilities/native_accesses/degradations",
+              all(not x for x in lack.values()),
+              str({k: v for k, v in lack.items() if v}))
 
         # ⑤ 同一能力在不同家的"声明与否"必须能解释 —— 这里只报差异，不判失败
         all_caps = sorted(set().union(*[v["capabilities"] for v in ok_rows.values()])) if ok_rows else []

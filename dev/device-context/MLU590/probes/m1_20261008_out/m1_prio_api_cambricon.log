@@ -1,0 +1,14 @@
+=== 流优先级统一 API 真机探针 · backend=cambricon ===
+devices=8 | torch=2.7.1+cpu | device=mlu:0
+capabilities: stream_priority=True control=True readback=True
+  [PASS] D1_create_stream_默认路径不回归  type=Stream 流上计算=16.0（期望 16.0）
+  [PASS] D2_range_形状为2元组或None  得到 (0, -3)（type=tuple）
+  [PASS] D2b_readback_对默认流返回int  回读=0
+  [PASS] D3_设置priority=-3_成功且回读一致  请求=-3 回读=-3
+  [PASS] D3_设置priority=0_成功且回读一致  请求=0 回读=0
+  [PASS] D3b_越界priority抛ValueError  -4: ValueError ✓；1: ValueError ✓
+  [PASS] D5_厂商路径的参数保留性（不一致即'静默丢弃'）  直接 mlu 建流 priority=0 ⇒ 回读=0（保留）
+
+=== STREAM_PRIORITY_API_PASS（7/7）===
+BOUNDARY: 结论只在本栈（该实例 + 该 torch/驱动版本）成立，不得跨实例外推。
+已写出: /work/dc_mlu_regen_20261008/out_m1/m1_prio_api_cambricon.json

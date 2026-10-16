@@ -1,0 +1,11 @@
+# 对照：副本：去掉 _preflight_env_check()
+# 源日志：/bmcp_lvm_fs/hliu553/probes_ppu/segv_isolate/e12_ptl_nopreflight/run.log （下列为滤掉 NCCL INFO 后的判定/崩溃行）
+# 结论：**复现段错误**（判据行若存在则说明判据仍通过）
+
+[default0]:[rank0] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.2841 | 4164.7 tok/s(两卡合计) -> /workspace/probes_ppu/segv_isolate/e12_ptl_nopreflight/train_leg_result_rank0.json
+[default1]:[rank1] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.2841 | 4133.9 tok/s(两卡合计) -> /workspace/probes_ppu/segv_isolate/e12_ptl_nopreflight/train_leg_result_rank1.json
+[default1]:Fatal Python error: Segmentation fault
+[default0]:Fatal Python error: Segmentation fault
+E1010 11:12:55.656000 3165 site-packages/torch/distributed/elastic/multiprocessing/api.py:984] failed (exitcode: -11) local_rank: 0 (pid: 3233) of binary: /usr/local/bin/python3
+  exitcode  : -11 (pid: 3234)
+  exitcode  : -11 (pid: 3233)

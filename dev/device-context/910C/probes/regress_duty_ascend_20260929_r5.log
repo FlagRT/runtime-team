@@ -1,0 +1,104 @@
+[W929 07:51:33.188473987 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+==============================================================================
+职责响应审计：backend=ascend（口径：接口约定 §1.1–§1.5 + §2 三支撑 + §3 两纪律）
+==============================================================================
+ℹ️ 设备类型=npu  device_count=3
+ℹ️ 后端已声明能力：['bounded_sync', 'context_lifecycle', 'context_query', 'device', 'device_state', 'error_map', 'event', 'graph_capture', 'memory', 'memory_alloc', 'memory_alloc_stat', 'multidevice', 'record_stream', 'recovery_probe', 'recovery_real', 'stream', 'stream_priority', 'sync_timeout']
+
+
+[A 后端选择]
+  [OK] A1 discover() 能发现本后端
+         discover → ['ascend', 'cambricon', 'kunlun']
+  [OK] A2 available() 含本后端
+         available → ['ascend', 'cambricon', 'kunlun']
+  [OK] A3 use() 返回实例 / current() 一致 / 单例
+         current().name=ascend, 单例=True
+  [OK] A4 use(未注册名) 如实抛 BackendNotFound（负向）
+         抛 BackendNotFound
+
+[B 设备域]
+  [OK] B1 device_count() > 0
+         n=3
+  [OK] B2 set_device(0) 生效且无异常
+         已绑定设备 0
+  [OK] B3 memory_stats(0) 结构含 total/used/free
+         keys=['allocated_mb', 'free_mb', 'total_mb', 'used_mb']
+  [OK] B4 memory_stats 值自洽（total≈used+free 且 total>0）
+         total=62748 used=160 free=62587 gap=0.00%
+  [OK] B5 probe_device(0) 返回 True（健康设备）
+         probe_device → True
+
+[C 流与事件]
+  [OK] C1 create_stream() 返回统一 Stream 且绑定本后端
+         Stream backend=ascend
+  [OK] C2 create_event() 返回统一 Event 且绑定本后端
+         Event backend=ascend
+  [OK] C3 current_stream() 可调用
+         current_stream 返回空
+  [OK] C4 stream.synchronize() 无界路径正常返回
+         无界同步返回
+  [OK] C5 stream.synchronize(timeout_ms) 有界成功路径
+         有界同步（流上已有工作）返回
+  [OK] C6 stream.context() 可作 with 上下文管理器
+         with 语法可用
+  [OK] C7 跨流依赖：A record → B wait → B 可见 A 结果（真实语义）
+         跨流可见性结果=196609.0
+  [OK] C8 stream.wait_stream(other) 可调用
+         wait_stream 后同步完成
+  [OK] C9 event.record() 后 query() 为 True
+         query()=True
+  [OK] C10 未 record 的 event：query()=False 且 wait_host 不永久阻塞
+         query=False wait_host=False 耗时=0.50s
+  [OK] C11 record 后 event.wait_host(timeout_ms) 返回 True
+         wait_host → True
+  [OK] C12 event.wait(stream) / event.synchronize() 可调用
+         event.wait / event.synchronize 均返回
+  [OK] C13 event.elapsed_time(end) 可调用（若声明支持）
+         elapsed_time=0.0
+  [OK] C14 硬纪律 1：stream.record_stream(tensor) 可调用
+         record_stream 已登记（跨流缓冲保护）
+
+[D 错误翻译]
+  [OK] D1 translate_error 返回统一 FlagosError
+         FlagosError
+  [OK] D2 category 属于 L1–L4 四类
+         category=ErrorCategory.L1_RESOURCE
+  [OK] D3 disposition 属于四动作之一
+         disposition='retry'
+  [OK] D4 mapped / graded_by 可观测且自洽
+         mapped=False graded_by=default
+  [OK] D5 L1–L4 处置映射符合处置约定表
+         采样 4 条全部符合约定表
+  [OK] D6 完整消息不被截断（截断会退化为保守误判）
+         category=ErrorCategory.L2_PARAM disposition=raise
+
+[E 状态恢复]
+  [OK] E1 device_state(0) 返回四态之一
+         state=available
+  [OK] E2 recover_device(0,'probe') 返回 dict
+         type=dict
+  [OK] E3 返回契约字段齐全 {ordinal,mode,recovered,state,detail} 且 state 为四态规范 token
+         五键齐全，state='available'
+  [OK] E4 recovered 语义 = 设备当前可用（与 probe_device 一致）
+         recovered=True probe_device=True
+  [OK] E5 recover_device(0,'hybrid') 返回 dict
+         mode=hybrid
+  [OK] E6 recover_device(0,'real') 如实响应（执行或明确拒绝，不静默）
+         mode=real recovered=True
+
+[F 硬纪律]
+  [OK] F1 错误隔离分层：芯片级 → device_recovery；API 级 → 非 device_recovery
+         芯片级=device_recovery API级=raise
+
+[G 元信息]
+  [OK] G1 supports() 与 info()['supports'] 一致
+         18 项一致
+  [OK] G2 info()['supports'] 键集合 == _CAPABILITY_KEYS（防键漂移）
+         KEYS-INFO 差 []
+  [OK] G3 known_issues() 结构完整（无则如实为空）
+         1 条结构完整
+
+------------------------------------------------------------------------------
+DUTY_RESPONSE_AUDIT ascend: OK 39 / FAIL 0 / SKIP 0（共 39 项）
+verdict: DUTY_RESPONSE_PASS
+结果已写入 /mnt/raid/hliu553/dc_regress_20260929/out/regress_duty_ascend_20260929_r5.json

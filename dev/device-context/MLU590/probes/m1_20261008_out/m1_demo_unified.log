@@ -1,0 +1,45 @@
+========================================================
+统一运行时 API 演示 · 设备上下文与多流 Stream
+========================================================
+
+────────────────────────────────────────────────────────
+[0] 选择后端：runtime.use("cambricon")
+────────────────────────────────────────────────────────
+  ✓ 已加载：{'name': 'cambricon', 'capabilities': ['bounded_sync', 'device', 'device_state', 'device_state_control', 'event', 'graph_capture', 'memory', 'multidevice', 'recovery_probe', 'stream', 'stream_priority', 'stream_priority_control', 'stream_priority_readback'], 'native_accesses': {'total': 0, 'by_kind': {}}, 'degradations': {'total': 0, 'by_kind': {}}, 'device_type': 'mlu', 'framework': 'torch_mlu（PyTorch PrivateUse1 厂商扩展）', 'torch': '2.7.1+cpu', 'device_namespace': 'mlu（torch.mlu.*；PrivateUse1，进程内与其他厂商插件互斥）', 'device_count': 8, 'supports': {'device': True, 'memory': True, 'stream': True, 'event': True, 'bounded_sync': True, 'sync_timeout': True, 'error_map': False, 'recovery_probe': True, 'recovery_real': False, 'device_state': True, 'graph_capture': True, 'stream_priority': True, 'multidevice': True, 'memory_alloc': False, 'memory_alloc_stat': False, 'record_stream': False, 'context_lifecycle': False, 'context_query': False, 'device_state_control': True, 'stream_priority_control': True, 'stream_priority_readback': True}, 'error_grading': {'code_map': False, 'message_hint': True}, 'bounded_sync_scope': '主机侧等待（event.wait_host）真有界；流同步为超时上报语义', 'evidence_level': '已在 MLU590 真机验证（2026-09-22）：离线自检 35/0、smoke 42/0、conformance 13/13 + 6/6 全绿；证据 MLU590/probes/A*_20260922.log', 'verified_on_device': ['mem_get_info(ordinal) 可用（(free,total)，语义同 CUDA）；降级路径未被触发', 'Stream/Event/current_stream/stream/synchronize 齐备', '未 record 的 Event.query() 原生误报 True ⇒ 适配层 E3 修正必需', 'Stream.synchronize() 不接受 timeout ⇒ 有界=超时上报语义（如实标注）', 'priority_range() = (0, -3) 可用且不崩；⚠️ 非法优先级(99)上游未拦截', '错误码为 CNRT 错误名而非数字码 ⇒ error_map 如实不声明', '图捕获入口 torch.mlu.MLUGraph + torch.mlu.graph ⇒ 实测 5/5 通过', '无设备级重置原语（reset* 全为内存统计类）⇒ recovery_real 确认不具备', '集合通信后端名 = cncl（2 进程 all_reduce 结果正确）'], 'unverified': ['推理腿 vLLM 形态（运行时镜像不含 vLLM；应用镜像内是厂商移植版还是社区版+插件未验证）', '流优先级的实际调度效果（读回值只证明被接受，未做性能侧对照）'], 'environment': {'chip': '寒武纪 MLU590-M9 × 8', 'host_driver_observed': 'v6.2.29（实测，6.2.x 线）', 'image_pinned': 'harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0（实测 digest sha256:e55b420e… 与定档一致）', 'container_runtime': 'py3.10.20 / Ubuntu 22.04.5 / torch 2.7.1+cpu / torch_mlu 1.29.2+torch2.7.1', 'dist_backend_name': 'cncl（亦可用 cpu:gloo,mlu:cncl）', 'note': '宿主无 /usr/local/neuware ⇒ 必须容器内运行；import triton 前必须先 import torch_mlu（见 known_issues）'}, 'known_issues': [{'id': 'MLU-DRIVER-TIER-CONSTRAINT', 'severity': 'info', 'scope': '环境/镜像选型（本方向验证的前置条件）', 'condition': '宿主驱动版本决定可用镜像档位', 'symptom': '两台测试机驱动实测 v6.2.29（6.2.x 线）⇒ 只能使用 neuware4.4.3 档镜像（官方标注 Host driver 6.2.15）；neuware4.7.2 档官方标注要求宿主驱动 6.5.48，本机不满足。选错档位表现为容器内厂商工具/库与宿主不匹配', 'repro_rate': '不适用（环境约束，非概率性缺陷）', 'root_cause_layer': '环境（宿主驱动 ↔ 镜像档位配套关系）', 'workaround': '按驱动选档：走 flagos-runtime-cambricon-neuware4.4.3:2.2.0', 'workaround_risk': '4.4.3 为旧档（py3.10 / torch 2.7.1 / torch-mlu 1.29.2 / triton 3.2.0+mlu1.7.2），与最新 4.7.2 档差两代。本方向（设备抽象/执行上下文/多流/错误翻译/状态恢复）对 torch-mlu 小版本不敏感，故代价可接受；若后续出现与该档强相关的问题，走《寒武纪镜像渠道调研》§0.2 的驱动升级上报预案', 'report_to': '总组 / 机器管理员（仅在触发 §0.2 预案门槛时才需上报）', 'evidence': 'MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md §0.1/§0.2；MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md（驱动 v6.2.29 实测）'}, {'id': 'MLU-HOST-NO-NEUWARE', 'severity': 'info', 'scope': '环境（软件栈形态）', 'condition': '宿主无 /usr/local/neuware（只读探测结论）', 'symptom': '宿主上没有任何 MLU 软件栈（无 NEUWARE_HOME）⇒ 不能在宿主直接跑 torch_mlu；所有本方向验证必须在**带卡容器**内进行', 'repro_rate': '不适用（环境约束）', 'root_cause_layer': '环境（宿主机设计：MLU 栈只随容器分发）', 'workaround': '一律在容器内验证；宿主只用来起容器与查卡（cnmon 是宿主工具）', 'workaround_risk': None, 'report_to': '无（无需上报）', 'evidence': 'MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md §2「宿主无 /usr/local/neuware」'}, {'id': 'MLU-TRITON-IMPORT-ORDER', 'severity': 'medium', 'scope': 'Python 导入顺序（算子 / 编译路径使用者会踩；本方向路径不依赖 triton）', 'condition': '在未先导入 `torch_mlu` 的情况下 `import triton`', 'symptom': 'triton 内部 `import torch` 会触发 torch 的 device-backend 自动加载并失败：`RuntimeError: Failed to load the backend extension: mlu. You can disable extension auto-loading with TORCH_DEVICE_BACKEND_AUTOLOAD=0.`—— **报错文案看着像设备问题，实际是导入顺序问题**', 'repro_rate': '确定性（100%，2026-09-22 实测 3/3 次）', 'root_cause_layer': '环境/入口（torch 的 device-backend 自动加载时机 vs 厂商扩展注册时机）', 'workaround': '**先 `import torch_mlu` 再 `import triton`**（实测得到 `triton 3.2.0`）；或兼容做法 `import torch, torch_mlu` 之后再导入任何依赖 triton 的库。不要用 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 绕过——它会一并影响 mlu 后端注册', 'workaround_risk': '无（顺序调整即可，不改环境变量、不动公共资产）', 'report_to': '知会算子 / 编译方向（他们是用 triton 路径的一方）', 'evidence': 'MLU590/probes/A5_verify_20260922.log §①；MLU590/probes/A6_capability_probe_20260922.log §③'}, {'id': 'MLU-RUNTIME-IMAGE-NO-VLLM', 'severity': 'info', 'scope': '推理腿服务化形态（本方向验证路径受影响，但不阻塞设备上下文验证）', 'condition': '使用 `flagos-runtime-*` 运行时层镜像（而非 `flagos-app/vllm*` 应用镜像）', 'symptom': "运行时层镜像**不含 vLLM**：`ModuleNotFoundError: No module named 'vllm'` ⇒ `from vllm.platforms import current_platform` 无法执行，服务化形态无法就地验证", 'repro_rate': '确定性（镜像内容事实）', 'root_cause_layer': '环境（镜像分层设计：runtime 层只到 torch/插件/triton/flag_gems）', 'workaround': '推理腿走同线应用镜像 `harbor.baai.ac.cn/flagos-app/vllm0.24.0-cambricon-neuware4.4.3`（或 vllm0.20.2 变体），与本方向统一启动脚本 `serve_standard.sh` 配合', 'workaround_risk': '该应用镜像内 vLLM 是厂商移植版还是社区版 + 插件，**仍未验证**', 'report_to': '无（镜像分层设计使然，不需要上报）', 'evidence': 'MLU590/probes/A5_verify_20260922.log §B「推理腿平台判别」'}, {'id': 'MLU-STREAM-PRIORITY-NO-VALIDATION', 'severity': 'low', 'scope': '流优先级**取值域**（`torch.mlu.Stream(priority=…)` 的上游校验）', 'condition': '给区间 (0, -3) 之外的值（如 99）', 'symptom': '上游**不报错**（`torch.mlu.Stream(priority=99)` 直接建流成功）—— 静默接受非法值，调用方无法从返回值看出参数早就越界了', 'repro_rate': '确定性（2026-09-22 实测；本层未再复现，因已从源头挡住）', 'root_cause_layer': '厂商 PyTorch 插件（torch_mlu）参数校验缺失', 'workaround': '**本层已从源头兜住**：`create_stream(priority=…)` 按 `stream_priority_range()` **强制校验取值域**（越界 ⇒ `ValueError`），并在创建后**回读校验**（不符 ⇒ `RuntimeError`）—— 上层无需自行保证区间', 'workaround_risk': '无（越界直接被拒，不会产出『看起来设了』的流）', 'report_to': 'torch_mlu 上游（可选：建议补参数区间校验并报错）', 'evidence': '`MLU590/probes/A5_verify_20260922.log`；本层实现见 `runtime/backends/base.py::create_stream`（三段校验）'}]}
+
+────────────────────────────────────────────────────────
+[1] 设备上下文（设备句柄 + 内存）
+────────────────────────────────────────────────────────
+  设备数量：8
+  已绑定设备：0
+  显存：total=97057MB  used=160MB  free=96897MB
+
+────────────────────────────────────────────────────────
+[2] 多流 Stream（创建 / 跨流依赖 / 上下文切换）
+────────────────────────────────────────────────────────
+  <Stream backend=cambricon native=Stream>
+  <Stream backend=cambricon native=Stream>
+  <Event backend=cambricon native=CambriconEventAdapter>
+  跨流可见性：流 s1 计算 → 流 s2 读取 = 5.0000（期望 5.0）
+  有界同步（5s）：✓ 完成
+  主机侧事件等待：True
+
+────────────────────────────────────────────────────────
+[3] 错误码翻译（厂商错误码 → 统一分级 + 处置）
+────────────────────────────────────────────────────────
+  流同步超时        → L3_EXECUTION   处置=replay         mapped=False by=message_hint
+  设备级致命        → L4_FATAL       处置=device_recovery mapped=False by=message_hint
+  框架参数校验       → L2_PARAM       处置=raise          mapped=False by=message_hint
+
+────────────────────────────────────────────────────────
+[4] 状态恢复（探活 + 重建接口）
+────────────────────────────────────────────────────────
+  设备探活：True
+  设备状态：DeviceState.AVAILABLE
+  重建接口：recover_device(mode='probe'/'real'/'hybrid')
+  注意：real 模式会重置当前进程默认上下文，演示中不实际调用
+
+────────────────────────────────────────────────────────
+演示结束
+────────────────────────────────────────────────────────
+  同一份代码切换芯片只需改：runtime.use("<backend>")

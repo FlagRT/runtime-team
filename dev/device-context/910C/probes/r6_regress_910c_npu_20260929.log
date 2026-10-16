@@ -1,0 +1,31 @@
+===== [0] 跑的是当前版本吗 =====
+__init__.py ascend base.py cambricon kunlun registry.py 
+1
+3
+1
+===== r6_offline_ascend =====
+rc=0
+===== r6_symmetry_all =====
+rc=0
+===== r6_smoke_ascend =====
+rc=0
+===== r6_conf13_ascend =====
+rc=0
+===== r6_confinfer6_ascend =====
+rc=0
+===== r6_coninvariants_ascend =====
+rc=0
+===== r6_duty_ascend =====
+rc=0
+===== r6_errorloop_ascend =====
+rc=0
+===== r6_bc_probe_ascend =====
+rc=0
+===== r6_a2p1_probe =====
+rc=0
+
+===== [末] 免跑理由的**当轮可验证**形式（三条路径都不碰 recover_device / device_state）=====
+proto_train_leg.py 命中数: 0
+proto_infer_leg.py 命中数: 0
+serve_standard.sh  命中数: 2
+===== ALL DONE =====

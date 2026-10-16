@@ -1,0 +1,15 @@
+# 证据截选 —— Arm A = 镜像原版 FlagCX，flagcx_sync_test.py --iters 20
+# 来源日志: npu1-27:/mnt/raid/hliu553/dc_p9_20261016/A_image.out
+# 截取范围: 匹配 '^LOADED|^=== |^  [a-z_]+(\+[a-z]+)? +(PASS|FAIL)|^overall:|^  (ddp_wrapped|train_steps|loss_all_finite|ranks_param_equal|crashed_at)' 的行（完整日志留在执行机器，不入仓）
+# 采集时间: 2026-10-16 10:41:49 (npu1-27)
+
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL

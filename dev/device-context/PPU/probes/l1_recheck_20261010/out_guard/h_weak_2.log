@@ -1,0 +1,21 @@
+[命中] key=139827981244512 native 类型=Stream repr=<torch.cuda.Stream device=cuda:0 cuda_stream=0x563135ff76c0>
+       holder repr=<weakref at 0x7f2c3d14fdd0; to 'Stream' at 0x7f2c3d26d860>  w() 类型=Stream
+       该 key 在 register 记录里的登记类型：['ExternalStream']
+       register 全部记录（共 2 次）：[(139827981244512, 'ExternalStream'), (139827980258336, 'ExternalStream')]
+       note 记录（共 19 次）类型分布：{'Stream': 17, 'ExternalStream': 2}
+       owned 键=[139827981244512, 139827980258336]
+       ctx 键  =[139827981244512, 139827981605632, 139827981608544, 139827980258336]
+[L1] FAIL :: release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+
+[register 调用栈全量] 共 2 次
+  id=139827981244512 type=ExternalStream
+      File "/workspace/runtime-team/dev/device-context/prototype/runtime/__init__.py", line 116, in create_stream
+    native = b.create_stream(priority) | File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/base.py", line 586, in create_stream
+    native = self._create_stream_raw(int(priority)) | File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/ppu/backend.py", line 487, in _create_stream_raw
+    self._register_owned_stream(native, handle.value)
+  id=139827980258336 type=ExternalStream
+      File "/workspace/runtime-team/dev/device-context/prototype/runtime/__init__.py", line 116, in create_stream
+    native = b.create_stream(priority) | File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/base.py", line 586, in create_stream
+    native = self._create_stream_raw(int(priority)) | File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/ppu/backend.py", line 487, in _create_stream_raw
+    self._register_owned_stream(native, handle.value)
+timeout: the monitored command dumped core

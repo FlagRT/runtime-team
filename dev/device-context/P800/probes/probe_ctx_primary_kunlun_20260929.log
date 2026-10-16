@@ -1,0 +1,7 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+触碰设备前: rc=3 flags=57005 active=-1
+触碰设备后: rc=0 flags=0 active=1
+primary 已 active 时显式创建: rc=2 ctx=0x0
+只读后 torch 计算 = 512.0
+RESULT_JSON {"before_touch": {"rc": 3, "flags": 57005, "active": -1}, "before_touch_current": "0x0", "after_touch": {"rc": 0, "flags": 0, "active": 1}, "after_touch_current": "0x59a86ec74020", "explicit_create_rc": 2, "explicit_create_ctx": "0x0", "sum_after": 512.0}

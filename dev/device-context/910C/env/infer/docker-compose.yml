@@ -1,0 +1,72 @@
+# device-context 方向 · 910C 推理腿运行环境（规范见 dev/ENV-SPEC.md §3.2）
+#
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，
+# 由 dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【镜像】现行推理腿发布物 = 华为昇腾官方 quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+# （公开 registry、按 digest 锁定、🟢、不携带任何已知限制）。登记式镜像基线见
+# ../../../../images/ascend-infer-vllm/v1/image.baseline.yaml（ADR-0007）。
+# 本环境不挂载任何 repo：推理腿全部资产由官方镜像提供（mounted_repos: {}）。
+#
+# 【与 demo 的分工】demo（../../../../images/ascend-infer-vllm/v1/demo/）是镜像自带的
+# 推荐用法；本目录是**本方向**的运行环境，与它的差异只有两处：
+#   ① devices 收窄为参数化的一对 die（理由见下）；
+#   ② 容器名/项目名不同（避免与 demo 容器重名）。
+# 服务启动一律走组内唯一入口 serve_standard.sh（本目录只管容器生命周期，不起服务）。
+#
+# 【为什么不用 extends 复用 demo】同训练腿：demo 的 devices 映射全部 16 张 davinci，
+# 而 compose 的 extends 对 devices 这类序列只能并集、不能收缩；本方向在共享机
+# （npu1-27）上必须只挂自己真正要用的 die —— 映射全 16 张会与他人活跃容器相交，
+# 容器内 `dcmi model initialized failed, because the device is used`、
+# device_count=0（实测，见 ../README.md 与 ../../docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md §6）。
+# 因此本文件自包含，属性取自 demo 的实测配置（本镜像自带整套昇腾运行时，**不挂**宿主
+# /usr/local/Ascend/driver，与训练腿相反）。
+#
+# 【用法】（仓根执行；⚠️ 需要 docker compose v2 插件与 pyyaml，见 ../README.md「机制前置」）
+#   python3 dev/lib/baseline.py export dev/device-context/910C/env/infer
+#   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
+#   FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/infer --strict
+#   docker exec -it flagos-dc-infer-910c-dev bash
+#   # 容器内起服务（组内启动标准，唯一服务入口；unset VLLM_PLUGINS 由脚本执行）：
+#   DC_BACKEND=ascend MODEL=<模型路径，须给到 snapshots/<hash>> DEV=0 STOP_AFTER=1 \
+#     bash /workspace/dev/device-context/prototype/scripts/serve_standard.sh
+#   # 收尾：docker compose -f dev/device-context/910C/env/infer/docker-compose.yml down
+# 绕开 up.sh 直接 docker compose 时须自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagos-dc-infer
+
+x-flagrt:
+  image_baseline: ../../../../images/ascend-infer-vllm/v1/image.baseline.yaml
+  # 推理腿无挂载资产：仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  # serve_standard.sh 是按路径调用的脚本，不属「以可编辑方式挂载并生效的 repo」。
+  mounted_repos: {}
+
+services:
+  runtime-infer:
+    container_name: flagos-dc-infer-910c-dev
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # ⚠️ 只挂本次要用的 die（TP=1 用一张、TP=2 用两张）+ 三个管理设备；die 号来自
+    #    「逐 die 建容器试 INIT」的实测结果，不能凭 npu-smi 进程表推断。
+    devices:
+      - /dev/davinci${DC_DIE_A:?DC_DIE_A_unset}:/dev/davinci${DC_DIE_A}
+      - /dev/davinci${DC_DIE_B:?DC_DIE_B_unset}:/dev/davinci${DC_DIE_B}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    # 推理腿无规避配置：唯一硬纪律（unset VLLM_PLUGINS）由 serve_standard.sh 的 ascend
+    # 分支执行，不在容器层设（ENV-SPEC §6 退役清单：VLLM_FL_FLAGOS_BLACKLIST 已退役）。
+    environment:
+      - DO_NOT_TRACK=1
+    restart: "no"

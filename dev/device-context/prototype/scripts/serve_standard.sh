@@ -27,6 +27,14 @@
 #         · 推理形态**待实测**：寒武纪有厂商移植版 vLLM（Cambricon/vllm-mlu），
 #           但是否需要在社区 vLLM 之外额外装插件、--runner pooling 是否被支持，均未验证
 #           ⇒ 首次跑请保留本脚本日志，按实际报错回填本节
+#   PPU（平头哥，2026-10-14 新增，✅ 2026-10-14 真机首验）：
+#         · 形态判定 = **路径 B**：设备 API 走 torch.cuda 命名空间，vLLM 平台自识别
+#           NvmlCudaPlatform ⇒ 不需要任何厂商插件/平台环境变量
+#         · 选卡 CUDA_VISIBLE_DEVICES（同 kunlun）
+#         · 容器前置（已在 hliu553-dc-dev.run.sh 固化）：-e NCCL_SOCKET_IFNAME=bond0
+#           （镜像默认写死 eth0，而本机真网卡是 bond0 —— 多卡路径会静默失败；
+#           TP=1 单卡 embedding 不受影响）+ --add-host=ai-server:127.0.0.1
+#         · 镜像自带 vllm 0.19.0（flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130 基座）
 #
 # 【统一的服务参数口径】（两实例同口径，便于横向比对）
 #     --runner pooling --convert embed --max-model-len 4096 --port 8100
@@ -59,9 +67,12 @@
 #   # MLU590（寒武纪，容器内；首次建议 STOP_AFTER=1 起完即停）
 #   DC_BACKEND=cambricon DEV=0 STOP_AFTER=1 MODEL=/srv/hliu553/models/Qwen3-Embedding-0.6B \
 #     bash prototype/scripts/serve_standard.sh
+#   # PPU（平头哥，容器内；工作区挂载为 /bmcp_lvm_fs/hliu553 → /workspace）
+#   DC_BACKEND=ppu DEV=0 STOP_AFTER=1 \
+#     bash prototype/scripts/serve_standard.sh
 #
 # 【环境变量】
-#   DC_BACKEND      后端名（ascend | kunlun | cambricon），默认 ascend
+#   DC_BACKEND      后端名（ascend | kunlun | cambricon | ppu），默认 ascend
 #   SERVE_FORM      服务形态 `embed` | `generate`（留空=按后端默认：
 #                   ascend→generate 沿用 910C 既有口径，kunlun/cambricon→embed。
 #                   2026-09-22 补：验收模型统一为 Qwen3-Embedding-0.6B 后，
@@ -82,6 +93,13 @@
 #   READY_BUDGET    就绪等待上限秒数（180）
 #   HOST            绑定地址（127.0.0.1；跨容器/跨机访问需设 0.0.0.0）
 #   ERROR_TRANSLATION / MONITOR  集成层开关（默认 0；**当前仅 910C 可用**）
+#   SMOKE_TIMEOUT   冒烟**单次请求**的超时秒数（默认 180）。⚠️ 首次请求含编译开销，
+#                   2026-09-28 MLU590 实测首次 embedding 请求 **63.6 s** ⇒ 旧硬编码 60 s 会**误判失败**
+#   RELEASE_WAIT    停机后「用卡复查」的**释放回落等待上限**秒数（默认 30）。
+#                   ⚠️ 2026-09-29 910C TP=2 实测：kill 后设备内存回落**有延迟**，立即读数会把
+#                   「正在回落」读成「未释放」（dev0 即时 55.07 GiB、用卡前 61.12 GiB；约 1 min
+#                   后回基线，而宿主 `npu-smi info -t proc-mem` 全程 No process）⇒ 轮询到稳定再打印。
+#                   **该复查不参与 verdict**；RELEASE_WAIT=0 = 旧行为（立即取值）。
 #
 # 【verdict 口径】STOP_AFTER=1 时输出 `SERVE_STANDARD_PASS` 需 **ready=1 且 smoke=1**；
 #   任一不满足即 `SERVE_STANDARD_FAIL (ready=? smoke=?)`。
@@ -98,6 +116,8 @@ DEV=${DEV:-}
 DC_OUT_DIR=${DC_OUT_DIR:-/tmp/dc_serve}
 STOP_AFTER=${STOP_AFTER:-0}
 READY_BUDGET=${READY_BUDGET:-180}
+SMOKE_TIMEOUT=${SMOKE_TIMEOUT:-180}   # 单次冒烟请求超时；见头部说明（首请求编译开销）
+RELEASE_WAIT=${RELEASE_WAIT:-30}      # 停机后释放回落等待上限；见头部说明（不参与 verdict）
 ERROR_TRANSLATION=${ERROR_TRANSLATION:-0}
 MONITOR=${MONITOR:-0}
 HOST=${HOST:-127.0.0.1}
@@ -142,9 +162,15 @@ case "$BACKEND" in
     DEV_API=cuda
     ;;
   cambricon)
-    # ⚠️ 本分支 2026-09-22 按规范新写，**尚未真机验证**（寒武纪机器当时缺 docker 组权限）。
-    #    首次在 MLU 容器内跑时，请把实际报错回填到本分支与《寒武纪接入方案》。
-    MODEL=${MODEL:-/srv/hliu553/models/Qwen3-Embedding-0.6B}
+    # ⚠️ 本分支 2026-09-22 按规范新写；**2026-10-08 首次真机触发本默认值并回填**：
+    #    原默认 `/srv/hliu553/models/Qwen3-Embedding-0.6B` 是**宿主路径**，且宿主上也没有
+    #    这个目录；容器内 `/srv/hliu553` 又被挂成 `/work` ⇒ 该默认值**永不可用**。
+    #    报错形态误导：vLLM 抛
+    #      `OSError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/srv/…'`
+    #    —— 看着像"模型 id 格式不对"，实为"这个路径不存在"。
+    #    改取**容器内可见**的 HF 快照；⚠️ 必须给到 `snapshots/<hash>/`（给缓存根会
+    #    `Unrecognized model`）。
+    MODEL=${MODEL:-$(ls -d /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/*/ 2>/dev/null | head -1)}
     SERVED_NAME=${SERVED_NAME:-qwen3-embedding-0.6b}
     # 选卡：torch_mlu 认 MLU_VISIBLE_DEVICES（⚠️ 待容器内实测确认）
     [ -n "$DEV" ] && export MLU_VISIBLE_DEVICES="$DEV"
@@ -153,9 +179,40 @@ case "$BACKEND" in
     SKIP_EXTRA=0        # 本方向的验收模型是 embedding 模型 ⇒ 走 embedding 服务形态
     DEV_API=mlu         # 供 card_snapshot 的 torch 侧降级查询使用
     ;;
+  ppu)
+    # ⭐ 平头哥 PPU（2026-10-14 新增；**形态判定 = 路径 B**：设备 API 走 torch.cuda 命名空间，
+    #    vLLM 平台自识别为 NvmlCudaPlatform ⇒ **不需要任何厂商插件/平台环境变量**，
+    #    也不踩 910C 的坑 A5（VLLM_PLUGINS）与 P800 的 PYTHONPATH/FlagGems 硬前置）。
+    #    2026-10-10 真机实测：镜像自带 vllm 0.19.0（flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130 基座）。
+    MODEL=${MODEL:-/workspace/models/Qwen3-Embedding-0.6B}
+    SERVED_NAME=${SERVED_NAME:-qwen3-embedding-0.6b}
+    # 选卡：与 kunlun 同为 CUDA_VISIBLE_DEVICES（容器内 0 基索引）
+    [ -n "$DEV" ] && export CUDA_VISIBLE_DEVICES="$DEV"
+    # NCCL_SOCKET_IFNAME 由容器启动时带入（hliu553-dc-dev.run.sh 内 -e NCCL_SOCKET_IFNAME=bond0，
+    # 本机真网卡是 bond0、无 eth0 —— 写死 eth0 的镜像默认会让多卡路径静默失败）；
+    # TP=1 单卡 embedding 不走集合通信，此处不重复设置。
+    SKIP_EXTRA=0        # 验收模型是 embedding 模型 ⇒ 走 embedding 服务形态
+    DEV_API=cuda        # 供 card_snapshot 的 torch 侧降级查询使用（torch.cuda.mem_get_info）
+    ;;
   *)
-    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon）"; exit 2 ;;
+    echo "❌ 未知 DC_BACKEND=$BACKEND（支持 ascend | kunlun | cambricon | ppu）"; exit 2 ;;
 esac
+
+# ── 1a-bis) 前置条件显式化：模型路径必须真的可用（2026-10-08 补）─────────────
+#   为什么要加：默认 MODEL 一旦失效（写错/跨实例沿用/挂载不同），原先只会在 vLLM 侧
+#   抛出一串厂商 traceback —— 而这里的实证是它长得像"模型 id 格式错误"
+#   （`Repo id must be in the form 'repo_name'…`），**与真实原因无关**。
+#   ⚠️ 路径口径：本脚本在**容器内**执行 ⇒ MODEL 必须是**容器内**可见的路径。
+#      MLU590 实例：宿主 `/srv/data/hf_cache` → 容器 `/hf_cache`（宿主侧**没有** `/hf_cache`）。
+if [ -z "${MODEL:-}" ] || [ ! -f "$MODEL/config.json" ]; then
+  echo "❌ 模型路径不可用：MODEL='${MODEL:-<空>}'"
+  echo "   期望：**容器内**可见的模型目录（其下须有 config.json）"
+  echo "   910C : 宿主 /mnt/raid/hliu553 与容器同路径"
+  echo "   P800 : 宿主 /data2/hliu553 = 容器 /workspace；模型在 /hf_cache/…/snapshots/<hash>/"
+  echo "   MLU590: 宿主 /srv/hliu553 = 容器 /work；宿主 /srv/data/hf_cache = 容器 /hf_cache"
+  echo "   提示：HF 缓存必须给到 snapshots/<hash>/（给缓存根会 Unrecognized model）"
+  exit 4
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1b) 服务入口就绪（vllm 可执行文件）
@@ -243,6 +300,14 @@ PY
   fi
 }
 
+# 设备侧「空闲显存合计」(GiB) —— 供停机后的释放回落轮询使用。
+#   POSIX awk 求和（兼容容器内 mawk/gawk）；既无 smi 也无 torch 时输出**空串**，
+#   调用方据此退化为"立即取值"（等同旧行为）。
+card_free_gib() {
+  card_snapshot 2>/dev/null | tr ' ' '\n' | sed -n 's/^free=\([0-9.]*\)GiB$/\1/p' \
+    | awk '{s+=$1; n++} END{ if (n>0) printf "%.2f", s }'
+}
+
 echo "--- 用卡前 ---"; card_snapshot
 cleanup
 
@@ -300,14 +365,17 @@ SMOKE=0
 if [ "$READY" = "1" ]; then
   if [ "$SKIP_EXTRA" = "0" ]; then
     echo "--- 冒烟（embedding 形态）：/v1/embeddings ---"
-    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/embeddings" \
+    SMOKE_T0=$(date +%s)
+    OUT=$(curl -s -m "$SMOKE_TIMEOUT" -X POST "http://$HOST:$PORT/v1/embeddings" \
       -H 'Content-Type: application/json' \
       -d "{\"model\":\"$SERVED_NAME\",\"input\":[\"服务启动标准冒烟\"]}" 2>/dev/null) \
       && echo "$OUT" | python3 -c "import sys,json,math; d=json.load(sys.stdin); v=d['data'][0]['embedding']; print(f'  维度={len(v)} 范数={math.sqrt(sum(x*x for x in v)):.6f}')" 2>/dev/null \
       && SMOKE=1
+    echo "  （冒烟耗时 $(( $(date +%s) - SMOKE_T0 ))s；超时上限 SMOKE_TIMEOUT=${SMOKE_TIMEOUT}s）"
   else
     echo "--- 冒烟（生成形态）：/v1/completions ---"
-    OUT=$(curl -s -m 60 -X POST "http://$HOST:$PORT/v1/completions" \
+    SMOKE_T0=$(date +%s)
+    OUT=$(curl -s -m "$SMOKE_TIMEOUT" -X POST "http://$HOST:$PORT/v1/completions" \
       -H 'Content-Type: application/json' \
       -d "{\"model\":\"$SERVED_NAME\",\"prompt\":\"1+1=\",\"max_tokens\":8,\"temperature\":0}" 2>/dev/null) \
       && echo "$OUT" | python3 -c "
@@ -320,6 +388,7 @@ if not t or not n:
 print(f'  生成 {n} tokens，首段={t[:40]!r}')
 " 2>/dev/null \
       && SMOKE=1
+    echo "  （冒烟耗时 $(( $(date +%s) - SMOKE_T0 ))s；超时上限 SMOKE_TIMEOUT=${SMOKE_TIMEOUT}s）"
   fi
   [ "$SMOKE" = "1" ] || { echo "  ❌ 冒烟失败（服务已就绪但功能不通，见服务日志与上方响应）"; echo "  raw: $(echo "$OUT" | head -c 300)"; }
 else
@@ -333,7 +402,24 @@ if [ "$STOP_AFTER" = "1" ]; then
   echo
   echo "############ 验证模式：停机 ############"
   cleanup
-  echo "--- 用卡后复查（确认已释放）---"; card_snapshot
+  echo "--- 用卡后复查（确认已释放）---"
+  # ⚠️ 释放有延迟（2026-09-29 910C TP=2 实测）⇒ 轮询到空闲显存不再增长再打印，
+  #    否则会把"正在回落"读成"未释放"（假信号）。上限 RELEASE_WAIT 秒；不参与 verdict。
+  _f0=$(card_free_gib); _wt=0
+  while [ -n "$_f0" ] && [ "$_wt" -lt "$RELEASE_WAIT" ]; do
+    sleep 5; _wt=$((_wt + 5))
+    _f1=$(card_free_gib)
+    if awk -v a="$_f0" -v b="$_f1" 'BEGIN{ exit !((b - a) < 0.05) }'; then
+      _f0=$_f1; break
+    fi
+    _f0=$_f1
+  done
+  card_snapshot
+  echo "  （释放复查：等待 ${_wt}s 后取值；上限 RELEASE_WAIT=${RELEASE_WAIT}s）"
+  if [ -n "$_f0" ] && [ "$RELEASE_WAIT" -gt 0 ] && [ "$_wt" -ge "$RELEASE_WAIT" ]; then
+    echo "  ⚠️ 释放复查：${RELEASE_WAIT}s 内空闲显存仍在增长 —— 可能仍在回落，或确有残留"
+    echo "     交叉核对（宿主侧）：npu-smi info -t proc-mem / xpu-smi / cnmon 的进程视图"
+  fi
   # verdict 要求"就绪 + 冒烟"双通过（只看端口会掩盖"起来了但算不出"的情况）
   if [ "$READY" = "1" ] && [ "$SMOKE" = "1" ]; then
     echo "[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)"

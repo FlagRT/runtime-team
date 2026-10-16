@@ -1,0 +1,9 @@
+# 证据截选 —— A 臂 DDP 封装失败的原始报错（复现 issue 类别①症状）
+# 来源日志: npu1-27:/mnt/raid/hliu553/dc_p9_20261016/ddp_r1_A.out
+# 截取范围: 匹配 'DDP expects same model|ChildFailedError|DDP 封装失败' 的行（完整日志留在执行机器，不入仓）
+# 采集时间: 2026-10-16 10:41:49 (npu1-27)
+
+[rank0] DDP 封装失败: RuntimeError: DDP expects same model across all ranks, but Rank 0 has 4 params, while rank 0 has inconsistent 0 params.
+[rank1] DDP 封装失败: RuntimeError: DDP expects same model across all ranks, but Rank 1 has 4 params, while rank 0 has inconsistent 0 params.
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 

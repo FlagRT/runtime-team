@@ -35,6 +35,9 @@
 │   ├── docs/                        #   推理映射、P0–P3 阶段报告、Qwen3 TP 对照
 │   └── start_infer_container.sh
 ├── probes/                          # 910C 侧验证证据（跨后端脚本/标准脚本的原始日志）
+├── env/                             # 运行环境目录（dev/ENV-SPEC.md §3.2）：train/ 训练腿 · infer/ 推理腿
+│                                    #   docker-compose.yml + env.baseline.yaml + .env.example + README
+│                                    #   替代本方向原先已退役的 `-f ../compose.base.yml` 写法
 └── docs/                            # 910C 专属文档（见 §4）
 ```
 
@@ -42,17 +45,25 @@
 
 ## 3. 关键成果（实跑证据）
 
+> 下表**按时间倒序**（越上越新）；历史批次保留不删，标注为「历史批次」。
 | 项 | 结果 |
 |---|---|---|
-| ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿**：离线自检 **35/0** · 对称性 **5/0** · 冒烟 **52/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8** + 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（**4075.4 tok/s**）· 推理腿前向 **`INFER_LEG_PASS 14/14`** · 服务化 **`SERVE_STANDARD_PASS`** · 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0** ⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
-| 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** |
-| 昇腾后端（torch_npu，**两条腿统一**） | ✅ conformance **13/13 + 6/6**、推理腿自验证 **10/10**、smoke **52/0** |
-| 训练腿 2 卡分布式微调（Qwen3-Embedding-0.6B） | ✅ **现口径 = torch_npu + HCCL**：loss **15.4498 → 11.1479**（50 步）、**3954–4402 tok/s**、三类通信对照全对<br>⏹ torch_fl 线（历史）同模型同步数：**2212.9 tok/s**、loss 15.4497→11.1515 ⇒ 同口径下 torch_npu **+79~99%** |
-| 推理腿单卡 · 前向形态 | ✅ 向量区分度 **0.638**、66–79 句/s、无 NaN |
-| 推理腿单卡 · **服务化形态** | ✅ vLLM OpenAI 兼容服务 **10/10 SERVE_LEG_PASS**：维度 1024、区分度 0.4123、108 句/s（p50 27.4 ms）<br>✅ **统一脚本同形态验收（09-22）**：`SERVE_FORM=embed` + `Qwen3-Embedding-0.6B` ⇒ **`SERVE_STANDARD_PASS`**（35 s 就绪、维度 1024、范数 1.000000），与 P800 **同形态可比** |
-| **错误注入 → 恢复闭环** | ✅ 推理腿 **5 闭环 / 0 失败**（含真实流同步超时 → L3_EXECUTION → 重放）；训练腿（torch_npu）**5 闭环 / 0 跳过 / 0 失败**；⏹ torch_fl 线（历史）4 闭环 / 1 跳过（无有界同步，如实跳过） |
-| **统一启动脚本**（组内服务启动标准 v1.1，09-20） | ✅ **`SERVE_STANDARD_PASS (ready=1 smoke=1)`**：服务就绪 **30 s**；生成冒烟 **8 tokens**（`1+1=` → `'2 is a basic arithmetic fact, but'`）；用卡快照 `free=60.91GiB / total=61.27GiB`（停机前后一致）；宿主侧 8100 端口已释放。证据：`probes/L_serve_standard_910c_20260920.log` |
-| 组件打包 | ✅ Git tag `runtime-v0.1.0` + Release note（`../prototype/RELEASE_NOTES_v0.1.0.md`） |
+| ⭐ **D2 调度效果对照实验（10-08 · 第十三轮续补跑）· 最新** | `NOT_APPLICABLE`（**如预期**）· `instrument_valid=True`（工作量级 **13.651 ms** · 分辨力 **0.021%** · 正对照 **8/8 / +12.75 ms**）。本实例**区间可读** `(7,0)` 但**未声明 `control`** ⇒ 与 P800 的「单档」是**两种不同的不适用** | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L123–L150**（§4.5） |
+| ⭐ **台账 E1：职责审计扩到 78 项（10-08）** | `DUTY_RESPONSE_PASS` **73 / 0 / 5**（SKIP 均如实不具备）· 非空转 **34 抓到 / 5 不适用 / 0 未抓到** · 顺带修 2 处真缺陷（统一面缺 `context_set` / `stream_priority_range` 出口） | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92**（§二 · §三·补） |
+| ⭐ **台账 T1：跨后端基类改动后复跑（10-13）** | ✅ `DUTY_RESPONSE_PASS` **73 / 0 / 5** —— 与 10-08 基线（d2/e1）**逐项状态零差异**；**`L1` 流归属与释放 = `OK`**（本轮改动的直接守护用例）；契约不变式 **4/4**（i1 入口覆盖 **16/17**） | `../prototype/docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **§3 A1** · `probes/t1_duty_ascend_20261013.json` |
+| ⭐ **台账 T1-re：共享层再改后复跑（10-14）** | ✅ `DUTY_RESPONSE_PASS` **73 / 0 / 5** · **`L1`–`L4` 全 `OK`**（`L5` SKIP，与 10-13 一致）· 契约不变式 **4/4**（i1 16/17）· 离线自检 **92 / 0 / 2**；与 **10-13 基线逐项状态零差异**，唯一 `detail` 差异 = **B4 显存读数**（`used 157→156 MB`，环境量）⇒ 无回归 | `probes/t1_duty_ascend_20261014re.json` · `probes/t1_coninvariants_ascend_20261014re.log` · 驱动 `probes/run_t1re_910c_20261014_host.sh` · 选卡 `probes/pick_910c_die_20261014.sh` |
+| ⭐ **r10 第 10 轮复跑（10-08 · 台账 D4 收尾）** | **20 项全绿** · 离线 **90/0/1** · 冒烟 52/0 · conformance 13+6 · **两条腿 6/6 + 14/14** · 服务化 **4 形态全 PASS** · `MULTIPROC_REAL_RECOVER_PASS` | `docs/ASCEND_910C_R10_RERUN_20261008.md` **L10–L49**（§0）· 两个偏离项 **L89–L222** |
+| ⭐ **「不适用」自证审计（10-08）** | 结论**成立**，且根因**升级**：**不是设备限制** —— ACL 侧 `aclrtCreateStreamWithConfig(0/3/7)` 全部保留；是**插件 Python 绑定缺失**（C++ 已有 `getStreamFromExternal`） | `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L46–L62**（§2.1 逐条读数） |
+| 流优先级统一 API 落地（09-30 第九轮） | `STREAM_PRIORITY_API_PASS` **8/8**；本家**如实结论 = 只读**（范围 `(7,0)` 可读、**不声明设置**） | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L152–L169**（§4.3 六条证据） |
+| B2 收尾：流配额 + 优先级（09-30） | **真实配额上限 1979**（pyACL 建满 1979、第 1980 条 `rc=207005`）；优先级**在插件层丢参数**（C API 回读恒 0） | `../prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md` |
+| A1+A4：两条腿 + 服务化四形态（09-29 r6） | 训练腿 **6/6**（4513.2 tok/s）· 推理腿前向 **14/14** · 服务化 TP=1/2 × EAGER=1/0 **全 PASS**（TP=2 实测 `world_size=2`+`backend=hccl`） | `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` **L45–L142** |
+| A2：多卡多进程 `real` 恢复压测（09-29 第七轮） | `MULTIPROC_REAL_RECOVER_PASS`（3 rank × 30 轮 · **30 次真重建零失败**） | `docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` |
+| 公开入口：`set_device_state` / `handle_error`（09-29 第七轮续） | `ENTRY_VERIFY_PASS`（端到端 R1–R5）+ 能力键 `device_state_control` | `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md` |
+| 工作包 B/C：内存句柄 + 上下文生命周期（09-29） | 真机 **6/6**（`allocate/free` 句柄、`record_stream`、`.native` 审计隔离、上下文四件事） | `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md` **L24–L40 / L127–L167** |
+| 训练腿 / 推理腿 / 错误闭环（基本面） | 训练腿 **6/6**（loss 15.4498→11.1479）· 推理腿 **14/14**（区分度 0.6391）· 错误闭环 **5/0/0** | `docs/DC_STAGE_SUMMARY_20260909.md` · `docs/ERROR_RECOVERY_LOOP_20260909.md` |
+| 三芯片职责验收（09-22 傍晚 · 历史批次） | 10 项全绿（离线 35/0 · 冒烟 52/0 · conformance 13+6 · 两条腿 · 服务化 · 错误闭环） | `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
+| 统一运行时 API + Backend 注册表 | ✅ 真机 **37/37** | `../prototype/docs/RUNTIME_PROTOTYPE_DESIGN_20260904.md` |
+| 组件打包 | Release **`runtime-v0.2.0`**（三芯片统一原型版）；本实例首版 `runtime-v0.1.0` | `prototype/RELEASE_NOTES_v0.1.0.md` · `prototype/RELEASE_NOTES_v0.2.0.md` |
 
 > **两条腿都是基于统一原型跑通的**（经 `runtime.use(...)` 接入设备），
 > 脚本在 `../prototype/runtime/proto/`；**不是**把历史训推用原型重跑了一遍 ——
@@ -76,6 +87,17 @@
 | `ERROR_RECOVERY_LOOP_20260909.md` | 错误注入 → 恢复闭环验证记录（含一处归因核查被推翻的记录） |
 | `DIAG_TRAIN_IMAGE_NPU_20260908.md` | 训练腿锁定镜像 NPU 初始化失败排查记录 |
 | `OFFICIAL_RUNTIME_COUNTERPART_20260922.md` | **FlagOS 官方对应镜像对照**：`flagos-runtime-ascend-cann9.0.0-910c:2.2.0` 与我们锁定栈**逐项一致**（CANN 9.0 / pt3.11 / torch 2.10 / triton 3.5 / **flagtree 0.7.0rc2+ascend3.5**）；**设备后端为 `npu`（Route A）** —— 与**我们已经统一的口径一致**（2026-09-22 起训练腿已走 torch_npu，路线 B 的权宜例外已取消）⇒ 本候选与现网差异**只剩镜像血统**。**仅登记，未切换** |
+| ⭐ `docs/DUTY_RESPONSE_AUDIT_910C_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **39 OK / 0 FAIL / 0 SKIP**（三实例中唯一无 SKIP 者）；含本实例运行条件、逐项实测依据、复跑命令 |
+| `docs/ASCEND_910C_REGRESS_AFTER_FIX_20260929.md` | **两处层内修复后的全套回归**：10 项判定全绿 / 0 缺陷；含两处修复的定向验证、工作包 A 实验取数、未跑项如实登记、一键复跑命令 |
+| ⭐ `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md` | **公开入口补充记录**：`set_device_state` / `handle_error` / 能力键 `device_state_control` 的语义、只增性、4 条判据与**非空转验证**、端到端真机证据、第 7 轮回归 10 项、以及**未补的边界**（R5 在途登记入口 / 事件订阅未公开） |
+| ⭐ `docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` | **A2 收尾：多卡多进程 `real` 恢复压测**（当前原型）：3 rank × 30 轮、30 次真重建全绿；含压测设计（确定性整数 digest）、**3 处新缺陷的发现/修法/非空转验证**、破坏面回归 9 项、**免跑理由的当轮可验证形式**（腿=0 命中 / 服务=仅注释与 `MONITOR=1` 分支）、以及一条**未擅自改的接口面事实**（公开面无 ISOLATED 入口）· 一键复跑 |
+| ⭐ `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` | **A1+A4 收尾：两条腿与服务化四形态复跑**（当前原型）：训练腿 `6/6` · 推理腿 `14/14` · 服务化 TP=1/2 × EAGER=1/0 全 `SERVE_STANDARD_PASS`；含「为什么上一轮的免跑理由失效」的破坏面依据、TP 与图捕获的**生效证据**、1 处工具假信号的修复与**非空转验证**、一键复跑 |
+| ⚠️ `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md` | **宿主带卡容器名额规则判别实验与口径更正**（5 数据点）：独占单位 = 已 init 容器的**挂载设备集**；「同一时刻只留 1 个」「与挑哪张卡无关」两条旧口径均**不成立**；⚠️ **不迁移**（宿主专属） |
+| ⭐ [`env/README.md`](env/README.md) | **本实例的运行环境目录（新机制）**：训练腿 [`env/train/`](env/train/docker-compose.yml)（同镜像 + FlagCX `pip-editable` 挂载覆盖）· 推理腿 [`env/infer/`](env/infer/docker-compose.yml)；含**为什么不用 extends 复用 demo**（devices 是序列、extends 只并集不能收缩，而共享机上必须只挂自己要用的 die）、选卡口径、机制前置实测缺口（npu1-27 无 `docker compose` v2 与 `pyyaml`）与常用命令 |
+| ⭐ [`probes/dc_env_20261016_out/SUMMARY.md`](probes/dc_env_20261016_out/SUMMARY.md) | **910C 训练腿运行环境的实质验证（2026-10-16）**：A/B 对照（同一容器、同一命令，只换加载哪份 FlagCX）——挂载覆盖臂 `overall: PASS`（八组全 PASS + 原生 DDP 四项全 PASS）/ 镜像固化臂 `overall: FAIL`（图案同 issue）；含装置自证（两臂 sha256 前 16 位不同）、安装自证、**未跑 `up.sh --strict` 的原因**与本轮修掉的两处脚本自身缺陷 |
+| ⭐ [`probes/baseline_mechanism_20261016_out/SUMMARY.md`](probes/baseline_mechanism_20261016_out/SUMMARY.md) | **在 910C 上把总组「环境基线机制」真正跑一遍（2026-10-16）**：用户级补齐 compose v2.29.7（官方 sha256 校验）+ pyyaml 6.0.2（**未用 sudo**，npu1-11 无凭据取不到）⇒ `export --require-clean` 双腿 **rc=0**、`up.sh <env>` **rc=0** 起容器、**容器内同一单入口验收仍 `overall: PASS`**、`down` rc=0 无残留；⚠️ 当时**唯一未过**的是 **`up.sh --strict`**（跨机镜像 id 不同）——**当日晚些已解决并在 `--strict` 上通过**，见下一行；含 3 个自引入的坑（`down` 也要 `WORKSPACE_ROOT` / 同名残留容器挡住 compose / editable 产物不可字节复现） |
+| ⭐ [`probes/baseline_strict_20261016_out/SUMMARY.md`](probes/baseline_strict_20261016_out/SUMMARY.md) | **`up.sh --strict` 真机验收（2026-10-16 14:34，die 5+0）**：`up.sh <train> --strict` **rc=0**（容器 Created→Started→Up）· **容器内两项验收 `overall: PASS`/rc=0**（`flagcx_sync_test --iters 20` + 原生 DDP 双卡）· `down` rc=0、我方容器/残留 **0**；含 ⭐ **`image.id` 跨机的复现（`export` 抄回制造机 id ⇒ `check` FAIL）与对齐动作**（幂等工具 [`env/pin_local_image_id.sh`](env/pin_local_image_id.sh)：单字段 / 本机取值 / 回读校验 / 文件内注明两 id 与同源依据）· **三条「合规拿到同一制品」路径的实测全不通** · 推理腿为何**不需要**对齐 · 过程中自引入并修掉的 2 个缺陷（假 FAIL 判据 / 正则吃行尾注释） |
+| `docs/FLAGCX_C10D_COMPLETION_20261016.md` | **上游 issue `dev-1.0/dev/issues/flagcx-c10d-collectives` 的真机复现 + 我们分支修复验收**：镜像原版 `overall: FAIL` / 我们分支编译版 **八组全 PASS + 原生 DDP 双卡 PASS**（交替 A/B ×2 轮 + 加载自证 + 两套插件指纹）；⭐ 含「**该镜像的 FlagCX 主干 `4e0e0cb` = 我们分叉点 ⇒ 必然携带 P6/P9**」的事实链、构建前置三件事、以及**我方分支两处可编译性缺陷**（CUDA 头缺守卫 / DAG 链接项无条件） |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
@@ -83,7 +105,7 @@
 |---|---|
 | `DEVICE_CONTEXT_PLAN_20260827.md` | 设备执行上下文方案定稿（8 月版） |
 | `PROGRESS_20260822.md` | 8-22 阶段进度快照 |
-| `910C-env-issue-report.md` | 容器内 `aclInit` 返 500000 记录（**根因 = DrvMng 容器上限 3**，已解决）⚠️ 环境专属 |
+| `910C-env-issue-report.md` | 容器内 `aclInit` 返 500000 记录 —— ⚠️ 该文所记「**根因 = DrvMng 容器上限 3**」**已作废**（现行口径见 §5 与 `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md`）⚠️ 环境专属 |
 | `O3_getlasterror_fix.md` ｜ `O4_socket_seq_guard.md` | FlagCX O3/O4 缺陷修复设计与实现 |
 | `PR_DEV_1_0_20260902.md` | PR #11 合入 dev-1.0 记录（157 文件） |
 
@@ -94,23 +116,15 @@
 | `distributed_training/docs/` | 5 份：训练 × 设备上下文映射与验收评估、FlagCX 核心缺陷修复（死锁 P2 / 数据错乱 P6 / OOM P7）、net.cc chunk 竞态调研、A 线验证、4090 报告 |
 | `distributed_inference/docs/` | 5 份：推理 × 设备上下文映射与验收依据、实现方案、P0/P1 执行记录、P3 服务化 × 状态/错误恢复（A8–A10）、Qwen3-4B TP 数值等价性（⚠️ 须 greedy） |
 
-**证据（`probes/`）**
+**证据（`probes/`）** —— 全量清单（数十组、上百份原始日志与 JSON）已移入
+[`docs/EVIDENCE_INDEX_910C.md`](docs/EVIDENCE_INDEX_910C.md)；本看板只留入口：
 
-| 证据 | 内容 |
+| 用途 | 证据入口 |
 |---|---|
-| `recheck_conformance_13_ascend_20260922.json` | 一致性判据 13 例（含 `backend`） |
-| `recheck_conformance_infer6_ascend_20260922.json` | 一致性判据 推理 6 例 |
-| `recheck_stream_semantics_ascend_20260922.json` | 执行语义基线 8/8（后端无关 V2 探针**首跑 ascend**） |
-| `recheck_error_loop_ascend_20260922.json` | 错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
-| `recheck_infer_leg_ascend_20260922.json` | 推理腿前向 **14/14**（含 `backend` + `env` + p50/p90） |
-| `recheck_train_leg_ascend_20260922_rank{0,1}.json` | 训练腿 2 卡 **6/6** —— ⚠️ 该次 `backend=flagos`（torch_fl），**属切换前的旧口径证据**（loss 15.4497→11.1515、**2212.9 tok/s**） |
-| `train_npu_20260922.log` | ⭐ **切换后**训练腿（**torch_npu + HCCL**）：`TRAIN_LEG_PASS 6/6`、loss **15.4498→11.1479**、**4402.3 tok/s** |
-| `unified_verify_20260922.log` | ⭐ **统一口径完整复核**：离线自检 35/0 · smoke **52/0** · conformance **13/13 + 6/6** · 训练腿 **6/6**（3954.0 tok/s） · 错误闭环 **5/0/0** · `--all` 5/0 |
-| `ev_matrix_20260922.log` / `ev_matrix2_20260922.log` | torch_fl `Event.query()` 语义缺口实测矩阵（审计台账第 13 条的证据） |
-| `L_serve_standard_910c_20260920.log` | 《组内服务启动标准》脚本真机验证日志（`SERVE_STANDARD_PASS ready=1 smoke=1`） |
-| ⭐ `accept_*_20260922.{log,json}`（15 份） | **三芯片职责验收全套证据**（09-22 傍晚）：离线自检 · 对称性 · 冒烟 · conformance 13/13 与推理 6/6 · 三个多流探针 · 训练腿（`accept_train_npu_20260922/`，含两 rank JSON）· 推理腿前向 · 服务化 · 错误闭环；另有 `accept_probe_results_910c_20260922/`（探针原始 JSON） |
-
-> 证据命名规范（批次 / 条件 / 日期）与「当前结论 = 哪一份」见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5。
+| 当前结论 = 哪一份 | `probes/r10_*_20261008*` · `probes/e1_regress_910c_npu_20261008_out/` · `probes/d2_20261008_out/` · `probes/audit_20261008_out/` |
+| 两条腿 / 服务化 / 压测 | `probes/legs_*_20260929*` · `probes/serve_standard_*_r1_*` · `probes/a2_*_20260929*` |
+| 回归批次 | `probes/r8_/r9_/r10_*` · `probes/regress_*_r{2,3,4,5}.*` · `probes/recheck_*_20260922.json` |
+| 口径与命名规范 | `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5 |
 
 **分支看板**
 
@@ -120,15 +134,25 @@
 
 ## 5. 环境要点（910C 专属，不迁移）
 
-- **带卡容器并发上限 3**（`dev/stack.lock.910c.v2.yaml` 置顶规则）：超限后 `acl.init()` 返 **500000**，
-  表现为 `device_count=0`；出现该现象**先查并发容器数**，不要先怀疑镜像/驱动/代码。
-- ⚠️ **另一条独立的约束：训练容器与推理容器不能同时持卡**（2026-09-22 验收实测）。
-  二者都挂**全部 16 个 davinci 设备**，同时 Up 时后起的一方报
-  `Failed to obtain the console log level` + `Different containers share the same device` ⇒
-  `terminate called after throwing an instance of 'std::logic_error'` → `Engine core initialization failed`。
-  **这与"并发上限 3"是两件事**（本轮仅 2 个带卡容器、名额没超）⇒ **两条腿串行**：先 `docker stop` 一方释放设备。
+- ⚠️ **带卡容器名额（2026-09-29 口径更正）**：宿主的独占单位是「**已初始化 ACL 的容器的挂载设备集**」——
+  某容器一旦真正 `acl.init` 成功，就**把它挂载的全部设备整组独占**；其他容器只要与之**挂载集有交集**，
+  `acl.init()` 即失败。**空闲（`Up` 但未 init）的带卡容器不占名额**（实测 5 个 Up 带卡容器并存无碍）。
+  ⇒ **可操作做法：起容器时不要挂全 16 张**（全量挂载几乎必然与任何活跃者相交 ⇒ 必失败），
+  **只挂自己真正要用的空闲卡**，即可与既有活跃容器并存，**不必再停用他人容器**。
+  真机症状：`acl.init()` 返 **500000**、`get_device_count()` 返 **(0, 507899)**、stderr 首条
+  `Failed to obtain the console log level` + `Different containers share the same device`（vLLM 侧表现为
+  `Engine core initialization failed`）；**而 `npu-smi info` 仍报 `Health: OK`** ⇒ **芯片健康 ≠ 名额有空**。
+  处置：**先查自己的挂载集与活跃容器挂载集是否相交**，不要先怀疑镜像/驱动/代码，
+  **也不要在代码里加重试**（宿主占用约束，重试无用）。
+  ⚠️ **历史口径两次更正**：① `dev/stack.lock.910c.v2.yaml` 与早期文档记的「DrvMng 名额 **≈3**」**到不了 3**；
+  ② 09-28 由「起临时容器只挂 `davinci0` 仍失败」推出的「**与挑哪张卡 / 卡是否重叠无关**」**不成立** ——
+  `davinci0` 正是 `evalx-910c` 的挂载设备，那次失败可由"与某活跃容器挂载集相交"解释；
+  09-29 同宿主同刻实测：挂 `davinci7` **成功**（`acl.init rc=0`）、挂 `davinci1` / `davinci2` **均失败**
+  ⇒ **选卡（挂载集是否相交）就是决定因素**。完整实验（5 个数据点）见 `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md`。
+  两条腿**仍须串行**（训练容器与推理容器都挂全部 16 个 `davinci`，互斥必然）。
   另：**训练容器自带 `vllm` 入口但缺包**（`command -v vllm` 有、`import vllm` 报 `ModuleNotFoundError`）
-  ⇒ 服务化**必须用推理容器** `flagos-infer-910c`；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
+  ⇒ 服务化**必须用推理容器**（`flagos-infer-910c`，或**镜像相同、只挂要用的卡**的等价精简容器
+  `dc-lean-infer-910c-20260929` —— 本轮即用它只挂 `davinci1,2`，避免与任何活跃容器挂载集相交）；`serve_standard.sh` 的"找不到 vllm 就激活 conda"兜底对 910C 不适用。
 - **训练镜像** `flagrt/ascend-operator-runtime-comm:0.1.3`（**镜像未变**）
   ⇒ **2026-09-22 起训练腿改走 `npu`（torch_npu）**：用容器内**带 torch_npu 的解释器**
   `/mnt/raid/hliu553/venvs/venv-infer-a/bin/python`（该解释器**无 torch_fl** ⇒ **物理隔离**，

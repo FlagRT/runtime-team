@@ -35,13 +35,30 @@ HOST = os.environ.get("SERVE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("SERVE_PORT", "8100"))
 BASE = f"http://{HOST}:{PORT}"
 
+#: 单条请求的**观测窗口**（秒）。**默认值 120 保持不变**（口径只增不改）。
+#:
+#: ⚠️ 为什么加这个开关（2026-10-14 MLU590 T7 实测）：
+#:   本消费方的 `http_post` 长期硬编码 `timeout=120`，而 embedding 服务的**首条请求含编译开销**，
+#:   该开销随形态（TP / 是否 eager）显著变化 —— 同日实测：
+#:     · `TP=1 + eager` 形态：首条请求 **85269 ms（≈85 s）**，刚好压在 120 s 以内；
+#:     · `TP=2` 且关 eager 形态：同一条判据在**第 2 个 embedding 请求**上直接
+#:       `TimeoutError: timed out`（服务侧 `/v1/models` 已是 200、同形态冒烟在
+#:       `SMOKE_TIMEOUT=600` 下 PASS）⇒ 属**客户端观测窗口不足**，不是服务判据失败。
+#:   这与 `scripts/serve_standard.sh` 里已固化的同类教训**同族**（该脚本 2026-09-28 实测
+#:   「MLU590 首次 embedding 请求 63.6 s，旧硬编码 60 s 会**误判失败**」）—— 只是这次落在**客户端**侧。
+#:
+#: ⚠️ 定性边界：**请求超时是观测窗口，不是判据本身**（改它不会让任何"设备/服务能力"判据变绿）；
+#:   默认值不变 ⇒ 既有证据口径不动；需要跨过冷启动时应**显式**设 `SERVE_REQ_TIMEOUT=<秒>` 并在证据里注明。
+REQ_TIMEOUT = int(os.environ.get("SERVE_REQ_TIMEOUT", "120"))
+
 
 def http_get(path, timeout=10):
     with urllib.request.urlopen(BASE + path, timeout=timeout) as r:
         return r.status, json.loads(r.read().decode())
 
 
-def http_post(path, payload, timeout=120):
+def http_post(path, payload, timeout=None):
+    timeout = REQ_TIMEOUT if timeout is None else timeout
     req = urllib.request.Request(
         BASE + path, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json"}, method="POST")
@@ -65,7 +82,10 @@ def cosine(a, b):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--backend", default="ascend")
+    # 2026-10-08：与原写死的 "ascend" 改为读 DC_BACKEND（与其余 proto 脚本 / 全部探针同约定）
+    # —— 否则在非昇腾实例上直接跑会选错后端，且报错是 `No module named 'torch_npu'`
+    #    （看着像环境缺包，实为选错后端；同类误导性报错见 demo_unified.py 同日修正）。
+    ap.add_argument("--backend", default=os.environ.get("DC_BACKEND", "ascend"))
     ap.add_argument("--rounds", type=int, default=5)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()

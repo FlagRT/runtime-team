@@ -1,0 +1,35 @@
+########## [0] 跑的是当前版本吗（版本自证）##########
+类型复核 tname 命中（期望 4）  = 4
+审计项数 @item（期望 78）      = 78
+registry 后端表                = _KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon", "ppu"
+契约不变式入口                 = runtime/conformance/contract_invariants.py
+存在
+@ npu1-27 2026-10-13 00:55:15  ASCEND_RT_VISIBLE_DEVICES=0（容器内 0 基）
+
+########## [1] 设备可见性 ##########
+  torch     = 2.11.0+cu130
+  torch_npu = 2.11.0
+  npu_count = 1
+  dev0      = Ascend910_9382
+
+########## [2] 契约不变式 I1–I4（真机）##########
+[00:55:20] start
+rc=0
+    [PASS   ] i1_honest_declaration        ④ 入口存在性覆盖 16/17 项能力
+    [PASS   ] i2_no_fabrication            陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+    [PASS   ] i3_invalidated_governed      A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → R
+    [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 
+  === 汇总: 4/4 通过 ===
+  结论: CONTRACT_INVARIANTS_PASS
+[00:55:30] end
+
+########## [3] 职责响应审计 78 项（主判据）##########
+[00:55:30] start
+rc=0
+[00:56:29] end
+
+########## [4] 汇总 ##########
+  duty     : ok=73 fail=0 skip=5 total=78 verdict=DUTY_RESPONSE_PASS
+  L1 行    : [('L1', 'OK'), ('L2', 'OK'), ('L3', 'OK'), ('L4', 'OK'), ('L5', 'SKIP')]
+  coninv   : passed=4/4 verdict=CONTRACT_INVARIANTS_PASS
+T1_910C_DONE

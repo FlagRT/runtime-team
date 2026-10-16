@@ -1,0 +1,18 @@
+# 证据截选 —— ⭐ 复现：baseline.py export 把 image.id 抄回**制造机** id ⇒ check FAIL（机制行为，非配置错）
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/strict/log/strict_run_run2.log
+# 采集时间: 2026-10-16 14:39:46 (npu1-27)
+
+############ 2. 复现：export 会把 image.id 抄回制造机 id ############
+----- export dev/device-context/910C/env/train --require-clean -----
+[OK] 运行环境基线已生成 -> dev/device-context/910C/env/train/env.baseline.yaml
+  export rc=0
+  export 后 env 基线里的 image.id =   id: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+----- check（期望 FAIL：与制造机 id 比对）-----
+[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15 本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913 (ref=flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64)
+[PASS] FlagCX: commit=b576fa6ad977
+[INFO] FlagCX: 覆盖镜像内固化版本 4e0e0cbcbf72，生效方式 pip-editable
+[INFO] baked: 固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）
+check 结果 -> dev/device-context/910C/env/train/.last-check.json
+  rc=1（1=不一致，符合预期）
+
+############ 3. 对齐：把 image.id 对齐到本机 id ############
