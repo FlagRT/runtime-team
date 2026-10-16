@@ -35,6 +35,9 @@
 │   ├── docs/                        #   推理映射、P0–P3 阶段报告、Qwen3 TP 对照
 │   └── start_infer_container.sh
 ├── probes/                          # 910C 侧验证证据（跨后端脚本/标准脚本的原始日志）
+├── env/                             # 运行环境目录（dev/ENV-SPEC.md §3.2）：train/ 训练腿 · infer/ 推理腿
+│                                    #   docker-compose.yml + env.baseline.yaml + .env.example + README
+│                                    #   替代本方向原先已退役的 `-f ../compose.base.yml` 写法
 └── docs/                            # 910C 专属文档（见 §4）
 ```
 
@@ -90,7 +93,9 @@
 | ⭐ `docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` | **A2 收尾：多卡多进程 `real` 恢复压测**（当前原型）：3 rank × 30 轮、30 次真重建全绿；含压测设计（确定性整数 digest）、**3 处新缺陷的发现/修法/非空转验证**、破坏面回归 9 项、**免跑理由的当轮可验证形式**（腿=0 命中 / 服务=仅注释与 `MONITOR=1` 分支）、以及一条**未擅自改的接口面事实**（公开面无 ISOLATED 入口）· 一键复跑 |
 | ⭐ `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` | **A1+A4 收尾：两条腿与服务化四形态复跑**（当前原型）：训练腿 `6/6` · 推理腿 `14/14` · 服务化 TP=1/2 × EAGER=1/0 全 `SERVE_STANDARD_PASS`；含「为什么上一轮的免跑理由失效」的破坏面依据、TP 与图捕获的**生效证据**、1 处工具假信号的修复与**非空转验证**、一键复跑 |
 | ⚠️ `docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md` | **宿主带卡容器名额规则判别实验与口径更正**（5 数据点）：独占单位 = 已 init 容器的**挂载设备集**；「同一时刻只留 1 个」「与挑哪张卡无关」两条旧口径均**不成立**；⚠️ **不迁移**（宿主专属） |
-| ⭐ `docs/FLAGCX_C10D_COMPLETION_20261016.md` | **上游 issue `dev-1.0/dev/issues/flagcx-c10d-collectives` 的真机复现 + 我们分支修复验收**：镜像原版 `overall: FAIL` / 我们分支编译版 **八组全 PASS + 原生 DDP 双卡 PASS**（交替 A/B ×2 轮 + 加载自证 + 两套插件指纹）；⭐ 含「**该镜像的 FlagCX 主干 `4e0e0cb` = 我们分叉点 ⇒ 必然携带 P6/P9**」的事实链、构建前置三件事、以及**我方分支两处可编译性缺陷**（CUDA 头缺守卫 / DAG 链接项无条件） |
+| ⭐ [`env/README.md`](env/README.md) | **本实例的运行环境目录（新机制）**：训练腿 [`env/train/`](env/train/docker-compose.yml)（同镜像 + FlagCX `pip-editable` 挂载覆盖）· 推理腿 [`env/infer/`](env/infer/docker-compose.yml)；含**为什么不用 extends 复用 demo**（devices 是序列、extends 只并集不能收缩，而共享机上必须只挂自己要用的 die）、选卡口径、机制前置实测缺口（npu1-27 无 `docker compose` v2 与 `pyyaml`）与常用命令 |
+| ⭐ [`probes/dc_env_20261016_out/SUMMARY.md`](probes/dc_env_20261016_out/SUMMARY.md) | **910C 训练腿运行环境的实质验证（2026-10-16）**：A/B 对照（同一容器、同一命令，只换加载哪份 FlagCX）——挂载覆盖臂 `overall: PASS`（八组全 PASS + 原生 DDP 四项全 PASS）/ 镜像固化臂 `overall: FAIL`（图案同 issue）；含装置自证（两臂 sha256 前 16 位不同）、安装自证、**未跑 `up.sh --strict` 的原因**与本轮修掉的两处脚本自身缺陷 |
+| `docs/FLAGCX_C10D_COMPLETION_20261016.md` | **上游 issue `dev-1.0/dev/issues/flagcx-c10d-collectives` 的真机复现 + 我们分支修复验收**：镜像原版 `overall: FAIL` / 我们分支编译版 **八组全 PASS + 原生 DDP 双卡 PASS**（交替 A/B ×2 轮 + 加载自证 + 两套插件指纹）；⭐ 含「**该镜像的 FlagCX 主干 `4e0e0cb` = 我们分叉点 ⇒ 必然携带 P6/P9**」的事实链、构建前置三件事、以及**我方分支两处可编译性缺陷**（CUDA 头缺守卫 / DAG 链接项无条件） |
 
 **8 月早期工作（FlagCX 补丁与准备）**
 
