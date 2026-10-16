@@ -137,29 +137,59 @@
 | 910C conformance / 多流 / 训推两条腿 / 职责审计的脚本与判据 | 各自 run-env 目录下的调用入口 + `<chip>/probes/` 证据 | ✅ 已到位（判据入口见 [`../910C/README.md`](../910C/README.md)、[`../prototype/docs/`](../prototype/docs/)） |
 | **FlagCX c10d 完成语义 + 异构修复**（镜像固化的 `4e0e0cb` 不含） | **下放**：`910C/env/train/docker-compose.yml` 的 `x-flagrt.mounted_repos.FlagCX`（`pip-editable`） | ✅ 本轮完成（源码分支已推送、真机 A/B 已验证） |
 | 缺陷 case（两类缺陷 + 修复验收判据 + 原生 DDP 脚本） | `dev/issues/flagcx-c10d-collectives/`（三段式 + 四条硬规则 + 三态口径） | ✅ 本轮更新（内容与证据由本方向提供，发布归总组） |
-| 910C 训练腿 / 推理腿的**运行环境目录** | `910C/env/train/` 与 `910C/env/infer/` | 🔶 compose + `.env.example` + README 已就位并经 `docker compose config` 校验；**`env.baseline.yaml` 待生成**（前置缺失，见 §5） |
+| 910C 训练腿 / 推理腿的**运行环境目录** | `910C/env/train/` 与 `910C/env/infer/` | ✅ 完整就位：compose + `.env.example` + README + **两份 `env.baseline.yaml`（`export --require-clean` 生成，rc=0）**；`up.sh` 起容器 rc=0、容器内两项验收 PASS（见 §6.1） |
 | 原 `dev/device-context/README.md` 里的 `-f ../compose.base.yml` 写法 | 退役写法 | ✅ 本轮删除（改指运行环境目录） |
 
-## 5. 本轮实测发现的前置缺口（阻塞机制侧验证）
+## 5. 机制前置：先缺后补（**已解决**，2026-10-16 当日）
 
-**npu1-27 跑不了 `baseline.py` 与 `up.sh`**（2026-10-16 实测）：
+`baseline.py` 与 `up.sh` 需要两项宿主能力，npu1-27 **原本都不满足**；当日按**用户级**方式补齐
+（`sudo -n true` 实测报 `sudo: a password is required`，非交互 sudo 不可用，故未走 sudo）：
 
-| 依赖 | 用途 | npu1-27 实测 |
-|---|---|---|
-| `docker compose` v2 插件 | `baseline.py` 用 `docker compose config --format json` 解析真实 bind 挂载；`up.sh` 用它起容器 | ❌ `docker 20.10.8`；`docker compose` 不是 docker 子命令；`/usr/libexec/docker/cli-plugins/` 只有 `docker-app`/`docker-buildx`；`~/.docker/cli-plugins/` 存在但为空 |
-| `pyyaml` | `baseline.py` 顶部 `import yaml` | ❌ `/usr/bin/python3`(3.9.9) 报 `No module named 'yaml'`；另一解释器 `/usr/local/python3.7.5` 缺 `libpython3.7m.so.1.0` 起不来 |
-| 外网（装上面两个） | 用户级安装所需 | ❌ 代理 `http://127.0.0.1:7890` 连接被拒；`pypi`/`github` 均 `000` |
+| 依赖 | 原本状态（实测） | 补齐方式 | 版本 |
+|---|---|---|---|
+| `docker compose` v2 插件 | `docker 20.10.8`；`/usr/libexec/docker/cli-plugins/` 只有 `docker-app`/`docker-buildx`；`~/.docker/cli-plugins/` 空 | 官方 Release 静态二进制 → `~/.docker/cli-plugins/docker-compose`（`install -m 0755`） | **v2.29.7**（与总组在 npu1-11 上验证的 Compose 同版本） |
+| `pyyaml` | `/usr/bin/python3`(3.9.9) 报 `No module named 'yaml'`；另一解释器 `/usr/local/python3.7.5` 缺 `libpython3.7m.so.1.0` 起不来 | `pip install --user` 一份 aarch64 manylinux wheel（cp39） | 6.0.2 |
 
-对照：**P800 具备**（`docker 29.1.3` + `Compose v2.40.3` + `pyyaml 6.0.1`），
-总组的 demo 是在 **npu1-11**（`Compose v2.29.7`）上验证的。
+下载件已对官方 `.sha256` 逐字校验：`6e9fbd5daa20dca5d7d89145081ae8155d68ef2928b497d9f85b54fe0f9dbb2c`。
+复现步骤写在 [`../910C/env/README.md`](../910C/env/README.md) §2。
 
-⇒ 本轮因此**没有**在 910C 上产出 `env.baseline.yaml`、**没有**跑 `up.sh --strict`；
-改用与 compose 逐项等价的 `docker run` 复刻其参数做**实质验证**（结果见
-[`../910C/probes/dc_env_20261016_out/SUMMARY.md`](../910C/probes/dc_env_20261016_out/SUMMARY.md)）。
-两条路可选：① 给 npu1-27 补用户级前置（`~/.docker/cli-plugins/docker-compose` 的 aarch64
-二进制 + 私有目录的 pyyaml，**不需 root、不改驱动**，待用户确认）；② 机制侧验证放到具备前置的机器上跑。
+> ⚠️ **npu1-11 拷不过来**：它是 `10.120.72.11`（在 27 的 `/etc/hosts` 里、ping 通、22 开），
+> 但 `hliu553@10.120.72.11` 与本地三把私钥（`id_kistich`/`id_rsa`/`id_ed25519`）一律
+> `Permission denied (publickey,password)`；从 27 直连同样被拒 ⇒ 走"**同版本官方件**"补齐
+> （等价做法，且版本号与 11 上验证过的一致）。
 
-## 6. 本轮实质验证结果（A/B 对照，npu1-27，die 5 + die 0）
+**结果**：`export` 双腿 **rc=0**、`up.sh <env>` **rc=0** 起容器、容器内两项验收 **`overall: PASS`**
+（见 §6 与 [`../910C/probes/baseline_mechanism_20261016_out/SUMMARY.md`](../910C/probes/baseline_mechanism_20261016_out/SUMMARY.md)）。
+**唯一未通过的是 `--strict`** —— 原因不在本方向，见 §5.1。
+
+### 5.1 ⚠️ `up.sh --strict` 在非制造机上**必然拒绝启动**（跨机镜像 id）
+
+```
+[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+                         本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+```
+
+`env.baseline.yaml` 的 `image.id` 抄录自镜像基线，而镜像基线记的是**制造机 npu1-11** 的 id。
+[`image_list.md`](../../images/image_list.md) 早已登记"跨机 image id 不同属预期（内容同源）"，
+但**它的后果此前没写下来**：`check` 在非制造机上恒 `FAIL` ⇒ `--strict` 恒拒绝启动。
+本轮处置：本机的结论性运行改用 `up.sh`（spec 明文"默认只报告、不阻止启动"）并**在证据中注明未满足 `--strict`**；
+其余各项照常核对（`[PASS] FlagCX: commit=b576fa6a…` 逐字通过）。正解属镜像/机制侧，见 §7.2 第 10 项。
+
+## 6. 本轮实测结果
+
+### 6.1 机制路径（`baseline.py` + `up.sh`，2026-10-16 12:00 npu1-27）
+
+| 步骤 | 结果 |
+|---|---|
+| `export <env> --require-clean`（训练腿 / 推理腿） | **rc=0**，生成两份 `env.baseline.yaml` |
+| `show` | 挂载覆盖关系清楚：`FlagCX b576fa6ad977 pip-editable 否 是 <- 4e0e0cbcbf72 /workspace/FlagCX` |
+| `check` | **rc=1**，唯一 `FAIL` = 跨机镜像 id（§5.1）；`[PASS] FlagCX: commit=b576fa6ad977` |
+| `up.sh <env> --strict` | rc=1，**因上述 `FAIL` 拒绝启动**（预期，见 §5.1） |
+| `up.sh <env>`（不加 `--strict`） | **rc=0**，容器 `flagos-dc-train-910c-dev` Created→Started |
+| `up.sh` 起的容器内两项验收（单入口） | **`overall: PASS` / rc=0**（八组 + 原生 DDP 四项全 PASS） |
+| `docker compose down` | **rc=0**，容器 Removed，我方运行中容器 0、残留进程 0 |
+
+### 6.2 挂载覆盖的 A/B 对照（同一容器、同一命令，只换加载哪份 FlagCX）
 
 同一容器、同一条命令（`run_910c_p9_acceptance.sh`，两项一起、三态自判定），只换加载哪份 FlagCX：
 
@@ -186,10 +216,10 @@
 
 | # | 项 | 出口标准 |
 |---|---|---|
-| 1 | `env.baseline.yaml` 尚未生成 | 在具备前置的机器（或补齐 npu1-27）执行 `python3 dev/lib/baseline.py export dev/device-context/910C/env/train --require-clean`，两份基线 `check` rc=0 |
-| 2 | ⚠️ npu1-27 的用户级前置（compose v2 + pyyaml） | 待裁定：装（不需 root、不改驱动、可回退）或改为在具备前置的机器上做机制侧验证 |
+| 1 | ~~`env.baseline.yaml` 尚未生成~~（**已完成 2026-10-16**） | 已在 npu1-27 上 `export --require-clean` 双腿 rc=0（前置补齐后）；两份基线已入仓 |
+| 2 | ~~npu1-27 的机制前置（compose v2 + pyyaml）~~（**已完成 2026-10-16**） | 用户级补齐：compose **v2.29.7**（官方 sha256 校验通过）+ pyyaml 6.0.2；未用 sudo。⚠️ 属**本机状态、不入仓**，换机器/账号要按 [`../910C/env/README.md`](../910C/env/README.md) §2 重做 |
 | 3 | P800 / MLU590 / PPU 三芯片的 run-env 目录未建 | 各一份 `env/`，`docker compose config` 通过 + `export/check` rc=0 |
-| 4 | 910C 推理腿 env（`910C/env/infer/`）尚未经真机起容器验证 | `up.sh --strict` 起容器 + `serve_standard.sh` 起服务得 `SERVE_STANDARD_PASS` |
+| 4 | 910C 推理腿 env（`910C/env/infer/`）尚未经真机起容器验证 | `up.sh` 起容器（本机 `--strict` 见 §5.1）+ 容器内 `serve_standard.sh` 得 `SERVE_STANDARD_PASS` |
 | 5 | 把「逐 die 选卡 → 写 `.env`」做成一条命令 | 一个脚本产出 `DC_DIE_A/DC_DIE_B`（现在要人工从探测输出里抄） |
 | 6 | 本方向原型代码是否需要自己的 package/固化形式 | 先判：镜像内是否需要它（当前不需要，按路径调用即可）；若某阶段需要，走「晋升」写进镜像配方 |
 
@@ -199,21 +229,22 @@
 |---|---|---|
 | 7 | **FlagCX 修复的晋升** | 本方向已在 `FlagRT/FlagCX` 的 `kistich/ascend-flagcx-adapt` 上给出干净、已推送的修复（`b576fa6a`，相对镜像 pin 的 `4e0e0cb` 领先 17 个提交）与两项验收证据。**镜像接收修复**（新版本 `v4/` 或给 v3 打补丁版）后才可动 `repro_status`。在收到之前，**本方向不得单方面声称 A-2 已解除** |
 | 8 | FlagCX 两处**可编译性**缺陷是否随修复上游 | ① `plugin/torch/flagcx/src/backend_flagcx.cpp` 无条件 `#include <ATen/cuda/CUDAContext.h>`（由本方向 NVIDIA 线提交引入，纯昇腾栈编译失败）；② `makefiles/ascend.mk` 无条件链接 DAG 专用 `-lcust_opapi`（镜像无 `custom_opp` ⇒ 链接失败）。两处已在本方向分支修好，建议随修复一起上游 |
+| 10 | ⭐ **`image.id` 的跨机口径**（本轮新暴露） | `env.baseline.yaml` 的 `image.id` 抄录自镜像基线（= 制造机 npu1-11 的 id）⇒ **除制造机外 `check` 恒 FAIL、`up.sh --strict` 恒拒绝启动**（`image_list.md` 只登记了「跨机 id 不同」，未写这条后果）。可选处置：① 基线允许记多个等价 id；② 分发统一走 `docker load` 离线包（content-derived id，跨机一致）；③ 明确「`--strict` 只在制造机可满足」并给出别机的等价判据 | **总组 / 镜像侧**（本方不擅改基线或 `baseline.py`） |
 | 9 | `dev/images/TODO.md` 第 2 项（原生 DDP 验证脚本） | 本方向已补出（`ddp_native_test.py`，双卡自判定，已真机通过），可由总组据此关闭该项 |
 
 ### 7.3 总组文档侧（待修复口径）
 
 | # | 项 | 说明 |
 |---|---|---|
-| 10 | `dev/issues/flagcx-c10d-collectives/README.md` 的现状段 | 现写「未修复，2026-10-11 第 4 次判定与前 3 次逐行一致」，未指出"镜像里的 FlagCX 从未变过"这一真实原因，也未记修复所在。本方向已按 CASE-TEMPLATE 给出更新稿与证据 |
-| 11 | `使用与维护指南 §6` 的退役名单 | 本方向迁完后应从"仍在沿用旧写法"名单里移出 |
-| 12 | `基座发版说明` 里"训练腿 demo 仍装配三项（shmem 占位、PYTHONPATH 前置、`VLLM_FL_FLAGOS_BLACKLIST`）"的表述 | 与 `ascend-train-comm/v3/demo/docker-compose.yml` 的实际内容不一致（该 demo 现只设 `HCCL_WHITELIST_DISABLE`，注释已写明三项不再需要）。属总组文档内部不一致，本方向不擅改，仅登记 |
-| 13 | `image_list.md` 的 A-2 / 已知限制表述 | 随第 7 项一起更新 |
+| 11 | `dev/issues/flagcx-c10d-collectives/README.md` 的现状段 | 现写「未修复，2026-10-11 第 4 次判定与前 3 次逐行一致」，未指出"镜像里的 FlagCX 从未变过"这一真实原因，也未记修复所在。本方向已按 CASE-TEMPLATE 给出更新稿与证据 |
+| 12 | `使用与维护指南 §6` 的退役名单 | 本方向迁完后应从"仍在沿用旧写法"名单里移出 |
+| 13 | `基座发版说明` 里"训练腿 demo 仍装配三项（shmem 占位、PYTHONPATH 前置、`VLLM_FL_FLAGOS_BLACKLIST`）"的表述 | 与 `ascend-train-comm/v3/demo/docker-compose.yml` 的实际内容不一致（该 demo 现只设 `HCCL_WHITELIST_DISABLE`，注释已写明三项不再需要）。属总组文档内部不一致，本方向不擅改，仅登记 |
+| 14 | `image_list.md` 的 A-2 / 已知限制表述 | 随第 7 项一起更新 |
 
 ### 7.4 外部依赖（不受本方向控制）
 
 | # | 项 | 状态 |
 |---|---|---|
-| 14 | PPU 平台侧弱引用缺陷上报厂商 | 最小复现 + 原生现场已备（本层侧已规避），需渠道 |
-| 15 | MLU590 CNCL RDMA 归因实测 | 「范围外」有硬依据，「归因」无证据 ⇒ 待实测；MLU590 与 PPU 当前本侧网络不可达 |
-| 16 | npu1-27 docker 存储层校验和损坏（`docker save` 不可用） | 已报修（`dev/images/TODO.md` 第 7 项），运行不受影响 |
+| 15 | PPU 平台侧弱引用缺陷上报厂商 | 最小复现 + 原生现场已备（本层侧已规避），需渠道 |
+| 16 | MLU590 CNCL RDMA 归因实测 | 「范围外」有硬依据，「归因」无证据 ⇒ 待实测；MLU590 与 PPU 当前本侧网络不可达 |
+| 17 | npu1-27 docker 存储层校验和损坏（`docker save` 不可用） | 已报修（`dev/images/TODO.md` 第 7 项），运行不受影响 |

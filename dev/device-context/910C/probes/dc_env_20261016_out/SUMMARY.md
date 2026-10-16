@@ -4,7 +4,8 @@
 路径是否在真机上成立 —— 即「镜像内固化的 FlagCX 换成宿主 checkout、容器启动时 pip editable 安装、
 判据随之由 FAIL 变 PASS」。
 
-**这次没验什么**（如实登记）：**没有**跑 `dev/lib/up.sh <env-dir> --strict`。
+**这次没验什么**（如实登记）：**没有**跑 `dev/lib/up.sh <env-dir> --strict`（当时该机缺前置；**当日已补齐并在 `up.sh` 上跑通**，另见
+[`../baseline_mechanism_20261016_out/SUMMARY.md`](../baseline_mechanism_20261016_out/SUMMARY.md)，其中含 `--strict` 的实测结论）。
 npu1-27 缺 `docker compose` v2 插件与 `pyyaml`（实测见
 [`../../env/README.md`](../../env/README.md) §2），`baseline.py` 起不来，因此也没有产出 `env.baseline.yaml`。
 本次用与 compose **逐项等价**的 `docker run` 复刻其参数（唯一额外挂载是 A 臂的影子目录，
@@ -39,6 +40,18 @@ npu1-27 缺 `docker compose` v2 插件与 `pyyaml`（实测见
 | [`A_ddp_verdict.txt`](A_ddp_verdict.txt) | A 臂原生 DDP 判定段原文（复现 issue 类别①） |
 | [`device_selfproof.txt`](device_selfproof.txt) | 两臂各自加载的 FlagCX 路径与 `.so` sha256 前 16 位（装置自证） |
 | [`install_proof.txt`](install_proof.txt) | 挂载覆盖的安装自证（`Successfully installed flagcx-0.13.0`、`flagcx -> /workspace/FlagCX/...`）+ 被测源码自证（HEAD、工作区、两处构建开关默认值） |
+
+## 后续补充（同日 12:0x，完整证据见 [`../baseline_mechanism_20261016_out/SUMMARY.md`](../baseline_mechanism_20261016_out/SUMMARY.md)）
+
+- **机制侧已补齐并在 `up.sh` 上跑通**：装上用户级的 compose v2.29.7 + pyyaml 6.0.2 后，
+  `baseline.py export --require-clean` 双腿 rc=0；`up.sh <env>` rc=0 起容器（compose 的 `Cmd`
+  逐字等于声明的 pip-editable 命令）；**同一单入口验收在本机制起的容器里仍 `overall: PASS`**。
+- ⚠️ **`_C…so` 的 sha256 不能当"某次构建"的稳定指纹**：同一 commit（`b576fa6a`）两次 editable 构建，
+  `_C…so` 分别是 `098f3227…`（本轮手工 `docker run`）与 `ac507f07…`（`up.sh` 那轮），
+  而 `libflagcx.so` 两次都是 `5af25cc9…` ⇒ 该指纹只用于**区分"镜像内固化版 vs 宿主挂载版"**，
+  装置自证必须**同时**打印加载路径。
+- ⚠️ **从手工 `docker run` 切到 `up.sh` 前要 `docker rm -f` 同名容器**，否则 compose 报
+  `Conflict. The container name … is already in use`（本轮实测）。
 
 ## 过程中修掉的两处**脚本自身**缺陷（都是本轮新引入，不是被测对象的问题）
 

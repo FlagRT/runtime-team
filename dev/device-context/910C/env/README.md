@@ -23,26 +23,52 @@
 （demo/环境起「毛坯房」，serve 在里面「点火」）。训练腿的判据入口见
 [`../README.md`](../README.md) 与 [`prototype/scripts/`](../../prototype/scripts/)。
 
-## 2. ⚠️ 机制前置：npu1-27 当前**不具备**
+## 2. 机制前置：npu1-27 **已补齐**（用户级，无 sudo、不改宿主包）
 
-新机制的两个工具依赖下列宿主能力，**npu1-27 实测都不满足**（2026-10-16）：
+新机制的工具链依赖下列宿主能力。2026-10-16 实测该机**原本都不满足**，当日已按下面的方式补齐，
+**两条腿的 `export` 已 rc=0**（证据见 [`../probes/baseline_mechanism_20261016_out/SUMMARY.md`](../probes/baseline_mechanism_20261016_out/SUMMARY.md)）。
 
-| 依赖 | 用途 | npu1-27 实测 | 有该能力的机器 |
+| 依赖 | 用途 | 补齐方式与落点 | 版本 |
 |---|---|---|---|
-| `docker compose` **v2 插件** | `baseline.py` 靠 `docker compose config --format json` 解析 compose 的真实 bind 挂载；`up.sh` 靠它起容器 | ❌ `docker 20.10.8`，`docker compose` 不是 docker 子命令；`/usr/libexec/docker/cli-plugins/` 下只有 `docker-app`/`docker-buildx`；`~/.docker/cli-plugins/` 存在但为空 | npu1-11（Compose v2.29.7，总组验证环境）、P800（Compose v2.40.3） |
-| `pyyaml` | `baseline.py` 顶部 `import yaml` | ❌ `/usr/bin/python3`(3.9.9) 无 `yaml`；无其他可用解释器 | P800（pyyaml 6.0.1） |
+| `docker compose` **v2 插件** | `baseline.py` 靠 `docker compose config --format json` 解析 compose 的真实 bind 挂载；`up.sh` 靠它起/停容器 | 官方 Release 静态二进制（aarch64）→ `~/.docker/cli-plugins/docker-compose`（`install -m 0755`，**用户级，不需 root**） | **v2.29.7**（与总组在 npu1-11 上验证过的 Compose 同版本） |
+| `pyyaml` | `baseline.py` 顶部 `import yaml` | `pip install --user` 一份 aarch64 manylinux wheel（cp39 对应本机 `/usr/bin/python3` 3.9.9） | 6.0.2 |
 
-⇒ **在 npu1-27 上，`baseline.py export/check` 与 `up.sh --strict` 目前都跑不了**（会在
-`import yaml` 或 `docker compose` 处直接失败）。两条可选路径：
+```bash
+# 复现该前置（新机器/新账号要重做一遍；本机状态不入仓）
+curl -sSL -C - -o /tmp/docker-compose-linux-aarch64 \
+  https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-aarch64
+curl -sSL -o /tmp/docker-compose.sha256 \
+  https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-aarch64.sha256
+sha256sum -c /tmp/docker-compose.sha256          # 期望 6e9fbd5daa20dca5d7d89145081ae8155d68ef2928b497d9f85b54fe0f9dbb2c
+mkdir -p ~/.docker/cli-plugins
+install -m 0755 /tmp/docker-compose-linux-aarch64 ~/.docker/cli-plugins/docker-compose
+docker compose version                            # 期望 v2.29.7
+python3 -m pip install --user --no-index --no-deps \
+  PyYAML-6.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+python3 -c "import yaml; print(yaml.__version__)"  # 期望 6.0.2
+```
 
-1. **补齐 npu1-27 的用户级前置**（不需要 root、不改驱动）：
-   `~/.docker/cli-plugins/docker-compose`（aarch64 静态二进制）+ 一份私有目录的 pyyaml
-   （`pip install --target` 后用 `PYTHONPATH` 指过去）。装法待用户确认后写入本节。
-2. **在具备前置的机器上做机制侧验证**（如 P800 可跑 `docker compose config` 与 `baseline.py`），
-   910C 侧只做实质验证（等价 `docker run` + 判据）。
+> ⚠️ **别指望从 npu1-11 拷环境**：该机是 `10.120.72.11`（在 27 的 `/etc/hosts` 里、ping 通、22 开），
+> 但 `hliu553@10.120.72.11` 与本地三把私钥一律 `Permission denied (publickey,password)` ⇒ 拿不到。
+> 上面走的是"**同版本官方件**"，版本号与 11 上验证过的相同。
+> 另：本机 `sudo -n true` 报 `sudo: a password is required`（非交互不可用）⇒ 未走 sudo。
 
-本方向当前状态：**镜像侧档案与运行环境目录已就位，机制侧的 export/check/up 端到端待前置补齐后执行**；
-在此之前不得声称「已在 910C 上按 `--strict` 起过该环境」。
+### 2.1 ⚠️ `up.sh --strict` 在本机**必然拒绝启动**（跨机镜像 id 不同）
+
+`env.baseline.yaml` 的 `image.id` 是**抄录自镜像基线**的，而镜像基线记的是**制造机（npu1-11）**的 id：
+
+```
+[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+                         本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913
+```
+
+- 这不是本方向的配置问题——[`image_list.md`](../../../images/image_list.md) 早已登记"跨机 image id 不同属预期
+  （内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`"。**但它的后果要写清**：`check` 在非制造机上
+  恒 `FAIL`，`--strict` 因此恒拒绝启动。
+- 本方向处置（如实登记，不绕）：本机出结论的运行**用 `up.sh`（不加 `--strict`）**，并在证据里注明
+  "本次未满足 `--strict`"；其余各项仍照核对（`[PASS] FlagCX: commit=…` 是逐字通过的）。
+- 正解在镜像/机制侧（允许记多个等价 id，或统一用 `docker load` 离线包分发使 id 跨机一致），
+  已记入待办；**本方不擅改基线或 `baseline.py`**。
 
 ## 3. 选卡：唯一可靠的判据是「逐 die 建容器试 INIT」
 
@@ -86,7 +112,7 @@ export DC_DIE_A=5 DC_DIE_B=0
 本方向需要那份修复，故按 ENV-SPEC §2.2「同一 repo 既固化又挂载」以 pip-editable 覆盖：
 
 - 宿主 checkout：`<WORKSPACE_ROOT>/FlagCX`（ENV-SPEC §3.2 的默认表；远端 `git@github.com:FlagRT/FlagCX.git`）
-- 分支/提交：`kistich/ascend-flagcx-adapt`，见 `train/env.baseline.yaml`（**待生成**，见 §2）里的
+- 分支/提交：`kistich/ascend-flagcx-adapt`，见 [`train/env.baseline.yaml`](train/env.baseline.yaml) 里的
   `overrides_baked` / `baked_commit` / `commit` / `pushed`
 - 生效方式：容器启动时 `USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX`
   （FlagCX 含 C++ ⇒ 改代码后须重启容器触发重装）
@@ -106,19 +132,30 @@ python3 dev/lib/baseline.py export dev/device-context/910C/env/infer
 python3 dev/lib/baseline.py show  dev/device-context/910C/env/train
 python3 dev/lib/baseline.py check dev/device-context/910C/env/train
 
-# 启动：验收与出结论的运行必须加 --strict（不一致即拒绝启动）
+# 启动：验收与出结论的运行应当加 --strict
+#   ⚠️ 本机（npu1-27）例外：镜像 id 与制造机不同 ⇒ check 恒 FAIL、--strict 恒拒绝启动（见 §2.1）。
+#      本机出结论的运行用下面第 2 条，并在证据里注明「本次未满足 --strict」。
 docker ps        # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
-FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train --strict
+export DC_DIE_A=<die> DC_DIE_B=<die>          # 见 §3；也可写进本目录 .env
+FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train --strict  # ① 制造机上
+FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train           # ② 本机
 
 # 复现他人的环境：先按基线切换挂载 repo，再启动
 python3 dev/lib/baseline.py load dev/device-context/910C/env/train
-dev/lib/up.sh dev/device-context/910C/env/train --strict
+dev/lib/up.sh dev/device-context/910C/env/train
 
-# 收尾
+# 收尾（⚠️ 绕开 up.sh 时必须**自己** export WORKSPACE_ROOT 与 die 号 —— 起容器与停容器都要；
+#        只设 FLAGRT_WORKSPACE_ROOT 不够：compose 插值取的是 WORKSPACE_ROOT，
+#        缺它会报 invalid spec: :/workspace: empty section between colons 且容器留不下来被释放）
+export WORKSPACE_ROOT=$PWD DC_DIE_A=<die> DC_DIE_B=<die>
 docker compose -f dev/device-context/910C/env/train/docker-compose.yml down
 ```
 
-出结论的运行另须 `export --require-clean`（工作区不干净或 commit 未推送即拒绝导出）。
+- `check` 的留痕写 `<env-dir>/.last-check.json`（已被根 `.gitignore` 挡掉，不入仓；本轮实例见
+  [`../probes/baseline_mechanism_20261016_out/07_last_check.json`](../probes/baseline_mechanism_20261016_out/07_last_check.json)）。
+- 出结论的运行另须 `export --require-clean`（工作区不干净或 commit 未推送即拒绝导出）。
+- ⚠️ 从手工 `docker run` 切到 `up.sh` 前，**先 `docker rm -f` 同名容器**：compose 遇到同名残留会
+  `Conflict. The container name … is already in use` 而起不来（本轮实测踩到）。
 
 ## 7. 与方向内其他文档的关系
 
