@@ -1,0 +1,73 @@
+# cambricon-mlu-runtime v1 —— FlagOS 官方寒武纪运行时基座镜像（登记式基线）
+# （结构对齐 ascend-infer-vllm/v1 与 thead-ppu-runtime/v1 先例；内容按寒武纪实情如实登记）
+
+image_tag: "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0"
+digest: "sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2"
+flagtree_line: >-
+  无 FlagTree 线。寒武纪在 BAAI·FlagTree 官方手册中无条目（无 cambricon 用户手册、无 flagtree 镜像），
+  本芯片走 FlagOS 官方运行时线 cambricon-neuware4.4.3（py3.10 / torch 2.7.1+cpu / torch_mlu 1.29.2 /
+  triton 3.2.0+mlu1.7.2 / flag_gems 5.4.0rc2.post3）。镜像内 triton 是寒武纪 triton-mlu 变体，
+  不是 FlagTree 构建物 —— 勿按昇腾/昆仑芯的 flagtree 线号理解。详见 dev/images/image_list.md。
+pull: "docker pull harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3@sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2"
+built_at: "2026-09-17T20:14:45+08:00"
+repro_status: "🟢 FlagOS 官方镜像"       # 公开 harbor registry，匿名可按 digest 拉取（2026-10-15 实测）
+dockerfile: "upstream —— flagos-ai/build-infra @827dc6134603bfe7ce02d02a2c333e9b2dcade88（无仓内配方）"
+
+# --- official / custom 边界（见 README §4；此处 official = FlagOS 官方原样产物） ---
+layers:
+  - name: "flagos-runtime-cambricon-neuware4.4.3 2.2.0"
+    origin: official   # FlagOS（flagos-ai/build-infra）
+    pin: "digest sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2"
+    note: "含 NEUWARE 4.4.3（cntoolkit 4.4.3 / cnnl 2.1.829-v2.1.12 / mluops 1.8.1 / cncl 1.29.4）+ torch 2.7.1+cpu + torch_mlu 1.29.2 + torch_mlu_ops 1.8.0 + triton 3.2.0+mlu1.7.2 + flag_gems 5.4.0rc2.post3"
+custom_layers: none
+
+gaps:
+  - "镜像内无 .git —— 无自证 commit 锚，版本锚 = Harbor digest + pip 版本号 + 上游配方 commit（镜像 Label）"
+  - "本组 cambricon 后端不在镜像内，经仓内挂载使用（不固化）"
+  - |
+    运行时镜像不含 vLLM（容器内 import vllm → ModuleNotFoundError，2026-10-15 实测）⇒ 推理服务化
+    须用同线应用镜像。本轮不登记推理腿发布物，原因：device-context 方向服务化验收（SERVE_LEG_PASS
+    10/10、四形态全 PASS）所用的 flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2rc2.post2
+    （sha256:f568f23cf29b2f64a5f9c9b250965d6f713bc964fb3256d4411783568f3b1da0）已不在 registry
+    （2026-10-15 实测 manifest 404，rc 标签被回收）；该仓现行可拉的是 2.2.0-0.2.2
+    （sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94），未经本组验证。
+    推理腿登记以该替代镜像通过验收为前置。
+  - "flag_gems 5.4.0rc2.post3 由基座自带，本组尚未在本芯片上做结论性验证（组外实测口径：FlagGems _cambricon 后端相对厂商 native / TMO 路径显著偏慢，宜作 fallback 与对拍用途，不作性能路径）"
+  - "CNCL 走 MLU_LINK 片间互联，未加载 libibverbs / libmlx5 ⇒ RDMA 路径未启用；集合通信结论只覆盖单机多卡，跨机未验证"
+
+notes: |
+  宿主与容器启动纪律（2026-09-22~10-14 device-context 方向在 tza-0a06-ai01-em9 真机实测，证据由该方向
+  在其资产目录维护；2026-10-15 总组在 tza-0a06-ai02-em9 复核 ①③④⑤）：
+  ① 档位由宿主驱动决定（本芯片独有，勿照抄别家「取最新线」思路）：实测宿主驱动 v6.2.29（6.2.x 线）
+     ⇒ 用 neuware4.4.3 档（官方标注宿主驱动前置 6.2.15）；neuware4.7.2 档官方标注前置 6.5.48。
+     选错档位的表现是容器内厂商库与宿主驱动不匹配。
+  ② import triton 必须先 import torch_mlu，否则 triton 内部 import torch 触发设备后端自动加载并失败
+     （RuntimeError: Failed to load the backend extension: mlu）——报错文案像设备问题、实为导入顺序问题；
+     不要用 TORCH_DEVICE_BACKEND_AUTOLOAD=0 绕过（会一并影响 mlu 后端注册）。
+     另：/opt/triton 只在经 shell 启动时进 PYTHONPATH（镜像 BASH_ENV=/etc/bash_env.sh），
+     docker exec … python3 直调看不到 triton ⇒ 用 docker exec … bash -lc '…'。
+  ③ 宿主无 /usr/local/neuware（只有驱动），全部 MLU 软件栈在镜像内 ⇒ 一切验证在带卡容器内做；
+     cnmon 是宿主工具，须挂 -v /usr/bin/cnmon:/usr/bin/cnmon:ro 才能在容器内查卡。
+  ④ 设备授予：非 privileged，不用 --runtime（寒武纪无容器 toolkit）；声明式 devices 授
+     /dev/cambricon_ctl + /dev/cambricon_gdr + cambricon_dev0..7 + cambricon_ipcm0..7（共 18 个节点，
+     缺 ctl 则设备枚举失效）；配 --cap-add=SYS_PTRACE 与 --security-opt seccomp=unconfined。
+  ⑤ 选卡变量 MLU_VISIBLE_DEVICES（按授予顺序密集重编号；demo 映射全部 8 卡使容器内逻辑号 == 宿主
+     物理号）。无带卡容器独占（同 P800 / PPU，与昇腾相反）；共享机上用卡前 cnmon 挑空闲卡。
+  ⑥ 硬件能力：torch.mlu.get_device_capability() == (5, 0)（MLU590-M9 实测）。厂商 vLLM 手册标注
+     FP8 需 >= (6, 0)、MX 类型需 >= (6, 1) ⇒ 本卡型两者均不可用；量化路径限 SmoothQuant 等。
+  ⑦ torch_mlu 的 torch.mlu.Stream(priority=…) 对区间 (0, -3) 之外的取值静默接受、不报错
+     （上游参数校验缺失）；消费方须自行按 stream_priority_range() 校验取值域。
+  ⑧ PrivateUse1 为进程级单例 ⇒ 本后端不得与 torch_npu / torch_fl 同进程混用。
+  ⑨ 厂商错误不透出数字码（形如 RuntimeError: CNRT error: invalid argument.）⇒ 错误分级只能依赖
+     message 文本提示，不要假设存在可映射的厂商错误码表。
+
+changelog:
+  - date: "2026-10-15"
+    what: |
+      首次登记（登记式基线，ADR-0007 同款流程）：FlagOS 官方寒武纪运行时基座镜像，
+      digest 锁定（harbor.baai.ac.cn/flagos-runtime，匿名可拉）；新增 image.baseline.yaml
+      （manual-registration，镜像内无 .git ⇒ 版本锚 = digest + pip 版本号 + 上游配方 commit）
+      与 demo/ 运行环境（compose + env.baseline.yaml，baseline.py export 生成）。
+      镜像真身已在 tza-0a06-ai02-em9 落地（按 digest 拉取，image id 实测）。寒武纪后端接入证据
+      （conformance 13/13 + 推理 6/6、职责审计、训练腿、服务化四形态等）由 device-context
+      方向自行维护与合入。

@@ -1,0 +1,377 @@
+# kunlun-operator-runtime / v2
+# 昆仑芯 P800（XPU，x86_64）flagtree + FlagGems 运行时底座。
+# 版本事实（image id、各 repo commit、索引发行包 version、资源 sha256）以同目录
+# image.baseline.yaml 为准，本文件不重复填写（dev/images/README.md §2、dev/ENV-SPEC.md §3.1）。
+
+image_tag: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+image_id: "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a"
+flagtree_line: >-
+  BAAI·FlagTree 官方 xpu 用户手册
+  （https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu），线号 xpu3.6
+  （CANN 概念不适用于昆仑芯）。宿主驱动与运行时：XPU-RT 5.0.21 / driver 5.0.21.47
+  （`xpu-smi` 实测）；**镜像内另有一套 XRE 5.13.0.0 / XTDK 3.6.0.1 / XCCL 20260209_9**
+  （在 <site-packages>/torch_xmlir/_versions.txt，见 image.baseline.yaml
+  base_image.provides），与宿主驱动版本不同，实测可用。
+  手册给出的 flagtree 安装方式是预编译 wheel
+  （`pip install flagtree===<ver>+xpu3.6 --index-url=...flagos-pypi-hosted...`），
+  无需源码编译——这是本血统与昇腾侧的根本差异：**没有 git commit，只有版本号**，
+  故记在 image.baseline.yaml 的 baked_packages 块（dev/ENV-SPEC.md §4.2 模式 6）。
+  本条目沿用 v1 的 pin 0.6.1+xpu3.6（memory、device-context 两个子方向已各自验证过
+  该具体组合可用），不跟随手册最新版本。
+built_at: "2026-10-11"
+builder: "Docker 29.1.3 (BuildKit 未启用, DOCKER_BUILDKIT=0) / x86_64 / VM-0-2-ubuntu"
+repro_status: "🟢 functional-repro"   # 2026-10-11 由 build.sh 走正规 docker build 实机重建（配方简化后又重建一次），构建期静态自检通过、pip freeze 与基座逐行比对通过、带卡自判定 overall: PASS，见 repro_result
+superseded_by: null
+
+supersedes: >-
+  v1。组件集合与 pin 完全相同（flagtree 0.6.1+xpu3.6 + FlagGems
+  73c5aff1e304c293ab525ecb03e9449644496fbb），v2 只改配方形态。与 v1 的差别只剩两处
+  （见 REBUILD.md「方式」）：① FlagGems 连装都不装——v1 是
+  `cd /env/FlagGems && pip install .`，从基座的源码目录重新安装一遍；v2 直接用基座
+  已装好的那份，本层相对基座只新增 flagtree 一个包。② 静态自检改为无设备可跑。
+  v1 的归档镜像实为 docker commit 产物、与自身配方不一致
+  （见 ../v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build），
+  因此「从零重建」一律走 v2。
+
+recommended_default: >-
+  训练（transformers + FlagCX）与推理（vLLM + vllm-plugin-fl）所需组件均已在父基座内
+  （见 parent_image.note），本层只补基座缺失的 flagtree（FlagGems 用基座自带那份，不重装），
+  是两类场景的**推荐默认底座**，无需按场景拆两个镜像。使用前须知晓 known_issues 的四条限制，其中两条已由
+  demo/docker-compose.yml 以声明式配置落实（`VLLM_FL_PREFER=vendor` 必设、
+  `XPU_EVENT_KL3_ENABLE` 必不设），不再依赖手工步骤。
+  回退路径：本层是从 parent_image（官方基座）按 Dockerfile.repro 单向构建而成，
+  若本层不满足需求，基于 parent_image 自行按同样模式重建、改 pin 后验证即可，不依赖本层。
+
+dockerfile: |
+  Dockerfile.repro = 唯一配方，build.sh 驱动。构建上下文只有一个文件（从本目录拷进去的
+  Dockerfile）——本层不带入任何源码，**重建不依赖宿主的任何 checkout**，也不要求任何
+  commit 已推送。无需从既有镜像 docker history 还原。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base"
+  digest: "sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+  note: >-
+    BAAI·FlagTree 官方发布的预构建基座镜像（公开 harbor 仓库，本机已存在，非本组产物）。
+    已内置 Python 3.10.18 / torch 2.9.0+cu129（CUDA 兼容层，昆仑芯 xpytorch）/
+    torchvision 0.24.0+cu129 / torchaudio 2.9.0+cu129 / vllm 0.13.0 / transformers 4.57.1，
+    并以 **editable** 方式预装 FlagGems（/env/FlagGems）、FlagCX（/env/FlagCX）、
+    vllm-plugin-fl（/env/xvllm-plugin-FL）——按 dev/ENV-SPEC.md §2.1，父镜像继承来的
+    editable 安装、源码位于镜像内即为固化资产，记 install: editable-in-image，
+    详见 image.baseline.yaml baked_repos。
+    基座**不含** flagtree/triton（pip freeze 无相关条目），这是本层唯一新增的包。
+    注：/env/xvllm-plugin-FL 的 pip 元数据无 VCS 信息、远端是厂商内网仓
+    （ssh://...icode.baidu.com/baidu/xpu/xvllm-plugin-FL），与仓内 vllm-plugin-FL
+    **不是同一个仓**，故其 commit 记为 unavailable、未登记到 ENV-SPEC §3.2 的仓库名表
+    （待定项，见 dev/images/TODO.md）。
+
+# --- official / custom 边界（见 ../../README.md §4.0/§4.1）。
+#     P800 侧目前没有任何 FlagRT/FlagOS 私有 fork 层，layers 里没有 custom 项。---
+layers:
+  - name: "FlagTree xpu3.6 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base@sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+    note: "BAAI·FlagTree 官方发布，公开 harbor，无需 BAAI 内部账号，本机已存在"
+  - name: "flagtree（提供 triton 编译器/运行时，import 名为 triton）"
+    origin: official
+    pin: "flagtree===0.6.1+xpu3.6（BAAI·FlagTree 官方 PyPI 索引 resource.flagos.net/repository/flagos-pypi-hosted，预编译 wheel，非源码构建）"
+    note: >-
+      pip dist 名为 flagtree，但安装内容落在 triton/ 顶层命名空间下（"forked from
+      triton-lang/triton"），import 后 triton.__version__ == 3.6.0。**无 git commit**，
+      版本锚是 version：ARG == 镜像标签 io.flagrt.flagtree.version == 镜像内实装 dist 版本
+      三方核对（dev/ENV-SPEC.md §4.2 模式 6），由 baseline.py export/check 机器执行。
+      wheel 的 sha256（官方索引页 PEP 503 的 `#sha256=` fragment 直接公布，无需下载 3.3GB）：
+      `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl`
+      sha256 `31863cfecc6b14a42a4cbe92a85a5a10885a7ecfcd25b85e8a54d53ab4a3bdea`
+      （2026-10-11 取自 https://resource.flagos.net/repository/flagos-pypi-hosted/simple/flagtree/ ，
+      须 `--noproxy`）。wheel 的 python/平台 tag 由镜像内 dist-info 的
+      `WHEEL: Tag: cp310-cp310-linux_x86_64` 确定，故文件名可由镜像内事实完整推出、无需猜测。
+      该值**尚未**进入 image.baseline.yaml 的核对链（工具侧自动化见 dev/images/TODO.md）。
+      必须 --no-deps 安装，否则 pip 解析 torch 的可选依赖会额外装 PyPI 通用
+      triton==3.5.0，物理覆盖 flagtree 的 triton/ 目录
+      （见 ../v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing）。
+  - name: "FlagGems（父基座自带，flag_gems 4.2.1rc0，即 v4.2.1.rc.0-177）"
+    origin: official
+    pin: "git commit 73c5aff1e304c293ab525ecb03e9449644496fbb（flagos-ai/FlagGems 公开上游主干，非 FlagRT/FlagOS fork）"
+    note: >-
+      **本层对 FlagGems 不做任何事**：既不 COPY 进来，也不重装。父基座已以 editable 方式
+      装好这个 commit（/env/FlagGems，源码在镜像内），按 dev/ENV-SPEC.md §2.1 即固化资产
+      install: editable-in-image，版本事实由 base_image digest + 本镜像 image id 承载。
+      对照 v1：v1 是 `cd /env/FlagGems && pip install .`——从基座的那个源码目录**重新安装
+      一遍**，多一层、且依赖那个可变目录在构建期存在；v2 连装都不装。
+      标签 io.flagrt.flag_gems.commit 仍保留，但语义已变：它不再是本层固化资产的版本锚，
+      而是**本组对基座内容的断言**（「我预期这个基座里装的 FlagGems 就是这个 commit」），
+      由 baseline.py export 与基座 pip 元数据读出的 commit 核对，不一致即报错。
+      取舍与边界见 known_issues: flaggems-version-fact-comes-from-base。
+      该 commit 的 pyproject.toml 没有 kunlunxin extras 组，
+      见 ../v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing。
+
+# 无 gaps 段：基座 = 公开 harbor 直接可拉；flagtree = 公开索引直接可装；
+# FlagGems 随基座而来，不是本层的重建输入——无 owner 私有资产依赖，也不依赖宿主 checkout。
+
+# 重建验证（2026-10-11，详见 REBUILD.md）
+repro_result:
+  image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+  build: >-
+    本机 `build.sh <ctx>` 走正规 DOCKER_BUILDKIT=0 docker build，12 个 Step 全部通过
+    （含构建期静态自检，输出
+    `static check OK: 2.9.0+cu129 0.6.1+xpu3.6 4.2.1rc0 3.6.0 file:///env/FlagGems`）。
+    本层只给镜像加两个 layer（实测 RootFS.Layers 28 条 vs 基座 26 条）：flagtree 安装层
+    7.38GB、`rm -rf /root/.cache/pip` 层 0B，其余 ARG/LABEL/SHELL/WORKDIR 全为 0B；
+    `docker history | wc -l` = 54（去掉 COPY + 重装两层后比上一轮的 56 少 2）。
+    本轮 flagtree 层命中 docker 缓存（改动只落在其下游的自检层），3.3GB wheel 未重新下载。
+    与 v1 的根本差别：v1 的归档镜像是 docker commit 产物，其配方从未实机构建通过
+    （配方里的 `import flag_gems` 静态自检在无设备容器中必失败，而 docker build 不能传
+    --device）；v2 的自检全部改为无设备可跑，配方因此真正可重建。
+  static_check: >-
+    flagtree 0.6.1+xpu3.6 / flag_gems 4.2.1rc0 / triton 3.6.0 / torch 2.9.0+cu129；
+    `from triton._C.libtriton import xpu` 成功（证明 PyPI 通用 triton 未覆盖 flagtree
+    的 triton/ 命名空间）；flag_gems 的 direct_url 为
+    `{"dir_info": {"editable": true}, "url": "file:///env/FlagGems"}`——**期望值与通常
+    相反**：本层不带入 FlagGems，这一项断言的是「用的确实是基座那份 editable-in-image
+    安装，没有被覆盖」（dev/ENV-SPEC.md §2.1）。
+    版本比较一律经 packaging 的 PEP 440 归一化，不比裸字符串——同一版本在不同 setuptools
+    下写出 4.2.1rc0（基座这份）与 4.2.1.rc.0（重装过的）两种形态，裸比较会误判
+    （上一轮构建即踩到）。
+  packages: "assets/provenance/repro-pipfreeze-v2.txt（完整 pip freeze，由 build.sh 自动写出）"
+  device_verify: >-
+    真机验证（VM-0-2-ubuntu，P800 8× XPU x86_64，2026-10-11，配方简化后的镜像
+    image id sha256:cac5ddae5f62…）：按 README「验证」的单入口执行 ——
+    `dev/lib/up.sh dev/images/kunlun-operator-runtime/v2/demo --strict`（基线核对 PASS 后启动，
+    容器 flagrt-kunlun-v2-demo-p800，非 privileged、声明式 devices 授予全部 8 卡 + /dev/xpuctrl），
+    再在容器内以 CUDA_VISIBLE_DEVICES=7 跑 assets/verify_kunlun_runtime.py。
+    **结果：`overall: PASS`，退出码 0，11 项通过、1 项已知缺陷不计入**：
+    flagtree 0.6.1+xpu3.6 / flag_gems 4.2.1rc0 / torch 2.9.0+cu129 / triton 3.6.0 四项版本锚
+    （flag_gems 的 dist 版本形态是基座那份 editable 安装的 4.2.1rc0，比较经 PEP 440 归一化）；
+    `from triton._C.libtriton import xpu` 成功；
+    **flag_gems 的 direct_url 为 `{"dir_info": {"editable": true}, "url": "file:///env/FlagGems"}`
+    —— 直接证明本层既没 COPY 也没重装，用的就是基座自带那份**；
+    XPU_EVENT_KL3_ENABLE 未设置；device_count=1 且显存分配通过；
+    FlagGems rms_norm 与 torch 参考最大偏差 7.153e-07、softmax 7.451e-09。
+    证据：assets/evidence/verify-v2-card7-PASS.txt。
+    **并发事实**：验证期间本机另有 9 个他人容器在跑（含 2 个 privileged 全设备容器），
+    本容器非 privileged 仍正常工作，证据 assets/evidence/device-model-coexistence-20261011.txt
+    —— 昇腾的「驱动对带卡容器独占」在 P800 不成立，设备模型结论写在 demo/docker-compose.yml 文件头。
+    验证后已 `docker compose ... down` 收干净，未对任何他人容器做操作。
+  known_issues_inherited: >-
+    v2 与 v1 是同一 pin 组合，v1 的四条技术 known_issues 原样继承，不在此重复：
+    gemm-compile-sigabrt / flagos-index-select-invalid-device-function /
+    xpu-event-kl3-enable-hang / flaggems-kunlunxin-extras-missing，见 ../v1/lock.yaml。
+    其中后两条已由 demo/docker-compose.yml 声明式落实（必设 VLLM_FL_PREFER=vendor、
+    刻意不设 XPU_EVENT_KL3_ENABLE）；`--no-deps` 的约束现在只落在本层唯一的那条
+    pip 安装（flagtree）上——FlagGems 已不由本层安装。
+
+known_issues:
+  - id: "flaggems-version-fact-comes-from-base"
+    description: >-
+      本层对 FlagGems 不做任何事（不 COPY、不重装），所以**它的版本事实来自父基座的 pip
+      元数据，而不是本层的构建动作**。这是用户决策的直接结果：不变更基座已有的资源、
+      非必要不额外追加、保持镜像最简最完备。代价有两条，都是真实权衡：
+      ① 镜像标签 io.flagrt.flag_gems.commit 的语义从「本层固化资产的版本锚」变成
+      「**本组对基座内容的断言**」（形同 lockfile 对不受控上游制品记 digest）。
+      baseline.py export 核对「基座 pip 元数据读出的 commit == 该标签」，厂商以同一 tag
+      悄悄换基座内容时即报错暴露。但这个机制**只在标签存在时生效**：标签被删、或在没有
+      该标签的同血统镜像上，断言不成立，版本事实退回由 base_image digest + image id 兜底。
+      **2026-10-12 补了一条不依赖标签的第二锚**（dev/ENV-SPEC.md §3.1）：本基座的
+      /env/FlagGems 带着 .git，`check --image` 直接比对镜像内 .git 的 HEAD 与基线 commit，
+      实测 `[PASS] FlagGems: /env/FlagGems/.git HEAD=73c5aff1e304（镜像自证，不依赖标签）`。
+      这把上面「标签一删就只剩 image id 兜底」的缺口补上了大半 —— 但**不是对基座的要求**：
+      同血统镜像若没有 .git，该项只报 INFO 不 FAIL（本基座的 /env/FlagCX/plugin/torch
+      就没有 .git，实测即报 INFO）。同一机制还把 vllm_plugin_fl 的
+      `commit: unavailable` 升级成了真实 commit（`commit_source: in-image-git`）。
+      ② 不再有「本层自备、可从仓内寻址的 FlagGems 源码」这条退路——本层的重建输入里
+      已经没有 FlagGems（这同时让重建更简单：不依赖宿主任何 checkout、不要求 commit 已推送）。
+    impact: >-
+      **要改 FlagGems 的代码时不要改镜像**，走 dev/ENV-SPEC.md §2.2 的覆盖路径：在运行
+      环境的 compose 里以可编辑方式挂载宿主 checkout 覆盖固化版本，env.baseline.yaml 自动
+      标注 overrides_baked: true 与 baked_commit，由 baseline.py check 核对宿主 HEAD。
+      只有当某个 FlagGems 版本需要**固化**进镜像时，才按 §2.3「晋升」新开 v<N+1>、
+      落到 §4.2 模式 1/2（那正是本次去掉的那一层——在用户决策下它属于「非必要的追加」）。
+  - id: "gemm-same-defect-two-failure-stages"
+    description: >-
+      **2026-10-12 复核定论：v1 与 v2 观测到的两种失败形态是同一个缺陷**，形态差异来自
+      矩阵形状与 dtype，不是两个不同缺陷。本条目原 id 为
+      gemm-failure-signature-differs-from-v1（记录「是否同一缺陷未定论」），定论后改名。
+      做法：用 v1 那个 pytest 用例（FlagGems 自带 tests/test_blas_ops.py:287
+      test_accuracy_mm，normal 模式下参数化为 3 形状 × 3 dtype × b_column_major
+      两值 = 18 组）在 v2 上逐组复跑，每组独立进程。镜像内 FlagGems 为基座自带那份，
+      `git rev-parse HEAD` == pin commit 73c5aff1e304c293ab525ecb03e9449644496fbb 且
+      该测试文件无本地改动，故形状可比。
+      **实测事实**：
+      ① 18/18 全部失败，无一组 PASS；形态按 shape × dtype 二分 ——
+      (1,1,32) + float16/float32 共 4 组为**原生 abort**，其余 14 组为
+      `OutOfResources: uni_sram`；b_column_major 对形态无影响。
+      ② abort 形态与 v1 记录**逐帧一致**：`Fatal Python error: Aborted`，栈顶
+      `triton/backends/xpu/compiler.py:486 make_llir`，48 帧 File 行 diff 只有 3 处，
+      差异仅为 FlagGems 前缀路径（v1 的 /root/FlagGems vs v2 的 /env/FlagGems），
+      行号与函数名无一处不同。本轮另新取到 v1 证据里没有的底层断言原文：
+      LLVM `llvm/lib/IR/Instructions.cpp:758 llvm::CallInst::init`
+      断言 `"Calling a function with bad signature!"`。
+      ③ 两种形态是**同一条编译路径上的两个不同失败阶段**：stage 注册顺序为
+      ttir → ttxir → llir → elf → xpubin；`OutOfResources: uni_sram` 是 ttxir 阶段失败、
+      被 compiler.py:362-367 的 try/except 包装（**误标**——它把 `pm.run` 抛出的任何异常
+      一律包成 `OutOfResources(0, 0, f"uni_sram {e}")`，消息里的
+      `Required: 0, Hardware limit: 0` 是硬编码的零，并非真的资源不足，`e` 原文是
+      `PassManager::run failed`）；abort 是 llir 阶段失败，而 compiler.py:486 的
+      `pm.run(mod, 'make_llir')` 没有 try/except，LLVM 原生断言不可捕获故 abort()。
+      早一步在 ttxir 失败的形状走不到 llir，于是得到包装异常；过了 ttxir 的才撞上断言。
+      ④ 对称验证排除「镜像」这个变量：v1 镜像（本机仍在，id 466ee5c61793）上跑 64×64
+      同样得 `OutOfResources: uni_sram`（三种 dtype 皆然），跑 (1,1,32)+float32 同样得
+      `Fatal Python error: Aborted` @make_llir:486。两种形态在两个镜像上都能出现。
+      ⑤ v2 上一轮那个手写探针用的 64×64 不在该 pytest 用例的形状集合里，在 v2 与 v1 上
+      都落在 ttxir 一侧 —— 这就是上一轮只看到 `OutOfResources` 的原因。
+      **同时更正本条目此前的一处记述**：原写 v2 形态是「退出码 1（进程正常抛异常，
+      未 SIGABRT）」并以 rc 与 v1 的 SIGABRT 对比。实测 **rc 不能区分两种形态**：
+      v1 那次的退出码也是 1（见 ../v1/assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt
+      底部 `EXIT=1`），v2 上的 abort 同样 rc=1 且未被信号杀死（os.waitpid 实测
+      `WIFSIGNALED = False` / `WEXITSTATUS = 1`）。真正的区分点是有没有
+      `Fatal Python error: Aborted` / LLVM 原生断言。
+      证据：assets/evidence/gemm-failure-signature-recheck-20261012.txt。
+    impact: >-
+      **消费结论不变**：GEMM 类算子在本 pin 组合下都不可用（18/18 失败），消费方该绕的
+      还是要绕，见 ../v1/lock.yaml known_issues: gemm-compile-sigabrt。
+      本次定论改变的是**向上游报缺陷的形态**：不再需要按两个缺陷分别报，一条即可，
+      且报告里应给出 (1,1,32)+float32 这组最小复现（原生 abort + LLVM 断言原文，
+      信息量最大），而不是 64×64（那组只会得到被误标的 `OutOfResources`，把上游引向
+      「调小 block size / num_stages」这条错误线索）。
+      验证修复时的判据：该 18 组全部 PASS 才算修复；只验 64×64 不足以说明 llir 阶段
+      的 LLVM 断言已修。
+      **顺带两条可独立上报的上游问题**（本条目不并入，仅记录）：
+      ① compiler.py:362-367 把 ttxir 阶段的任意异常误标为 `OutOfResources` 且硬编码
+      `Required: 0, Hardware limit: 0`，掩盖了真实失败原因；
+      ② compiler.py:486 的 `pm.run(mod, 'make_llir')` 无错误处理，LLVM 断言直接
+      abort 整个进程，调用方无法降级或黑名单该算子——这也是本目录
+      assets/verify_kunlun_runtime.py 必须在子进程里探 mm 的原因。
+      **复跑陷阱**（已写进证据文件）：pytest 不加 `-s` 时 abort 形态的输出整段丢失
+      （落盘 0 字节、rc=1），须用 `pytest -x -s`；另设 `PYTHONFAULTHANDLER=1` 反而会
+      压掉 faulthandler 的 Python 栈 dump。
+      **已按 CASE-TEMPLATE 发布为独立 case 包**（单入口复现 + 三态自判定 + 修复验收判据，
+      可直接交付算子编译方向）：dev/issues/kunlunxin-gemm-triton-compile/。
+      该包把本条目拆成三件可独立处理的事：主缺陷、`compiler.py:362-367` 的错误误标、
+      `compiler.py:486` 无错误处理。
+  - id: "flagtree-wheel-sha256-in-check-chain"
+    description: >-
+      **2026-10-12 已接入核对链，本条目由缺口转为机制说明。** 原 id 为
+      flagtree-wheel-sha256-not-in-check-chain。
+      flagtree 以 pip 索引发行包形式固化（dev/ENV-SPEC.md §4.2 模式 6），
+      原先 image.baseline.yaml 的 baked_packages 只记 version + index_url、**不记 sha256**，
+      因此若上游以同一版本号重新发布不同内容（index 重发），基线无法察觉——这是本血统
+      相对「commit + sha256」锚定方式的真实弱点。
+      **2026-10-11 更正一处此前的判断**：原先记作「pip 索引不提供稳定直链，要算 sha256
+      得先下载 3.3GB」，实测该官方索引页按 PEP 503 在 href 上直接公布
+      `#sha256=`（一次小 HTTP 请求即可取，无需下载 wheel），本条目的 layers 段已记下
+      该值。所以这是「尚未接进核对链」，不是「拿不到」。
+      **2026-10-12 实测核对可行性，结论：技术上可行，但发现 7 个坑，其中 2 个影响方案形态。**
+      三项实测读数：
+      ① 索引页仍按 PEP 503 公布 `#sha256=`，值**未变**：
+      `curl -sS --noproxy '*' https://resource.flagos.net/repository/flagos-pypi-hosted/simple/flagtree/`
+      → http_code=200、46998 字节、0.41s、162 个 href 条目；
+      `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl#sha256=31863cfecc6b14a42a4cbe92a85a5a10885a7ecfcd25b85e8a54d53ab4a3bdea`
+      与 layers 段 2026-10-11 记的值逐字符相同 → 上游未重发该版本号。
+      ② wheel 文件名**可由镜像内事实完整推出**，推导链四步实读：
+      dist 名 `flagtree` / dist 版本 `0.6.1+xpu3.6` / dist-info 目录
+      `flagtree-0.6.1+xpu3.6.dist-info` / 该目录 `WHEEL` 文件的
+      `Tag: cp310-cp310-linux_x86_64`（`Wheel-Version: 1.0`、`Generator: setuptools (79.0.1)`、
+      `Root-Is-Purelib: false`，只有一条 Tag 行）
+      → `flagtree-0.6.1+xpu3.6-cp310-cp310-linux_x86_64.whl`，与索引页条目一致。
+      ③ **唯一命中**：按 PEP 440 归一化精确等于 `flagtree==0.6.1+xpu3.6` 的条目
+      命中数 = 1，无同版本号多 tag（无其他 cp 版本 / manylinux 变体），该索引上
+      也没有任何 sdist 条目（162 条全部解析为 wheel）。
+    impact: >-
+      现有缓解手段两条：① 版本锚三方核对（ARG == 镜像标签 == 镜像内实装 dist 版本）由
+      export/check 机器执行，能发现「配方说装 A、镜像里实际是 B」；② 版本事实最终由
+      image id 唯一确定（§2），用归档镜像不受 index 重发影响。
+      仍缺的是「重建时拿到的 wheel 与当初同一字节」这一条。
+      **2026-10-12 实测发现的 7 个坑（方案必须回避，详见交付说明）**：
+      ① 不能子串匹配：子串 `0.6.1` 在该索引页命中 20 条，相邻干扰项 `0.6.1a1+xpu3.6`
+      是不同版本；必须解析 wheel 文件名并按 PEP 440 做版本相等比较。
+      ② 不能「构造文件名再做字符串相等」：PEP 427 规定文件名的 version 段应把非字母数字
+      串转义为 `_`，而该索引实际未转义（原样 `0.6.1+xpu3.6`）；上游换构建工具即失配。
+      推出的文件名只能当观测值，匹配必须走「解析索引条目 + 版本相等」。
+      ③ baseline.py 现在只依赖 yaml 一个第三方包（PEP 440 的事它用自己的 `_strip_local`
+      手搓），接入要么新增 packaging 依赖，要么手搓 wheel 文件名解析——这是取舍点。
+      ④ 镜像不自证来源：flagtree 的 dist-info **没有** direct_url.json（INSTALLER 只写
+      `pip`），index_url 只能继续取自配方 ARG，核对的是「配方声称的那个索引」。
+      ⑤ 这是网络动作，本机必须 `--noproxy '*'`；而 `check` 在 `up.sh --strict` 的启动
+      路径上，默认联网会破坏离线/气隙使用并可能挂住 → 必须 opt-in + 短超时。
+      ⑥ 语义边界必须写清：该核对只能发现「索引当前内容 ≠ 基线记录值」，**不能证明
+      镜像里装的字节就是这个 sha256**（要证明就得留着 3.3GB wheel）。
+      ⑦ 上游合法重建同版本 wheel 时该核对会 FAIL，属噪声，需要人工裁定路径。
+      **七个坑在实现里的处置（2026-10-12 落地，规范见 dev/ENV-SPEC.md §4.2「模式 6 的第四条边」）**：
+      ①② 用 packaging 的 parse_wheel_filename 解析索引条目 + PEP 440 Version 相等匹配，
+      推出的文件名只作观测值与消歧用，绝不做字符串相等（`resolve_index_wheel`）；
+      ③ packaging 作**软依赖**按需引入（`_packaging()`），baseline.py 的硬依赖仍只有 yaml，
+      缺 packaging 时只有这一个功能不可用、其余照常；
+      ④ index_url 仍取自配方 ARG，基线的 wheel 块记 `source: index-page-pep503` 标明取数口径；
+      ⑤ 核对由 `check --image --online` 显式触发，默认不联网；代理不硬编码在命令里，
+      走 curl 标准环境变量（本机需 `export no_proxy='*'`），超时 30s；
+      ⑥ 语义边界写进 ENV-SPEC §4.2 与基线文件的注释；
+      ⑦ FAIL 文案明写「上游可能以同一版本号重发了不同内容，须人工裁定」。
+      同时修掉了 baseline.py 里把「索引不提供稳定直链，不记 sha256」硬编码进每份基线的
+      陈旧措辞（该判断 2026-10-11 已被实测推翻）。单测 85 → 110 条，新增的钉死：
+      PEP 440 匹配不被 `0.6.1a1+xpu3.6` 误命中、同版本多 tag 无 tag 时报错而非静默挑一个、
+      href 缺 `#sha256=` 时报错而非记 null、唯一命中但 tag 对不上要报错、
+      export 离线降级只告警不报错、压缩 tag 集不猜文件名、
+      check 离线 INFO 且 rc=0、--online 发现重发要 FAIL、--online 取不到也 FAIL、
+      旧基线无 wheel 块仍 rc=0（向后兼容）。
+      **本机实测**：`export --image` 取到 sha256 `31863cfe…` 并写入基线；
+      `check --image --online` 报 `[PASS] flagtree: wheel sha256 与索引页一致`，rc=0；
+      不加 --online 时报 INFO、rc=0。见 dev/images/TODO.md #16。
+  - id: "shared-host-disk-pressure"
+    description: >-
+      本机 /var/lib/docker 使用率 99%（5.9T 中剩 ~105G），本层构建增量实测 7.38GB
+      （flagtree wheel 解包后的 site-packages/triton，6.9GB），构建期另有 ~3.3GB wheel
+      下载为瞬时占用。共享机上多人各存若干 100GB 级镜像，余量随时可能被他人占用。
+    impact: >-
+      重建前先 `df -h /var/lib/docker` 确认余量（build.sh 前置已注明）：基座已在本机时
+      **~12GB** 足够——实测本层只加两个 layer，flagtree 层 7.38GB（容器内
+      site-packages/triton 6.9GB）、清缓存层 0B，构建期另有 ~3.3GB wheel 下载为瞬时占用。
+      本条目不是镜像缺陷，是重建该镜像的环境前提。
+      **不要把这条外推成「本机没地方落盘」**（2026-10-12 实测更正一处此前的混淆）：
+      本机有两块独立 NVMe —— /var/lib/docker（= /data1，/dev/nvme0n1p1）5.9T 剩 104G、99%，
+      而 /data2（/dev/nvme1n1p1）5.9T 剩 5.5T、7%。本条约束只落在**镜像存储**
+      （构建、docker import 都写 /var/lib/docker）；**归档落盘**用 /data2，不受本条约束，
+      见 ARCHIVE.md「磁盘实测」。另：/（/dev/vda3）只剩 187M、100%，
+      任何往 / 或 /tmp 写大文件的动作都要避开。
+
+changelog:
+  - date: "2026-10-12"
+    what: >-
+      **发版前的版本锚加固与缺陷归档，镜像与配方一字未动**（image id 仍为
+      sha256:cac5ddae5f62…，`check --image` rc=0）。三件事：
+      ① **wheel sha256 接进核对链**（§4.2 模式 6 的第四条边）：image.baseline.yaml 的
+      baked_packages 新增 wheel 块（filename / sha256 / source / fetched_at），
+      由 `check --image --online` 与索引页当前内容比对，实测 PASS；
+      见 known_issues: flagtree-wheel-sha256-in-check-chain。
+      ② **editable-in-image 资产新增镜像自证的第二锚**：`check --image` 比对镜像内
+      source_path/.git 的 HEAD 与基线 commit；同一机制把 vllm_plugin_fl 的
+      `commit: unavailable` 升级成真实 commit f9d95f433855…（commit_source: in-image-git）。
+      本条同时收窄了 dev/images/TODO.md #17 的讨论面 —— 该条目「不登记到 ENV-SPEC §3.2
+      仓库名表」的结论不变（远端仍是取不到的厂商内网仓），但它的版本事实不再是空的。
+      ③ **GEMM 缺陷按 CASE-TEMPLATE 发布为独立 case 包**
+      dev/issues/kunlunxin-gemm-triton-compile/，单入口复现 + 三态自判定 + 修复验收判据。
+      基线文件由 `baseline.py export --image` 重新生成（未手工编辑）：与上一版的差异只有
+      generated_at、baked_packages 改块式并新增 wheel 块、vllm_plugin_fl 的
+      commit/commit_source —— image.id / base_image / 其余 baked_repos 的值一字未变。
+  - date: "2026-10-11"
+    what: >-
+      **配方简化：去掉本层的 FlagGems COPY + 非 editable 重装**，直接用父基座已装好的
+      /env/FlagGems（editable-in-image）。镜像重建，image id
+      sha256:eda3e0ae14eb… → sha256:cac5ddae5f62…。
+      动机是组内决策口径：「在不变更基座已有的资源基础上，非必要不额外追加，保持镜像的
+      最简最完备的状态，除非后面遇到需要覆盖的情况。」原做法把同一个事实声明了两处——
+      父基座的 /env/FlagGems 与本层 COPY 进来的构建上下文是**同一个 commit**，
+      得靠镜像基线的 supersedes 字段记录「哪份生效」；去掉后本层相对基座只新增 flagtree
+      一个包，重建也不再依赖宿主任何 checkout。
+      io.flagrt.flag_gems.commit 标签保留但语义改为「本组对基座内容的断言」，
+      权衡见 known_issues: flaggems-version-fact-comes-from-base。
+      同步改动：静态自检与 assets/verify_kunlun_runtime.py 的 flag_gems 一项由「断言非
+      editable」改为「断言是基座那份 editable-in-image、url 指向 /env/FlagGems」；
+      build.sh 删去 prep_src 与「commit 已推送」检查，构建上下文只剩一个 Dockerfile。
+  - date: "2026-10-11"
+    what: >-
+      首次登记。v1 的配方形态不被 dev/ENV-SPEC.md §4.2 识别（flagtree 是 pip 索引
+      预编译 wheel、FlagGems 从父镜像内源码目录安装），`baseline.py export --image`
+      对 v1 目录直接报错；v2 在不改组件与 pin 的前提下改配方形态使其可被机器核对，
+      并走正规 docker build 实机重建。同轮对规范与工具做了反向修正（§4.2 新增模式 6、
+      新增 baked_packages 块、commit: unavailable 一档、昇腾专属取数改为声明式探针表），
+      见 dev/ENV-SPEC.md 与 docs/运行时基座建设-黄金准则与方案存档.v1.md §7。

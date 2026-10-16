@@ -1,0 +1,83 @@
+# cambricon-mlu-runtime v1 demo —— FlagOS 官方寒武纪基座的 demo 运行环境
+# （规范见 dev/ENV-SPEC.md §3.2；登记式基线见 ADR-0007；结构对齐 thead-ppu-runtime/v1/demo 与
+#  ascend-infer-vllm/v1/demo）
+#
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【定位】demo 只管容器生命周期（起容器 / 停容器 / 环境核对）；服务化不在本 demo 内：
+# 本镜像为运行时层镜像、不含 vLLM，服务启动须在同线应用镜像内经本组统一入口
+# serve_standard.sh 进行（口径由 device-context 方向推进）。本 demo 不另设第二服务入口。
+#
+# 【与其他芯片的差异（寒武纪实情，勿照抄昇腾/昆仑芯/PPU）】
+#   · 档位由宿主驱动决定：宿主驱动 v6.2.29（6.2.x 线）⇒ neuware4.4.3 档。这是本芯片独有的
+#     第一约束，不是「取最新线」。
+#   · 宿主无 /usr/local/neuware（只有驱动）⇒ 全部 MLU 软件栈在镜像内；cnmon 是宿主工具，
+#     必须挂进容器才能在容器内查卡。
+#   · 无容器 toolkit（不像昇腾的 Ascend-docker-runtime）⇒ 直接声明式授予设备节点，不用 --runtime，
+#     不需要 --privileged。
+#   · 选卡变量 MLU_VISIBLE_DEVICES（不是 CUDA_VISIBLE_DEVICES / ASCEND_RT_VISIBLE_DEVICES）；
+#     无带卡容器独占（同 P800 / PPU，与昇腾相反）。
+#   · import triton 必须先 import torch_mlu；且 /opt/triton 只在经 shell 启动时进 PYTHONPATH
+#     （镜像 BASH_ENV=/etc/bash_env.sh）⇒ 容器内核对一律用 bash -lc，勿用 python3 直调。
+#
+# 用法（仓根执行，机器 = 寒武纪 MLU590 节点（Mlu-2 / tza-0a06-ai02-em9））：
+#   cnmon | head -40                   # 挑空闲卡（0% util / 0 MiB 显存），记下卡号
+#   dev/lib/up.sh dev/images/cambricon-mlu-runtime/v1/demo --strict
+#   docker exec -it flagrt-mlu-v1-demo-mlu2 bash -lc '\
+#     python3 -c "import torch, torch_mlu; print(torch.mlu.device_count())"'          # 预期 8（映射全卡）
+#   docker exec -it flagrt-mlu-v1-demo-mlu2 bash -lc '\
+#     MLU_VISIBLE_DEVICES=3 python3 -c "import torch, torch_mlu; print(torch.mlu.device_count())"'  # 预期 1
+#   # 用完收尾（勿动他人容器）：
+#   WORKSPACE_ROOT=$PWD docker compose -f dev/images/cambricon-mlu-runtime/v1/demo/docker-compose.yml down
+
+name: flagrt-mlu-v1-demo
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  # 官方镜像全部资产为固化（FlagOS 官方自带，无本组配方层），本环境不挂载任何 repo：
+  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-mlu:
+    container_name: flagrt-mlu-v1-demo-mlu2
+    image: harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+    network_mode: host
+    shm_size: 64g
+    tty: true
+    stdin_open: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    devices:
+      # cambricon_ctl 是设备访问前提（缺 ctl 则 cnmon / 设备枚举失效）；gdr = GDR 直通；
+      # ipcmN = 卡间 IPC 通道（CNCL 用）。映射全部 8 卡 ⇒ 容器内逻辑号 == 宿主物理号；
+      # 实际用卡由 MLU_VISIBLE_DEVICES 授予。共 18 个节点。
+      - /dev/cambricon_ctl:/dev/cambricon_ctl
+      - /dev/cambricon_gdr:/dev/cambricon_gdr
+      - /dev/cambricon_dev0:/dev/cambricon_dev0
+      - /dev/cambricon_dev1:/dev/cambricon_dev1
+      - /dev/cambricon_dev2:/dev/cambricon_dev2
+      - /dev/cambricon_dev3:/dev/cambricon_dev3
+      - /dev/cambricon_dev4:/dev/cambricon_dev4
+      - /dev/cambricon_dev5:/dev/cambricon_dev5
+      - /dev/cambricon_dev6:/dev/cambricon_dev6
+      - /dev/cambricon_dev7:/dev/cambricon_dev7
+      - /dev/cambricon_ipcm0:/dev/cambricon_ipcm0
+      - /dev/cambricon_ipcm1:/dev/cambricon_ipcm1
+      - /dev/cambricon_ipcm2:/dev/cambricon_ipcm2
+      - /dev/cambricon_ipcm3:/dev/cambricon_ipcm3
+      - /dev/cambricon_ipcm4:/dev/cambricon_ipcm4
+      - /dev/cambricon_ipcm5:/dev/cambricon_ipcm5
+      - /dev/cambricon_ipcm6:/dev/cambricon_ipcm6
+      - /dev/cambricon_ipcm7:/dev/cambricon_ipcm7
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # cnmon 是宿主工具（宿主无 neuware，容器内也不自带）；不挂则容器内无法查卡
+      - /usr/bin/cnmon:/usr/bin/cnmon:ro
+    environment:
+      - DO_NOT_TRACK=1
+    restart: "no"
+    command: sleep infinity

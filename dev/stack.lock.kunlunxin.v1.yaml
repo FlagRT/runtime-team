@@ -1,0 +1,125 @@
+# =====================================================================
+# 运行时层 · 昆仑芯 P800 原型统一基座 —— 锁定镜像与基座规范（首次建立）
+# 文件：dev/stack.lock.kunlunxin.v1.yaml
+# 效力：本文件是全组（昆仑芯线）结论性验证的唯一环境依据；任何变更需更新本文件并知会全组
+# 起草：runtime-team ｜ 总组定稿 ｜ 结构参照 dev/stack.lock.910c.v3.yaml，内容按 P800 实情如实分叉
+# 记录：2026-10-14 ｜ 定稿：2026-10-14 ｜ 状态：生效
+# 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
+#
+# 本文件为昆仑芯 P800 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 =
+# kunlun-operator-runtime v2（repro_status 🟢 functional-repro，带 4 条已知限制）。
+# 发版事实、限制清单、离线包路径与 image id 见 docs/基座发版说明-20261014.md，
+# 本文件只留指针，不重复抄录。与昇腾侧的根本差异：无 git commit 式 FlagTree 构建，
+# 只有索引 wheel pin（xpu3.6 线）；无带卡容器独占（实测 9 容器并存仍可用）。
+# =====================================================================
+
+version: 1
+recorded_at: "2026-10-14"
+updated_at: "2026-10-14"
+owner: 总组
+chip: "昆仑芯 P800"
+acceptance_model: "Qwen/Qwen3-Embedding-0.6B"
+flagtree_line: |
+  xpu3.6（CANN 概念不适用于昆仑芯）。锁定镜像按 BAAI·FlagTree 官方 xpu 用户手册
+  路径构建，显式 pin 在 flagtree 0.6.1+xpu3.6（memory、device-context 两个子
+  方向已各自验证该组合可用），不跟随手册最新版本。与昇腾侧不同：flagtree 是
+  官方 PyPI 索引（resource.flagos.net/.../flagos-pypi-hosted）预编译 wheel、
+  --no-deps 安装，无 git commit，版本锚 = 版本号三方核对 + wheel sha256
+  （dev/ENV-SPEC.md §4.2 模式 6）。手册：
+  https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu
+  版本事实（image id、各 repo commit、资源 sha256）以
+  dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准。
+
+# ---------------------------------------------------------------
+# 设备注册路线（与昇腾不同：无带卡容器独占，选卡是每次运行的纪律）
+# ---------------------------------------------------------------
+device_registration:
+  primary: "Route A（各芯片厂商官方设备插件；昆仑芯 = 厂商 XPU 栈，镜像内 XRE 5.13.0.0 与宿主驱动版本不同、实测可用）"
+  selection: |
+    与昇腾相反，勿照抄昇腾纪律：P800 无带卡容器独占（实测 9 容器并存仍可用），
+    docker ps 仅是共享机礼貌；用 xpu-smi 挑 0% 利用率 / 0MiB 显存的空闲卡，
+    以 CUDA_VISIBLE_DEVICES=<物理卡号> 自律（demo 映射全部 8 卡使容器内逻辑号
+    == 宿主物理号；自建环境只授予卡子集时须写重编号后的逻辑号——该变量按授予
+    顺序密集重编号）；多卡训练须选同 NUMA 组的连续空闲卡（本机 NUMA0=卡 0-3、
+    NUMA1=卡 4-7），卡 1 历史上反复被其他租户占用，优先避开。
+    设备授予：声明式 devices: 授卡 + /dev/xpuctrl（缺它 torch.cuda.device_count()
+    为 0）；不需要 --privileged，不需要挂宿主驱动目录（XRE 在镜像内）。
+
+# ---------------------------------------------------------------
+# 锁定镜像（训练/推理推荐默认底座，同一镜像，无需按场景拆分）
+# ---------------------------------------------------------------
+lock:
+  runtime:                              # 训练（transformers + FlagCX）与推理（vLLM + vllm-plugin-fl）共用
+    image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+    notes: "= 训练/推理推荐默认底座（超集，无需按场景选镜像）；带 4 条已知限制（K-1~K-4），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
+    container_name: "flagrt-kunlun-v2-demo-p800（demo 运行环境容器：dev/images/kunlun-operator-runtime/v2/demo/）"
+    base_image_entry: "dev/images/kunlun-operator-runtime/v2"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
+    registry_status: "组内镜像无 registry 要求。image id：sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a（P800 机 VM-0-2-ubuntu 本机 docker images）｜ repro_status 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 overall: PASS）。获取：首选 dev/images/kunlun-operator-runtime/v2/build.sh 从公开源头重建（约 15 分钟）；兜底离线包 kunlun-operator-runtime-2.0.0-rootfs.tar.gz（30.80 GiB，sha256 2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5，实体路径记该机同目录 BACKUP.local），还原方式是 docker import --change（该机 docker save 对巨型镜像失效），不是 docker load"
+    superseded: |
+      v1（flagrt/kunlun-operator-runtime:1.0.0-…，image id
+      sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f）
+      已 superseded_by: v2：不得用于从零重建——其归档镜像经查实是 docker commit
+      产物而非其 Dockerfile.repro 的构建产物（dev/images/kunlun-operator-runtime/
+      v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build）。镜像本身
+      可用、其运行时验证结论（771 passed、训练 6/6、推理 PASSED）仍成立；v2 与
+      v1 组件集合与 pin 完全相同，仅改配方形态并走正规 docker build。
+
+# ---------------------------------------------------------------
+# 候选血统（无；发布物即 v2，无在途候选）
+# ---------------------------------------------------------------
+candidates: {}
+
+# ---------------------------------------------------------------
+# 使用规则（按 P800 实情；两条最高优先级纪律置于最前）
+# ---------------------------------------------------------------
+rules:
+  - "必不设 XPU_EVENT_KL3_ENABLE（K-3：设置后单卡单进程即挂死，SIGTERM 无法退出须 SIGKILL；demo 刻意不设，自建环境也不得加回）"
+  - "推理必设 VLLM_FL_PREFER=vendor（K-2：默认 dispatch 下 vLLM serve 起不来，EngineCore 初始化失败；demo 已内置）"
+  - "flagtree 一律 --no-deps 安装（K-4：否则 pip 解析额外拉入 PyPI 通用 triton==3.5.0，物理覆盖 flagtree 的 triton/ 目录，xpu 编译后端丢失；v2 配方已固化）"
+  - "结论性验证只在锁定镜像内做；日常调试容器结果不作为验收依据"
+  - "任何镜像变更必须更新本文件并知会全组"
+  - |
+    本机重建该镜像的环境前提（共享机）：/var/lib/docker 余量约 12GB（该盘 99% 满，
+    构建前先 df -h 确认；docker import 离线包则需 ~105GB，当前不可行）；flagtree
+    索引可达（访问须绕过代理，--noproxy）；/ 仅剩 187M（100%），任何往 /、/tmp
+    写大文件的操作都要避开。
+  - "共享机纪律：P800 无带卡容器独占，但绝不 stop/rm 他人容器（实测 9 容器并存仍可用）；选卡纪律见 device_registration.selection"
+  - |
+    基座镜像入锁门槛（沿用昇腾侧口径）：任何镜像进入本文件 lock: 前，
+    dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
+    上游发布的镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
+    统一基座的确定/调整/发布由总组裁定；各方向只消费不自建，诉求写进本方向
+    STATUS.md 由总组收拢。
+
+# ---------------------------------------------------------------
+# 已知限制（只记编号 + 一句话 + 指针；全文见 docs/基座发版说明-20261014.md）
+# ---------------------------------------------------------------
+known_issues:
+  - id: "K-1"
+    summary: "FlagGems GEMM 类算子（mm/bmm/addmm）在 flagtree 0.6.1+xpu3.6 下编译阶段即失败，无一形状可用，无 workaround，需绕开 FlagGems 的 GEMM"
+    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-triton-compile/；dev/images/kunlun-operator-runtime/v2/lock.yaml known_issues: gemm-same-defect-two-failure-stages"
+  - id: "K-2"
+    summary: "vLLM 推理默认 dispatch（flagos 优先）下 rotary embedding 的 index_select 触发 CUDA error: invalid device function，服务起不来；必设 VLLM_FL_PREFER=vendor"
+    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: flagos-index-select-invalid-device-function"
+  - id: "K-3"
+    summary: "设置 XPU_EVENT_KL3_ENABLE=1（厂商手册要求）后单卡单进程即挂死；必不设"
+    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: xpu-event-kl3-enable-hang"
+  - id: "K-4"
+    summary: "FlagGems 该 commit 无 kunlunxin extras 组，pip install .[kunlunxin] 静默退化并引入通用 triton 覆盖 flagtree；flagtree 一律 --no-deps 安装"
+    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing"
+
+# ---------------------------------------------------------------
+# 变更记录
+# ---------------------------------------------------------------
+changelog:
+  - date: "2026-10-14"
+    who: "总组"
+    what: |
+      首次建立昆仑芯 P800 锁定声明（此前该芯片无 stack.lock 文件）：发布物锁定为
+      kunlun-operator-runtime v2（repro_status 🟢 functional-repro，带 4 条已知
+      限制 K-1~K-4，指针见 known_issues 段与 docs/基座发版说明-20261014.md）；
+      v1 随发版标 superseded_by: v2 且不得用于从零重建；设备注册（无带卡容器
+      独占、xpu-smi 选卡、CUDA_VISIBLE_DEVICES 重编号）与使用规则按 P800 实情
+      分叉，不照抄昇腾。依据文件：dev/images/kunlun-operator-runtime/v2/lock.yaml、
+      image.baseline.yaml、ARCHIVE.md，dev/images/kunlun-operator-runtime/v1/lock.yaml，
+      docs/基座发版说明-20261014.md。

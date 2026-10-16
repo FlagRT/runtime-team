@@ -1,0 +1,5 @@
+# Only dependency: plain torch, no version pin beyond a broad floor so this
+# stays usable across chip/torch-version combinations (see README.md
+# "环境无关设计"). No numpy, no data-processing libs — model.py and build.py
+# use nothing but torch.nn / torch.optim primitives.
+torch>=1.10

@@ -1,0 +1,40 @@
+# 截选自 npu1-11 运行日志（用户 xliu969），2026-10-11，demo 运行环境 dev/images/ascend-train-comm/v3/demo
+# 完整日志留在执行机器：npu1-11:~/tmp-reproV3-r4/issues-run/
+#   minirepro-no-stub.log（复现）、minirepro-with-stub.log（对照）
+# 1 卡（ASCEND_RT_VISIBLE_DEVICES=0），脚本 dev/issues/shmem-missing/assets/minirepro_shmem.py
+
+## 复现：撤除 shmem 占位模块（PYTHONPATH 去掉 /opt/flagrt-stub），退出码 1
+## 命令: docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
+##   bash -c 'PYTHONPATH=${PYTHONPATH#/opt/flagrt-stub:} python3 dev/issues/shmem-missing/assets/minirepro_shmem.py'
+Traceback (most recent call last):
+  File "/workspace/dev/issues/shmem-missing/assets/minirepro_shmem.py", line 65, in main
+    loop_kernel[(triton.cdiv(N, BLOCK),)](x, y, N, BLOCK=BLOCK, SUB=SUB)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/triton/spec/ascend/runtime/jit.py", line 420, in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ...（中间栈略，完整栈见上述日志）
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/triton/spec/ascend/compiler/code_generator.py", line 1599, in visit
+    raise CompilationError(self.jit_fn.src, self.cur_node, repr(e)) from None
+triton.compiler.errors.CompilationError: at 5:4:
+def loop_kernel(x_ptr, y_ptr, n, BLOCK: tl.constexpr, SUB: tl.constexpr):
+    pid = tl.program_id(0)
+    base = pid * BLOCK
+    # 这个 for 循环是唯一的触发点：visit_For -> import triton.experimental.tle -> import shmem
+    for i in range(0, BLOCK, SUB):
+    ^
+ModuleNotFoundError("No module named 'shmem'")
+
+
+=== VERDICT (minirepro_shmem, 1 card) ===
+  repro: CONFIRMED - for-loop kernel compilation hit ModuleNotFoundError: No module named 'shmem'
+overall: FAIL
+
+## 对照：带 shmem 占位模块（demo 的缺省配置），退出码 0
+## 命令: docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
+##   python3 dev/issues/shmem-missing/assets/minirepro_shmem.py
+TRITON_CACHE_DIR=/tmp/minirepro-triton-cache-pr9ihhpb (fresh)
+MINIREPRO_OK=True y[:5]=[0.0, 2.0, 4.0, 6.0, 8.0]
+
+=== VERDICT (minirepro_shmem, 1 card) ===
+  for-loop kernel compiled and the numeric result is correct -> no shmem gap in this environment
+overall: PASS

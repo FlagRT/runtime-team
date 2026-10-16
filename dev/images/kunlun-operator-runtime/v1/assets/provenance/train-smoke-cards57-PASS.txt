@@ -1,0 +1,28 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py:126: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[Gloo] Rank [Gloo] Rank 01 is connected to  is connected to 11 peer ranks.  peer ranks. Expected number of connected peer ranks is : Expected number of connected peer ranks is : 11
+
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[18:59:58][9844a7b20c7d][104:104][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[18:59:58][9844a7b20c7d][105:105][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[step   0] loss=15.4488
+[step   5] loss=12.2795
+[step  10] loss=11.5892
+[step  15] loss=11.3755
+[step  19] loss=11.2841
+[rank0] TRAIN_LEG_PASS 6/6 | backend=kunlun dist=cpu:gloo,cuda:flagcx | loss 15.4488→11.2841 | 1713.1 tok/s(两卡合计) -> /out_dir/train_leg_result_rank0.json
+[rank0]:[W922 19:00:11.383167957 ProcessGroup.hpp:941] Warning: No backend of type 0 found for Process Group with name undefined. Assuming no hooks are registered. (function hasHooks)
+[rank1] TRAIN_LEG_PASS 6/6 | backend=kunlun dist=cpu:gloo,cuda:flagcx | loss 15.4488→11.2841 | 1713.2 tok/s(两卡合计) -> /out_dir/train_leg_result_rank1.json
+[rank1]:[W922 19:00:11.383557899 ProcessGroup.hpp:941] Warning: No backend of type 0 found for Process Group with name undefined. Assuming no hooks are registered. (function hasHooks)
+EXIT=0
