@@ -13,9 +13,9 @@
 | 下午 · 新基座规范适配 | ✅ 运行环境目录 `910C/env/{train,infer}/` + 分层关系与执行标准成文 |
 | 下午 · 机制路径 | ✅ 用户级补齐前置（compose v2.29.7 + pyyaml 6.0.2）→ `export --require-clean` 双腿 rc=0 |
 | 下午 · `up.sh --strict` | ✅ 真机 rc=0；容器内两项验收 `overall: PASS`；`down` rc=0 无残留 |
-| **待推送内容** | **两条线**：FlagCX 分支领先 `dev-1.0` **17 提交**（可快进）；本仓 `kistich/device-context` 与 `dev-1.0` **118 领先 / 106 落后**，本方向独有 **1295 项** |
-| **推送通道** | **4 条**（§4）：① FlagCX `dev-1.0` ② 本仓 `dev-1.0` ③ `dev/issues` case 包 ④ 镜像侧晋升 |
-| **需你裁定的决策点** | **3 个**（§5）：`env.baseline.yaml` 的 `image.id` 口径 · `summary/` 是否随本次带入 · 草稿 `stack.lock.910c.yaml` 的处置 |
+| **待推送内容**（执行前快照） | **两条线**：FlagCX 分支领先 `dev-1.0` **17 提交**（可快进）；本仓 `kistich/device-context` 与 `dev-1.0` **118 领先 / 106 落后**，本方向独有 **1295 项** —— ⏹ **当日下午已全部推送完成，权威状态见 §7** |
+| **推送通道** | **4 条**（§4）：① FlagCX `dev-1.0` ② 本仓 `dev-1.0` ③ `dev/issues` case 包 ④ 镜像侧晋升 —— **①②③ 已于 2026-10-16 执行完毕**（§7），④ 待镜像维护者 |
+| **决策点** | **3 个 —— 已按建议裁定并执行**（§5 / §7）：`image.id` 取 (B) 回发布 id · `summary/` 取 (A) 随本次带入 · 草稿取 (A) 从个人分支移除 |
 
 ---
 
@@ -275,6 +275,16 @@ git ls-tree --name-only origin/dev-1.0:dev | grep -c "stack.lock.910c.yaml"     
 | 2 | **`summary/`**（3 个文件：对外总结 + 周报 + 路线 A/B 摘要） | (A) 随本次带入 `dev-1.0`；(B) 移进 `dev/device-context/` 下并改引用；(C) 不带入 | **(A)**。`dev-1.0` 的我们目录多处**已在引用** `summary/…`（现为悬空），带入即修复；若总组认为顶层不宜新增目录，则退 (B) |
 | 3 | 草稿 **`dev/stack.lock.910c.yaml`** | (A) 从个人分支移除（不入公共分支）；(B) 一并带入 | **(A)**。纪律是草稿不 PR；所需内容由总组的 `stack.lock.910c.v1–v4.yaml` 承担（干跑实测：它是**唯一**“仅我们分支有的 `dev/` 顶层文件”） |
 
+**裁定结果（2026-10-16，用户裁定：按上表建议执行）**
+
+| # | 裁定 | 落地位置（可复核） |
+|---|---|---|
+| 1 | **(B)** `image.id` 回**发布 id** `sha256:e13a15d0…f15`；本机用 `pin_local_image_id.sh` **临时**对齐（对齐后文件是脏的、跑完 `git checkout --` 复原，**不入仓**） | 提交 `f014442`；口径同步进 `910C/env/README.md` §2.1/§6 · `README.md` 头部 · `STATUS.md` |
+| 2 | **(A)** `summary/` 随本次带入 `dev-1.0` ⇒ **悬空引用已修**（我们目录内有 16 个文件引用 `summary/…`） | 合并提交 `2e077fb`：`git ls-tree origin/dev-1.0 summary` = **3** 文件 |
+| 3 | **(A)** 草稿从个人分支移除；同时把 5 处指向草稿的文档引用改为「已被取代 / 现存依据是总组定稿」，不留悬空指针 | 提交 `f014442`：`git ls-tree origin/dev-1.0:dev` 中 `stack.lock.910c.yaml` **= 0**（实测） |
+
+⚠️ **决策 1 的连带影响（如实登记）**：仓内改回发布 id 后，**本机**跑 `check` / `--strict` 仍须先 `pin`（固定顺序 `export` → `pin` → `check` → `up --strict`），跑完 `git checkout -- <env-dir>/env.baseline.yaml` 复原，否则会把本机 id 提交上来。本机 10-16 的 `--strict` 验收证据不受影响（已冻结在 `910C/probes/baseline_strict_20261016_out/`）。
+
 ---
 
 ## 6. 附：本轮自查发现的操作风险（含我自己踩的一个）
@@ -284,4 +294,47 @@ git ls-tree --name-only origin/dev-1.0:dev | grep -c "stack.lock.910c.yaml"     
 | 1 | ⚠️ **`git worktree add` 失败后命令会在真实工作树上执行** | 我第一次干跑时 `worktree add` 因「分支已在本仓检出」失败，`cd /tmp/...` 随之失败，`&&` 链断开但后续命令仍**在真实工作树**跑了 `git merge --no-commit`（83 项变更、27 冲突） | 已 `git merge --abort` 复原（HEAD 未变、工作树只剩未跟踪 `dev/issues/`、10 个文件完好）；并把干跑**固化成脚本**：`git worktree add --detach` + **断言 `pwd` == 临时 worktree 才执行 merge** + 结束 `merge --abort` + 移除 worktree |
 | 2 | 判据写错会报假 FAIL | 驱动脚本用 `docker ps --format '{{.Names}}|{{.Status}}'` 的行做 `grep -E "^<名字>$"` ⇒ **永不命中**（行尾还有 `|Up …`） | 改 `docker ps --format '{{.Names}}' | grep -qx`，并另打 `名字|状态` 佐证 |
 | 3 | ⚠️ **陈旧 remote-tracking ref 会低估冲突面** | `git fetch <remote> <branch>` **只写 `FETCH_HEAD`**，不动 `refs/remotes/origin/<branch>`。本仓 `origin/dev-1.0` 当时停在 `6af89c4`，而真 tip 是 `74197bf`（差 19 提交）⇒ 用陈旧 ref 干跑得 **27 冲突 / 53 A**，用真 tip 得 **34 冲突 / 305 A**，还多出 framework-adapter 与 performance 两组 DU | 预检脚本已加**不一致告警**，并在文件头写明「先 `git fetch origin dev-1.0:refs/remotes/origin/dev-1.0`，或把 `FETCH_HEAD` 当参数传入」 |
+| 4 | ⚠️ **管道会吞掉 `&&` 链里的失败码** | 本次 `git checkout dev-1.0` 因「工作区有未提交改动」**失败**，但它后面接了 `2>&1 \| tail -2` ⇒ 整条管道退出码取 `tail` 的 **0**，链条继续往下跑（后续 `merge` 变成「把分支 merge 到自己」的 no-op，无副作用，但过程判断已失真） | 核验/流程链里**关键步骤一律不接管道**，改用 `set -e` + 逐条断言；本次重做时已如此 |
+
+---
+
+## 7. 执行记录（2026-10-16 下午 · 全部实测）
+
+> ⏹ §0 / §3 / §5 是**执行前**的快照；**执行后的权威状态以本节为准**。
+
+### 7.1 通道 ①：FlagCX（fork 子库）
+
+| 项 | 值 |
+|---|---|
+| 操作 | 本地 `dev-1.0` 从 `origin/dev-1.0` 新建 → `merge --ff-only origin/dev-1.0` → **`merge --no-ff kistich/ascend-flagcx-adapt`** → `push origin dev-1.0` |
+| 结果 | **`dev-1.0`：`4e0e0cb` → `62fe615`**（merge 提交双亲 = `4e0e0cb` + `b576fa6a`） |
+| 三项核验 | ① `ls-remote` tip == 本地 `62fe615` ✅ ② 重新 fetch 后 `git diff HEAD FETCH_HEAD` **空**（逐字一致）✅ ③ **远端对象库直读**：`makefiles/ascend.mk` 含 `FLAGCX_ASCEND_DAG` **6** 处 · `plugin/torch/flagcx/src/backend_flagcx.cpp` 含 `USE_NVIDIA_ADAPTOR` **24** 处 · `git rev-list FETCH_HEAD..b576fa6a` = **0**（17 提交全在祖先链）✅ |
+| ⚠️ 操作注意（已处理） | 合并后**必须把 FlagCX 工作树切回 `kistich/ascend-flagcx-adapt`**：`910C/env/train/env.baseline.yaml` 的 `mounted_repos.FlagCX.commit` 校验的是**工作树 HEAD**，而 `62fe615` 与 `b576fa6a` **树相同、commit 不同** ⇒ 留在 `dev-1.0` 上会让 `check` 判 FAIL |
+
+### 7.2 通道 ② / ③：本仓 `runtime-team`
+
+| 步骤 | 提交 | 内容 |
+|---|---|---|
+| 清理个人分支 | **`f014442`** | 决策 ①③ 落地（草稿移除 + `image.id` 回发布 id）+ 撤回 09-22 误删的 5 个他方向目录（**414 文件 / +73832 行**）+ 文档口径同步 |
+| 把 `dev-1.0` 合进个人分支 | **`ad21b94`** | 冲突 **24 项全部落在 `dev/device-context`** ⇒ 取 ours（判据见该提交正文：dev-1.0 侧对该目录仅 2 个提交且作者均为我们自己；37 个双方都改的文件中 35 个「对方 blob = 我们历史快照」） |
+| case 包（通道 ③） | **`d1c768d`** | `dev/issues/flagcx-c10d-collectives`：口径更正 + 7 个新文件（`ddp_native_test.py` + 6 份证据） |
+| 禁用词核对 | **`5aa44c8`** | 推送前发现本轮会**新引入**「异构」5 文件（`dev-1.0` 侧原为 **0**）⇒ 4 处表述改「跨厂商（cross-vendor）」 |
+| 个人分支 → `dev-1.0` | **`2e077fb`** | **`dev-1.0`：`74197bf` → `2e077fb`**（merge 提交双亲 = `74197bf` + `5aa44c8`）；树与个人分支**逐字一致** |
+
+**推送前本地核对**：合并树 == 个人分支树（`git diff` 逐字一致）· `dev/device-context/{MLU590,PPU,docs}` **562** 文件 · 他方向目录齐全（communication 145 · framework-adapter 139 · memory 84 · performance 2 · rag_ljy 43 · images 140 · lib 3）· 草稿 **0** · env 基线 `image.id` = 发布 id。
+
+**推送后远端核对**：① `ls-remote` tip == 本地 `2e077fb` ✅ ② 重新 fetch 后 `git diff HEAD FETCH_HEAD` **空** ✅ ③ 远端树直读：本方向 562 文件 · `dev/memory` 84 · 草稿 0 · `summary/` **3** 文件 · case 包 README 已含 `62fe615` 记录 ✅
+
+> ⚠️ **本轮第二次踩「陈旧 remote-tracking ref」**：`git fetch origin dev-1.0`（不给目标 refspec）**只写 `FETCH_HEAD`**，`refs/remotes/origin/dev-1.0` 仍停在 `74197bf` ⇒ 用它查 `summary/` 得到「**0 文件**」的假象；改用 `git fetch origin dev-1.0:refs/remotes/origin/dev-1.0` 后为 **3 文件**（真实）。⇒ 核对远端**一律用 `FETCH_HEAD` / `ls-remote`**，或先做带 refspec 的 fetch。
+
+### 7.3 收尾状态与下一步
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | FlagCX `dev-1.0` | ✅ **`62fe615`**（含修复）⇒ 各方向可**覆盖安装**或换镜像 |
+| 2 | 本仓 `dev-1.0` | ✅ **`2e077fb`** ⇒ 四实例内容 + 910C 新基座适配 + case 包全部入库 |
+| 3 | 本方向个人分支 | ✅ `kistich/device-context`（工作区干净、与远端一致） |
+| 4 | **通道 ④ 镜像侧晋升** | ⏳ **待镜像维护者**：`dev/images/ascend-train-comm/v4`（或 v3 补丁版）的 `ARG FlagCX_COMMIT` pin 到 **`b576fa6a`**；发布后在 **baked 镜像上直接跑** `flagcx_sync_test.py --iters 20` 应为 PASS（不再依赖挂载覆盖） |
+| 5 | 通知各方向 | ⏳ 待发：「FlagCX 已更新到 `62fe615`」—— 10-14 口径是「各自 `fix`/`commit` 后**覆盖安装**最新 FlagCX」 |
+| 6 | 本方向运行环境 | ⏳ 镜像换新后**删除** `910C/env/train` 的 `mounted_repos.FlagCX` 声明（挂载只是过渡态，见 ENV-SPEC §2.3 晋升） |
 
