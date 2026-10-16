@@ -1,0 +1,19 @@
+--- /tmp/base_loader.py.bak	2026-09-02 12:45:28.176530223 +0000
++++ vllm/model_executor/model_loader/base_loader.py	2026-09-02 12:45:28.188530330 +0000
+@@ -58,6 +58,16 @@
+                     prefix=prefix,
+                 )
+ 
++            # FL/flagos: torch 2.10 的 `with torch.device("flagos")` 默认设备
++            # 上下文对 PrivateUse1 不生效,model 参数建在 CPU;显式搬到 target。
++            # (CUDA 路径此处为空操作,._apply 跳过同设备搬移)
++            if model is not None and target_device.type != "cpu":
++                try:
++                    model.to(target_device)
++                except Exception as _e:
++                    print(f"[boot-patch] base_loader model.to({target_device}) failed: {_e}", flush=True)
++                    raise
++
+             log_model_inspection(model)
+ 
+             logger.debug("Loading weights on %s ...", load_device)

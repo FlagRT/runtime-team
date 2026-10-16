@@ -1,0 +1,8 @@
+can not use command: npu-smi info
+Traceback (most recent call last):
+  File "/work/dev/framework-adapter/probes/qwen_embedding_baseline.py", line 192, in main
+    run(args, result)
+  File "/work/dev/framework-adapter/probes/qwen_embedding_baseline.py", line 44, in run
+    device = torch.device(args.device)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected one of cpu, cuda, ipu, xpu, mkldnn, opengl, opencl, ideep, hip, ve, fpga, maia, xla, lazy, vulkan, mps, meta, hpu, mtia, privateuseone device type at start of device string: npu

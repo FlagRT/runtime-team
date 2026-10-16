@@ -1,0 +1,44 @@
+[W909 14:51:16.654807354 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+{"stage": "environment", "versions": {"torch": "2.8.0+cpu", "torch-br": "1.8.7.20800+br1xx", "flag-gems": null, "triton": "3.6.0"}, "device": "supa:0", "count": 1, "name": "Biren166M"}
+Could not create log file: File exists
+COULD NOT CREATE LOGFILE '20260909-145117.317'!
+Could not create log file: File exists
+COULD NOT CREATE LOGFILE '20260909-145117.317'!
+E20260909 14:51:17.915786   317 DefaultLogger.cpp:87] 2026-09-09T06:51:17.915770610Z FRAMEWORK [torch_br:/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/framework/SupaFunction.cpp:33] [ERROR] 317 
+***************************pointwise No SUPA Function found for***************************
+                               input_num = 1
+                            input1_dtype = FP16
+                            output_dtype = FP16
+                          need_broadcast = false
+                               is_scalar = false
+                          is_one_element = false
+          is_broadcast_special_optimized = false
+                                bias_add = false
+E20260909 14:51:17.919062   317 DefaultLogger.cpp:87] 2026-09-09T06:51:17.919060916Z FRAMEWORK [torch_br] [ERROR] 317 Throwing exception ERROR (BR TORCH INTERNAL):/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/framework/BaseSupaKernel.h:73 Failed to find supa function, ErrorCode: 2, BR Torch Internal Invalid Arguments
+backtrace: 1: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libbr_common.so: torch_br::utils::BaseException::traceOnThrow()+0x71
+backtrace: 2: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: torch_br::utils::BrTorchInternalException::BrTorchInternalException(torch_br::utils::BrTorchErrorStatus, char const*, char const*, unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)+0xa5
+backtrace: 3: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libbr_common.so: at::supa::BaseSupaKernel<suError (ape::BRTensor&, std::vector<ape::BRTensor, std::allocator<ape::BRTensor> >&, unsigned int, dim3, suStream*)>::build(at::supa::SupaKernelContext*)+0x55a
+backtrace: 4: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libbr_common.so: torch_br::utils::SupaOpBackend::build()+0x182
+backtrace: 5: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: at::supa::PtOpFrontend::run(bool)+0x2ea
+backtrace: 6: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: at::supa::silu_out(at::Tensor const&, at::Tensor&)+0x1392
+backtrace: 7: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xbeee41
+backtrace: 8: /usr/local/lib/python3.10/dist-packages/torch_br/lib/libtorch_br.so: ()+0xbeef25
+backtrace: 9: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_cpu.so: at::_ops::silu::call(at::Tensor const&)+0xaf
+backtrace:10: /usr/local/lib/python3.10/dist-packages/torch/lib/libtorch_python.so: ()+0x5465fa
+backtrace:11: python3: ()+0x15cc4e
+backtrace:12: python3: _PyObject_MakeTpCall()+0x25b
+backtrace:13: python3: _PyEval_EvalFrameDefault()+0x6d9b
+backtrace:14: python3: _PyFunction_Vectorcall()+0x7c
+backtrace:15: python3: _PyEval_EvalFrameDefault()+0x6452
+Traceback (most recent call last):
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 105, in <module>
+    main()
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 62, in main
+    actual = native()
+  File "/workspace/cgu135/cross_vendor_smoke.py", line 55, in native
+    return F.silu(x) if op == "silu" else F.rms_norm(x, [shape[-1]], w, 1e-6)
+  File "/usr/local/lib/python3.10/dist-packages/torch/nn/functional.py", line 2375, in silu
+    return torch._C._nn.silu(input)
+RuntimeError: ERROR (BR TORCH INTERNAL):/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-stack/br_pytorch/torch_br/csrc/framework/BaseSupaKernel.h:73 Failed to find supa function, ErrorCode: 2, BR Torch Internal Invalid Arguments

@@ -1,0 +1,20 @@
+can not use command: npu-smi info
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+INFO 09-07 14:30:54 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 09-07 14:30:54 [__init__.py:46] - fl -> vllm_fl:register
+INFO 09-07 14:30:54 [__init__.py:49] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 09-07 14:30:55 [__init__.py:238] Platform plugin fl is activated
+[2026-09-07 14:30:55] [INFO] [vllm_fl.dispatch] Registering vendor backends for current platform: ascend
+[2026-09-07 14:30:56] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.patch] Patched HybridAttentionMambaModelConfig for Ascend
+[2026-09-07 14:30:57] [INFO] [vllm_fl.dispatch.backends.vendor.ascend.impl.attention] NPU compatibility enabled: torch.Event -> torch.npu.Event
+[2026-09-07 14:30:57] [INFO] [vllm_fl.dispatch.manager] OpManager initialized: 35 ops with 69 implementations
+[2026-09-07 14:30:57] [INFO] [vllm_fl.dispatch.policy] Using custom config from '/workspace/vllm-plugin-FL/vllm_fl/dispatch/config/ascend.yaml'
+silu_and_mul: default.flagos(runtime_fallback_safe=True), vendor.ascend(runtime_fallback_safe=True), reference.torch(runtime_fallback_safe=True)
+rms_norm: vendor.ascend(runtime_fallback_safe=True), default.flagos(runtime_fallback_safe=True), reference.torch(runtime_fallback_safe=True)
+rotary_embedding: vendor.ascend(runtime_fallback_safe=False), default.flagos(runtime_fallback_safe=False), reference.torch(runtime_fallback_safe=False)
+topk_softmax: vendor.ascend(runtime_fallback_safe=True), default.flagos(runtime_fallback_safe=True)

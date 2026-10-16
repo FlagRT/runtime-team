@@ -1,0 +1,513 @@
+{
+  "backend": "hccl",
+  "device": "npu:1",
+  "rank": 1,
+  "world_size": 2,
+  "torch": "2.10.0+cpu",
+  "prototype_revision": "3c62d59f0becaa503036ce118e65ced62ae40aad",
+  "model_sha256": {
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+  },
+  "comm_mode": "fused",
+  "global_batch": 64,
+  "local_batch": 32,
+  "dtype": "float32",
+  "dataset": "deterministic synthetic; not recommendation accuracy",
+  "seed": 923,
+  "warmup_steps": 5,
+  "measured_steps": 50,
+  "evidence_scope": "NPU integration",
+  "runtime_info": {
+    "name": "ascend",
+    "device_type": "npu",
+    "capabilities": [
+      "bounded_sync",
+      "context_lifecycle",
+      "context_query",
+      "device",
+      "device_state",
+      "device_state_control",
+      "error_map",
+      "event",
+      "graph_capture",
+      "memory",
+      "memory_alloc",
+      "memory_alloc_stat",
+      "multidevice",
+      "record_stream",
+      "recovery_probe",
+      "recovery_real",
+      "stream",
+      "stream_priority",
+      "stream_priority_readback"
+    ],
+    "native_accesses": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "degradations": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "framework": "torch_npu",
+    "torch": "2.10.0+cpu",
+    "device_count": 2,
+    "supports": {
+      "device": true,
+      "memory": true,
+      "stream": true,
+      "event": true,
+      "bounded_sync": true,
+      "sync_timeout": true,
+      "error_map": true,
+      "recovery_probe": true,
+      "recovery_real": true,
+      "device_state": true,
+      "graph_capture": true,
+      "stream_priority": true,
+      "multidevice": true,
+      "stream_priority_control": false,
+      "stream_priority_readback": true,
+      "memory_alloc": true,
+      "memory_alloc_stat": true,
+      "record_stream": true,
+      "context_lifecycle": true,
+      "context_query": true,
+      "device_state_control": true
+    },
+    "bounded_sync_scope": "pyACL synchronize_*_with_timeout（真中断）；pyACL 不可用时降级为普通同步",
+    "acl_available": true,
+    "acl_unavailable_reason": "",
+    "known_issues": [
+      "ASCEND-ACL-INIT-CONCURRENCY",
+      "ASCEND-STREAM-PRIORITY-SET-BLOCKED"
+    ],
+    "evidence_level": "已在 910C 真机长期验证（conformance 13+6、两条腿、错误闭环）；2026-09-22 补齐 info()/known_issues 并修「非超时码冒充超时」"
+  },
+  "oracle": {
+    "mode": "eval with autograd: BN frozen, dropout disabled",
+    "gradient_checks": [
+      {
+        "name": "linear.bias",
+        "max_abs": 0.0,
+        "pass": true
+      },
+      {
+        "name": "linear.fc.weight",
+        "max_abs": 1.862645149230957e-09,
+        "pass": true
+      },
+      {
+        "name": "embedding.embedding.weight",
+        "max_abs": 4.656612873077393e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.weight",
+        "max_abs": 1.8189894035458565e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.bias",
+        "max_abs": 4.656612873077393e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.weight",
+        "max_abs": 5.093170329928398e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.bias",
+        "max_abs": 5.238689482212067e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.weight",
+        "max_abs": 2.3283064365386963e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.bias",
+        "max_abs": 1.1641532182693481e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.weight",
+        "max_abs": 8.731149137020111e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.bias",
+        "max_abs": 1.0477378964424133e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.weight",
+        "max_abs": 2.6193447411060333e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.bias",
+        "max_abs": 1.3969838619232178e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.weight",
+        "max_abs": 1.4551915228366852e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.bias",
+        "max_abs": 2.3283064365386963e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.weight",
+        "max_abs": 4.190951585769653e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.bias",
+        "max_abs": 0.0,
+        "pass": true
+      }
+    ],
+    "update_max_abs": 3.725290298461914e-09,
+    "update_pass": true,
+    "rank_parameter_max_abs": 0.0
+  },
+  "training": {
+    "mode": "train: local BatchNorm + dropout=0.2",
+    "losses": [
+      1.003135323524475,
+      1.382621169090271,
+      1.1912846565246582,
+      1.4522629976272583,
+      1.533557415008545,
+      1.1738399267196655,
+      0.9340535998344421,
+      0.9492071866989136,
+      1.3531532287597656,
+      1.338090419769287,
+      1.063157081604004,
+      0.7928432822227478,
+      0.8084294199943542,
+      1.2950584888458252,
+      1.4780925512313843,
+      1.0216044187545776,
+      1.256601333618164,
+      0.8544958829879761,
+      1.247394323348999,
+      1.0022070407867432,
+      1.3514561653137207,
+      1.61443030834198,
+      1.4192759990692139,
+      1.2633068561553955,
+      1.1542246341705322,
+      0.9523447751998901,
+      0.9375410079956055,
+      1.4032647609710693,
+      1.16254460811615,
+      1.0931999683380127,
+      1.474666953086853,
+      0.9120947122573853,
+      0.7448360919952393,
+      1.1509840488433838,
+      1.0654218196868896,
+      1.0829235315322876,
+      1.1585354804992676,
+      0.899026095867157,
+      1.096495270729065,
+      1.323534369468689,
+      1.3352848291397095,
+      0.753362774848938,
+      0.7005084753036499,
+      1.104722499847412,
+      0.9087879061698914,
+      1.1707873344421387,
+      0.8580867052078247,
+      0.9951291084289551,
+      1.0887855291366577,
+      1.0727217197418213
+    ],
+    "step_seconds": [
+      0.008688116213306785,
+      0.008665754925459623,
+      0.008513898123055696,
+      0.008098168997094035,
+      0.008147221058607101,
+      0.008258395828306675,
+      0.008533159038051963,
+      0.008230355102568865,
+      0.008322349051013589,
+      0.008281847927719355,
+      0.00838571204803884,
+      0.00919552892446518,
+      0.008233374916017056,
+      0.007987624034285545,
+      0.007854798110201955,
+      0.00801851600408554,
+      0.007865287829190493,
+      0.008625892922282219,
+      0.0079116509296,
+      0.007734851911664009,
+      0.007824857020750642,
+      0.007715471088886261,
+      0.009841047925874591,
+      0.009515232872217894,
+      0.00808593793772161,
+      0.008386041969060898,
+      0.01024774694815278,
+      0.008442214922979474,
+      0.007412516977638006,
+      0.007250810042023659,
+      0.007021340075880289,
+      0.010309440083801746,
+      0.007156656123697758,
+      0.007720882073044777,
+      0.007077332120388746,
+      0.0071763270534574986,
+      0.0070773218758404255,
+      0.0069610970094799995,
+      0.006940345978364348,
+      0.006820741109549999,
+      0.0069003039970994,
+      0.006632951786741614,
+      0.006865543080493808,
+      0.006702445913106203,
+      0.0066831649746745825,
+      0.0067299059592187405,
+      0.006502906093373895,
+      0.0066621031146496534,
+      0.006485124817118049,
+      0.0066097809467464685
+    ],
+    "sample_id_ranges": [
+      [
+        352,
+        384
+      ],
+      [
+        416,
+        448
+      ],
+      [
+        480,
+        512
+      ],
+      [
+        544,
+        576
+      ],
+      [
+        608,
+        640
+      ],
+      [
+        672,
+        704
+      ],
+      [
+        736,
+        768
+      ],
+      [
+        800,
+        832
+      ],
+      [
+        864,
+        896
+      ],
+      [
+        928,
+        960
+      ],
+      [
+        992,
+        1024
+      ],
+      [
+        1056,
+        1088
+      ],
+      [
+        1120,
+        1152
+      ],
+      [
+        1184,
+        1216
+      ],
+      [
+        1248,
+        1280
+      ],
+      [
+        1312,
+        1344
+      ],
+      [
+        1376,
+        1408
+      ],
+      [
+        1440,
+        1472
+      ],
+      [
+        1504,
+        1536
+      ],
+      [
+        1568,
+        1600
+      ],
+      [
+        1632,
+        1664
+      ],
+      [
+        1696,
+        1728
+      ],
+      [
+        1760,
+        1792
+      ],
+      [
+        1824,
+        1856
+      ],
+      [
+        1888,
+        1920
+      ],
+      [
+        1952,
+        1984
+      ],
+      [
+        2016,
+        2048
+      ],
+      [
+        2080,
+        2112
+      ],
+      [
+        2144,
+        2176
+      ],
+      [
+        2208,
+        2240
+      ],
+      [
+        2272,
+        2304
+      ],
+      [
+        2336,
+        2368
+      ],
+      [
+        2400,
+        2432
+      ],
+      [
+        2464,
+        2496
+      ],
+      [
+        2528,
+        2560
+      ],
+      [
+        2592,
+        2624
+      ],
+      [
+        2656,
+        2688
+      ],
+      [
+        2720,
+        2752
+      ],
+      [
+        2784,
+        2816
+      ],
+      [
+        2848,
+        2880
+      ],
+      [
+        2912,
+        2944
+      ],
+      [
+        2976,
+        3008
+      ],
+      [
+        3040,
+        3072
+      ],
+      [
+        3104,
+        3136
+      ],
+      [
+        3168,
+        3200
+      ],
+      [
+        3232,
+        3264
+      ],
+      [
+        3296,
+        3328
+      ],
+      [
+        3360,
+        3392
+      ],
+      [
+        3424,
+        3456
+      ],
+      [
+        3488,
+        3520
+      ]
+    ],
+    "parameter_count": 421452,
+    "rank_parameter_max_abs": 0.0,
+    "max_rank_measured_seconds": 0.39131009578704834,
+    "global_samples_per_second": 8177.657654254455,
+    "gradient_communication": {
+      "gradient_allreduce_calls": 50,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.046865317272022367,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    },
+    "bn_note": "local minibatch statistics; buffers need not match at exit; not equivalent to single-device train-mode BatchNorm",
+    "parameters_finite": true
+  },
+  "memory_stats_at_end": {
+    "total_mb": 62748,
+    "used_mb": 729,
+    "free_mb": 62018,
+    "allocated_mb": 6
+  },
+  "verdict": "PASS",
+  "group_state": "CLOSED",
+  "teardown": "closed"
+}

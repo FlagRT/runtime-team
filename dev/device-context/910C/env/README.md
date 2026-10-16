@@ -77,7 +77,10 @@ commit 与镜像基线逐字相同**（FlagCX `4e0e0cb…` · FlagTree `15ec1a6c
 Torch-FL `162582d6…` · vllm-plugin-FL `8b059122…`）；总组亦在
 `dev/images/ascend-train-comm/v3/lock.yaml` 里并列登记 `image_id`(npu1-11) 与 `image_id_round4_npu27`。
 
-**本方向处置**：把该字段对齐到**本机** id，工具是幂等的 [`pin_local_image_id.sh`](pin_local_image_id.sh)：
+**本方向处置（2026-10-16 定稿）**：ⓐ **仓内文件** `env.baseline.yaml` 的 `image.id` 记**发布 id**
+（= 镜像基线的 id，共享分支口径，逐字相同）；ⓑ **本机**要跑 `check` / `--strict` 时，用幂等工具
+[`pin_local_image_id.sh`](pin_local_image_id.sh) **临时**对齐到本机 id —— ⚠️ **对齐后的文件是脏的、
+不要提交**，结论性运行结束后 `git checkout -- <env-dir>/env.baseline.yaml` 复原。工具用法：
 
 ```bash
 # 在仓根执行（本机 docker 里已有该 ref 的镜像）
@@ -92,8 +95,10 @@ bash dev/device-context/910C/env/pin_local_image_id.sh dev/device-context/910C/e
 > **不手工编辑**」。本脚本不是随机手改——它是**单字段、机器取值、回读校验、幂等、且把依据写进文件**的
 > **机器级对齐动作**，属**已登记的偏离**；正解仍在机制/镜像侧（建议见下），故同时保留了本条待办。
 >
-> ⚠️ **`export` 之后必须重跑本脚本**：`export` 会把该字段抄回制造机 id。实测复现（export → check FAIL →
-> pin → check PASS）见 [`../probes/baseline_strict_20261016_out/SUMMARY.md`](../probes/baseline_strict_20261016_out/SUMMARY.md)。
+> ⚠️ **`export` 之后必须重跑本脚本**：`export` 会把该字段抄回**发布 id**（即仓内文件形态）。实测复现
+> （export → check FAIL → pin → check PASS）见 [`../probes/baseline_strict_20261016_out/SUMMARY.md`](../probes/baseline_strict_20261016_out/SUMMARY.md)。
+> 顺序固定为 `export`（要干净工作区，此时文件=发布 id）→ `pin`（文件转脏）→ `check` → `up --strict`；
+> **跑完 `git checkout -- <env-dir>/env.baseline.yaml` 复原** —— 仓内记录的始终应是发布 id。
 
 **推理腿不需要这条对齐**（可自证）：`infer/env.baseline.yaml` 的 `image.id` 与本机**逐字相同**
 （`sha256:2e56022ae5b39…`）——因为它是华为昇腾官方镜像、**按 digest 拉取**，
@@ -192,6 +197,7 @@ docker compose -f dev/device-context/910C/env/train/docker-compose.yml down
 - ⭐ **`--strict` 真机验收的完整读数**（含 `export`→FAIL→pin→PASS 的复现）：
   [`../probes/baseline_strict_20261016_out/SUMMARY.md`](../probes/baseline_strict_20261016_out/SUMMARY.md)。
 - 出结论的运行另须 `export --require-clean`（工作区不干净或 commit 未推送即拒绝导出）。
+- ⚠️ **`pin_local_image_id.sh` 会让 `env.baseline.yaml` 变脏**（设计如此：仓内文件记发布 id、本机对齐只作本地动作）⇒ 出结论后 `git checkout -- <env-dir>/env.baseline.yaml` 复原，否则会把本机 id 提交上来。
 - ⚠️ 从手工 `docker run` 切到 `up.sh` 前，**先 `docker rm -f` 同名容器**：compose 遇到同名残留会
   `Conflict. The container name … is already in use` 而起不来（本轮实测踩到）。
 

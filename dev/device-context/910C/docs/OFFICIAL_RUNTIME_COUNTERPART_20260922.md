@@ -15,7 +15,7 @@
 | 与我们锁定栈一致吗？ | ✅ **软件栈逐项一致**（CANN 9.0.0 / Python 3.11 / torch 2.10.0 / triton 3.5.0 / flagtree **0.7.0rc2+ascend3.5**） |
 | 现在要切换吗？ | ❌ **不切换**。本方向结论已在锁定镜像上取得，切换需总组裁定；本文件**只做登记** |
 | 能直接替代训练腿吗？ | ⚠️ **不能** —— 官方 runtime 镜像**不含 FlagCX**，而训练腿必需（与「官方推荐镜像不含 FlagCX」是同一个已登记诉求） |
-| 它的价值 | ① 为 `dev/stack.lock.910c.yaml` 的 `candidates:` 提供**官方对应物**（此前候选是组内自建）；② 其 `base/runtime/<backend>.md` 明确了**宿主驱动前置**，是基座登记的规范做法；③ 附 **`compiler` 命令**可切 FlagTree/Triton |
+| 它的价值 | ① 为本方向 `candidates.train` 提供**官方对应物**（此前候选是组内自建；登记它的那份工作草稿 `dev/stack.lock.910c.yaml` 已于 **2026-10-16 清理**，口径见 [`../../README.md`](../../README.md) 头部「基座依据」）；② 其 `base/runtime/<backend>.md` 明确了**宿主驱动前置**，是基座登记的规范做法；③ 附 **`compiler` 命令**可切 FlagTree/Triton |
 
 ---
 
@@ -134,7 +134,7 @@ curl -sD- -o/dev/null -H "Authorization: Bearer $TOK" \
 
 | # | 建议 | 说明 |
 |---|---|---|
-| 1 | **登记为 `candidates.train` 的「官方对应物」**（不生效） | 已在 `dev/stack.lock.910c.yaml` 工作草稿中登记；与既有组内自建候选**并列**，由总组裁定 |
+| 1 | **登记为 `candidates.train` 的「官方对应物」**（不生效） | 2026-09 已登记在本方向工作草稿并同步 `STATUS.md`；该草稿已于 **2026-10-16 清理**（草稿不随 `dev-1.0` 走）⇒ 现存依据是 `STATUS.md` 与总组定稿 `dev/stack.lock.910c.v4.yaml`；与既有组内自建候选**并列**，由总组裁定 |
 | 2 | **是否切换由总组裁定** | 本方向**不自行切换**（结论已在锁定镜像上取得；切换会引入重跑成本与新的不确定性） |
 | 3 | **若总组倾向切换，本方向建议的前提条件** | ① 先补齐 FlagCX 缺口（见 §4）；② 确认宿主驱动 26.0.rc1 前提（我们现网驱动版本**未在本次核查中采集**，须实测）；③ 切换后重跑 `VERIFICATION_MANIFEST` 的 9 条复核命令 |
 | 4 | **采用其「明示宿主驱动前置」的登记做法** | 官方 `base|runtime/<backend>.md` 每份都写 **Host driver**，正是我们 `dev/images/<name>/v<N>/lock.yaml` 可以吸收的字段（建议后续补入） |
