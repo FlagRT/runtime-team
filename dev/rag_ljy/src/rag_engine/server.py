@@ -1,16 +1,24 @@
-"""Persistent retrieval API with one model pair on one inference thread."""
+"""Multi-request API with bounded embedding, retrieval, and reranking queues."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import json
+import math
+from time import perf_counter_ns
+from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from functools import partial
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from .query_runtime import create_pipeline, format_hits
+from .retrieval import validate_execution_mode
+from .scheduler import StageQueue
+from .memory_probe import DeviceMemoryMonitor
 
 
 logger = logging.getLogger(__name__)
@@ -27,28 +35,86 @@ class QueryRequest(BaseModel):
     reranker_batch_size: int = Field(default=4, ge=1, le=4)
 
 
-def create_app(device: str = "npu:0", pipeline_factory=None) -> FastAPI:
-    factory = pipeline_factory or create_pipeline
+def create_app(
+    device: str = "auto", pipeline_factory=None, *, execution_mode: str = "concurrent",
+    max_inflight: int = 8, retrieval_workers: int = 4,
+    embedding_workers: int = 2, stage_queue_capacity: int | None = None,
+    memory_probe_enabled: bool = True, memory_probe_interval_s: float = 1.0,
+    memory_probe_factory=None,
+) -> FastAPI:
+    """Advance requests independently through bounded FIFO stage queues.
+
+    Remote vLLM embedding calls use a separate pool. Local accelerator models
+    remain on their initialization thread. Full stage queues apply backpressure
+    within the overall admitted-request bound; new excess requests receive 503.
+    """
+    validate_execution_mode(execution_mode)
+    if stage_queue_capacity is None:
+        stage_queue_capacity = max_inflight
+    if min(max_inflight, retrieval_workers, embedding_workers, stage_queue_capacity) < 1:
+        raise ValueError("Worker counts and request/queue capacities must be positive")
+    if not math.isfinite(memory_probe_interval_s) or memory_probe_interval_s <= 0:
+        raise ValueError("Memory probe interval must be finite and positive")
+    factory = pipeline_factory or partial(create_pipeline, execution_mode=execution_mode)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # NPU initialization and all inference run on the same dedicated thread.
-        executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rag-npu")
-        app.state.busy = False
+        executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rag-inference")
+        retrieval_executor = ThreadPoolExecutor(
+            max_workers=retrieval_workers, thread_name_prefix="rag-retrieval")
+        embedding_executor = None
+        app.state.stage_queues = {}
         app.state.ready = False
+        app.state.tasks = set()
         app.state.executor = executor
+        app.state.retrieval_executor = retrieval_executor
+        app.state.memory_monitor = None
         try:
             app.state.pipeline = await asyncio.get_running_loop().run_in_executor(
-                executor, factory, device
-            )
+                executor, factory, device)
+            embedder = getattr(app.state.pipeline, "embedder", None)
+            app.state.embedding_backend = getattr(embedder, "backend", "transformers")
+            app.state.device = str(getattr(embedder, "device", device))
+            remote_embedding = app.state.embedding_backend == "vllm"
+            if remote_embedding:
+                embedding_executor = ThreadPoolExecutor(
+                    max_workers=embedding_workers, thread_name_prefix="rag-embedding-http")
+            app.state.stage_queues = {
+                "embedding": StageQueue("embedding", embedding_executor or executor,
+                    capacity=stage_queue_capacity, workers=embedding_workers if remote_embedding else 1),
+                "retrieval": StageQueue("retrieval", retrieval_executor,
+                    capacity=stage_queue_capacity, workers=retrieval_workers),
+                "rerank": StageQueue("rerank", executor,
+                    capacity=stage_queue_capacity, workers=1),
+            }
+            # The remote embedding adapter's 'remote-vllm' label is not a device.
+            # Probe the local rerank device without occupying its model worker.
+            probe_device = str(getattr(getattr(app.state.pipeline, "reranker", None), "device", device))
+            app.state.memory_monitor = DeviceMemoryMonitor(
+                probe_device, enabled=memory_probe_enabled, interval_s=memory_probe_interval_s,
+                probe=memory_probe_factory(probe_device) if memory_probe_factory is not None else None)
+            app.state.memory_monitor.start()
             app.state.ready = True
-            logger.info("RAG models loaded on %s; ready for repeated queries", device)
             yield
         finally:
             app.state.ready = False
-            # Do not release the models while an in-flight inference is running.
-            executor.shutdown(wait=True, cancel_futures=True)
-            app.state.pipeline = None
+            # Accepted requests keep ownership even if their HTTP waiter is cancelled.
+            # Drain all stages before closing the pipeline or either executor.
+            try:
+                await asyncio.gather(*list(app.state.tasks), return_exceptions=True)
+                for queue in app.state.stage_queues.values():
+                    await queue.close()
+                if app.state.memory_monitor is not None:
+                    await app.state.memory_monitor.close()
+                close = getattr(getattr(app.state, "pipeline", None), "close", None)
+                if close is not None:
+                    await asyncio.get_running_loop().run_in_executor(executor, close)
+            finally:
+                if embedding_executor is not None:
+                    embedding_executor.shutdown(wait=True, cancel_futures=True)
+                retrieval_executor.shutdown(wait=True, cancel_futures=True)
+                executor.shutdown(wait=True, cancel_futures=True)
+                app.state.pipeline = None
 
     app = FastAPI(title="RAG retrieval and reranking", lifespan=lifespan)
 
@@ -56,43 +122,83 @@ def create_app(device: str = "npu:0", pipeline_factory=None) -> FastAPI:
     async def health():
         if not app.state.ready:
             raise HTTPException(status_code=503, detail="Models are not ready")
-        return {"status": "ready", "device": device, "busy": app.state.busy}
+        active = len(app.state.tasks)
+        return {"status": "ready", "device": app.state.device, "busy": bool(active),
+                "inflight": active, "max_inflight": max_inflight,
+                "embedding_backend": app.state.embedding_backend,
+                "retrieval_backend": getattr(getattr(app.state.pipeline, "store", None), "backend_name", "unknown"),
+                "execution_mode": execution_mode,
+                "device_memory": app.state.memory_monitor.snapshot(),
+                "stage_queues": {name: queue.snapshot()
+                                 for name, queue in app.state.stage_queues.items()}}
+
+    async def process(request, request_id):
+        pipeline = app.state.pipeline
+        timings = {}
+        started = perf_counter_ns()
+
+        async def stage(name, operation):
+            queued = perf_counter_ns()
+
+            def work():
+                begin = perf_counter_ns()
+                timings[name + "_queue_ms"] = (begin - queued) / 1_000_000
+                logger.info("request_id=%s stage=%s event=start monotonic_ns=%d queue_ms=%.3f",
+                            request_id, name, begin, timings[name + "_queue_ms"])
+                try:
+                    return operation()
+                finally:
+                    logger.info("request_id=%s stage=%s event=end monotonic_ns=%d",
+                                request_id, name, perf_counter_ns())
+
+            return await app.state.stage_queues[name].run(work)
+
+        status = "error"
+        try:
+            vector = await stage("embedding", partial(
+                pipeline.embed, request.query, request.embedding_batch_size, timings))
+            candidates = await stage("retrieval", partial(
+                pipeline.search, request.query, vector, request.retriever_top_k,
+                request.coarse_top_k, timings))
+            hits = await stage("rerank", partial(
+                pipeline.rank, request.query, candidates, request.fine_top_k,
+                request.reranker_batch_size, timings))
+            result = format_hits(hits)
+            status = "ok"
+            return result
+        finally:
+            timings["total_ms"] = (perf_counter_ns() - started) / 1_000_000
+            logger.info("request_id=%s event=finished status=%s timings=%s",
+                        request_id, status, json.dumps(timings, sort_keys=True))
 
     @app.post("/query")
-    async def query(request: QueryRequest):
-        if app.state.busy:
-            raise HTTPException(
-                status_code=503,
-                detail="An inference is already running; retry after it completes",
-                headers={"Retry-After": "1"},
-            )
-        # This check/set has no await between it and is atomic on the event loop.
-        app.state.busy = True
-
-        def infer():
-            hits = app.state.pipeline.retrieve(**request.model_dump())
-            return format_hits(hits)
-
-        future = asyncio.get_running_loop().run_in_executor(
-            app.state.executor, infer
-        )
+    async def query(request: QueryRequest, response: Response):
+        request_id = uuid4().hex
+        headers = {"X-Request-ID": request_id}
+        if not app.state.ready:
+            raise HTTPException(status_code=503, detail="Service is not ready", headers=headers)
+        # No await between capacity check and task registration: atomic on this loop.
+        if len(app.state.tasks) >= max_inflight:
+            raise HTTPException(status_code=503, detail="Request capacity is full; retry later",
+                                headers={**headers, "Retry-After": "1"})
+        response.headers["X-Request-ID"] = request_id
+        task = asyncio.create_task(process(request, request_id), name="rag-" + request_id)
+        app.state.tasks.add(task)
+        logger.info("request_id=%s event=accepted inflight=%d", request_id, len(app.state.tasks))
 
         def finished(completed):
-            app.state.busy = False
-            # Retrieve failures even when the HTTP client has disconnected.
+            app.state.tasks.discard(completed)
             if not completed.cancelled():
                 error = completed.exception()
                 if error is not None:
-                    logger.error("RAG query failed", exc_info=(type(error), error, error.__traceback__))
+                    logger.error("request_id=%s query failed", request_id,
+                                 exc_info=(type(error), error, error.__traceback__))
 
-        future.add_done_callback(finished)
+        task.add_done_callback(finished)
         try:
-            # A disconnected client must not release the busy flag while the
-            # underlying NPU operation continues to use the shared models.
-            return await asyncio.shield(future)
+            return await asyncio.shield(task)
         except Exception as error:
-            raise HTTPException(
-                status_code=500, detail="Query failed; see server logs"
-            ) from error
+            raise HTTPException(status_code=500, detail="Query failed; see server logs",
+                                headers=headers) from error
 
     return app
