@@ -1,7 +1,7 @@
 # performance · STATUS
 
 > 总组速览入口（[战略文档 §8.2](../../docs/运行时层原型验证-战略目标-910C.v1.md)格式）｜详细进展、边界与命令见 [README.md](README.md)
-> 最近更新：2026-10-09
+> 最近更新：2026-10-20
 
 ## 当前阶段
 
@@ -12,6 +12,8 @@
 - Inference V3/V3.1（10-01 → 10-05）：公共 ModelAdapter 契约；DeepFM（TP hidden 差分 max_abs 5.59e-8）、DLRM（与 DeepFM 共享 RecommendationAdapter，398 项回归）、OneRec-8B 有状态生成（12 条 token 轨迹一致，每份 profile 2,304 AllReduce＋32 AllGather 全归因）。
 - Inference V3.2–V4（10-06 → 10-07）：CUDA/Ascend 大 trace 分析独立时限与恢复、`undefined_metrics` 与变异性筛查、A100 验收收口；统一监控旁路 `TelemetryProvider`（A3/910C DCMI，默认 1 秒，`monitor.html` 离线筛选），小规模开销对照 +0.0658%（95% 上限 +0.69%）。
 - 成本优化与续验（10-07 → 10-09）：schema 4 比较核心包（OneRec 18.78 GB→52.12 MB）、`--dry-run`/`analyze`/`repack-reference`；2.62 GB trace 解析 165.70 s→111.91 s（−32.5%）；Ascend 续验 21 项通过，10-09 Qwen 4 项复验通过；DeepFM FlagTree/FlagCX TP2 剩余与 A100 12 项待资源。
+
+- P800 BF16 `torch.mm` 快路径定案（2026-10-20）：XPU3 XMLIR 默认 `XMLIR_MATMUL_FAST_MODE=0` 会把 BF16 matmul lowering 成"转成 FP32 计算再转回 BF16"的慢路径，吞吐≈FP32（118.9 vs FP16 约 260 TFLOPS）；设置 `XMLIR_MATMUL_FAST_MODE=1` 走快路径，实测 223.9 TFLOPS（BF16/FP16 0.447x→0.873x），只需配置环境变量、无代码变更，精度不变。边界：该开关只覆盖 XMLIR/Triton JIT 层；Toolkit 官方测试工具 native_bench 实际走的是 XBLAS 预编译内核这条较慢路径（118.85，对该开关实测不敏感），较快路径的算力在 Base 的 computation case 中可以测得。需要将该配置固化到昆仑芯的启动设置中。
 
 ## 关键阻塞
 
@@ -24,4 +26,5 @@
 
 - 资源空闲后补齐待补设备矩阵（DeepFM FlagTree/FlagCX TP2、A100 12 项）并收口 10-09 in_progress 快照。
 - 将 Inference V2–V4 以最小增量同步到 FlagPerf 个人分支并完成审查 PR；优先算子级归因 on 路径变慢并在无共享负载环境复测性能基线。
+- 把 `XMLIR_MATMUL_FAST_MODE=1` 固化到昆仑芯启动设置（容器 env/启动脚本），否则新容器默认仍走 BF16 慢路径；XBLAS BF16 内核缺口按厂商渠道反馈。
 - 按锁定训练/推理镜像收拢两段 Demo 证据（含 vLLM 服务口径），统一预热、并发、计时和状态口径，生成战略 §3 第 5 条要求的验收报告；随后深化 Oracle—Device 误差归因闭环，推进故障恢复与长稳/热加载能力。
