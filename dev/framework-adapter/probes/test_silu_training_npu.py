@@ -8,6 +8,7 @@ from collections import Counter
 from contextlib import nullcontext
 import json
 import logging
+import os
 from pathlib import Path
 import sys
 import traceback
@@ -39,24 +40,45 @@ def run(args, result):
     logger = logging.getLogger("flag_gems")
     logger.setLevel(logging.DEBUG)
     logger.addHandler(calls)
+    from admission_records import load_records
+    records = load_records(args.admission_records) if args.admission_records else ()
     scopes = []
     def scope():
         if args.scoped_adapter:
             from silu_policy import Environment, SiluPolicy
             from silu_training_adapter import SiluAdapter
             import importlib.metadata
+            import triton
             import subprocess
             gems_root = str(Path(flag_gems.__file__).resolve().parents[2])
-            revision = subprocess.check_output(
-                ["git", "-c", "safe.directory=" + gems_root, "-C", gems_root,
-                 "rev-parse", "HEAD"], text=True).strip()
+            if (Path(gems_root) / ".git").exists():
+                revision = subprocess.check_output(
+                    ["git", "-c", "safe.directory=" + gems_root, "-C", gems_root,
+                     "rev-parse", "HEAD"], text=True).strip()
+            else:
+                # Baked v3 has no source checkout. Only the host launcher which
+                # checks the container image ID may supply this provenance.
+                revision = os.environ.get("FLAGRT_VERIFIED_GEMS_COMMIT", "unverified")
+                if "site-packages" not in Path(flag_gems.__file__).parts:
+                    raise RuntimeError("Baked identity cannot describe a mounted FlagGems")
+            builds = []
+            for distribution in ("flagtree", "triton-ascend"):
+                try:
+                    builds.append(distribution + "==" + importlib.metadata.version(distribution))
+                except importlib.metadata.PackageNotFoundError:
+                    pass
             actual = Environment(torch.npu.get_device_name(0), torch.__version__,
-                                 importlib.metadata.version("torch-npu"), revision)
+                                 importlib.metadata.version("torch-npu"), revision,
+                                 os.environ.get("FLAGRT_VERIFIED_IMAGE_ID", ""),
+                                 triton.__version__, ";".join(builds))
             expected = Environment(args.chip_name, "2.10.0+cpu", "2.10.0",
-                                   "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4")
+                                   "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+                                   actual.image_id, actual.triton, actual.compiler_build)
+            # Measured identity alone NEVER qualifies a kernel: a separate reviewed
+            # exact-environment capability is required by the policy below.
             policy = SiluPolicy(expected, ((2, 32, 3072), (1, 32, 3072)),
                                 ("torch.float32", "torch.float16", "torch.bfloat16"),
-                                experimental=True)
+                                experimental=True, capabilities=records)
             adapter = SiluAdapter(policy, actual, runtime, flag_gems)
             scopes.append(adapter)
             result["adapter_environment"] = actual.__dict__
@@ -68,7 +90,23 @@ def run(args, result):
                 for op in ("silu", "silu_backward")}
     before = tables()
     result["operator_cases"] = []
-    for dtype, tol in ((torch.float32, 1e-5), (torch.float16, 5e-3), (torch.bfloat16, 3e-2)):
+    if args.scoped_adapter and not args.fallback_only:
+        from silu_policy import InputSpec
+        admission = scope()
+        checks = []
+        for dtype in admission.policy.dtypes:
+            for shape in admission.policy.shapes:
+                reason = admission.policy.reason(admission.environment,
+                    InputSpec("npu", dtype, shape, True))
+                checks.append(dict(dtype=dtype, shape=shape, reason=reason))
+        result["admission_checks"] = checks
+        if any(check["reason"] for check in checks):
+            result["status"] = "blocked"
+            result["blocked_reason"] = "Target qualification absent or rejected; no target kernel executed"
+            result["target_calls"] = dict(calls.counts)
+            return
+    cases = () if args.fallback_only else ((torch.float32, 1e-5), (torch.float16, 5e-3), (torch.bfloat16, 3e-2))
+    for dtype, tol in cases:
         torch.manual_seed(1234)
         x = torch.randn(2, 32, 3072, device="npu:0", dtype=dtype, requires_grad=True)
         dy = torch.randn_like(x)
@@ -96,7 +134,8 @@ def run(args, result):
             "forward_max_abs": float((actual-y).abs().max()),
             "gradient_max_abs": float((actual_grad-grad).abs().max()),
             "calls": dict(delta), "dispatcher_restored": True, "tolerance": tol})
-    del x, y, grad, actual, actual_grad, restored, restored_grad, dy
+    if cases:
+        del x, y, grad, actual, actual_grad, restored, restored_grad, dy
     if args.scoped_adapter:
         from dataclasses import replace
         result["native_fallback_cases"] = []
@@ -129,6 +168,10 @@ def run(args, result):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
             assert tables() == before
             result["native_fallback_cases"].append({"reason": reason, "status": "pass"})
+        if args.fallback_only:
+            result["status"] = "pass"
+            result["adapter_events"] = [list(s.events) for s in scopes]
+            return
         with scope() as adapter, torch.inference_mode():
             x = base_input.detach()
             counts = calls.counts.copy()
@@ -161,6 +204,25 @@ def run(args, result):
         assert bool(torch.isfinite(p).all())
     opts = [torch.optim.AdamW(m.parameters(), lr=1e-5) for m in (native, target)]
     ids = torch.randint(100, 30000, (1, 32), generator=torch.Generator().manual_seed(999)).to("npu:0")
+    native.eval()
+    target.eval()
+    counts = calls.counts.copy()
+    with torch.no_grad():
+        reference_logits = native(input_ids=ids, use_cache=False).logits
+        with scope() if not args.native_control else nullcontext():
+            target_logits = target(input_ids=ids, use_cache=False).logits
+            runtime.synchronize(0)
+        torch.testing.assert_close(target_logits, reference_logits, atol=1e-5, rtol=1e-4)
+    delta = calls.counts - counts
+    if not args.native_control:
+        assert delta["GEMS SILU FORWARD"] > 0 and delta["GEMS SILU BACKWARD"] == 0
+    assert tables() == before
+    result["model_inference"] = dict(status="pass", calls=dict(delta),
+        logits_max_abs=float((target_logits-reference_logits).abs().max()),
+        input_shape=list(ids.shape), atol=1e-5, rtol=1e-4)
+    del reference_logits, target_logits
+    native.train()
+    target.train()
     result["steps"] = []
     result["model_tolerance"] = {"atol": 1e-5, "rtol": 1e-4}
     sample_before = target.get_input_embeddings().weight[int(ids[0,0])].detach().clone()
@@ -236,9 +298,13 @@ if __name__ == "__main__":
     p.add_argument("--same-state", action="store_true", help="Copy native weights before every forward; advance native optimizer only")
     p.add_argument("--scoped-adapter", action="store_true", help="Test new per-call experimental adapter, not raw global registration")
     p.add_argument("--operator-only", action="store_true", help="Run operator/admission gates without loading the model")
+    p.add_argument("--fallback-only", action="store_true", help="Independently test 5 pre-execution native fallbacks; no target kernel")
     p.add_argument("--chip-name", default="Ascend910", help="Explicit expected device name; a mismatch stays native")
+    p.add_argument("--admission-records", help="Reviewed local JSON/evidence bundle; no record means no target admission")
     p.add_argument("--out", required=True)
     args = p.parse_args()
+    if args.fallback_only and not args.scoped_adapter:
+        p.error("--fallback-only requires --scoped-adapter")
     if args.steps < 0 or Path(args.out).exists():
         p.error("Require nonnegative steps and unused output path")
     result = {"status": "fail", "scope": "isolated-process experimental SiLU ATen training registration",

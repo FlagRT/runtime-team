@@ -1,0 +1,67 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: manual-registration（ADR-0007：上游官方镜像无仓内配方，export 模式不适用；本文件为登记式基线，字段口径同 ENV-SPEC §3.1）
+generated_at: 2026-10-14T21:40:00+08:00
+
+image:
+  ref: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+  id: sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f                 # check 项
+  digest: sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7            # registry 版本锚（rc 标签防 GC 的主锚）
+  recipe: []                # 上游官方镜像：无仓内 Dockerfile.repro，不可重建；配方在上游 vllm-project/vllm-ascend docker/
+  demo: dev/images/ascend-infer-vllm/v1/demo/
+
+# ── 与自建基线的差异（ADR-0007）──────────────────────────────────────────
+# ① 本镜像整体 = 被动继承的厂商官方产物，没有「本组配方带入」的层 ⇒ 全部条目 from: base_image。
+# ② commit 取自镜像内 .git（commit_source: in-image-git，自证锚，2026-10-14 于 910c-27 探针实测），无本组标签可核对
+#    —— check 走 from: base_image 分支（INFO，由 image id + digest 兜底），机制同自建基线的
+#    厂商基座段，不新增核对路径。
+# ③ install: editable-in-image + source_path 声明齐全 ⇒ check 的「镜像内 .git HEAD」附加核对
+#    可用（COMMIT_LABEL 未登记 vllm_ascend 的可核对性由该探针补足）。
+
+baked_repos:
+  # ──────────────── 厂商基座自带（被动继承，不可重建） ────────────────
+  vllm:
+    layer: L3
+    from: base_image
+    commit: bc150f50299199599673614f80d12a196f377655
+    commit_source: in-image-git
+    version: 0.20.2+empty
+    source_path: /vllm-workspace/vllm
+    install: editable-in-image
+    info: {committed_at: '2026-05-07 18:25:36 -0700'}
+  vllm_ascend:
+    layer: L3
+    from: base_image
+    commit: 367b8e62da799870a7476ce34f5f7658589a8aad
+    commit_source: in-image-git
+    version: 0.20.2rc1
+    source_path: /vllm-workspace/vllm-ascend
+    install: editable-in-image
+    info: {committed_at: '2026-06-03 22:14:23 +0800'}
+  torch_npu:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.10.0
+    install: pip (wheel)
+  triton_ascend:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 3.2.1
+    install: pip (wheel)
+    info: 组内其他环境所用 triton_ascend 3.2.1 wheel 的来源镜像（VERSIONS.md §1）
+  triton:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 3.5.0
+    install: pip (wheel)
+  transformers:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 5.5.3
+    install: pip (wheel)
+
+base_image: {}              # 本镜像自身即厂商官方镜像（quay.io/ascend），无更下层本组可控基座；registry digest 见 image.digest

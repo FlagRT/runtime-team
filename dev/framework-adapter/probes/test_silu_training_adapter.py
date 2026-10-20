@@ -3,10 +3,11 @@ from contextlib import contextmanager
 from dataclasses import replace
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 import threading
 import torch
 import torch.nn.functional as F
-from silu_policy import Environment, SiluPolicy
+from silu_policy import Capability, Environment, InputSpec, SiluPolicy
 from silu_training_adapter import SiluAdapter
 
 
@@ -30,7 +31,7 @@ class Controls(unittest.TestCase):
         policy = self.policy
         if forced:
             # Test seam ONLY: bypass NPU admission to exercise autograd on CPU.
-            policy = SimpleNamespace(reason=lambda *_: None)
+            policy = SimpleNamespace(operator="silu", reason=lambda *_: None)
         return SiluAdapter(policy, self.env, self.runtime, self.gems)
 
     def test_default_native(self):
@@ -39,6 +40,37 @@ class Controls(unittest.TestCase):
             F.silu(x).sum().backward()
         self.assertFalse(self.calls)
         self.assertEqual(scope.counts[("native", "forward", "experimental_disabled")], 1)
+
+    def test_environment_rejections_never_register_target(self):
+        # CPU tensors execute the native branch; only the input descriptor is
+        # simulated to reach NPU admission. This is not an accelerator test.
+        env = Environment("910C", "torch", "npu", "gems", "image", "triton", "build")
+        spec = InputSpec("npu", "torch.float32", (2, 3), True)
+        cap = Capability(env, "silu", spec.dtype, spec.shape, ("forward", "backward"),
+                         "synthetic-test-record", "failed")
+        base = SiluPolicy(env, (spec.shape,), experimental=True)
+        incomplete = replace(env, compiler_build="")
+        known_bad = replace(env, image_id="sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15")
+        cases = [(replace(base, expected=incomplete), incomplete, "environment_unverified"),
+                 (base, env, "capability_unverified"),
+                 (replace(base, capabilities=(cap,)), env, "capability_denied"),
+                 (base, replace(env, compiler_build="changed"), "environment_mismatch"),
+                 (replace(base, expected=known_bad, capabilities=(replace(cap,
+                     environment=known_bad, status="passed"),)), known_bad, "known_compile_failure")]
+        for policy, actual, reason in cases:
+            with self.subTest(reason=reason):
+                x = torch.randn(2, 3, requires_grad=True)
+                dy = torch.randn_like(x)
+                expected = F.silu(x)
+                expected_grad, = torch.autograd.grad(expected, x, dy)
+                scope = SiluAdapter(policy, actual, self.runtime, self.gems)
+                with patch("silu_training_adapter.InputSpec", return_value=spec), scope:
+                    y = F.silu(x)
+                    grad, = torch.autograd.grad(y, x, dy)
+                torch.testing.assert_close(y, expected, atol=0, rtol=0)
+                torch.testing.assert_close(grad, expected_grad, atol=0, rtol=0)
+                self.assertEqual(scope.counts[("native", "forward", reason)], 1)
+                self.assertFalse(self.calls)
 
     def test_forward_backward_restore(self):
         x = torch.randn(2, 3, requires_grad=True)

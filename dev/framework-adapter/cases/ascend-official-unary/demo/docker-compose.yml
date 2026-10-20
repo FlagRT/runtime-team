@@ -1,0 +1,40 @@
+name: framework-official-unary
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos:
+    FlagGems:
+      host_path: SET_BY_RUNNER
+      container_path: /gems
+      activation: pythonpath
+services:
+  runtime-dev:
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    container_name: ${FLAGRT_CONTAINER:?required}
+    labels:
+      owner: cgu135
+      purpose: framework-official-unary
+    network_mode: none
+    devices:
+      - /dev/davinci${FLAGRT_DEVICE:?required}:/dev/davinci${FLAGRT_DEVICE}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    mem_limit: 32g
+    shm_size: 4g
+    volumes:
+      - ${FLAGRT_SOURCE:?required}:/code:ro
+      - ${FLAGRT_GEMS:?required}:/gems:ro
+      - ${FLAGRT_DEPS:?required}:/deps:ro
+      - ${FLAGRT_RUNTIME:?required}:/runtime:ro
+      - ${FLAGRT_OUTPUT:?required}:/results
+      - ${FLAGRT_RECORDS:?required}:/records:ro
+      - ${FLAGRT_MODEL:?required}:/model:ro
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      ASCEND_RT_VISIBLE_DEVICES: "0"
+      FLAGRT_VERIFIED_IMAGE_ID: sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f
+    command: ["sleep", "infinity"]
+    restart: "no"

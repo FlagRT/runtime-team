@@ -1,8 +1,16 @@
 # 框架接入与算子调用适配（framework-adapter）
 
-负责人：顾宬 / cgu135。入口整理：2026-10-09。
+## 当前仓库分工（2026-10-20拆分）
+
+功能包已迁至[FlagRT/framework-adapter](https://github.com/FlagRT/framework-adapter)，不再在本目录维护src或构建脚本。本目录保留baseline/demo、模型/算子集成测试、报告，以及历史实验探针（旧qwen/pytorch适配器仅供历史复现，不作当前交付）。单元测试镜像保留用于跨仓安装验证，修改公共机制应先在新仓处理。
+
+先按[包依赖说明](PACKAGE.md)构建/安装固定版本，再运行本目录测试；官方case现在要求显式--wheel。下方旧日期内容和旧报告路径是历史记录，不代表仍在本仓开发包。
+
+负责人：顾宬 / cgu135。入口整理：2026-10-20。跨会话接管见[Workspace入口](/Users/empty/PhD/Workspace/DomesticRuntime/README.md)。
 
 复用框架入口和统一算子库，明确何时优先调用目标实现、何时保持原生，以及执行失败后的安全边界。本目录保存方向原型、部署配置与验证材料；正式算子内核和子库改动不搬入协调仓。
+
+最新增量：[训练入口配置开关](demo/training-configs/README.md)接入未经修改的device-context训练脚本，关闭/开启/无资格三组双进程0.6B训练已实测通过，见[10-20报告](docs/训练入口配置接入验证-20261020.md)。旧官方环境、未推送，不代表训练v3或完整三级回退验收。
 
 ## 开发纲领（2026-10-14用户确认）
 
@@ -20,7 +28,9 @@
 
 技术材料统一导航：[文档目录](docs/README.md)。`docs/handoff/`放近期交接材料，已发布报告及原始证据保留原位置。
 
-最新实测：[10-14设备v0.3系列推理、原生训练及SiLU训练替换对照](docs/910C-v03推理与训练验证-20261014.md)。训练入口：[qwen_training_smoke.py](probes/qwen_training_smoke.py)；替换测试：[test_silu_training_npu.py](probes/test_silu_training_npu.py)。真实前/反向调用已命中，模型第4步梯度超差，尚未准入。
+当前执行顺序见[STATUS的10-18节](STATUS.md)：P800权限暂挂起，先环境准入，再公共机制/第二算子和本地交付包；计划不当作已实现。
+
+最新实测：[10-16训练v3回归](docs/训练v3基线与回归准备-20261016.md)，5类执行前回退通过，目标SiLU编译缺shmem，模型三步未运行。此前可用环境结果：[10-14设备v0.3系列推理、原生训练及SiLU训练替换对照](docs/910C-v03推理与训练验证-20261014.md)。训练入口：[qwen_training_smoke.py](probes/qwen_training_smoke.py)；替换测试：[test_silu_training_npu.py](probes/test_silu_training_npu.py)。新适配器三步通过，但不撤销此前raw注册长轨迹第4步超差或扩大训练数值准入。
 
 进一步定位：同权重10轮梯度对照通过；[真实文本Embedding训练测试](probes/qwen_embedding_train_test.py)原生/替换各10步完成，含独立验证与权重保存重载。指标两组均下降，不能称正式业务模型效果验收；详情同日报告末节。
 
@@ -37,6 +47,8 @@
 日常不必逐个读日志。当前结论看STATUS，核对数字再进报告和对应证据。
 
 ## 代码地图与运行入口
+
+本地包入口：[PACKAGE.md](PACKAGE.md)；实现为src/flagrt_adapter，probes保留兼容入口。`tools/build_local.py --output <新目录>`离线构建并测试安装包，详见[10-18开发记录](docs/公共适配包开发记录-20261018.md)。
 
 以下路径相对本目录。统一命令从runtime-team根执行：
 `bash dev/framework-adapter/probes/run_checks.sh <模式> [参数]`。不带参数只显示帮助，不会连接服务器或启动容器。
@@ -69,6 +81,8 @@
 `docker-compose*.yml`、`.env.example`为历史实验配置；[锁定推理容器脚本](probes/start_locked_infer_910c.sh)为已有部署复现入口，不要直接重建同名容器。所有资源与权限运行前重新检查。
 
 ## 维护规则
+
+当前可用官方环境的单入口：[baseline＋demo与小模型回归](cases/ascend-official-unary/README.md)。与训练v3失败case分开；结果见1018报告，不默认启用目标算子。
 
 - README只管导航，STATUS只管当前成果/问题/下一步，HANDOFF只管环境和续接操作；不要在三处重复追加完整实验日志。
 - 同一天同主题的追加实验写进已有日期报告；原始结果留在对应evidence目录，由该目录README说明最终版、失败版和替代关系。

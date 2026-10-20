@@ -1,0 +1,46 @@
+# Consumer demo: resolve the public baseline directory through a symlink created
+# by prepare.py. No new image, no pip installs, no shmem workaround.
+name: framework-adapter-train-v3
+x-flagrt:
+  image_baseline: ../public-baseline/image.baseline.yaml
+  mounted_repos:
+    runtime-team:
+      host_path: .
+      container_path: /case-workspace
+      activation: pythonpath
+services:
+  runtime-dev:
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    network_mode: host
+    ipc: host
+    ulimits:
+      memlock: -1
+    tty: true
+    stdin_open: true
+    working_dir: /case-workspace
+    container_name: cgu135-framework-adapter-train-v3
+    # 2026-10-16 user-authorized single-free-device use. Replace, do not merge,
+    # the public demo's all-device list. Standalone YAML also stays compatible
+    # with the baseline tool's safe YAML loader.
+    devices:
+      - /dev/davinci${FLAGRT_DEVICE:?set physical device}:/dev/davinci${FLAGRT_DEVICE}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    mem_limit: 24g
+    cpus: 8
+    labels:
+      owner: cgu135
+      purpose: framework-adapter-train-v3-regression
+    volumes:
+      - ${WORKSPACE_ROOT}:/case-workspace:ro
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      - ${FLAGRT_CASE_OUTPUT:?set an absolute output directory}:/case-output
+      - ${FLAGRT_MODEL_DIR:?set verified Qwen model directory}:/case-model:ro
+    environment:
+      HCCL_WHITELIST_DISABLE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    command: ["sleep", "infinity"]
+    restart: "no"
