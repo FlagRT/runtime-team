@@ -10,7 +10,16 @@ services:
   runtime-dev:
     image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
     container_name: rag-ljy-vllm-910c
+    # Replace the shared base's all-card list; never merge it back in.
+    # Host physical device 7 becomes logical npu:0 inside this container.
+    devices: !override
+      - /dev/davinci7:/dev/davinci7
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
     environment:
+      - RAG_EMBEDDING_BACKEND=${RAG_EMBEDDING_BACKEND:-vllm}
+      - PYTHONPATH=/workspace/dev/device-context/prototype:${RAG_EXTRA_PYTHONPATH:-}
       - RETRIEVAL_BACKEND=${RETRIEVAL_BACKEND:-elasticsearch}
       - ELASTICSEARCH_URL=http://127.0.0.1:${ELASTICSEARCH_PORT:-9200}
       - ELASTICSEARCH_USERNAME=elastic

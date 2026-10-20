@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .npu import inference_dtype, prepare_torch_device
+from .device import inference_dtype, prepare_torch_device
 
 
 class Qwen3Reranker:
@@ -19,7 +19,7 @@ class Qwen3Reranker:
     def __init__(
         self,
         model_path: Path,
-        device: str = "npu:0",
+        device: str = "auto",
         max_length: int = 8192,
         instruction: str = (
             "Given a web search query, retrieve relevant passages that answer the query"
@@ -28,7 +28,7 @@ class Qwen3Reranker:
         if not model_path.exists():
             raise FileNotFoundError(
                 f"Reranker model is missing: {model_path}. "
-                "Run scripts/download_models.py first."
+                "Run scripts/data/download_models.py first."
             )
 
         torch, torch_device = prepare_torch_device(device)
@@ -43,7 +43,7 @@ class Qwen3Reranker:
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             str(model_path),
-            torch_dtype=inference_dtype(torch, device),
+            torch_dtype=inference_dtype(torch, torch_device),
             local_files_only=True,
         ).to(torch_device)
         self.model.eval()

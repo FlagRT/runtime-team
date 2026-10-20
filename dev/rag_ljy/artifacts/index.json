@@ -1,0 +1,60 @@
+{
+  "updated": "2026-10-14",
+  "path_base": "dev/rag_ljy",
+  "entries": {
+    "current_memory_probe": {
+      "path": "artifacts/checks/memory_probe/2026-10-14_132823-f0ad80/report.md",
+      "description": "device-context内存探测：跨进程分配/释放可见，真实API173次采样及4查询通过，120项回归通过；尚未用于内存准入"
+    },
+    "frozen_queries": {
+      "path": "data/queries/nfcorpus-50.jsonl",
+      "description": "固定50条NFCorpus查询"
+    },
+    "pytorch_retrieval_baseline": {
+      "path": "artifacts/benchmarks/concurrent_vs_sequential_2026-09-23/comparison-20260923T111642Z-231050/report.md",
+      "description": "旧PyTorch向量：双库×双模式200例"
+    },
+    "current_vllm_retrieval": {
+      "path": "artifacts/rebuilds/vllm-rebuild-2026-10-09/comparison-20261009T045201Z-2a44ec/report.md",
+      "description": "重建后vLLM文档/查询：200例成功，两库各50/50排名一致"
+    },
+    "current_rebuild": {
+      "path": "artifacts/rebuilds/vllm-rebuild-2026-10-09/manifest.json",
+      "description": "当前双库全量重建参数与验证"
+    },
+    "current_store_verification": {
+      "path": "artifacts/rebuilds/vllm-rebuild-2026-10-09/post_restart_verification.json",
+      "description": "单容器Milvus重启、全量ID和向量验证"
+    },
+    "current_multi_request": {
+      "path": "artifacts/checks/multi_request/2026-10-09_134804-milvus-174bdb/summary.json",
+      "description": "独立阶段队列已启用的主API：串行/同时/错峰6例通过"
+    },
+    "vllm_vs_pytorch": {
+      "path": "artifacts/benchmarks/vllm-baseline-200-2026-10-09_044059Z-afcc8d/summary.json",
+      "description": "旧文档向量下的跨引擎对比；vLLM稳定但与PyTorch排名不同"
+    },
+    "vllm_taskqueue_diagnosis": {
+      "path": "artifacts/diagnostics/vllm-mismatch-diagnosis-2026-10-09/summary.json",
+      "description": "Triton taskqueue控制实验与首个层级差异证据"
+    },
+    "vllm_fixed_inputs": {
+      "path": "artifacts/diagnostics/runs/fixed-input-2026-10-09_113719-taskqueue-enabled-60f0e3.json",
+      "description": "taskqueue=true：30次固定token输入"
+    },
+    "vllm_fixed_pipeline": {
+      "path": "artifacts/diagnostics/runs/diagnosis-2026-10-09_113725-bfd164/summary.json",
+      "description": "taskqueue=true：18次pipeline复现"
+    },
+    "current_queue_evidence": {
+      "path": "artifacts/checks/queue_evidence/2026-10-09_140744-milvus-30d953/report.md",
+      "description": "主API同时/错峰各8请求、9请求超限与恢复通过；33个完整三阶段记录、22项调度测试通过；尚无内存水位准入"
+    },
+    "current_queue_pipeline": {
+      "path": "artifacts/benchmarks/queued-pipeline-2026-10-09_134251-78a48d/summary.json",
+      "description": "独立阶段队列：固定50查询×双库×双模式200次完整API调用通过；embedding提交重叠"
+    }
+  },
+  "relocations": "artifacts/relocations.json",
+  "raw_artifacts_preserved": true
+}

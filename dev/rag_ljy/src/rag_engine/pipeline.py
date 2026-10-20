@@ -54,24 +54,31 @@ class RetrievalPipeline:
         if timings is not None:
             timings.clear()
         with measure_stage(timings, "total_ms"):
-            with measure_stage(timings, "embedding_ms"):
-                query_vector = self.embedder.encode_queries(
-                    [query], batch_size=embedding_batch_size
-                )[0]
-            candidates = hybrid_search(
-                self.store,
-                query,
-                query_vector,
-                retriever_top_k=retriever_top_k,
-                coarse_top_k=coarse_top_k,
-                timings=timings,
-                execution_mode=self.execution_mode,
-                executor=self._search_executor,
-            )
-            with measure_stage(timings, "rerank_ms"):
-                return self.reranker.rerank(
-                    query,
-                    candidates,
-                    top_k=fine_top_k,
-                    batch_size=reranker_batch_size,
-                )
+            vector = self.embed(query, embedding_batch_size, timings)
+            candidates = self.search(query, vector, retriever_top_k, coarse_top_k, timings)
+            return self.rank(query, candidates, fine_top_k, reranker_batch_size, timings)
+
+    def embed(self, query, batch_size=8, timings=None):
+        """Embedding stage; local models use their initialization thread."""
+        self._require_open()
+        with measure_stage(timings, "embedding_ms"):
+            return self.embedder.encode_queries([query], batch_size=batch_size)[0]
+
+    def search(self, query, vector, retriever_top_k=50, coarse_top_k=30, timings=None):
+        """Database stage; safe to schedule independently of the model worker."""
+        self._require_open()
+        return hybrid_search(
+            self.store, query, vector, retriever_top_k=retriever_top_k,
+            coarse_top_k=coarse_top_k, timings=timings,
+            execution_mode=self.execution_mode, executor=self._search_executor,
+        )
+
+    def rank(self, query, candidates, top_k=5, batch_size=4, timings=None):
+        """Model stage; run on the model initialization thread."""
+        self._require_open()
+        with measure_stage(timings, "rerank_ms"):
+            return self.reranker.rerank(query, candidates, top_k=top_k, batch_size=batch_size)
+
+    def _require_open(self):
+        if self._closed:
+            raise RuntimeError("Retrieval pipeline is closed")
