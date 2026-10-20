@@ -487,7 +487,7 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 5. 汇总 device-context、communication、memory、调度和监控证据，生成战略 §3 第 5 条要求的统一验收报告；基础
    验收稳定后，再逐步推进 Oracle—Device 误差传播与敏感算子归因闭环、完整跨层 Profiling、故障恢复和长稳/热加载
    能力。
-6. 昆仑芯 P800：BF16 修复分支 `fix/p800-bf16-fastmode` 已推 origin 待 PR；把 `XMLIR_MATMUL_FAST_MODE=1`
+6. 昆仑芯 P800：BF16 修复 PR 已提交（分支 `fix/p800-bf16-fastmode`）；把 `XMLIR_MATMUL_FAST_MODE=1`
    固化到昆仑芯启动设置（容器 env/启动脚本）；XBLAS BF16 快内核、XRE 传输路径、P2P/AllReduce 偏小三项厂商侧
    问题按 §10 清单反馈厂商；共享环境释放后按手册补统一入口端到端复测。
 7. 平头哥 PPU：Base（冻结 tag `ppu-base-frozen-20261015`）＋Toolkit（收口 `9ae9c49f`）均已推送
