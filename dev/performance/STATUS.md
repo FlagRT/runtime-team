@@ -18,7 +18,7 @@
 - P800 Operation（10-13 → 10-20）：按 Ascend 测试机制适配（统一执行器/路由/payload 审计/profiling 骨架/watchdog 与设备租约），复测 52 case/728 组合——420 not-applicable，308 适用中 275 partial、27 failed、6 blocked（失败原样保留交算子组）；硬件计数器未实现可信采集（full 六组 not-supported）。Operation `validated:false` 不变，完整能力对齐验收未完成。
 - 平头哥 PPU Base 冻结（10-15）：FlagPerf 第三个完整 vendor provider（thead/PPU，CUDA-compat 语义，qualification.py 零改动），86/86 run 全 passed（仅 FP8 skip）；FP32 34.5 / FP16 135.6 / BF16 135.0 TFLOPS、INT8 269.2 TOPS、带宽 2052.4 GB/s、容量 103.04 GB、MPI 8-rank AllReduce 25.91 GB/s（16-rank 降级 R5 记录在案）、11-rank collect 94.56 GB/s、P2P 扫点矩阵 qualified（同卡 ≈9× 跨卡）。分支 `zhiyu/thead-ppu`＋tag `ppu-base-frozen-20261015` 已推 origin，PR（→ dev-1.0）提交中。
 - 平头哥 PPU Toolkit 调研定案（10-19）：官方测量工具全部内置于镜像 `flagtree-ppu-3.6-dev:202608`（sailbandwidth 35 testcase、p2pBandwidthLatencyTest、pccl-tests 六件套、comm_tools、libacblas acblasGemmEx、ppu-smi v1.28），T1–T7 小测试通过，无需自研或第三方工具。
-- 平头哥 PPU Toolkit 收口（10-20）：12 case toolkit 实现完成（P800 同构 runner 与严格判定、minimum-seconds 下限对齐），31 项守护测试通过；验收 run 11/12 通过（FP32 34.5 / FP16 135.1 / TF32 67.6 TFLOPS、D2D 1051 GB/s、单向 P2P 46.2–46.9 GB/s、容量 98304 MiB，两轮一致）；两项失败不归因 toolkit——computation-BF16 为 acblasLtMatmul 厂商内核上下文腐蚀（已交算子团队）、P2P 为官方工具 stdout 畸形＋双向并发间歇不稳定（如实记录）。5 个 commit 已推 origin/zhiyu/thead-ppu，docs/thead/validation.md 已部署。
+- 平头哥 PPU Toolkit 收口（10-20）：12 case toolkit 实现完成（P800 同构 runner 与严格判定、minimum-seconds 下限对齐），31 项守护测试通过；验收 run 11/12 通过（FP32 34.5 / FP16 135.1 / TF32 67.6 TFLOPS、D2D 1051 GB/s、单向 P2P 46.2–46.9 GB/s、容量 98304 MiB，两轮一致）；两项失败不归因 toolkit——computation-BF16 为 acblasLtMatmul 厂商内核上下文腐蚀（调用成功但 teardown 非确定报 error 700/挂起/正常三种结局，probes/day10 定性，移交算子团队的正式件待建）、P2P 为官方工具 stdout 畸形＋双向并发间歇不稳定（如实记录）。5 个 commit 已推 origin/zhiyu/thead-ppu，docs/thead/validation.md 已部署。
 - P800 P2P/AllReduce 偏小收口（10-20）：单机 XL 直连对 28.85 GB/s（BKCL 构建 6 条 XL ring）反而低于 PCIe 对 37.88 GB/s（12 rings）；官方文档候选共 11 个环境变量变体全部无效（带宽与 ring 数均不变）——非用户侧可解，BKCL 对 XL 拓扑的 ring 构造属厂商行为，待厂商反馈。P800/PPU 未解决问题全清单见 README §10。
 
 ## 关键阻塞
@@ -28,7 +28,7 @@
 3. Oracle—Device 差分只有第一段（A100 参考比较）；误差传播、敏感算子归因与唯一根因闭环未实现；公共诊断、通信归因与监控均无多服务器或第二厂商实机验收，TP=4/8 无实机证据。
 4. 两段 Demo 的训练吞吐、推理吞吐/时延及其他方向证据尚未按统一口径收拢；Inference 证据为 PyTorch/Transformers 路径，不等于 vLLM 服务口径验收，不能写成战略统一验收报告已完成。
 5. 昆仑芯 P800：BF16 快路径对默认容器生效需先固化昆仑芯启动设置；Base 统一入口端到端复测被共享环境阻塞（2026-10-20 观察：外部训练进程持全 8 卡设备句柄，按约定不停止他人服务）。平头哥 PPU：16-rank 资格待独占窗口与 qualification.py ranks 上限审批。
-6. 厂商侧未解决问题（均已定性、证据原样保留）：P800 P2P/AllReduce 偏小（11 个官方环境变量候选无效）、P800 XBLAS BF16 快内核缺口（AUTOTUNE 死路）、P800 Toolkit XRE 传输路径（pinned -999、同步 memcpy ~10 GB/s）；PPU computation-BF16 acblasLtMatmul 上下文腐蚀（已交算子团队）、PPU P2P 官方工具 stdout 畸形＋双向并发间歇不稳定。详见 README §10。
+6. 厂商侧未解决问题（均已定性、证据原样保留）：P800 P2P/AllReduce 偏小（11 个官方环境变量候选无效）、P800 XBLAS BF16 快内核缺口、P800 Toolkit XRE 传输路径（pinned -999、同步 memcpy ~10 GB/s）；PPU computation-BF16 acblasLtMatmul teardown 腐蚀（移交件待建）、PPU P2P 官方工具 stdout 畸形＋双向并发间歇不稳定。详见 README §10。
 
 ## 下一步
 
