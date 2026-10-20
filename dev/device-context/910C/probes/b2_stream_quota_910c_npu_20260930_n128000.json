@@ -1,0 +1,24 @@
+{
+  "verdict": "STREAM_QUOTA_PASS",
+  "passed": 3,
+  "total": 3,
+  "backend": "ascend",
+  "dev_api": "npu",
+  "n_requested": 128000,
+  "n_created": 128000,
+  "torch": "2.11.0+cu130",
+  "checks": {
+    "Q1_create_n_streams": {
+      "ok": true,
+      "detail": "成功 128000/128000，耗时 1.89s"
+    },
+    "Q2_first_stream_still_works": {
+      "ok": true,
+      "detail": "结果=192.0000（期望 192.0）"
+    },
+    "Q3_release_and_recreate": {
+      "ok": true,
+      "detail": "释放 128000 个后新流结果=32.0000"
+    }
+  }
+}

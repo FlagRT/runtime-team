@@ -2,6 +2,9 @@
 
 > 状态：生效（2026-09-10）
 
+> 基座设计的黄金准则与整体方案见 `docs/运行时基座建设-黄金准则与方案存档.v1.md`
+> （回答"为什么这样分层挂载、为什么选这条技术路线"）；本目录只回答下面三件事。
+
 ## 1. 本目录的职责
 
 对**已使用过的基座镜像**按血统与版本做归档、整理、索引，并保证可重建。只回答：
@@ -10,26 +13,34 @@
 - 如何从零重建它（Dockerfile、脚本、步骤、依赖清单、sha256）
 - 它的离线归档在哪里（指针，不含实体）
 
-**不回答**：为什么用它、给项目的哪个环节、什么使用约束、设备路线选型——这些由消费方文档（`dev/stack.lock.910c.*.yaml`、`docs/` 阶段目标文档）各自声明，不在本目录重复。
+**边界**：为什么用它、给项目的哪个环节、什么使用约束、设备路线选型——由消费方文档（`dev/stack.lock.910c.*.yaml`、`docs/` 阶段目标文档）各自声明，具体以消费方文档为准。
 
 ## 2. 结构
 
 ```
 dev/images/
   README.md                  # 本文件：职责 + 规范 + 结构
-  image_list.md              # 索引：所有归档镜像的 tag / 血统 / 内置版本 / repro_status / 链接
+  image_list.md              # 索引：所有归档镜像的 tag / repro_status / 目录链接（只做索引，层级构成见各 lock.yaml 的 layers）
+  PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）
   .gitignore                 # 大文件与 *.local 护栏
+  CASE-TEMPLATE.md           # case 目录标准（§7）
   <name>/                    # 一个镜像血统一目录（去 registry 前缀与 tag 的稳定短名）
     v<N>/                    # 一个版本一目录，多版本共存
       Dockerfile             # 原始构造还原（逐字节复现目标；可能缺 owner 私有件）
       Dockerfile.repro       # 已实机验证可重建的配方（功能等价）
       build.sh               # 一键重建 + 校验
-      lock.yaml              # 血统 + 内置版本 pin + 官方/自定义边界 + 重建缺口 + 重建验证结果
+      image.baseline.yaml    # 镜像基线：固化资产与版本（baseline.py export 生成，版本事实以此为准）
+      lock.yaml              # 血统 + 官方/自定义边界 + 构建历史 + 已知问题 + 重建验证结果
       REBUILD.md             # 重建步骤、踩坑、验证方法
       ARCHIVE.md             # 离线归档清单（tar 名 / 大小 / sha256 / 内容 / docker load 用法）— 机器无关，追踪
       BACKUP.local           # 本机归档实体的绝对路径 + 最近校验日期 — 机器相关，不追踪
-      assets/               # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
+      assets/                # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
+      demo/                  # demo 运行环境目录：docker-compose.yml + env.baseline.yaml（验收配置与推荐用法）
 ```
+
+版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准，`lock.yaml` 不再重复填写；
+机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。demo 可放在镜像血统的任一版本目录下（v3 完整镜像的 demo 位于
+`ascend-train-comm/v3/demo/`），由 `image.baseline.yaml` 的 `image.demo` 指向。
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
 
@@ -68,7 +79,7 @@ dev/images/
 
 一个镜像被本目录归档，其 `v<N>/` 须满足：
 
-1. 有 `lock.yaml`（血统 + 内置版本 + 官方/自定义边界）；
+1. 有 `lock.yaml`（血统 + 官方/自定义边界）；自建镜像另有 `image.baseline.yaml`（v1/v2 缺 commit 标签，除外）；
 2. `repro_status` ≥ 🟡；
 3. 上游发布的镜像（华为昇腾官方 / 社区）可无 Dockerfile，但须记可拉取 digest + 上游来源。
 
@@ -77,8 +88,14 @@ dev/images/
 - 🟡 = 配方在手，未实机验证
 - 🔴 = 黑盒，无配方（不得作为归档终态；须有 `ARCHIVE.md` 记录离线包）
 
-上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的备注列会写明是哪一种。
+上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的 `repro_status` 列会写明是哪一种。
 
 ## 6. 迁移前置
 
 把归档整套迁到新机器，需要：① 仓内配方（本目录，随 git）② 各 `ARCHIVE.md` 指向的离线包（三个 `docker save` tar.gz + `recovered/` 资产，当前在 raid 盘，不随 git）③ 上游可达（`harbor.baai.ac.cn` 的 **BAAI 内部** CANN 底座、`quay.io` 的**华为昇腾官方** vLLM 镜像）。三者缺一：缺 ② 退化到"从 ① + ③ 功能等价重建"；缺 ③ 且缺 ② 则阻塞。逐字节复现另需 owner 私有 FlagCX commit + patch（见 `TODO.md`）。
+
+## 7. Case 目录标准
+
+`v<N>/` 目录同时作为对外交付的 case 包(他组据此复现问题、验证修复)。目录构成、
+README 三段式(用途与现状 / 复现 / 验证)、脚本三分类(复现 / 验证 / 收数)与四条硬规则
+(单入口、外部依赖声明、验证脚本自判定、完整日志不进仓)见 [`CASE-TEMPLATE.md`](CASE-TEMPLATE.md)。

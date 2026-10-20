@@ -1,0 +1,97 @@
+From 5d545c9eadd7e20a5f3a63111500bbf20a8a1571 Mon Sep 17 00:00:00 2001
+From: seanl <vlev02@qq.com>
+Date: Tue, 18 Aug 2026 21:39:22 +0800
+Subject: [PATCH] fix(ascend): int64 mask promote + flagcx sync for
+ all_gather/all_reduce
+
+- vocab_parallel_embedding: explicit int64 cast for mask ops
+  (flagos/PrivateUse1 bool*int type promotion bug -> token id becomes 1)
+- communicator: sync after all_reduce; override all_gather with sync
+  (flagcx backend returns async, must sync before reading result)
+
+Verified: Qwen3-4B single-card inference via torch_fl + vllm-plugin-FL
+---
+ .../ascend/impl/vocab_parallel_embedding.py   | 10 +++++--
+ vllm_fl/distributed/communicator.py           | 29 +++++++++++++++++++
+ 2 files changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/vllm_fl/dispatch/backends/vendor/ascend/impl/vocab_parallel_embedding.py b/vllm_fl/dispatch/backends/vendor/ascend/impl/vocab_parallel_embedding.py
+index a112095..08a9238 100644
+--- a/vllm_fl/dispatch/backends/vendor/ascend/impl/vocab_parallel_embedding.py
++++ b/vllm_fl/dispatch/backends/vendor/ascend/impl/vocab_parallel_embedding.py
+@@ -135,7 +135,8 @@ class AscendVocabParallelEmbedding(VocabParallelEmbedding):
+             input_ < org_vocab_end_index)
+         # Adapt: avoid create added_vocab_mask when added_vocab_start_index == added_vocab_end_index.
+         if added_vocab_start_index == added_vocab_end_index:
+-            valid_offset = (org_vocab_start_index * org_vocab_mask)
++            valid_offset = (org_vocab_start_index * org_vocab_mask.to(
++                torch.int64))
+             vocab_mask = org_vocab_mask
+         else:
+             added_vocab_mask = (input_ >= added_vocab_start_index) & (
+@@ -144,10 +145,13 @@ class AscendVocabParallelEmbedding(VocabParallelEmbedding):
+                 org_vocab_end_index -
+                 org_vocab_start_index) - num_org_vocab_padding
+             valid_offset = (org_vocab_start_index *
+-                            org_vocab_mask) + (added_offset * added_vocab_mask)
++                            org_vocab_mask.to(torch.int64)) + (
++                                added_offset * added_vocab_mask.to(torch.int64))
+             vocab_mask = org_vocab_mask | added_vocab_mask
+         # Adapt end.
+-        input_ = vocab_mask * (input_ - valid_offset)
++        # NOTE(flagos): 必须显式转 int64——flagos(PrivateUse1) 上 bool*int
++        # 类型提升错误（返回 bool），会导致 mask 乘法后 token id 全变 1
++        input_ = vocab_mask.to(torch.int64) * (input_ - valid_offset)
+         return input_, ~vocab_mask
+ 
+     def forward(self, input_):
+diff --git a/vllm_fl/distributed/communicator.py b/vllm_fl/distributed/communicator.py
+index ae4b243..b304e1a 100644
+--- a/vllm_fl/distributed/communicator.py
++++ b/vllm_fl/distributed/communicator.py
+@@ -44,6 +44,11 @@ class CommunicatorFL(DeviceCommunicatorBase):
+             # group, where we always have either custom allreduce or pynccl.
+             out = input_.clone()
+             torch.distributed.all_reduce(out, group=self.device_group)
++            # [SYNC-FIX] flagcx 后端 all_reduce 异步返回，必须同步才能读到结果
++            try:
++                torch.npu.synchronize()
++            except Exception:
++                pass
+         return out
+ 
+     def reduce_scatter(self, input_: torch.Tensor, dim: int = -1):
+@@ -143,6 +148,30 @@ class CommunicatorFL(DeviceCommunicatorBase):
+             self.all2all_manager.destroy()
+             self.all2all_manager = None
+ 
++    def all_gather(self, input_: torch.Tensor, dim: int = -1) -> torch.Tensor:
++        # [SYNC-FIX] 覆盖基类实现：基类用 dist.all_gather_into_tensor 异步返回，
++        # flagcx 后端下必须同步。逻辑与 DeviceCommunicatorBase.all_gather 一致。
++        if dim < 0:
++            dim += input_.dim()
++        input_size = input_.size()
++        output_size = (input_size[0] * self.world_size,) + input_size[1:]
++        output_tensor = torch.empty(output_size, dtype=input_.dtype,
++                                    device=input_.device)
++        torch.distributed.all_gather_into_tensor(output_tensor, input_,
++                                                 group=self.device_group)
++        try:
++            torch.npu.synchronize()
++        except Exception:
++            pass
++        output_tensor = output_tensor.reshape((self.world_size,) + input_size)
++        output_tensor = output_tensor.movedim(0, dim)
++        output_tensor = output_tensor.reshape(
++            input_size[:dim]
++            + (self.world_size * input_size[dim],)
++            + input_size[dim + 1:]
++        )
++        return output_tensor
++
+     def all_gatherv(self,
+                     input_: Union[torch.Tensor, list[torch.Tensor]],
+                     dim: int = 0,
+-- 
+2.33.0
+

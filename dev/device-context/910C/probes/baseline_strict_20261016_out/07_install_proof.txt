@@ -1,0 +1,16 @@
+# 证据截选 —— 挂载覆盖的安装自证（compose Cmd 逐字 + Successfully installed + import 解析到宿主 checkout）
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/strict/log/strict_run_run2.log
+# 采集时间: 2026-10-16 14:39:46 (npu1-27)
+
+############ 6. 等挂载安装并跑单入口验收 ############
+  t=10s 仍在安装/构建…
+  t=20s 仍在安装/构建…
+  t=30s 仍在安装/构建…
+  --- compose 实际 command（自证挂载生效方式）---
+  cmd=["bash","-c","USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX && exec sleep infinity"]
+  --- 安装自证 ---
+Successfully installed flagcx-0.13.0
+  --- 加载位置自证 ---
+can not use command: npu-smi info
+   flagcx -> /workspace/FlagCX/plugin/torch/flagcx
+  --- 单入口验收（两项）---

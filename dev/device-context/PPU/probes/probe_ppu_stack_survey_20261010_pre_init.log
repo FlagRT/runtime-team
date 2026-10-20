@@ -1,0 +1,79 @@
+==============================================================================
+PPU 设备上下文栈能力探测（只读）
+==============================================================================
+A1.torch_version = 2.10.0
+A2.torch_cuda_version = 13.0
+A3.cuda_is_available = True
+A4.device_count = 2
+A5.device_name_0 = PPU-ZW810E
+A6.current_device = 0
+A7.namespace_torch_npu = has=False
+A7.namespace_torch_mlu = has=False
+A7.namespace_torch_xpu = has=True
+A7.namespace_torch_cuda = has=True
+A7.namespace_torch_hggc = has=False
+A7.namespace_torch_ppu = has=False
+B1.device_properties_0 = {'name': 'PPU-ZW810E', 'major': 8, 'minor': 0, 'total_memory': 103079215104, 'multi_processor_count': 64}
+B2.tensor_matmul_on_device0 = 37.81956100463867
+C1.memory_stats_keys = ['active.all.allocated', 'active.all.current', 'active.all.freed', 'active.all.peak', 'active.large_pool.allocated', 'active.large_pool.current', 'active.large_pool.freed', 'active.large_pool.peak']
+C2.mem_get_info_0_MB = (98022, 98304)
+C3.memory_allocated_MB = 8
+C4.has_caching_allocator_alloc = True
+C5.has_caching_allocator_delete = True
+C6.has_caching_allocator_free = False
+C7.has_memory_reserved = True
+D1.create_stream = Stream
+D2.has_ExternalStream = True
+D3.Stream_priority_range_attr = True
+D4.Stream_priority_range_call = (0, -3)
+D5.current_stream = Stream
+D6.stream_query = True
+D7.stream_synchronize_signature = (self) -> None
+D8.has_stream_ctx_mgr = True
+D9.stream_priority_ctor_accepts = Stream
+E1.create_event = Event
+E2.event_unrecorded_query = True
+E3.event_record_then_query = True
+E4.event_wait_timeout_signature = (self, stream=None) -> None
+E5.has_event_synchronize = True
+E6.has_event_elapsed_time = True
+F1.has_tensor_record_stream = True
+F2.has_cuda_graph = True
+F3.has_CUDAGraph = True
+F4.multidevice_all_names = ['PPU-ZW810E', 'PPU-ZW810E']
+G1.driver_libs_loaded = {'libcuda.so.1': 'OK', 'libcuda.so': 'OK', 'libpccl.so.2': 'OK', 'libalixpu.so': '(OSError)'}
+G2.libcuda.so.1.cuCtxGetCurrent = has=True
+G2.libcuda.so.1.cuCtxGetDevice = has=True
+G2.libcuda.so.1.cuCtxGetFlags = has=True
+G2.libcuda.so.1.cuCtxGetStreamPriorityRange = has=True
+G2.libcuda.so.1.cuStreamCreateWithPriority = has=True
+G2.libcuda.so.1.cuStreamGetPriority = has=True
+G2.libcuda.so.1.cuStreamDestroy_v2 = has=True
+G2.libcuda.so.1.cuCtxCreate_v2 = has=True
+G2.libcuda.so.1.cuCtxDestroy_v2 = has=True
+G2.libcuda.so.1.cuCtxResetPersistingL2Cache = has=True
+G2.libcuda.so.1.cuDevicePrimaryCtxGetState = has=True
+G2.libpccl.so.2.cuCtxGetCurrent = has=False
+G2.libpccl.so.2.cuCtxGetDevice = has=False
+G2.libpccl.so.2.cuCtxGetFlags = has=False
+G2.libpccl.so.2.cuCtxGetStreamPriorityRange = has=False
+G2.libpccl.so.2.cuStreamCreateWithPriority = has=False
+G2.libpccl.so.2.cuStreamGetPriority = has=False
+G2.libpccl.so.2.cuStreamDestroy_v2 = has=False
+G2.libpccl.so.2.cuCtxCreate_v2 = has=False
+G2.libpccl.so.2.cuCtxDestroy_v2 = has=False
+G2.libpccl.so.2.cuCtxResetPersistingL2Cache = has=False
+G2.libpccl.so.2.cuDevicePrimaryCtxGetState = has=False
+H1.cuCtxGetCurrent_after_torch_init = {'rc': 0, 'ctx_nonnull': True, 'rc_get_device': 0, 'ordinal': 0}
+I1.default_device_backend_map = {'cpu': 'gloo', 'cuda': 'nccl', 'xpu': 'xccl', 'mps': 'gloo'}
+I2.nccl_version = 2.27.3
+I3.dist_backend_members = ['GLOO', 'MPI', 'NCCL', 'UCC', 'UNDEFINED', 'XCCL']
+I4.nccl_env = {'NCCL_SOCKET_IFNAME': 'bond0', 'NCCL_IB_DISABLE': '1', 'NCCL_DEBUG': 'INFO', 'NCCL_IB_HCA': ''}
+J1.vllm_current_platform = <vllm.platforms.cuda.NvmlCudaPlatform object at 0x7f21fb38a1e0>
+J2.env_CUDA_VISIBLE_DEVICES = None
+J3.env_PPU_SDK = /usr/local/PPU_SDK
+J4.env_PPU_VERSION = v2.1.0
+==============================================================================
+探测完成：72 项，其中取不到 0 项
+⚠️ 边界：本探针只读探测**接口形态**；是否真能用于业务，须由 conformance / 两条腿判定。
+==============================================================================

@@ -1,0 +1,14 @@
+# 对照：仅模型（无原型）
+# 源日志：/bmcp_lvm_fs/hliu553/probes_ppu/segv_isolate/e3_model_only/run.log （下列为滤掉 NCCL INFO 后的判定/崩溃行）
+# 结论：**干净退出**（无 Segmentation fault，且到达结束行）
+
+[default1]:[e3] rank=1 dev=PPU-ZW810E
+[default0]:[e3] rank=0 dev=PPU-ZW810E
+[default1]:[e3] step 0 loss=10.0481
+[default0]:[e3] step 0 loss=10.0481
+[default1]:[e3] step 1 loss=5.2343
+[default0]:[e3] step 1 loss=5.2343
+[default1]:[e3] step 2 loss=4.4320
+[default0]:[e3] step 2 loss=4.4320
+[default1]:[e3 done] rank=1
+[default0]:[e3 done] rank=0

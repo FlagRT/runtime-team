@@ -1,0 +1,22 @@
+[env] backend=cambricon device_type=mlu range=(0, -3) control=True
+
+[R1] 默认路径的所有权
+  [PASS] R1a 默认路径造出的流**不得**被登记为本层拥有  owns=False
+  [PASS] R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False  release=False
+
+[R2] 单点区间：等价放行（仅当区间单点）
+  [SKIP] R2 单点区间的等价放行  本机区间 = (-3, 0)（非单点）⇒ 该分支不适用
+
+[R3] 实现链路：私有 `_create_stream_raw(域内值)` 直调取证
+  [PASS] R3a 私有原语造出的流**可回读且等于请求值**（参数真的进了设备）  回读=-3（请求 -3）
+  [PASS] R3b 该流**真的能承载算子**（不是『看起来设了』的假流）  sum=32.0（期望 32.0）
+  [SKIP] R3c/R3d 释放语义  该路径的流由**厂商/torch 拥有**（未登记）⇒ release 为 no-op，无需销毁
+
+[R4] 取值域校验
+  [PASS] R4 越界 priority=-4 ⇒ ValueError  ValueError
+  [PASS] R4 越界 priority=1 ⇒ ValueError  ValueError
+
+=== 汇总 ===
+  通过 8 / 失败 0 / 跳过 2
+verdict = STREAM_RELEASE_CONTROL_PASS
+[out] /work/dc_mlu_regen_20261008/out_m1/m1_prio_release_cambricon.json

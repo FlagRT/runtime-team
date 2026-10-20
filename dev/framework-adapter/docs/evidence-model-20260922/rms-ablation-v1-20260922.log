@@ -1,0 +1,15 @@
+can not use command: npu-smi info
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  47%|████▋     | 146/310 [00:00<00:00, 1033.19it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2011.54it/s]
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+/work/FlagGems-f7ae8e6-20260922/src/flag_gems/ops/rms_norm.py:317: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  y = torch.empty_like(x)
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+{"batch": 1, "selected": "qk", "target_completed": 56, "hidden": {"finite": true, "elements": 4096, "different": 0, "outside_tolerance": 0, "max_abs": 0.0, "mean_abs": 0.0}, "embedding": {"finite": true, "elements": 1024, "different": 0, "outside_tolerance": 0, "max_abs": 0.0, "mean_abs": 0.0}, "within_tolerance": true}
+{"batch": 1, "selected": "hidden", "target_completed": 57, "hidden": {"finite": true, "elements": 4096, "different": 1447, "outside_tolerance": 23, "max_abs": 0.03125, "mean_abs": 0.001377045176923275}, "embedding": {"finite": true, "elements": 1024, "different": 1024, "outside_tolerance": 0, "max_abs": 0.0002801269292831421, "mean_abs": 3.029087201866787e-05}, "within_tolerance": false}
+{"batch": 3, "selected": "qk", "target_completed": 56, "hidden": {"finite": true, "elements": 18432, "different": 0, "outside_tolerance": 0, "max_abs": 0.0, "mean_abs": 0.0}, "embedding": {"finite": true, "elements": 3072, "different": 0, "outside_tolerance": 0, "max_abs": 0.0, "mean_abs": 0.0}, "within_tolerance": true}
+{"batch": 3, "selected": "hidden", "target_completed": 57, "hidden": {"finite": true, "elements": 18432, "different": 12370, "outside_tolerance": 1366, "max_abs": 0.0625, "mean_abs": 0.004548968747258186}, "embedding": {"finite": true, "elements": 3072, "different": 3072, "outside_tolerance": 0, "max_abs": 0.0003467723145149648, "mean_abs": 5.29253993590828e-05}, "within_tolerance": false}

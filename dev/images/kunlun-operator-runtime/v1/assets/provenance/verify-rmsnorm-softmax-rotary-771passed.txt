@@ -1,0 +1,33 @@
+........................................................................ [  9%]
+........................................................................ [ 18%]
+........................................................................ [ 28%]
+........................................................................ [ 37%]
+........................................................................ [ 46%]
+........................................................................ [ 56%]
+........................................................................ [ 65%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 93%]
+...................................................                      [100%]
+=============================== warnings summary ===============================
+../../miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/triton/runtime/autotuner.py:115: 29 warnings
+  /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/triton/runtime/autotuner.py:115: DeprecationWarning: warmup, rep, and use_cuda_graph parameters are deprecated. See https://github.com/triton-lang/triton/pull/4496 for details.
+    warnings.warn(("warmup, rep, and use_cuda_graph parameters are deprecated. See "
+
+tests/test_reduction_ops.py::test_accuracy_softmax[True-1-dtype0-shape0]
+  /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/library.py:364: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+    Overriding a previously registered kernel for the same operator and the same dispatch key
+    operator: aten::_log_softmax(Tensor self, int dim, bool half_to_float) -> Tensor
+      registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+    dispatch key: CUDA
+    previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:3798
+         new kernel: registered at /root/FlagGems/src/flag_gems/__init__.py:473 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:218.)
+    self.m.impl(
+
+tests/test_reduction_ops.py::test_accuracy_softmax[True-1-dtype0-shape0]
+  /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/triton/backends/xpu/compiler.py:252: UserWarning: XRE Version Must Be More than 5.0.21.37 (After 2025.07.22). And echo 1 > /proc/kunlun/dev4/dma_excp_mask
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+771 passed, 31 warnings in 487.27s (0:08:07)
+EXIT=0

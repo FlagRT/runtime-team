@@ -1,0 +1,8 @@
+[env] backend=ppu cls=PpuBackend
+[OK] K6 端点 -3/0 请求与回读一致
+[OK] K7 回读 = 0（类型合规）
+--- 命中现场 #1 ---
+  native id=139685037348960 type=Stream
+  两表同一 dict? owned is ctx = False
+  [owned] 2 条: [(139685037348960, 94877556523760, 'ReferenceType', 'Stream', 139685037348960), (139685037697840, 94877556737792, 'ReferenceType', None, None)]
+timeout: the monitored command dumped core

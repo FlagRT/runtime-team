@@ -1,0 +1,32 @@
+# 发布镜像事实与「合规拿到同一制品」三条路径的实测（npu1-27，2026-10-16）
+
+## [A] 本机镜像实体
+  训练腿 ref = flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+  Id=sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913 RepoDigests=[] Created=2026-10-08T06:35:52.947216458Z
+  → RepoDigests 为空 ⇒ 本组镜像从未 push，无法按 digest 拉取；Created 2026-10-08 对得上 lock.yaml 的 image_id_round4_npu27
+
+## [B] 镜像内 labels 与本机基线逐字比对（内容同源的正面依据）
+  flagcx.commit          4e0e0cbcbf721169ca82348080f8353aebfe2c31
+  flagtree.commit        15ec1a6cbc8d51f597f46459a500e96f3812c58f
+  flag_gems.commit       f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4
+  torch_fl.commit        162582d678e40f133924a4d3b5b6df1cb8154dc7
+  vllm_plugin_fl.ref     8b059122e32b9ac47b9820a9c7b1bb95077481a4
+
+## [C] L1 厂商基座 digest（被动继承层，逐字节同源）
+  RepoDigests=["harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64@sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a"]
+  基线记录 base_image.digest = sha256:9ee5d835d5f5e3579e01f02b3381c002f85de09f1c385d62f5c7910dfdf90c8a
+
+## [D] 三条「合规拿到同一制品」的路径实测
+  ① 离线包：ARCHIVE.md 记实体 train-comm-v3-round4-npu11-e13a15d0d02b.tar.gz(10.5G) 只在 npu1-11；
+     本机 find /mnt/raid -maxdepth 4 名匹配 e13a15d0/round4 → 0 命中；无 BACKUP.local；
+     本机 docker images 里亦无 e13a15d0 该 id（任何 tag）
+     hliu553@10.120.72.11 三把私钥 → Permission denied (publickey,password)
+  ② registry：docker manifest inspect 连**已知存在的父镜像**都失败——
+     failed to configure transport: error pinging v2 registry: Get "https://harbor.baai.ac.cn/v2/":
+     proxyconnect tcp: dial tcp 127.0.0.1:7890: connect: connection refused（daemon 代理已失效）
+  ③ 重建：镜像基线 repro_status = 🟡 partial-repro（构建期含 pin: unpinned 的 json/googletest clone）
+     ⇒ 只能到功能等价，复现不出同一 id
+
+## [E] 对照：推理腿官方镜像为何不需要对齐
+  Id=sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f RepoDigests=["quay.io/ascend/vllm-ascend@sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7"]
+  按 digest 拉取 ⇒ id 内容导出、跨机一致；其 env.baseline.yaml 未做任何改动（见 13_*.yaml）

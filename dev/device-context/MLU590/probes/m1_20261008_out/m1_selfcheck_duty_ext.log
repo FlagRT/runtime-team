@@ -1,0 +1,98 @@
+/work/dc_mlu_regen_20261008/prototype/scripts/duty_response_audit.py:685: UserWarning: [runtime] 后端未声明能力 record_stream ⇒ 走**保守同步路径**（同步当前设备后放行）。这会丢失跨流重叠带来的性能收益；如需消除，请改用声明了该能力的后端/张量类型。
+  st.record_stream(x)
+==========================================================================================
+§0 委派翻译层自检（无需设备）：委派返回形状 → 审计状态 的三值映射
+==========================================================================================
+  [OK  ] 真实通过       委派=True / 判据真正执行且通过                     → 期望 OK    实得 OK
+  [OK  ] 如实跳过       委派=None / 委派方按三值约定跳过                    → 期望 SKIP  实得 SKIP
+  [OK  ] 如实不适用      委派=True / 不适用：未声明 `memory_alloc` 等      → 期望 SKIP  实得 SKIP
+  [OK  ] 真实失败       委派=False / 二次释放静默（I3 违反）                → 期望 FAIL  实得 FAIL
+  四种返回形状的三值映射全部符合约定
+
+==========================================================================================
+非空转验证：duty_response_audit H–M 域逐条注入 ｜ backend=cambricon
+==========================================================================================
+  [抓到] H1   原状=OK    注入后=FAIL  未声明能力却静默返回假句柄
+           注入后：未声明 memory_alloc 却**静默返回**（假句柄比报错危险：上层会当成可用的设备内存）
+  [不适用] H2   原状=SKIP  注入后=-     allocate 对非法 size_bytes 不报错
+           本机如实 SKIP：未声明 memory_alloc ⇒ 该分支不适用
+  [不适用] H3   原状=SKIP  注入后=-     free 永不报错（二次释放静默）
+           本机如实 SKIP：未声明 memory_alloc ⇒ 该分支不适用
+  [不适用] H4   原状=SKIP  注入后=-     free 接受任意陌生句柄
+           本机如实 SKIP：未声明 memory_alloc ⇒ 该分支不适用
+  [不适用] H5   原状=SKIP  注入后=-     句柄计数恒为 0（与分配/释放不联动）
+           本机如实 SKIP：未声明 memory_alloc ⇒ 该分支不适用
+  [抓到] H6   原状=OK    注入后=FAIL  memory_stats 出现未登记键
+           注入后：出现未登记键 ['not_a_registered_key']（契约：不得出现未登记键）
+  [抓到] H7   原状=OK    注入后=FAIL  record_stream 直接抛错（契约要求保守同步放行）
+           注入后：record_stream 抛错：TypeError: no record_stream（契约：未声明 ⇒ 保守同步放行**不抛错**，跨流内存被提前回收比降级慢危险得多）
+  [抓到] H8   原状=OK    注入后=FAIL  .native 取用不计数（恒值）
+           注入后：.native 取用后 native_accesses 未 +1（424242→424242）—— 取用必须可事后定位
+  [抓到] I1   原状=OK    注入后=FAIL  未声明 context_lifecycle 却静默返回句柄
+           注入后：[注入后] 未声明 context_lifecycle 却静默返回了上下文句柄（子进程隔离）
+  [不适用] I2   原状=SKIP  注入后=-     context_set 接受任意句柄
+           本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用
+  [不适用] I3   原状=SKIP  注入后=-     context_destroy 接受任意句柄（含默认上下文）
+           本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用
+  [不适用] I4   原状=SKIP  注入后=-     context_count 恒为 1（把进程默认上下文也数进去）
+           本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）
+  [不适用] I5   原状=SKIP  注入后=-     两种句柄可互相误用（不报错）
+           本机如实 SKIP：需要同时声明 memory_alloc 与 context_lifecycle ⇒ 本机该分支不适用（子进程隔离）
+  [抓到] I6   原状=OK    注入后=FAIL  context_query 缺键
+           注入后：缺键 ['flags', 'managed_by', 'ordinal', 'present', 'reason']（契约：固定 6 键，上层换芯片无需分支）
+  [抓到] I7   原状=OK    注入后=FAIL  present 用 0/1 冒充 bool
+           注入后：present=1（不得用 0/1 冒充 bool）
+  [抓到] I8   原状=OK    注入后=FAIL  只读接口产生副作用（新造句柄）
+           注入后：NotImplementedError: 后端 'cambricon' 未声明能力 'memory_alloc' ⇒ 不支持内存句柄语义（**如实不具备**，不等于已确认该芯片不具备；需真机探测后补声明）。调用前请先 `s
+  [抓到] I9   原状=OK    注入后=FAIL  recover_device 缺 context 三键
+           注入后：缺 context 三键 ['context_count', 'context_recreated', 'context_supported']（§1.7 只增）
+  [不适用] I10  原状=SKIP  注入后=-     销毁上下文后其流仍可用（使用点未拦截）
+           本机如实 SKIP：未声明 context_lifecycle ⇒ 该分支不适用（子进程隔离）
+  [抓到] J1   原状=OK    注入后=FAIL  能力全集之外的键被判 True（I1② 违反）
+           注入后：[委托 contract_invariants] ④ 入口存在性覆盖 11/17 项能力｜问题: ② 能力全集外的键被判 True: ['no_such_capability_xyzzy']
+  [抓到] J2   原状=OK    注入后=FAIL  陌生消息却声称 mapped=True（I2② 自相矛盾）
+           注入后：[委托 contract_invariants] ① 陌生消息却 mapped=True（不得声称有依据）；② 自相矛盾: mapped=True 但 graded_by='default'
+  [不适用] J3   原状=SKIP  注入后=-     二次释放静默（I3 违反）
+           本机如实 SKIP：[委托 contract_invariants] 不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`（如实不具备；**未验证 ≠ 已确认不具备**）（子进程隔离）
+  [抓到] J4   原状=OK    注入后=FAIL  .native 取用不计数（I4② 违反）
+           注入后：[委托 contract_invariants] ② .native 计数 0→0、退化保持 2 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓；② `.native` 取用未计数: 0 → 0（应 +1）
+  [抓到] K1   原状=OK    注入后=FAIL  范围透传厂商三元组（形状违约）
+           注入后：形状不符：(7, 0, 0)（契约：**(least, greatest) 2 元组** 或 None；不得透传厂商三元组）
+  [不适用] K2   原状=SKIP  注入后=-     未声明 stream_priority 却给出范围
+           本机如实 SKIP：本后端已声明 stream_priority（范围可读）⇒ 该分支不适用
+  [不适用] K3   原状=SKIP  注入后=-     未声明 control 却静默返回流（不拒绝）
+           本机如实 SKIP：本后端已声明 stream_priority_control ⇒ 该分支不适用
+  [抓到] K4   原状=OK    注入后=FAIL  非法 priority 不报错
+           注入后：-4 未报错; 1 未报错; '1' 未报错; True 未报错
+  [抓到] K5   原状=OK    注入后=FAIL  声明 control 但不声明 readback（耦合破裂）
+           注入后：声明了 control 但**没声明** readback ⇒ 设置无法校验（离线 `[8b]` 段同源判据）
+  [抓到] K6   原状=OK    注入后=FAIL  回读与请求不一致（参数被静默丢弃）
+           注入后：请求 0 回读 1（**参数被静默丢弃**）; 请求 -3 回读 1（**参数被静默丢弃**）
+  [抓到] K7   原状=OK    注入后=FAIL  回读返回字符串（用伪装值表示「读不出」）
+           注入后：回读返回 '0'（str）—— 契约：int 或 None，**不得补零/伪装**
+  [不适用] K8   原状=SKIP  注入后=-     单点区间请求唯一档位也失败/不校验
+           本机如实 SKIP：本机区间 (-3, 0) 非单点 ⇒ 「等价放行」分支不适用（由 K6 覆盖）
+  [抓到] L1   原状=OK    注入后=FAIL  对厂商拥有的流返回 True（越权销毁）
+           注入后：release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+  [抓到] L2   原状=OK    注入后=FAIL  release_stream 不幂等（恒 True）
+           注入后：第一次=True 第二次=True（均应为 False）
+  [抓到] L3   原状=OK    注入后=FAIL  Stream.release() 越权返回 True
+           注入后：Stream.release() 返回 True —— 与 release_stream 同语义，厂商拥有的流必须是 False
+  [抓到] L4   原状=OK    注入后=FAIL  owns=False 但 release 返回 True（不一致）
+           注入后：厂商原生路径：owns=False 但 release=True; 优先级路径：owns=False 但 release=True
+  [不适用] L5   原状=SKIP  注入后=-     本层拥有的流未被真销毁（release 恒 False）⇒ 已释放语义不成立
+           本机如实 SKIP：本机该路径未产生「本层拥有」的流（release=False）⇒ 使用已释放对象的场景不成立
+  [抓到] L6   原状=OK    注入后=FAIL  返回值不是严格 bool
+           注入后：返回 1（int）—— 契约：bool
+  [抓到] M1   原状=OK    注入后=FAIL  契约承诺的统一 API 名不可调用
+           注入后：契约承诺但统一面取不到：['context_set'] ⇒ 下游按契约写 `runtime.<name>` 会 AttributeError
+  [抓到] M2   原状=OK    注入后=FAIL  公开常量为空
+           注入后：缺或为空：['MEMORY_HANDLE_KEYS']
+  [抓到] M3   原状=OK    注入后=FAIL  __all__ 里出现幽灵导出（拼错/未定义）
+           注入后：幽灵导出 ['definitely_not_a_real_name_xyz']
+------------------------------------------------------------------------------------------
+共 39 项：抓到 25 · 本机不适用 14 · **未抓到 0**
+（本机不适用 ['H2', 'H3', 'H4', 'H5', 'I2', 'I3', 'I4', 'I5', 'I10', 'J3', 'K2', 'K3', 'K8', 'L5'] —— 换实例会真正行使，见各自的 SKIP 原因）
+verdict = SELFCHECK_DUTY_EXT_PASS
+⚠️ 边界：本脚本只证「判据能 FAIL」，不证「判据的期望值是对的」——期望值依据是契约 §1.6–§1.10 的条款原文。
+结果已写入 /work/dc_mlu_regen_20261008/out_m1/m1_selfcheck_duty_ext.json

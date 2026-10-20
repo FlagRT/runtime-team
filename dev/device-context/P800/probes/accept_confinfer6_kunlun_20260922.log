@@ -1,0 +1,15 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+=== 统一运行时 conformance: backend=kunlun, chip=kunlun, 用例数=6 ===
+[env] runtime:kunlun=0.1.0 devices=1
+  [PASS   ] i1_device_context_after_load 加载后上下文可用: logits.shape=(4, 64)
+  [PASS   ] i2_infer_forward_stream_order 多轮前向同流顺序: 固定输入逐轮一致(误差=0.00e+00) = True
+  [PASS   ] i3_kv_buffer_visibility      KV 跨流可见性: 写入流→事件→计算流, 读回全 8 = True
+  [PASS   ] i4_d2h_sample_transfer       D2H 采样回传: logits.cpu()→topk, shape=(4, 3)
+  [PASS   ] i5_longrun_device_state      长驻 20 轮: 累计 logits=1.29e+00, 无 NaN/Inf = True
+  [PASS   ] i6_pipeline_overlap          流水线依赖链: 末轮数据正确(rel_err=2.52e-05)=True | 观测: pipe=0.001s serial=0.001s 重叠率=-25.3%
+
+=== 汇总: 6/6 通过 ===
+结论: CONFORMANCE_PASS
+结果已写入 /workspace/P800/probes/accept_confinfer6_kunlun_20260922.json

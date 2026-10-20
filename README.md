@@ -1,6 +1,6 @@
 # FlagOS 运行时组 · 团队协调仓（runtime-team）
 
-> 定位：FlagOS 运行时组协调仓，位于 **FlagRT 组织**（github.com/FlagRT/runtime-team）——文档、公共脚本、部署文件、项目骨架、版本事实源。**不含任何子库代码**（6 个子库在 FlagRT 组织下独立维护）。
+> 定位：FlagOS 运行时组协调仓，位于 **FlagRT 组织**（github.com/FlagRT/runtime-team）——文档、公共脚本、部署文件、项目骨架、版本事实源。**子库代码在 FlagRT 组织下的 6 个仓库独立维护**。
 
 ## 当前状态
 
@@ -20,7 +20,9 @@
 ```
 dev/
 ├── clone_all.sh              # 新成员一键 clone FlagRT 6 仓（团队公共）
-├── compose.base.yml           # 公共资源配置：镜像/19 设备/网络/内存/驱动挂载/公共环境变量（所有子方向共享）
+├── compose.base.yml           # [LEGACY，2026-09-23 起] 原公共资源配置；已被运行环境目录（镜像 demo + 子方向 extends）取代，现有子方向 compose 迁移前继续沿用，机制见 ENV-SPEC.md
+├── ENV-SPEC.md                # 环境基线规范：镜像基线 / 运行环境目录 / 启动前核对（总组发版与子方向预研共用）
+├── lib/                        # ENV-SPEC.md 配套工具：baseline.py（export/check/load/show/list）/ up.sh
 └── <子方向>/                 # 如 memory/；未来 kv/ 等，对应成员维护
     ├── README.md             # 本子方向看板入口（目标/任务/重要发现/环境速查）
     ├── docker-compose.yml    # 本子方向专属：-f 合并公共配置 + 容器名/专属环境变量
@@ -28,8 +30,9 @@ dev/
 ```
 
 使用基准：
-- 日常启动：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
-- 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，各子方向自动生效 → 同步 `VERSIONS.md`
+- **启动运行环境（现行方式）**：`dev/lib/up.sh <env-dir> [--strict]`，而非裸 `docker compose up`——会先按基线核对镜像 id 与挂载 repo 再启动。入口文档 `docs/运行时基座-使用与维护指南.md`，机制规范 `dev/ENV-SPEC.md`；新建子方向按 `dev/_template/` 建运行环境目录；可直接用的实例是 v3 demo `dev/images/ascend-train-comm/v3/demo/`
+- 日常启动（**LEGACY**，仍沿用 `compose.base.yml` 且未迁移的子方向）：`cd dev/<子方向> && docker compose -f ../compose.base.yml -f docker-compose.yml up -d`
+- `compose.base.yml` 公共配置变更（镜像 tag/设备/公共环境变量）：改 `dev/compose.base.yml`，仍引用它的子方向自动生效 → 同步 `VERSIONS.md`
 - 子方向专属变更：改本子方向的 `docker-compose.yml` / `.env.example` / 看板
 - 每个子方向 compose 必须声明独立 `name:`（如 `flagos-<方向>`）：默认 project 取首个 -f 文件目录名（`dev`），不声明会跨方向重建同名 `runtime-dev` 服务
 - `.env` 不入仓；需要 docker compose v2（-f 多文件合并，后文件覆盖前文件；序列字段如 `devices` 需整值替换时用 `!override`，compose ≥2.24，`!reset` 会清空）

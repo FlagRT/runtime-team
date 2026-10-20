@@ -1,0 +1,31 @@
+########## [env] 容器内基础信息 ##########
+torch      = 2.7.1+cpu
+torch_mlu  = 1.29.2+torch2.7.1
+MLU_VISIBLE_DEVICES = None
+device_count = 8
+
+########## A6：多流 16 项（探针覆盖部分）##########
+=== probe_stream_semantics_full.py: 多流 Stream 职责子项全量核查（后端无关 V2）===
+[env] backend=cambricon dev_api=mlu devices=1 torch=2.7.1+cpu runtime=n/a
+[S1] 流内顺序: 5.000000（期望 5.0）✅
+[S2] 无隐式同步: A=7.0000 B=11.0000 ✅
+[S8] 默认流 vs 命名流: 2.0000/4.0000；跨流分配器安全(record_stream)=10.0000 ✅
+[S9] 流错误隔离(API级): 流A rc=RuntimeError 流B=6.0000 ✅  ⚠️设备级错误为语义推断
+[S10] 生命周期: 1000 次创建销毁（0.29s）后新流仍可用 ✅
+[S11] 跨流内存: 6.0000（期望6）✅
+[S12] 流优先级: 支持 | range=(0, -3) | 并发 hi=5.0000 lo=8.0000 ✅
+[S13] 可见设备数=1<2，跳过（若需验证请放开两张卡）
+
+STREAM_SEMANTICS_PASS: 8/8 子项通过
+  S1_stream_order                  ✅ 流内 4 个 op 按序执行 → 5.000000（期望 5.0）
+  S2_no_implicit_sync              ✅ 流A均值=7.0000(期望7) 流B均值=11.0000(期望11)
+  S8_default_vs_named_stream       ✅ 默认流=2.0000(期望2) 命名流=4.0000(期望4)；跨流内存安全：record_stream 后复用结果=10.0000(期望10)。注：PyTorch 缓存分配器跨流
+  S9_stream_error_isolation        ✅ 【API 调用级隔离·已实测】流A 注入参数类异常（RuntimeError，shape 不匹配）（替代方式：本后端无 ACL 107015 等价错误码）后流B 仍正常执行 → 6
+  S10_stream_event_lifecycle       ✅ 1000 次创建销毁（0.29s）后仍可正常创建使用新流（新流结果=9.0000，期望9）
+  S11_cross_stream_memory          ✅ 流A分配内存在流B使用（依赖后）→ 6.0000（期望6）
+  S12_stream_priority              ✅ 优先级：支持 —— 统一 API 返回=(0, -3)；多流并发结果正确 hi=5.0000(期望5) lo=8.0000(期望8)。注：调度效果需压力测试验证（非本层验收项）。获
+  S13_multidevice_stream_bind      ✅ 可见设备数=1 < 2，多设备流绑定不适用（单设备环境跳过）——注意：这是**可见设备数**，多卡验证需放开可见卡（如 CUDA_VISIBLE_DEVICES=6,7）
+
+结果已写入 /work/probes/stream/stream_semantics_full_result_mlu590.json
+probe exit=0
+########## A6 完成 ##########

@@ -1,0 +1,263 @@
+{
+ "backend": "kunlun",
+ "ordinal": 0,
+ "isolation": {
+  "S0_device_enum": "isolated",
+  "S1_param_out_of_range": "isolated",
+  "S2_bounded_sync_timeout": "isolated",
+  "S3_out_of_memory": "isolated",
+  "S5_unknown_error": "isolated",
+  "S6_device_fatal": "isolated",
+  "S6b_recover_contract": "isolated"
+ },
+ "metrics": {
+  "PATH-1": {
+   "M1_vendor_branches": 0,
+   "M2_vendor_facts": 0,
+   "M3_code_lines": 77,
+   "M4_vendor_api_refs": [],
+   "M4_vendor_api_kinds": 0
+  },
+  "PATH-2": {
+   "M1_vendor_branches": 11,
+   "M2_vendor_facts": 15,
+   "M3_code_lines": 163,
+   "M4_vendor_api_refs": [
+    "acl.rt.synchronize_stream_with_timeout",
+    "torch.cuda.Stream",
+    "torch.cuda.device_count",
+    "torch.cuda.mem_get_info",
+    "torch.cuda.memory_stats",
+    "torch.cuda.set_device",
+    "torch.cuda.stream",
+    "torch.mlu.Stream",
+    "torch.mlu.device_count",
+    "torch.mlu.mem_get_info",
+    "torch.mlu.set_device",
+    "torch.mlu.stream",
+    "torch.npu.Stream",
+    "torch.npu.device_count",
+    "torch.npu.mem_get_info",
+    "torch.npu.set_device",
+    "torch.npu.stream"
+   ],
+   "M4_vendor_api_kinds": 17
+  }
+ },
+ "equivalence": [
+  {
+   "scenario": "S0_device_enum",
+   "expect": "值一致性",
+   "why": "device_count / total_mb 两路径应一致",
+   "path1": "值一致",
+   "path2": "值一致",
+   "equivalent": true,
+   "trigger": "real",
+   "path1_matches_expect": null
+  },
+  {
+   "scenario": "S1_param_out_of_range",
+   "expect": "L2_PARAM + raise",
+   "why": "设备序号越界 ⇒ 参数类，上抛不重试",
+   "path1": "L2_PARAM",
+   "path2": "L2_PARAM",
+   "equivalent": true,
+   "trigger": "real",
+   "path1_matches_expect": true
+  },
+  {
+   "scenario": "S2_bounded_sync_timeout",
+   "expect": "L3_EXECUTION + replay",
+   "why": "有界同步超时 ⇒ 执行类可重放",
+   "path1": "L3_EXECUTION",
+   "path2": "L3_EXECUTION",
+   "equivalent": true,
+   "trigger": "best-effort",
+   "path1_matches_expect": true
+  },
+  {
+   "scenario": "S3_out_of_memory",
+   "expect": "L1_RESOURCE + retry",
+   "why": "显存不足 ⇒ 资源类，带退避重试",
+   "path1": "L1_RESOURCE",
+   "path2": "L1_RESOURCE",
+   "equivalent": true,
+   "trigger": "real",
+   "path1_matches_expect": true
+  },
+  {
+   "scenario": "S5_unknown_error",
+   "expect": "L3_EXECUTION + replay",
+   "why": "无依据兜底 + graded_by=default（最不可信）",
+   "path1": "L3_EXECUTION",
+   "path2": "L3_EXECUTION",
+   "equivalent": true,
+   "trigger": "real",
+   "path1_matches_expect": true
+  },
+  {
+   "scenario": "S6_device_fatal",
+   "expect": "L4_FATAL + device_recovery",
+   "why": "芯片级致命 ⇒ 流级重试无效，须设备级恢复",
+   "path1": "L4_FATAL",
+   "path2": "L3_EXECUTION",
+   "equivalent": false,
+   "trigger": "synthetic",
+   "path1_matches_expect": true
+  }
+ ],
+ "mismatches": [
+  "S6_device_fatal"
+ ],
+ "path1_raw": {
+  "S0_device_enum": {
+   "ok": true,
+   "device_count": 1,
+   "total_mb": 98304,
+   "used_mb": 4374,
+   "free_mb": 93930,
+   "trigger": "real"
+  },
+  "S1_param_out_of_range": {
+   "ok": false,
+   "category": "L2_PARAM",
+   "disposition": "raise",
+   "action": "raise",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "CUDA error: invalid device ordinal\nGPU device may be out of range, do you have enough GPUs?\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be",
+   "trigger": "real"
+  },
+  "S2_bounded_sync_timeout": {
+   "ok": false,
+   "category": "L3_EXECUTION",
+   "disposition": "replay",
+   "action": "replay",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "kunlun: stream synchronize timeout after 1 ms（超时上报语义，不保证中断底层执行）",
+   "trigger": "best-effort"
+  },
+  "S3_out_of_memory": {
+   "ok": false,
+   "category": "L1_RESOURCE",
+   "disposition": "retry",
+   "action": "retry",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "CUDA out of memory. Tried to allocate 192.00 GiB. GPU 0 has a total capacity of 96.00 GiB of which 91.73 GiB is free. Of the allocated memory 0 bytes is allocated by PyTorch, and 0 bytes is reserved b",
+   "trigger": "real"
+  },
+  "S5_unknown_error": {
+   "ok": false,
+   "category": "L3_EXECUTION",
+   "disposition": "replay",
+   "action": "replay",
+   "mapped": false,
+   "graded_by": "default",
+   "msg": "expansion saw a wobble",
+   "trigger": "real"
+  },
+  "S6_device_fatal": {
+   "ok": false,
+   "category": "L4_FATAL",
+   "disposition": "device_recovery",
+   "action": "device_recovery",
+   "mapped": false,
+   "graded_by": "message_hint_unexpected",
+   "msg": "device reset failed, error code is 507015",
+   "trigger": "synthetic"
+  },
+  "S6b_recover_contract": {
+   "ok": true,
+   "keys": [
+    "detail",
+    "mode",
+    "ordinal",
+    "recovered",
+    "state"
+   ],
+   "recovered": true,
+   "state_raw": "DeviceState.AVAILABLE",
+   "five_keys": true,
+   "state_is_canonical_token": false,
+   "trigger": "real"
+  }
+ },
+ "path2_raw": {
+  "S0_device_enum": {
+   "ok": true,
+   "device_count": 1,
+   "total_mb": 98304,
+   "used_mb": 4374,
+   "free_mb": 93930,
+   "trigger": "real"
+  },
+  "S1_param_out_of_range": {
+   "ok": false,
+   "category": "L2_PARAM",
+   "disposition": "raise",
+   "action": "raise",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "CUDA error: invalid device ordinal\nGPU device may be out of range, do you have enough GPUs?\nCUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be",
+   "trigger": "real"
+  },
+  "S2_bounded_sync_timeout": {
+   "ok": false,
+   "category": "L3_EXECUTION",
+   "disposition": "replay",
+   "action": "replay",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "bounded sync timeout (上报语义，不保证中断底层)",
+   "trigger": "best-effort"
+  },
+  "S3_out_of_memory": {
+   "ok": false,
+   "category": "L1_RESOURCE",
+   "disposition": "retry",
+   "action": "retry",
+   "mapped": false,
+   "graded_by": "message_hint",
+   "msg": "CUDA out of memory. Tried to allocate 192.00 GiB. GPU 0 has a total capacity of 96.00 GiB of which 91.73 GiB is free. Of the allocated memory 0 bytes is allocated by PyTorch, and 0 bytes is reserved b",
+   "trigger": "real"
+  },
+  "S5_unknown_error": {
+   "ok": false,
+   "category": "L3_EXECUTION",
+   "disposition": "replay",
+   "action": "replay",
+   "mapped": false,
+   "graded_by": "default",
+   "msg": "expansion saw a wobble",
+   "trigger": "real"
+  },
+  "S6_device_fatal": {
+   "ok": false,
+   "category": "L3_EXECUTION",
+   "disposition": "replay",
+   "action": "replay",
+   "mapped": false,
+   "graded_by": "default",
+   "msg": "device reset failed, error code is 507015",
+   "trigger": "synthetic"
+  },
+  "S6b_recover_contract": {
+   "ok": true,
+   "keys": [
+    "detail",
+    "mode",
+    "ordinal",
+    "recovered",
+    "state"
+   ],
+   "recovered": true,
+   "state_raw": "available",
+   "five_keys": true,
+   "state_is_canonical_token": true,
+   "trigger": "real"
+  }
+ },
+ "boundary": "本脚本只度量「上层实现成本」与「两路径行为等价性」；不替代真机性能结论；synthetic / best-effort 场景不得当真实触发结论。未隔离模式（--no-isolate）的结论不可信（设备类失败会污染后续场景）。"
+}

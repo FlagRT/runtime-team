@@ -1,0 +1,37 @@
+=========== P800 阶段 3 推理腿 开始 Sun Sep 20 10:25:25 CST 2026 ===========
+用卡: 6 | 模型: /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B | 超时: 420s
+--- 用卡前：各卡显存占用 ---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+############ 推理腿：单卡前向 + 向量正确性 ############
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[1] 设备上下文: backend=kunlun dev=cuda:0 count=1 mem={'total_mb': 98304, 'used_mb': 32, 'free_mb': 98272}
+[2] 模型加载完成 → cuda:0
+[3] 向量: dim=1024 同主题 0.7822 / 异主题 0.1429 / 范数 1.0
+[4] 吞吐: 50.92 句/s, p50 56.93 ms, avg 58.92 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=kunlun dev=cuda:0 | dim 1024 | 50.92 句/s p50 56.93ms | 区分度 0.6392 -> /workspace/out_base/proto_infer_leg_result_base.json
+  （如实跳过：vendor_code_map）
+
+  >>> ✅ 推理腿 PASS
+
+--- 用卡后复查（确认卡已释放）---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+=========== 阶段 3 推理腿 结束 Sun Sep 20 10:25:35 CST 2026 ===========

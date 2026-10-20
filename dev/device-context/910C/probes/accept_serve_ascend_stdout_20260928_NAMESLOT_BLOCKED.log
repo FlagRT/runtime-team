@@ -1,0 +1,45 @@
+=========== 统一推理服务启动 开始 Mon Sep 28 02:00:38 UTC 2026 ===========
+backend=ascend dev=4 port=8100 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /usr/local/python3.11.15/bin/vllm ｜ python3 = /usr/local/python3.11.15/bin/python3（Python 3.11.15）
+--- 用卡前 ---
+Failed to obtain the console log level. The possible causes are as follows:
+1. Different containers share the same device;
+2. Failed to open the character device when interacting with the OS kernel;
+3. Failed to obtain the number of devices.
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=351  日志: /tmp/dc_serve_ascend_0928/vllm_serve.log
+  ❌ 进程已退出（t=30s）
+  ❌ 服务未在 600s 内就绪
+(APIServer pid=351)     return AsyncMPClient(*client_args)
+(APIServer pid=351)            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=351)   File "/vllm-workspace/vllm/vllm/tracing/otel.py", line 178, in sync_wrapper
+(APIServer pid=351)     return func(*args, **kwargs)
+(APIServer pid=351)            ^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=351)   File "/vllm-workspace/vllm/vllm/v1/engine/core_client.py", line 900, in __init__
+(APIServer pid=351)     super().__init__(
+(APIServer pid=351)   File "/vllm-workspace/vllm/vllm/v1/engine/core_client.py", line 535, in __init__
+(APIServer pid=351)     with launch_core_engines(
+(APIServer pid=351)   File "/usr/local/python3.11.15/lib/python3.11/contextlib.py", line 144, in __exit__
+(APIServer pid=351)     next(self.gen)
+(APIServer pid=351)   File "/vllm-workspace/vllm/vllm/v1/engine/utils.py", line 1119, in launch_core_engines
+(APIServer pid=351)     wait_for_engine_startup(
+(APIServer pid=351)   File "/vllm-workspace/vllm/vllm/v1/engine/utils.py", line 1178, in wait_for_engine_startup
+(APIServer pid=351)     raise RuntimeError(
+(APIServer pid=351) RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}
+(APIServer pid=351) [ERROR] 2026-09-28-02:01:13 (PID:351, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+(APIServer pid=351) sys:1: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
+/usr/local/python3.11.15/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+--- 冒烟跳过（服务未就绪）---
+
+############ 验证模式：停机 ############
+--- 用卡后复查（确认已释放）---
+Failed to obtain the console log level. The possible causes are as follows:
+1. Different containers share the same device;
+2. Failed to open the character device when interacting with the OS kernel;
+3. Failed to obtain the number of devices.
+[verdict] SERVE_STANDARD_FAIL (ready=0 smoke=0)
+=========== 结束 Mon Sep 28 02:01:26 UTC 2026 ===========

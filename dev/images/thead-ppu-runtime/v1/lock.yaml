@@ -1,0 +1,46 @@
+# thead-ppu-runtime v1 —— FlagTree 官方 PPU 基座镜像（登记式基线）
+# （结构对齐 ascend-infer-vllm/v1/lock.yaml 先例；内容按 PPU 实情如实登记）
+
+image_tag: "flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base"
+digest: "sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53"
+flagtree_line: >-
+  ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。BAAI·FlagTree
+  官方构建物（harbor.baai.ac.cn/flagtree），按官方 PPU 用户手册路径发布，非本组构建。
+  详见 dev/images/image_list.md。
+pull: "docker pull harbor.baai.ac.cn/flagtree/flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04@sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53"
+built_at: "2026-07-28T11:54:40Z"
+repro_status: "🟢 FlagTree 官方镜像"        # 公开 harbor registry，digest 锁定，PTG_0 本机在用（2026-10-15 实测）
+dockerfile: "upstream —— BAAI·FlagTree 官方 PPU 镜像线（无仓内配方）"
+
+# --- official / custom 边界（见 README §4；此处 official = BAAI·FlagTree 官方原样产物） ---
+layers:
+  - name: "flagtree-ppu 202607-3.6-base"
+    origin: official   # BAAI·FlagTree
+    pin: "digest sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53"
+    note: "含 PPU SDK v2.1.0（CUDA wrapper cu130）+ torch 2.10.0 + vllm 0.19.0+cu130 + accl-p 集合通信库"
+custom_layers: none
+
+gaps:
+  - "镜像内 /opt/vllm 无 .git —— 无自证 commit 锚，版本锚 = Harbor digest + pip 版本号"
+  - "本组 ppu 后端（runtime 0.1.0）不在镜像内，经仓内挂载使用（不固化）"
+
+notes: |
+  宿主与容器启动纪律（2026-10-10~14 device-context 方向真机实测，证据由该方向
+  在其资产目录维护）：
+  ① 非 privileged；声明式 devices 授 /dev/alixpu + /dev/alixpu_ctl + 所用 alixpu_ppuN。
+  ② --network host 下宿主主机名（ai-server）不在 DNS ⇒ torchrun/c10d rendezvous 会静默挂
+     300s 后超时 —— 须 --add-host=ai-server:127.0.0.1（mp.spawn + tcp://127.0.0.1 不受影响）。
+  ③ 镜像写死 NCCL_SOCKET_IFNAME=eth0 而本机真网卡是 bond0 ⇒ init_process_group('nccl') 能建组、
+     真实 all_reduce 失败（Bootstrap: no socket interface found）—— 须显式覆盖 NCCL_SOCKET_IFNAME=bond0。
+  ④ 选卡变量 CUDA_VISIBLE_DEVICES（按授予顺序密集重编号，同 P800）；无带卡容器独占（同 P800，
+     与昇腾相反）。
+
+changelog:
+  - date: "2026-10-15"
+    what: |
+      首次登记（登记式基线，ADR-0007 同款流程）：BAAI·FlagTree 官方 PPU 基座镜像，
+      digest 锁定（harbor.baai.ac.cn/flagtree）；新增 image.baseline.yaml（manual-registration，
+      镜像内 /opt/vllm 无 .git ⇒ 版本锚 = digest + pip 版本号）与 demo/ 运行环境
+      （compose + env.baseline.yaml，baseline.py export 生成）。PTG_0 本机已有该镜像
+      真身（多个工作容器共用，勿动）。PPU 后端接入证据（conformance 13/13 等）
+      由 device-context 方向自行维护与合入。

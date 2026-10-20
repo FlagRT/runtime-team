@@ -1,0 +1,870 @@
+#!/usr/bin/env python3
+"""寒武纪 MLU590 后端（`torch_mlu` / PrivateUse1 命名空间适配）。
+
+定位：统一运行时原型的**第三个接入实例**（前两家：昇腾 910C、昆仑芯 P800）。
+      按《运行时层接口约定》§2 的 Backend 插件接入规范**新建**；
+      **不迁移**前两家的实现与结论（`ascend` 的绑定方式、108 条 ACL 错误码表、
+      CANN 约束、XPytorch 结论、并发上限 3、选卡变量名等一律不迁移）。
+
+⛔ **本文件是新写的实现，不复制任何既有芯片的 backend 代码。**
+   可复用的是**芯片无关的共享资产**（`conformance/errors.py` 的消息规则、
+   `conformance/device_state.py` 的四态机）—— 它们本身就是规范的一部分，
+   与具体芯片无关；前两家实例也走同一份。
+
+────────────────────────────────────────────────────────────────────────────
+命名空间（手册 §2 的**路径 C：厂商私有命名空间 PrivateUse1**）
+  `torch_mlu` 把 MLU 注册为 PyTorch 的 **PrivateUse1**，设备串前缀是 **`mlu`**：
+
+      import torch, torch_mlu
+      torch.mlu.device_count()        # → 卡数
+      torch.device("mlu:0")           # → 有效设备串
+
+  ⇒ 本后端：`name = "cambricon"`（我们注册表里的键，按厂商）
+            `device_type = "mlu"`（真实可用的设备串前缀，按命名空间）
+
+  ⚠️ **PrivateUse1 是进程级单例**：同一进程内只能激活一家。
+     故本后端**不得与 `torch_npu` 等占用 PrivateUse1 的插件在同进程混用**
+     （与前两家同一条约束，接口约定已写明「进程级切换」）。
+
+────────────────────────────────────────────────────────────────────────────
+证据状态（**2026-09-22 已在 MLU590 真机验证**）
+  验证环境：容器 `dc-mlu590-hliu553`（宿主 `tza-0a06-ai01-em9`），镜像
+  `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`
+  （digest `sha256:e55b420e…`，与定档记录一致）；容器内 py3.10.20 / Ubuntu 22.04.5。
+  实测结果：**离线自检 35/0、smoke 42/0、conformance 13/13 + 6/6 全绿**；
+  证据 `MLU590/probes/A{3A4,5,6,6b}_*_20260922.log`。
+
+  ⇒ 本文件里凡标注 **`⚠️ 未实测`** 的，指**该条尚未单独实测**（不是没上过机）；
+    未标注的 API 形态均已有真机输出支撑。
+
+────────────────────────────────────────────────────────────────────────────
+真机实测结论（原「未实测清单」逐条勾销，2026-09-22）
+  1. ✅ `torch.mlu.mem_get_info(ordinal)` **存在且接受 ordinal**（(free,total) 语义同 CUDA）；
+     `mem_get_info()` 无参形式亦可用 ⇒ 取值路径 ①/② 均可，**降级路径 ③ 未被触发**
+  2. ✅ `Stream / Event / current_stream / stream / synchronize` 齐备，语义同 CUDA 命名空间
+  3. ⚠️→✅ **未 record 的 `Event.query()` 原生返回 `True`（误报！）**
+     ⇒ 本文件的 `CambriconEventAdapter` 的 E3 修正是**必需的**，不是防御性冗余
+  4. ✅ **`Stream.synchronize()` 不接受 timeout**（`TypeError: unexpected keyword argument`）
+     ⇒ 「有界」只能是**超时上报**语义（与昆仑芯同款）——本文件与文档均已如实标注
+  5. ✅ `Stream.priority_range()` **可用且不崩**：实测返回 `(0, -3)`（语义同 CUDA 的
+     least/greatest）。⚠️ 但**非法优先级（99）未被上游拦截**（不报错）⇒ 本层不透传非法值
+  6. ✅ 厂商错误码**不透出为数字码**：实测 CNRT 给的是**错误名**
+     （`RuntimeError: CNRT error: invalid argument.`），OOM 为 `OutOfMemoryError: MLU out of memory…`
+     ⇒ `error_map` **如实不声明**（无可用于码表的数字码）；分级走 message_hint 已覆盖
+     （形状错 → L2、OOM → L1，conformance f1 已通过）
+  7. ✅ 图捕获入口为 **`torch.mlu.MLUGraph` + `torch.mlu.graph` 上下文管理器**
+     ⇒ **实测 `GRAPH_CAPTURE` 5/5 成功**，故已声明 `graph_capture` 能力
+  8. ✅ **无设备级重置原语**：`torch.mlu` 下 `reset*/destroy*/reinit*` 全部是内存统计类
+     （`reset_peak_memory_stats` 等）⇒ `recovery_real` **已确认不具备**（不是"未验证"），不声明
+  9. 🟡 运行时层镜像**不含 vLLM**（`ModuleNotFoundError: No module named 'vllm'`）
+     ⇒ 推理腿服务化需用 `flagos-app/vllm*-cambricon-*` 应用镜像或另行安装；形态（厂商移植版/
+     社区版+插件）**仍未验证**
+ 10. ✅ 集合通信后端名 = **`cncl`**（亦可用 `cpu:gloo,mlu:cncl`）；
+     2 进程 `torchrun --standalone` 下 `init_process_group("cncl")` + `all_reduce` **结果正确**
+     ⇒ 训练腿 `DC_DIST_BT=cncl`。（⚠️ 前两家分别是 `hccl` 与 `flagcx` ⇒ **确实不能类推**）
+
+────────────────────────────────────────────────────────────────────────────
+⚠️ 一条**环境坑**（已实测，见 `known_issues()`，与 P800 的"缺 triton"**不同因**）
+  `import triton` **必须先 `import torch_mlu`**，否则 triton 内部 `import torch` 会触发
+  torch 的 device-backend 自动加载并失败：
+      RuntimeError: Failed to load the backend extension: mlu.
+  实测：裸 `import triton` → 失败；`import torch_mlu, triton` → `triton 3.2.0` ✅。
+  另外 `/opt/triton` 只在经 shell 启动时才进 `PYTHONPATH`（直接 `docker exec … python3` 看不到）。
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+import time
+from pathlib import Path
+from typing import Any, Optional
+
+from ...api.errors import ErrorCategory, FlagosError, coerce_category
+from ..base import RuntimeBackend, state_token
+
+logger = logging.getLogger(__name__)
+
+#: 芯片无关的共享资产目录（消息规则 / 设备四态机），与 ascend / kunlun 同一份
+_CONFORMANCE_DIR = Path(__file__).resolve().parents[2] / "conformance"
+
+
+class CambriconEventAdapter:
+    """`torch.mlu.Event` 的统一语义适配（与 NpuEventAdapter / KunlunEventAdapter 同构）。
+
+    补齐两点与统一事件契约的语义缺口：
+      - **E3：未 record 的 Event 调 `query()` 不得报"已完成"** ——
+        昆仑芯实测原生返回 `True`（误报）；本适配器用 `recorded` 标志修正为 `False`。
+        ⚠️ 未实测：寒武纪原生行为未知，本适配器**无论原生如何都保证不误报**
+        （这是更严格的一侧，不会掩盖问题）。
+      - **E2v2：主机侧有界等待 `wait_host(timeout_ms)`** —— 原生 Event 无此方法，
+        用 `query()` 轮询实现，**永不永久阻塞**。
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._ev = None
+        self._args, self._kwargs = args, kwargs
+        self._recorded = False
+
+    def _ensure(self):
+        if self._ev is None:
+            import torch
+            import torch_mlu  # noqa: F401  触发 mlu 设备注册
+            self._ev = torch.mlu.Event(*self._args, **self._kwargs)
+        return self._ev
+
+    def record(self, stream=None):
+        r = self._ensure().record(stream)
+        self._recorded = True
+        return r
+
+    def wait(self, stream=None):
+        return self._ensure().wait(stream)
+
+    def synchronize(self):
+        r = self._ensure().synchronize()
+        self._recorded = True
+        return r
+
+    def query(self):
+        # E3：未 record 不得报"已完成"
+        if not self._recorded:
+            return False
+        return self._ensure().query()
+
+    def wait_host(self, timeout_ms: Optional[int] = None) -> bool:
+        """主机侧**有界**等待：完成 True / 超时 False（不永久阻塞）。"""
+        deadline = None if timeout_ms is None else time.monotonic() + timeout_ms / 1000.0
+        while not self.query():
+            if deadline is not None and time.monotonic() >= deadline:
+                return False
+            time.sleep(0.001)
+        return True
+
+    def elapsed_time(self, end_event):
+        return self._ensure().elapsed_time(getattr(end_event, "_ev", end_event))
+
+    def __getattr__(self, item):
+        return getattr(self._ensure(), item)
+
+
+class CambriconBackend(RuntimeBackend):
+    """基于 `torch_mlu`（PrivateUse1）的寒武纪 MLU 后端。"""
+
+    name = "cambricon"
+    device_type = "mlu"
+
+    #: 厂商驱动库句柄缓存（惰性 `ctypes.CDLL`）。**沿用 kunlun 的同名属性** ——
+    #: 离线自检靠 `hasattr(cls, "_ctx_driver")` 判定"该后端走厂商驱动原语路径"
+    #: 并注入**可控假驱动**（纪律：「能造可控假原语就别 SKIP」）。
+    #: `False` = 已试过且不可得（避免反复重试）。
+    _ctx_driver = None
+
+    #: `cnrtQueueCreateWithPriority` 的 flags 取值；`0` = 默认（真机实测 rc=0）。
+    _CNRT_QUEUE_FLAGS = 0
+
+    #: 规范能力键全集（与 ascend / kunlun 同一套键名，便于跨实例同口径比对）
+    _CAPABILITY_KEYS = (
+        "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
+        "error_map", "recovery_probe", "recovery_real",
+        "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-29（工作包 B/C）新增键：本家**全部未声明**（未真机验证 ⇒ 不声明，
+        # 如实呈现为 False）。MLU590 上的原语探测与声明留待下一轮。
+        "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
+        # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
+        # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
+        "context_query",
+        # 2026-09-29（A2 收尾）：四态机的 **驱动** 入口（原只有查询 `device_state`）。
+        # 芯片无关 —— 走本层共享状态机（进程内账本，不依赖厂商原语），故三家一致声明。
+        "device_state_control",
+        # 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙**
+        #   —— 与 `device_state` / `device_state_control`、`context_query` / `context_lifecycle` 同构。
+        "stream_priority_control", "stream_priority_readback",
+    )
+
+    #: 本后端**声明支持**的能力（不支持/未验证的一律不写进来 —— 如实声明，不伪造）
+    _capabilities = {
+        "device",
+        "memory",
+        "stream",
+        "event",
+        "bounded_sync",      # 主机侧等待（event.wait_host）真有界；流同步为"超时上报"语义
+        "recovery_probe",    # 探针级恢复
+        "device_state",      # 四态**查询**（复用进程内状态机，见 device_state()）
+        # ── 2026-09-29（A2 收尾）新增 ──
+        "device_state_control",  # 四态**驱动**（`runtime.set_device_state()`）；本层账本，非厂商能力
+        "multidevice",       # 单机 8 卡（实测：8 × MLU590-M9）
+        "graph_capture",     # 2026-09-22 实测 GraphCapture 5/5 成功
+                             #   （入口是 torch.mlu.MLUGraph + torch.mlu.graph）
+        "stream_priority",   # 设备口径区间：`cnrtDeviceGetQueuePriorityRange`（真机 2026-10-08 实测
+                             #   least=7 greatest=0 ⇒ 合法域 0..7，数值越小优先级越高）。
+                             #   ⚠️ 旧注释记的是 torch 口径 (0,-3)；两者**非恒等映射**
+                             #   （实测 torch 请求 0 ⇒ 设备 4），故不能混用（见下方 2026-10-08 更正块）。
+        # ── 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙** ──
+        # **能读范围 ≠ 能设置**（同 `device_state` / `device_state_control` 的拆法）。
+        # 本家是三家**唯一两家都能声明**的实例（另两家：910C 插件层丢参数且无 ExternalStream、
+        # P800 优先级空间退化为单点）⇒ 声明"能设置 + 能回读"。
+        # ⚠️ **2026-10-08 更正两处"未经验证的推测"**（手册 §7.1 三步判定缺一不可）：
+        #   ① 旧注释写「本家**没有**独立的句柄式 C API」—— **错**。`neuware/include/cnrt.h`
+        #      有 `cnrtQueueCreate / CreateWithPriority / Destroy / GetPriority /
+        #      DeviceGetQueuePriorityRange`；`libcnrt.so.7.4.0` 导出 **17 个**同族符号。
+        #   ② 旧注释隐含「无 `ExternalStream` 等价入口」（从 ascend 外推）—— **错**。
+        #      `torch.mlu.ExternalStream` **存在且可用**（实测包装出的流能承载算子，sum=32.0）。
+        #   ③ 旧实现走 `torch.mlu.Stream(priority=…)` 且**回读读的是 `Stream.priority`** ——
+        #      那是**构造参数的回显**（请求 -1 ⇒ .priority=-1，而设备侧是 3）
+        #      ⇒ 契约 §1.9 第 ⑥ 条在本实例**永远不可能 FAIL** ⇒ **判据空转**（已修为 C API 口径）。
+        "stream_priority_control",   # `create_stream(priority=…)` 真能生效（**设备侧**可回读校验）
+        "stream_priority_readback",  # `cnrtQueueGetPriority` 回读（真设备读数，非 torch 属性回显）
+        # ── 以下**不声明**（两类原因分开写清，勿混为一谈）──
+        # 【已实测确认不具备 → 不声明】不是"未验证"，是"确认没有"
+        #   "recovery_real" : torch.mlu 下 reset* / destroy* / reinit* 全是内存统计类
+        #                     （reset_peak_memory_stats 等）⇒ 无设备级重置原语
+        #   "error_map"     : 厂商错误码**不透出为数字码**（CNRT 只给错误名，如
+        #                     `CNRT error: invalid argument.`）⇒ 无可建码表的数字码；
+        #                     分级由 message_hint 覆盖（形状错→L2、OOM→L1，conformance f1 已过）
+    }
+
+    #: 分级来源可达性（如实标注：在当前实现里 code_map 路径**不参与**判定）
+    _grading_paths = {"code_map": False, "message_hint": True}
+
+    def __init__(self) -> None:
+        self._torch = None
+        self._errors = None
+        self._device_state = None
+        self._assets_loaded = False
+        self._loaded = False
+
+    # ───────────── 延迟加载 ─────────────
+    def _load(self) -> None:
+        """导入 torch + torch_mlu。
+
+        ⚠️ 缺 `torch_mlu` 时**明确抛错**（而不是静默降级）——
+        否则会被误读成"设备有问题"。报错文案里给出下一步动作，
+        对应手册 §9 坑 1「依赖链不完整伪装成设备问题」。
+        """
+        if self._loaded:
+            return
+        import torch
+        try:
+            import torch_mlu  # noqa: F401  注册 mlu 命名空间（PrivateUse1）
+        except ImportError as e:
+            raise RuntimeError(
+                "cambricon 后端需要 torch_mlu（MLU 厂商 PyTorch 扩展）但导入失败："
+                f"{e}。请确认当前容器是含 torch_mlu 的寒武纪镜像"
+                "（定档：harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0），"
+                "并确认已激活正确的 python 环境。"
+            ) from e
+        if not hasattr(torch, "mlu"):
+            raise RuntimeError(
+                "torch_mlu 已导入但 torch.mlu 命名空间仍不存在 —— "
+                "可能是 torch 与 torch_mlu 版本不配套（torch_mlu 要求先装对应版本 torch）。"
+            )
+        self._torch = torch
+        self._loaded = True
+
+    @property
+    def torch(self):
+        self._load()
+        return self._torch
+
+    def _load_assets(self) -> None:
+        """加载芯片无关的共享资产（消息规则 / 设备四态机）。
+
+        用**标准 import（共享 `sys.modules`）**，与 ascend 一致。原因（两条，都有前例）：
+          1. `device_state` 是**有状态的进程内单例**（模块级持有每个设备的四态与订阅者）。
+             若用 `spec_from_file_location("dc_xxx", ...)` 加载成独立模块，会得到**两份状态机**
+             —— conformance/上层设的状态后端查不到、后端设的上层看不到（昆仑芯接入时踩过，
+             见 `backends/kunlun/backend.py::_load_device_state` 的说明）。
+          2. 独立加载还会让同一语义出现**两份枚举类对象**，即使取值相同也不相等，
+             导致 `FlagosError.disposition` 的查表 KeyError
+             （即「第 4 个跨后端框架缺陷」）。标准 import 从根上避免这一类问题。
+        """
+        if self._assets_loaded:
+            return
+        sys.path.insert(0, str(_CONFORMANCE_DIR))
+        import device_state as _device_state  # noqa: E402
+        import errors as _errors  # noqa: E402
+        self._errors = _errors
+        self._device_state = _device_state
+        self._assets_loaded = True
+
+    # ───────────── 设备（职责 D2）─────────────
+    def device_count(self) -> int:
+        return int(self.torch.mlu.device_count())
+
+    def set_device(self, ordinal: int) -> None:
+        self.torch.mlu.set_device(ordinal)
+
+    # ───────────── 内存（职责 D3）─────────────
+    def memory_stats(self, ordinal: int) -> dict:
+        """归一化为 `{total_mb, used_mb, free_mb}`。
+
+        取值路径按优先级试三条（⚠️ 未实测：以下三条在寒武纪上哪条可用尚待容器内核对）：
+          ① `torch.mlu.mem_get_info(ordinal)` —— 设备级 free/total（本仓库 ascend/kunlun 同口径）
+          ② `torch.mlu.mem_get_info()`        —— 部分实现不接受 ordinal 参数
+          ③ `get_device_properties(ordinal).total_memory` − `memory_allocated(ordinal)`
+             —— **语义较弱**：`memory_allocated` 只反映**本进程**的分配量，
+             不含同卡其他进程占用 ⇒ 走这条路径时打 WARNING，**不静默当作设备级数据**
+        """
+        torch = self.torch
+        prev = torch.mlu.current_device()
+        if prev != ordinal:
+            torch.mlu.set_device(ordinal)
+        try:
+            free = total = None
+            for call in (
+                lambda: torch.mlu.mem_get_info(ordinal),
+                lambda: torch.mlu.mem_get_info(),
+            ):
+                try:
+                    free, total = call()
+                    break
+                except Exception:
+                    continue
+            if free is None:
+                logger.warning(
+                    "cambricon: torch.mlu.mem_get_info 不可用，降级为"
+                    " total_memory - memory_allocated（仅本进程视角，非设备级）"
+                )
+                total = int(torch.mlu.get_device_properties(ordinal).total_memory)
+                free = total - int(torch.mlu.memory_allocated(ordinal))
+        finally:
+            if prev != ordinal:
+                try:
+                    torch.mlu.set_device(prev)
+                except Exception:
+                    pass
+        return {
+            "total_mb": int(total / 1024 / 1024),
+            "used_mb": int((total - free) / 1024 / 1024),
+            "free_mb": int(free / 1024 / 1024),
+        }
+
+    def probe_device(self, ordinal: int) -> bool:
+        """轻量探活：在目标卡上建小张量并求和（不干扰业务）。"""
+        try:
+            torch = self.torch
+            prev = torch.mlu.current_device()
+            if prev != ordinal:
+                torch.mlu.set_device(ordinal)
+            try:
+                x = torch.zeros(2, 2, device=f"mlu:{ordinal}")
+                return float(x.sum().item()) == 0.0
+            finally:
+                if prev != ordinal:
+                    try:
+                        torch.mlu.set_device(prev)
+                    except Exception:
+                        pass
+        except Exception:
+            return False
+
+    def peek_current_device(self) -> int:
+        """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""
+        try:
+            return int(self.torch.mlu.current_device())
+        except Exception:
+            return 0
+
+    def _driver_handle(self):
+        """惰性取得**厂商驱动库**句柄（`libcnrt.so`）。
+
+        ⚠️ 走 **soname**（`readelf -d` 实测 SONAME = `libcnrt.so`），
+        **不**取绝对路径、更不用别处的副本 —— 同栈的库必须指向**同一份**
+        （kunlun 上曾因取 `triton/.../so/` 下的同名副本触发
+        `Libraries loaded from different directories!` ⇒ torch 直接 `CUDA_ERROR_NOT_INITIALIZED`）。
+
+        ⚠️ 不用 `try/except AttributeError` 包裹后续的属性赋值：那会把
+        「库没这个符号」（如实不支持）与「调用方/替身兼容性问题」（bug）**混为一谈且静默**
+        ⇒ 一律用 `getattr(lib, name, None)` **显式探针**，其余异常**传播**。
+        """
+        if type(self)._ctx_driver is None:
+            import ctypes
+            try:
+                type(self)._ctx_driver = ctypes.CDLL("libcnrt.so")
+            except OSError:
+                type(self)._ctx_driver = False
+        return type(self)._ctx_driver or None
+
+    # ───────────── 流 / 事件（职责 D4/D5）─────────────
+    def _create_stream_raw(self, priority=None):
+        """默认路径：`torch.mlu.Stream()`；`priority` 非 None 时带优先级建流。
+
+        本家是三家**唯一**能完整落地"设置 + 回读"的实例（2026-09-22 MLU590 真机实测：
+        `priority_range()` = **(0, -3)**，`Stream(priority=0/-1/-3)` 均可创建且**读回正确**）。
+        取值域与回读校验由基类 `create_stream()` **统一**执行（共享资产单一实现）。
+
+        ⚠️ 如实边界：厂商行为取自 09-22 记录；**本轮（09-30）未在 MLU590 真机复验本层新接线**
+        （该机网络未启用）⇒ 属"实现就绪、待窗口复验"，不得由另两家外推。
+        """
+        if priority is None:
+            return self.torch.mlu.Stream()
+
+        # ── `priority=<int>`：走**厂商 C API**（2026-10-08 起；此前走 torch 侧）──
+        #
+        # 为什么必须换（真缺陷）：torch 侧路径的"回读"只能读 `Stream.priority`，
+        # 而它**是构造参数的回显**（实测：请求 -1 ⇒ .priority == -1，而设备侧是 3）
+        # ⇒ 契约 §1.9 第 ⑥ 条在本实例上**永远不可能 FAIL**（判据空转）。
+        # 换到 C API 后，回读 = `cnrtQueueGetPriority`（真设备读数），
+        # 实测 8 个档位（0..7）**回读 == 请求**。
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            raise RuntimeError(
+                "cambricon：驱动库 `libcnrt.so` 不可得 ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本路径需要 `cnrtQueueCreateWithPriority`（neuware 的 CNRT 运行时）；\n"
+                "  · 不指定优先级请用 `create_stream()`（走 torch 原生路径，逐位不变）。")
+        fn = getattr(lib, "cnrtQueueCreateWithPriority", None)
+        if fn is None:
+            raise RuntimeError(
+                "cambricon：驱动库缺少 `cnrtQueueCreateWithPriority` ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本层**不降级**（不会静默返回一条无优先级的流）；不指定优先级请用 `create_stream()`。")
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint, ctypes.c_int]
+        handle = ctypes.c_void_p(0)
+        rc = int(fn(ctypes.byref(handle), ctypes.c_uint(self._CNRT_QUEUE_FLAGS),
+                    ctypes.c_int(int(priority))))
+        if rc != 0 or not handle.value:
+            raise RuntimeError(
+                f"cambricon：`cnrtQueueCreateWithPriority(priority={priority})` 失败 "
+                f"rc={rc} handle={handle.value!r} ⇒ 如实报错，不返回假流。")
+
+        try:
+            # ⚠️ 这一步是**一票否决**的关键：拿不到"能进 torch 执行上下文"的流，
+            #    设置了也白设（同理 910C：pyACL 能建带优先级的流，但无入口包回 torch
+            #    ⇒ 本层如实不声明 `stream_priority_control`）。MLU590 实测该入口**可用**。
+            native = self.torch.mlu.ExternalStream(handle.value)
+        except BaseException:                                     # noqa: BLE001
+            self._destroy_stream_raw(handle.value)                # 不留泄漏
+            raise
+        self._register_owned_stream(native, handle.value)
+        return native
+
+    def _destroy_stream_raw(self, handle) -> bool:
+        """销毁由**本层**创建的队列（`cnrtQueueDestroy`）；原语不可得返回 False（不假装成功）。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return False
+        fn = getattr(lib, "cnrtQueueDestroy", None)
+        if fn is None:
+            return False
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p]
+        return int(fn(ctypes.c_void_p(int(handle)))) == 0
+
+    def _stream_priority_read_raw(self, handle):
+        """**厂商原语层**：队列句柄 → 优先级（读不出返回 None）。
+
+        ⚠️ **2026-10-08 修正（这是一处真缺陷的修复，不是重构）**：本方法原读的是
+        `torch.mlu.Stream.priority` —— 那是**构造参数的 Python 侧回显**，不是设备读数。
+        实测对照（同一批流）：
+
+            请求         `.priority`（旧口径）   `cnrtQueueGetPriority`（设备读数）
+            无参 / 0     0                       4
+            -1           -1                      3
+            -3           -3                      1
+            7（越界）     0                       4
+
+        ⇒ 旧口径下「请求 == 回读」是**同义反复**，契约 §1.9 第 ⑥ 条在本实例
+        **永远不可能 FAIL** ⇒ 判据空转（本项目禁止项家族）。
+        改为厂商 C API 后，回读是**真设备读数**，且 `cnrtQueueCreateWithPriority`
+        建的流实测 8 个档位（0..7）**回读 == 请求**。
+
+        ⚠️ 单独成方法是为了**可注入/可替换**（离线自检在无设备时要能驱动这条链路）。
+        """
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return None
+        fn = getattr(lib, "cnrtQueueGetPriority", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        got = ctypes.c_int(0x7FFFFFFF)
+        rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
+        return int(got.value) if rc == 0 else None
+
+    def stream_priority_readback(self, native_stream):
+        """回读该流的优先级（**设备读数**）；读不出返回 None。
+
+        为什么必须能回读（2026-09-30）：`torch.npu.Stream(priority=7)` 在 910C 上
+        **接受 kwarg 却静默丢弃**（回读恒 0）—— 只有回读能把"参数真的进去了"与
+        "看起来设了"分开。本层据此对声明了 `stream_priority_control` 的后端**强制校验**。
+        ⚠️ 而"回读"本身也必须是**设备读数**：MLU590 原先的 torch 属性口径就是反例（见上）。
+
+        句柄属性名各家不同：`npu_stream` / `cuda_stream` / `mlu_stream`（本家 = `mlu_stream`）。
+        """
+        handle = getattr(native_stream, "mlu_stream", None)
+        if not handle:
+            return None
+        return self._stream_priority_read_raw(handle)
+
+    def create_event(self):
+        # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
+        return CambriconEventAdapter()
+
+    def current_stream(self):
+        return self.torch.mlu.current_stream()
+
+    def stream_context(self, native_stream):
+        return self.torch.mlu.stream(native_stream)
+
+    def synchronize(self, ordinal: int, timeout_ms: Optional[int] = None) -> None:
+        """设备同步。`timeout_ms` 为空 → 原生阻塞同步；非空 → 轮询上报超时。"""
+        torch = self.torch
+        if timeout_ms is None:
+            try:
+                torch.mlu.synchronize(ordinal)
+            except TypeError:
+                # ⚠️ 未实测：部分实现不接受 device 参数
+                torch.mlu.set_device(ordinal)
+                torch.mlu.synchronize()
+            return
+        self._bounded_wait(lambda: torch.mlu.current_stream().query(), timeout_ms, "device")
+
+    def synchronize_stream(self, native_stream, timeout_ms: int) -> None:
+        """有界等待指定流；超时抛 `TimeoutError`。
+
+        ⚠️ **语义边界（如实标注，待实测确认）**：昆仑芯实测 `Stream.synchronize()`
+        无 timeout 参数、无中断原语，故「有界」只能做成**超时上报**语义 ——
+        超时抛 `TimeoutError` 让上层得以降级/记录，但**不保证中断底层已提交的执行**。
+        寒武纪是否提供真中断原语**未知**；本实现先与昆仑芯同口径，
+        待容器内核对（接口约定修订建议已就该语义边界提出建议）。
+        """
+        if timeout_ms is None:
+            native_stream.synchronize()
+            return
+        self._bounded_wait(native_stream.query, timeout_ms, "stream")
+
+    def _bounded_wait(self, query_fn, timeout_ms: int, what: str) -> None:
+        deadline = time.monotonic() + timeout_ms / 1000.0
+        while True:
+            try:
+                if query_fn():
+                    return
+            except Exception:
+                # 查询本身失败 → 不视为超时，交由上层错误翻译处理
+                return
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"cambricon: {what} synchronize timeout after {timeout_ms} ms"
+                    "（超时上报语义，不保证中断底层执行）"
+                )
+            time.sleep(0.001)
+
+    def wait_event_host(self, native_event, timeout_ms: int) -> bool:
+        """主机侧有界等待事件；完成 True / 超时 False（永不永久阻塞）。"""
+        if hasattr(native_event, "wait_host"):
+            return bool(native_event.wait_host(timeout_ms))
+        deadline = time.monotonic() + timeout_ms / 1000.0
+        while time.monotonic() < deadline:
+            try:
+                if native_event.query():
+                    return True
+            except Exception:
+                return False
+            time.sleep(0.001)
+        return False
+
+    # ───────────── 可选能力 ─────────────
+    def stream_priority_range(self):
+        """流优先级区间 (least, greatest)。
+
+        2026-09-22 真机实测：`torch.mlu.Stream.priority_range()` 返回 **`(0, -3)`**，
+        语义与 CUDA 一致（least=0 / greatest=-3），**且不触发断言** ——
+        与昆仑芯形成明确对照（那里同款 API 会触发 PyTorch 自身的
+        `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`）。
+
+        ⚠️ **2026-10-08 改口径（本方法返回设备口径）**：上面那个 `(0, -3)` 是 **torch 侧**
+        的档位口径，与**设备侧**不是恒等映射（实测：torch 请求 `0` ⇒ 设备 `4`）。
+        既然建流与回读都改走厂商 C API（见 `_create_stream_raw` / `stream_priority_readback`），
+        区间**必须同口径**，否则取值域校验会拒掉合法设备档位（或放行非法档位）。
+        现返回 `cnrtDeviceGetQueuePriorityRange` 的结果（真机实测 `least=7, greatest=0`，
+        即合法域 `0..7`，**数值越小优先级越高**）—— 与 910C 的 pyACL 口径同构。
+
+        ✅ **2026-09-30 起该缺口已被本层兜住**：上游**未拦截非法优先级**
+        （`Stream(priority=99)` 不报错），但本层的 `create_stream(priority=…)` 会
+        **按本区间强制校验**（越界 ⇒ `ValueError`）并做**创建后回读校验**
+        （回读 != 请求 ⇒ `RuntimeError`）⇒ 调用方不再需要自己保证区间。
+
+        ⚠️ 仍未单独验证的：优先级的**实际调度效果**（读回值只证明被接受）。
+        若后续需要据此做调度决策，应先补一条性能侧对照实验。
+        """
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            return None
+        fn = getattr(lib, "cnrtDeviceGetQueuePriorityRange", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        least, greatest = ctypes.c_int(0), ctypes.c_int(0)
+        if int(fn(ctypes.byref(least), ctypes.byref(greatest))) != 0:
+            return None
+        return int(least.value), int(greatest.value)
+
+    # ───────────── 错误翻译（职责 D10）─────────────
+    def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
+        """厂商错误 → 统一 `FlagosError`。分级来源如实限定为 **`message_hint` / `default`**。
+
+        2026-09-22 真机实测：**CNRT 抛的是错误名而非数字码**（`CNRT error: invalid argument.`、
+        OOM 抛 `OutOfMemoryError: MLU out of memory…`）⇒ 无可用于码表的数字码，
+        故**不声明 `error_map` 能力**（是「确认不具备」，不是「未验证」）。
+
+        ⚠️ **2026-09-29 修（工作包 A 实验暴露，§11-① 的补全）**：此前是**事后降级** ——
+        调共享翻译器（其码表为**昇腾 ACL 码表**）之后，只把 `graded_by` / `mapped` /
+        `error_code` 三个**置信度字段**降下来，而 **`category` 仍冻结在共享码表给出的值**。
+        实测后果（P800）：喂一条携带昇腾码的消息即得 **L4_FATAL / device_recovery** ——
+        而契约 §1.4 明令「下游必须按 `disposition` 处理」⇒ 会**误触发设备级重建**；
+        且 `errors.py` 自身规则是「无依据兜底 L3」，行为却**升级**为 L4 ⇒ 违反自身规则。
+
+        还有更隐蔽的一层：`message_hint_unexpected` 这个标记本身也是错的 ——
+        共享翻译器在**码表命中时即返回**、**从未评估消息规则**，所以降级后并没有人重算
+        `message_hint`；`category` 只是"恰好"与消息规则一致或**不一致**，属**巧合而非声明**。
+
+        ⇒ 现改为**从源头不使用外来码表**（`vendor_codes=False`）：`graded_by` / `mapped` /
+        `error_code` / **`category`** 四者天然一致，无需任何事后修补 ——
+        「降级必须整组一致」由此从"逐个字段记得改"变成"结构上不可能不一致"。
+        """
+        self._load_assets()
+        # ⚠️ `vendor_codes=False` 是本后端**正确性的关键**：本家无厂商码表，
+        #    昇腾 ACL 码表不得参与本家的分级判定。
+        fe = self._errors.translate_error(  # type: ignore[union-attr]
+            exc, location=location, vendor_codes=False)
+        graded_by = getattr(fe, "graded_by", "default")
+        return FlagosError(
+            # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
+            # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
+            # （L1=1..L4=4），与 api 层枚举**不是同一个类对象** —— 即使取值相同也不相等，
+            # 直接透传会让 `FlagosError.disposition` 的 `DISPOSITION[cat]` 查表 KeyError。
+            # 故经 `coerce_category` 按数值/名称归一（ascend 用的是同源 _INT_TO_CATEGORY）。
+            category=coerce_category(getattr(fe, "category", None)) or ErrorCategory.L3_EXECUTION,
+            root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
+            location=getattr(fe, "location", "") or location,
+            error_code=getattr(fe, "error_code", None),
+            mapped=bool(getattr(fe, "mapped", False)),
+            graded_by=graded_by,
+            # 无厂商码可依据 → 除"命中消息规则"外均不标为高置信
+            is_grade_confident=(graded_by == "message_hint"),
+            recovery_decision=getattr(fe, "recovery_decision", {}) or {},
+            backend=self.name,
+        )
+
+
+    # ───────────── 状态恢复（职责 D11）─────────────
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "", **kwargs: Any) -> dict:
+        """设备重建。统一返回 dict，`recovered` 语义 = **设备当前可用**。
+
+        ⚠️ **`real` 模式当前不支持**，原因是「**未验证**」而非「已确认不具备」：
+        寒武纪是否有设备级重置/重建原语（对应昇腾的 `aclrtResetDevice` 序列）
+        **本次未实测**，故**不声明 `recovery_real` 能力**、也不写一条未经验证的重建序列
+        （写一条猜的实现会制造"看起来支持"的假象，比不写更糟）。
+        待容器内确认原语存在且可安全调用后，再补 `real` 并在 `_capabilities` 中声明。
+        """
+        alive = self.probe_device(ordinal)
+
+        # 2026-09-28（职责响应审计暴露）：接口约定 §1.5 的返回契约要求
+        # `{ordinal, mode, recovered, state, detail}` **五键齐全**。
+        # 本后端此前只返回四键（缺 `state`），与 ascend 不对称 ⇒
+        # 下游（监控方向）按契约读 `state` 在本家会拿不到 —— 属对称性缺陷，已补。
+        try:
+            state = state_token(self.device_state(ordinal))
+        except Exception:
+            state = "unknown"
+        if mode not in ("probe", "hybrid"):
+            return {
+                "ordinal": ordinal, "mode": mode, "recovered": alive,
+                "state": state,
+                "detail": ("寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；"
+                           "已按探活结果判定。如需 real 需先在容器内确认可用原语"),
+            }
+        return {
+            "ordinal": ordinal, "mode": mode, "recovered": alive,
+            "state": state,
+            "detail": f"probe 级探活：设备当前{'可用' if alive else '不可用'}",
+        }
+
+    def device_state(self, ordinal: int):
+        """查询设备四态：`available` / `degraded` / `isolated` / `destroyed`。
+
+        复用共享的 `conformance/device_state.py`（**进程内状态机，不依赖厂商原语**），
+        与前两家同一份实现与同一套语义，故本后端的 `device_state` 能力声明成立。
+
+        边界（如实标注）：本后端只声明 `recovery_probe`；四态**转换**由上层/监控方向驱动，
+        本方法只负责**查询**，恢复执行走 `recover_device(mode="probe")`。
+        """
+        self._load_assets()
+        return self._device_state.query_device_state(ordinal)  # type: ignore[union-attr]
+
+    # ───────────── 能力声明 ─────────────
+    # 2026-09-28：`supports()` 覆写已删除 —— 三家实现完全同款（`cap in self._capabilities`）
+    # ⇒ 收敛到基类唯一实现，别名归一（`sync_timeout` → `bounded_sync`）只在基类维护一处。
+
+    # ───────────── 已知上游/环境问题（给接入方直接可读）─────────────
+    #: 纪律：只收**已实测**的问题；每条注明条件、归属层与证据位置。
+    #: 本方向在寒武纪上**尚无厂商缺陷结论**（未进容器），故本清单当前只含**环境约束**，
+    #: 且明确标注证据来源。容器内实测后按手册 §9 模板补厂商缺陷条目。
+    _KNOWN_ISSUES = [
+        {
+            "id": "MLU-DRIVER-TIER-CONSTRAINT",
+            "severity": "info",
+            "scope": "环境/镜像选型（本方向验证的前置条件）",
+            "condition": "宿主驱动版本决定可用镜像档位",
+            "symptom": (
+                "两台测试机驱动实测 v6.2.29（6.2.x 线）⇒ 只能使用 neuware4.4.3 档镜像"
+                "（官方标注 Host driver 6.2.15）；neuware4.7.2 档官方标注要求宿主驱动 6.5.48，"
+                "本机不满足。选错档位表现为容器内厂商工具/库与宿主不匹配"
+            ),
+            "repro_rate": "不适用（环境约束，非概率性缺陷）",
+            "root_cause_layer": "环境（宿主驱动 ↔ 镜像档位配套关系）",
+            "workaround": "按驱动选档：走 flagos-runtime-cambricon-neuware4.4.3:2.2.0",
+            "workaround_risk": (
+                "4.4.3 为旧档（py3.10 / torch 2.7.1 / torch-mlu 1.29.2 / triton 3.2.0+mlu1.7.2），"
+                "与最新 4.7.2 档差两代。本方向（设备抽象/执行上下文/多流/错误翻译/状态恢复）"
+                "对 torch-mlu 小版本不敏感，故代价可接受；若后续出现与该档强相关的问题，"
+                "走《寒武纪镜像渠道调研》§0.2 的驱动升级上报预案"
+            ),
+            "report_to": "总组 / 机器管理员（仅在触发 §0.2 预案门槛时才需上报）",
+            "evidence": "MLU590/docs/CAMBRICON_MLU_IMAGE_CHANNEL_20260922.md §0.1/§0.2；"
+                        "MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md（驱动 v6.2.29 实测）",
+        },
+        {
+            "id": "MLU-HOST-NO-NEUWARE",
+            "severity": "info",
+            "scope": "环境（软件栈形态）",
+            "condition": "宿主无 /usr/local/neuware（只读探测结论）",
+            "symptom": (
+                "宿主上没有任何 MLU 软件栈（无 NEUWARE_HOME）⇒ 不能在宿主直接跑 torch_mlu；"
+                "所有本方向验证必须在**带卡容器**内进行"
+            ),
+            "repro_rate": "不适用（环境约束）",
+            "root_cause_layer": "环境（宿主机设计：MLU 栈只随容器分发）",
+            "workaround": "一律在容器内验证；宿主只用来起容器与查卡（cnmon 是宿主工具）",
+            "workaround_risk": None,
+            "report_to": "无（无需上报）",
+            "evidence": "MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md §2「宿主无 /usr/local/neuware」",
+        },
+        {
+            "id": "MLU-TRITON-IMPORT-ORDER",
+            "severity": "medium",
+            "scope": "Python 导入顺序（算子 / 编译路径使用者会踩；本方向路径不依赖 triton）",
+            "condition": "在未先导入 `torch_mlu` 的情况下 `import triton`",
+            "symptom": (
+                "triton 内部 `import torch` 会触发 torch 的 device-backend 自动加载并失败："
+                "`RuntimeError: Failed to load the backend extension: mlu. "
+                "You can disable extension auto-loading with TORCH_DEVICE_BACKEND_AUTOLOAD=0.`"
+                "—— **报错文案看着像设备问题，实际是导入顺序问题**"
+            ),
+            "repro_rate": "确定性（100%，2026-09-22 实测 3/3 次）",
+            "root_cause_layer": "环境/入口（torch 的 device-backend 自动加载时机 vs 厂商扩展注册时机）",
+            "workaround": (
+                "**先 `import torch_mlu` 再 `import triton`**（实测得到 `triton 3.2.0`）；"
+                "或兼容做法 `import torch, torch_mlu` 之后再导入任何依赖 triton 的库。"
+                "不要用 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 绕过——它会一并影响 mlu 后端注册"
+            ),
+            "workaround_risk": "无（顺序调整即可，不改环境变量、不动公共资产）",
+            "report_to": "知会算子 / 编译方向（他们是用 triton 路径的一方）",
+            "evidence": "MLU590/probes/A5_verify_20260922.log §①；"
+                        "MLU590/probes/A6_capability_probe_20260922.log §③",
+        },
+        {
+            "id": "MLU-RUNTIME-IMAGE-NO-VLLM",
+            "severity": "info",
+            "scope": "推理腿服务化形态（本方向验证路径受影响，但不阻塞设备上下文验证）",
+            "condition": "使用 `flagos-runtime-*` 运行时层镜像（而非 `flagos-app/vllm*` 应用镜像）",
+            "symptom": (
+                "运行时层镜像**不含 vLLM**：`ModuleNotFoundError: No module named 'vllm'` ⇒ "
+                "`from vllm.platforms import current_platform` 无法执行，服务化形态无法就地验证"
+            ),
+            "repro_rate": "确定性（镜像内容事实）",
+            "root_cause_layer": "环境（镜像分层设计：runtime 层只到 torch/插件/triton/flag_gems）",
+            "workaround": (
+                "推理腿走同线应用镜像 `harbor.baai.ac.cn/flagos-app/vllm0.24.0-cambricon-neuware4.4.3`"
+                "（或 vllm0.20.2 变体），与本方向统一启动脚本 `serve_standard.sh` 配合"
+            ),
+            "workaround_risk": "该应用镜像内 vLLM 是厂商移植版还是社区版 + 插件，**仍未验证**",
+            "report_to": "无（镜像分层设计使然，不需要上报）",
+            "evidence": "MLU590/probes/A5_verify_20260922.log §B「推理腿平台判别」",
+        }, {
+            "id": "MLU-STREAM-PRIORITY-NO-VALIDATION",
+            "severity": "low",
+            "scope": "流优先级**取值域**（`torch.mlu.Stream(priority=…)` 的上游校验）",
+            "condition": "给区间 (0, -3) 之外的值（如 99）",
+            "symptom": (
+                "上游**不报错**（`torch.mlu.Stream(priority=99)` 直接建流成功）"
+                "—— 静默接受非法值，调用方无法从返回值看出参数早就越界了"
+            ),
+            "repro_rate": "确定性（2026-09-22 实测；本层未再复现，因已从源头挡住）",
+            "root_cause_layer": "厂商 PyTorch 插件（torch_mlu）参数校验缺失",
+            "workaround": (
+                "**本层已从源头兜住**：`create_stream(priority=…)` 按 "
+                "`stream_priority_range()` **强制校验取值域**（越界 ⇒ `ValueError`），"
+                "并在创建后**回读校验**（不符 ⇒ `RuntimeError`）—— 上层无需自行保证区间"
+            ),
+            "workaround_risk": "无（越界直接被拒，不会产出『看起来设了』的流）",
+            "report_to": "torch_mlu 上游（可选：建议补参数区间校验并报错）",
+            "evidence": "`MLU590/probes/A5_verify_20260922.log`；本层实现见 "
+                        "`runtime/backends/base.py::create_stream`（三段校验）",
+        },
+    ]
+
+    def known_issues(self) -> list:
+        return [dict(x) for x in self._KNOWN_ISSUES]
+
+    # ───────────── 元信息 ─────────────
+    def info(self) -> dict:
+        self._load()
+        return {
+            "name": self.name,
+            # 公共字段改由基类唯一来源提供（原为三家各手写一份 ⇒ 同一份清单三个来源）
+            **self._base_info_fields(),
+            "device_type": self.device_type,
+            "framework": "torch_mlu（PyTorch PrivateUse1 厂商扩展）",
+            "torch": self._torch.__version__ if self._torch is not None else None,
+            "device_namespace": "mlu（torch.mlu.*；PrivateUse1，进程内与其他厂商插件互斥）",
+            "device_count": self.device_count(),
+            # 与 _capabilities 同一套键名（自洽，避免 A 键声明 / B 键查询的口径漂移）
+            "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
+            "error_grading": dict(self._grading_paths),
+            "bounded_sync_scope": "主机侧等待（event.wait_host）真有界；流同步为超时上报语义",
+            # ⭐ 证据等级：2026-09-22 已在真机验证（原为"未实机验证"）
+            "evidence_level": (
+                "已在 MLU590 真机验证（2026-09-22）：离线自检 35/0、smoke 42/0、"
+                "conformance 13/13 + 6/6 全绿；证据 MLU590/probes/A*_20260922.log"
+            ),
+            "verified_on_device": [
+                "mem_get_info(ordinal) 可用（(free,total)，语义同 CUDA）；降级路径未被触发",
+                "Stream/Event/current_stream/stream/synchronize 齐备",
+                "未 record 的 Event.query() 原生误报 True ⇒ 适配层 E3 修正必需",
+                "Stream.synchronize() 不接受 timeout ⇒ 有界=超时上报语义（如实标注）",
+                "priority_range() = (0, -3) 可用且不崩；⚠️ 非法优先级(99)上游未拦截",
+                "错误码为 CNRT 错误名而非数字码 ⇒ error_map 如实不声明",
+                "图捕获入口 torch.mlu.MLUGraph + torch.mlu.graph ⇒ 实测 5/5 通过",
+                "无设备级重置原语（reset* 全为内存统计类）⇒ recovery_real 确认不具备",
+                "集合通信后端名 = cncl（2 进程 all_reduce 结果正确）",
+            ],
+            "unverified": [
+                "推理腿 vLLM 形态（运行时镜像不含 vLLM；应用镜像内是厂商移植版还是社区版+插件未验证）",
+                "流优先级的实际调度效果（读回值只证明被接受，未做性能侧对照）",
+            ],
+            "environment": {
+                "chip": "寒武纪 MLU590-M9 × 8",
+                "host_driver_observed": "v6.2.29（实测，6.2.x 线）",
+                "image_pinned": "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0"
+                                 "（实测 digest sha256:e55b420e… 与定档一致）",
+                "container_runtime": "py3.10.20 / Ubuntu 22.04.5 / torch 2.7.1+cpu / torch_mlu 1.29.2+torch2.7.1",
+                "dist_backend_name": "cncl（亦可用 cpu:gloo,mlu:cncl）",
+                "note": "宿主无 /usr/local/neuware ⇒ 必须容器内运行；"
+                        "import triton 前必须先 import torch_mlu（见 known_issues）",
+            },
+            "known_issues": self.known_issues(),
+        }
+
+
+def build() -> CambriconBackend:
+    """注册表自动发现使用的工厂函数。"""
+    return CambriconBackend()

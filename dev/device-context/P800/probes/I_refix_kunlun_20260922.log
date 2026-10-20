@@ -1,0 +1,36 @@
+########## [0] 环境 ##########
+torch = 2.9.0+cu129 | devices = 1
+CUDA_VISIBLE_DEVICES = 2
+
+########## [1] 离线契约自检（含新增的诚实降级判据）##########
+
+########## [2] ★ 缺陷修复的直接证据（kunlun）##########
+  注入消息        : AICORE exception, error code is 507015
+  category        : L4_FATAL
+  graded_by       : message_hint_unexpected
+  mapped          : False    ← 修前为 True（假确定分级）
+  error_code      : None   ← 修前为 507015（昇腾码，非本厂商）
+  root_cause      : RuntimeError: AICORE exception, error code is 507015
+  is_grade_confident: False
+
+  对照：另一条**无码**消息（应仍是 message_hint，不受影响）
+  graded_by = message_hint | mapped = False | error_code = None
+
+########## [3] smoke（kunlun）##########
+  [PASS] info.supports 与 supports() 一致 []
+
+=== 结果: 46 通过 / 0 失败 ===
+
+########## [4] 错误闭环（kunlun）##########
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+后端: kunlun | 设备数: 1
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(码表内他厂码·诚实降级负向测试)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /workspace/P800/probes/I_error_recovery_loop_kunlun_refix_20260922.json
+
+########## P800 回验完成 ##########

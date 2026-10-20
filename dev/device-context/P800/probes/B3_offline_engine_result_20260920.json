@@ -1,0 +1,18 @@
+{
+  "mode": "vllm_offline",
+  "model": "/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "enforce_eager": true,
+  "rounds": 5,
+  "batch": 3,
+  "engine_load_s": 13.11,
+  "perf": {
+    "avg_latency_ms": 84.2,
+    "p50_latency_ms": 84.14,
+    "max_latency_ms": 84.64,
+    "sent_per_s": 35.63
+  },
+  "sanity": {
+    "n_out": 3,
+    "has_outputs": true
+  }
+}

@@ -1,0 +1,16 @@
+########## 变体：cur_stream_work
+   [cur_stream_work ] record() 后 query: [False, False, False]
+   [cur_stream_work ] sync 后 query  : [False, False, False]
+########## 变体：ev_sync_then_query
+   [ev_sync          ] ev.synchronize() OK
+   [ev_sync          ] sync 后 query  : [False, False, False]
+########## 变体：record_in_ctx
+   [record_in_ctx    ] query: [False, False, False]
+########## 变体：empty_stream_explicit
+   [empty_explicit   ] 第1次 query: True
+   [empty_explicit   ] 第2次 query: True
+   [empty_explicit   ] 第3次 query: True
+########## 变体：empty_stream_default
+   [empty_default    ] 第1次 query: True
+   [empty_default    ] 第2次 query: True
+   [empty_default    ] 第3次 query: True

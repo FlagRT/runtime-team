@@ -1,16 +1,29 @@
 # 镜像索引
 
-> 所有归档基座镜像的一览。详细 pin 清单以各 `<name>/v<N>/lock.yaml` 为准；本表只做索引。
-> "用途 / 使用约束" 见消费方文档（`dev/stack.lock.910c.v1.yaml`、`docs/` 阶段目标文档），本表不涉及。
-> 本文档里"官方"必须带主体名，三个主体（**华为昇腾官方** / **BAAI·FlagTree 官方** / **BAAI 内部（非发布物）**）的定义见 `README.md` §4.0。
+> 本文件只做索引：有哪些镜像、各自状态、归档目录在哪。新增版本在对应表尾追加一行。
+>
+> | 想查 | 看哪里 |
+> |---|---|
+> | 版本事实（commit、资源 sha256） | v3：各 `v<N>/image.baseline.yaml`（`python3 dev/lib/baseline.py list` 一次列全）；v1/v2 与未接入基线机制的版本：各 `v<N>/lock.yaml` |
+> | 层级构成（L1~L4 由哪些层组成） | 各 `v<N>/lock.yaml` 的 `layers:` 字段 |
+> | 过程叙述（尝试了什么、round 之间为什么切换、STOP CONDITION 怎么发现） | [`PROCESS.md`](PROCESS.md) |
+> | 怎么用、已知限制 | 各 `v<N>/README.md` 与其 demo 运行环境 |
+> | 用途 / 使用约束 | 消费方文档：`dev/stack.lock.910c.*.yaml` 现行版本、`docs/` 阶段目标文档 |
+> | 目录规范、入档门槛、"官方"的三个主体定义 | [`README.md`](README.md)（§2/§5/§4.0） |
+> | 分层设计依据 | [`docs/运行时基座建设-黄金准则与方案存档.v1.md`](../../docs/运行时基座建设-黄金准则与方案存档.v1.md) |
+
+---
+
+# 昇腾 910C
 
 ## 版本线：FlagTree ascend3.5
 
-> **BAAI·FlagTree 官方指南**（非华为）：**FlagTree ascend 用户手册** <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>（分 ascend3.5 / ascend3.2 两条线，各自的 CANN / torch / triton / 基座镜像 / FlagTree 分支见手册）。
+**BAAI·FlagTree 官方指南**：FlagTree ascend 用户手册 <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-ascend>
+（分 ascend3.5 / ascend3.2 两条线）。本目录归档的三个系列整套栈均落在 **ascend3.5** 线。其中
+`ascend-infer-vllm`（现行推理腿）是华为昇腾官方镜像：版本纪元对齐 ascend3.5
+（CANN 9.0.0 / Python 3.11 / torch 2.10.0 / vLLM 0.20.2），但**不是 FlagTree 构建物**。
 
-本目录归档的三个系列整套栈均落在该手册的 **ascend3.5** 线：
-
-| 轴 | 本组镜像 | FlagTree ascend3.5 | FlagTree ascend3.2 |
+| 轴 | 本组镜像 | ascend3.5 | ascend3.2 |
 |---|---|---|---|
 | CANN | 9.0.0 | 9.0.0 | 8.5.0 |
 | Python | 3.11 | 3.11 | 3.11 |
@@ -18,51 +31,146 @@
 | triton | 3.5.0 | 3.5.x | 3.2.x |
 | vLLM | 0.20.2 | 0.20.2 | — |
 
-- `triton_ascend 3.2.1`（下表各系列都列了）是**华为昇腾 Triton 插件** `triton-ascend` 的版本号，与 `triton` 是两个独立包。它的 wheel 从 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（即 ascend3.5 / vLLM 0.20.2 镜像）拷出，`import` 时自报 `3.2.0`（已知版本串差异）。**它不随 `triton` 或 FlagTree 线号推进，不代表 ascend3.2 线。**
-- **未按 BAAI·FlagTree 官方手册的构建路径**：手册要求用 FlagTree 3.5 线基座镜像 + checkout `triton_v3.5.x` + `FLAGTREE_BACKEND=ascend` 自编译。本组镜像不含 FlagTree 构建物 —— 推理腿直接用**华为昇腾官方** `vllm-ascend`；训练腿用 **BAAI 内部** CANN 9.0.0 底座 + pip 装上游 `triton==3.5.0` + **华为昇腾官方** `triton-ascend==3.2.1`（wheel）+ FlagOS 组件（Torch-FL / FlagGems / FlagCX）。版本纪元对齐 ascend3.5，构建方式自成一路。
-- 全组通用 dev 底座（`VERSIONS.md` §1 记为 FlagTree 分支 `triton_v3.2.x`）是另一套东西，不用于原型结论性验证。**FlagTree fork 分支本原型不需要变更**（原型镜像不含 FlagTree 构建物）；日后若要在 ascend3.5 镜像里引入 FlagTree 构建物，其 fork 须先从 `triton_v3.2.x` 切到 `triton_v3.5.x`（手册规定 3.5 线配该分支），由编译层 / FlagTree 维护者决定。
+两个反复引起误读的点：
 
-### v2 候选血统：真正按手册构建路径（2026-09-12，见 `*/v2/`）
+- `triton_ascend 3.2.1` 是**华为昇腾官方** Triton 插件 `triton-ascend` 的版本号，与 `triton` 是两个独立包
+  （wheel 从 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` 拷出，import 自报 `3.2.0`）。它不随 `triton` 或
+  FlagTree 线号推进，**不代表 ascend3.2 线**。
+- 全组通用 dev 底座（`VERSIONS.md` §2）是另一套东西，不用于原型结论性验证。日后若要在 ascend3.5
+  镜像里引入 FlagTree 构建物，其 fork 须先从 `triton_v3.2.x` 切到 `triton_v3.5.x`。
 
-上面几条是 **v1**（现网生效版本）的口径：不按手册构建路径，triton 是 pip 装的
-wheel 组合。`dev/images/*/v2/` 是**新血统**，第一次真正按 BAAI·FlagTree 官方
-ascend3.5 手册的路径构建：BAAI·FlagTree 官方预构建基座镜像（取代 BAAI 内部手搭
-底座）+ checkout `triton_v3.5.x` 上游 pinned commit + `FLAGTREE_BACKEND=ascend`
-现场编译（取代 pip 装 triton wheel + 华为 triton-ascend wheel 的组合）。
-**实测 `triton.__version__ == 3.5.1`**（手册版本线表格暗示 3.5.0，按实测记录）。
-FlagCX 层改用公开 commit，不再有 `gaps` 段。详见
-`ascend-operator-runtime/v2/lock.yaml` + `ascend-train-comm/v2/lock.yaml`。
-**候选状态**：未进入 `dev/stack.lock.910c.v1.yaml` 的 `lock:`（现网仍锁 v1），
-是否切换由总组另行裁定。
+## 版本索引
 
-## ascend-operator-runtime 系列（昇腾工具链 + FlagOS 组件底座）
+> v1 未按官方手册路径构建（推理腿直接用华为昇腾官方 `vllm-ascend`，训练腿为 BAAI 内部底座 + pip
+> wheel 组合），v2 起按手册路径构建；详见 `PROCESS.md`。
 
-| 层 | tag / 标识 | 血统 | 关键内置版本 | repro_status | 归档目录 |
-|---|---|---|---|---|---|
-| 基座 | `harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev` `@sha256:a36a3022…` | ubuntu 22.04 | CANN 9.0.0（**华为昇腾官方** toolkit 版本）· Python 3.12.13 · 昇腾工具链全套 | 🟢 已归档（镜像本体为 **BAAI 内部**手工构建底座，非华为发布物；BAAI harbor 可拉 + 本机 + 离线包，digest 锁定） | `ascend-operator-runtime/v1/ARCHIVE.md` |
-| 基座变体 | `flagos-dev/pytorch-plugin-fl:manual-20260807-ascend-dev-hostnet` | 同上（同 IMAGE ID，hostnet 变体） | 同上 | 🟢 同上 | 同上 |
-| 运行时 | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64` (id `d948410966b0`) | ← 上面的基座 | Python 3.11.15 · torch 2.10.0+cpu · triton 3.5.0 · triton_ascend 3.2.1 · MPICH 4.1.3 · Torch-FL 0.1.0 `@af50297` · FlagGems `@f7ae8e6b` | 🟢 functional-repro | `ascend-operator-runtime/v1/` |
-| 基座（**v2 候选血统**） | `harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2` | ubuntu 22.04 | CANN 9.0.0 · Python 3.11.15 · torch 2.10.0+cpu · torch_npu 2.10.0 · vLLM 0.20.2 | 🟢 BAAI·FlagTree 官方（公开 harbor + 官方离线包镜像双通道，本机已存在） | `ascend-operator-runtime/v2/lock.yaml` |
-| 运行时（**v2 候选血统**） | `flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64` | ← 上面的 v2 基座 | Python 3.11.15 · torch 2.10.0+cpu(torch_npu 2.10.0 未卸载,共装) · **triton 3.5.1**(FlagTree 上游 `triton_v3.5.x`@`15ec1a6c` 现场编译,非 wheel) · 系统 mpich 4.0-3(apt) · Torch-FL 0.1.0 `@162582d` · FlagGems `@f7ae8e6b` | 🟢 functional-repro(真机 2 卡动态验证通过) | `ascend-operator-runtime/v2/` |
+**`ascend-operator-runtime` 系列**（昇腾工具链 + FlagOS 组件底座）
 
-## ascend-operator-runtime-comm 系列
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`（`d948410966b0`） | 🟢 functional-repro | `ascend-operator-runtime/v1/` |
+| v2 | `flagrt/ascend-operator-runtime:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-arm64` | 🟢 functional-repro（真机 2 卡） | `ascend-operator-runtime/v2/` |
+| v3 | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（npu1-11 `62bcaae3f839`） | 🟡 partial-repro | [`ascend-operator-runtime/v3/`](ascend-operator-runtime/v3/README.md) |
 
-| tag | 血统 | 关键内置版本（在父层之上） | repro_status | 归档目录 |
-|---|---|---|---|---|
-| `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` (id `3b9e08f231d0`) | ← `ascend-operator-runtime:0.2.0` | FlagCX 0.13.0 `@55eb2ff` +2 patch(`bc84ea26…`/`524654689…`) · ENV `FLAGCX_TORCH_BACKEND=flagos` / `TORCH_DEVICE_BACKEND_AUTOLOAD=0` | 🟢 functional-repro（flagcx `.so` 逐字节一致） | `ascend-train-comm/v1/` |
-| `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**v2 候选血统**） | ← `ascend-operator-runtime:1.0.0-flagtree3.5-…` | FlagCX 0.13.0 `@4e0e0cb`(FlagRT/FlagCX 组织仓公开主干 tip,**无 owner 私有 commit/patch，无 gaps**) · 同上 ENV | 🟢 functional-repro（真机 2 卡 all_reduce/all_gather/p2p/async_all_reduce 40/40 通过；已知问题见 `lock.yaml:known_issues`） | `ascend-train-comm/v2/` |
+**`ascend-operator-runtime-comm` 系列**（在上表基础上叠加 FlagCX 通信层）
 
-## ascend-infer-vllm 系列
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64`（`3b9e08f231d0`） | 🟢 functional-repro | `ascend-train-comm/v1/` |
+| v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40） | `ascend-train-comm/v2/` |
+| v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 `e13a15d0d02b`） | 🟡 partial-repro | [`ascend-train-comm/v3/`](ascend-train-comm/v3/README.md) |
 
-| tag | 血统 | 关键内置版本 | repro_status | 归档目录 |
-|---|---|---|---|---|
-| `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` `@sha256:5cf8a2b6…` | **华为昇腾官方**镜像 | vLLM 0.20.2 · torch_npu · CANN · vllm_ascend | 🟢 华为昇腾官方（公共 registry，digest 锁定，已验证可拉） | `ascend-infer-vllm/v1/` |
+> v3 是**训练腿发布物**（🟡 带 4 条已知限制），demo 运行环境
+> [`ascend-train-comm/v3/demo/`](ascend-train-comm/v3/demo/docker-compose.yml)；两条 v3 的 🟡 成因与升 🟢
+> 条件见各自 README 的「已知限制」，待修缺陷的 case 包见 [`../issues/`](../issues/README.md)。
+> 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见各 `lock.yaml`。
 
-## 当前生效版本
+**`ascend-infer-vllm` 系列**（华为昇腾官方一体镜像，非本组构建）
 
-| 系列 | 生效 tag | 目录 |
-|---|---|---|
-| ascend-operator-runtime | `flagrt/ascend-operator-runtime:0.2.0-…` | `ascend-operator-runtime/v1/` |
-| ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:0.1.3-…` | `ascend-train-comm/v1/` |
-| ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | `ascend-infer-vllm/v1/` |
-| （候选新血统，**未生效**，训练腿现网仍是上面的 v1；`dev/stack.lock.910c.v1.yaml` 未改） | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-…-flagcx0.13.0g4e0e0cb-arm64` | `ascend-train-comm/v2/` |
+| 版本 | tag | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + demo（ADR-0007） | `ascend-infer-vllm/v1/` |
+
+> 该系列为**现行推理腿**（华为昇腾官方镜像，digest 锁定，🟢），公开 registry 按 digest 拉取；
+> 不携带已知限制 A-1~A-4 任何一条。起服务纪律（`unset VLLM_PLUGINS`、经
+> `dev/device-context/prototype/scripts/serve_standard.sh`）见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
+> 的 `lock.infer` 与 `per_leg.infer`。`triton_ascend 3.2.1` wheel 即取自该镜像。
+
+---
+
+# 昆仑芯 P800
+
+## 版本线：FlagTree xpu3.6
+
+**BAAI·FlagTree 官方指南**：FlagTree xpu 用户手册 <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu>
+（线号 xpu3.6，无多线分叉）。本条目显式 pin 在 `flagtree 0.6.1+xpu3.6`，不跟随手册当前最新版本——
+memory、device-context 两个子方向已各自验证该组合可用，理由与实测证据见该版本 `lock.yaml`。
+
+## 版本索引
+
+**`kunlun-operator-runtime` 系列**（昆仑芯工具链 + FlagGems 底座）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（`466ee5c61793`） | 🟡 配方在手，未实机验证 | `kunlun-operator-runtime/v1/` |
+| v2 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（`cac5ddae5f62`） | 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 `overall: PASS`） | `kunlun-operator-runtime/v2/` |
+
+> v1 2026-10-11 由 🟢 降为 🟡：归档镜像经查实是 `docker commit` 产物，不是其
+> `Dockerfile.repro` 的构建产物，🟢 的定义（README §5）不成立；镜像本身可用，其运行时
+> 验证结论（771 passed、训练 6/6、推理 PASSED）仍然成立。证据与影响见
+> `kunlun-operator-runtime/v1/lock.yaml` 的 `known_issues: v1-image-is-docker-commit-not-build`。
+> v2 用修正后的配方走正规 `docker build` 重建，组件集合与 pin 与 v1 完全相同，**从零重建用 v2**。
+> v1 未接入环境基线机制（无 `image.baseline.yaml` 与 demo 运行环境目录）；v2 已接入
+> （`kunlun-operator-runtime/v2/image.baseline.yaml` + `kunlun-operator-runtime/v2/demo/`）。
+
+---
+
+# 寒武纪 MLU590
+
+## 版本线：FlagOS cambricon-neuware4.4.3（无 FlagTree 线）
+
+寒武纪在 **BAAI·FlagTree 官方手册中无条目**（无 cambricon 用户手册、无 flagtree 镜像线），
+本芯片走 **FlagOS 官方运行时线**（`harbor.baai.ac.cn/flagos-runtime`，上游配方 `flagos-ai/build-infra`）。
+镜像内 `triton 3.2.0+mlu1.7.2` 是**厂商 triton-mlu 变体**，不是 FlagTree 构建物 —— 勿按昇腾/昆仑芯的
+flagtree 线号理解。
+
+**档位由宿主驱动决定**（本芯片独有的选型第一判据）：FlagOS 寒武纪镜像按 NEUWARE 档位分线，
+各档官方标注宿主驱动前置 —— `cambricon-neuware4.4.3` → 6.2.15；`cambricon-neuware4.7.2` → 6.5.48。
+现行锁定取 4.4.3 档，依据与实测见 `../stack.lock.cambricon.v1.yaml` 的 `device_registration.selection`。
+
+## 版本索引
+
+**`cambricon-mlu-runtime` 系列**（FlagOS 官方寒武纪运行时基座，登记式基线）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`e887e0ca4333`） | 🟢 FlagOS 官方镜像（公开 Harbor，匿名可按 digest 拉取） | `cambricon-mlu-runtime/v1/` |
+
+> 本系列为登记式基线（ADR-0007）：镜像整体为上游官方产物，无仓内 `Dockerfile.repro`、不可重建；
+> 版本主锚 = Harbor digest `sha256:e55b420e…`，辅锚 = pip 版本号与镜像 Label 的上游配方 commit
+> `827dc613…`。运行时镜像**不含 vLLM**，推理服务化须用同线应用镜像（`flagos-app/vllm*-cambricon-*`）；
+> 该应用镜像尚未入锁，前置见 `../stack.lock.cambricon.v1.yaml` 的 `known_issues: C-1`。
+
+---
+
+# 当前生效版本
+
+> 2026-10-14 发版后口径。锁定声明见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
+> 与 [`../stack.lock.kunlunxin.v1.yaml`](../stack.lock.kunlunxin.v1.yaml)；平头哥 PPU 见
+> [`../stack.lock.thead-ppu.v1.yaml`](../stack.lock.thead-ppu.v1.yaml)；寒武纪 MLU590 见
+> [`../stack.lock.cambricon.v1.yaml`](../stack.lock.cambricon.v1.yaml)；限制清单、规避配置与
+> 删除条件见 [`../../docs/基座发版说明-20261014.md`](../../docs/基座发版说明-20261014.md)。
+
+| 芯片 | 系列 | 生效 tag | 目录 |
+|---|---|---|---|
+| 昇腾 910C | ascend-operator-runtime | `flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64`（**基座镜像：内部构建层，不对外发布**） | `ascend-operator-runtime/v3/` |
+| 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
+| 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
+| 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
+| 平头哥 PPU | thead-ppu-runtime | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线） | `thead-ppu-runtime/v1/` |
+| 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基线；不含 vLLM，推理腿未入锁） | `cambricon-mlu-runtime/v1/` |
+
+> 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
+> `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。三条自建血统 + 官方推理镜像均
+> 已接入基线机制（推理腿为登记式，ADR-0007）。
+> 三条自建血统 v1/v2/v3 并存归档，v1/v2 供历史结论追溯。`kunlun-operator-runtime v1` 已
+> `superseded_by: v2`，**不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录
+> `lock.yaml` known_issues）。
+> 分发方式：组内镜像（训练腿）无 registry 要求，走离线包与仓内配方重建；推理腿为公开
+> registry 官方镜像，按 digest 拉取。
+
+<!-- changelog: 2026-10-14 —— 本文件对齐 dev/stack.lock.910c.v4.yaml 口径（依据指挥台
+<!-- changelog: 2026-10-15 —— 新增平头哥 PPU 行：thead-ppu-runtime v1（FlagTree 官方基座，登记式基线 ADR-0007 同款，Harbor digest 锚），锁定声明 dev/stack.lock.thead-ppu.v1.yaml。 -->
+     ADR-0004「推理腿切回官方 vllm-ascend」，取代 ADR-0003 §3.5）。修订点：
+     ① 版本线节补明 ascend-infer-vllm 为版本纪元对齐 ascend3.5、非 FlagTree 构建物；
+     ② ascend-infer-vllm 系列加表注，标为现行推理腿（官方镜像 / digest 锁定 / 🟢 / 不带 A 条目）；
+     ③ 「当前生效版本」表新增昇腾 910C 推理腿行；ascend-operator-runtime-comm 行与
+        ascend-train-comm 版本索引表注统一改为「训练腿发布物（🟡 带 4 条已知限制）」
+        —— 单一发布物（推理+训练超集）的旧口径作废，对外发布物按腿两件；
+     ④ 表下说明段删除「两腿收敛到同一基座 / 官方推理镜像降为历史血统」整句，改为两腿分栈现状；
+        锁定声明指针 v3 → v4（v3 已标 LEGACY）；分发方式按腿分述。
+     过程痕迹只留在本注释段，渲染后不可见。 -->
+
+<!-- changelog: 2026-10-15 —— 新增寒武纪 MLU590 行与同名一级节：cambricon-mlu-runtime v1
+（FlagOS 官方运行时基座，登记式基线 ADR-0007 同款，Harbor digest 锚），锁定声明
+dev/stack.lock.cambricon.v1.yaml. -->

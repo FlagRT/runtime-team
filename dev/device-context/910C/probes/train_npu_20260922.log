@@ -1,0 +1,46 @@
+########## [0] 前置：设备可见性与解释器口径 ##########
+   torch       = 2.11.0+cu130
+   torch_npu   = 2.11.0
+   可见卡数     = 16
+   torch_fl 存在= False （必须 False：物理隔离）
+
+########## [1] 训练腿：torch_npu + HCCL（2 卡，50 步）##########
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4402.3 tok/s(两卡合计) -> /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/train_npu/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4401.7 tok/s(两卡合计) -> /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/train_npu/train_leg_result_rank1.json
+
+########## [2] 训练腿结果 JSON ##########
+   train_leg_result_rank0.json: verdict=TRAIN_LEG_PASS passed=6/6
+      backend=ascend dist=hccl device_type=npu
+      perf={'steps': 50, 'batch': 4, 'seq': 128, 'tokens_per_s_per_rank': 2201.1, 'tokens_per_s_total': 4402.3, 'elapsed_s': 11.63}
+      loss: [15.4498, 14.1007, 13.2512] ... [11.0947, 11.1899, 11.1479]
+      device_context         OK  rank0 绑定 npu:0；可见设备 2；统一流 <Stream backend=ascend native=Stream>
+      model_load             OK  加载到 npu:0
+      comm_all_reduce        OK  实测 3.0 / 期望 3.0
+      comm_all_gather        OK  收集到 [0.0, 1.0]
+      comm_p2p               OK  rank0 接收一致=True
+      loss_decrease          OK  首 15.4498 → 末 11.1479（50 步）；无 NaN=True
+   train_leg_result_rank1.json: verdict=TRAIN_LEG_PASS passed=6/6
+      backend=ascend dist=hccl device_type=npu
+      perf={'steps': 50, 'batch': 4, 'seq': 128, 'tokens_per_s_per_rank': 2200.8, 'tokens_per_s_total': 4401.7, 'elapsed_s': 11.63}
+      loss: [15.4498, 14.1007, 13.2512] ... [11.0947, 11.1899, 11.1479]
+      device_context         OK  rank1 绑定 npu:1；可见设备 2；统一流 <Stream backend=ascend native=Stream>
+      model_load             OK  加载到 npu:1
+      comm_all_reduce        OK  实测 3.0 / 期望 3.0
+      comm_all_gather        OK  收集到 [0.0, 1.0]
+      comm_p2p               OK  rank1 接收一致=True
+      loss_decrease          OK  首 15.4498 → 末 11.1479（50 步）；无 NaN=True

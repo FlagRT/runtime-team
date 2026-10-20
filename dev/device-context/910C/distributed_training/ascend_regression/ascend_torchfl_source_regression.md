@@ -4,6 +4,15 @@
 > **硬约束**：全程使用 **torch_fl（flagos 设备后端）**，不使用 torch_npu；所有命令在 **910C 容器内**执行。
 > **分工**：本指南由 AI 编写，命令由你在服务器（ssh 910C → 容器）执行。
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 ---
 
 ## 一、回归目的与判定标准

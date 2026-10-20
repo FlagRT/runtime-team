@@ -1,0 +1,13 @@
+# 证据截选 —— 收尾：down 需 WORKSPACE_ROOT（本轮实测踩到）
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/mechanism/resume.log
+# 采集时间: 2026-10-16 12:04:20 (npu1-27)
+
+===== [10] 收尾：docker compose down（本 shell 已设 DC_DIE_A/B）=====
+time="2026-10-16T12:03:04+08:00" level=warning msg="The \"WORKSPACE_ROOT\" variable is not set. Defaulting to a blank string."
+time="2026-10-16T12:03:04+08:00" level=warning msg="The \"WORKSPACE_ROOT\" variable is not set. Defaulting to a blank string."
+invalid spec: :/workspace: empty section between colons
+  down rc=15
+  我方运行中容器: 1
+  我方残留进程  : 0
+
+完成 2026-10-16 12:03:09

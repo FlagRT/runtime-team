@@ -1,0 +1,76 @@
+# v3 完整镜像的 demo 运行环境（规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 本文件记录 v3 完整镜像 round 4 真机验收（npu1-11，2026-10-09）时的准确运行配置，
+# 同时是该镜像的推荐用法。自包含、单文件，合并了此前分散的三处配置：
+#   - 基础装配（镜像、设备、驱动与仓根挂载）；
+#   - VLLM_FL_FLAGOS_BLACKLIST=cos,sin；
+#   - round 4 验收时经 docker exec 临时注入的 shmem 占位模块与 PYTHONPATH
+#     （见 ascend-operator-runtime/v3/REBUILD.md「ROUND 4 真机验证——推理腿」），
+#     此处改为声明式挂载，验收配置不再依赖手工步骤。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
+#   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-train-comm/v3/demo --strict
+# 本容器只跑训练腿；多项训练侧验证共用该容器，以 ASCEND_RT_VISIBLE_DEVICES 分区（见两个 README「验证」）。
+# 推理腿走华为昇腾官方 vllm-ascend，见 dev/stack.lock.910c.v4.yaml 的 lock.infer。
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-v3-demo
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  # v3 的全部 repo 均为固化资产（见镜像基线 baked_repos），本环境不以可编辑方式挂载
+  # 任何 repo：仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-dev:
+    container_name: flagrt-v3-demo-910c
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    devices:
+      - /dev/davinci0:/dev/davinci0
+      - /dev/davinci1:/dev/davinci1
+      - /dev/davinci2:/dev/davinci2
+      - /dev/davinci3:/dev/davinci3
+      - /dev/davinci4:/dev/davinci4
+      - /dev/davinci5:/dev/davinci5
+      - /dev/davinci6:/dev/davinci6
+      - /dev/davinci7:/dev/davinci7
+      - /dev/davinci8:/dev/davinci8
+      - /dev/davinci9:/dev/davinci9
+      - /dev/davinci10:/dev/davinci10
+      - /dev/davinci11:/dev/davinci11
+      - /dev/davinci12:/dev/davinci12
+      - /dev/davinci13:/dev/davinci13
+      - /dev/davinci14:/dev/davinci14
+      - /dev/davinci15:/dev/davinci15
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 当前是指向宿主个人目录的软链，容器内无法解析，本机须显式给值：
+      #   FLAGRT_MODELS_DIR=/home/xliu969/models（npu1-11）
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    # 训练腿无专项规避配置：A-1（shmem）的占位模块与 PYTHONPATH 前置已不再需要（训练腿
+    # 标准路径不编译 Triton kernel），PYTHONPATH 沿用镜像自带值；历史装配见文件头 round 4 记录。
+    environment:
+      - HCCL_WHITELIST_DISABLE=1
+      # 注：round 4 另用过 VLLM_ENABLE_V1_MULTIPROCESSING=0，仅为让父进程读到显存证据，
+      # 不是解堵条件，故不设为本环境默认（会改变所有推理负载的引擎形态）。需要它的
+      # assets/v3_step5_validate.py 已在脚本内自行 setdefault。
+    restart: "no"

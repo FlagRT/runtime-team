@@ -1,0 +1,48 @@
+===== [0] 版本与环境 =====
+3
+2.11.0+cu130 2.11.0
+===== [1] 优先级效果 =====
+[W930 01:10:49.291750590 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== probe_stream_priority_effect.py: 工作包 D 流优先级效果 ===
+[env] backend=ascend device_type=npu devices=1 torch=2.11.0+cu130
+[P1-range] range=(7, 0, 0) → (lo,hi)=[0, 7] supports=True
+[P1-create-hi] prio=7 v=89440.0 ✅
+[P1-create-lo] prio=0 v=89440.0 ✅
+[P2-effect] lo_first 高优先级先完成 0/8；hi_first 对照 8/8 ⇒ ⚠️ 未观测到优先级效果（如实记录，非探针失败）
+
+STREAM_PRIORITY_EFFECT_PASS: 4/4 子项通过（effect_observed=False）
+结果已写入 /mnt/raid/hliu553/dc_legs_20260929/b2_out/stream_priority_effect_result.json
+===== [2] 配额真实上限（逐档递增）=====
+--- N=4000 ---
+[Q1] 连续创建 4000 个流：实际成功 4000 个，耗时 0.07s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=8000 ---
+[Q1] 连续创建 8000 个流：实际成功 8000 个，耗时 0.12s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=16000 ---
+[Q1] 连续创建 16000 个流：实际成功 16000 个，耗时 0.36s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=32000 ---
+[Q1] 连续创建 32000 个流：实际成功 32000 个，耗时 0.55s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=64000 ---
+[Q1] 连续创建 64000 个流：实际成功 64000 个，耗时 0.95s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=128000 ---
+[Q1] 连续创建 128000 个流：实际成功 128000 个，耗时 1.89s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+--- N=256000 ---
+[Q1] 连续创建 256000 个流：实际成功 256000 个，耗时 3.91s ✅
+STREAM_QUOTA_PASS: 3/3 子项通过
+===== [3] 创建是否真实（资源代价）=====
+[W930 01:12:17.915888300 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== probe_stream_quota_touch.py: 创建是否伴随真实资源 ===
+[env] backend=ascend N=1000000 sample=500 torch=2.11.0+cu130
+[创建] 1000000/1000000 成功，13.93s
+[资源] 宿主 RSS 2039.3 → 2070.1 MB（Δ+30.8，0.03 B/流）；设备已用 389.0 → 399.0 MiB（Δ+10.0，0.010 B/流）
+[使用] 抽样 500 个流真跑计算：正确 500/500，0.11s
+[释放] 释放后新流结果=32.0（期望 32.0）✅，RSS 2070.1 → 2080.9 MB
+
+STREAM_QUOTA_TOUCH_PASS: 6/6
+结果已写入 /mnt/raid/hliu553/dc_legs_20260929/b2_out/stream_quota_touch_result_1M.json
+===== ALL DONE =====

@@ -1,0 +1,14 @@
+# 装置自证 —— 两臂各自加载的 FlagCX 与指纹（npu1-27，2026-10-16）
+# 来源: /mnt/raid/hliu553/dc_env_20261016/log/arm_B_final.log · arm_A_final.log
+
+[B 臂] （本环境：宿主挂载的 FlagCX，pip editable 安装）
+  flagcx 包: /workspace/FlagCX/plugin/torch/flagcx
+    _C.cpython-311-aarch64-linux-gnu.so 098f3227d976421a
+    libflagcx.so 5af25cc92ed97281
+  device_count = 2
+
+[A 臂] （镜像固化版影子：PYTHONPATH=/opt/baked-flagcx）
+  flagcx 包: /opt/baked-flagcx/flagcx
+    _C.cpython-311-aarch64-linux-gnu.so a6a4a8e0eb58e73b
+    libflagcx.so 8196a720e48e65fc
+  device_count = 2

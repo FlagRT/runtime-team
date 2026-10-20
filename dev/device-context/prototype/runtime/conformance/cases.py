@@ -30,7 +30,7 @@ def case_s1_stream_order(ctx):
     y = torch.nn.functional.relu(x @ x).sum()
     ctx["sync"]()
     ref = torch.nn.functional.relu((x.cpu() @ x.cpu())).sum()
-    # 相对容差比较：flagos(aclnnMatmul) 与 CPU matmul 的数值实现差异（相对 ~2e-5），
+    # 相对容差比较：厂商算子实现（aclnnMatmul）与 CPU matmul 的数值差异（相对 ~2e-5），
     # S1 验证的是顺序正确性而非逐位一致
     ok = abs(y.cpu().item() - ref.item()) / max(abs(ref.item()), 1.0) < 1e-3
     return ok, f"流内顺序近似：链式运算结果与逐 CPU 参考相对误差 {abs(y.cpu().item()-ref.item())/max(abs(ref.item()),1.0):.2e}（<1e-3）"
@@ -108,7 +108,7 @@ def case_f1_error_translation(ctx):
         → 不因缺码判 FAIL，改为要求 `mapped=False` 且类别/根因正确
 
     本用例原先硬要求 `fe.error_code is not None`，但其自称只考「类别/位置/根因」三投影，
-    断言**超出自身契约**，且把昇腾/flagos 的 `ret=XXXX` 特性当成了通用前提 ——
+    断言**超出自身契约**，且把昇腾侧的 `ret=XXXX` 特性当成了通用前提 ——
     对无厂商码的后端恒 FAIL，与实现质量无关。
     见接入方案 §7.3 修订建议 ③ 与 §7.4.2。
     """
@@ -250,7 +250,12 @@ def case_t3_topology_path(ctx):
         dst = src.to(f"{device}:1")
         ctx["sync"]()
         ok_data = bool((dst.cpu() == 1).all())
-        # 拓扑接口可查询性（torch_npu 未暴露统一拓扑查询 → 如实标注）
-        return ok_data, f"跨设备直接传输数据一致={ok_data}；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）"
+        # 拓扑接口可查询性：**本用例是芯片无关的**，不得写死某一家的模块名/工具名
+        # （2026-10-10 修：原文硬编码 `torch_npu` / `npu-smi`，第 4 家不同厂商跑同一套
+        #  用例时暴露出该文案已失真 —— 手册 §4.4.4「证据卫生：不得硬编码厂商专有文案」）。
+        # 如实表述为「统一面未暴露拓扑查询」；具体事实由各后端 `info()` 与芯片目录报告承载。
+        return ok_data, (f"跨设备直接传输数据一致={ok_data}；"
+                         "拓扑接口: 统一面未暴露拓扑查询（如实标注，"
+                         "拓扑事实需经厂商工具/外部通道核对；本后端的具体情况见其 info()）")
     except Exception as e:
         return False, f"异常: {e}"

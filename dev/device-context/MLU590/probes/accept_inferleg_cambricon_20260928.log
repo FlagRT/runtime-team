@@ -1,0 +1,8 @@
+[1] 设备上下文: backend=cambricon dev=mlu:0 count=8 mem={'total_mb': 97057, 'used_mb': 96, 'free_mb': 96961}
+[2] 模型加载完成 → mlu:0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 41.08 句/s, p50 72.89 ms, avg 73.02 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=cambricon dev=mlu:0 | dim 1024 | 41.08 句/s p50 72.89ms | 区分度 0.6391 -> /work/MLU590/probes/proto_infer_leg_result.json
+  （如实跳过：vendor_code_map）

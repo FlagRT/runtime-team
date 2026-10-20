@@ -1,0 +1,74 @@
+{
+  "backend": "cambricon",
+  "groups": {
+    "m1": {
+      "group": "m1",
+      "skipped": "未声明 memory_alloc（如实不具备）",
+      "capability": false,
+      "returncode": 0
+    },
+    "m2": {
+      "group": "m2",
+      "record_stream_capability": false,
+      "record_stream_real": "走了保守同步（退化计数 +1）",
+      "native_after_public_access": 1,
+      "native_after_internal_path": 0,
+      "returncode": 0
+    },
+    "c1": {
+      "group": "c1",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "capability": false,
+      "returncode": 0
+    },
+    "c2": {
+      "group": "c2",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "returncode": 0
+    },
+    "c3": {
+      "group": "c3",
+      "skipped": "未声明 context_lifecycle（如实不具备）",
+      "returncode": 0
+    },
+    "c4": {
+      "group": "c4",
+      "skipped": "未声明 context_query（如实不具备）",
+      "capability": false,
+      "returncode": 0
+    }
+  },
+  "vendor": {
+    "backend": "cambricon",
+    "device_type": "mlu",
+    "torch": "2.7.1+cpu",
+    "device_count": 8,
+    "capabilities": [
+      "bounded_sync",
+      "device",
+      "device_state",
+      "device_state_control",
+      "event",
+      "graph_capture",
+      "memory",
+      "multidevice",
+      "recovery_probe",
+      "stream",
+      "stream_priority",
+      "stream_priority_control",
+      "stream_priority_readback"
+    ],
+    "info_native_accesses": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "info_degradations": {
+      "total": 0,
+      "by_kind": {}
+    }
+  },
+  "verdict": {
+    "B4_native_audit_isolated": true
+  },
+  "PASS": true
+}

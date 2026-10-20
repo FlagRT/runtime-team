@@ -6,8 +6,17 @@
 > 以及基于统一原型的训练腿 / 推理腿设备侧证据。
 > 其余子方向（显存、调度、算子适配、分布式、监控、精度与性能）的证据由各自方向出具。
 
+
+> ⚠️ **路线 B（torch_fl）历史档案 —— 已冻结，非当前口径**
+> 本文记录的是**当时**的做法与结论。路线 B 已于 2026-09-22 整体退出：原型里的该后端已**删除**，
+> 三个芯片实例（昇腾 910C / 昆仑芯 P800 / 寒武纪 MLU590）**当前一律走厂商官方 torch 插件路线**
+> （`torch_npu` / `torch.cuda` 兼容层 XPytorch / `torch_mlu`）。
+> 当前口径见 `dev/device-context/README.md` 与各芯片目录 `README.md`；取舍依据见
+> `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`；归档索引见
+> `dev/device-context/prototype/docs/ROUTE_B_ARCHIVED_20260922.md`。
+
 - 分支：`kistich/device-context`
-- 统一基座：`dev/stack.lock.910c.v1.yaml`
+- 统一基座：`dev/stack.lock.910c.v2.yaml`
 - 统一原型：`dev/device-context/prototype/runtime/`
 - 验收模型：Qwen3-Embedding-0.6B
 
@@ -17,7 +26,7 @@
 
 | 交付项 | 内容 | 位置 |
 |---|---|---|
-| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v1.yaml` |
+| 统一基座配置 | 锁定两腿镜像、使用规则（含并发上限 3）、合入把关五条 | `dev/stack.lock.910c.v2.yaml` |
 | 统一运行时 API | 后端选择 / 设备 / 流与事件 / 错误翻译 / 状态恢复 | `prototype/runtime/` |
 | Backend 插件机制 | 抽象基类 + 注册表 + 自动发现 | `prototype/runtime/backends/` |
 | 昇腾后端（torch_npu） | 推理腿使用 | `prototype/runtime/backends/ascend/` |
@@ -86,7 +95,7 @@
 | 腿 | 结果 |
 |---|---|
 | 推理腿 ascend | **5 闭环 / 0 跳过 / 0 失败**：L2_PARAM→raise、L1_RESOURCE→retry 成功、**真实流同步超时→L3_EXECUTION→重放**、L4→`recover_device` 成功，业务均继续 |
-| 训练腿 flagos | **4 闭环 / 1 跳过 / 0 失败**：超时因该后端无有界同步能力，**如实跳过不伪造** |
+| 训练腿 flagos | **4 闭环 / 1 跳过 / 0 失败**：超时因该后端无有界同步能力，**如实跳过不伪造**<br>⚠️ 当期口径（torch_fl）；**2026-09-22 起训练腿已统一 torch_npu**，该腿现为 **5 闭环 / 0 跳过 / 0 失败** |
 
 **归因核查（重要）**：上一版记录的两条"发现"（超时=进程级致命、一次性大显存 OOM 拖死进程）
 经受控对照实验**均被推翻**；真实的收获是两个接口缺陷的修复：

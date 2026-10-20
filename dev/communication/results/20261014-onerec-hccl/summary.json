@@ -1,0 +1,48 @@
+{
+  "verdict": "PASS",
+  "scope": "synthetic-token full-parameter SGD smoke; not quality/convergence or default-backend acceptance",
+  "backend": "hccl",
+  "steps_per_rank": 3,
+  "checks": {
+    "launcher_zero": true,
+    "rank0_identity": true,
+    "rank0_full_parameters": true,
+    "rank0_steps": true,
+    "rank0_finite": true,
+    "rank0_closed": true,
+    "rank0_updated": true,
+    "rank0_calls": true,
+    "rank0_payload": true,
+    "rank1_identity": true,
+    "rank1_full_parameters": true,
+    "rank1_steps": true,
+    "rank1_finite": true,
+    "rank1_closed": true,
+    "rank1_updated": true,
+    "rank1_calls": true,
+    "rank1_payload": true,
+    "matching_backend": true,
+    "matching_revision": true,
+    "matching_dtype": true,
+    "matching_optimizer": true,
+    "matching_lr": true,
+    "matching_seq_len": true,
+    "matching_global_batch": true,
+    "matching_local_batch": true,
+    "matching_mode": true,
+    "matching_initial_sha256": true,
+    "matching_final_sha256": true
+  },
+  "losses_per_rank": [
+    [
+      17.131067276000977,
+      14.177238464355469,
+      17.595325469970703
+    ],
+    [
+      16.546266555786133,
+      13.801645278930664,
+      17.223730087280273
+    ]
+  ]
+}

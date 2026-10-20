@@ -1,0 +1,45 @@
+{
+  "backend": "ascend",
+  "device_type": "npu",
+  "range": [
+    0,
+    7
+  ],
+  "supports_control": false,
+  "verdict": "STREAM_RELEASE_CONTROL_PASS",
+  "passed": 6,
+  "failed": 0,
+  "skipped": 2,
+  "checks": {
+    "R1a 默认路径造出的流**不得**被登记为本层拥有": {
+      "ok": true,
+      "detail": "owns=False",
+      "skipped": false
+    },
+    "R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False": {
+      "ok": true,
+      "detail": "release=False",
+      "skipped": false
+    },
+    "R2 单点区间的等价放行": {
+      "ok": true,
+      "detail": "本机区间 = (0, 7)（非单点）⇒ 该分支不适用",
+      "skipped": true
+    },
+    "R3 实现链路可用性": {
+      "ok": true,
+      "detail": "本后端**未声明** `stream_priority_control` ⇒ 私有原语如实拒绝（SKIP，非失败）",
+      "skipped": true
+    },
+    "R4 越界 priority=-1 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    },
+    "R4 越界 priority=8 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    }
+  }
+}

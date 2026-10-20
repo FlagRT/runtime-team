@@ -1,0 +1,60 @@
+[env] 原型根 = /workspace/dc_e1_20261008/prototype
+[env] 扫描 = ['probes', 'runtime', 'scripts']
+
+  [INFO] probes/probe_bc_contract.py:22 sys.path.insert 实参不可静态求值（NameError: name 'PROTO' is not defined）
+  [PASS] probes/probe_graph_capture_stream_v2.py:67 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_capi_cambricon.py:34 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_capi_cambricon.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_priority_api.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_priority_api.py:31 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_priority_api.py root → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_priority_effect.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_priority_effect.py:60 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_priority_queued.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_priority_queued.py:51 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_priority_sched_effect.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_priority_sched_effect.py:100 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_quota.py:40 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_quota_touch.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_quota_touch.py:33 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_release_and_control.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/probe_stream_release_and_control.py:31 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_release_and_control.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/probe_stream_semantics_full.py:50 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/recover_entry_verify.py: import runtime 且 sys.path 含原型根
+  [PASS] probes/recover_entry_verify.py:45 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/recover_entry_verify.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/recover_multiproc_stress.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/selfcheck_duty_audit_ext.py:50 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/selfcheck_duty_audit_ext.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] probes/selfcheck_root_resolution.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/conformance/runner.py:34 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype/runtime/conformance
+  [PASS] runtime/conformance/runner.py:35 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/demos/demo_unified.py: import runtime 且 sys.path 含原型根
+  [PASS] runtime/demos/demo_unified.py:28 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/proto/proto_error_recovery_loop.py: import runtime 且 sys.path 含原型根
+  [PASS] runtime/proto/proto_error_recovery_loop.py:38 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype/runtime/proto
+  [PASS] runtime/proto/proto_error_recovery_loop.py:39 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype/runtime
+  [PASS] runtime/proto/proto_error_recovery_loop.py:40 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/proto/proto_infer_leg.py: import runtime 且 sys.path 含原型根
+  [PASS] runtime/proto/proto_infer_leg.py:49 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/proto/proto_infer_leg.py ROOT → /workspace/dc_e1_20261008/prototype
+  [PASS] runtime/proto/proto_infer_serve.py: import runtime 且 sys.path 含原型根
+  [PASS] runtime/proto/proto_infer_serve.py:28 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype/runtime/proto
+  [PASS] runtime/proto/proto_infer_serve.py:29 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype/runtime
+  [PASS] runtime/proto/proto_infer_serve.py:30 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [INFO] runtime/proto/proto_train_leg.py:101 sys.path.insert 实参不可静态求值（NameError: name 'ROOT' is not defined）
+  [INFO] runtime/proto/proto_train_leg.py: 根来自 `DC_ROOT`（无自解析）—— 真机须显式传入，属规定做法
+  [PASS] runtime/smoke_runtime.py: import runtime 且 sys.path 含原型根
+  [PASS] runtime/smoke_runtime.py:22 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+  [PASS] scripts/duty_response_audit.py:37 sys.path 实参在原型根内且存在 → /workspace/dc_e1_20261008/prototype
+
+=== 汇总：正确 44 / 错误 0 ===
+  [信息] 无法静态求值的根类赋值（4 个，多为默认值含绝对路径）：
+         probes/exp_divergence_cost.py _HERE: NameError: name 'pathlib' is not defined
+         probes/exp_divergence_cost.py _ROOT: NameError: name '_HERE' is not defined
+         probes/probe_bc_contract.py HERE: NameError: name 'pathlib' is not defined
+         runtime/proto/proto_train_leg.py ROOT: 含白名单外字符："os.environ.get('DC_ROOT', '/mnt/raid/hliu553/runtime-team/dev/device-c"
+verdict = ROOT_RESOLUTION_PASS
+⚠️ 边界：静态检查是「真机 import 成功」的**必要不充分**条件 —— 它抓的是路径算错，不替代真机执行。
+[out] /workspace/dc_e1_20261008/out_d2/d2_root_resolution.json

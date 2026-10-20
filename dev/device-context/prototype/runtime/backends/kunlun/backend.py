@@ -41,8 +41,8 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from ...api.errors import FlagosError
-from ..base import RuntimeBackend
+from ...api.errors import FlagosError, coerce_category
+from ..base import RuntimeBackend, state_token
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +112,22 @@ class KunlunBackend(RuntimeBackend):
     name = "kunlun"
     device_type = "cuda"   # 见模块 docstring：设备串按命名空间，不按厂商
 
-    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend/flagos 对齐）
+    #: 规范能力键全集（用于 info() 的自洽报告；键名与 ascend / cambricon 对齐）
     _CAPABILITY_KEYS = (
-        "device", "memory", "stream", "event", "bounded_sync",
+        "device", "memory", "stream", "event", "bounded_sync", "sync_timeout",
         "error_map", "recovery_probe", "recovery_real",
         "device_state", "graph_capture", "stream_priority", "multidevice",
+        # 2026-09-29（工作包 B/C）新增键（未声明即为 False，如实呈现）
+        "memory_alloc", "memory_alloc_stat", "record_stream", "context_lifecycle",
+        # 2026-09-29（工作包 C·P800 专项）：**只读观测**能力键，与 context_lifecycle
+        # 分开 —— 有的栈能管上下文生命周期，有的栈只允许观测（平台单上下文）。
+        "context_query",
+        # 2026-09-29（A2 收尾）：四态机的 **驱动** 入口（原只有查询 `device_state`）。
+        # 芯片无关 —— 走本层共享状态机（进程内账本，不依赖厂商原语），故三家一致声明。
+        "device_state_control",
+        # 2026-09-30（B2 v2 落地，(A) 方案）：优先级能力**拆两把钥匙**
+        #   —— 与 `device_state` / `device_state_control`、`context_query` / `context_lifecycle` 同构。
+        "stream_priority_control", "stream_priority_readback",
     )
 
     #: 本后端**声明支持**的能力（不支持的一律不写进来，不伪造）
@@ -127,21 +138,112 @@ class KunlunBackend(RuntimeBackend):
         "event",
         "bounded_sync",      # 主机侧等待真有界；流同步为"超时上报"语义，见 synchronize_stream
         "recovery_probe",    # 探针级恢复
-        "device_state",      # 四态机
+        "device_state",      # 四态**查询**（复用 conformance 的进程内状态机，见 device_state()）
+        # ── 2026-09-29（A2 收尾）新增 ──
+        "device_state_control",  # 四态**驱动**（`runtime.set_device_state()`）；本层账本，非厂商能力
+        # ── 2026-09-30（(A) 方案真落地）：流优先级**能设置** ──
+        # 依据：真机实测「请求 = 回读」成立（区间单点 {0}），且
+        # `torch.cuda.ExternalStream` 能把 C API 建的流**逐位**包回 torch。
+        # ⚠️ 「能设置」≠「有效果」：区间单点 ⇒ 无调度区分，见 known_issues()。
+        "stream_priority_control",
+        "graph_capture",     # torch.cuda.graph（2026-09-20 实测 GRAPH_CAPTURE_PASS 5/5）
         "multidevice",       # 单机 8 卡
+        # ── 2026-09-29（工作包 B）新增 ──
+        "memory_alloc",      # torch.cuda.caching_allocator_alloc + caching_allocator_delete
+                             #   （实测：0 → 4 MiB → 0，且非法/重复指针**如实报错**）
+        "memory_alloc_stat",  # memory_stats()["allocated_mb"]（memory_allocated）
+        "record_stream",     # Tensor.record_stream 可用
+        # ── 2026-09-29（工作包 C·本家专项）：上下文**只读观测** ──
+        # 实测：libcuda.so.1（= libxpucuda.so.515.58.kunlun，XPytorch 实际用的驱动）
+        # 提供完整 cuCtx* 系列，且 XPytorch 自己在用（torch 初始化后 cuCtxGetCurrent 非 0）。
+        # 但平台**只允许一个**上下文（第二次 create → rc=2），且它由框架自建 ——
+        # 本层若抢先建会让 torch 起不来（invalid device ordinal）
+        # ⇒ 只声明**只读**观测，**绝不**声明/调用创建销毁。
+        "context_query",
+        # ── 2026-09-30（B2 v2 落地，(A) 方案）：流优先级 ──
+        # **能读 ≠ 能改**（同 `device_state` / `device_state_control` 的拆法）。
+        "stream_priority",           # 范围可读：真原语 `cuCtxGetStreamPriorityRange`
+                                     #   实测返回 (0, 0) = **退化单点**
+        "stream_priority_readback",  # 单条流回读：`cuStreamGetPriority`（实测可用）
         # ── 以下**不支持**，故不声明 ──
         # "error_map"       : 无厂商错误码（Python 层不可得）→ 只有 message_hint 分级
         # "recovery_real"   : 无设备级重置/重建原语（实测 torch.cuda 只有内存统计类 reset*）
-        # "stream_priority" : priority_range() 触发 PyTorch INTERNAL ASSERT（上游缺陷）
-        # "graph_capture"   : 未验证
+        #
+        # ⚠️ 2026-10-08 第十六轮更正：此处原有第三条「`stream_priority_control`：区间退化单点 ⇒
+        #   如实不声明」—— 那是**第八轮的老处置**；**第九轮已改为真声明**（见上面集合里的
+        #   `"stream_priority_control"` 与 `P800/README.md`）⇒ 那段注释**从第九轮起就是死注释**
+        #   （同一个字面量里其实**已声明**），且它给的是**效果**理由，而契约 §1.9 的判据是
+        #   **接口能力**（能设 + 回读一致），不是效果。现状：**声明** `control`（取值域 = 单点 `{0}`，
+        #   请求 0 = 回读 0；非 0 先被 `ValueError` 挡下），**单档 ⇒ 无调度区分**；
+        #   上层若要用优先级表达意图，判据是 `range[0] == range[1]` ⇒ 不得据此做调度决策（台账第 36 条）。
+        #   ⚠️ 更旧的注释曾把原因写成"priority_range() 触发 PyTorch INTERNAL ASSERT" ——
+        #   那是 **torch API 路径**的问题；底层真原语**安全可读**（纪律 ⑰：根因表述本身可能错）。
     }
 
     #: 分级来源可达性（如实标注：code_map 路径在昆仑芯不可达）
     _grading_paths = {"code_map": False, "message_hint": True}
 
+    # ── 上下文**只读**观测（工作包 C·P800 专项，2026-09-29）────────────────────
+    #
+    # 为什么只读、为什么不实现 context_lifecycle：四组真机判别实验（报告 §10）
+    #   ① 平台**只允许一个**上下文 —— 已有上下文时 `cuCtxCreate_v2` 返回 `rc=2`；
+    #   ② 该上下文由 XPytorch/XRE **自建** —— 本层抢先在 torch 之前建 ⇒ torch 报
+    #      `CUDA error: invalid device ordinal`；**销毁本层建的上下文后 torch 立即恢复**
+    #   ③ 对 torch 自己的上下文，厂商**拒绝**销毁（`cuCtxDestroy_v2` → `201`
+    #      INVALID_CONTEXT）⇒ 危险操作在厂商侧已兜住；
+    #   ④ 只读接口（GetCurrent/GetDevice/GetFlags/Synchronize）**全部可用且安全**
+    #      （调用后 torch 计算仍为 512.0）。
+    # ⇒ 本类**绝不调用 `cuCtxCreate_v2` / `cuCtxDestroy_v2`**，只做只读观测。
+
+    #: 惰性加载的驱动库句柄（类级缓存；`False` = 已确认不可用，避免反复尝试）
+    _ctx_driver = None
+
+    def _driver_handle(self):
+        """惰性取得**驱动库**句柄。
+
+        用 soname `libcuda.so.1`，**不用**绝对路径、更不用别处的副本：
+        XPytorch 已加载的就是这一个（`/proc/self/maps` 实测为
+        `xcudart/lib/libxpucuda.so.515.58.kunlun`，而 `xcudart/lib/libcuda.so.1`
+        正是指向它的符号链接）⇒ 同名复用**同一份**，不引入第二份副本。
+
+        ⚠️ 反面教材（本轮踩到）：先前误从 `triton/backends/xpu/xpu3/so/` 取同名库
+        ⇒ 触发 "Libraries loaded from different directories!" 版本错配，
+        torch 直接报 `CUDA_ERROR_NOT_INITIALIZED`。
+        **同栈的库必须走 soname，不要拿任意副本路径。**
+        """
+        if type(self)._ctx_driver is None:
+            import ctypes
+            try:
+                type(self)._ctx_driver = ctypes.CDLL("libcuda.so.1")
+            except OSError:
+                type(self)._ctx_driver = False
+        return type(self)._ctx_driver or None
+
+    def _ctx_query_raw(self, ordinal: int = 0):
+        """只读读回当前生效的上下文（句柄/设备号/标志）；无则 `None`。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            return None
+        cur = ctypes.c_void_p(0)
+        try:
+            rc = lib.cuCtxGetCurrent(ctypes.byref(cur))
+        except AttributeError:
+            return None
+        if int(rc) != 0 or not cur.value:
+            return None
+        dev = ctypes.c_int(-1)
+        flg = ctypes.c_uint(0)
+        rc_d = lib.cuCtxGetDevice(ctypes.byref(dev))
+        rc_f = lib.cuCtxGetFlags(ctypes.byref(flg))
+        return {"ctx": int(cur.value),
+                "ordinal": int(dev.value) if int(rc_d) == 0 else None,
+                "flags": int(flg.value) if int(rc_f) == 0 else None}
+
     def __init__(self) -> None:
         self._torch = None
         self._errors_mod = None
+        self._device_state = None
         self._loaded = False
 
     # ───────────── 延迟加载 ─────────────
@@ -179,6 +281,26 @@ class KunlunBackend(RuntimeBackend):
             self._errors_mod = mod
         return self._errors_mod
 
+    def _load_device_state(self):
+        """按需加载 conformance/device_state 资产（设备四态机）。
+
+        ⚠️ **必须用标准 `import`（与 ascend 一致、共享 `sys.modules`），
+        不能用 importlib 独立模块名加载。**
+
+        原因：`device_state` 是**有状态的进程内单例**（模块级 `_ensure(ordinal)` 持有
+        每个设备的四态、转换事件与订阅者）。若像 `_load_errors()` 那样用
+        `spec_from_file_location("dc_xxx", ...)` 加载成独立模块，就会得到**两份状态机**
+        —— conformance / 上层设置的状态，后端查不到；后端设置的状态，上层也看不到。
+
+        （`errors` 是无状态纯函数，两份无所谓——但那正是「第 4 个跨后端框架缺陷」
+        的成因，**不应效仿**。）
+        """
+        if self._device_state is None:
+            sys.path.insert(0, str(_CONFORMANCE_DIR))
+            import device_state as _device_state
+            self._device_state = _device_state
+        return self._device_state
+
     # ───────────── 设备 ─────────────
     def device_count(self) -> int:
         return int(self.torch.cuda.device_count())
@@ -205,11 +327,17 @@ class KunlunBackend(RuntimeBackend):
                     torch.cuda.set_device(prev)
                 except Exception:
                     pass
-        return {
+        out = {
             "total_mb": int(total / 1024 / 1024),
             "used_mb": int(used / 1024 / 1024),
             "free_mb": int(free / 1024 / 1024),
         }
+        # 工作包 B-2：新增 `allocated_mb`（分配器视角，取不到则省略该键）。
+        try:
+            out["allocated_mb"] = int(torch.cuda.memory_allocated(ordinal) / 1024 / 1024)
+        except Exception:
+            pass
+        return out
 
     def probe_device(self, ordinal: int) -> bool:
         """轻量探活：分配 2x2 零张量并求和，不干扰业务。"""
@@ -232,9 +360,115 @@ class KunlunBackend(RuntimeBackend):
         except Exception:
             return False
 
+    # ─────────────── 内存句柄与生命周期（职责 D3 · 工作包 B-1）───────────────
+
+    def _alloc_raw(self, size_bytes: int, ordinal: int):
+        """XPytorch 兼容层的原始设备内存分配。
+
+        实测（P800，2026-09-29）：本家 `caching_allocator_alloc` 是**真覆写**
+        （与 910C 的 `torch.npu` 不同 —— 那边只是继承 `torch.cuda` 的实现、一调就报
+        `Found no NVIDIA driver`）；释放原语名是 **`caching_allocator_delete`**，
+        **不存在** `caching_allocator_free`（`hasattr` 为 False）。
+        """
+        torch = self.torch
+        prev = torch.cuda.current_device()
+        if prev != ordinal:
+            torch.cuda.set_device(ordinal)
+        try:
+            return torch.cuda.caching_allocator_alloc(int(size_bytes))
+        finally:
+            if prev != ordinal:
+                try:
+                    torch.cuda.set_device(prev)
+                except Exception:
+                    pass
+
+    def _free_raw(self, ptr, handle: dict) -> None:
+        """实测：`caching_allocator_delete` 对非法/重复指针**如实报错**
+        （`RuntimeError: invalid device pointer`）—— 与 pyACL 的静默恰好相反；
+        统一层仍统一登记，保证跨家行为一致。
+        """
+        self.torch.cuda.caching_allocator_delete(ptr)
+
+    def peek_current_device(self) -> int:
+        """当前默认设备序号（**只读**，用于 record_stream 的保守同步）。"""
+        try:
+            return int(self.torch.cuda.current_device())
+        except Exception:
+            return 0
+
     # ───────────── 流 / 事件 ─────────────
-    def create_stream(self):
-        return self.torch.cuda.Stream()
+    #: 建流 flag：`CU_STREAM_NON_BLOCKING`（与 `torch.cuda.Stream()` 的语义一致；
+    #: 实测本机 0 / 1 / 2 都可用，取 2 与 torch 对齐）。
+    _CU_STREAM_NON_BLOCKING = 0x02
+
+    def _create_stream_raw(self, priority=None):
+        """`priority is None` ⇒ `torch.cuda.Stream()`（**与历史版本逐位一致**）。
+
+        `priority=<int>` ⇒ 走**真路径**（2026-09-30 (A) 方案落地）：
+        `cuStreamCreateWithPriority` 建流 → `torch.cuda.ExternalStream` **包回 torch**。
+
+        为什么这条路成立（真机实测，`P800/probes/prio_settable_kunlun_20260930.log`）：
+          · `cuCtxGetStreamPriorityRange` = **(0, 0)** ⇒ 合法取值域 = {0}，越界由基类 `ValueError` 拒；
+          · `cuStreamCreateWithPriority(h, flag, 0)` **rc=0**，`cuStreamGetPriority` 回读 **0**
+            ⇒ 「请求 = 回读」成立（本层「能设置」的判据就是这个）；
+          · `torch.cuda.ExternalStream(handle)` **可用**：回取 `cuda_stream` 与 handle **逐位相同**，
+            且在该流上跑算子的结果**正确** ⇒ 这条流真的进了 torch 执行上下文。
+
+        ⚠️ 三条如实标注的边界（不外推）：
+          · **区间退化单点** ⇒ 设置 priority **不产生调度区分**（**「能设置」≠「有效果」**）；
+          · **本层拥有**这条流（实测：丢弃包装对象 + gc 后句柄仍可计算 ⇒ torch 不拥有它）
+            ⇒ 用完需 `runtime.release_stream(stream)` 显式释放，否则泄漏一条设备级流；
+          · 包装失败时**先销毁刚建的设备流再抛错**（不泄漏）。
+
+        任何一步不成立都**如实抛错**，绝不返回一条「看起来设了优先级」的流。
+        """
+        torch = self.torch
+        if priority is None:
+            return torch.cuda.Stream()
+
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            raise RuntimeError(
+                "kunlun：驱动库不可得 ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本路径需要 `cuStreamCreateWithPriority`（XPytorch 实际加载的 libcuda.so.1）；\n"
+                "  · 不指定优先级请用 `create_stream()`（走 torch 原生路径）。")
+        fn = getattr(lib, "cuStreamCreateWithPriority", None)
+        if fn is None:
+            raise RuntimeError(
+                "kunlun：驱动库缺少 `cuStreamCreateWithPriority` ⇒ 无法在**指定优先级**下建流。\n"
+                "  · 本层**不降级**（不会静默返回一条无优先级的流）；不指定优先级请用 `create_stream()`。")
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint, ctypes.c_int]
+        handle = ctypes.c_void_p(0)
+        rc = int(fn(ctypes.byref(handle),
+                    ctypes.c_uint(self._CU_STREAM_NON_BLOCKING),
+                    ctypes.c_int(int(priority))))
+        if rc != 0 or not handle.value:
+            raise RuntimeError(
+                f"kunlun：`cuStreamCreateWithPriority(priority={priority})` 失败 "
+                f"rc={rc} handle={handle.value!r} ⇒ 如实报错，不返回假流。")
+
+        try:
+            native = torch.cuda.ExternalStream(handle.value,
+                                               device=torch.cuda.current_device())
+        except BaseException:
+            self._destroy_stream_raw(handle.value)      # 不留泄漏
+            raise
+        self._register_owned_stream(native, handle.value)
+        return native
+
+    def _destroy_stream_raw(self, handle) -> bool:
+        """销毁由**本层**创建的流（`cuStreamDestroy_v2`）；原语不可得返回 False（不假装成功）。"""
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return False
+        fn = getattr(lib, "cuStreamDestroy_v2", None)
+        if fn is None:
+            return False
+        return int(fn(ctypes.c_void_p(int(handle)))) == 0
 
     def create_event(self):
         # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
@@ -301,27 +535,109 @@ class KunlunBackend(RuntimeBackend):
 
     # ───────────── 可选能力 ─────────────
     def stream_priority_range(self):
-        """**不支持，返回 None。**
+        """流优先级区间 **(least, greatest) 2 元组**；本家如实返回 **`(0, 0)`（退化单点）**。
 
-        ⚠️ 实测调用 `torch.cuda.Stream.priority_range()` 会触发 PyTorch 自身的
-        `INTERNAL ASSERT FAILED at "/pytorch/c10/cuda/CUDAStream.h":188`
-        (`greatest_priority <= -1 ... Unexpected CUDA stream priority range`) ——
-        属上游（XPytorch 后端上报了非法优先级区间），**不是本层可修项**。
-        因此此处**主动拦截，绝不透传**，避免触发 C++ 断言。
-        （注：`Stream.priority` 单值属性可读，实测为 0；但区间不可得。）
+        ⚠️ **2026-09-30 更正根因表述（纪律 ⑰：能力缺失的根因表述本身可能是错的）**：
+        旧版本返回 `None`（表述为"不支持"），理由记的是"调 `torch.cuda.Stream.priority_range()`
+        会触发 PyTorch `INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188`"。
+        复核后发现：那是 **torch API 路径**的问题（XPytorch 把非法区间报给了 torch），
+        **底层真原语安全可读** —— 直调 `cuCtxGetStreamPriorityRange` 返回 **`(0, 0)`**
+        且**不触发断言** ⇒ "不支持"这个结论**方向对、表述错**：设备报的是
+        **"只有一个档位"**，而不是"没有这个接口"。现改为如实回报。
+
+        ⚠️ **能力声明口径（2026-09-30 修订，(A) 方案落地）**：区间虽是**单点**，但
+        「设 0 ⇒ 回读 0」在契约意义上**成立**（本层「能设置」的判据就是 **请求 = 回读**）
+        ⇒ 本家**声明** `stream_priority_control`，实现走
+        `cuStreamCreateWithPriority` + `torch.cuda.ExternalStream` 包装（真机实测可用）。
+        取值域 = 本区间的 `min/max`（本机即 `{0}`），越界由基类抛 `ValueError`。
+        ⭐ **「能设置」≠「有效果」**：单点区间下设置**不产生调度区分** —— 这一条写进
+        `known_issues()`，**不要把接口能力当成调度能力**。
         """
-        return None
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None:
+            return None
+        least = ctypes.c_int(0)
+        greatest = ctypes.c_int(0)
+        # ⚠️ 用 **`getattr` 显式探针**判断「符号是否存在」，其余异常**一律传播**。
+        #    2026-09-30 实测教训：原写法 `try: fn = lib.xxx; fn.restype = ... \n except
+        #    AttributeError: return None` 会把「给 `fn.restype` 赋值失败」（属**调用方
+        #    /替身兼容性**问题，是 bug）与「库没这个符号」（如实不支持）**混为一谈**，
+        #    且是**静默的**（现象变成『不支持』，真因被藏起来）。
+        fn = getattr(lib, "cuCtxGetStreamPriorityRange", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+        rc = int(fn(ctypes.byref(least), ctypes.byref(greatest)))
+        if rc != 0:
+            return None
+        return int(least.value), int(greatest.value)
+
+    def _stream_priority_read_raw(self, handle):
+        """**厂商原语层**：CUDA 流句柄 → 优先级（读不出返回 None）。
+
+        ⚠️ 单独成方法是为了**可注入/可替换**（离线自检在无设备时要能驱动这条链路）。
+        """
+        import ctypes
+        lib = self._driver_handle()
+        if lib is None or not handle:
+            return None
+        # 同上：**显式探针**，不吞 AttributeError（否则替身/调用方式的问题会被读成"不支持"）
+        fn = getattr(lib, "cuStreamGetPriority", None)
+        if fn is None:
+            return None
+        fn.restype = ctypes.c_int
+        fn.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        got = ctypes.c_int(0x7FFFFFFF)
+        rc = int(fn(ctypes.c_void_p(int(handle)), ctypes.byref(got)))
+        return int(got.value) if rc == 0 else None
+
+    def stream_priority_readback(self, native_stream):
+        """回读该流的优先级；读不出返回 None。
+
+        实测（2026-09-30）：普通流回读 **0**；`cuStreamCreateWithPriority(prio=-1)`
+        建出来的流回读**仍是 0**（不保留）—— 正是"设备只有一个档位"的直接证据。
+        """
+        handle = getattr(native_stream, "cuda_stream", None)
+        if not handle:
+            return None
+        return self._stream_priority_read_raw(handle)
 
     # ───────────── 错误翻译 ─────────────
     def translate_error(self, exc: BaseException, location: str = "") -> FlagosError:
+        """厂商错误 → 统一 `FlagosError`。分级来源如实限定为 **`message_hint` / `default`**。
+
+        2026-09-22 真机实测：昆仑芯**不把厂商错误码透出为数字码** ⇒ 无可查的码表，
+        故**不声明 `error_map` 能力**（是「确认不具备」，不是「未验证」）。
+
+        ⚠️ **2026-09-29 修（工作包 A 实验暴露，§11-① 的补全）**：此前是**事后降级** ——
+        调共享翻译器（其码表为**昇腾 ACL 码表**）之后，只把 `graded_by` / `mapped` /
+        `error_code` 三个**置信度字段**降下来，而 **`category` 仍冻结在共享码表给出的值**。
+        实测后果（P800）：喂一条携带昇腾码的消息即得 **L4_FATAL / device_recovery** ——
+        而契约 §1.4 明令「下游必须按 `disposition` 处理」⇒ 会**误触发设备级重建**；
+        且 `errors.py` 自身规则是「无依据兜底 L3」，行为却**升级**为 L4 ⇒ 违反自身规则。
+
+        还有更隐蔽的一层：`message_hint_unexpected` 这个标记本身也是错的 ——
+        共享翻译器在**码表命中时即返回**、**从未评估消息规则**，所以降级后并没有人重算
+        `message_hint`；`category` 只是"恰好"与消息规则一致或**不一致**，属**巧合而非声明**。
+
+        ⇒ 现改为**从源头不使用外来码表**（`vendor_codes=False`）：`graded_by` / `mapped` /
+        `error_code` / **`category`** 四者天然一致，无需任何事后修补 ——
+        「降级必须整组一致」由此从"逐个字段记得改"变成"结构上不可能不一致"。
+        """
         errors = self._load_errors()
-        fe = errors.translate_error(exc, location=location)
+        # ⚠️ `vendor_codes=False` 是本后端**正确性的关键**：本家无厂商码表，
+        #    昇腾 ACL 码表不得参与本家的分级判定。
+        fe = errors.translate_error(exc, location=location, vendor_codes=False)
         graded_by = getattr(fe, "graded_by", "default")
-        # 如实降级：昆仑芯无错误码 → code_map 不可达，只有 message_hint / default 可信
-        if graded_by == "code_map":
-            graded_by = "message_hint_unexpected"
         return FlagosError(
-            category=getattr(fe, "category", None) or _l3(),
+            # 2026-09-20 修复（P800 推理腿暴露）：`_load_errors()` 用 importlib 把
+            # conformance/errors.py 加载为**独立模块**，其 ErrorCategory 是 IntEnum
+            # （L1=1..L4=4），与 api 层枚举**不是同一个类对象** —— 即使取值相同也不相等，
+            # 直接透传会让 `FlagosError.disposition` 的 `DISPOSITION[cat]` 查表 KeyError。
+            # 故经 `coerce_category` 按数值/名称归一（ascend 用的是同源 _INT_TO_CATEGORY）。
+            category=coerce_category(getattr(fe, "category", None)) or _l3(),
             root_cause=getattr(fe, "root_cause", f"{type(exc).__name__}: {exc}"),
             location=getattr(fe, "location", "") or location,
             error_code=getattr(fe, "error_code", None),
@@ -333,9 +649,10 @@ class KunlunBackend(RuntimeBackend):
             backend=self.name,
         )
 
+
     # ───────────── 恢复 ─────────────
-    def recover_device(self, ordinal: int, mode: str = "probe",
-                       reason: str = "", **kwargs: Any) -> dict:
+    def _recover_device_impl(self, ordinal: int, mode: str = "probe",
+                             reason: str = "", **kwargs: Any) -> dict:
         """设备重建。统一返回 dict，`recovered` 语义 = **设备当前可用**。
 
         ⚠️ 实测：`torch.cuda` 上**没有设备级重置/重建原语** ——
@@ -344,21 +661,45 @@ class KunlunBackend(RuntimeBackend):
         一律以探活结果判定设备是否可用，并在 `detail` 中如实说明。
         """
         alive = self.probe_device(ordinal)
+
+        # 2026-09-28（职责响应审计暴露）：接口约定 §1.5 的返回契约要求
+        # `{ordinal, mode, recovered, state, detail}` **五键齐全**。
+        # 本后端此前只返回四键（缺 `state`），与 ascend 不对称 ⇒
+        # 下游（监控方向）按契约读 `state` 在本家会拿不到 —— 属对称性缺陷，已补。
+        try:
+            state = state_token(self.device_state(ordinal))
+        except Exception:
+            state = "unknown"
         if mode not in ("probe", "hybrid"):
             return {
                 "ordinal": ordinal, "mode": mode, "recovered": alive,
+                "state": state,
                 "detail": ("昆仑芯无设备级重置/重建原语（torch.cuda 仅内存统计类 reset*，"
                            "无 reset_device/context 重建）→ real 模式不支持；"
                            "已按探活结果判定，如需 real 需上游提供原语"),
             }
         return {
             "ordinal": ordinal, "mode": mode, "recovered": alive,
+            "state": state,
             "detail": f"probe 级探活：设备当前{'可用' if alive else '不可用'}",
         }
 
+    def device_state(self, ordinal: int):
+        """查询设备四态：`available` / `degraded` / `isolated` / `destroyed`。
+
+        复用 conformance 的 device_state 资产（**进程内状态机，不依赖厂商原语**），
+        与 ascend 同一份实现与同一套语义，故本后端的 `device_state` 能力声明成立。
+
+        边界（如实标注）：昆仑芯侧无设备级重置/重建原语（见 `recover_device`），
+        本后端只声明 `recovery_probe` —— 四态**转换**由上层/监控方向驱动
+        （`set_device_state`），本方法只负责**查询**；恢复执行走
+        `recover_device(mode="probe")`。
+        """
+        return self._load_device_state().query_device_state(ordinal)
+
     # ───────────── 能力声明 ─────────────
-    def supports(self, capability: str) -> bool:
-        return capability in self._capabilities
+    # 2026-09-28：`supports()` 覆写已删除 —— 三家实现完全同款（`cap in self._capabilities`）
+    # ⇒ 收敛到基类唯一实现，别名归一（`sync_timeout` → `bounded_sync`）只在基类维护一处。
 
     # ───────────── 已知上游/环境问题（给接入方直接可读）─────────────
     #: 只收录**已实测**的问题；每条注明复现率、归属层与证据位置。
@@ -393,6 +734,49 @@ class KunlunBackend(RuntimeBackend):
             "report_to": "昆仑芯（XPytorch / XRE）—— 我方已上报，对应本方向对外提交项 C3",
             "evidence": "prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md",
         },
+        {
+            "id": "KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL",
+            "severity": "low",
+            "scope": "流优先级（`stream_priority_control` / `stream_priority_range`）",
+            "condition": "任何调用 `stream_priority_range()` 或 `create_stream(priority=…)` 的场景",
+            "symptom": (
+                "`cuCtxGetStreamPriorityRange` 返回 **least=0, greatest=0** "
+                "⇒ **优先级区间退化为单点**：接口可用、可设置、可回读，"
+                "但**设置不产生任何调度区分**（设备只暴露一个档位）"
+            ),
+            "repro_rate": ("100%（2026-09-30 三次独立运行一致）。"
+                           "**2026-10-08 自证审计加宽证据面**：① **逐卡 7/8** 张（跳过他人作业在用的卡）"
+                           "全部 `rc=0` 且 `range=[0,0]`；② **两条独立实现路径读数一致** —— "
+                           "driver API（`cuCtxGetStreamPriorityRange`）与 runtime API "
+                           "（`cudaDeviceGetStreamPriorityRange`）都是 `(0,0)`；"
+                           "③ `cuStreamCreateWithPriority` 对 -10/-5/-2/-1/0/1/5/10、"
+                           "`cudaStreamCreateWithPriority` 对 -2/-1/0/1/2 **全部 rc=0、回读 0**"),
+            "root_cause_layer": (
+                "厂商 CUDA 兼容运行时（libxpucuda.so.515.58.kunlun）上报的设备属性 "
+                "—— 设备只暴露一个优先级档位"
+            ),
+            "ruled_out": (
+                "**不是**接口没实现：三个入口（`cuCtxGetStreamPriorityRange` / "
+                "`cuStreamCreateWithPriority` / `cuStreamGetPriority`）都在且可用；"
+                "**不是**包装不了：`torch.cuda.ExternalStream(handle)` 回取句柄**逐位相同**"
+                "且能在其上跑对算子；"
+                "**不是**「只看了兼容层」：driver(`cu*`) 与 runtime(`cuda*`) 两条路径读数一致；"
+                "**也不是**「原生层另有一套」：全量 `nm -D` 扫描下 "
+                "`xpu*`/`XPU*` 前缀的 `Stream`/`Queue` API **零命中**，"
+                "`libxpurt.so.12.9.1.kunlun` 含 `priority` 与 `Stream` 的符号**都是 0 个**；"
+                "**不是**「只测了一张卡」：逐卡 7/8 张一致"
+            ),
+            "workaround": (
+                "需要**按优先级编排**的上层：本平台做不到，**请勿据此做调度决策**；"
+                "需要**跨芯片可移植的调用面**：正常调用 `create_stream(priority=0)`"
+                "（唯一合法值），越界值本层会 `ValueError` 拒绝"
+            ),
+            "workaround_risk": "无（区间由设备自报，本层只是如实转达）",
+            "report_to": "昆仑芯（XPytorch / XRE）—— 若要支持多档优先级，需厂商侧暴露",
+            "evidence": ("P800/probes/prio_settable_kunlun_20260930.log、"
+                         "P800/probes/audit_20261008_out/kunlun_audit.log"
+                         "（2026-10-08 自证审计：逐卡 / runtime API 交叉 / 全量符号扫描）"),
+        },
     ]
 
     def known_issues(self) -> list:
@@ -402,12 +786,13 @@ class KunlunBackend(RuntimeBackend):
         self._load()
         return {
             "name": self.name,
+            # 公共字段改由基类唯一来源提供（原为三家各手写一份 ⇒ 同一份清单三个来源）
+            **self._base_info_fields(),
             "device_type": self.device_type,
             "framework": "XPytorch (torch.cuda 兼容层) + torch_xray 符号重写",
             "torch": self._torch.__version__,
             "torch_build": {"USE_CUDA": True, "USE_XPU": False},
             "device_count": self.device_count(),
-            "capabilities": sorted(self._capabilities),
             # 与 _capabilities 同一套键名（自洽，不重复出现 A 键声明/B 键查询的问题）
             "supports": {k: self.supports(k) for k in self._CAPABILITY_KEYS},
             "error_grading": dict(self._grading_paths),
@@ -419,7 +804,10 @@ class KunlunBackend(RuntimeBackend):
                 "通信库 libbkcl.so（XCCL/BKCL）",
             ],
             "known_upstream_defects": [
-                "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)",
+                "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)"
+                "（⚠️ 这是 **torch API 路径**的问题；底层真原语 `cuCtxGetStreamPriorityRange` "
+                "**安全可读**且返回 `(0,0)` ⇒ 设备报的是「只有一个档位」，不是「没这个接口」；"
+                "见 known_issues 的 KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL）",
                 "厂商错误码不透出到 Python 异常（仅退出钩子偶见 error code=101）",
                 "XPU_EVENT_KL3_ENABLE=1 且存在设备侧集合通信时，设备事件同步概率性永久挂死（≈89%，"
                 "自旋于厂商 libcuda.so）—— 详见 known_issues[0] 与 "

@@ -1,0 +1,22 @@
+########## 变体：default_stream
+   [default_stream ] record() 后立即 query: [True, True, True]
+   [default_stream ] record() 后立即 query: [True, True, True]
+########## 变体：explicit_stream
+   [explicit_stream] record(s) 后立即 query: [False, False, False]
+   [explicit_stream] record(s) 后立即 query: [True, True, False]
+########## 变体：with_work
+   [with_work      ] record 后立即 query: [False, False, False]
+   [with_work      ] 设备 synchronize 后 query: [False, False, False]
+   [with_work      ] record 后立即 query: [False, False, False]
+   [with_work      ] 设备 synchronize 后 query: [False, False, False]
+########## 变体：after_sync
+   [after_sync     ] 先 sync 再 query: [True, True, True]
+   [after_sync     ] 先 sync 再 query: [True, True, True]
+########## 变体：repeat
+   [repeat         ] 连续 6 次 query: [True, True, True, True, True, True]
+   [repeat         ] sync 后再 3 次: [True, True, True]
+   [repeat         ] 连续 6 次 query: [True, True, True, True, True, True]
+   [repeat         ] sync 后再 3 次: [True, True, True]
+########## 变体：two_events
+   [two_events     ] e1.query: True | e2.query: False
+   [two_events     ] e1.query: True | e2.query: False

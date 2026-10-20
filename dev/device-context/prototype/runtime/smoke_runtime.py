@@ -77,7 +77,7 @@ class MockBackend(RuntimeBackend):
     def memory_stats(self, o):
         return {"total_mb": 65536, "used_mb": 1024, "free_mb": 64512}
 
-    def create_stream(self): return _MockNativeStream()
+    def _create_stream_raw(self, priority=None): return _MockNativeStream()
     def create_event(self): return _MockNativeEvent()
     def current_stream(self): return "mock-current"
 
@@ -108,7 +108,7 @@ class MockBackend(RuntimeBackend):
         )
 
     def probe_device(self, ordinal): return True
-    def recover_device(self, ordinal, mode="probe", reason=""): return True
+    def _recover_device_impl(self, ordinal, mode="probe", reason=""): return True
 
 
 def main(argv=None):
@@ -193,8 +193,12 @@ def main(argv=None):
     print("\n[4] 能力查询")
     check("supports(device)", b.supports("device"))
     check("不支持的能力返回 False", not b.supports("graph_capture"))
-    check("info 含 name/device_type/capabilities",
-          set(b.info()) == {"name", "device_type", "capabilities"}, str(b.info()))
+    # 2026-09-29（工作包 B）：`info()` 起改为**只增不改**（新增 native_accesses / degradations
+    # 两个审计字段）⇒ 判据从"**精确等于三键**"改为"**至少含三键**"。
+    # 这不是放宽：精确键集会把每一次合法的契约扩展都判成失败（同 memory_stats 那条）。
+    _info = b.info()
+    check("info 至少含 name/device_type/capabilities（只增不改）",
+          {"name", "device_type", "capabilities"} <= set(_info), str(_info))
 
     # ── 5. 真实后端（若环境可用）──
     print("\n[5] 昇腾后端（需 torch_npu，不可用则跳过）")
@@ -247,9 +251,11 @@ def main(argv=None):
     try:
         from runtime.backends.registry import _KNOWN_BACKENDS as _known
     except Exception:
-        _known = ("ascend", "flagos", "kunlun")
+        _known = ("ascend", "kunlun", "cambricon")
     loaded = runtime.discover(names=_known, verbose=False)
-    order = [args.backend] if args.backend else ["kunlun", "ascend", "flagos"]
+    # 挑选优先级：先试"当前机器最可能装的那家"。顺序只影响"先试谁"，
+    # 依赖缺失 / device_count=0 都会被如实 SKIP 后继续试下一个。
+    order = [args.backend] if args.backend else ["cambricon", "kunlun", "ascend"]
     picked = None
     for name in order:
         if name not in loaded:
@@ -299,12 +305,39 @@ def main(argv=None):
                                     location="smoke")
             check("translate_error 返回统一类型", isinstance(fe, FlagosError))
             check("translate_error 回填后端名", fe.backend == name, fe.backend)
+            # 2026-09-22 修正（910C 对称复跑暴露）：本注入消息**不含厂商错误码**，
+            # 却要求声明了 error_map 的后端必须走 code_map —— 判据不公平
+            # （ascend 对无码消息正确地走了 message_hint，被误判失败）。
+            # 改为两条诚实判据：①无码消息不得伪称 code_map；②含厂商码样例必须走 code_map
+            # （样例由各家后端自带 SAMPLE_CODED_ERROR，无样例则如实 SKIP 正向检查）。
+            sample = getattr(bk, "SAMPLE_CODED_ERROR", None)
             if bk.supports("error_map"):
-                check("声明 error_map → 分级来源为 code_map",
-                      fe.graded_by == "code_map", f"graded_by={fe.graded_by}")
+                check("声明 error_map → 无码消息不伪称 code_map（诚实）",
+                      fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                if sample:
+                    fe_c = bk.translate_error(RuntimeError(sample), location="smoke")
+                    check("声明 error_map → 含厂商码样例必走 code_map",
+                          fe_c.graded_by == "code_map", f"graded_by={fe_c.graded_by}")
+                else:
+                    print("  [SKIP] 该后端未提供 SAMPLE_CODED_ERROR，正向 code_map 检查跳过（如实）")
             else:
                 check("未声明 error_map → 分级来源非 code_map（如实）",
                       fe.graded_by != "code_map", f"graded_by={fe.graded_by}")
+                check("未声明 error_map → mapped 必须为 False（诚实性）",
+                      fe.mapped is False, f"mapped={fe.mapped}")
+                # ⭐ 2026-09-22 新增（第 6 个跨后端缺陷的真机防回归判据）
+                #   共享翻译器的码表是单一厂商（昇腾 ACL）码表，抽取规则却通用（`ret=`/`error code is`）。
+                #   消息里出现一个**码表内**的数字时，它会给出 graded_by=code_map + mapped=True。
+                #   无码表后端必须把 graded_by / mapped / error_code **一起**降级，
+                #   否则 mapped=True（=确定分级）与 graded_by≠code_map 自相矛盾，把保守推断冒充成定论。
+                _fc = bk.translate_error(
+                    RuntimeError("AICORE exception, error code is 507015"), location="smoke")
+                check("码表内码串入 → graded_by 不得为 code_map",
+                      _fc.graded_by != "code_map", _fc.graded_by)
+                check("码表内码串入 → mapped 必须为 False（否则=冒充确定分级）",
+                      _fc.mapped is False, f"mapped={_fc.mapped}")
+                check("码表内码串入 → error_code 必须为 None（非本厂商码）",
+                      _fc.error_code is None, str(_fc.error_code))
 
             # info() 与 supports() 自洽
             info = bk.info()

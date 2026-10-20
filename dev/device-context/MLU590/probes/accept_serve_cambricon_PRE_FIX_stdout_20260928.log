@@ -1,0 +1,35 @@
+=========== 统一推理服务启动 开始 Mon Sep 28 09:08:37 CST 2026 ===========
+backend=cambricon dev=2 port=8100 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /flagos/bin/vllm ｜ python3 = /flagos/bin/python3（Python 3.10.20）
+--- 用卡前 ---
+| 1         37C    121 W/ 550 W |   224 MiB/ 98304 MiB | FULL          Default |
+| 0         36C    119 W/ 550 W | 60556 MiB/ 98304 MiB | FULL          Default |
+| 2         36C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         34C    107 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 5         37C    123 W/ 550 W | 60556 MiB/ 98304 MiB | FULL          Default |
+| 4         33C    101 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         33C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=337  日志: /work/MLU590/serve_tmp/vllm_serve.log
+  ✅ 服务就绪 t=365s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  ❌ 冒烟失败（服务已就绪但功能不通，见服务日志与上方响应）
+  raw: 
+
+############ 验证模式：停机 ############
+scripts/serve_standard.sh: line 192:   337 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+| 1         37C    121 W/ 550 W |    96 MiB/ 98304 MiB | FULL          Default |
+| 0         36C    120 W/ 550 W | 60556 MiB/ 98304 MiB | FULL          Default |
+| 2         37C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         34C    107 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 5         37C    124 W/ 550 W | 60556 MiB/ 98304 MiB | FULL          Default |
+| 4         33C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         33C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+[verdict] SERVE_STANDARD_FAIL (ready=1 smoke=0)
+=========== 结束 Mon Sep 28 09:15:49 CST 2026 ===========
