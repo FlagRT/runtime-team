@@ -27,8 +27,8 @@
 | Base Benchmark（昆仑芯 P800） | 统一宿主入口与 P800 provider（有界路径/身份链/preflight/监控/设备租约）已形成；BF16 快路径修复已固化进 runtime 合同 | 15 case（10 可执行＋5 skip）114 run 测量与正确性通过；严格五次组 15 passed（D2H 计时 3 组为用户接受的时长例外，记录在案）；8 卡五次稳定测量 FP32 118.47 / FP16 259.17 TFLOPS、INT8 504.53 TOPS、带宽 2235.95 GB/s；BF16 修复后 223.88 TFLOPS（0.873×FP16） | 已发布至 `FlagPerf/zhiyu/kunlunxin-p800`＋冻结 tag `p800-base-frozen-20261008`，未进入 FlagRT `main`；镜像 validated:true/partial；最终验收报告（2026-10-08）为交付边界 |
 | Base Toolkit（昆仑芯 P800） | 12 case 独立 C++ native_bench（直调 XBLAS/XRE）＋完整证据链（preflight/监控/manifest/SHA256）已形成 | 2026-10-09 全量复测通过；口径固化 8192³/repeat 5/samples 50，D2D 双行分列（Scopy 2×≈2139 GB/s 与 XRE memcpy 1×≈11.4 GB/s）；与 Base 差距四类归因定案（口径/内核/厂商路径/共享卡），同机制处 1.01× 重合；XBLAS BF16≈FP32 为厂商库内核缺口（AUTOTUNE 实测无效） | 已交付（代码入口 `FlagPerf/base/toolkits/_common/kunlunxin/P800/`）；与 Base 的口径差异已在 BF16 修复说明中写明 |
 | Operation（昆仑芯 P800） | 按 Ascend 测试机制适配：统一执行器/路由/payload 审计/profiling 骨架/watchdog 与设备租约已形成 | 2026-10-20 复测：52 case/728 组合——420 not-applicable，308 适用中 275 partial、27 failed、6 blocked（失败原样保留交算子组）；CPU 回归通过；硬件计数器未实现可信采集（full 六组 not-supported） | 冻结源码指纹 `c95f1329…`；Operation `validated:false` 不变，完整能力对齐验收未完成；受限评估 PR 可如实提交审阅，不等于验收通过 |
-| Base Benchmark（平头哥 PPU） | FlagPerf 第三个完整 vendor provider（thead/PPU：CUDA-compat 语义、ppu-smi 监控、/dev/alixpu* 设备绑定），qualification.py 零改动 | 2026-10-15 冻结：86/86 run 全 passed（17 个五次组＋容量；仅 FP8 skip）；FP32 34.5 / FP16 135.6 / BF16 135.0 TFLOPS、INT8 269.2 TOPS（K-major 修复后）；带宽 2052.4 GB/s、容量 103.04 GB；MPI 8-rank AllReduce 25.91 GB/s、11-rank collect 94.56 GB/s；P2P 扫点矩阵 qualified（同卡 33–45 vs 跨卡 ≈4.8 GB/s） | 已发布至 `FlagPerf/zhiyu/thead-ppu`＋冻结 tag `ppu-base-frozen-20261015`，PR（→ FlagRT `dev-1.0`）提交中；16-rank 资格待独占窗口（R5 降级 8-rank 记录在案），11-rank 审计待 qualification.py ranks 上限决策 |
-| Base Toolkit（平头哥 PPU） | 调研定案（2026-10-19）：官方测量工具全部内置于运行镜像 `flagtree-ppu-3.6-dev:202608`——comm_tools（sailbandwidth 35 testcase＋p2pBandwidthLatencyTest＋12 件集合通信 perf）、pccl-tests 六件套、libacblas `acblasGemmEx`、ppu-smi v1.28 | 传输/内存/P2P/容量/监控全部有官方工具覆盖；计算 case 走 acblasGemmEx 原生 runner（对标 P800 XBLAS 路线）；T1–T7 工具小测试当日全部通过；无需自研或第三方工具 | 调研报告 2026-10-19 定稿；代码未开工，按约定等明确开工指令后实施 |
+| Base Benchmark（平头哥 PPU） | FlagPerf 第三个完整 vendor provider（thead/PPU：CUDA-compat 语义、ppu-smi 监控、/dev/alixpu* 设备绑定），qualification.py 零改动 | 2026-10-15 冻结：86/86 run 全 passed（17 个五次组＋容量；仅 FP8 skip）；FP32 34.5 / FP16 135.6 / BF16 135.0 TFLOPS、INT8 269.2 TOPS（K-major 修复后）；带宽 2052.4 GB/s、容量 103.04 GB；MPI 8-rank AllReduce 25.91 GB/s、11-rank collect 94.56 GB/s；P2P 扫点矩阵 qualified（同卡 33–45 vs 跨卡 ≈4.8 GB/s） | 已发布至 `FlagPerf/zhiyu/thead-ppu`＋冻结 tag `ppu-base-frozen-20261015`，PR 创建待决策；16-rank 资格待独占窗口（R5 降级 8-rank 记录在案），11-rank 审计待 qualification.py ranks 上限决策 |
+| Base Toolkit（平头哥 PPU） | 12 case toolkit 已实现并收口（2026-10-20）：官方工具（comm_tools/sailbandwidth/p2pBandwidthLatencyTest/pccl-tests/libacblas `acblasGemmEx`/ppu-smi）＋P800 同构 runner 与严格判定；minimum-seconds 下限机制对齐 P800；31 项守护测试通过 | 验收 run `20261020T090026Z`（repeat 5/floor 15 s/双卡）：11/12 通过——FP32 34.5 / FP64 5.53 / FP16 135.1 / TF32 67.6 TFLOPS、D2D 1051 GB/s（×2≈HBM 2052）、H2D/D2H CE 29.0/28.5 GB/s、P2P 时延 1.25–1.27 µs、单向 46.2–46.9 GB/s、容量 98304 MiB，两轮复现一致；BF16/P2P 两项失败不归因 toolkit（见 §10） | 5 个主题化 commit（`98ffbeef`→`9ae9c49f`）已推 `FlagPerf/zhiyu/thead-ppu`；`docs/thead/validation.md` 已部署（含缺陷史与失败如实记录） |
 | 两段 Demo 统一验收报告 | 未完成 | Operation/Base/Inference 是支撑能力；Inference 证据为 PyTorch/Transformers 路径与专用固定输入，不等于 vLLM 服务口径验收；训练吞吐与跨方向证据尚未统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
 当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
@@ -488,7 +488,24 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
    验收稳定后，再逐步推进 Oracle—Device 误差传播与敏感算子归因闭环、完整跨层 Profiling、故障恢复和长稳/热加载
    能力。
 6. 昆仑芯 P800：BF16 修复分支 `fix/p800-bf16-fastmode` 已推 origin 待 PR；把 `XMLIR_MATMUL_FAST_MODE=1`
-   固化到昆仑芯启动设置（容器 env/启动脚本），跟进 XBLAS BF16 快内核厂商反馈；共享环境释放后按手册补统一入口
-   端到端复测。
-7. 平头哥 PPU：跟进 Base PR（`zhiyu/thead-ppu` → `dev-1.0`）审阅；拿到开工指令与设备窗口后按 2026-10-19
-   调研报告实施 Toolkit（官方工具小测试 → acblasGemmEx 原生 runner）；16-rank 独占窗口获批后补资格并复评。
+   固化到昆仑芯启动设置（容器 env/启动脚本）；XBLAS BF16 快内核、XRE 传输路径、P2P/AllReduce 偏小三项厂商侧
+   问题按 §10 清单反馈厂商；共享环境释放后按手册补统一入口端到端复测。
+7. 平头哥 PPU：Base（冻结 tag `ppu-base-frozen-20261015`）＋Toolkit（收口 `9ae9c49f`）均已推送
+   `zhiyu/thead-ppu`，PR 创建待决策；U13 16-rank 独占窗口与 qualification.py `ranks<=8` 上限放开获批后补资格
+   与审计。
+
+## 10. 昆仑芯 P800 与平头哥 PPU 未解决问题（2026-10-20）
+
+以下为两台设备上已遇到、尚未解决的问题，全部如实列出；原始日志与探针证据原样保留，失败不改写、不放宽容差、
+不绕过执行。
+
+| 设备 | 问题 | 现象与证据 | 已排除 | 状态与去向 |
+| --- | --- | --- | --- | --- |
+| P800 | P2P/AllReduce 带宽偏小（XPULink 反差） | 单机 XL 直连对（物理 4+7）256 MiB float32 AllReduce 28.85 GB/s、BKCL 构建 6 条 XL ring，反而低于 PCIe 对（3+4）的 37.88 GB/s（12 rings） | 官方文档候选共 11 个环境变量变体全部无效（BKCL_CLUSTERS_PER_RING/MAX_CLUSTERS/XLINK_BW/P2P_FORCE_XLINK，及 XLINK_C2C、ENABLE_XDR+USE_XDR_COPY、RING_OPT+FLAT_RING、RING_BUFFER 16MiB+GM、CUDA_ENABLE_P2P_NO_UVA、全组合），带宽与 ring 数均不变 | 非用户侧环境变量可解；BKCL 对 XL 拓扑的 ring 构造属厂商行为，待厂商反馈 |
+| P800 | XBLAS BF16 快内核缺口 | Toolkit computation BF16≈FP32（118.85 TFLOPS，同 shape FP16 268.9）；Base 侧 `XMLIR_MATMUL_FAST_MODE=1` 修复后 223.88 TFLOPS，XBLAS 预编译内核路径不受益 | XMLIR 开关实测对该路径无效；官方 `XBLAS_AUTOTUNE=1` 首调用阻塞 3 h 19 m、无产出、cache 不写出（机制级死路） | 待厂商在 XBLAS 层提供 BF16 MMA 快路径 |
+| P800 | Toolkit XRE 传输厂商路径 | 整块 pinned `xpu_memcpy_async` 返回 -999（被迫 1 MiB×512 分块且更慢）；同步 memcpy 全家族 ~10 GB/s（对照 Base clone 核 2235.9 GB/s） | 口径/内核/共享卡三类归因已定案（同机制处 1.01× 重合），剩余为厂商路径问题 | 按归因文档向厂商反馈 |
+| P800 | Operation 完整能力对齐未完成 | 52 case/728 组合：308 适用中 275 partial、27 failed、6 blocked（失败原样保留交算子组）；硬件计数器无可信 event 配置（full 六组 not-supported）；`validated:false` | 受限评估 PR 可如实提交审阅，但不写成完整验收通过 | 算子失败项交算子组；计数器采集待厂商接口 |
+| P800 | Base 统一入口端到端复测待窗口 | 2026-10-20 观察：外部训练进程持全 8 卡设备句柄（xpu-smi 显示空闲），按约定不停止他人服务；8 卡健康 degraded（卡 2 历史 ECC） | 设备级修复证据以 2026-10-19 直接复测为准 | 独占窗口后按手册流程补跑 |
+| PPU | computation-BF16 厂商内核 | acblasLtMatmul 上下文腐蚀，toolkit 该 case 10/10 失败；probes/day10 探针定性，非 toolkit 缺陷；PPU torch.mm BF16 135.0 TFLOPS 正常（与 P800 XBLAS 现象分开定性） | toolkit 侧 runner 与判定已排除本地缺陷 | 已交算子团队，待厂商修复 |
+| PPU | P2P 官方工具 stdout 畸形＋双向并发不稳定 | p2pBandwidthLatencyTest stdout 矩阵块畸形（两轮签名相同、方向不同），严格解析拒绝（P800 同构问题）；双向并发 P2P 间歇不稳定：单向全轮稳定（CV 0.15–0.62%），双向部分窗口 50–90 GB/s 跨度、组 CV 23.3%，88–90 GB/s 能力上限多轮复现 | 两轮失败签名一致排除偶发；toolkit 判定表达式与 P800 report.py 同构，排除本地解析缺陷 | 工具畸形与双向不稳定如实记录待厂商；88–90 GB/s 上限另行定位 |
+| PPU | 16-rank 资格与 11-rank 审计 | 16-rank 待独占窗口（R5 降级 8-rank 记录在案）；11-rank collect 94.56 GB/s 审计被 qualification.py `ranks<=8` 上限阻塞 | 8-rank 全套资格已通过（86/86） | 窗口与上限放开均待用户决策（U13） |
