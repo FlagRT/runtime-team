@@ -1,5 +1,7 @@
 # 官方910C镜像：公共算子接入回归
 
+10-20拆仓后：以下历史示例命令都需额外提供`--wheel <按package.lock.json构建的wheel>`。所有stage从独立包安装导入，不再读取本目录src。
+
 ## 用途与现状
 
 消费官方镜像`quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`，精确ID见image.baseline.yaml；用于单卡PyTorch eager下SiLU/sigmoid接入、执行前回退和短训练回归，不调用vLLM服务。不是训练v3验收，也不修复shmem。
@@ -53,6 +55,6 @@ sigmoid模型正式回归增加`--deterministic`，开启PyTorch确定性执行�
 
 dc-train使用[训练配置](../../demo/training-configs/README.md)，继承同一精确官方镜像并生成独立baseline/demo；映射两个设备，host网络/IPC、48GB内存上限，用于HCCL。不是训练v3镜像验收，也不是所有模型通用入口。必须先确认两设备当前空闲且可初始化。开启组仅对审核通过组合放行；不满足条件组不给记录并检查明确的native原因，不能以仅跑通模型代替路由验证。
 
-安装包验收增加`--wheel /绝对路径/flagrt_framework_adapter-0.2.0-py3-none-any.whl`（仅dc-train）。此模式不挂载/code源码，只挂载wheel和配置；在每个新容器中离线、无依赖安装到/results/installed，不改镜像原有torch。随后检查实际导入位置、以torchrun --module调用包入口，继续使用相同的双rank路由/内核/训练判据。install.log、installed-import.log和summary里的wheel SHA256均需保留。source参数在此模式仅供宿主case与配置定位，不提供容器中的Python实现。
+所有stage要求`--wheel /绝对路径/flagrt_framework_adapter-0.2.0-py3-none-any.whl`。dc-train不挂载/code，只挂wheel和配置；其他stage挂载测试脚本但不包含包实现。每个新容器离线、无依赖安装到/results/installed，不改原有torch，并检查实际导入位置。训练以torchrun --module调用包入口。install.log、installed-import.log和summary中的wheel SHA256均保留；source只供case、配置和探针定位。
 
 10-18实际结果：qualification、确定性sigmoid、unary三个stage PASS；默认sigmoid与原生重复诊断FAIL并保留[判定截选](assets/evidence/20261018-summary.md)。qwen选项尚未通过本入口重跑，0.6B既有证据不重复计入此次demo验收。demo/env.baseline.yaml是已执行样本，实际运行时由runner重生成。

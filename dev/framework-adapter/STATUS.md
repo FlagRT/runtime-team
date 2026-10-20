@@ -7,6 +7,8 @@
 
 当前包实现唯一位置为[FlagRT/framework-adapter](https://github.com/FlagRT/framework-adapter)，锁定提交93daa5e，版本0.2.0；见package.lock.json。本目录不再维护src、pyproject或构建脚本，兼容入口只导入已安装包。保留集成测试、环境case、文档和历史探针。
 
+新仓已创建为私有仓，main及v0.2.0已推送；协调仓发布到cgu135/framework-adapter个人分支，不合并dev-1.0。历史章节“未提交/推送”只描述当时状态，不代表当前发布状态。新仓main后续仅追加跨仓文档链接修正，包锁定仍指向93daa5e。
+
 拆仓验证：新仓离线构建安装41项控制PASS；协调仓使用该安装包41项控制＋17项case控制PASS。新旧wheel的7个包文件逐字节一致，原NPU证据的精确wheel hash单独保留。[可在线查看的证据摘要](docs/evidence-package-20261020/README.md)。下文“未推送”等为先前阶段记录，最终发布提交以Git为准。
 
 ## 10-20最新：训练入口配置接入
