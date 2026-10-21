@@ -1,6 +1,6 @@
 # performance — 性能评测与诊断
 
-> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-10-20
+> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-10-21
 > 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
 > 职责：统一国产设备的算子、推理与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
 
@@ -24,6 +24,8 @@
 | Inference A100 参考（V2/V2.1） | `oracle` 精度参考包、`performance-baseline` 基线包生成与 `--oracle`/`--baseline` 只读导入比较、入口收敛与统一结果精简已实现 | Qwen3 BF16 单卡/TP=2：A100 模型级＋全部 28 层精度参考与同规模性能比较；CPU FP64 逐样本/层指标，倍率＝被测/A100；不设达标阈值 | 仅在 `FlagPerf_advance/dev-zkm`，未同步独立 FlagPerf |
 | Inference 推荐模型（V3/V3.1） | DeepFM、DLRM（共享 RecommendationAdapter）与 OneRec-8B 有状态生成契约已接入 | DeepFM TP hidden 差分 max_abs≈5.59e-8；DLRM 398 项回归；OneRec 12 条 token 轨迹一致、每份 profile 2,304 AllReduce＋32 AllGather 全归因 | 同上 |
 | Inference 监控旁路与成本优化（V4） | `TelemetryProvider`（A3/910C DCMI）默认秒级采集与 `monitor.html`；schema 4 比较核心包、`--dry-run`/`analyze`/`repack-reference` 离线恢复已实现 | Qwen3 TP=2 监控验收 895 次采集/29,117 条记录；小规模开销对照 +0.0658%（95% 上限 +0.69%）；OneRec 比较核心 18.78 GB→52.12 MB；2.62 GB trace 解析 165.70 s→111.91 s | 同上 |
+| inference_v2 / flagprof 观测基座（P0） | 与模型解耦的账本、官方 profiler 接入、原生归属、格式契约、`record`/`attach`/`inspect` 已形成；T9.4 生产入口收口通过限定范围 Gate | 417 核心用例、50,040 次乱序比较；A100/Ascend 真机窗口；T9.4 生产入口导入 100,000 个设备事件零丢弃 | 研发快照 `FlagPerf_advance/dev-zkm@a66356b5`；本次仅同步进展，不构成代码发布；P0 未退出，详见 [§11](#inference-v2-progress) |
+| inference_v2 写入容量（T9.5/T9.5b） | B2X 补充取证已封存，待设计者 Gate；候选未选定、Stage 1 未开始 | 主矩阵 15/15 零 drop；op/span 最高三次无损登记档 70k/s；满队列采样内存在预算内；严格 100ms 死亡检测有 102.312728ms 有效失败，store 243/244 | 隔离原型未替换生产 Writer；不是实际模型开销验收或 P0 放行，见 [§11](#inference-v2-progress) |
 | Base Benchmark（昆仑芯 P800） | 统一宿主入口与 P800 provider（有界路径/身份链/preflight/监控/设备租约）已形成；BF16 快路径修复已固化进 runtime 合同 | 15 case（10 可执行＋5 skip）114 run 测量与正确性通过；严格五次组 15 passed（D2H 计时 3 组为用户接受的时长例外，记录在案）；8 卡五次稳定测量 FP32 118.47 / FP16 259.17 TFLOPS、INT8 504.53 TOPS、带宽 2235.95 GB/s；BF16 修复后 223.88 TFLOPS（0.873×FP16） | 已发布至 `FlagPerf/zhiyu/kunlunxin-p800`＋冻结 tag `p800-base-frozen-20261008`，未进入 FlagRT `main`；镜像 validated:true/partial；最终验收报告（2026-10-08）为交付边界 |
 | Base Toolkit（昆仑芯 P800） | 12 case 独立 C++ native_bench（直调 XBLAS/XRE）＋完整证据链（preflight/监控/manifest/SHA256）已形成 | 2026-10-09 全量复测通过；口径固化 8192³/repeat 5/samples 50，D2D 双行分列（Scopy 2×≈2139 GB/s 与 XRE memcpy 1×≈11.4 GB/s）；与 Base 差距四类归因定案（口径/内核/厂商路径/共享卡），同机制处 1.01× 重合；XBLAS BF16≈FP32 为厂商库内核缺口（AUTOTUNE 实测无效） | 已交付（代码入口 `FlagPerf/base/toolkits/_common/kunlunxin/P800/`）；与 Base 的口径差异已在 BF16 修复说明中写明 |
 | Operation（昆仑芯 P800） | 按 Ascend 测试机制适配：统一执行器/路由/payload 审计/profiling 骨架/watchdog 与设备租约已形成 | 2026-10-20 复测：52 case/728 组合——420 not-applicable，308 适用中 275 partial、27 failed、6 blocked（失败原样保留交算子组）；CPU 回归通过；硬件计数器未实现可信采集（full 六组 not-supported） | 冻结源码指纹 `c95f1329…`；Operation `validated:false` 不变，完整能力对齐验收未完成；受限评估 PR 可如实提交审阅，不等于验收通过 |
@@ -34,6 +36,8 @@
 当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
 Operation V3 与 Inference V1–V1.6 已于 2026-09-27/29 选择性公开迁移（`FlagPerf/dev-zkm@a5f26fe9`），但 Inference V2–V4（A100 参考、推荐模型、监控旁路、成本优化）仍仅在 `FlagPerf_advance/dev-zkm@76f1f733`；任何一者都不能仅凭提交存在被视为已发布能力，也不能替代两段 Demo 的最终验收。
 Inference 的性能数字在采集期间存在同板卡外部负载，属于功能与测量链路验收，不是独占环境基线。
+上文 V1–V4 指旧 `FlagPerf_advance/inference/` 的功能版本；新增目录 `inference_v2/` 是另一条观测基座主线，
+不能与旧工具的“V2 A100 参考”混同。旧工具在替代条件满足前继续保留，研发快照与已公开迁移版本分别记录。
 P800（昆仑芯）与 PPU（平头哥）2026-10 起的进展同样遵循上述四种状态区分：P800 Base 冻结与 Toolkit 全量通过不外推为 Operation 完整验收（`validated:false`）；PPU Base 冻结不含 16-rank 与 FP8；P800 全程为共享环境，按设备租约用卡，结论以各冻结报告的边界为准。
 
 ## 2. Operation V2/V3 新进展
@@ -303,8 +307,9 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 
 - Oracle—Device 差分已落地第一段（A100 精度参考与同规模性能基线的只读比较），但**误差传播、敏感算子归因与唯一
   根因闭环未实现**；Inference 的层级差分对象仍以同设备 off/on 为主，A100 参与的比较不设阈值。
-- 已有 Operation 级设备时间线和计数器、Inference 的 HCCL 通信归因与 CUDA/Ascend 大 trace 分析（含独立时限与
-  恢复），不等于模型图节点、Backend、通信与运行时状态的完整跨层 Profiling。
+- 已有 Operation 级设备时间线和计数器、旧 Inference 的 HCCL 通信归因与 CUDA/Ascend 大 trace 分析（含独立时限与
+  恢复）；inference_v2 新增原生调用关系与统一账本，但项目 module/route 探针及正式分析器仍待后续阶段，均不等于
+  模型图节点、Backend、通信与运行时状态的完整跨层 Profiling（见 [§11](#inference-v2-progress)）。
 - 公共诊断、Inference 运行时与监控旁路均不包含任务自动重试、节点隔离、模型热加载、灰度切换或长期稳定性保障。
 - 单机 Device14（Operation）与单机 TP=2/固定输入（Inference）的结果不能外推到更多设备、多机或其他国产设备；
   Inference 性能证据也不构成两段 Demo 的 vLLM 服务口径验收。
@@ -457,6 +462,34 @@ python run.py repack-reference --source /absolute/old-package \
 推荐模型分别通过 `--config config/deepfm.yaml`、`config/dlrm.yaml`、`config/onerec.yaml` 进入，新增模型必须
 重新 preview。详细机制见[实现文档十一至十六](../../FlagPerf_advance/inference/implementation_docs/implementation_11.md)。
 
+<a id="inference-v2-usage"></a>
+
+### 7.4 inference_v2 / flagprof 入口
+
+在含研发快照的 `FlagPerf_advance/inference_v2/` 中运行；采集使用对应厂商已验证环境，`inspect` 只读已有账本，
+不启动模型或补跑采集。以下为命令模板，`target.py` 需要在步骤边界调用当前 attachment 的 `step()`：
+
+```bash
+cd FlagPerf_advance/inference_v2
+
+# 只读查询封存 run；--verify 同时核验派生产物与原件
+python3 -m flagprof inspect /absolute/existing-run --verify --json
+
+# wrapper 直接启动 Python 目标；窗口推进仍须由目标显式接入
+python3 -m flagprof record --store /absolute/new-store --vendor ascend \
+  --preset perf --active 5 --windows 2 --log-file /absolute/profiler.log \
+  -- python3 /absolute/target.py
+```
+
+目标可用 `flagprof.current_attachment()` 取得 record 注入的 handle；显式接入则先用
+`flagprof.store.create_run()` 初始化 run，再用 `flagprof.attach(run, vendor="ascend")`，在迭代边界
+`handle.step()`、结束时 `close()`。自动注入仅覆盖 wrapper 直接启动的 Python 目标，`torchrun`/vLLM workers
+及 shell 包装目标须显式接入；`modules` 仅请求官方 `with_stack`/`with_modules`，不安装项目 module/route 探针。
+`--log-file` 是明确的日志来源，缺失/不可读会独立记录，不能据此假定厂商内部丢失计数已可用。
+
+D33 已确认恢复“默认 attach 不改被测代码”的方向，但自动推进路线尚待任务单与实现；当前仍需上述显式步进。
+`inspect` 展示的多种状态按 [§11](#inference-v2-progress) 分别解释，CLI 可运行不表示分析器已交付。
+
 ## 8. 结果解释
 
 | 状态 | 含义 |
@@ -493,6 +526,9 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 7. 平头哥 PPU：Base（冻结 tag `ppu-base-frozen-20261015`）＋Toolkit（收口 `9ae9c49f`）均已推送
    `zhiyu/thead-ppu`，PR 创建待决策；U13 16-rank 独占窗口与 qualification.py `ranks<=8` 上限放开获批后补资格
    与审计。
+8. inference_v2：先提交 T9.5b 已封存证据给设计者 Gate，处理死亡检测时限、跨进程内存序及在途容量口径；再按裁决
+   修订契约与验收、获得授权后推进 Stage 1 生产化和 P0 退出复审。自动步进与导入规模成本另按各自任务推进，详见
+   [§11](#inference-v2-progress)。
 
 ## 10. 昆仑芯 P800 与平头哥 PPU 未解决问题（2026-10-20）
 
@@ -509,3 +545,114 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 | PPU | computation-BF16 厂商内核 | `acblasLtMatmul`（n≥1024 由 heuristic 选中 algo `0x1700000001`）每次调用本身成功（8192³ 135–136 TFLOPS、数值正确），但 teardown 阶段非确定出现 error 700 / 挂起 / 正常三种结局（probes/day10 定性，反汇编指向 `v.mma.f32.bf16`；n=256 选另一算法则干净），toolkit 该 case 两轮 10/10 失败；PPU torch.mm BF16 135.0 TFLOPS 正常 | 操作数序、循环窗口、toolkit runner 与判定均已排除；FP16/TF32/FP32/FP64 不受影响 | 定性证据已留存（probes/day10），移交算子团队的正式件尚未建立，待移交后复测 |
 | PPU | P2P 官方工具 stdout 畸形＋双向并发不稳定 | p2pBandwidthLatencyTest stdout 矩阵块畸形（两轮签名相同、方向不同），严格解析拒绝（P800 同构问题）；双向并发 P2P 间歇不稳定：单向全轮稳定（CV 0.15–0.62%），双向部分窗口 50–90 GB/s 跨度、组 CV 23.3%，88–90 GB/s 能力上限多轮复现 | 两轮失败签名一致排除偶发；toolkit 判定表达式与 P800 report.py 同构，排除本地解析缺陷 | 工具畸形与双向不稳定如实记录待厂商；88–90 GB/s 上限另行定位 |
 | PPU | 16-rank 资格与 11-rank 审计 | 16-rank 待独占窗口（R5 降级 8-rank 记录在案）；11-rank collect 94.56 GB/s 审计被 qualification.py `ranks<=8` 上限阻塞 | 8-rank 全套资格已通过（86/86） | 窗口与上限放开均待用户决策（U13） |
+
+<a id="inference-v2-progress"></a>
+
+## 11. inference_v2 / flagprof：与模型解耦的观测基座（2026-10-09 → 10-21）
+
+**当前交付是可采集、保存、回查的 P0 基座，以及 Writer 容量的隔离原型证据。T9.4 收口已通过限定范围 Gate；
+T9.5b 证据已提交、待设计者裁决，候选未选定，Stage 1 未开始，P0 未退出，L-字段保持 `1.0-rc`。**
+
+本节依据本地干净研发快照 `FlagPerf_advance/dev-zkm@a66356b57edc4757fbb160c07c646298a42f9c31`。
+它与旧 `inference/` 的精度/性能任务工具并行，先解决“观测证据来自哪里、怎样关联、缺失如何显式保留”，再支撑
+Profiling、差分与故障分析。跨厂商统一的是记录与读取契约；目前的 NVIDIA A100、Ascend 验证不代表五家设备均适配。
+本次 runtime-team 提交只记录这些进展，没有迁移或发布研发代码、原始 trace 与实验归档。
+
+### 11.1 从风险验证到生产入口收口
+
+| 阶段 | 解决的问题与机制 | 已有证据与边界 |
+| --- | --- | --- |
+| S1 Spike-C（10-10） | 验证 Python 调用经显式 ID、队列接续连到设备 kernel，避免按时间邻近猜归属 | 已测带标记范围内 46,145/46,145 个计算 kernel 关联；覆盖单卡、TP=2、任务队列与 A100 对照。不是全 run 覆盖率；TP2 为 24 次尝试、18 成功 |
+| T1–T6（10-11） | 消融暴露“规则先成功就吞掉冲突”；改为所有规则求值、候选取并集，冲突保留为歧义；补形状正控制与签名参考实现 | T4 的 417 用例、50,040 次乱序比较逐字节稳定；形状核验仍有同元素数异形、同签名互换盲区。旧 51.7% 是跨 run kernel 条数比，不是覆盖率 |
+| T7、T8–T8.3（10-11 → 10-16） | 打通写入/崩溃/读取/导入/证据回查；复用官方 profiler，建立原生关系、来源处置、硬件/采集/解析身份、taxonomy 与格式契约 | T8.3 首轮曾把 Kineto 设备轨认成主机轨；返工改为结构优先、unknown 与轨道角色同源，空轨和角色冲突显式报告。返工 Gate 通过，遗留判定与测试问题转 T9 |
+| T9.0–T9.3（10-17 → 10-18） | 收敛判定与格式一致性套件，补采集事实生产者，接通 Context/attach/registry/record/inspect 并完成真机窗口测量 | 正常窗口 A100 9,265/9,265、Ascend 10,120/10,120 个设备事件有原生归属；不表示已关联模型层。设计者指出验收脚本与生产入口存在差距，转 T9.4；旧吞吐失败保留 |
+| T9.4（10-20） | inspect 接通 run/capture/退出码/tail_unknown；record 接通显式日志来源；离线导入用初始屏障与分批 flush 避免默认队列满后丢连续尾部，补当前读取校验和冲突边界 | 用户授权独立 Gate 在 M1–M9/A1–A10 范围通过；生产入口 100,000 个设备事件零丢弃，固定镜像 store/correlate/conformance 为 186/79/21。只证明登记的有限输入规模；不包含 T9.5 容量批准或 P0 退出 |
+
+### 11.2 一条设备事件怎样形成可回查的结论
+
+下面是机制示意，不是一次运行的耗时图；从左到右跟踪同一份原件及其派生记录：
+
+```mermaid
+flowchart LR
+    A["目标推理进程"] --> B["官方 profiler：窗口采集"]
+    B --> C["原始 trace、日志与采集身份封存"]
+    C --> D["厂商导入：规范事件、原生关系、来源处置"]
+    D --> E["统一 store：分片、签名、原件引用、完成标记"]
+    F["显式 Context；自动 module/route 探针待 P1"] --> E
+    E --> G["StoreView / inspect：只读核验与状态展示"]
+```
+
+例如 A100 的 `aten::mean → cudaLaunchKernel → reduce_kernel`：官方 trace 的显式关系支持把 kernel
+归给发起它的 PyTorch 调用，账本保存原生关系与原件位置；读取时可按引用回查原始字节。没有项目探针建立的
+模型层/调用编号，就不制造项目 `corr`。因此“原生已归属”与“项目未关联”可以同时成立；规则之间的冲突也必须保留。
+时间可用于保守排除候选，不能作为选择某个归属的依据。
+
+| 需要分别阅读的状态 | 能说明什么 | 不能据此推出什么 |
+| --- | --- | --- |
+| run 状态、导入 `complete` 与读取完整性 | 进程/窗口如何结束，已有产物是否导入并通过相应校验 | 厂商采集阶段没有漏事件；SIGKILL 后已完成窗口与 run 的截断状态须一起看 |
+| 格式 `within / outside / indeterminate` | 当前事实是否满足这套解析契约；缺事实时保留无法判定 | `complete` 自动等于 `within`；不在已测支持范围的输入也已适配 |
+| 原生归属 `owned` | 设备工作由哪个原生主机调用发起 | 已定位到模型层、FlagGems 路由或唯一瓶颈 |
+| 项目关联 `linked` | 有显式证据接到项目调用/上下文 | 原生归属存在就自动 linked；演示脚本的手工聚合等于正式分析器 |
+| 时钟与 `capture_completeness` | 时钟是否可信，以及采集丢失是否确实检查 | `ts=null` 可以放上统一时间轴；`unchecked` 等于完整 |
+
+T9.3 正常窗口中两家都能展示原生归属，但项目模块/路由探针、正式算子聚合与诊断仍待 P1，统一主机/设备时钟
+仍属后续设备关联工作。官方 profiler 本身在已测同步 forward 场景使耗时约翻倍；包装层增量小，不能解读为常开
+采集没有代价。秒级导出/封存停顿、导入规模耗时和 Reader 全量缓存成本也需独立评估。使用入口见
+[§7.4](#inference-v2-usage)。
+
+### 11.3 T9.5：重新测量 Writer 容量，保留不成立的结论
+
+原 Writer 的后台线程与被测线程共享 GIL，被测线程持续占用解释器时，空闲阶段测出的排空速率不能代表并发能力。
+D31（10-19 已采纳）把 ③ 改为三项并报：**③a 热路径成本、③b 被测线程繁忙时无损落盘、③c 突发吸收能力**。
+500k accepted/s 退役为历史基准，T7/T9.3 在旧口径下的失败记录保留；新口径仍需实际验收。
+
+Stage 0 比较 A（同进程成块写）和 B（进程外消费）。首包登记 3,091 项、执行 3,076 项，15 个 kill 项因
+`baseline_mu_op_not_established` 未执行并列明原因；5% A/A 时间校准未成立，单窗时间比只作描述。
+A 的连续十窗仍丢弃，B 有 `ring_busy` admission drop、接受工作量不等、PSS 超预算及语义缺口，二者均未满足全部
+条件。随后设计者的 B2 系列 smoke 提供了重做线索，不能替代正式验收；后续 T9.5b 才对 B2X 做登记补充取证。
+
+**B2X 为什么有改善、为什么仍不能放行。** 生产端先攒批，经 mmap 环交给独立 Python 消费进程，校验、编码和写盘
+移出目标解释器；快速校验缓存检查计划，每条事件的值仍须检查。`emit=True` 仅表示接受，`flush` 必须等同一通道
+上的有序屏障取得实例、请求、计数完全匹配的确认。交接成本、完整落盘、资源预算与故障响应因此分别验收。
+
+G0 是休眠节拍对照，G1 在发射间隔持续执行纯 Python 工作，G2 再增加一个竞争线程；R 是相对空 sink 的工作
+进度比，R(3013,G1) 中的 3013 指每秒发射事件数。op/span 是两类被测事件，不能把这些合成画像等同于真实模型。
+
+| T9.5b 判断维度 | 已封存结果 | 适用范围与未通过项 |
+| --- | --- | --- |
+| 容量主矩阵 | P-perf G0/G1/G2 与连续十窗 G1/G2 各三次，共 15/15 零 drop、flush/逐条内容一致；十窗起点积压均为 0 | 仅在登记画像、时长与资源内成立，不是无限长稳保证 |
+| 持续速率 μ 与内存 | op/span 最高三次无损登记档均为 70,000/s，100,000/s 均丢弃；三次 Gate PSS 增量为 21,165,056 / 21,262,336 / 21,164,032 B，均低于固定预算 23,916,544 B | μ 是最高已测通过档；PSS 是保守采样口径，不是全状态硬上界 |
+| 热路径与进度 | 受控 emit 三次中位数 1,640 / 1,630 / 1,640 ns；R(3013,G1) 中位数 0.995237 | R 是纯 Python 合成工作进度比，不是模型加速比；未计消费进程全部 CPU 成本。G2 还须看全线程进度与实际供给，不能以丢弃或少做工作换“低扰动” |
+| 消费者死亡 | 5 个样本中 4 个在工具口径内 ≤100ms，另一个 **102.312728ms** | 严格 100ms 条件失败，保留有效反例；检测周期常量不等于实际响应上限 |
+| 生产者 kill 与差分 | 四档各 5 个有效 kill 样本，损失区间上端最大 47 / 53 / 59 / 355 条；六组字节差分一致，百万条校验差分覆盖 13 类合法记录 | 保留 active 与 `tail_unknown`，样本上端不升级为最坏损失保证；原无效 checkpoint 及一次登记补测均保留 |
+| aarch64 压力 | 同一 worker 完整采集 600.000008s，46,212,288 条 accepted 全部比对一致，CRC/帧号可见性重试为 0 | 同时有 13,787,711 条过载 admission drop，不是零丢长稳或内存序证明；正常 close 后有界接管验证，原 worker 最后的 -9 不写成正常退出 |
+| 最终检查与完整性 | store **243/244**，唯一失败为严格死亡时限；correlate 79/79、conformance 21/21；405 个顶层 case 独立复算零算术/索引错误，409 份归档 SHA 一致 | 包含 404 基础 case 与 1 次无效补测，另有 5 次 matched empty；取证完整不等于候选全部通过或 Gate 批准 |
+
+实验使用 `flagperf/inference-ascend:20260922`（本机 ID `b4a5b2c8…`）、Python 3.11.15、4 CPU/16 GiB、
+固定 CPU8/10/12/14、mem0、ext4、共享宿主；原型测量快照为 `163cf5a9`，与本节的交付快照分开登记。
+完整画像定义、供给、单窗分布与失败以 protocol、observations 和复算原件为准，不把观察扩大为真实模型结论。
+
+### 11.4 当前 Gate、下一步与复核入口
+
+T9.5b 仍须由设计者裁决三项关键问题：严格死亡时限反例；纯 Python SPSC 缺少跨进程 acquire/release 屏障的
+残余风险；在途容量口径——过载扫描实际观测 `pending=enqueued-written` 达 66,046，大于登记 C=65,536。
+admission 计数与“全部尚未写出事件”的上限不能混用，满队列停放时的采样内存也不能证明活跃消费下的联合硬边界。
+
+下一步先依据这份证据修订实现/契约和验收，再按授权讨论 Stage 1 的代理登记、唯一性监督、启动回退及
+record/attachment/inspect 接入。T9.5b 没有替换生产 Writer，也没有做真实模型或设备性能验收。只有相应任务通过后，
+才进入 P0 退出复审；P1 项目探针与分析器、P2 设备关联，以及后续差分/故障恢复/热加载均不能提前记为完成。
+D33 自动步进与导入规模成本另按各自任务推进，不因容量原型取证完成自动获得放行。
+
+以下路径均相对研发快照中的 `FlagPerf_advance/inference_v2/`，需要本地研发 checkout；不是本协调仓内已发布的文件。
+跨机器复核还须携带 Git 忽略目录中的原始归档，仓内数值和 SHA 不能替代缺失原件。
+
+| 核验对象 | 快照内入口 |
+| --- | --- |
+| 阶段设计与历史范围 | `docs/PLAN/00-requirements.md`、`02-architecture.md`、`DECISIONS.md`（后两者同在 PLAN）；`docs/Report_for_human_reading/progress/` 的 S1、T1–T7、T8–T8.3、T9 记录 |
+| 当前入口与读取语义 | `flagprof/runtime.py`、`record.py`、`cli.py`（后两者同在 flagprof）；`docs/validation/t9.4/independent-final-gate.json` |
+| Stage 0 历史首包与设计者复审 | `docs/validation/t9.5/stage0/gate-package/`；`docs/reviews/claude_reviews/2026-10-21-t9.5-stage0-gate-review.md` |
+| T9.5b 最终交付及判定 | `docs/validation/t9.5/stage0b/gate-report.md`、同目录 `mechanism.md`、`status.json`、`protocol.json`、`observations.md`、`recomputed.json`、`coverage.md` |
+| T9.5b 原件与失败处置 | 同目录 `archive-map.json`、`raw-file-index.json`、`validation/kill-retry-preregistration.md`、`validation/a5-postcapture-interception.json`；原始归档在 `spikes/data/t9.5/stage0b-formal-01/`（Git 忽略） |
+
+**本次文档核对范围**：已对照上述封存结论、状态 JSON 与当前入口核对数字和权限边界；没有重跑设备实验、压力采集
+或完整研发 CI。历史通过与失败按各轮原环境引用，不能当作本次重新测得的性能或验收结果。
