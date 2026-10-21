@@ -209,7 +209,8 @@ class BatchCoordinator:
             self._groups[key] = group
         group.push(_Entry(request, policy, bucket))
         self._queued_ids.add(rid)
-        self._seen_ids.add(rid)
+        if self._strict_duplicate_detection:
+            self._seen_ids.add(rid)
 
     def poll_ready(self, now_mono_ns: int) -> list[BatchPlan]:
         """检查所有分组，返回当前应派发的批次（并从候选队列移除）。

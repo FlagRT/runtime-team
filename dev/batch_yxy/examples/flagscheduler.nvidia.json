@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "max_pending": 128,
+  "result_history": 1024,
+  "bindings": [
+    {
+      "id": "qwen-embed",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "model_version": "pin-local-weight-revision-before-production",
+      "backend": "vllm-embed",
+      "options": {
+        "model_path": "/replace/with/local/Qwen3-Embedding-0.6B",
+        "llm_options": {
+          "runner": "pooling",
+          "max_model_len": 2048,
+          "gpu_memory_utilization": 0.5
+        }
+      },
+      "policy": {
+        "policy_version": "nvidia-initial-budget-unverified-v1",
+        "bucket_upper_bounds": [64, 128, 256, 512, 1024, 2048],
+        "max_batch_size": 8,
+        "max_total_tokens": 8192,
+        "max_wait_ms": 5.0
+      }
+    }
+  ]
+}

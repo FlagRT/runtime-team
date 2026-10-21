@@ -13,87 +13,52 @@
 
 接入层级说明：本引擎的组批是外层请求分组（每个批次计划对应一次框架调用）；
 推理引擎内部（vLLM V1 连续组批/抢占）的实际执行批次不由本引擎控制或宣称。
+
+Public exports are lazy: discovery/CLI do not import inference dependencies.
 """
+from importlib import import_module
 
-from .core import (
-    PATH_LEGACY,
-    PATH_SCHEDULED,
-    EngineRunReport,
-    QueueLaneStatus,
-    RequestQueue,
-    ResultStore,
-    SchedRequest,
-    SchedulerEngine,
-    clamp_policy,
-)
-from .devices import (
-    ALL_DEVICES,
-    DeviceProfile,
-    all_devices,
-    get_device,
-)
-from .errors import (
-    CostExtractorUnavailableError,
-    DeviceBudgetConflictError,
-    DeviceNotVerifiedError,
-    DuplicateResultError,
-    EngineStateError,
-    FrameworkExecutionError,
-    MissingResultError,
-    ModelNotVerifiedError,
-    SchedEngineError,
-    UnexpectedResultError,
-)
-from .frameworks import (
-    DECLARED_FRAMEWORKS,
-    VERIFIED_FRAMEWORKS,
-    BatchHandle,
-    FrameworkAdapter,
-    VllmEmbedFrameworkAdapter,
-)
-from .models import (
-    ALL_PROFILES,
-    ModelProfile,
-    all_profiles,
-    get_profile,
-)
+_EXPORTS = {
+    'PATH_LEGACY': ('.core', 'PATH_LEGACY'),
+    'PATH_SCHEDULED': ('.core', 'PATH_SCHEDULED'),
+    'EngineRunReport': ('.core', 'EngineRunReport'),
+    'QueueLaneStatus': ('.core', 'QueueLaneStatus'),
+    'RequestQueue': ('.core', 'RequestQueue'),
+    'ResultStore': ('.core', 'ResultStore'),
+    'SchedRequest': ('.core', 'SchedRequest'),
+    'SchedulerEngine': ('.core', 'SchedulerEngine'),
+    'clamp_policy': ('.core', 'clamp_policy'),
+    'ALL_DEVICES': ('.devices', 'ALL_DEVICES'),
+    'DeviceProfile': ('.devices', 'DeviceProfile'),
+    'all_devices': ('.devices', 'all_devices'),
+    'get_device': ('.devices', 'get_device'),
+    'CostExtractorUnavailableError': ('.errors', 'CostExtractorUnavailableError'),
+    'DeviceBudgetConflictError': ('.errors', 'DeviceBudgetConflictError'),
+    'DeviceNotVerifiedError': ('.errors', 'DeviceNotVerifiedError'),
+    'DuplicateResultError': ('.errors', 'DuplicateResultError'),
+    'EngineStateError': ('.errors', 'EngineStateError'),
+    'FrameworkExecutionError': ('.errors', 'FrameworkExecutionError'),
+    'MissingResultError': ('.errors', 'MissingResultError'),
+    'ModelNotVerifiedError': ('.errors', 'ModelNotVerifiedError'),
+    'SchedEngineError': ('.errors', 'SchedEngineError'),
+    'UnexpectedResultError': ('.errors', 'UnexpectedResultError'),
+    'DECLARED_FRAMEWORKS': ('.frameworks', 'DECLARED_FRAMEWORKS'),
+    'VERIFIED_FRAMEWORKS': ('.frameworks', 'VERIFIED_FRAMEWORKS'),
+    'BatchHandle': ('.frameworks', 'BatchHandle'),
+    'FrameworkAdapter': ('.frameworks', 'FrameworkAdapter'),
+    'VllmEmbedFrameworkAdapter': ('.frameworks', 'VllmEmbedFrameworkAdapter'),
+    'ALL_PROFILES': ('.models', 'ALL_PROFILES'),
+    'ModelProfile': ('.models', 'ModelProfile'),
+    'all_profiles': ('.models', 'all_profiles'),
+    'get_profile': ('.models', 'get_profile'),
+}
 
-__all__ = [
-    # core
-    "SchedulerEngine",
-    "EngineRunReport",
-    "SchedRequest",
-    "RequestQueue",
-    "QueueLaneStatus",
-    "ResultStore",
-    "clamp_policy",
-    "PATH_LEGACY",
-    "PATH_SCHEDULED",
-    # models
-    "ModelProfile",
-    "ALL_PROFILES",
-    "all_profiles",
-    "get_profile",
-    # frameworks
-    "FrameworkAdapter",
-    "BatchHandle",
-    "VllmEmbedFrameworkAdapter",
-    "VERIFIED_FRAMEWORKS",
-    "DECLARED_FRAMEWORKS",
-    # devices
-    "DeviceProfile",
-    "ALL_DEVICES",
-    "all_devices",
-    "get_device",
-    # errors
-    "SchedEngineError",
-    "ModelNotVerifiedError",
-    "CostExtractorUnavailableError",
-    "DeviceNotVerifiedError",
-    "DeviceBudgetConflictError",
-    "DuplicateResultError",
-    "UnexpectedResultError",
-    "MissingResultError",
-    "FrameworkExecutionError",
-    "EngineStateError",
-]
+__all__ = list(_EXPORTS)
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(name)
+    module, symbol = _EXPORTS[name]
+    value = getattr(import_module(module, __name__), symbol)
+    globals()[name] = value
+    return value

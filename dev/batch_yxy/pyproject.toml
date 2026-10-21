@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flagscheduler"
+version = "0.1.0"
+description = "Node-local inference scheduler and framework control CLI"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+legacy = ["numpy>=1.24"]
+test = ["pytest>=8", "numpy>=1.24"]
+
+[project.scripts]
+flagscheduler = "flagscheduler.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["flagscheduler*", "sched_engine*", "dynamic_batching*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

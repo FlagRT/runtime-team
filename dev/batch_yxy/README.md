@@ -1,4 +1,35 @@
-# Batch（batch_yxy）项目
+# FlagScheduler（开发目录：batch_yxy）
+
+节点级统一推理调度引擎与 CLI。当前实现框架/Conda 环境发现、vLLM scheduler 定位与版本锁定启动计划、常驻请求队列、本机 API、可插拔执行后端及十五类模型契约。优先 NVIDIA + vLLM，后续通过同一应用 API 接入 TUI。
+
+```bash
+cd runtime-team/dev/batch_yxy  # 从工作区根目录进入
+python -B -m flagscheduler --help
+python -B -m flagscheduler discover
+python -B -m flagscheduler scheduler inspect --python /path/to/conda/envs/vllm/bin/python
+python -B -m flagscheduler scheduler list --python /path/to/conda/envs/vllm/bin/python
+python -B -m flagscheduler run --config examples/flagscheduler.mock.json --input examples/flagscheduler.requests.jsonl
+python -B -m flagscheduler serve --config examples/flagscheduler.mock.json
+# 另一终端
+python -B -m flagscheduler status
+python -B -m flagscheduler submit --request examples/flagscheduler.request.json
+```
+
+源码运行不需要安装；`python -B -m flagscheduler` 与安装后的 `flagscheduler` 使用同一入口。Mock 与控制面只使用 Python 标准库，真实 vLLM 执行需要在对应环境运行。
+
+`scheduler list` 显示脚本文件和 `(Default)` / `(Currently)`；初始原生脚本同时具有两个标记。用 `scheduler select flagscheduler --python /path/to/python` 选择项目脚本，用 `scheduler select default --python /path/to/python` 选回原生脚本。原文件始终保留，并在本目录 `.state/schedulers/originals/` 留存只读校验快照。选择用于后续新启动，不修改已经运行的进程。
+
+- [使用指南](docs/flagscheduler_使用指南.md)：命令、启动与回退、NVIDIA 验收。
+- [架构与开发路线](docs/flagscheduler_架构与开发路线.md)：边界、生命周期、模型矩阵、维护规则。
+- [适配器开发](docs/flagscheduler_适配器开发.md)：Backend / Planner 插件及 TUI 接口。
+- [验证记录](docs/flagscheduler_验证记录.md)：171 项测试、wheel 构建、Default/Currently 选择及真实 vLLM 插件接口检查；尚未进行 GPU 模型验收。
+- 当前节点只读检查：Conda `vllm` 为 **0.21.0**，具有 V1 同步/异步 scheduler；NVIDIA 设备清单为 4 张 RTX A6000。设备清单不代表空闲或已完成模型验收。
+- 十五类模型均有契约与 mock 链路，真实执行目前提供 `vllm-embed` 接入代码。其他框架的发现不代表已实现执行适配器。内部 scheduler 插件目前继承原生行为，用作后续算法开发入口。
+- 全部文件修改必须限定在 `batch_yxy/` 内。外部环境与框架保持只读，部署/安装命令仅供在明确指定的目标环境中使用。
+
+下列内容保留原动态组批与昇腾分支的历史看板；其测试数、环境和验收状态不代表 FlagScheduler 新节点运行时的设备验证结果。
+
+## 原 Batch 项目看板
 
 > **状态：🔄 进行中** ｜ 本文档 = 任务看板入口，供运行时组全员维护
 > 对齐起点速查：vLLM 0.20.2（vllm-ascend v0.20.2rc1-a3 镜像）· V1 引擎 · 910C 单卡

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "max_pending": 128,
+  "result_history": 1024,
+  "planner": "batch-coordinator",
+  "bindings": [
+    {
+      "id": "qwen-embed",
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "backend": "mock",
+      "policy": {
+        "policy_version": "demo-v1",
+        "bucket_upper_bounds": [32, 128, 512],
+        "max_batch_size": 8,
+        "max_total_tokens": 4096,
+        "max_wait_ms": 5.0
+      }
+    },
+    {
+      "id": "din",
+      "model": "DIN",
+      "backend": "mock",
+      "policy": {
+        "policy_version": "demo-v1",
+        "bucket_upper_bounds": [16, 64, 256],
+        "max_batch_size": 8,
+        "max_total_tokens": 2048,
+        "max_wait_ms": 5.0
+      }
+    }
+  ]
+}

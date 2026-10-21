@@ -9,3 +9,14 @@ __pycache__/
 # 镜像内 /vllm-workspace 的源码副本（editable 安装真身，宿主持久化用；改动请同步到自己的 fork）
 /vllm/
 /vllm-ascend/
+
+# Python source package, not model weights (the repository ignores models/).
+!sched_engine/models/
+!sched_engine/models/*.py
+*.egg-info/
+.state/
+.test-deps/
+.tmp/
+artifacts/
+build/
+dist/
