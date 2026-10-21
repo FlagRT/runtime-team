@@ -17,17 +17,27 @@ def summarize(root, steps):
         checks[f'rank{r}_closed'] = d['teardown'] == 'CLOSED' and 'error' not in d
         checks[f'rank{r}_updated'] = d.get('changed_parameter_tensors',0) > 0
         c = d.get('communication', {})
-        checks[f'rank{r}_calls'] = c.get('gradient_allreduce_calls') == (1 if d.get('comm_mode','manual') == 'fused' else 399)*steps
+        mode = d.get('comm_mode', 'manual')
+        cap = d.get('bucket_bytes')
+        valid_cap = isinstance(cap, int) and not isinstance(cap, bool) and 2 <= cap <= 256*1024**2
+        expected = {'manual': 399, 'fused': 1}.get(mode)
+        if mode == 'bucketed' and valid_cap:
+            capacity = cap // 2
+            expected = (8391013376 + capacity - 1) // capacity
+        checks[f'rank{r}_calls'] = expected is not None and c.get('gradient_allreduce_calls') == expected*steps
         checks[f'rank{r}_payload'] = c.get('gradient_payload_bytes') == 8391013376*2*steps
     for key in ('backend','revision','dtype','optimizer','lr','seq_len','global_batch','local_batch'):
         checks[f'matching_{key}'] = ranks[0][key] == ranks[1][key]
     checks['matching_mode'] = ranks[0].get('comm_mode','manual') == ranks[1].get('comm_mode','manual')
+    checks['matching_bucket'] = ranks[0].get('bucket_bytes') == ranks[1].get('bucket_bytes')
     for key in ('initial_sha256','final_sha256'):
         a,b = [d.get(key,{}) for d in ranks]
         checks[f'matching_{key}'] = len(a) == 399 and a == b
     return {'verdict': 'PASS' if all(checks.values()) else 'FAIL',
             'scope': 'synthetic-token full-parameter SGD smoke; not quality/convergence or default-backend acceptance',
             'backend': ranks[0]['backend'], 'steps_per_rank': steps, 'checks': checks,
+            'comm_mode': ranks[0].get('comm_mode', 'manual'),
+            'bucket_bytes': ranks[0].get('bucket_bytes'),
             'losses_per_rank': [[s['loss'] for s in d['steps']] for d in ranks]}
 
 

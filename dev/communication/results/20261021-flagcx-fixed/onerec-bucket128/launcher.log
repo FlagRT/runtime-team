@@ -1,0 +1,14 @@
+Source: npu1-11:/home/lianzhongyou/lianzhongyou_data/runtime-tests/20261021-buckets/evidence/onerec-bucket128/launcher.log
+Scope: complete retained output excluding progress-bar redraw noise; original log remains on the execution host.
+---
+can not use command: npu-smi info
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[W1021 10:33:58.438196196 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+can not use command: npu-smi info
+can not use command: npu-smi info
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 6792.82it/s]
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 5344.51it/s]
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)

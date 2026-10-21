@@ -99,7 +99,7 @@ def observed_mean_hook(group, bucket):
     return future
 
 
-def manual_mean_gradients(model, group, fused=False):
+def manual_mean_gradients(model, group, fused=False, bucket_bytes=None):
     """Dense, same-dtype DeepFM gradients only; no DDP, list gather or overlap.
 
     All ranks must execute the same model/parameter order. Not a general unused
@@ -111,6 +111,15 @@ def manual_mean_gradients(model, group, fused=False):
         raise ValueError('Manual reducer requires all dense gradients on all ranks')
     if len({(g.dtype, g.device) for g in gradients}) != 1:
         raise ValueError('Manual reducer requires one dtype/device')
+    if bucket_bytes is not None:
+        if fused:
+            raise ValueError('Choose full fusion or bounded buckets, not both')
+        if (isinstance(bucket_bytes, bool) or not isinstance(bucket_bytes, int)
+                or bucket_bytes < gradients[0].element_size()):
+            raise ValueError('Bucket must hold at least one element')
+        if any(not g.is_contiguous() for g in gradients):
+            raise ValueError('Bounded reducer requires contiguous gradients')
+        return _bounded_mean_gradients(gradients, group, bucket_bytes)
     start = time.perf_counter()
     tensors = [torch.cat([g.reshape(-1) for g in gradients])] if fused else gradients
     for tensor in tensors:
@@ -125,6 +134,55 @@ def manual_mean_gradients(model, group, fused=False):
             offset += gradient.numel()
     try:
         group.synchronize()
+    except BaseException:
+        group.state = 'FAILED'
+        raise
+    group.seconds += time.perf_counter() - start
+
+
+def _bounded_mean_gradients(gradients, group, bucket_bytes):
+    """Stream through one reusable buffer, splitting even oversized parameters.
+
+    Metadata holds views only. Completion before buffer reuse is mandatory;
+    no communication/computation overlap is claimed. Cap excludes model grads.
+    """
+    start = time.perf_counter()
+    capacity = min(bucket_bytes // gradients[0].element_size(),
+                   sum(g.numel() for g in gradients))
+    if capacity == 0:
+        raise ValueError('Empty gradients')
+    buffer = torch.empty(capacity, dtype=gradients[0].dtype, device=gradients[0].device)
+    pieces, used = [], 0
+
+    def flush(count):
+        tensor = buffer[:count]
+        group.collective(dist.all_reduce, tensor, op=dist.ReduceOp.SUM)
+        tensor.div_(group.world_size)
+        offset = 0
+        for piece in pieces:
+            piece.copy_(tensor[offset:offset + piece.numel()])
+            offset += piece.numel()
+        # Wait for unpack before the same buffer is overwritten.
+        group.synchronize()
+        group.calls += 1
+        group.payload_bytes += count * tensor.element_size()
+        pieces.clear()
+
+    try:
+        for gradient in gradients:
+            flat, offset = gradient.view(-1), 0
+            while offset < flat.numel():
+                count = min(capacity - used, flat.numel() - offset)
+                piece = flat[offset:offset + count]
+                buffer[used:used + count].copy_(piece)
+                pieces.append(piece)
+                used += count
+                offset += count
+                if used == capacity:
+                    flush(used)
+                    used = 0
+        if used:
+            flush(used)
     except BaseException:
         group.state = 'FAILED'
         raise
