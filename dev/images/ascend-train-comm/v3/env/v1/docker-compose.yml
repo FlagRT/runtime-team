@@ -1,0 +1,110 @@
+# ascend-train-comm v3 的现行推荐运行环境，第 1 版（env/v1；规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【完备性】env.baseline.yaml 待在有 docker 的窗口内由 baseline.py export 生成。缺该文件时
+# 本目录尚未完备，不得对外作为发布物引用；up.sh --strict 也会因缺基线拒绝启动。
+#
+# 【定位】现行推荐 = 本目录 env/v1；同级 ../../demo/ = 冻结的第 0 版，只作该镜像版本验收时
+# 所用配置的历史记录，内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明为准，
+# 不以目录名判断。本目录发布后不再修改，后续变更只新增下一版目录。
+#
+# 【与第 0 版的差异】以 pip-editable 挂载覆盖镜像内固化的 FlagCX：容器启动时把宿主仓根
+# FlagCX/ 以可编辑方式装入，覆盖镜像内那份。宿主 FlagCX 处于含 c10d 同步修复的提交时，
+# PyTorch 原生 DistributedDataParallel 可用；镜像内固化的 FlagCX 仍为修复前形态（已知限制
+# A-2，清单见现行锁定声明所指的发版说明）。
+#
+# 【启动前须确认宿主 FlagCX 在哪个提交】
+#   git -C FlagCX rev-parse HEAD
+# 须为现行锁定声明登记的修复提交（FlagCX 仓 https://github.com/FlagRT/FlagCX.git）；
+# 停在镜像固化提交时，挂载覆盖不带来修复，A-2 依然命中，不得按原生 DDP 可用使用。
+# 实际挂载的提交以 env.baseline.yaml 的 mounted_repos.FlagCX.commit 为准，up.sh --strict
+# 核对宿主 HEAD 与其一致。
+#
+# 【设备纪律】一机同时只一个带卡容器（昇腾驱动对带卡容器独占，第二个带卡容器一律 EBUSY；
+# 映射全 16 张会报 dcmi device is used）。本文件只映射 TRAIN_DIE_A / TRAIN_DIE_B 两张 die，
+# 缺省不给值即拒绝启动；容器内多项训练侧验证以 ASCEND_RT_VISIBLE_DEVICES 分区。
+# 编号每次重新检查：须无计算占用、无其他容器映射。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 确认本机无其他带卡容器
+#   git -C FlagCX rev-parse HEAD    # 确认宿主 FlagCX 提交（见上）
+#   mkdir -p evidence
+#   # 仅在有 docker 的发布窗口内、且尚无 env.baseline.yaml 时执行一次：
+#   #   python3 dev/lib/baseline.py export dev/images/ascend-train-comm/v3/env/v1 --require-clean
+#   TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-train-comm/v3/env/v1 --strict
+#   docker logs -f flagrt-train-v3-env-v1-910c    # 进入 sleep infinity 前为覆盖安装阶段
+#   docker exec -it flagrt-train-v3-env-v1-910c bash
+# 覆盖安装日志在仓根 evidence/flagcx-build.log；容器进入 sleep infinity 才表示安装完成。
+# 安装后须确认实际加载的是 /workspace/FlagCX/plugin/torch/flagcx，而非镜像内旧副本。
+#
+# 收尾（确认自己的进程已结束，不操作其他容器）：
+#   TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> docker compose \
+#     -f dev/images/ascend-train-comm/v3/env/v1/docker-compose.yml down
+# 本容器只跑训练腿；推理腿见现行锁定声明的 lock.infer。
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-train-v3-env-v1
+
+# 【导出基线的额外前置】生成 env.baseline.yaml 时也必须给 TRAIN_DIE_A / TRAIN_DIE_B
+# 赋值：baseline.py 为解析绑定挂载会调 docker compose config，而本文件的 die 变量用
+# ${VAR:?} 形态（缺省即拒绝启动），插值失败则导出报错。这两个值只参与解析、不进基线
+# （已实测核对）。推理腿 env/v1 的 mounted_repos 为空、不触发该调用，故无此前置。
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # FlagCX 以可编辑方式挂载覆盖镜像内固化副本；其余 repo 仍为镜像固化资产
+  # （见镜像基线 baked_repos），仓根挂到 /workspace 只使其代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos:
+    FlagCX: {activation: pip-editable}
+
+services:
+  runtime-dev:
+    container_name: flagrt-train-v3-env-v1-910c
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # 只映射选定的两张 die；缺省即拒绝启动。需要更多卡时先确认整机无其他带卡容器再增行。
+    devices:
+      - /dev/davinci${TRAIN_DIE_A:?set_unused_die}:/dev/davinci${TRAIN_DIE_A}
+      - /dev/davinci${TRAIN_DIE_B:?set_unused_die}:/dev/davinci${TRAIN_DIE_B}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      # 仓根挂载同时提供宿主 FlagCX/ → /workspace/FlagCX（pip-editable 覆盖源）。
+      - ${WORKSPACE_ROOT}:/workspace
+      # 镜像内不含驱动用户态库，须挂宿主驱动目录。
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 在多机是软链，容器内无法解析，启动时须显式给值。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    environment:
+      HCCL_WHITELIST_DISABLE: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_OPTIONAL_LOCKS: '0'
+      MAX_JOBS: '4'
+    working_dir: /workspace
+    # 启动即以 pip-editable 安装宿主 FlagCX，覆盖镜像内固化副本；安装失败则容器退出。
+    command: [bash, -c, 'mkdir -p /workspace/evidence && USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX > /workspace/evidence/flagcx-build.log 2>&1 && exec sleep infinity']
+    restart: 'no'
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-10-22  新建 env/v1（ADR-0008）。FlagCX 修复以挂载覆盖形态交付而不重编镜像：设备方向
+#             2026-10-16 A/B 对照（挂载覆盖臂 overall PASS，含原生 DDP 四项；镜像固化臂 FAIL）
+#             与通信方向 2026-10-21 独立复验均在挂载覆盖形态下完成，发布形态 = 验收形态；
+#             重编镜像是未验证的新形态，须重跑完整验收。装配以已实测的
+#             dev/communication/env/910c-bucketed 为样板（mounted_repos、die 变量、只读驱动挂载、
+#             command 内 pip install -e），网络/IPC/SHM 沿用第 0 版 demo。设备由第 0 版的全 16 张
+#             收为两张 die 变量。宿主 FlagCX 当日仍停在 4e0e0cb，拉到修复提交 62fe615 不属本批；
+#             docker 服务 inactive，env.baseline.yaml 未生成，本版本尚未完备。
+#             本版本的完整装配（host 网络/IPC + 只读驱动 + 两 die）未作为整体在真机起过容器。

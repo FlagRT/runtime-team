@@ -1,0 +1,95 @@
+# 华为昇腾官方 vllm-ascend v1 的现行推荐运行环境，第 1 版（env/v1；规范见 dev/ENV-SPEC.md §3.2；
+# 登记式基线见 ADR-0007）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【完备性】env.baseline.yaml 待在有 docker 的窗口内由 baseline.py export 生成。缺该文件时
+# 本目录尚未完备，不得对外作为发布物引用；up.sh --strict 也会因缺基线拒绝启动。
+#
+# 【定位】现行推荐 = 本目录 env/v1；同级 ../../demo/ = 冻结的第 0 版，只作该镜像版本验收时
+# 所用配置的历史记录，内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明为准，
+# 不以目录名判断。本目录发布后不再修改，后续变更只新增下一版目录。
+#
+# 【分工】env 只管容器生命周期（起容器 / 停容器 / 环境核对），服务启动统一走组内启动标准
+# serve_standard.sh（dev/device-context/prototype/scripts/serve_standard.sh，唯一入口）——
+# 两者是两层，不冲突、不重复：env 起「毛坯房」，serve 在里面「点火」。
+#
+# 【驱动】镜像内含用户态 toolkit（CANN/ATB），不含驱动用户态库，故须挂宿主
+# /usr/local/Ascend/driver。挂载模式为 ro（与同机同驱动版本下已实测的
+# dev/communication/env/910c-bucketed 一致）。若设备初始化报
+# DrvMngGetConsoleLogLevel failed ret=4 或 device_count 为 0，改 rw 复核——这是本机历史上
+# 实测过的另一种表现，尚未在本镜像上验证过。
+#
+# 【设备纪律】一机同时只一个带卡容器（昇腾驱动对带卡容器独占，第二个带卡容器一律 EBUSY；
+# 映射全 16 张会报 dcmi device is used）。本文件只映射 INFER_DIE 一张 die，缺省不给值即拒绝
+# 启动；编号每次重新检查：须无计算占用、无其他容器映射。容器内该 die 的设备序号为 0。
+#
+# 【服务硬纪律】起服务前 unset VLLM_PLUGINS（vllm-plugin-FL 无 ascend 后端），由
+# serve_standard.sh ascend 分支执行，容器层不设 VLLM_PLUGINS 相关环境变量。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 确认本机无其他带卡容器
+#   # 仅在有 docker 的发布窗口内、且尚无 env.baseline.yaml 时执行一次：
+#   #   python3 dev/lib/baseline.py export dev/images/ascend-infer-vllm/v1/env/v1
+#   INFER_DIE=<die> FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-infer-vllm/v1/env/v1 --strict
+#   docker exec -it flagrt-infer-v1-env-v1-910c bash   # 进入后：
+#   DC_BACKEND=ascend MODEL=<模型路径> DEV=0 STOP_AFTER=1 \
+#     bash /workspace/dev/device-context/prototype/scripts/serve_standard.sh
+#
+# 收尾（确认自己的进程已结束，不操作其他容器）：
+#   INFER_DIE=<die> docker compose \
+#     -f dev/images/ascend-infer-vllm/v1/env/v1/docker-compose.yml down
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-infer-v1-env-v1
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # 官方镜像全部资产为固化（厂商自带，无本组配方层），本环境不挂载任何 repo：
+  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-infer:
+    container_name: flagrt-infer-v1-env-v1-910c
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # 只映射选定的单张 die；缺省即拒绝启动。
+    devices:
+      - /dev/davinci${INFER_DIE:?set_unused_die}:/dev/davinci${INFER_DIE}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # 宿主驱动目录（镜像内不含驱动用户态库）；初始化异常时改 rw 复核，见文件头【驱动】。
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 在多机是软链，容器内无法解析，启动时须显式给值。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    # 硬纪律（unset VLLM_PLUGINS）由 serve_standard.sh 执行，不在容器层设。
+    environment:
+      - DO_NOT_TRACK=1
+    restart: "no"
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-10-22  新建 env/v1（ADR-0008），以冻结的第 0 版 demo 为起点修正三处：
+#             ① 补宿主驱动挂载：demo 注释称镜像自带整套昇腾运行时、无需挂驱动，实为错误——
+#                镜像不含驱动用户态库，照 demo 起容器两机实测 aclInit 507008；历史上真正跑通
+#                该镜像的容器（含 rag-ljy-vllm-910c）均自带驱动挂载。ro 取自同机同驱动版本下
+#                已实测的 910c-bucketed，本镜像上 ro 与 rw 均未单独验证。
+#             ② 设备由全 16 张收为单 die 变量：全 16 张与「一机只一个带卡容器、以
+#                ASCEND_RT_VISIBLE_DEVICES 分区」的组级裁定相悖，且实测 dcmi device is used。
+#             ③ 删除上述错误注释，改为正面说明驱动挂载要求。
+#             docker 服务 inactive，env.baseline.yaml 未生成、本版本尚未完备；
+#             本版本装配未在真机起过容器。

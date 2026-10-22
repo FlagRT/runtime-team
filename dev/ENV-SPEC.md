@@ -24,7 +24,10 @@
 | 运行环境目录 | 一个目录 = 一套完备的运行环境，基于一个指定镜像创建一个运行实例 | 实例用的是哪个镜像，另外以可编辑方式挂载了哪些 repo，各自在哪个 commit |
 
 - 基线文件不参与 compose 的创建、启动与运行，是全组遵循的环境记录。
-- 每个镜像附带一个 demo 运行环境目录，记录该镜像验收时使用的运行配置，同时作为推荐用法。
+- 镜像自带的运行环境目录分两个角色，变更性质相反，不并存于同一个目录：
+  - `demo/` = 该镜像版本**验收时所用配置的历史记录**，永久冻结、内容不再改动，**不是推荐用法**
+    （它是验收结论的对应物）；概念上是该镜像运行环境的第 0 版。
+  - `env/v<N>/` = **现行推荐运行环境**，带修订号、可迭代；路径与编号约定见 §3.2。
 - 镜像的使用方可在任意位置建立自己的运行环境目录（模板见 [`_template/`](_template/README.md)）。
 
 ## 2. 固化资产与挂载资产
@@ -86,7 +89,7 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 | `schema` / `kind` | `flagrt.baseline/v1` / `image` |
 | `generated_by` / `generated_at` | 生成命令与时间 |
 | `image.ref` / `image.id` | 镜像 ref 与 image id（`id` 是 check 项） |
-| `image.recipe` / `image.demo` | 构建配方（含父层配方）；demo 运行环境目录 |
+| `image.recipe` / `image.demo` / `image.env_current` | 构建配方（含父层配方）；验收记录目录（`demo/`，冻结）；**现行推荐运行环境目录**（`env/v<N>/`，`check` 项，§3.2） |
 | `base_image` | 外部基座（L1）的 `ref`、`digest`、`provides`（无 commit 的版本事实：CANN / XTDK / XRE / XCCL / Python / torch 等）；能对应到 commit 的包只记在 `baked_repos`，不在此重复。取数来源是 `baseline.py` 的三张声明式探针表（`BASE_PROVIDES_ENV` 环境变量 / `BASE_PROVIDES_FILES` 镜像内文件 / `BASE_PROVIDES_PKGS` 包白名单），接新芯片只加数据 |
 | `baked_repos.<名称>` | 有仓库身份、以 commit 为版本锚的固化资产：`layer`、`from`（来源层与方式）、`commit`、`install`，可选 `commit_source`、`version`、`patches`（文件名 + sha256）、`source_path`、`supersedes`、`info`。键一律是 §3.2 的仓库名，不是 pip 发行名 |
 | `baked_packages[]` | 从包索引装入的预编译发行包（无仓库身份、无 commit，以 `version` 为版本锚）：`name`（pip 发行名）、`layer`、`version`、`index_url`、`install`、`pin`，可选 `wheel`（`filename`、`sha256`、`source`、`fetched_at`）。不可下放为挂载资产（§2.3） |
@@ -95,6 +98,14 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 
 **版本锚**：每项固化资产至少要有一个可机器核对的版本锚——`baked_repos` 是 `commit`，
 `baked_packages` 是 `version`，两者都以镜像标签为准（§4.2）。`check` 核对全部**存在**的锚。
+
+**可复现性的六项版本事实**：挂载覆盖形态下真正运行的代码不在镜像里，只有镜像标识不足以让别人
+复现到同一套栈。一套运行实例的版本事实必须含六项——**镜像标识**、**外部仓地址**、**提交号**、
+**获取方式**、**校验方式**、**容器内挂载点**。镜像基线回答第一项（`image.ref` / `image.id`），
+并以 `image.env_current` 指出现行推荐运行环境是哪个目录；其余五项由 `env.baseline.yaml` 的
+`mounted_repos` 承载（依次是 `remote`、`commit`、`activation`、`dirty` / `pushed`、
+`container_path`，§3.2）。**外部仓地址是必含项**：缺了它，`host_path` 只是本机的目录约定、
+`commit` 无从寻址，别人照基线取不到同一份代码。
 
 `commit` 有三档取值，不可混用：40 位 sha（核对项）、`unavailable`（已知不可得，export 告警一次，
 版本事实退回由 image id 兜底——父镜像继承的 editable 安装可能取不到 commit）、以及配方写法
@@ -167,6 +178,25 @@ commit 可用 `commit_source: in-image-git` 的口径取自镜像内 `.git`（�
   .last-check.json        # 每次 check 的结果（不追踪）
 ```
 
+#### `dev/images/` 下的两类运行环境目录
+
+| 路径 | 角色 | 变更性质 |
+|---|---|---|
+| `dev/images/<血统>/v<N>/demo/` | 该镜像版本验收时所用配置的历史记录（第 0 版） | 永久冻结，内容不动 |
+| `dev/images/<血统>/v<N>/env/v<M>/` | 现行推荐运行环境 | 每版发布后不可修改，只能新增下一版 |
+
+- 修订号 `v<M>` 是**单调递增整数，不用语义版本号**：运行环境叠加层兑现不了主/次/补丁的兼容性
+  承诺。口径参照 Debian 的 upstream-revision（上游版本不动，修订号纯整数递增）。
+  `export --image … --env-current` 只接受 `<image-dir>/env/v<整数>` 形态，其余写法报错。
+- **「现行是哪一版」不靠目录名表达**：写在镜像索引（[`images/README.md`](images/README.md)）与
+  现行锁定声明里，镜像基线的 `image.env_current` 记录它（§3.1）。`baseline.py` 只认显式声明，
+  不按目录名推断最大修订号。`demo` 与 `env/v1` 的对应关系（第 0 版到第 1 版）记在镜像索引里。
+- 已发布文档里指向 `demo/` 的命令与引用保持有效、不回改：冻结之后它们永久准确。
+- 以上命名约束只约束 `dev/images/` 下的发布物。**各方向自建的运行环境目录自由命名**，不受此约束
+  （它们也不进 `image.env_current`——那个字段只指镜像自带的现行推荐运行环境）；实例：
+  `dev/device-context/910C/env/{train,infer}`（按路径命名）、
+  `dev/communication/env/910c-bucketed`（按用途命名）。
+
 **声明**：在 `docker-compose.yml` 中用顶层扩展字段声明本环境。工具只读取本目录这个文件中的
 声明，`extends` 引入的文件中的 `x-flagrt` 不生效；路径相对本目录。
 
@@ -188,8 +218,15 @@ x-flagrt:
 
 **`env.baseline.yaml`**：`kind: container`；`image`（`ref`、`id`、`baseline`）抄录自镜像基线；
 `baked_repos` 原样抄录、只读；分割线「环境挂载（env）」之后的 `mounted_repos.<名称>` 记录 `host_path`、
-`container_path`、`activation`、`commit`、`dirty`、`pushed`（commit 是否已在某个远端分支上），覆盖固化版本时另记 `overrides_baked`、`baked_commit`、
+`remote`、`container_path`、`activation`、`commit`、`dirty`、`pushed`（commit 是否已在某个远端分支上），覆盖固化版本时另记 `overrides_baked`、`baked_commit`、
 `baked_patches`（§2.2）。实例见 [`images/ascend-train-comm/v3/demo/env.baseline.yaml`](images/ascend-train-comm/v3/demo/env.baseline.yaml)。
+
+**`remote`（外部仓地址）是必含项**：它是该挂载 repo 宿主 checkout 的 `origin` 远端地址，由
+`export` 自动产出，不在 `x-flagrt` 里声明。挂载覆盖形态下真正运行的代码不在镜像里，而
+`host_path` 只是本机的目录约定、`mounted_repos` 的键只是仓库名——别人要取到同一份代码，必须
+知道这个 commit 出自哪个仓。固定取 `origin`：多远端时「哪个才是权威来源」不是工具能判的；取不到
+记 `unavailable` 并告警（版本事实此时留有缺口，不足以交他人复现）。这是 §3.1 六项版本事实里的
+第二项。
 
 **复用镜像 demo**：运行环境目录可经 compose `extends`（按服务）复用镜像 demo，只写差异。
 以下写法在本机 Docker Compose v2.29.7 上经 `docker compose config` 与 `baseline.py export/check`
@@ -216,8 +253,8 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 
 | 动作 | 镜像场景（`--image <image-dir>`） | 运行环境场景（`<env-dir>`） |
 |---|---|---|
-| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
-| `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净；结果写 `.last-check.json` |
+| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--env-current <dir>` 写入 `image.env_current`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
+| `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底。另核对 `image.env_current` 指向的目录仍存在且仍是运行环境目录 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净、`origin` 远端是否仍是基线记的 `remote`；结果写 `.last-check.json` |
 | `load` | 不适用（镜像只能重新构建） | 将每个挂载 repo 切换到基线 commit；不拉取、不构建镜像 |
 | `show` | 以表格打印资产、版本、层级与 info | 同左，并标出覆盖关系 |
 | `list` | 列出仓内全部 `dev/images/*/v*/image.baseline.yaml` 的资产与版本 | — |
@@ -282,9 +319,13 @@ dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不�
 ### 4.3 运行环境场景的行为
 
 - **export**：工作区不干净时记录 `dirty: true` 并警告；commit 不在任何远端分支上时记录 `pushed: false`
-  并警告（他人 load 时无法取得）。验收、出结论或交给他人复现的环境加 `--require-clean`，两者任一不满足即拒绝导出。
+  并警告（他人 load 时无法取得）；宿主 repo 没有 `origin` 远端时记录 `remote: unavailable` 并警告。
+  验收、出结论或交给他人复现的环境加 `--require-clean`，dirty 与未推送两者任一不满足即拒绝导出。
 - **check**：镜像 id 不一致、挂载 repo commit 不一致、容器内挂载来源与核对的宿主目录不一致，
-  均报告为不一致；工作区不干净、commit 未推送只警告；固化部分不与宿主比对。
+  均报告为不一致；工作区不干净、commit 未推送、`origin` 远端与基线 `remote` 不一致只警告；
+  固化部分不与宿主比对。
+- **向后兼容**：`image.env_current` 与 `mounted_repos.<名称>.remote` 都是后加的字段，不含它们的
+  旧基线文件 `check` 一律报 INFO、不 FAIL（提示重新 `export` 即可补齐）。
 - **load**：任一挂载 repo 工作区不干净 → 整体中止（退出码 3），不做部分切换；本地缺少目标 commit
   时先 `git fetch`；切换结果为 detached HEAD，并打印切换前的 commit 与分支以便回退；切换后
   检出不完整即报错。
@@ -347,7 +388,8 @@ dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不�
 
 ```bash
 # 新镜像版本：构建后生成并核对镜像基线
-python3 dev/lib/baseline.py export --image dev/images/<name>/v<N> --demo dev/images/<name>/v<N>/demo
+python3 dev/lib/baseline.py export --image dev/images/<name>/v<N> \
+    --demo dev/images/<name>/v<N>/demo/ --env-current dev/images/<name>/v<N>/env/v<M>/
 python3 dev/lib/baseline.py check --image dev/images/<name>/v<N>
 
 # 运行环境：声明 x-flagrt → 导出 → 启动
@@ -371,3 +413,20 @@ python3 dev/lib/baseline.py list
 - [`../VERSIONS.md`](../VERSIONS.md)：指向镜像基线与 demo 目录，不重复版本号。
 - `dev/stack.lock.910c.*.yaml`：锁定声明，本机制不修改。
 - `dev/compose.base.yml`：LEGACY（见该文件头部）。
+
+<!-- changelog: 2026-10-22
+依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》决定 1/2/3/5/6。
+- §1 两类对象：原「每个镜像附带一个 demo 运行环境目录……同时作为推荐用法」一句把变更性质相反的
+  两个角色挤在一个目录里（验收记录必须永不改动，推荐用法必然随缺陷修复而变），拆为
+  demo/ = 冻结的验收记录（第 0 版，不是推荐用法）与 env/v<N>/ = 现行推荐运行环境两条。
+- §3.1：`image.demo` 行扩为 `image.recipe` / `image.demo` / `image.env_current` 三项，新增
+  `image.env_current`（现行推荐运行环境目录，check 项）；新增「可复现性的六项版本事实」段，
+  写明外部仓地址是必含项及其分工（镜像基线一项，env.baseline.yaml 五项）。
+- §3.2：新增「dev/images/ 下的两类运行环境目录」小节（路径形态、单调整数修订号及理由、发布后
+  不可修改只能新增、现行版本记在镜像索引与锁定声明、已发布文档指向 demo/ 不回改、各方向自建
+  目录自由命名并点名两个实例）；`mounted_repos` 字段清单加 `remote`，并新增「remote（外部仓
+  地址）是必含项」段。
+- §4.1 / §4.3 / §7：同步 baseline.py 的现行行为 —— export --env-current、check 核对
+  env_current 与 remote、两个新字段缺失时报 INFO 不 FAIL、常用流程命令加 --env-current。
+-->
+

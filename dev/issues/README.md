@@ -17,15 +17,29 @@
 
 新增一个缺陷：建目录 → 按 CASE-TEMPLATE 写 README 与复现脚本 → 带卡验证并留证据截选 → 在下表追加一行。
 
+**分版表态**：缺陷不整条关闭。状态一律按**坐标**陈述 —— 坐标 = 镜像血统 + 运行环境修订
+（第 0 版 = 冻结的 `demo/`，第 1 版起 = `env/vN`；现行是哪一版以镜像索引与现行锁定声明为准）。
+字段口径参照 Debian 的 Found / Fixed 为**版本集合**而非单值。**每发一个运行环境新版，所有未关闭缺陷
+必须逐条重新表态**，三态之一：
+
+1. **在该版仍命中**；
+2. **在该版已修** —— 必须写明形态：挂载覆盖（启动时以 `pip-editable` 覆盖镜像内副本），还是镜像内固化；
+   两种形态互不折算，各自只对自己那一版运行环境成立；
+3. **未在该版测过** —— **必须显式写出来**。沉默会被读成「不命中」，这是环境声明失真的主要来源；
+   没有该版实测就不得表态为已修或不命中。
+
+各目录 README 的「版本集合」节是该缺陷的权威表态，下表只作摘要。
+
 ## 索引
 
-| id | 芯片 | 归属方向 | 状态 | 目录 |
+| id | 芯片 | 归属方向 | 分版状态（摘要） | 目录 |
 |---|---|---|---|---|
-| `shmem-missing` | 昇腾 910C | 算子编译方向 | 挂起，不跟进（现行两腿标准路径均不触发；缺陷路径仍在训练腿发布物镜像内） | [`shmem-missing/`](shmem-missing/README.md) |
-| `flagcx-c10d-collectives` | 昇腾 910C | FlagCX 通信方向 | 未修复，部分可由调用方规避 | [`flagcx-c10d-collectives/`](flagcx-c10d-collectives/README.md) |
-| `kunlunxin-gemm-triton-compile` | 昆仑芯 P800 | 算子编译方向 | 未修复，**无可用 workaround** | [`kunlunxin-gemm-triton-compile/`](kunlunxin-gemm-triton-compile/README.md) |
+| `shmem-missing` | 昇腾 910C | 算子编译方向 | `ascend-train-comm v3`：第 0 版（`demo/`）**仍命中**；第 1 版（`env/v1`）**未在该版测过**。跟进状态：挂起、不跟进（现行两腿标准路径均不触发），不作为现行发版限制条目 | [`shmem-missing/`](shmem-missing/README.md) |
+| `flagcx-c10d-collectives` | 昇腾 910C | FlagCX 通信方向 | `ascend-train-comm v3`：第 0 版（`demo/`）**仍命中**；第 1 版（`env/v1`）**已修 —— 形态为挂载覆盖**（宿主 FlagCX 须处于含修复的提交）。**镜像内固化形态未交付**，该形态未经验收 | [`flagcx-c10d-collectives/`](flagcx-c10d-collectives/README.md) |
+| `kunlunxin-gemm-triton-compile` | 昆仑芯 P800 | 算子编译方向 | `kunlun-operator-runtime v2`：第 0 版（`demo/`）**仍命中**，**无可用 workaround**；该血统尚无 `env/vN`。`v1`：**未在该版测过**（指本 case 的判据） | [`kunlunxin-gemm-triton-compile/`](kunlunxin-gemm-triton-compile/README.md) |
 
-> 问题定义、现状细节、规避手段与验收判据以各目录 README 为准。
+> 问题定义、现状细节、规避手段、验收判据与完整的版本集合以各目录 README 为准；本表只摘要，
+> 同一事实以各目录 README 的「版本集合」节为准。
 
 ## 共享机器
 
@@ -41,3 +55,16 @@
 两边共同的一条：**绝不**停止 / 重启 / `exec` 进入任何他人容器，用完把自己的收干净。
 P800 的四条实测结论与证据见
 [`../images/kunlun-operator-runtime/v2/demo/docker-compose.yml`](../images/kunlun-operator-runtime/v2/demo/docker-compose.yml) 文件头。
+
+<!-- changelog:
+2026-10-22 —— 依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》：
+  ① 「规则」段新增「分版表态」：缺陷不整条关闭，状态按坐标（血统 + 运行环境修订）陈述，
+     每发一个运行环境新版，所有未关闭缺陷逐条重新表态，三态之一，且「未在该版测过」必须显式写出
+     —— 沉默会被读成「不命中」，是环境声明失真的主要来源。字段口径参照 Debian 的 Found/Fixed
+     为版本集合而非单值。
+  ② 索引表「状态」列改为「分版状态（摘要）」，三行按新口径重写，与各目录 README 新增的
+     「版本集合」节逐条对齐（flagcx：第 0 版命中 / env/v1 已修-挂载覆盖 / 镜像内固化未交付；
+     shmem：第 0 版命中 / env/v1 未测过；kunlunxin：v2 第 0 版命中 / 该血统无 env/vN / v1 未测过）。
+  本批无 docker，未重跑任何验证，表中读数全部沿用既有证据。
+-->
+
