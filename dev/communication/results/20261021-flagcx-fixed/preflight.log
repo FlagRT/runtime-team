@@ -1,0 +1,33 @@
+Source: npu1-11:/home/lianzhongyou/lianzhongyou_data/runtime-tests/20261021-buckets/evidence/preflight.log
+Scope: complete consumer preflight output from the communication test container.
+---
+can not use command: npu-smi info
+{
+  "torch": "2.10.0+cpu",
+  "flagcx_path": "/workspace/FlagCX/plugin/torch/flagcx/__init__.py",
+  "libraries": {
+    "/workspace/FlagCX/plugin/torch/flagcx/_C.cpython-311-aarch64-linux-gnu.so": "635eefd90de6bf37e92338700e58676be71b00551ac56be2b619f292b1dca1f1",
+    "/workspace/FlagCX/build/lib/libflagcx.so": "5af25cc92ed972810573864f4ba8eba7a1a0c3d3d6284d62c28a7e09d890accc"
+  },
+  "devices": [
+    {
+      "ordinal": 0,
+      "memory": {
+        "total_mb": 62740,
+        "used_mb": 414,
+        "free_mb": 62325,
+        "allocated_mb": 0
+      }
+    },
+    {
+      "ordinal": 1,
+      "memory": {
+        "total_mb": 62748,
+        "used_mb": 148,
+        "free_mb": 62599,
+        "allocated_mb": 0
+      }
+    }
+  ]
+}
+overall: PASS

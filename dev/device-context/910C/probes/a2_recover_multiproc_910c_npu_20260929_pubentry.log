@@ -1,0 +1,18 @@
+=== A2 多卡多进程 real 恢复压测：backend=ascend devices=[0, 1, 2] ranks=3 rounds=30 ===
+[前置声明] ISOLATED 由**公开入口** `runtime.set_device_state(dev, "isolated")` 构造（本层四态账本）；非真实硬件 L4 故障。
+[W929 09:39:02.058282855 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+[W929 09:39:02.076699938 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+[W929 09:39:02.117998197 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+
+[结果] 恢复者轮次 30（每 rank 各 ~10 次）
+  PASS  S1_recoverer_real_rebuild
+  PASS  S2_peers_unaffected
+  PASS  S3_usable_after_rebuild
+  PASS  S0_no_exception
+  rank0: ok=True victim轮次=10 异常轮=[]
+  rank1: ok=True victim轮次=10 异常轮=[]
+  rank2: ok=True victim轮次=10 异常轮=[]
+
+MULTIPROC_REAL_RECOVER_PASS（10.5s）
+结果 -> /mnt/raid/hliu553/dc_legs_20260929/out_stress_pub/a2_recover_multiproc_result.json
+A2_BOUNDARY: 仅同机同厂商多卡多进程；ISOLATED 为构造而非真实硬件故障；结论只在本档位/环境成立，不外推到其他实例或多机。

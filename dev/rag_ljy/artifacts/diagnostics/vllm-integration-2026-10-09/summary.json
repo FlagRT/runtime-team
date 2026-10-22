@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-09",
+  "status": "experimental_not_enabled_on_main_api",
+  "vllm_version": "0.20.2+empty",
+  "vllm_ascend_version": "0.20.2rc1",
+  "unit_regressions_passed": 97,
+  "observations": [
+    "vLLM engine loads Qwen3-Embedding-0.6B on physical NPU 7",
+    "All six HTTP requests succeeded in each of three live trials",
+    "Strict serial versus concurrent result equality failed intermittently; both dense ranks and final order differences observed",
+    "Standalone repeated embeddings were identical for two queries across three repetitions",
+    "Root cause of end-to-end differences remains unresolved; no performance or retrieval quality claim"
+  ],
+  "trials": [
+    "2026-10-09_103905-milvus-1d5352",
+    "2026-10-09_104143-milvus-deaf34",
+    "2026-10-09_104232-milvus-95c93d"
+  ],
+  "decision": "Keep port 8088 on Transformers; stop temporary vLLM validation services after recording results"
+}

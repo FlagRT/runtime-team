@@ -1,0 +1,16 @@
+# 证据截选 —— 交替序列 轮2 B(我们分支)
+# 来源日志: npu1-27:/mnt/raid/hliu553/dc_p9_20261016/alt_r2_B.out
+# 截取范围: 匹配 '^LOADED|^=== |^  [a-z_]+(\+[a-z]+)? +(PASS|FAIL)|^overall:|^  (ddp_wrapped|train_steps|loss_all_finite|ranks_param_equal|crashed_at)' 的行（完整日志留在执行机器，不入仓）
+# 采集时间: 2026-10-16 10:41:49 (npu1-27)
+
+LOADED /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 PASS
+  broadcast+sync                   PASS
+  all_reduce+nosync                PASS
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           PASS
+  all_gather_list+sync             PASS
+  all_gather_into_tensor+nosync    PASS
+  all_gather_into_tensor+sync      PASS
+overall: PASS

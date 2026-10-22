@@ -1,0 +1,12 @@
+# 证据截选 —— 原生 DDP 轮2 A(镜像原版)
+# 来源日志: npu1-27:/mnt/raid/hliu553/dc_p9_20261016/ddp_r2_A.out
+# 截取范围: 匹配 '^LOADED|^=== |^  [a-z_]+(\+[a-z]+)? +(PASS|FAIL)|^overall:|^  (ddp_wrapped|train_steps|loss_all_finite|ranks_param_equal|crashed_at)' 的行（完整日志留在执行机器，不入仓）
+# 采集时间: 2026-10-16 10:41:49 (npu1-27)
+
+LOADED /workspace/p9/orig/flagcx
+=== DDP VERDICT (steps=10, world_size=2) ===
+  ddp_wrapped        FAIL
+  train_steps        FAIL
+  loss_all_finite    FAIL
+  ranks_param_equal  FAIL  
+overall: FAIL

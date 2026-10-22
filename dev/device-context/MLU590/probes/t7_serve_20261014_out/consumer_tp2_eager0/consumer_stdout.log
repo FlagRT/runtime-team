@@ -1,0 +1,33 @@
+[1] 设备上下文: 后端=cambricon 设备数=8
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-embedding-0.6b
+Traceback (most recent call last):
+  File "/work/dc_t1re_20261014/prototype/runtime/proto/proto_infer_serve.py", line 220, in <module>
+    main()
+  File "/work/dc_t1re_20261014/prototype/runtime/proto/proto_infer_serve.py", line 127, in main
+    vecs = embed(SAME + DIFF)
+  File "/work/dc_t1re_20261014/prototype/runtime/proto/proto_infer_serve.py", line 122, in embed
+    st2, r = http_post("/v1/embeddings", {"model": model_id, "input": texts})
+  File "/work/dc_t1re_20261014/prototype/runtime/proto/proto_infer_serve.py", line 49, in http_post
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 519, in open
+    response = self._open(req, data)
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 536, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 496, in _call_chain
+    result = func(*args)
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 1377, in http_open
+    return self.do_open(http.client.HTTPConnection, req)
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/urllib/request.py", line 1352, in do_open
+    r = h.getresponse()
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/http/client.py", line 1395, in getresponse
+    response.begin()
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/http/client.py", line 323, in begin
+    version, status, reason = self._read_status()
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/http/client.py", line 284, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+  File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/socket.py", line 717, in readinto
+    return self._sock.recv_into(b)
+TimeoutError: timed out

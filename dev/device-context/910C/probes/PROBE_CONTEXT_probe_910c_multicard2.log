@@ -1,0 +1,34 @@
+=== 可见设备数 = 3 ===
+
+=== A. `get_context(dev)` 的 dev 参数是否被采纳 ===
+   primary[0] = [0, 0, 0]
+   primary[1] = [0, 0, 0]
+   primary[2] = [0, 0, 0]
+   set_device(0) → get(0)=(187651900039168, 0)  get(1)=(187651900039168, 0)  get(2)=(187651900039168, 0)
+   set_device(1) → get(0)=(187651900039728, 0)  get(1)=(187651900039728, 0)  get(2)=(187651900039728, 0)
+   set_device(2) → get(0)=(187651943130096, 0)  get(1)=(187651943130096, 0)  get(2)=(187651943130096, 0)
+   ⇒ 每个当前设备下，不同参数返回**同一值** = True ⇒ dev 参数被忽略
+
+=== B. 逐设备建上下文（正确测法）===
+   dev0: create rc=0 ctx=0xaaab22826240
+   dev1: create rc=0 ctx=0xaaab22818110
+   dev2: create rc=0 ctx=0xaaab2281b290
+
+=== B1. 逐设备复查（set_device 后再查）===
+   set_device(0) → rc=0 ctx=0xaaab1cd7e000 与 create 相同=False
+   set_device(1) → rc=0 ctx=0xaaab1cd7e230 与 create 相同=False
+   set_device(2) → rc=0 ctx=0xaaab1f6963f0 与 create 相同=False
+
+=== C. 销毁 dev0 的上下文后，逐设备复查 ===
+   destroy(dev0) rc=0
+   set_device(0) → rc=0 ctx=0xaaab1cd7e000 非零=True
+   set_device(1) → rc=0 ctx=0xaaab1cd7e230 非零=True
+   set_device(2) → rc=0 ctx=0xaaab1f6963f0 非零=True
+   ⇒ dev1/dev2 仍各自持有原上下文（隔离成立）= False
+
+=== D. primary 状态（收尾）===
+   primary[0] = [1, 0, 0]
+   primary[1] = [1, 0, 0]
+   primary[2] = [1, 0, 0]
+
+RESULT_JSON {"device_count": 3, "primary_before": {"0": [0, 0, 0], "1": [0, 0, 0], "2": [0, 0, 0]}, "arg_test": {"current0": {"get(0)": "(187651900039168, 0)", "get(1)": "(187651900039168, 0)", "get(2)": "(187651900039168, 0)"}, "current1": {"get(0)": "(187651900039728, 0)", "get(1)": "(187651900039728, 0)", "get(2)": "(187651900039728, 0)"}, "current2": {"get(0)": "(187651943130096, 0)", "get(1)": "(187651943130096, 0)", "get(2)": "(187651943130096, 0)"}}, "arg_ignored": true, "created": {"0": "0xaaab22826240", "1": "0xaaab22818110", "2": "0xaaab2281b290"}, "after_create_each": {"0": {"rc": 0, "ctx": "0xaaab1cd7e000", "matches_create": false}, "1": {"rc": 0, "ctx": "0xaaab1cd7e230", "matches_create": false}, "2": {"rc": 0, "ctx": "0xaaab1f6963f0", "matches_create": false}}, "destroy_dev0_rc": 0, "after_destroy_dev0": {"0": {"rc": 0, "ctx": "0xaaab1cd7e000", "nonzero": true, "matches_create": "n/a(dev0 的已销毁)"}, "1": {"rc": 0, "ctx": "0xaaab1cd7e230", "nonzero": true, "matches_create": false}, "2": {"rc": 0, "ctx": "0xaaab1f6963f0", "nonzero": true, "matches_create": false}}, "dev1_dev2_isolated": false, "primary_after": {"0": [1, 0, 0], "1": [1, 0, 0], "2": [1, 0, 0]}}

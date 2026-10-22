@@ -10,23 +10,39 @@
 
 ## 0. 结论速览
 
+> 下表**按时间倒序**（越上越新）；历史批次保留不删，标注为「历史批次」。
 | 项 | 状态 | 关键数字 |
 |---|---|---|
-| ⭐ **三芯片职责验收（09-22 傍晚，最新统一复跑）** | ✅ **10 项全绿** | 离线自检 **39/0**（1 跳过）· 对称性 **5/0** · 冒烟 **46/0** · conformance **13/13 + 6/6** · 多流 语义 **8/8**（S12 如实不支持）+ 图捕获 **4/4** + 配额 **3/3** · 训练腿 **`TRAIN_LEG_PASS 6/6`**（loss 15.4488→11.1481、**3533.5 tok/s**、`dist=cpu:gloo,cuda:flagcx`）· 推理腿前向 **`INFER_LEG_PASS 13/13 + 1 跳过`**（53.28 句/s、p50 56.12 ms）· 服务化 **`SERVE_STANDARD_PASS`**（25 s 就绪、维度 1024、范数 1.000000）· 错误闭环 **`ERROR_RECOVERY_LOOP_PASS` 5/0/0**<br>⇒ 见 `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md`；证据 `probes/accept_*_20260922.*` |
-| 阶段 0 · 环境与基线 | ✅ 完成 | 8× P800（96 GB/卡，全空闲）、1.5 TiB 内存、384 线程 |
-| 阶段 1 · 单卡接入 | ✅ 完成 | `kunlun` backend 落地；conformance **13/13 + 6/6**；smoke **42/0** |
-| 阶段 2 · 训练腿（多卡） | ✅ 完成（**标注条件**） | 两 rank **TRAIN_LEG_PASS 6/6**；loss **15.4488 → 11.1481**；**3482 tok/s**（09-14 首测）⇒ **09-22 验收复跑 3533.5 tok/s**（见上表首行） |
-| 阶段 3 · 推理腿（单卡前向） | ✅ **完成（PASS 13/13）** | 维度 **1024** ｜ 语义区分度 **0.6392** ｜ **53.12 句/s** ｜ p50 **56.17 ms** |
-| 阶段 3 补 · 推理腿（vLLM 服务化） | ✅ **完成（PASS 10/10）** | 维度 **1024** ｜ 区分度 **0.4102** ｜ **30.70 句/s** ｜ p50 96.4 ms ｜ 超长输入 → **L2_PARAM/raise** + 业务继续 |
-| 阶段 4 · 错误闭环 | ✅ **完成（PASS，两设置完全一致）** | 闭环 **5 / 跳过 0 / 失败 0**；KL3 设与不设**逐字节一致** ⇒ **关闭该变量不损失诊断能力** |
-| 阶段 5 · 收敛 | ✅ **完成（09-20）** | 《新芯片接入手册》（8 步流程 + 验收清单 13 项）｜接口约定修订建议 **6 条**｜原型 release **`runtime-v0.2.0`** |
-| **镜像等价性验证** | ✅ **完成（09-20）** | 全部结论在**官方 `-base` 镜像**上复现：conformance 13+6 逐用例一致、smoke 42/0、两条腿 PASS、**KL3 挂死一致重现（A 3/3 挂死 / B 2/2 通过）** ⇒ 缺陷与镜像无关 |
-| **已知厂商缺陷** | ⚠️ 已定性、已上报 | KL3 事件同步概率性挂死（≈89%），归属**厂商运行时层**；**不影响单进程设备上下文路径**（阶段 4 两设置一致即证据） |
-| **框架缺陷（第 4 例）** | ✅ 已发现并修复 | 错误对象**跨模块类不相等** → `disposition` 取 `KeyError`；已修在框架层（详见 `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` §3） |
-| **多流 Stream 16 项基线** | ✅ **完成（09-20）** | **14 项通过 / 1 项如实标注不支持（S-12 流优先级，上游缺陷）/ 1 项不适用**；探针 8 项 **`STREAM_SEMANTICS_PASS 8/8`（与 910C 逐项一致）**；**S-7 图捕获首次实测 5/5**、S-16 补测 2000 流无限制 ⇒ 顺带为 `kunlun` 补上 `graph_capture` 能力声明 |
-| **两实例对称复跑（09-22）** | ✅ **完成** | 在当前代码上重跑：smoke **42/0**、conformance **13/13 + 6/6**、语义基线 **8/8**、错误闭环 **5/0/0**（证据 `probes/recheck_*_20260922.json` 4 份）—— 与 910C 侧构成**同判据、同格式**的双实例证据 |
+| ⭐ **D2 调度效果对照实验（10-08 · 第十三轮）· 最新** | ✅ **如实 `NOT_APPLICABLE`**（区间 `(0,0)` **唯一档** ⇒ 无从对照）· 仪器有效性已验（正对照 **8/8 / +9.87 ms**）· ⭐ 已通过**「不适用自证审计」**（逐卡 **7/8** · driver(`cu*`)+runtime(`cuda*`) **两层一致** · 全量 `nm -D` 扫描） | `../prototype/docs/STREAM_PRIORITY_SCHED_EFFECT_20261008.md` **L21–L54** · `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L63–L78** |
+| ⭐ **台账 E1：职责审计扩到 78 项（10-08）** | ✅ `DUTY_RESPONSE_PASS` **67 / 0 / 11**（SKIP 均如实不具备）· 非空转 **31 / 8 / 0** · 离线 **106/0/1** | `../prototype/docs/PROTOTYPE_DUTY_RESPONSE_AUDIT_20260928.md` **L42–L92** |
+| ⭐ **台账 T1：跨后端基类改动后复跑（10-13）** | ✅ `DUTY_RESPONSE_PASS` **68 / 0 / 10** —— 与 10-08 基线（d2/r12）**逐项状态零差异**；**`L1`–`L5` 全 `OK`**；契约不变式 **4/4**（i1 入口覆盖 **14/17**） | `../prototype/docs/OPEN_ITEMS_AND_PARITY_AUDIT_20261010.md` **§3 A1** · `probes/t1_duty_kunlun_20261013.json` |
+| ⭐ **台账 T1-re：共享层再改后复跑（10-14）** | ✅ `DUTY_RESPONSE_PASS` **68 / 0 / 10** · **`L1`–`L5` 全 `OK`** · 契约不变式 **4/4** · 离线自检 **114 / 0 / 1**；与 **10-13 基线逐项状态零差异**，唯一 `detail` 差异 = **厂商句柄地址**（`0x58f6456cbd80` → `0x6174f64269d0`，环境量）⇒ 无回归 | `probes/t1_duty_kunlun_20261014.json` · `probes/t1_coninvariants_kunlun_20261014.log` · 驱动 `probes/run_t1re_p800_20261014_host.sh` |
+| ⭐ **(A) 真落地后的全套复跑（09-30 r8）** | ✅ 全绿无回归：离线 **106/0/1** · 释放探针 **10/10**（该流**真能承载算子**）· 训练腿 6/6 · 推理腿 13/13 | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L265–L348**（§7 v2 更新段） |
+| 流优先级统一 API 落地（09-30 r7） | ✅ **`STREAM_PRIORITY_API_PASS` 7/7**；范围查询走**真原语** ⇒ `(0,0)` **退化单点**（旧版返回 `None` 的「根因表述」已更正） | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L11–L28** · **L273–L301**（§7.2 为何可以声明） |
+| 工作包 B/C 接口落地（09-29） | ✅ B **3/3** · C 改为**只读观测** `context_query`（真机 `managed_by="external"`、`readonly_safe=true`） | `../prototype/docs/WORKPACKAGE_BC_INTERFACE_20260929.md` **L24–L40 / L252–L297** · `docs/KUNLUN_CONTEXT_SEMANTICS_20260929.md` |
+| 跨实例复验 r2（09-29） | ✅ 10 项全绿 · 0 回归；⚠️ 首轮在**卡 1** 挂死经**单变量对照**判为**卡级环境问题**（非本层回归） | `docs/KUNLUN_P800_REGRESS_AFTER_FIX_20260929.md` |
+| 职责响应审计（09-28 · 39 项口径） | ✅ `DUTY_RESPONSE_PASS` **36 / 0 / 3**；首轮暴露 `recover_device` **缺 `state`** ⇒ 已补做 | `docs/DUTY_RESPONSE_AUDIT_P800_20260928.md` |
+| 三芯片职责验收（09-22 傍晚 · 历史批次） | ✅ 10 项全绿（离线 39/0 · 冒烟 46/0 · conformance 13+6 · 训练腿 6/6 · 推理腿 13/13 · 服务化 PASS · 错误闭环 5/0/0） | `../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260922.md` |
+| 阶段 0–5 全部完成（09-14 → 09-20） | ✅ 环境与五域基线 → 单卡接入 → 训练腿（loss 15.4488→11.1481、3482→**3533.5 tok/s**）→ 推理腿前向 **13/13**（53.12 句/s）→ 服务化 **10/10**（30.70 句/s）→ 错误闭环 **5/0/0** → 收敛三件套 | `docs/KUNLUN_P800_ADAPT_PLAN_20260914.md` · `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` · `docs/PROGRESS_REPORT_20260914.md` |
+| 官方 `-base` 镜像等价性（09-20） | ✅ 全部结论在官方推荐镜像上复现（conformance 逐用例一致 · 推理腿 `detail` **14/14 逐字相同** · **KL3 挂死一致重现 A 3/3**）⇒ 建议以官方 `-base` 入锁 | `docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` |
+| 多流 Stream 16 项基线（09-20） | ✅ **14 通过 / 1 如实不支持（S-12 流优先级，上游缺陷）/ 1 不适用**；探针 **8/8**（与 910C 逐项一致）· S-7 图捕获 **5/5** · S-16 **2000 流** | `docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` |
+| 已知厂商缺陷（2 条 · 均归属厂商侧） | ⚠️ ① KL3 事件同步概率性挂死（≈89%，**不影响单进程设备上下文路径**）② **物理卡 1 计算通路故障**（控制面正常 ⇒「能查到卡」≠「能用卡」） | 本文件 **§3.1 / §3.2** · `docs/KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md` |
+| 框架缺陷（第 4 例） | ✅ 已修在框架层：错误对象**跨模块类不相等** → `disposition` 取 `KeyError` | `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` **§3** |
 
 > 全量文档的效力分层与一句话说明见主看板 §6.4.4；复核入口见 `../prototype/docs/VERIFICATION_MANIFEST_20260920.md`。
+
+---
+
+## 0.5 ⚠️ 环境事实与环境口径冲突（2026-09-30 实测，避免后来者白找）
+
+| 事实 | 内容 |
+|---|---|
+| **本机没有宿主 git 副本** | `/workspace/runtime-team`、`/data2/hliu553/runtime-team` **都不存在**。P800 侧只有**同步过去的 `prototype/` 目录**（宿主 `/data2/hliu553/dc_regress_20260929/prototype` = 容器内 `/workspace/...`）。**不要按"应该有一份"去找**；需要版本信息请看 910C 宿主副本（已对齐）或 GitHub。 |
+| **路径映射** | 宿主 `/data2/hliu553` = 容器 `/workspace`。**在宿主上执行的脚本**其重定向要用宿主路径，**传给容器程序的 `--out`** 要用容器路径 —— 混用会得到一堆 rc=1（2026-09-30 首跑即如此）。 |
+| **流优先级：可设置，但只有一个档位**（2026-09-30 v2 修订） | ⭐ 本层**声明** `stream_priority_control`：取值域 = 设备自报区间 `(0, 0)`（单点）⇒ 「请求 0 = 回读 0」成立；实现走 `cuStreamCreateWithPriority` + `torch.cuda.ExternalStream` 包装（真机实测该流**真能承载算子**）。⚠️ **单档 ⇒ 设置不产生调度区分**（`known_issues: KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL`）。**能设置 ≠ 有效果**，别据此做调度决策。
+| **旧口径（v1，已被上一条取代）** | 兼容层三个入口**都在**（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`），但范围查询返回 **`least=0, greatest=0`** ⇒ **本机没有可调的优先级空间**；且 `cuStreamCreateWithPriority(..., prio=-1)` **回读仍为 0**（不保留传入值）⇒ 优先级在 P800 上**无可观测效果**（不是「接口没实现」，而是「设备只报一个档位」）。证据 `probes/prio_readback_kunlun_20260930.log`；重跑 `probes/inspect_prio_readback_kunlun_20260930.py` |
+| **⚠️ 一处口径冲突（2026-09-30 新观察到）** | 厂商栈在 stderr 提示「官方手册要求测试前 `export XPU_EVENT_KL3_ENABLE=1`，否则**部分路径行为未定义**」—— 而**该变量正是本方向 09-14 实测的挂死触发条件**（KL3 事件 + 设备集合通信 ⇒ `cudaDeviceSynchronize` 永久自旋，见 `docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md`）。⇒ **手册要求设置的环境变量 = 我们实测的故障触发条件**。本方向所有取数（含 09-30 新探针）**均在未设该变量的状态下**完成；与既有「错误闭环两设置逐字节一致」的记录相容，但厂商那句声明如实标注为**上游口径冲突**，已并入上报材料 |
+| **选卡** | `dev1` = **已知故障卡**（UUID `b3509946…`，`0 MiB / 0%` **与好卡同貌**，靠 UUID 识别）⇒ **永远避开**；2026-09-30 复跑用 **`dev4`**（292 MiB / 0%）。 |
 
 ---
 
@@ -68,28 +84,27 @@ P800/
 | 连接 | 非标准端口 **26008**（`~/.ssh/config` 的 `Host P800` 曾缺 `Port` 行） |
 | 权限 | 需加入 `docker` 组 + 需自有可写数据目录（`/data2/hliu553`） |
 | 镜像落盘 | `/var/lib/docker` 已 **bind mount 到 `/data1`**（5.8 TB NVMe），充足 |
-| 共享程度 | 25 人在线、22 个容器；**用卡前必须 `xpu-smi` 挑「连续且空闲」的卡并记录用卡** |
+| 共享程度 | 25 人在线、22 个容器；**用卡前必须 `xpu-smi` 挑「连续且空闲」的卡并记录用卡**，且**挑完先跑最小计算/事件探针**再正式取数；⚠️ **smi 索引 1（物理卡 1）为已知故障卡，禁止用于计算类验证**（见 §3.1） |
 | 拓扑 | XPU0-3 属 NUMA0、XPU4-7 属 NUMA1；组内 XL 私有链路、跨组 SYS；NIC 与卡 PIX 直连 |
 
 ---
 
 ## 3. 已知厂商缺陷（⚠️ 需芯片厂商适配，本方向不阻塞）
 
+### 3.1 已知厂商缺陷：`XPU_EVENT_KL3_ENABLE=1` 下设备事件同步原语概率性永久自旋
+
 **现象**：`XPU_EVENT_KL3_ENABLE=1` 且存在设备侧集合通信时，设备事件同步原语**概率性永久自旋**。
 
 | 项 | 内容 |
 |---|---|
-| **挂死点** | 全部在厂商 `libcuda.so`（实为符号 `libxpucuda.so.515.58.kunlun`）与 flagcx c10d 插件的交界处：① `dist.all_reduce` 内部 `flagcxBackend::syncStream` → `cudaEventRecordWithFlags`；② 上层显式 `torch.cuda.synchronize` → `cudaDeviceSynchronize`；③ 通信域首次初始化（复现率低） |
+| 项 | 内容 |
+|---|---|
 | **判别条件** | **两要素**，缺一不挂：① `XPU_EVENT_KL3_ENABLE=1`；② 存在设备侧集合通信 |
-| **复现率** | **18 次运行 16 次挂死（≈89%）**；本轮基线 4/4 = 100%；挂死步数游走（rep 0/20/30/40/70/100） |
-| **无关项** | 数据量、张量形状、reduce op、用哪对卡、同步间隔 **均无关**（逐一单变量排除） |
-| **责任层** | **厂商运行时/驱动层** —— 算子层（FlagGems：`flag_gems` 未导入、探针 0 引用）与编译层（FlagTree/triton：`/root/.triton` mtime 仍为镜像构建时、无编译产物变更、走 BKCL 预编译内核）**均已硬证据排除** |
-| **给上游的偏移** | `libcuda.so.1` 映射基址 `0x744bb1400000`，自旋帧 `0x744bb1494080` ⇒ **偏移 `+0x94080`** |
-| **临时规避** | **不设置** `XPU_EVENT_KL3_ENABLE`（我方训练腿为 transformers + 原生 torch、推理腿为 vLLM/vllm-plugin-FL，**源码中 `flag_gems` 0 处引用 ⇒ 均不依赖 FlagGems**，故该变量**不属于我方验证前置条件**） |
-| **规避的代价** | 该变量是 **FlagGems kunlunxin 后端的官方推荐变量**（`tools/env.sh`、`src/flag_gems/backends.yaml`、CI `P800.yml` 三处均设 1），且**厂商文档与镜像里对它的说明为零** ⇒ 关闭是否损失设备异常上报**须上游确认**。本方向**不擅自改锁定镜像口径、不改公共资产** |
-| **机器可读声明** | `kunlun` 后端 `info()["known_issues"]`（12 字段结构化，含复现率/责任层/规避/上报对象）；其他子方向接入时**读到后端即可获知** |
-| **开跑前告警** | `proto_train_leg.py` 的 `_preflight_env_check()`：设该变量时明确告警（不设时不误报） |
-| **⭐ 官方印证（2026-09-22 新增）** | FlagOS 官方镜像构建仓 `flagos-ai/build-infra` 的 `configs.yaml` 里，昆仑芯 vLLM 应用层环境变量原文：<br>`# XPU_EVENT_KL3_ENABLE deliberately NOT set: it is the P1 fake-hang trigger (device timeout) on this XRE stack — default env is clean, keep it so.`<br>⇒ **官方明确不设该变量、并称之为「P1 假挂死触发器」**，与本方向独立定位一致 ⇒ **上报时可引用作「上游已承认该触发器」的旁证** |
+| **复现率** | **18 次运行 16 次挂死（≈89%）**；挂死步数游走（rep 0/20/30/40/70/100）；与数据量 / 形状 / reduce op / 用哪对卡 / 同步间隔**均无关** |
+| **责任层** | **厂商运行时/驱动层**（`libxpucuda.so.515.58.kunlun`）；算子层（`flag_gems` 0 引用）与编译层（无编译产物变更）**均已硬证据排除** |
+| **规避 + 代价** | **不设** `XPU_EVENT_KL3_ENABLE`（我方两腿均不依赖 FlagGems）；⚠️ 但它是 FlagGems kunlunxin 后端的**官方推荐变量** ⇒ 关闭是否损失异常上报**须上游确认**，本方向不擅改公共资产 |
+| **上游旁证** | FlagOS 官方 `build-infra/configs.yaml` 原文：*"XPU_EVENT_KL3_ENABLE deliberately NOT set: it is the P1 fake-hang trigger …"* ⇒ **官方明确不设** |
+| **机器可读** | `kunlun` 后端 `info()["known_issues"]`（12 字段结构化：复现率 / 责任层 / 规避 / 上报对象）+ `proto_train_leg.py` 开跑前告警 |
 
 > **统一措辞**：根本原因在厂商 CUDA 兼容运行时 `libxpucuda.so`（KL3 事件机制与设备事件同步原语的交互），
 > **需上报芯片厂商适配**；我方已按上述方式规避以不阻塞本方向验证，并如实标注条件。
@@ -101,6 +116,30 @@ P800/
 > （flagtree 0.7.0rc2+xpu3.6，但**底层 SDK 换代到 XRE 5.37.1**，前置要求宿主驱动 **5.37.1**，
 > 而我们实测宿主为 **5.0.21.47**）。
 > **建议总组明确走哪条**；完整对照见 `../prototype/docs/IMAGE_LINEAGE_ALIGNMENT_20260922.md`。
+
+### 3.2 已知厂商侧缺陷（**卡级 · 单卡硬件**）：物理卡 1 设备执行通路故障（2026-09-29 登记）
+
+**结论**：**物理卡 1**（smi 索引 1 = `/dev/xpu2` = UUID `GPU-b3509946-0bc6-5744-bd7c-a0b87dadef02`
+= SN `02K15K0263D002KN` = PCI `0000:16:00.0`）上**任何设备计算内核都无法完成执行**
+⇒ **禁止用于任何计算类验证**。**控制面查询仍正常，所以"能查到卡"不等于"能用卡"。**
+
+| 项 | 内容 |
+|---|---|
+| **症状** | 计算内核不完成：`torch.cuda.synchronize()` **永不返回**（信号亦不可中断，只能外层 `timeout` 强杀）。我方另观测到**更靠前的一层**：`Event.record + wait_host` 即失败、`probe_device` 卡死 |
+| **控制面 vs 计算面** | **控制面正常**（`get_device_properties` / `mem_get_info` 均正常返回 `(103045660672, 103079215104)`），**只有计算内核不完成** ⇒ 极易被误判成"程序逻辑问题" |
+| **内核日志** | `KL_XID_KERNEL_EXCEPTION` + `kl3_wait_for_noc_idle() timeout` + `cluster[N]: ..reason[29] task timeout`；驱动直接打印出错内核符号（最小复现中是 `xpukernel_xpu3::constant<float>`，即 `torch.ones(4)` 的 fill 内核） |
+| **不是我方负载引入** | 该卡同类异常**最早 2026-09-17**（**早于我方首次使用该卡**）；同类异常 20 次中 **12 次来自其他用户互不相关的作业**（含一个 vLLM 推理引擎），失败算子涵盖 fill / 随机数 / H2D / 转置 / `get_cluster_clock` / AllReduce ⇒ **执行通路层面故障，不是某应用或算子的 bug** |
+| **"看占用"挑不出来** | 挂死时该卡 `Memory_used = 0 MiB`、`util = 0%`、`fuser` 无句柄持有者 —— 在 `xpu-smi` 上与别的空闲卡**完全一样** |
+| **责任层** | **厂商侧**（卡硬件 / 驱动执行通路）；已由对外正式问题报告提交 ⇒ **本方向不阻塞** |
+| **规避** | 用卡时**避开 smi 索引 1**；我方 09-29 回归改用卡 4 后 **10 项全绿**。选卡后**先跑最小计算/事件探针**再取数 |
+| **原始报告（归档）** | ⭐ [`docs/KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md`](docs/KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md)（对外报告**逐字归档** + 我方交叉核对；含最小复现、内核原文、七类已排除假设） |
+| **我方判别证据** | `probes/DIAG_kunlun_card1_event_hang_20260929.log`（A/B/C 三组 + **卡身份硬核对**） |
+| **历史结论复核** | ✅ 已审计：P800 全部**在册结论**取自卡 **4 / 5 / 6（6,7）**；唯一一次触碰卡 1 的 09-14 记录本就已撤销为「无效证据」⇒ **无需复核任何已发布结论** |
+
+> ⭐ **给后续接入者的两条纪律**（已写进本目录「环境差异」与 skill 手册的用卡章节）：
+> ① **`xpu-smi` 显示空闲 ≠ 该卡功能正常** ⇒ **先跑最小计算/事件探针**再取数；
+> ② 判定"是不是我们改坏的"用**单变量对照**：把**上一版原型**放到**同一张卡**跑**同一条命令** ——
+> 同样挂死即环境问题（我方本轮据此在 30 分钟内定案，**未误改任何判据**）。
 
 ---
 
@@ -114,6 +153,9 @@ P800/
 | `docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md` | **结论核对与责任层判定**：准确性 / 可复现性 / 该提算子层还是编译层（三问全答） |
 | `docs/PROGRESS_REPORT_20260914.md` | **全量进度报告**（910C 回顾 + P800 主体 + 待办总清单按「谁来做」四分类 + 证据索引 + 风险与下一步） |
 | `docs/KUNLUN_P800_STAGE34_VERIFY_20260920.md` | **阶段 3/4 验证报告**：推理腿 13/13 与 910C 同构对照、错误闭环两设置对照（逐字节一致）、**§3 第 4 个框架缺陷的根因与修复**、待办 |
+| ⭐ `docs/DUTY_RESPONSE_AUDIT_P800_20260928.md` | **职责响应审计（39 项 sub-part × 真机）**：`DUTY_RESPONSE_PASS` **36 OK / 0 FAIL / 3 SKIP**（SKIP 均如实不具备）；**首轮即暴露 `recover_device` 缺 `state`** ⇒ 补做后 E3 转 PASS |
+| ⭐ `docs/KUNLUN_P800_REGRESS_AFTER_FIX_20260929.md` | **三处层内修复后的全套回归 + 一处卡级环境问题的判别**：10 项全绿 / 0 回归；卡 1 挂死的 A/B/C 三组判别（**判定 = 环境问题，非代码缺陷**）；新增「**空闲 ≠ 正常**」选卡纪律；命名口径（无后缀 = r1，`_r2` = 本轮） |
+| ⚠️ `docs/KUNLUN_P800_CARD1_HANG_ISSUE_20260923.md` | **对外正式问题报告的逐字归档**（物理卡 1 同步挂死）：最小复现（与框架无关，3 行 PyTorch）、内核原文与出错内核符号、**七类已排除假设**；附我方**卡身份硬核对**（Serial/UUID/Minor/PCI 逐项一致）。**不迁移**（卡级结论） |
 | `docs/KUNLUN_P800_BASE_IMAGE_EQUIVALENCE_20260920.md` | **官方 `-base` 镜像等价性验证报告**：**§0 镜像速查**（两镜像 tag/digest/大小/来源一把看全 + 官方镜像获取与补齐三步 + 容器启动参数对照）· 全部结论复现对照（逐用例/逐 `detail`）· **KL3 挂死一致重现** · **`-base` 开箱缺 `triton` 的调用链与补齐命令** · 对镜像入锁的建议 |
 | `docs/KUNLUN_P800_STREAM_BASELINE_16_20260920.md` | **多流 Stream 验收基线 16 项逐项比对报告**：16 项 P800 结论 + **与 910C 逐项对照**（仅 S-12 一项差异）+ **S-7 图捕获首测 5/5** 与**一处自我纠错（首测失败实为用法错误）** + 证据形态差异说明 + 复现命令 |
 | `../prototype/docs/REFERENCE_TWO_INSTANCES_CONFIG_20260920.md` | **跨实例参考**（910C + P800 并列）：镜像 / 模型 / 训推框架 / 参数逐项对照 + **依据链** + 复用坑清单；后续接入者与框架方向首读 |
@@ -127,58 +169,18 @@ P800/
 
 ---
 
-## 5. 证据索引（`probes/`）
+## 5. 证据索引
 
-**探针脚本（可复现）**
+**证据索引（`probes/`）** —— 探针脚本清单、逐份日志与 JSON 的说明已移入
+[`docs/EVIDENCE_INDEX_P800.md`](docs/EVIDENCE_INDEX_P800.md)；本看板只留入口：
 
-| 脚本 | 用途 |
+| 用途 | 证据入口 |
 |---|---|
-| `dc_probe_p800.py` | 五域探针（设备抽象 / 多流 / 错误 / 分布式），单进程一次跑完 |
-| `dc_probe_isolated.py` | **单变量隔离**版：每用例独立进程，避免同进程内错误粘滞污染 |
-| `dc_probe_rep.py` | 参数化重复集合通信探针（`MODE`=ar / ar_nosync / ar_max / barrier；`SYNC_EVERY`；`REPS`；`SIZE`） |
-| `dc_probe_devonly.py` | 对照组：单进程纯设备计算（无通信） |
-| `dc_probe_grad_ar.py` | 梯度通信定点探针：单次大通信（concat）vs 多次小通信（逐参数） |
-| `dc_probe_ar_rep.py` | 重复性与确定性判定（同一张量重复 vs 真实梯度按序） |
-| `dc_probe_verify.py` | **带真值校验**的验证探针（`2^120` 精确匹配，用于排除假阴性） |
-| `smoke_kunlun_20260914.txt` | 组件自检原始输出（**42 通过 / 0 失败**） |
-
-**探针组脚本（自动抓 gdb 原生栈）**
-
-`probe_battery.sh`（第一轮 8 变体）、`probe_battery2.sh`（第二轮重复验证）、`probe_battery3.sh`（第三轮剂量-反应）、`verify_battery.sh`（真值校验四组）
-
-**原始证据日志**
-
-| 日志 | 内容 |
-|---|---|
-| `A_round1_battery_20260914.log` | 第一轮 8 变体单变量对照 + 挂死现场原生栈 |
-| `B_round2_repeat_20260914.log` | 第二轮重复验证（A×3 挂死 / B×3 通过 / C / D / E） |
-| `C_round3_dose_20260914.log` | 第三轮剂量-反应（同步间隔 N=1,1,2,3,5,10）→ 证明**无阈值效应** |
-| `D_verify_truthvalue_20260914.log` | 真值校验四组（A×4 挂死 / B×2 与 D 精确通过 / C×2 挂死）⇒ 更正「不同步就通过」的假阴性 |
-| `E_train_ab.log` | **训练腿 A/B 单变量对照**（不设 → 退出码 0；设=1 → 退出码 124） |
-| `E_train_R1_workaround_noKL3.log` | 训练腿规避条件运行日志 |
-| `E_train_R2_control_KL3on.log` | 训练腿对照条件运行日志（挂死现场） |
-| `E_train_r1_keep.log` | 规避腿复跑（一致性确认） |
-| `E_train_leg_result_rank0.json` / `rank1.json` | **训练腿结果 JSON**：`TRAIN_LEG_PASS 6/6`、6 项检查全绿、loss 曲线、perf |
-| `F_infer_leg.sh` / `F_infer_leg_20260920.log` / `F_infer_leg_result_20260920.json` | **阶段 3 推理腿**：脚本 + 完整日志 + 结果（13/13，维度 1024 / 区分度 0.6392 / 53.12 句/s / p50 56.17 ms） |
-| `F2_vllm_serve.sh` / `F2_vllm_serve_20260920.log` | **阶段 3 补（vLLM 服务化）**：一键脚本（启动 → 就绪 → 验证 → 停机 → 用卡复查）+ 日志 |
-| `F2_serve_result_20260920.json` | 服务化结果（`SERVE_LEG_PASS 10/10`：区分度 0.4102 / 30.70 句/s / p50 96.4 ms） |
-| `F2_vllm_server_boot_20260920.log` | vLLM 服务启动原始日志（FL 平台插件激活 → 路由注册 → 就绪） |
-| `H_kl3_equivalence.sh` | **KL3 缺陷等价性对照脚本**（后台轮询 + `kill -9`；因挂死进程持 GIL 自旋、`timeout` 的 SIGTERM 无法中断） |
-| `I_base_*_20260920.*` | **官方 `-base` 镜像全套证据**（17 份）：conformance 13+6（json+log）、smoke 42/0、训练腿两 rank、推理腿前向 13/13、服务化 10/10、**KL3 对照（ab 汇总 + A1–A3 挂死现场 + B1–B2 真值校验）** |
-| `I_ref_train_leg_result_rank0_20260920.json` | 同批次**现用镜像**训练腿结果（用于交替复测，证明吞吐差异属共享机噪声） |
-| `K_stream_semantics_full_result_p800_20260920.json` | **多流 16 项基线中 8 项探针结果**（`STREAM_SEMANTICS_PASS 8/8`，含 backend=`kunlun` / dev_api=`cuda` / 逐项 detail）——与 910C 侧同名结果逐项对照 |
-| `L_serve_standard_p800_20260920.log` | **组内服务启动标准脚本**（`../prototype/scripts/serve_standard.sh`）在 P800 的验证日志：服务就绪 **25 s**、冒烟**维度 1024 / 范数 1.000000**、停机后**无残留进程**且卡 6 释放至 0 MiB、`SERVE_STANDARD_PASS`（脚本 v1.0 首轮） |
-| `L_serve_standard_p800_v2_20260920.log` | 同上脚本 **v1.1**（补服务入口自动激活 / 生成形态冒烟 / 容器内卡快照降级后）的复跑日志：`SERVE_STANDARD_PASS (ready=1 smoke=1)`（与 910C 同版本脚本、同日验证） |
-| `G_error_loop.sh` / `G_error_loop_20260920.log` | **阶段 4 错误闭环**：两设置对照脚本 + 日志（两组各 5/0/0） |
-| `error_recovery_loop_kunlun_KL3off.json` | 阶段 4 结果：**不设** `XPU_EVENT_KL3_ENABLE` |
-| `error_recovery_loop_kunlun_KL3on.json` | 阶段 4 结果：**设** `XPU_EVENT_KL3_ENABLE`（与上面除时间戳外**完全一致**） |
-| `recheck_conformance_13_kunlun_20260922.json` | **两实例对称复跑（09-22）**：一致性判据 13/13（含 `backend`） |
-| `recheck_conformance_infer6_kunlun_20260922.json` | 同上：推理 6 例 6/6 |
-| `recheck_stream_semantics_kunlun_20260922.json` | 同上：执行语义基线 8/8 |
-| `recheck_error_loop_kunlun_20260922.json` | 同上：错误闭环 闭环 5 / 跳过 0 / 失败 0（含 `backend` + 时间戳） |
-
-> ⚠️ **注意**：本目录 `*.log` 为**原始证据**，需随仓库分发，故在此目录放了局部 `.gitignore`（`!*.log`）
-> 覆盖根仓库的 `*.log` 通用忽略规则。**此前这批日志因根规则从未入库**，本次整理时一并纳入。
+| 当前结论 = 哪一份 | `probes/audit_20261008_out/`（自证审计）· `probes/d2_20261008_out/` · `probes/e1_regress_kunlun_20261008_out/` · `probes/r8_regress_kunlun_20260930*` |
+| KL3 缺陷取证 | `probes/A_round1_battery_20260914.log` · `B_round2_repeat_*` · `C_round3_dose_*` · `D_verify_truthvalue_*` · `E_train_ab.log` |
+| 卡 1 故障判别 | `probes/DIAG_kunlun_card1_event_hang_20260929.log`（A/B/C 三组 + 卡身份硬核对） |
+| 两条腿 / 服务化 / 错误闭环 | `probes/E_train_leg_result_rank{0,1}.json` · `F_infer_leg_result_20260920.json` · `F2_serve_result_20260920.json` · `error_recovery_loop_kunlun_KL3{on,off}.json` |
+| 口径与命名规范 | `../prototype/docs/VERIFICATION_MANIFEST_20260920.md` §2、§5 |
 
 ---
 

@@ -1,0 +1,16 @@
+[W1008 01:58:25.473432460 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== 流优先级统一 API 真机探针 · backend=ascend ===
+devices=3 | torch=2.11.0+cu130 | device=npu:0
+capabilities: stream_priority=True control=False readback=True
+  [PASS] D1_create_stream_默认路径不回归  type=Stream 流上计算=16.0（期望 16.0）
+  [PASS] D2_range_形状为2元组或None  得到 (7, 0)（type=tuple）
+  [PASS] D2b_readback_对默认流返回int  回读=0
+  [PASS] D2c_未声明control时readback不参与设置  （本家只读：回读值仅供观测，不作为'设置成功'的依据）
+  [PASS] D4_未声明control时priority=0_必须显式拒绝  NotImplementedError（含能力键名=True）
+  [PASS] D4_未声明control时priority=1_必须显式拒绝  NotImplementedError（含能力键名=True）
+  [PASS] D5_厂商路径的参数保留性（不一致即'静默丢弃'）  直接 npu 建流 priority=7 ⇒ 回读=0 ⇒ **厂商静默丢弃**：本层若不校验就会产出假象
+  [PASS] D6_受阻点在包装而非ACL（ACL保留/包装丢失）  pyACL 建流(priority=7) 回读=7（ACL **保留**）；`Stream(stream_ptr=handle)` 拿到的却是 handle=187650960792256 ⇒ 回读=0 ⇒ **句柄被静默忽略**（同一条流？False）
+
+=== STREAM_PRIORITY_API_PASS（8/8）===
+BOUNDARY: 结论只在本栈（该实例 + 该 torch/驱动版本）成立，不得跨实例外推。
+已写出: /mnt/raid/hliu553/dc_r10_20261008/out_r10/r10_prio_api_ascend.json

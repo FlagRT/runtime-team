@@ -1,0 +1,12 @@
+# 挂载覆盖的安装自证（容器启动时 compose 的 command 第一步）
+# 来源: /mnt/raid/hliu553/dc_env_20261016/log/dc_env_run.log
+# 命令: USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX
+
+    Successfully installed flagcx-0.13.0
+   flagcx -> /workspace/FlagCX/plugin/torch/flagcx
+
+# 被测源码自证（宿主挂载的那份）
+  FlagCX HEAD = b576fa6ad977c19389679b2f8dee00cff4523b3a
+  FlagCX 未提交项 = 0
+  默认 DEVICE_LINK 里 cust_opapi 命中 = 0（应为 0）
+  默认 ADAPTOR_FLAG 里 DAG 宏命中 = 0（应为 0）

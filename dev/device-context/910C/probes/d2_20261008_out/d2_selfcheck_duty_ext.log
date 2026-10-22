@@ -1,0 +1,97 @@
+[W1008 07:36:03.034765238 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+==========================================================================================
+§0 委派翻译层自检（无需设备）：委派返回形状 → 审计状态 的三值映射
+==========================================================================================
+  [OK  ] 真实通过       委派=True / 判据真正执行且通过                     → 期望 OK    实得 OK
+  [OK  ] 如实跳过       委派=None / 委派方按三值约定跳过                    → 期望 SKIP  实得 SKIP
+  [OK  ] 如实不适用      委派=True / 不适用：未声明 `memory_alloc` 等      → 期望 SKIP  实得 SKIP
+  [OK  ] 真实失败       委派=False / 二次释放静默（I3 违反）                → 期望 FAIL  实得 FAIL
+  四种返回形状的三值映射全部符合约定
+
+==========================================================================================
+非空转验证：duty_response_audit H–M 域逐条注入 ｜ backend=ascend
+==========================================================================================
+  [抓到] H1   原状=OK    注入后=FAIL  未声明能力却静默返回假句柄
+           注入后：未声明 memory_alloc 却**静默返回**（假句柄比报错危险：上层会当成可用的设备内存）
+  [抓到] H2   原状=OK    注入后=FAIL  allocate 对非法 size_bytes 不报错
+           注入后：0 未报错; -1 未报错; True 未报错; '4096' 未报错
+  [抓到] H3   原状=OK    注入后=FAIL  free 永不报错（二次释放静默）
+           注入后：二次释放**静默通过**（契约要求 ValueError —— 静默会是双重释放 → 后续踩内存）
+  [抓到] H4   原状=OK    注入后=FAIL  free 接受任意陌生句柄
+           注入后：{'handle_id': 999999, 'kind': 'memory'} 未报错; 8323072 未报错; '0x7f0000' 未报错; None 未报错
+  [抓到] H5   原状=OK    注入后=FAIL  句柄计数恒为 0（与分配/释放不联动）
+           注入后：分配前 0 → 分配后 0（期望 1）→ 释放后 0（期望 0）
+  [抓到] H6   原状=OK    注入后=FAIL  memory_stats 出现未登记键
+           注入后：出现未登记键 ['not_a_registered_key']（契约：不得出现未登记键）
+  [抓到] H7   原状=OK    注入后=FAIL  record_stream 直接抛错（契约要求保守同步放行）
+           注入后：record_stream 抛错：TypeError: no record_stream（契约：未声明 ⇒ 保守同步放行**不抛错**，跨流内存被提前回收比降级慢危险得多）
+  [抓到] H8   原状=OK    注入后=FAIL  .native 取用不计数（恒值）
+           注入后：.native 取用后 native_accesses 未 +1（424242→424242）—— 取用必须可事后定位
+  [抓到] I1   原状=OK    注入后=FAIL  未声明 context_lifecycle 却静默返回句柄
+           注入后：[注入后] 未声明 context_lifecycle 却静默返回了上下文句柄（子进程隔离）
+  [抓到] I2   原状=OK    注入后=FAIL  context_set 接受任意句柄
+           注入后：{'handle_id': 999999, 'kind': 'context'} 未报错; 4660 未报错; None 未报错
+  [抓到] I3   原状=OK    注入后=FAIL  context_destroy 接受任意句柄（含默认上下文）
+           注入后：{'handle_id': 999999, 'kind': 'context'} 未报错（**误毁默认上下文会让整个进程的设备不可用**）; 22136 未报错（**误毁默认上下文会让整个进程的设备不可用**）; None 未报错（**误毁默认上下文会让整个进
+  [抓到] I4   原状=OK    注入后=FAIL  context_count 恒为 1（把进程默认上下文也数进去）
+           注入后：[注入后] 开工时本层上下文数 = 1（应为 0：契约要求**不含进程默认上下文**）（子进程隔离）
+  [抓到] I5   原状=OK    注入后=FAIL  两种句柄可互相误用（不报错）
+           注入后：[注入后] 内存句柄被 accept 为上下文句柄（子进程隔离）
+  [抓到] I6   原状=OK    注入后=FAIL  context_query 缺键
+           注入后：缺键 ['flags', 'managed_by', 'ordinal', 'present', 'reason']（契约：固定 6 键，上层换芯片无需分支）
+  [抓到] I7   原状=OK    注入后=FAIL  present 用 0/1 冒充 bool
+           注入后：present=1（不得用 0/1 冒充 bool）
+  [抓到] I8   原状=OK    注入后=FAIL  只读接口产生副作用（新造句柄）
+           注入后：查询过程新造/销毁了内存句柄：1 → 2（只读接口不得有副作用）
+  [抓到] I9   原状=OK    注入后=FAIL  recover_device 缺 context 三键
+           注入后：缺 context 三键 ['context_count', 'context_recreated', 'context_supported']（§1.7 只增）
+  [抓到] I10  原状=OK    注入后=FAIL  销毁上下文后其流仍可用（使用点未拦截）
+           注入后：[注入后] 上下文销毁后其流**仍可用**（契约：使用点必须如实报错；厂商侧实测是静默的 ⇒ 拦截由本层负责）（子进程隔离）
+  [抓到] J1   原状=OK    注入后=FAIL  能力全集之外的键被判 True（I1② 违反）
+           注入后：[委托 contract_invariants] ④ 入口存在性覆盖 16/17 项能力｜问题: ② 能力全集外的键被判 True: ['no_such_capability_xyzzy']
+  [抓到] J2   原状=OK    注入后=FAIL  陌生消息却声称 mapped=True（I2② 自相矛盾）
+           注入后：[委托 contract_invariants] ① 陌生消息却 mapped=True（不得声称有依据）；② 自相矛盾: mapped=True 但 graded_by='default'
+  [抓到] J3   原状=OK    注入后=FAIL  二次释放静默（I3 违反）
+           注入后：[注入后] [委托 contract_invariants] A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → RuntimeError ✓；A 二次释放未报错（静默）；B 未登记句柄（伪 id）
+  [抓到] J4   原状=OK    注入后=FAIL  .native 取用不计数（I4② 违反）
+           注入后：[委托 contract_invariants] ② .native 计数 0→0、退化保持 1 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓；② `.native
+  [抓到] K1   原状=OK    注入后=FAIL  范围透传厂商三元组（形状违约）
+           注入后：形状不符：(7, 0, 0)（契约：**(least, greatest) 2 元组** 或 None；不得透传厂商三元组）
+  [不适用] K2   原状=SKIP  注入后=-     未声明 stream_priority 却给出范围
+           本机如实 SKIP：本后端已声明 stream_priority（范围可读）⇒ 该分支不适用
+  [抓到] K3   原状=OK    注入后=FAIL  未声明 control 却静默返回流（不拒绝）
+           注入后：未声明 control 却**静默返回**了一条流（会产出「看起来设了优先级」的假象）
+  [抓到] K4   原状=OK    注入后=FAIL  非法 priority 不报错
+           注入后：-1 未报错; 8 未报错; '1' 未报错; True 未报错
+  [不适用] K5   原状=SKIP  注入后=-     声明 control 但不声明 readback（耦合破裂）
+           本机如实 SKIP：未声明 stream_priority_control ⇒ 该耦合不适用
+  [不适用] K6   原状=SKIP  注入后=-     回读与请求不一致（参数被静默丢弃）
+           本机如实 SKIP：未声明 stream_priority_control ⇒ 该分支不适用
+  [抓到] K7   原状=OK    注入后=FAIL  回读返回字符串（用伪装值表示「读不出」）
+           注入后：回读返回 '0'（str）—— 契约：int 或 None，**不得补零/伪装**
+  [不适用] K8   原状=SKIP  注入后=-     单点区间请求唯一档位也失败/不校验
+           本机如实 SKIP：本机区间 (0, 7) 非单点 ⇒ 「等价放行」分支不适用（由 K6 覆盖）
+  [抓到] L1   原状=OK    注入后=FAIL  对厂商拥有的流返回 True（越权销毁）
+           注入后：release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+  [抓到] L2   原状=OK    注入后=FAIL  release_stream 不幂等（恒 True）
+           注入后：第一次=True 第二次=True（均应为 False）
+  [抓到] L3   原状=OK    注入后=FAIL  Stream.release() 越权返回 True
+           注入后：Stream.release() 返回 True —— 与 release_stream 同语义，厂商拥有的流必须是 False
+  [抓到] L4   原状=OK    注入后=FAIL  owns=False 但 release 返回 True（不一致）
+           注入后：厂商原生路径：owns=False 但 release=True
+  [不适用] L5   原状=SKIP  注入后=-     已释放的流仍可继续使用（使用已销毁对象未如实报错）
+           本机如实 SKIP：本机没有「由本层拥有」的建流路径（未声明 `stream_priority_control`）⇒ 该分支不适用（契约 §1.10 规则 1 要求走「厂商 C API 建流 + 包装」）
+  [抓到] L6   原状=OK    注入后=FAIL  返回值不是严格 bool
+           注入后：返回 1（int）—— 契约：bool
+  [抓到] M1   原状=OK    注入后=FAIL  契约承诺的统一 API 名不可调用
+           注入后：契约承诺但统一面取不到：['context_set'] ⇒ 下游按契约写 `runtime.<name>` 会 AttributeError
+  [抓到] M2   原状=OK    注入后=FAIL  公开常量为空
+           注入后：缺或为空：['MEMORY_HANDLE_KEYS']
+  [抓到] M3   原状=OK    注入后=FAIL  __all__ 里出现幽灵导出（拼错/未定义）
+           注入后：幽灵导出 ['definitely_not_a_real_name_xyz']
+------------------------------------------------------------------------------------------
+共 39 项：抓到 34 · 本机不适用 5 · **未抓到 0**
+（本机不适用 ['K2', 'K5', 'K6', 'K8', 'L5'] —— 换实例会真正行使，见各自的 SKIP 原因）
+verdict = SELFCHECK_DUTY_EXT_PASS
+⚠️ 边界：本脚本只证「判据能 FAIL」，不证「判据的期望值是对的」——期望值依据是契约 §1.6–§1.10 的条款原文。
+结果已写入 /mnt/raid/hliu553/dc_d2_20261008/out_d2/d2_selfcheck_duty_ext.json

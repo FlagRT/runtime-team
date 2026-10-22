@@ -1,0 +1,40 @@
+{
+  "started_at": "2026-10-09T10:42:32.879175+08:00",
+  "backend_label": "milvus",
+  "url": "http://127.0.0.1:8090",
+  "count_per_scenario": 2,
+  "stagger_ms": 20,
+  "status": "failed",
+  "note": "Client HTTP overlap does not prove internal stage overlap; inspect server stage logs using X-Request-ID.",
+  "health_before": {
+    "status": "ready",
+    "device": "remote-vllm",
+    "busy": false,
+    "inflight": 0,
+    "max_inflight": 8,
+    "embedding_backend": "vllm"
+  },
+  "checks": {
+    "serial": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 0,
+      "failures": []
+    },
+    "simultaneous": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 1,
+      "failures": []
+    },
+    "staggered": {
+      "passed": false,
+      "requests": 2,
+      "overlapping_http_pairs": 1,
+      "failures": [
+        "PLAIN-1028: invalid/empty results or mismatch against serial reference"
+      ]
+    }
+  },
+  "finished_at": "2026-10-09T10:42:34.999415+08:00"
+}

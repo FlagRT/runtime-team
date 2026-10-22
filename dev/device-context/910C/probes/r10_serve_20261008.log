@@ -1,0 +1,64 @@
+===== [0] 容器与版本 =====
+dc-r10-serve-20261008|Up About a minute
+can not use command: npu-smi info
+torch 2.10.0+cpu npu 2.10.0 vllm 0.20.2 dev 2
+本层新代码到位核验（各期望 1）：
+can not use command: npu-smi info
+1
+1
+1
+===== [A] SERVE_FORM=embed TP=1 EAGER=1 DEV=0 =====
+can not use command: npu-smi info
+rc=0
+  ✅ 服务就绪 t=60s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 5s；超时上限 SMOKE_TIMEOUT=240s）
+  （释放复查：等待 5s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+-- 形态真生效证据（不是「命令跑通了」）
+CUDAGraphMode.NONE CompilationMode.NONE enforce_eager=True 
+===== [A] SERVE_FORM=embed TP=1 EAGER=0 DEV=0 =====
+can not use command: npu-smi info
+rc=0
+  ✅ 服务就绪 t=65s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 0s；超时上限 SMOKE_TIMEOUT=240s）
+  （释放复查：等待 5s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+-- 形态真生效证据（不是「命令跑通了」）
+CUDAGraphMode.PIECEWISE CompilationMode.VLLM_COMPILE enforce_eager=False 
+===== [A] SERVE_FORM=embed TP=2 EAGER=1 DEV=0,1 =====
+can not use command: npu-smi info
+rc=0
+  ✅ 服务就绪 t=50s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 2s；超时上限 SMOKE_TIMEOUT=240s）
+  （释放复查：等待 10s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+-- 形态真生效证据（不是「命令跑通了」）
+Worker_TP0 Worker_TP1 backend=ag backend=hccl world_size=2 
+CUDAGraphMode.NONE CompilationMode.NONE enforce_eager=True 
+===== [A] SERVE_FORM=embed TP=2 EAGER=0 DEV=0,1 =====
+can not use command: npu-smi info
+rc=0
+  ✅ 服务就绪 t=95s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 0s；超时上限 SMOKE_TIMEOUT=240s）
+  （释放复查：等待 10s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+-- 形态真生效证据（不是「命令跑通了」）
+Worker_TP0 Worker_TP1 backend=ag backend=hccl world_size=2 
+CUDAGraphMode.PIECEWISE CompilationMode.VLLM_COMPILE enforce_eager=False 
+===== [B] 保持服务运行（STOP_AFTER=0）+ proto_infer_serve.py（本层消费方）=====
+  ✅ 服务就绪 t=30s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 0s；超时上限 SMOKE_TIMEOUT=240s）
+rc=0
+[1] 设备上下文: 后端=ascend 设备数=2
+[1b] 同卡跨流计算: 3.0 ✅
+=== SERVE_LEG_PASS | 10/10 ===
+===== [C] 收尾：停服务 =====
+can not use command: npu-smi info
+done
+===== ALL DONE =====
+[10:39:22]

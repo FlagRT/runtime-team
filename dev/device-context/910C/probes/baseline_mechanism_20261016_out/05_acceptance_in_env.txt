@@ -1,0 +1,49 @@
+# 证据截选 —— 在本机制起的容器里跑两项验收（单入口，全 PASS）
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/mechanism/resume.log
+# 采集时间: 2026-10-16 12:04:20 (npu1-27)
+
+===== [8] 两项验收（单入口，跑在本机制起的容器里）=====
+can not use command: npu-smi info
+############################################################
+# FlagCX c10d 修复验收（单入口）  2026-10-16 04:02:28
+# 仓根:     /workspace
+# 复现脚本: /workspace/dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py
+# DDP 脚本: /workspace/dev/device-context/910C/probes/ddp_native_test.py
+############################################################
+
+===== [0] 自证：本次跑的是哪份 FlagCX =====
+  flagcx 包: /workspace/FlagCX/plugin/torch/flagcx
+    _C.cpython-311-aarch64-linux-gnu.so ac507f075ac7450b
+    libflagcx.so 5af25cc92ed97281
+  卡: ASCEND_RT_VISIBLE_DEVICES=0,1
+can not use command: npu-smi info
+  device_count = 2
+
+===== [1] 验收 ①：flagcx_sync_test.py --iters 20 =====
+      broadcast+nosync                 PASS
+      broadcast+sync                   PASS
+      all_reduce+nosync                PASS
+      all_reduce+sync                  PASS
+      all_gather_list+nosync           PASS
+      all_gather_list+sync             PASS
+      all_gather_into_tensor+nosync    PASS
+      all_gather_into_tensor+sync      PASS
+    overall: PASS
+    rc=0  判定=PASS
+
+===== [2] 验收 ②：ddp_native_test.py --steps 10（原生 DDP 双卡）=====
+      ddp_wrapped        PASS
+      train_steps        PASS
+      loss_all_finite    PASS  first=2.065917 last=1.350363
+      ranks_param_equal  PASS  param_max_min_equal=True sum=-0.652580
+    overall: PASS
+    rc=0  判定=PASS
+
+===== [3] 合并判定 =====
+  sync_test      rc=0   PASS
+  ddp_native     rc=0   PASS
+  overall: PASS —— 两项验收均通过（退出码 0）
+  证据: /workspace/dev/device-context/910C/probes/acceptance_out/sync_test.out · /workspace/dev/device-context/910C/probes/acceptance_out/ddp_test.out
+  acceptance rc=0
+
+===== [9] .last-check.json（check 的留痕）=====

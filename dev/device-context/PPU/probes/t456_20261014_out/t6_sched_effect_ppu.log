@@ -1,0 +1,21 @@
+=== probe_stream_priority_sched_effect.py: 流优先级「调度效果」对照实验（台账 D2）===
+[env] backend=ppu device_type=cuda devices=1 torch=2.10.0 dev=0（PPU-ZW810E）
+[env] rounds=8 pass_n=6 work=2048 iters=60 calib=3 v1_rounds=3
+[E1] range_raw=(0, -3) ⇒ hi(最高)=-3 lo(最低)=0 supports_ctrl=True supports_rb=True applicable=True
+
+STREAM_PRIORITY_SCHED_EFFECT_FAIL（applicable=True · instrument_valid=True · effect_observed=False）
+  [PASS] E1_range_and_applicability: raw=(0, -3); hi=-3; lo=0; supports[control]=True; supports[readback]=True; applicable=True
+  [PASS] E2_setup_readback_equals_request: 请求 hi=-3 ⇒ 回读 -3；请求 lo=0 ⇒ 回读 0
+  [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 34.536 ms（单次 ≈ 0.5756 ms）；gate 慢活 121 次实测 71.223 ms（下限 30.0 ms）
+  [PASS] D1_measurement_resolution: 一趟扫描 1.14 µs = 工作量级（34.536 ms）的 0.003%（阈值 ≤ 5.0%）⇒ 分辨力足够
+  [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 34.0886 ms ⇒ 测量**能**判出差异（仪器有效）
+  [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 3/8 有效轮（平局 0）；中位差 -0.4702 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+  [FAIL] V1_gate_actually_gated: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [FAIL] G1_gate_high_priority_wins: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [FAIL] G4_naive_submit_order_control: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330562f50）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [FAIL] G7_ungated_equal_priority_control: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [FAIL] G8_ungated_reversed_order: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330562f50）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [FAIL] G5_direction_crosscheck_swapped: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream
+  [SKIP] G6_nonzero_vs_zero_crosscheck: 取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过
+  [SKIP] G9_gated_large_vs_mid_crosscheck: 取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过
+结果 -> /workspace/probes_ppu/dc_t456_20261014/t6_sched_effect_ppu.json

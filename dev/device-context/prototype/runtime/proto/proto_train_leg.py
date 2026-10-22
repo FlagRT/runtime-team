@@ -15,8 +15,10 @@
   5. 全程无死锁、无数据错乱；记录吞吐
 
 环境变量（括号内为默认值 = **910C 训练腿当前口径**）
-  DC_BACKEND   运行时后端名（`ascend` = torch_npu；昆仑芯用 `kunlun`；寒武纪用 `cambricon`）
-  DC_DIST_BT   进程组后端（910C=`hccl`；昆仑芯见 --help 探测结果，如 `xccl`；寒武纪必须显式给）
+  DC_BACKEND   运行时后端名（`ascend` = torch_npu；昆仑芯用 `kunlun`；寒武纪用 `cambricon`；
+               平头哥 PPU 用 `ppu`）
+  DC_DIST_BT   进程组后端（910C=`hccl`；昆仑芯见 --help 探测结果，如 `xccl`；寒武纪必须显式给；
+               PPU=`nccl`）
   DC_ROOT      device-context 根路径（`/mnt/raid/hliu553/runtime-team/dev/device-context`）
   DC_MODEL     模型路径（`/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B`）
   DC_OUT_DIR   结果输出目录（`/mnt/raid/hliu553/runtime-team/scratch`）
@@ -48,6 +50,18 @@
   DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
   DC_OUT_DIR=/workspace/out \
   python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
+
+用法（平头哥 PPU / 真武 ZW810E）：
+  # 集合通信后端名 = `nccl`（**不是 `pccl`**，见 _DIST_BT_DEFAULT 注释）
+  # ⚠️ 容器必须带 `-e NCCL_SOCKET_IFNAME=bond0`：镜像把该变量写死成 `eth0`，而本机没有
+  #    `eth0`（真网卡 `bond0`）⇒ 不覆盖则 `init_process_group` 能建组、真实 `all_reduce`
+  #    失败（`Bootstrap : no socket interface found`）。
+  # ⚠️ 设备选择用 `CUDA_VISIBLE_DEVICES`（容器内 **0 基**索引，PPU 走 `torch.cuda` 命名空间）
+  CUDA_VISIBLE_DEVICES=0,1 DC_BACKEND=ppu DC_DIST_BT=nccl \
+  DC_ROOT=/workspace/runtime-team/dev/device-context/prototype \
+  DC_MODEL=/workspace/models/Qwen3-Embedding-0.6B \
+  DC_OUT_DIR=/workspace/out \
+  python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 """
 from __future__ import annotations
 
@@ -63,26 +77,32 @@ BACKEND = os.environ.get("DC_BACKEND", "ascend")   # 2026-09-22：910C 训推统
 #:   910C：统一 torch_npu 后走**原生 HCCL**（`hccl`）
 #:   P800：flagcx 注册为 `flagcx`，且需显式 `import flagcx`；设备走 flagcx、CPU 走 gloo
 #:   （P800 侧路径与 xliu969 已验证的 Route A 一致）
-#:   MLU590：**刻意不给默认值**（见下方 cambricon 分支）—— 后端名必须实测后显式指定
+#:   PPU（平头哥 真武 ZW810E，2026-10-10 真机实测）：后端名 = **`nccl`**
+#:     —— `pccl` / `hccl` / `ucc` 均报 `Unknown backend type`，`xccl` 未编译；
+#:     而**底层库确实叫 PCCL**（`libtorch_cuda.so` 内含 `pccl` 字样）
+#:     ⇒ ⚠️ **库名 ≠ 后端名**，拼字符串勿混。
+#:     前置：容器须 `-e NCCL_SOCKET_IFNAME=bond0`（镜像写死 `eth0` 而本机无 `eth0`）。
+#:   MLU590：**刻意不给默认值**（见下方分支）—— 后端名必须实测后显式指定
 _DIST_BT_DEFAULT = {
     # 910C 统一 torch_npu（2026-09-22）⇒ 集合通信走 torch_npu 原生 **HCCL**。
     # 实测可用后端（torch_npu 2.11.0）：gloo / nccl / xccl / ucc / mpi / **hccl** / lccl
     "ascend": "hccl",
     "kunlun": "cpu:gloo,cuda:flagcx",
+    # 第 4 家 PPU：2026-10-10 真机 2 卡 all_reduce 通过（`ALLREDUCE_PASS`）
+    "ppu": "nccl",
 }
-DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT.get(BACKEND, "gloo")
-
-# ⚠️ 寒武纪（cambricon）：**刻意不给默认值，且不给就报错退出**。
+# ⚠️ **表中没有的芯片一律拒绝继续**（不给 `gloo` 兜底）。
 #    理由（手册 §9 坑 3「同一集合通信库在不同芯片注册的后端名不同」）：
-#      三家芯片各自注册的后端名互不相同（910C=`hccl`、P800=`flagcx`、MLU590 待实测）
-#      ⇒ **不可类推**；
-#      而 `_DIST_BT_DEFAULT.get(BACKEND, "gloo")` 的兜底是 `gloo`，那会**静默退化为纯 CPU
-#      集合通信**：训练脚本照样跑完、loss 照样下降，但**设备侧集合通信根本没被验证**
+#      各家注册的后端名互不相同（910C=`hccl`、P800=`flagcx`、PPU=`nccl`）⇒ **不可类推**；
+#      而 `_DIST_BT_DEFAULT.get(BACKEND, "gloo")` 这类兜底会**静默退化为纯 CPU 集合通信**：
+#      训练脚本照样跑完、loss 照样下降，但**设备侧集合通信根本没被验证**
 #      —— 这类"看起来通过"的结果比失败更糟，故此处显式拦住。
-if BACKEND == "cambricon" and not os.environ.get("DC_DIST_BT"):
-    print(
-        "[cambricon] 未设置 DC_DIST_BT，拒绝以兜底值 `gloo` 继续（那会静默退化为纯 CPU\n"
-        "  集合通信，训练脚本仍会跑完，但设备侧通信未被验证）。\n"
+#    ⚠️ **2026-10-10 修正（PPU 接入时实测暴露）**：原实现只对 `cambricon` 单独拦，
+#      其余「表里没有」的后端仍会静默吃到 `gloo` —— PPU 初版正是如此
+#      （`DC_BACKEND=ppu` 不给 `DC_DIST_BT` ⇒ 走 gloo，训练照跑）。
+#      现改为**表中无项即拒绝**；MLU590 仍属"无项"⇒ 行为不变。
+_DIST_BT_HINT = {
+    "cambricon": (
         "  寒武纪的集合通信后端名**必须实测后显式指定**，不能从 910C(`hccl`) / P800(`flagcx`) 类推。\n"
         "  探测方法（容器内，只读）：\n"
         "    python3 -c \"import torch_mlu, torch; print(torch.mlu.is_available(), torch.mlu.device_count())\"\n"
@@ -90,10 +110,24 @@ if BACKEND == "cambricon" and not os.environ.get("DC_DIST_BT"):
         "    #   候选：cncl（寒武纪 CCL） / flagcx（若镜像内已装 flagcx-ascend 之外的 mlu 适配）\n"
         "  探测结果请回填《寒武纪接入方案》与\n"
         "    runtime/backends/cambricon/backend.py 顶部「未实测清单」第 10 条。\n"
-        "  确认后按 DC_DIST_BT=\"cpu:gloo,mlu:<backend>\" 重跑。",
+        "  确认后按 DC_DIST_BT=\"cpu:gloo,mlu:<backend>\" 重跑。"
+    ),
+}
+if not os.environ.get("DC_DIST_BT") and BACKEND not in _DIST_BT_DEFAULT:
+    print(
+        f"[{BACKEND}] 未设置 DC_DIST_BT，且该后端在 _DIST_BT_DEFAULT 中**没有已实测的默认值**，\n"
+        "  拒绝以兜底值 `gloo` 继续（那会静默退化为纯 CPU 集合通信：训练脚本仍会跑完，\n"
+        "  但设备侧集合通信根本没被验证）。\n"
+        + _DIST_BT_HINT.get(
+            BACKEND,
+            "  该芯片的集合通信后端名**必须实测后显式指定**，不可从他家类推\n"
+            "  （910C=`hccl`、P800=`flagcx`、PPU=`nccl` 各不相同）。",
+        )
+        + "\n  实测后请把该后端补进本文件的 _DIST_BT_DEFAULT（一行，带实测日期）。",
         flush=True,
     )
     raise SystemExit(2)
+DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT[BACKEND]
 ROOT = os.environ.get("DC_ROOT", "/mnt/raid/hliu553/runtime-team/dev/device-context")
 MODEL = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
 OUT_DIR = os.environ.get("DC_OUT_DIR", "/mnt/raid/hliu553/runtime-team/scratch")

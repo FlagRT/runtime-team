@@ -1,0 +1,25 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+=== probe_stream_priority_sched_effect.py: 流优先级「调度效果」对照实验（台账 D2）===
+[env] backend=kunlun device_type=cuda devices=1 torch=2.9.0+cu129 dev=0（GPU）
+[env] rounds=8 pass_n=6 work=2048 iters=60 calib=3 v1_rounds=3
+[E1] range_raw=(0, 0) ⇒ hi(最高)=0 lo(最低)=0 supports_ctrl=True supports_rb=True applicable=False
+     ⇒ 不适用原因：优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照
+
+STREAM_PRIORITY_SCHED_EFFECT_NOT_APPLICABLE（applicable=False · instrument_valid=True · effect_observed=None）
+  [PASS] E1_range_and_applicability: raw=(0, 0); hi=0; lo=0; supports[control]=True; supports[readback]=True; applicable=False；不适用原因：优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照
+  [SKIP] E2_setup_readback_equals_request: applicable=False ⇒ 不经优先级路径建流（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 10.592 ms（单次 ≈ 0.1765 ms）；gate 慢活 340 次实测 55.728 ms（下限 30.0 ms）
+  [PASS] D1_measurement_resolution: 一趟扫描 1.685 µs = 工作量级（10.592 ms）的 0.016%（阈值 ≤ 5.0%）⇒ 分辨力足够
+  [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 9.8661 ms ⇒ 测量**能**判出差异（仪器有效）
+  [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 3/8 有效轮（平局 0）；中位差 -0.1526 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+  [SKIP] V1_gate_actually_gated: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G1_gate_high_priority_wins: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G4_naive_submit_order_control: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G5_direction_crosscheck_swapped: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G6_nonzero_vs_zero_crosscheck: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G7_ungated_equal_priority_control: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G8_ungated_reversed_order: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+  [SKIP] G9_gated_large_vs_mid_crosscheck: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+结果 -> /workspace/dc_e1_20261008/out_d2/d2_sched_effect_p800.json

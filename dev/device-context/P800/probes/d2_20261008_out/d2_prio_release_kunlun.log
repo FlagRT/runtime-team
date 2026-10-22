@@ -1,0 +1,27 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[env] backend=kunlun device_type=cuda range=(0, 0) control=True
+
+[R1] 默认路径的所有权
+  [PASS] R1a 默认路径造出的流**不得**被登记为本层拥有  owns=False
+  [PASS] R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False  release=False
+
+[R2] 单点区间：等价放行（仅当区间单点）
+  [PASS] R2a 单点区间下请求唯一档位 ⇒ 成功且**回读一致**（等价厂商默认）  回读=0（请求 0）
+  [PASS] R2b 等价放行的流由**厂商拥有** ⇒ 不得登记、release 必须 no-op  owns=False
+
+[R3] 实现链路：私有 `_create_stream_raw(域内值)` 直调取证
+  [PASS] R3a 私有原语造出的流**可回读且等于请求值**（参数真的进了设备）  回读=0（请求 0）
+  [PASS] R3b 该流**真的能承载算子**（不是『看起来设了』的假流）  sum=32.0（期望 32.0）
+  [PASS] R3c 本层拥有的流 ⇒ release_stream 必须**真的销毁**（返回 True）  release=True
+  [PASS] R3d 已释放的流**再使用**必须报错（使用已销毁对象必须明确）  RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x604aa6fecc00）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上
+
+[R4] 取值域校验
+  [PASS] R4 越界 priority=-1 ⇒ ValueError  ValueError
+  [PASS] R4 越界 priority=1 ⇒ ValueError  ValueError
+
+=== 汇总 ===
+  通过 10 / 失败 0 / 跳过 0
+verdict = STREAM_RELEASE_CONTROL_PASS
+[out] /workspace/dc_e1_20261008/out_d2/d2_prio_release_kunlun.json

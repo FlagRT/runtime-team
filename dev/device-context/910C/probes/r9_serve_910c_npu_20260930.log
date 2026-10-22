@@ -1,0 +1,18 @@
+===== [0] 容器与版本 =====
+dc-serve-910c-20260930|Up 2 minutes
+can not use command: npu-smi info
+torch 2.10.0+cpu npu 2.10.0 vllm 0.20.2 dev 1
+版本核验（本层新代码到位）：
+can not use command: npu-smi info
+1
+1
+===== [A] serve_standard.sh STOP_AFTER=1（标准形态复核）=====
+can not use command: npu-smi info
+rc=0
+  ✅ 服务就绪 t=45s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  （冒烟耗时 5s；超时上限 SMOKE_TIMEOUT=180s）
+--- 用卡后复查（确认已释放）---
+  （释放复查：等待 5s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+===== [B] 保持服务运行（STOP_AFTER=0）=====

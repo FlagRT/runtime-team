@@ -1,0 +1,32 @@
+# 证据截选 —— up.sh（不加 --strict）起容器 rc=0 + compose command 自证 + 安装/加载自证
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/mechanism/resume.log
+# 采集时间: 2026-10-16 12:04:20 (npu1-27)
+
+===== [6] up.sh <env-dir>（不加 --strict：spec 明示默认只报告、不阻止启动）=====
+[FAIL] image: id 不一致: 基线 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15 本机 sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913 (ref=flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64)
+[PASS] FlagCX: commit=b576fa6ad977
+[INFO] FlagCX: 覆盖镜像内固化版本 4e0e0cbcbf72，生效方式 pip-editable
+[INFO] baked: 固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）
+check 结果 -> dev/device-context/910C/env/train/.last-check.json
+[WARN] 基线核对不一致：默认只报告、不阻止启动（验收/出结论的运行请加 --strict）
+ Container flagos-dc-train-910c-dev  Creating
+ Container flagos-dc-train-910c-dev  Created
+ Container flagos-dc-train-910c-dev  Starting
+ Container flagos-dc-train-910c-dev  Started
+  up rc=0
+
+===== [7] 等挂载覆盖的 pip editable 安装（compose 的 command 第一步）=====
+  t=10s 仍在构建…
+  t=20s 仍在构建…
+  t=30s 仍在构建…
+  --- compose 实际使用的 command（自证「挂载生效方式」就是声明的 pip-editable）---
+  ["bash","-c","USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX && exec sleep infinity"]
+  --- 安装与构建 ---
+    Successfully installed flagcx-0.13.0
+  --- 加载位置自证（应为 /workspace/FlagCX/...，不是镜像内 site-packages）---
+can not use command: npu-smi info
+   flagcx -> /workspace/FlagCX/plugin/torch/flagcx
+     _C.cpython-311-aarch64-linux-gnu.so ac507f075ac7450b
+     libflagcx.so 5af25cc92ed97281
+
+===== [8] 两项验收（单入口，跑在本机制起的容器里）=====

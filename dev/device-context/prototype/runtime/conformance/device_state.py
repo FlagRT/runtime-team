@@ -26,6 +26,7 @@ DESTROYED（已销毁）。转换全部产生可观测事件（记录 + 订阅�
 """
 
 import enum
+import sys
 import threading
 import time
 from typing import Callable, Dict, List, Optional
@@ -125,3 +126,25 @@ def device_states() -> Dict[int, Dict]:
     with _REGISTRY_LOCK:
         ordinals = list(_STATES.keys())
     return {o: _STATES[o].snapshot() for o in ordinals}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ⚠️ 本模块带**进程内共享状态**，必须全局只有一份（2026-09-29 实测缺陷，第 23 条）
+#   同一个文件既能以 `<conformance>/device_state.py` 导入（**扁平名** —— 后端与本文档《用法》所用），
+#   也能以 `runtime.conformance.device_state`（**包路径**）导入；Python 会让两条路径**各执行一次文件**，
+#   得到**两个互不相干的实例**（实测：`flat is pkg == False`、`_STATES` 不是同一个 dict）。
+#   一侧 `set_device_state()`（或登记在途任务），另一侧**毫无感知**，而且**不报错**
+#   ⇒ 任何"先置状态、再判定"的判据都会**静默空转**（判的是另一个世界）。
+#   ⇒ 把两条路径都指向**先加载的那一份**（`setdefault` 不覆盖已存在项：谁先加载，谁就是唯一那份）。
+# ══════════════════════════════════════════════════════════════════════════════
+for _alias in ("device_state", "runtime.conformance.device_state"):
+    sys.modules.setdefault(_alias, sys.modules[__name__])
+# 另：`import runtime.conformance.device_state as X` 这种**语句形式**还要求父包已导入、
+# 且 `runtime` 上挂好 `conformance` 属性（否则会抛 ImportError）。父包是 PEP 420
+# 命名空间包，导入它不执行任何代码、无副作用。
+try:
+    import importlib as _importlib
+    setattr(_importlib.import_module("runtime.conformance"),
+            "device_state", sys.modules[__name__])
+except Exception:
+    pass
+# ALIASED

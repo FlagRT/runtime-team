@@ -1,0 +1,35 @@
+
+====== E0 环境与范围查询 ======
+  torch_npu 2.11.0
+  device_get_stream_priority_range() -> (7, 0, 0)
+  （CANN 的该接口语义：leastPriority / greatestPriority；CUDA 同名接口的约定是 数值**越大越不优先**、'greatest' 是**数值最小**那个）
+
+====== E1 优先级方向的**行为**核对（不猜语义，看两端能否真的区分） ======
+  ① 只建流、查其 priority 可读性：
+     Stream(priority=0) -> 读回 priority = None（None/异常 = 不可回读）
+     Stream(priority=3) -> 读回 priority = None（None/异常 = 不可回读）
+     Stream(priority=7) -> 读回 priority = None（None/异常 = 不可回读）
+  ② 直接对比 spec 约定的方向（用 pyACL 的 get_stream_attribute 读流属性）：
+     acl.rt.get_stream_attribute 签名拿不到（C 扩展）；改用 docstring:
+      get stream attribute
+  ⇒ 结论路径：**本层无法从 torch 侧回读 priority**（`Stream.priority` 不可读）⇒ 方向只能以**官方文档/接口语义**为准（见随附的文档核查）。
+
+====== E2 用设备自报数字找配额：get_stream_available_num 的行为 ======
+  建流前: (1947, 0)
+  --- 用 pyACL 原生建流（acl.rt.create_stream）逐批观察（含耗时） ---
+    pyACL 建流   200 条（本批 0.09s，0.4 ms/条）  available_num=(1747, 0)
+    pyACL 建流   400 条（本批 0.08s，0.4 ms/条）  available_num=(1547, 0)
+    pyACL 建流   600 条（本批 0.09s，0.4 ms/条）  available_num=(1347, 0)
+    pyACL 建流   800 条（本批 0.08s，0.4 ms/条）  available_num=(1147, 0)
+    pyACL 侧共成功 800 条（未销毁，保持存活）
+  --- 同一进程内再用 torch 建流，观察 available_num 是否随之变化 ---
+    torch 建流   250 条  available_num=(1147, 0)
+    torch 建流   500 条  available_num=(1147, 0)
+    torch 建流   750 条  available_num=(1147, 0)
+    torch 建流  1000 条  available_num=(1147, 0)
+
+  释放 torch 流后: (1147, 0)
+
+====== E3 结论边界 ======
+  · 本脚本只**观测**，未调用任何 set_* 配置接口；
+  · 结论只在本栈（torch_npu 2.11.0 / CANN 9.0.0 / 910C 单卡）成立。

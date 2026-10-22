@@ -1,0 +1,4 @@
+=== A2 多卡多进程 real 恢复压测：backend=kunlun devices=[0] ranks=1 rounds=2 ===
+[前置声明] ISOLATED 由**公开入口** `runtime.set_device_state(dev, "isolated")` 构造（本层四态账本）；非真实硬件 L4 故障。
+[如实跳过] backend=kunlun **未声明 `recovery_real`** ⇒ A2（real 重建压测）对本后端**不适用**。这不计为失败（能力缺失已如实声明）。
+A2_BOUNDARY: SKIP_UNSUPPORTED —— 未做任何设备操作。

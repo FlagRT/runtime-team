@@ -1,0 +1,58 @@
+{
+  "verdict": "STREAM_PRIORITY_API_PASS",
+  "backend": "kunlun",
+  "device": "cuda:0",
+  "torch": "2.9.0+cu129",
+  "timestamp": "2026-09-30 11:00:21",
+  "capabilities": {
+    "stream_priority": true,
+    "stream_priority_control": false,
+    "stream_priority_readback": true
+  },
+  "notes": {
+    "range": [
+      0,
+      0
+    ],
+    "bounds": [
+      0,
+      0
+    ],
+    "vendor_path": {
+      "requested": 0,
+      "readback": 0,
+      "retained": true
+    }
+  },
+  "checks": {
+    "D1_create_stream_默认路径不回归": {
+      "ok": true,
+      "detail": "type=Stream 流上计算=16.0（期望 16.0）"
+    },
+    "D2_range_形状为2元组或None": {
+      "ok": true,
+      "detail": "得到 (0, 0)（type=tuple）"
+    },
+    "D2b_readback_对默认流返回int": {
+      "ok": true,
+      "detail": "回读=0"
+    },
+    "D2c_未声明control时readback不参与设置": {
+      "ok": true,
+      "detail": "（本家只读：回读值仅供观测，不作为'设置成功'的依据）"
+    },
+    "D4_未声明control时priority=0_必须显式拒绝": {
+      "ok": true,
+      "detail": "NotImplementedError（含能力键名=True）"
+    },
+    "D4_未声明control时priority=1_必须显式拒绝": {
+      "ok": true,
+      "detail": "NotImplementedError（含能力键名=True）"
+    },
+    "D5_厂商路径的参数保留性（不一致即'静默丢弃'）": {
+      "ok": true,
+      "detail": "直接 cuda 建流 priority=0 ⇒ 回读=0（保留）"
+    }
+  },
+  "boundary": "本探针只在**该实例**该栈上成立；结论不得跨实例外推。D5/D6 是**观测项**（不是失败项）：它们说明厂商路径的参数保留性。"
+}

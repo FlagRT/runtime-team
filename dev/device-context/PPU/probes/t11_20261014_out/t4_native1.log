@@ -1,0 +1,38 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+后端: ppu | 设备数: 1
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError，进程存活；异常消息内无厂商码（本后端为「超时上报」语义，不产生设备侧数字码）；已等待设备归零
+[l4_by_code(码表内他厂码·诚实降级负向测试)] L3_EXECUTION / replay / action=recover_probe=ok + replay_ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 ===
+结果: /workspace/probes_ppu/dc_t11_20261014/t4_native1.json
+
+===== T11_CRASH_CAPTURED (native) =====
+signal=11 si_code=1 si_addr=0xab
+RIP=0x7f5d740569de RSP=0x7ffda490d010
+RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0
+RIP_BASE=0x7f5d73e00000
+RIP_OFFSET=0x2569de
+RIP_SYMBOL=(no symbol)
+BACKTRACE_FRAMES=17
+  FRAME#0 module=/workspace/probes_ppu/dc_t11_20261014/t11_segv_handler.so offset=0x150f symbol=?
+  FRAME#1 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x45330 symbol=?
+  FRAME#2 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x2569de symbol=?
+  FRAME#3 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x23b07a symbol=?
+  FRAME#4 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d46b symbol=?
+  FRAME#5 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d4c5 symbol=?
+  FRAME#6 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x23f1fa symbol=?
+  FRAME#7 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d3f7 symbol=?
+  FRAME#8 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22b266 symbol=?
+  FRAME#9 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x231e4a symbol=_PyModule_ClearDict
+  FRAME#10 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302dc6 symbol=?
+  FRAME#11 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302080 symbol=Py_FinalizeEx
+  FRAME#12 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30dabe symbol=Py_RunMain
+  FRAME#13 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30d5cb symbol=Py_BytesMain
+  FRAME#14 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a1ca symbol=?
+  FRAME#15 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a28b symbol=__libc_start_main
+  FRAME#16 module=/usr/local/bin/python3 offset=0x1095 symbol=_start

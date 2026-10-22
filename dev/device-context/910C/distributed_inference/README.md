@@ -60,7 +60,7 @@ distributed_inference/
 ## 4. 运行注意
 
 - 推理腿锁定镜像 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`，设备后端 `npu（torch_npu）`
-- 带卡容器并发上限 3；与训练腿串行
+- ⚠️ **带卡容器名额：同一时刻只留 1 个带卡容器**（09-22 / 09-28 两次实测；名义「上限 3」**不可当阈值**，只挂 1 张无人卡也一样失败）—— 用前 `docker ps` 清点，见 `../../prototype/docs/PROTOTYPE_ACCEPTANCE_3CHIP_20260928.md` §4.3；与训练腿**串行**
 - 推理腿自验证：`python3 ../prototype/runtime/proto/proto_infer_leg.py`
 
 ---

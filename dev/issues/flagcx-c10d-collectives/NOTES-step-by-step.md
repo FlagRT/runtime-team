@@ -88,3 +88,121 @@ docker ps
 | 退出期 `free(): invalid pointer` / SIGABRT | FlagCX 已知的退出期问题（low priority）。脚本在打印判定后直接 `os._exit`，不会把判定覆盖成 torchrun 失败 |
 | `--iters` 调小后未同步组偶尔 PASS | 失败是偶发的，必须 20 轮；不要据单次结果改结论 |
 | 想顺带验证另一个缺陷 | 同一个容器内接着跑，用 `ASCEND_RT_VISIBLE_DEVICES` 分区即可，不要再起第二个带卡容器（见 [`../shmem-missing/NOTES-step-by-step.md`](../shmem-missing/NOTES-step-by-step.md)） |
+
+---
+
+# 附：修复验收臂（挂载覆盖）的逐步操作（2026-10-16，npu1-27）
+
+> 上面第 0–4 节是**复现臂**（镜像固化版，用镜像自带 demo）。本节是**修复验收臂**：
+> 同一个镜像，额外把宿主 checkout 的 FlagCX 以 `pip-editable` 挂载覆盖固化版本。
+> 两臂的判据、装置与结果见 [`README.md`](README.md)「修复验收」。
+
+## F0. 两臂的关系（先看清，避免误读结论）
+
+|  | 复现臂（第 0–4 节） | 修复验收臂（本节） |
+|---|---|---|
+| 运行环境 | 镜像 demo [`dev/images/ascend-train-comm/v3/demo/`](../../images/ascend-train-comm/v3/demo/docker-compose.yml) | device-context 方向的 [`dev/device-context/910C/env/train/`](../../device-context/910C/env/train/docker-compose.yml) |
+| 容器内 `import flagcx` 解析到 | 镜像内 `site-packages/flagcx`（commit `4e0e0cbc`） | **宿主 checkout** `/workspace/FlagCX/plugin/torch/flagcx` |
+| 预期判定 | `overall: FAIL`（rc=1，缺陷复现） | `overall: PASS`（rc=0，修复到货） |
+
+**两臂相差的只有一个变量**：加载哪一份 FlagCX。⚠️ 所以**必须让脚本把实际加载路径打出来**
+（`run_910c_p9_acceptance.sh` 的 `[0] 自证` 段会打印 `flagcx 包: <路径>` 与 `.so` sha256 前 16 位）——
+否则很容易出现"换了一份没生效、却以为验证过了"的假 PASS。
+
+## F1. 前置（四项，缺哪项都会以别的形式失败）
+
+```bash
+# ① 仓根（要挂进容器，故用绝对路径）
+cd <公共仓根>
+
+# ② 挂载资产：FlagCX 的宿主 checkout，位置固定为 <仓根>/FlagCX（ENV-SPEC §3.2 默认表）
+git clone git@github.com:FlagRT/FlagCX.git FlagCX
+git -C FlagCX checkout b576fa6a          # 已推送的干净 commit；--require-clean 依赖这一点
+git -C FlagCX status --porcelain          # 必须为空
+
+# ③ 卡：本机两个**实测空闲**的 die（不要在 npu-smi 进程表上肉眼挑）
+bash dev/device-context/910C/probes/probe_all_dies_910c_20261016.sh
+export DC_DIE_A=5 DC_DIE_B=0              # 用上一步输出的 FREE 列表
+
+# ④ 模型目录（挂载点须有效，本缺陷不读模型）
+mkdir -p <仓根>/models
+```
+
+## F2. 起容器
+
+按规范（2026-10-16 起在 npu1-27 上**已可原样执行**——该机当日以用户级方式补齐了
+compose v2.29.7 与 pyyaml 6.0.2，**未用 sudo**；步骤见
+[`../../device-context/910C/env/README.md`](../../device-context/910C/env/README.md) §2）：
+
+```bash
+python3 dev/lib/baseline.py export dev/device-context/910C/env/train --require-clean
+docker ps                                 # 确认本机无其他带卡容器
+export DC_DIE_A=<die> DC_DIE_B=<die>       # 见 F1 ③
+FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train
+#   ⚠️ 不加 --strict：本机镜像 id 与基线记录的制造机 id 不同 ⇒ check 恒 FAIL、--strict 恒拒绝启动
+#      （image_list.md 已登记"跨机 image id 不同"；这条后果 2026-10-16 实测钉死）。注明"未满足 --strict"。
+```
+
+> 当日实测（机制路径）：`export` 双腿 rc=0 · `up.sh` rc=0 起容器 · 挂载覆盖安装生效 ·
+> **容器内两项验收 `overall: PASS`** · `down` rc=0 无残留。证据
+> [`../../device-context/910C/probes/baseline_mechanism_20261016_out/SUMMARY.md`](../../device-context/910C/probes/baseline_mechanism_20261016_out/SUMMARY.md)。
+
+另一种（前置未就绪时的退路）是用**与 compose 逐项等价**的 `docker run` 复刻其参数：
+
+```bash
+docker run -dit --name flagos-dc-train-910c-dev \
+  --network host --ipc host --shm-size 512g --cap-add SYS_PTRACE \
+  -v <仓根>:/workspace -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
+  -v <仓根>/models:/workspace/models:ro \
+  --device /dev/davinci$DC_DIE_A --device /dev/davinci$DC_DIE_B \
+  --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc \
+  -e HCCL_WHITELIST_DISABLE=1 -e PYTHONDONTWRITEBYTECODE=1 -e GIT_OPTIONAL_LOCKS=0 \
+  -e WORKSPACE_ROOT=<仓根> \
+  flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64 \
+  bash -c 'USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX && exec sleep infinity'
+```
+
+`command` 里那步就是 compose 声明的生效方式；它跑完（日志里出现 `Successfully installed`）才谈得上验收。
+
+## F3. 跑验收（一条命令，两项）
+
+```bash
+docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagos-dc-train-910c-dev \
+  bash dev/device-context/910C/probes/run_910c_p9_acceptance.sh
+echo "exit=$?"        # 0 = 两项均 PASS；1 = 至少一项 FAIL；2 = 无法下判定
+```
+
+要做 A/B 对照（强烈建议——否则分不清"判据变绿"是不是环境漂移）：
+
+```bash
+# A 臂：把镜像内固化版解出来当影子，PYTHONPATH 指过去，其余完全不变
+docker run --rm --entrypoint bash -v <某目录>:/out <镜像> -lc \
+  'cp -a /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx /out/flagcx'
+docker exec -e ASCEND_RT_VISIBLE_DEVICES=0,1 -e PYTHONPATH=/opt/baked-flagcx \
+  flagos-dc-train-910c-dev bash dev/device-context/910C/probes/run_910c_p9_acceptance.sh
+# 该臂应 FAIL —— 若它也 PASS，说明"挂载覆盖"根本没生效，先查 [0] 自证段
+```
+
+## F4. 收尾（释放卡）
+
+```bash
+docker stop flagos-dc-train-910c-dev && docker rm flagos-dc-train-910c-dev
+ps -eo pid,cmd | grep -E '[t]orchrun|[d]dp_native|[f]lagcx_sync_test'   # 应为空
+docker ps | grep -c flagos-dc-train                                       # 应为 0
+```
+
+用 `up.sh` 起的则：`docker compose -f dev/device-context/910C/env/train/docker-compose.yml down`。
+
+## F5. 本节特有的坑（本轮踩到的）
+
+| 现象 | 原因与处理 |
+|---|---|
+| `baseline.py` 报 `No module named 'yaml'` 或 `docker: 'compose' is not a docker command` | 该机缺机制前置（npu1-27 即如此）。要么补齐，要么用 F2 的等价 `docker run` 并**如实登记"未跑 --strict"** |
+| compose 报 `required variable DC_DIE_A is missing a value` | `.env` 没填或没 export die 号。**这是刻意设计**：不给默认值，选卡必须每次按实测来 |
+| 验收脚本打印 `overall: ERROR` 但两项其实是 FAIL | 脚本早期版本的判定取值 bug（把 `overall: FAIL` 整串与 `FAIL` 比较）。已修为只取判定词；若复现请先确认脚本版本 |
+| 宿主侧找不到 `acceptance_out/` 证据文件 | `OUT` 传了**宿主**路径 ⇒ 容器里创建了同名但属另一文件系统的目录（宿主/容器路径混用的老坑）。证据目录必须在挂载内 |
+| 容器里 `import flagcx` 仍指向 `site-packages` | `pip install -e` 没跑成（看容器日志）或 `PYTHONPATH` 把它盖住了。以 `[0] 自证` 段打印的路径 + `.so` sha256 为准 |
+| `pip install -e` 编译期报 `fatal error: cuda_runtime_api.h` | 用的是修复之前的源码（`plugin/torch/flagcx/src/backend_flagcx.cpp` 无条件包含 `ATen/cuda/CUDAContext.h`）。`b576fa6a` 起已加 `USE_NVIDIA_ADAPTOR` 守卫 |
+| `import flagcx` 报 `undefined symbol: aclnnInplaceAddGetWorkspaceSize` | 构建时把标准 CANN 的 `-lopapi` 也砍了。`makefiles/ascend.mk` 里只有 DAG 专用的 `-lcust_opapi` 该按开关去掉，`-lopapi`/`-lnnopbase` 必须保留（`b576fa6a` 起已条件化，默认值即正确） |
+| `Successfully installed` 但行为没变 | pip 增量缓存导致"看着重编、实际复用旧产物"。判据不能只看 pip 退出码：看 `_C*.so` 的 sha256 是否变了、`libflagcx.so` 的 `DT_NEEDED` 是否含 `libopapi.so` |
+

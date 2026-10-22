@@ -1,0 +1,2120 @@
+{
+  "backend": "ascend",
+  "devices": [
+    0,
+    1,
+    2
+  ],
+  "ranks": 3,
+  "rounds": 30,
+  "elapsed_s": 11.0,
+  "per_rank": {
+    "rank0": {
+      "rank": 0,
+      "device": 0,
+      "rounds": [
+        {
+          "round": 0,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 1,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 2,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 3,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 4,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 5,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 6,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 7,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 8,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 9,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 10,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 11,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 12,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 13,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 14,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 15,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 16,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 17,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 18,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 19,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 20,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 21,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 22,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 23,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 24,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 25,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 26,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 27,
+          "victim_rank": 0,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 0,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 28,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 29,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 0,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        }
+      ],
+      "errors": [],
+      "expected_digest": 89440,
+      "base_digest": 89440,
+      "base_snapshot": {
+        "state": "available",
+        "context_query": {
+          "queryable": true,
+          "present": true,
+          "ordinal": 0,
+          "flags": null,
+          "managed_by": "external",
+          "reason": ""
+        },
+        "probe": true
+      },
+      "declared_recovery_real": true,
+      "transitions": {
+        "0": {
+          "ordinal": 0,
+          "state": "available",
+          "last_transition": {
+            "from": "isolated",
+            "to": "available",
+            "reason": "a2-stress r27: 多卡并发 real 重建",
+            "ts": 1790673446.9792602
+          }
+        }
+      },
+      "ok": true
+    },
+    "rank1": {
+      "rank": 1,
+      "device": 1,
+      "rounds": [
+        {
+          "round": 0,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 1,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 2,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 3,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 4,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 5,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 6,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 7,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 8,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 9,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 10,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 11,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 12,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 13,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 14,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 15,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 16,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 17,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 18,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 19,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 20,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 21,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 22,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 23,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 24,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 25,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 26,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 27,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 28,
+          "victim_rank": 1,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 1,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 29,
+          "victim_rank": 2,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 1,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        }
+      ],
+      "errors": [],
+      "expected_digest": 89440,
+      "base_digest": 89440,
+      "base_snapshot": {
+        "state": "available",
+        "context_query": {
+          "queryable": true,
+          "present": true,
+          "ordinal": 1,
+          "flags": null,
+          "managed_by": "external",
+          "reason": ""
+        },
+        "probe": true
+      },
+      "declared_recovery_real": true,
+      "transitions": {
+        "1": {
+          "ordinal": 1,
+          "state": "available",
+          "last_transition": {
+            "from": "isolated",
+            "to": "available",
+            "reason": "a2-stress r28: 多卡并发 real 重建",
+            "ts": 1790673446.979805
+          }
+        }
+      },
+      "ok": true
+    },
+    "rank2": {
+      "rank": 2,
+      "device": 2,
+      "rounds": [
+        {
+          "round": 0,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 1,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 2,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 3,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 4,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 5,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 6,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 7,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 8,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 9,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 10,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 11,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 12,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 13,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 14,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 15,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 16,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 17,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 18,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 19,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 20,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 21,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 22,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 23,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 24,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 25,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 26,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        },
+        {
+          "round": 27,
+          "victim_rank": 0,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 28,
+          "victim_rank": 1,
+          "i_am_victim": false,
+          "digest": 89440,
+          "snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          }
+        },
+        {
+          "round": 29,
+          "victim_rank": 2,
+          "i_am_victim": true,
+          "recover": {
+            "ordinal": 2,
+            "mode": "real",
+            "recovered": true,
+            "state": "isolated",
+            "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+            "context_supported": true,
+            "context_count": 0,
+            "context_recreated": true
+          },
+          "pre_snapshot": {
+            "state": "available",
+            "context_query": {
+              "queryable": true,
+              "present": true,
+              "ordinal": 2,
+              "flags": null,
+              "managed_by": "external",
+              "reason": ""
+            },
+            "probe": true
+          },
+          "stream_after": "Stream",
+          "digest": 89440,
+          "post_state": "available"
+        }
+      ],
+      "errors": [],
+      "expected_digest": 89440,
+      "base_digest": 89440,
+      "base_snapshot": {
+        "state": "available",
+        "context_query": {
+          "queryable": true,
+          "present": true,
+          "ordinal": 2,
+          "flags": null,
+          "managed_by": "external",
+          "reason": ""
+        },
+        "probe": true
+      },
+      "declared_recovery_real": true,
+      "transitions": {
+        "2": {
+          "ordinal": 2,
+          "state": "available",
+          "last_transition": {
+            "from": "isolated",
+            "to": "available",
+            "reason": "a2-stress r29: 多卡并发 real 重建",
+            "ts": 1790673446.9804335
+          }
+        }
+      },
+      "ok": true
+    }
+  },
+  "victim_rounds": 30,
+  "checks": {
+    "S1_recoverer_real_rebuild": {
+      "ok": true,
+      "detail": [],
+      "count": "30 次恢复者轮次"
+    },
+    "S2_peers_unaffected": {
+      "ok": true,
+      "detail": []
+    },
+    "S3_usable_after_rebuild": {
+      "ok": true,
+      "detail": []
+    },
+    "S0_no_exception": {
+      "ok": true,
+      "detail": []
+    }
+  },
+  "verdict": "MULTIPROC_REAL_RECOVER_PASS",
+  "expected_digest": 89440
+}
