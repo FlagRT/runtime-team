@@ -3,8 +3,8 @@
 # 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
 # dev/lib/baseline.py export 生成，不手工编辑）。
 #
-# 【完备性】env.baseline.yaml 待在有 docker 的窗口内由 baseline.py export 生成。缺该文件时
-# 本目录尚未完备，不得对外作为发布物引用；up.sh --strict 也会因缺基线拒绝启动。
+# 【完备性】本目录含 env.baseline.yaml（2026-10-23 生成，由 baseline.py export 生成、不手工编辑），已完备；
+# up.sh --strict 启动时照常核对。
 #
 # 【定位】现行推荐 = 本目录 env/v1；同级 ../../demo/ = 冻结的第 0 版，只作该镜像版本验收时
 # 所用配置的历史记录，内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明为准，
@@ -93,3 +93,6 @@ services:
 #             ③ 删除上述错误注释，改为正面说明驱动挂载要求。
 #             docker 服务 inactive，env.baseline.yaml 未生成、本版本尚未完备；
 #             本版本装配未在真机起过容器。
+#             2026-10-23 真机验收通过（T-046，910c-11 die 10，Qwen2.5-1.5B 生成形态）：
+#             up.sh --strict PASS；容器内 device_count=1、matmul 数值正确（驱动挂载 :ro 即可，无 507008）；
+#             serve_standard.sh 30s 就绪、冒烟 8 tokens，SERVE_STANDARD_PASS(ready=1 smoke=1)。

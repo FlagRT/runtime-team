@@ -4,7 +4,7 @@
 # dev/clone_all.sh 只读本文件，脚本内零硬编码；新增/改名/换协作线只改这里。
 #
 # 报备-收录：子方向新建仓 → 向总组报备（仓地址/目录名/协作线/可见性/需访问成员）
-#   → 总组收录进本文件并在 GitHub 侧开通权限 → clone_all 下次运行即生效。
+#   → 总组收录进本文件并在 GitHub 侧为全组成员开通 clone 权限 → clone_all 下次运行即生效。
 # 两层分工：clone_all 只对齐布局与协作线、不锁提交；某次验收/发布的确切版本事实
 #   由各运行环境目录 env.baseline.yaml 的 mounted_repos（remote/commit）记录。
 #
