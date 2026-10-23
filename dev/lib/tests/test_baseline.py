@@ -655,6 +655,151 @@ x-flagrt:
         data = baseline.load_yaml(self.env / "env.baseline.yaml")
         self.assertEqual(data["mounted_repos"], {})
 
+    # ---- mounted_repos.remote：外部仓地址是版本事实的必含项（ENV-SPEC §3.2） ----
+
+    def _add_origin(self, url="https://github.com/FlagRT/vllm-plugin-FL.git"):
+        git("remote", "add", "origin", url, cwd=self.ws / "vllm-plugin-FL")
+        return url
+
+    def test_export_records_origin_remote(self):
+        url = self._add_origin()
+        self.assertEqual(self._export(), 0)
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertEqual(data["mounted_repos"]["vllm-plugin-FL"]["remote"], url)
+
+    def test_export_without_origin_records_unavailable_and_warns(self):
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(self._export(), 0)
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertEqual(data["mounted_repos"]["vllm-plugin-FL"]["remote"], "unavailable")
+        self.assertIn("没有 origin 远端", out.getvalue())
+
+    def test_check_env_without_remote_in_baseline_is_info_not_fail(self):
+        """旧 env.baseline.yaml 不含 remote：按缺省处理 + 可读提示，不 FAIL。"""
+        self._add_origin()
+        self._export()
+        f = self.env / "env.baseline.yaml"
+        f.write_text("\n".join(ln for ln in f.read_text(encoding="utf-8").splitlines()
+                               if "remote:" not in ln) + "\n", encoding="utf-8")
+        self.assertIsNone(baseline.load_yaml(f)["mounted_repos"]["vllm-plugin-FL"].get("remote"))
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(self._check(), 0)
+        self.assertIn("基线未记 remote", out.getvalue())
+
+    def test_check_env_remote_mismatch_is_warning_only(self):
+        self._add_origin()
+        self._export()
+        git("remote", "set-url", "origin", "https://example.invalid/other.git",
+            cwd=self.ws / "vllm-plugin-FL")
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(self._check(), 0)
+        self.assertIn("origin 远端与基线不一致", out.getvalue())
+
+
+class TestEnvCurrentField(TempCase):
+    """image.env_current：现行推荐运行环境目录（ADR-0008 决定 1/2，ENV-SPEC §3.1）。
+
+    image.demo 是冻结的验收记录，不再承担推荐用法；现行推荐运行环境另记一个字段。"""
+
+    DF = DF_HEAD + """ARG FLAG_GEMS_COMMIT=%s
+LABEL io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}"
+COPY src/FlagGems/ /opt/src/FlagGems/
+RUN ${PYTHON_BIN} -m pip install /opt/src/FlagGems
+""" % ("3" * 40)
+    LABELS = {"io.flagrt.flag_gems.commit": "3" * 40}
+
+    def _image_dir(self, env_revisions=("v1",), compose=True):
+        d = self.image_dir(self.DF, tag="my/img:1")
+        for rev in env_revisions:
+            (d / "env" / rev).mkdir(parents=True, exist_ok=True)
+            if compose:
+                (d / "env" / rev / "docker-compose.yml").write_text(
+                    "services: {dev: {image: my/img:1}}\n", encoding="utf-8")
+        return d
+
+    def _export(self, d, **kw):
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(self.LABELS)), \
+             mock.patch.object(baseline, "image_python_report", return_value=dict(BASE_REPORT)), \
+             mock.patch.object(baseline, "repo_info", return_value=None), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            rc = baseline.export_image(d, **kw)
+        return rc, out.getvalue()
+
+    def _check(self, d):
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(self.LABELS)), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            rc = baseline.check_image(d)
+        return rc, out.getvalue()
+
+    def test_export_records_env_current_and_keeps_demo(self):
+        d = self._image_dir()
+        rc, _ = self._export(d, demo=f"{baseline.rel_to_repo(d)}/demo/",
+                             env_current=d / "env" / "v1")
+        self.assertEqual(rc, 0)
+        img = baseline.load_yaml(d / "image.baseline.yaml")["image"]
+        self.assertEqual(img["env_current"], baseline.rel_to_repo(d / "env" / "v1") + "/")
+        self.assertTrue(img["demo"].endswith("/demo/"))   # demo 语义不变，仍是验收记录
+
+    def test_check_verifies_env_current_directory(self):
+        d = self._image_dir()
+        self._export(d, env_current=d / "env" / "v1")
+        rc, out = self._check(d)
+        self.assertEqual(rc, 0)
+        self.assertIn("[PASS] env_current", out)
+        subprocess.run(["rm", "-rf", str(d / "env" / "v1")], check=True)
+        rc, out = self._check(d)
+        self.assertEqual(rc, 1)
+        self.assertIn("[FAIL] env_current", out)
+
+    def test_check_old_baseline_without_env_current_is_info_not_fail(self):
+        """旧 image.baseline.yaml 不含 env_current：INFO + 可读提示，不 FAIL。"""
+        d = self.image_dir(self.DF, tag="my/img:1")
+        self._export(d)
+        self.assertNotIn("env_current",
+                         (d / "image.baseline.yaml").read_text(encoding="utf-8"))
+        rc, out = self._check(d)
+        self.assertEqual(rc, 0)
+        self.assertIn("[INFO] env_current", out)
+
+    def test_export_refuses_a_directory_that_is_not_an_env_dir(self):
+        d = self._image_dir(compose=False)
+        with self.assertRaises(baseline.BaselineError) as cm:
+            self._export(d, env_current=d / "env" / "v1")
+        self.assertEqual(cm.exception.code, 2)
+        self.assertIn("docker-compose.yml", str(cm.exception))
+        with self.assertRaises(baseline.BaselineError):
+            self._export(d, env_current=d / "env" / "v9")
+
+    def test_export_refuses_a_non_revision_directory_name(self):
+        """dev/images/ 下的运行环境是发布物，只认 env/v<整数>（ENV-SPEC §3.2）。"""
+        d = self._image_dir(env_revisions=("v1", "v1.2", "train"))
+        for bad in ("v1.2", "train"):
+            with self.assertRaises(baseline.BaselineError) as cm:
+                self._export(d, env_current=d / "env" / bad)
+            self.assertEqual(cm.exception.code, 2)
+            self.assertIn("env/v<整数>", str(cm.exception))
+        rc, _ = self._export(d, env_current=d / "env" / "v1")
+        self.assertEqual(rc, 0)
+
+    def test_env_dirs_without_the_flag_warn_instead_of_guessing_the_revision(self):
+        """现行是哪一版须显式声明，不按目录名推断（ADR-0008 决定 3）。"""
+        d = self._image_dir(env_revisions=("v1", "v2"))
+        rc, out = self._export(d)
+        self.assertEqual(rc, 0)
+        self.assertIn("未给 --env-current", out)
+        self.assertNotIn("env_current", (d / "image.baseline.yaml").read_text(encoding="utf-8"))
+
+    def test_cli_passes_env_current_through(self):
+        d = self._image_dir()
+        with mock.patch.object(baseline, "inspect_image", fake_inspect(self.LABELS)), \
+             mock.patch.object(baseline, "image_python_report", return_value=dict(BASE_REPORT)), \
+             mock.patch.object(baseline, "repo_info", return_value=None), \
+             mock.patch("sys.stdout", new_callable=io.StringIO):
+            rc = baseline.main(["export", "--image", str(d),
+                                "--env-current", str(d / "env" / "v1")])
+        self.assertEqual(rc, 0)
+        self.assertIn("env_current", (d / "image.baseline.yaml").read_text(encoding="utf-8"))
+
 
 class TestComposeBinds(TempCase):
     def _fake_run(self, rc=0):

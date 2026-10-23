@@ -37,6 +37,19 @@
   路径做回归测试。另 FlagGems 自带的 `test_accuracy_mm` 定义上方就带着注释
   `# TODO: failed at (1, 1, 2)` —— 上游已知小形状有问题。
 
+### 版本集合（分版表态）
+
+坐标 = **镜像血统 + 运行环境修订**（第 0 版 = 冻结的 `demo/`，第 1 版起 = `env/vN`）。状态取三态之一：
+在该版仍命中 / 在该版已修（写明形态）/ 未在该版测过。**「未在该版测过」必须显式写出**，沉默不等于不命中。
+
+| 坐标 | 状态 | 依据 |
+|---|---|---|
+| `kunlun-operator-runtime v2` · 第 0 版（[`demo/`](../../images/kunlun-operator-runtime/v2/demo/docker-compose.yml)） | **在该版仍命中** | 2026-10-12 本机卡 7：`overall: FAIL`（退出码 1），12 组全失败——2 组原生 abort、10 组被误标 `OutOfResources: uni_sram`、编译并算对 0 组 |
+| `kunlun-operator-runtime v1` · 第 0 版 | **未在该版测过**（指本 case 的 12 组判据） | 该血统无运行环境目录，本目录脚本未在其上跑过。v1 [`lock.yaml`](../../images/kunlun-operator-runtime/v1/lock.yaml) `known_issues: gemm-compile-sigabrt` 记有同 pin 组合下 GEMM 崩溃的实测，但判据与读数口径与本 case 不同，不折算为本 case 的表态 |
+
+该血统**尚未发布运行环境修订版**（`env/vN`）：一旦发布，本 case 必须对该版逐条重新表态，三态之一，
+未测过就写「未在该版测过」。
+
 ## 复现
 
 ### 前置条件
@@ -124,3 +137,14 @@ overall: FAIL
    实测同一用例 `-s` 三次各 880 字节含断言、`-q` 三次 0 字节。用 FlagGems 自带 pytest 复跑时
    必须 `pytest -x -s`；另外设 `PYTHONFAULTHANDLER=1` 反而会压掉 faulthandler 的 Python 栈
    dump（只剩 LLVM 断言行）。本目录脚本不走 pytest，不受此影响。
+
+<!-- changelog:
+2026-10-22 —— 依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》新增「版本集合」节
+  （口径参照 Debian 的 Found/Fixed 为版本集合而非单值，坐标 = 血统 + 运行环境修订）：
+  kunlun-operator-runtime v2 第 0 版仍命中（2026-10-12 读数）；v1 第 0 版写「未在该版测过」——
+  v1 lock.yaml 的 gemm-compile-sigabrt 虽有同 pin 组合的崩溃实测，但不是本 case 的 12 组判据，
+  不折算为本 case 的表态；该血统尚无 env/vN，故无第 1 版可表态，并写明发版后须重新表态。
+  本批未跑任何 P800 验证（无 docker），表中读数全部沿用既有证据，未新增任何状态声明。
+  未改动：NOTES-step-by-step.md 与 assets/。
+-->
+
