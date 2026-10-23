@@ -34,3 +34,7 @@ AGENTS.md
 .DS_Store
 # 容器内以 /workspace(仓根)为工作目录运行推理验证后出现的 64 位哈希名空文件锁
 /[0-9a-f][0-9a-f][0-9a-f][0-9a-f]*[0-9a-f].lock
+
+# 仓根 evidence/ = 运行环境容器写的构建/验证日志（如 flagcx-build.log，root 属主），运行产物不入仓；
+# 注意与各镜像 assets/evidence/（验收证据截选，须入仓）区分：本规则锚定仓根，不递归匹配子目录同名。
+/evidence/
