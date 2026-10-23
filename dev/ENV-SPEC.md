@@ -77,6 +77,19 @@ checkout，挂载源码也不会改变已装好的 wheel，因此不适用「下
 从源码构建的固化方式（晋升路径，落到 §4.2 模式 1/2），要么等上游发新版本后改 pin。
 实例：昆仑芯的 `flagtree`（[`images/kunlun-operator-runtime/v2/image.baseline.yaml`](images/kunlun-operator-runtime/v2/image.baseline.yaml)）。
 
+### 2.4 布局不变量
+
+挂载资产的宿主来源是公共仓根下的独立 git 仓库，其布局由以下不变量约束：
+
+- **仓根一级目录名 == 容器挂载引用名**：宿主 `<公共仓根>/<目录名>` ⇔ 容器 `/workspace/<目录名>`；
+  `host_path` 缺省值（§3.2）即取这个目录名。改目录名等于改容器侧约定。
+- **布局唯一登记处 = [`repos.yaml`](repos.yaml)**（报备-收录制）：组织子库与方向交付仓都登记在此，
+  `clone_all.sh` 只读该文件、不硬编码任何仓；新仓经总组收录后即进入布局。
+- **`clone_all.sh` 只对齐布局与协作线，不锁提交**：它保证「有哪些仓、在哪个目录、检出哪条线」，
+  不决定某次运行用哪个 commit。
+- **确切版本事实由 `env.baseline.yaml` 的 `mounted_repos` 承担**（`remote`、`commit` 等，§3.2）：
+  布局登记与版本事实两层分工，前者不记 commit，后者不管布局。
+
 ## 3. 文件形态
 
 ### 3.1 镜像基线：`image.baseline.yaml`
@@ -430,3 +443,10 @@ python3 dev/lib/baseline.py list
   env_current 与 remote、两个新字段缺失时报 INFO 不 FAIL、常用流程命令加 --env-current。
 -->
 
+
+<!-- changelog: 2026-10-23
+依据总组 2026-10-23 口径（方向交付仓独立化；布局 SSOT = dev/repos.yaml、clone_all 不锁版本）：
+- §2 新增 2.4「布局不变量」：仓根一级目录名 == 容器挂载引用名；布局唯一登记处 = dev/repos.yaml
+  （报备-收录制）；clone_all.sh 只对齐布局与协作线、不锁提交；确切版本事实由 env.baseline.yaml 的
+  mounted_repos 承担。
+-->

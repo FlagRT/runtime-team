@@ -19,7 +19,8 @@
 
 ```
 dev/
-├── clone_all.sh              # 新成员一键 clone FlagRT 6 仓（团队公共）
+├── clone_all.sh              # 新成员一键对齐 dev/repos.yaml 登记的全部仓（团队公共）
+├── repos.yaml                # 仓根布局唯一登记处（组织子库 + 方向交付仓）
 ├── compose.base.yml           # [LEGACY，2026-09-23 起] 原公共资源配置；已被运行环境目录（镜像 demo + 子方向 extends）取代，现有子方向 compose 迁移前继续沿用，机制见 ENV-SPEC.md
 ├── ENV-SPEC.md                # 环境基线规范：镜像基线 / 运行环境目录 / 启动前核对（总组发版与子方向预研共用）
 ├── lib/                        # ENV-SPEC.md 配套工具：baseline.py（export/check/load/show/list）/ up.sh
@@ -39,27 +40,48 @@ dev/
 
 ## 目录布局约定（嵌套布局）
 
-公共仓根 = 开发总目录：clone 公共仓后，6 个子库由 `clone_all.sh` 收拢进公共仓根目录内部，所有开发都在公共仓根目录内进行。
+公共仓根 = 开发总目录：clone 公共仓后，各独立 git 仓库由 `clone_all.sh` 收拢进公共仓根目录内部，所有开发都在公共仓根目录内进行。收拢的仓分两类：
+
+- **组织子库**（sublib）：fork 自上游 flagos-ai 的 FlagRT 组织仓，共同开发主干
+- **方向交付仓**（direction）：子方向独立维护的交付物仓，经报备收录后随公共仓布局一并对齐
+
+仓清单、目录名、协作线与可见性以 [`dev/repos.yaml`](dev/repos.yaml) 为准（唯一登记处），本节不维护份数清单。
 
 ```
 runtime-team/                  # 公共仓根 = 开发总目录（clone 到任意位置）
 ├── README.md / VERSIONS.md / .gitignore
 ├── dev/                       # 开发配置中心
-│   ├── clone_all.sh           # 一键对齐 6 子库（默认收拢到公共仓根）
+│   ├── clone_all.sh           # 一键对齐 repos.yaml 登记的全部仓（默认收拢到公共仓根）
+│   ├── repos.yaml             # 布局唯一登记处
 │   ├── compose.base.yml       # 公共资源配置（所有子方向共享）
 │   └── memory/                # memory 子方向（看板 + compose + .env.example + probes/）
-├── PyTorch-Plugin-FL/         # 6 个子库（独立 git 仓库，各自 fork 管理，不进本仓）
+├── PyTorch-Plugin-FL/         # 组织子库（独立 git 仓库，各自 fork 管理，不进本仓）
 ├── FlagCX/
 ├── FlagGems/
 ├── vllm-plugin-FL/
 ├── FlagTree/
-└── FlagPerf/
+├── FlagPerf/
+└── framework-adapter/         # 方向交付仓示例（私有，需总组开通权限；不进本仓）
 ```
 
 路径原则：
 - **宿主侧零配置**：挂载点由 `compose.base.yml` 相对路径 `../` 自动解析为公共仓根（相对路径按首个 -f 文件所在目录解析）
 - **容器侧为固定约定**：公共仓根挂载为 `/workspace`，宿主 `<公共仓根>/PyTorch-Plugin-FL` ⇔ 容器 `/workspace/PyTorch-Plugin-FL`；`FLAGCX_PATH`、探针 `/workspace/dev/memory/probes/` 等均按此约定
 - 设备/驱动节点（`/dev/davinci*`、`/usr/local/Ascend/driver`）为机器固有路径，与代码布局无关
+- **仓根一级目录名 == 容器挂载引用名**：`repos.yaml` 的 `dir` 即 `/workspace/<dir>`，改目录名等于改容器侧约定
+
+### 方向交付仓报备与收录
+
+子方向的交付物独立成仓时，按以下四步纳入公共布局：
+
+1. **建仓**：子方向在 FlagRT 组织下新建交付仓
+2. **报备**：向总组报备仓地址、仓根目录名、协作线、可见性（public/private）、需访问成员
+3. **收录与开通**：总组收录进 `dev/repos.yaml`，并在 GitHub 侧为报备成员开通权限
+4. **生效**：成员下次运行 `bash ./dev/clone_all.sh` 即对齐；无权限的私有仓降级跳过并提示申请权限，不影响其余仓
+
+分支模型：**fork 子库**（组织子库）强制建立 `dev-1.0` 协作分支并按协同开发规范提交变更；**自建方向仓**不要求建 `dev-1.0`，分支模型由子方向自行维护，报备时登记其实际协作线即可。
+
+两层分工：`repos.yaml` + `clone_all.sh` 只管布局与协作线、不锁提交；某次验收/发布用的确切版本由运行环境目录 `env.baseline.yaml` 的 `mounted_repos`（remote/commit）记录（见 `dev/ENV-SPEC.md`）。
 
 ## 新成员起步
 
@@ -72,14 +94,14 @@ runtime-team/                  # 公共仓根 = 开发总目录（clone 到任�
 git clone git@github.com:FlagRT/runtime-team.git
 cd runtime-team
 
-# 2. 一键对齐 6 个子库（缺失 → clone，已存在 → 更新到最新；分支见 VERSIONS.md §1）
+# 2. 一键对齐 dev/repos.yaml 登记的全部仓（缺失 → clone，已存在 → 更新到最新；协作线见 repos.yaml）
 bash ./dev/clone_all.sh
 
 # 3. 进入目标子方向，按该子方向 README 启动容器（如 memory → dev/memory/README.md「启动容器」）
 cd dev/<子方向>
 ```
 
-**通用验证**（任意子方向容器内）：`ls /workspace` 应看到 6 个子库 + 公共仓内容（容器名/进入方式见各子方向 README）。
+**通用验证**（任意子方向容器内）：`ls /workspace` 应看到 `dev/repos.yaml` 登记的各仓（无权限跳过的除外）+ 公共仓内容（容器名/进入方式见各子方向 README）。
 
 **要点**：
 - 起容器前：`npu-smi` 确认卡空闲；DrvMng 并发容器上限 ≈3，容器名冲突时先 `docker stop` 旧容器

@@ -1,7 +1,7 @@
-# 公共仓卫生规则（嵌套布局）：6 个子库独立 git 仓库，不进本仓；公共仓根 = 开发总目录
+# 公共仓卫生规则（嵌套布局）：收拢于仓根的独立 git 仓库（登记见 dev/repos.yaml）不进本仓；公共仓根 = 开发总目录
 # 布局约定详见 README.md「目录布局约定」
 
-# --- 6 个子库（独立 git 仓库，各归 FlagRT 组织仓管理） ---
+# --- 独立 git 仓库：组织子库 + 方向交付仓（随 dev/repos.yaml 收录逐个登记） ---
 # 锚定仓库根：非锚定的 `vllm-plugin-FL/` 会连带忽略 assets/patches/vllm-plugin-FL/
 # 等任意层级的同名目录（2026-10-08 实际踩坑）。
 /FlagCX/
@@ -10,6 +10,7 @@
 /vllm-plugin-FL/
 /FlagTree
 /FlagPerf/
+/framework-adapter/
 
 # --- 大文件 / 运行时产物 ---
 models/

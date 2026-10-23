@@ -1,0 +1,93 @@
+# ============================================================
+# dev/repos.yaml —— 仓根布局唯一登记处（SSOT）
+# 登记全部随公共仓收拢的独立 git 仓库：组织子库（sublib）+ 方向交付仓（direction）。
+# dev/clone_all.sh 只读本文件，脚本内零硬编码；新增/改名/换协作线只改这里。
+#
+# 报备-收录：子方向新建仓 → 向总组报备（仓地址/目录名/协作线/可见性/需访问成员）
+#   → 总组收录进本文件并在 GitHub 侧开通权限 → clone_all 下次运行即生效。
+# 两层分工：clone_all 只对齐布局与协作线、不锁提交；某次验收/发布的确切版本事实
+#   由各运行环境目录 env.baseline.yaml 的 mounted_repos（remote/commit）记录。
+#
+# 分支模型（按 kind 区分）：
+#   sublib（fork 仓）—— 强制建立 dev-1.0 协作分支，变更按协同开发规范提交
+#     （main 只同步上游 / dev-1.0 公共开发 / <名字>/<功能> 个人分支）；
+#   direction（自建仓）—— 不要求建 dev-1.0，分支模型由子方向自行维护，
+#     登记其实际协作线即可。
+#
+# 字段：
+#   url              SSH 形式的仓地址
+#   dir              仓根一级目录名 == 容器挂载引用名（/workspace/<dir>）
+#   branch           协作线（检出 / 日常 pull）
+#   kind             sublib（组织子库）| direction（方向交付仓）
+#   owner            总组 或 方向名（负责人）
+#   visibility       public | private（private 无权限时 clone_all 降级跳过并提示申请权限）
+#   purge_primaries  本地剔除的主分支；空列表 = 例外保留（主分支即工作线）
+#   note             一句话说明（可省略）
+#   registered       收录日期（可省略；迁移条目不填）
+# ============================================================
+schema: flagrt.repos/v1
+
+repos:
+  # 目录名沿用上游改名（Torch-FL）前的容器挂载约定（/workspace/PyTorch-Plugin-FL 不变），
+  # 故 URL 与目录名分离、各自独立。
+  - url: git@github.com:FlagRT/Torch-FL.git
+    dir: PyTorch-Plugin-FL
+    branch: dev-1.0
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: [main]
+    note: 目录名沿用上游改名前的容器挂载约定
+
+  - url: git@github.com:FlagRT/FlagCX.git
+    dir: FlagCX
+    branch: dev-1.0
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: [main]
+
+  - url: git@github.com:FlagRT/FlagGems.git
+    dir: FlagGems
+    branch: dev-1.0
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: [master]
+    note: 同步分支是 master（fork 默认分支非 main）
+
+  - url: git@github.com:FlagRT/vllm-plugin-FL.git
+    dir: vllm-plugin-FL
+    branch: dev-1.0
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: [main]
+
+  - url: git@github.com:FlagRT/FlagTree.git
+    dir: FlagTree
+    branch: triton_v3.2.x
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: [main]
+    note: 按上游 triton 版本线维护，昇腾绑 3.2
+
+  - url: git@github.com:FlagRT/FlagPerf.git
+    dir: FlagPerf
+    branch: main
+    kind: sublib
+    owner: 总组
+    visibility: public
+    purge_primaries: []
+    note: 无 dev-1.0，main 即唯一工作线（例外保留本地 main）
+
+  - url: git@github.com:FlagRT/framework-adapter.git
+    dir: framework-adapter
+    branch: main
+    kind: direction
+    owner: framework-adapter（顾宬）
+    visibility: private
+    purge_primaries: []
+    note: main 即唯一工作线（同 FlagPerf 例外）；私有仓，需总组开通权限
+    registered: "2026-10-23"
