@@ -128,8 +128,17 @@ flagtree 线号理解。
 
 > 本系列为登记式基线（ADR-0007）：镜像整体为上游官方产物，无仓内 `Dockerfile.repro`、不可重建；
 > 版本主锚 = Harbor digest `sha256:e55b420e…`，辅锚 = pip 版本号与镜像 Label 的上游配方 commit
-> `827dc613…`。运行时镜像**不含 vLLM**，推理服务化须用同线应用镜像（`flagos-app/vllm*-cambricon-*`）；
-> 该应用镜像尚未入锁，前置见 `../stack.lock.cambricon.v1.yaml` 的 `known_issues: C-1`。
+> `827dc613…`。运行时镜像**不含 vLLM**，推理服务化用下方 `cambricon-infer-vllm` 系列（推理腿发布物）。
+
+**`cambricon-infer-vllm` 系列**（FlagOS 官方寒武纪推理应用镜像，推理腿发布物，登记式基线）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2`（`4f298aa57807`） | 🟢 FlagOS 官方镜像（公开 Harbor，匿名可按 digest 拉取；2026-10-24 serve_standard 口径验收 PASS） | `cambricon-infer-vllm/v1/` |
+
+> 登记式基线（ADR-0007）：版本主锚 = Harbor digest `sha256:76a673a8…`；vllm 0.20.2+flagos +
+> vllm-plugin-FL 0.2.2（寒武纪线必需）+ neuware4.4.3 栈。服务起停走 serve_standard.sh
+> （DC_BACKEND=cambricon，embed 形态；READY_BUDGET 建议 ≥300s）。
 
 ---
 
@@ -148,7 +157,8 @@ flagtree 线号理解。
 | 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
 | 平头哥 PPU | thead-ppu-runtime | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线） | `thead-ppu-runtime/v1/` |
-| 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基线；不含 vLLM，推理腿未入锁） | `cambricon-mlu-runtime/v1/` |
+| 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基座；不含 vLLM） | `cambricon-mlu-runtime/v1/` |
+| 寒武纪 MLU590（推理腿） | cambricon-infer-vllm | `harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2`（`@sha256:76a673a8…`，FlagOS 官方镜像，🟢 登记式基线） | `cambricon-infer-vllm/v1/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
 > `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。三条自建血统 + 官方推理镜像均
