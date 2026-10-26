@@ -709,8 +709,18 @@ class RuntimeBackend(ABC):
         return native
 
     @abstractmethod
-    def create_event(self):
-        """创建并返回该后端的 Event 对象。"""
+    def create_event(self, enable_timing: bool = False):
+        """创建并返回该后端的 Event 对象。
+
+        `enable_timing=True` ⇒ 请求**可计时**事件（供 `Event.elapsed_time()` 使用）。
+        这是统一契约的一部分：CUDA 系栈的 `elapsed_time` 只在**两个都带计时标志**的
+        事件之间成立（PPU 实测：不带标志抛 `ValueError: Both events must be created
+        with argument 'enable_timing=True'`）。
+
+        ⚠️ 后端若无法提供可计时事件，**必须**抛 `NotImplementedError`；
+        **不得静默返回不可计时事件**（那会让上层在 `elapsed_time()` 处才炸，
+        且会让"支持计时"看起来成立）。
+        """
 
     @abstractmethod
     def current_stream(self):

@@ -273,24 +273,38 @@ def c12(env):
     return _ok("event.wait / event.synchronize 均返回")
 
 
-@item("C 流与事件", "C13", "event.elapsed_time(end) 可调用（若声明支持）")
+@item("C 流与事件", "C13", "event.elapsed_time(end) 可调用（须建**可计时**事件）")
 def c13(env):
     rt, bk = env["runtime"], env["backend"]
     st = rt.create_stream()
-    if not bk.supports("elapsed_time") and "elapsed_time" not in str(bk.info().get("supports")):
-        # 未声明 → 仍试调一次，记录实际行为（不判 FAIL，除非崩溃在无声明下）
-        pass
-    e1, e2 = rt.create_event(), rt.create_event()
+    # ⚠️ 2026-10-26 更正：原实现用默认 `create_event()`（无计时标志）⇒ CUDA 系栈必然抛
+    #    `ValueError: Both events must be created with argument 'enable_timing=True'`
+    #    ⇒ 该判据在四家**恒为 SKIP**，等于从未真正执行（假 SKIP，不是厂商不具备）。
+    #    PPU 真机实测：带标志可正常计时（e1.elapsed_time(e2) 返回 float）。
+    try:
+        e1, e2 = rt.create_event(enable_timing=True), rt.create_event(enable_timing=True)
+    except NotImplementedError as ex:
+        return _skip(f"该后端无可用计时事件（如实不具备）：{str(ex)[:100]}")
     e1.record(st)
     st.synchronize(timeout_ms=30000)
-    time.sleep(0.01)
+    time.sleep(0.01)          # 起终点之间**显式** sleep 10 ms ⇒ 后面用它做量纲/方向的强校验
     e2.record(st)
     st.synchronize(timeout_ms=30000)
     try:
-        dt = e2.elapsed_time(e1)
-        return _ok(f"elapsed_time={dt}" if isinstance(dt, (int, float)) else f"返回 {dt!r}")
+        # ⚠️ 方向：self=起点、end=终点。原实现写成 `e2.elapsed_time(e1)` ⇒ 必得负值，
+        #    而判据只查 isinstance(float) ⇒ **负值也判 OK**（2026-10-26 PPU 实测 -11.14 ms）。
+        dt = e1.elapsed_time(e2)
     except Exception as e:
         return _skip(f"未声明/不可用：{type(e).__name__}: {str(e)[:70]}")
+    if not isinstance(dt, (int, float)):
+        return _skip(f"返回非数值 {dt!r}")
+    # 强校验：跨 10 ms 睡眠 ⇒ 必须落在 [5, 5000] ms。
+    #   负值 ⇒ 参数方向反了；≈0.01 ⇒ 单位是秒不是毫秒。两者都**不得**判通过。
+    if dt < 5.0:
+        return _fail(f"elapsed_time={dt} 非正或过小（跨 10 ms 睡眠）⇒ 方向反了或量纲是秒")
+    if dt > 5000.0:
+        return _fail(f"elapsed_time={dt} 远超 10 ms 睡眠 ⇒ 量纲/实现可疑")
+    return _ok(f"elapsed_time={dt:.3f} ms（跨 10 ms 睡眠，落在合理带内）")
 
 
 @item("C 流与事件", "C14", "硬纪律 1：stream.record_stream(tensor) 可调用")

@@ -161,10 +161,14 @@ def release_stream(stream) -> bool:
     return current().release_stream(native)
 
 
-def create_event() -> Event:
-    """创建统一 Event 对象（包装后端原生事件）。"""
+def create_event(enable_timing: bool = False) -> Event:
+    """创建统一 Event 对象（包装后端原生事件）。
+
+    `enable_timing=True` ⇒ 可计时事件（`Event.elapsed_time()` 的前置条件）。
+    默认 `False` 与历史行为逐字一致。
+    """
     b = current()
-    return Event(b, b.create_event())
+    return Event(b, b.create_event(enable_timing=enable_timing))
 
 
 def current_stream():
