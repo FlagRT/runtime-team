@@ -233,7 +233,9 @@ class RuntimeBackend(ABC):
         **不登记**。理由是该条目的**全部语义**就是"这条流属于哪个本层上下文"：
           · `check_stream_usable()` 也**只在 `cid is not None`** 时才用它 ⇒ 不登记**不改变**
             任何拦截行为（`cid is None` 意味着"不属于本层上下文"，本来就无从拦截）；
-          · 但登记会在**厂商流对象上挂一个弱引用**。PPU 真机实测（原生现场见
+          · 但登记当时会在**厂商流对象上挂一个弱引用**（⚠️ 该副作用已于 2026-10-26 改为
+            **强持有**，见本函数实现注；① 的条件仍保留 —— 它省的是无意义条目的内存，与崩溃无关）。
+            PPU 真机实测（原生现场见
             `PPU/docs/PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`）：平台侧**弱引用书签失效**，
             对象回收后弱引用悬垂 ⇒ 解释器退出期 `Py_FinalizeEx → _PyWeakref_ClearRef`
             解引用垃圾指针 ⇒ SIGSEGV（`si_code=1`、`si_addr=0xab`）。
@@ -244,8 +246,19 @@ class RuntimeBackend(ABC):
         try:
             cid = self.current_context_id()
             if cid is not None:                  # 无本层上下文 ⇒ 条目无信息、只留风险 ⇒ 不登记
+                # ⭐ **持有器 = 强持有**（2026-10-26 修；本层最后一处弱引用，至此清零）。
+                #    证据（契约不变式 I3 载体，PPU 真机）：**单独**跑 `i3_invalidated_governed`
+                #    稳定 `rc=139`（2/2；i1/i2/i4 各 2/2 均 rc=0），原生现场为
+                #    `Py_FinalizeEx → _PyWeakref_ClearRef`，`si_addr=(nil)`。
+                #    注入对照三组（各 2 轮，唯一变量=持有方式）：
+                #      control          rc=139 ×2 · 判据 PASS
+                #      note_off（不登记）rc=1   ×2 · 判据 **FAIL**（丢了「销毁后使用其流」的拦截）
+                #      strong（强持有）  rc=0   ×2 · 判据 **PASS**（五项断言全中）
+                #    ⇒ 问题在**弱引用**这一形态，不在登记本身；强持有把「不崩」与「判据不退化」同时保住。
+                #    代价与 `_released_streams` 同：pin 住 Python 包装对象（设备级流不受影响），
+                #    故与 `_ledger_put` 的 `_LEDGER_MAX`（4096）容量上限配套。
                 self._ledger_put("_stream_ctx", id(native_stream),
-                                 (cid, self._id_holder(native_stream)))
+                                 (cid, (lambda _o=native_stream: _o)))
         except Exception:                                     # noqa: BLE001
             pass
 
@@ -468,9 +481,9 @@ class RuntimeBackend(ABC):
         类型不支持弱引用时退化为**强引用** lambda —— 强引用同样保证身份可复核
         （且保住对象 ⇒ 其 id 不会被复用）。
 
-        ⚠️ **2026-10-14（T11）后本函数的实际使用面已收窄**：`_owned_streams` 与
-        `_released_streams` 都改用了**强持有**，只有 `_stream_ctx` 仍然用它（且该表
-        只在"确有本层上下文"时才登记，见 `note_stream_created`）。原因是 PPU 真机实测到
+        ⚠️ **2026-10-26 起本函数已无调用方**：`_owned_streams` / `_released_streams`
+        （T11，2026-10-14）与 `_stream_ctx`（2026-10-26，见 `note_stream_created` 实现注）
+        已**全部**改为强持有。**保留但不得再用于任何登记表**。原因是 PPU 真机实测到
         **平台侧弱引用书签不可信**：对象回收后弱引用悬垂，解释器退出期清理弱引用时
         `Py_FinalizeEx → _PyWeakref_ClearRef` 解引用垃圾指针 ⇒ SIGSEGV
         （`si_code=1`、`si_addr=0xab`；纯 torch 最小复现见
@@ -555,9 +568,11 @@ class RuntimeBackend(ABC):
         按契约**该流本来就该被显式释放**（否则泄漏的是设备级流，代价大得多），
         故这个代价是正确方向上的取舍。
 
-        ⚠️ `_released_streams` / `_stream_ctx` 的处置（**2026-10-14 修订**）：
-          · `_stream_ctx`：每次 `note_stream_created` **覆盖写** ⇒ 陈旧条目会自愈，且其判据是
-            「上下文是否已销毁」，**不在本类缺陷的暴露面上**；
+        ⚠️ `_released_streams` / `_stream_ctx` 的处置（**2026-10-14 修订 · 10-26 更正**）：
+          · `_stream_ctx`：⚠️ **原判断「不在本类缺陷的暴露面上」已被否证**（2026-10-26）——
+            契约不变式 `i3` 载体单独即稳定 `rc=139`（2/2，原生现场 `si_addr=(nil)`）；
+            注入对照证明「不登记」能免崩但判据 FAIL、「强持有」既免崩又 PASS
+            ⇒ 该表也改**强持有**（见 `note_stream_created` 实现注）；
           · `_released_streams`：⚠️ 原先"误判后果是**误拦**（保守、可恢复）"的说法**已被否证** ——
             2026-10-14 实测：误拦会让**合法的使用点抛 `RuntimeError`**（T6 D2 探针全线 FAIL），
             属**硬失败**而非可恢复的保守行为。故该表已按「机制无关」原则加固（类型复核 + 见

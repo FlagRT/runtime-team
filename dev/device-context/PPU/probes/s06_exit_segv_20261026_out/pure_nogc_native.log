@@ -1,0 +1,28 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[pure] runtime_imported=False N=30
+[pure] after torch: runtime_imported=False
+[pure] created 30 streams + weakrefs, 30 dead
+[pure] runtime_imported=False
+[pure] gc done, 正常退出中（退出的最终化阶段才是观察点）
+
+===== T11_CRASH_CAPTURED (native) =====
+signal=11 si_code=128 si_addr=(nil)
+RIP=0x7f94590569de RSP=0x7ffc40cb6e30
+RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0
+RIP_BASE=0x7f9458e00000
+RIP_OFFSET=0x2569de
+RIP_SYMBOL=(no symbol)
+BACKTRACE_FRAMES=13
+  FRAME#0 module=/workspace/probes_ppu/dc_s06_20261026/t11_segv_handler.so offset=0x150f symbol=?
+  FRAME#1 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x45330 symbol=?
+  FRAME#2 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x2569de symbol=?
+  FRAME#3 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x219f94 symbol=?
+  FRAME#4 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22b266 symbol=?
+  FRAME#5 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x231ed6 symbol=_PyModule_ClearDict
+  FRAME#6 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302dc6 symbol=?
+  FRAME#7 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302080 symbol=Py_FinalizeEx
+  FRAME#8 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30dabe symbol=Py_RunMain
+  FRAME#9 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30d5cb symbol=Py_BytesMain
+  FRAME#10 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a1ca symbol=?
+  FRAME#11 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a28b symbol=__libc_start_main
+  FRAME#12 module=python3 offset=0x1095 symbol=_start
