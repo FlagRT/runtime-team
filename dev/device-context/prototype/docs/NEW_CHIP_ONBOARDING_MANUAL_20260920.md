@@ -380,7 +380,7 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 12 | 已知问题如实声明 | `known_issues()` 结构化 + 前后端告警 | ✅ | ✅ | ✅ | ✅（含**平台侧**缺陷转厂商声明） |
 | 13 | 证据归档 | 原始日志/JSON 入版本库（**注意 `*.log` 例外规则**），不是"声称已归档" | ✅ | ✅ | ✅ | ✅ |
 | 14 | **契约不变式 I1–I4**（2026-10 增补） | 真机 `CONTRACT_INVARIANTS_PASS 4/4` | ✅ | ✅ | ✅ | ✅ 4/4 **且 `rc=0`**（2026-10-26 第五载体收口：`_stream_ctx` 改强持有；原为「判据过、退出期 `rc=139`」，见 `PPU/docs/PPU_EXIT_SEGV_CARRIER5_20261026.md`）。⚠️ **读法**：退出码是**独立判据**，不得当判据结果读；复现时**不得在退出前手动 `gc.collect()`**（会掩盖缺陷） |
-| 15 | **职责响应审计 78 项**（2026-10 增补） | `DUTY_RESPONSE_PASS`；SKIP 须为如实不具备 | ✅ 73/0/5 | ✅ 67/0/11 | ✅ 61/0/17 | ✅ 73/0/5 |
+| 15 | **职责响应审计 78 项**（2026-10 增补） | `DUTY_RESPONSE_PASS`；SKIP 须为如实不具备 | ✅ 73/0/5 | ✅ **68/0/10** | ✅ 61/0/17 | ✅ 73/0/5 |
 | 16 | **单入口复跑**（2026-10 增补） | 一条命令跑完判据，逐段留 rc 与 verdict | ✅ `910C/probes/run_910c_p9_acceptance.sh` 等 | ✅ 分项脚本 | ✅ 分项脚本 | ✅ `PPU/probes/run_acceptance_ppu.sh`（13 段） |
 
 > ⚠️ **第 15 条的历史读数需重述（2026-10-26 发现）**：四家的 `C13 event.elapsed_time(end)`
@@ -415,6 +415,9 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 15 | ⭐ **镜像写死 `NCCL_SOCKET_IFNAME=eth0`，而机器没有 eth0** | `init_process_group('nccl')` 能建组，**真实 all_reduce 才失败**：`NCCL ERROR Bootstrap : no socket interface found`（看着像集合通信库缺陷） | 容器启动 `-e NCCL_SOCKET_IFNAME=<真网卡>`（PPU 是 `bond0`，先 `ip route` 确认）；**建组成功 ≠ 通信可用**，必须跑一次真实 collective |
 | 16 | ⭐ **服务化前置 `triton` 不在镜像内，且容器内 pip 索引不可达** | 起 vLLM 报 `ModuleNotFoundError: No module named 'triton'`（由 vLLM 的 `if find_spec("flash_attn")` 门控触发：装了 `flash_attn` 却没装 `triton` 必踩）；`pip index versions triton` 全部 `ConnectTimeout`、"No matching distribution" | 从共享 wheel 目录 `docker cp` 复制 `triton/` + `flagtree/` + dist-info 到 site-packages（PPU 实测源：`/bmcp_lvm_fs/A/data/whl/`）；⚠️ **容器重建即丢**，须写进实例手册并做**非空转验证**（`probes/triton_smoke.py`：真编 kernel，PPU 实测 `TRITON_PPU_SMOKE_PASS`、误差 0） |
 | 17 | ⭐ **容器内以 root 跑 ⇒ bind-mount 目录出现 root 拥有的文件，宿主用户接手时"静默失败"** | 两种表象：① 复跑时 `mkdir`/`cp` 建不了子目录、日志重定向失败 ⇒ **测据空目录、屏幕上只有 rc=0**（PPU 服务化段曾因此"卡在等一个没起来的服务"）；② 宿主侧无法覆盖这些文件 | 交叉使用前 `chown -R <宿主 uid>`（**容器内 uid ≠ 宿主 uid**：PPU 上容器 `ubuntu`=1000、宿主 `hliu553`=**1020**，按名义用户 chown 会 chown 错人）；⚠️ 只改归属不动内容。同族见 `910C/docs/STORAGE_MIGRATION_20261021.md` §4 |
+
+| 18 | ⭐ **`event.elapsed_time` 依赖 `enable_timing=True`，且部分栈"接受该 flag 但计时恒 0"** | 判据若只查"可调用/返回是数字"⇒ 会拿 `0.0`（甚至负值）判通过：**假通过**。实测：P800 裸 torch 正反向都 `0.0`（平台不提供计时）；PPU 正常（10.089 / 16.395 ms）；未建计时事件时 CUDA 系栈直接抛 `ValueError: Both events must be created with argument 'enable_timing=True'` | ① 判据必须建**可计时**事件；② 校验**数值**而不只是可调用性：跨"设备工作 + 10 ms 睡眠"应落在 `[5, 5000] ms`；③ 三态口径 —— 负值 ⇒ **FAIL**（方向/实现错误）；恒近 0 ⇒ **如实不具备(SKIP)** 并登记为平台缺口；落带内 ⇒ OK。④ 方向是契约：`start.elapsed_time(end)`，反了必得负值 |
+| 19 | ⭐ **复现「退出期段错误」时，不得在退出前手动 `gc.collect()`** | 加上它对象被提前回收，最终化阶段已无弱引用可清 ⇒ `rc=139` 变 `rc=0`，**缺陷整个隐身**（本轮纯净复现曾因此 4/4 "复现失败"，去掉才翻案） | ① 观察点必须是**进程退出码**而非日志末尾（`main()` 返回 0，崩溃在其后）；② 用 `python3 -X faulthandler` 看是否落在 `Garbage-collecting` / `<no Python frame>`；③ 容器无 gdb 时用 `LD_PRELOAD` + `dladdr` 采集器（`PPU/probes/t11_segv_handler.c`，用时现编） |
 
 ### 已知厂商缺陷的结构化声明（模板）
 

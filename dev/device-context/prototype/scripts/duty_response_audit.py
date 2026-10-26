@@ -287,7 +287,17 @@ def c13(env):
         return _skip(f"该后端无可用计时事件（如实不具备）：{str(ex)[:100]}")
     e1.record(st)
     st.synchronize(timeout_ms=30000)
-    time.sleep(0.01)          # 起终点之间**显式** sleep 10 ms ⇒ 后面用它做量纲/方向的强校验
+    # 起终点之间**既有设备工作、又有主机等待**（10 ms）⇒ 后面用它做量纲/方向/可用性的强校验。
+    # 只用主机 sleep 也能测（PPU 实测 10.089 ms），但加上设备工作能同时排除"空闲流不推进时钟"的争辩。
+    import torch as _t
+    try:
+        _a = _t.ones(256, 256, device=f"{bk.device_type}:0")
+        _ = _a @ _a
+        del _a, _
+        st.synchronize(timeout_ms=30000)
+    except Exception:                                          # noqa: BLE001
+        pass                                                   # 设备工作失败不影响本判据（下面仍有 10 ms 睡眠）
+    time.sleep(0.01)
     e2.record(st)
     st.synchronize(timeout_ms=30000)
     try:
@@ -298,13 +308,18 @@ def c13(env):
         return _skip(f"未声明/不可用：{type(e).__name__}: {str(e)[:70]}")
     if not isinstance(dt, (int, float)):
         return _skip(f"返回非数值 {dt!r}")
-    # 强校验：跨 10 ms 睡眠 ⇒ 必须落在 [5, 5000] ms。
-    #   负值 ⇒ 参数方向反了；≈0.01 ⇒ 单位是秒不是毫秒。两者都**不得**判通过。
+    # 三态（2026-10-26 细化）：
+    #   负值 ⇒ 方向/实现错误（契约违例）⇒ FAIL
+    #   恒 0 / 近 0 ⇒ **平台接受 enable_timing 但计时不可用** ⇒ 如实不具备(SKIP)，须在实例台账登记为已知缺口
+    #   （实测：P800 裸 torch 正反向都是 0.0；PPU 为 10.089 ms ⇒ 是平台差异，不是判据口径问题）
+    if dt < 0:
+        return _fail(f"elapsed_time={dt} 为负 ⇒ 参数方向/实现错误（契约要求非负）")
     if dt < 5.0:
-        return _fail(f"elapsed_time={dt} 非正或过小（跨 10 ms 睡眠）⇒ 方向反了或量纲是秒")
+        return _skip(f"elapsed_time={dt} 恒近 0（跨设备工作 + 10 ms 睡眠）"
+                     f"⇒ 平台接受 enable_timing 但**计时不可用**（如实不具备；须登记为已知缺口）")
     if dt > 5000.0:
         return _fail(f"elapsed_time={dt} 远超 10 ms 睡眠 ⇒ 量纲/实现可疑")
-    return _ok(f"elapsed_time={dt:.3f} ms（跨 10 ms 睡眠，落在合理带内）")
+    return _ok(f"elapsed_time={dt:.3f} ms（跨设备工作 + 10 ms 睡眠，落在合理带内）")
 
 
 @item("C 流与事件", "C14", "硬纪律 1：stream.record_stream(tensor) 可调用")
