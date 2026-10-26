@@ -50,7 +50,22 @@ sys.path.insert(0, ROOT)
 
 import runtime  # noqa: E402  —— 我们的统一运行时原型
 
-MODEL_RAW = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
+# ⚠️ **不内置任何单一实例的绝对路径**（2026-10-26 PPU 全量重跑抓到）：
+#    原默认值是 910C 专有的 `/mnt/raid/hliu553/models/…`，在 PPU / MLU590 上直接抛
+#      `HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/mnt/raid/…'`
+#    ⇒ 改为「显式 `DC_MODEL` 优先 → 否则按各实例已知布局依次探测，命中即用并打印」。
+#    这样既保住 910C 那些不传 DC_MODEL 的老脚本，又不会把某一家路径当成全局默认。
+_MODEL_CANDIDATES = (
+    "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",      # 910C（宿主与容器同路径）
+    "/workspace/models/Qwen3-Embedding-0.6B",             # P800 / PPU（宿主 /data2|/bmcp_lvm_fs ↔ /workspace）
+    "/work/models/Qwen3-Embedding-0.6B",                  # MLU590（宿主 /srv/hliu553 ↔ /work）
+    # P800 的 HF 缓存形态（给缓存根会自动解析到 snapshots/<hash>，见 resolve_model）
+    "/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B",
+)
+MODEL_RAW = os.environ.get("DC_MODEL") or next(
+    (c for c in _MODEL_CANDIDATES if os.path.isdir(c)), "")
+MODEL_SOURCE = "DC_MODEL" if os.environ.get("DC_MODEL") else (
+    "按实例布局探测" if MODEL_RAW else "**未找到**（须显式给 DC_MODEL）")
 OUT_DIR = os.environ.get("DC_OUT_DIR", _HERE)
 ROUNDS = int(os.environ.get("DC_ROUNDS", "5"))
 BACKEND_DEFAULT = os.environ.get("DC_BACKEND", "ascend")
@@ -97,7 +112,17 @@ def main():
     ap.add_argument("--out", default="proto_infer_leg_result.json")
     args = ap.parse_args()
 
-    res = {"model": MODEL, "model_raw": MODEL_RAW, "backend": args.backend, "env": {}, "checks": {}}
+    # ⚠️ 模型路径缺失要**早失败且说清怎么给**（原实现在这里会抛厂商/transformers 的
+    #    HFValidationError，长得像"模型 id 格式错误"，与真实原因无关）
+    if not MODEL_RAW or not os.path.isdir(MODEL):
+        print(f"❌ 取不到模型路径：DC_MODEL={os.environ.get('DC_MODEL', '<未设>')} "
+              f"（探测来源={MODEL_SOURCE}，解析后={MODEL or '<空>'}）")
+        print("   已探测的实例布局：" + " · ".join(_MODEL_CANDIDATES))
+        print("   ⇒ 显式给 `DC_MODEL=<模型目录>`；HF 缓存请给到 snapshots/<hash> 或其 models-- 根目录")
+        sys.exit(4)
+
+    res = {"model": MODEL, "model_raw": MODEL_RAW, "model_source": MODEL_SOURCE,
+           "backend": args.backend, "env": {}, "checks": {}}
 
     # ── 1. 统一运行时 API 自证（设备无关）──
     b = runtime.use(args.backend)
