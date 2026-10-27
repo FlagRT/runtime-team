@@ -1,0 +1,37 @@
+[model-path-parity] prototype = /workspace/dc_rerun_20261026/prototype
+
+[G1] 解析行为（合成布局，不需要真模型）
+  [PASS] 普通目录原样使用 —— /tmp/tmp7c8xna9n/plain
+  [PASS] snapshot 目录原样使用（不被二次下钻） —— /tmp/tmp7c8xna9n/models--o--m/snapshots/aaaa1111
+  [PASS] 缓存根 + refs/main 优先（refs 旧于排序） —— aaaa1111（期望 aaaa1111）
+[model][WARN] /tmp/tmp7c8xna9n/models--o--m/refs/main 指向 'deadbeef'，但 snapshots/ 下没有该目录；回退到排序最后 bbbb2222
+  [PASS] refs/main 失效 ⇒ 回退排序最后 —— bbbb2222
+[model][WARN] /tmp/tmp7c8xna9n/models--o--m 下有 2 个 snapshot 且无 refs/main ⇒ 取排序最后 bbbb2222；要固定版本请显式给 DC_MODEL=<snapshot 目录>
+  [PASS] 无 refs/main ⇒ 取排序最后 —— bbbb2222
+  [PASS] 空 snapshots/ 原样返回 —— /tmp/tmp7c8xna9n/models--e--m
+  [PASS] 路径不存在原样返回 —— /tmp/tmp7c8xna9n/nope
+  [PASS] 空字符串原样返回
+  [PASS] hub 父目录不猜模型（原样返回） —— /tmp/tmp7c8xna9n/hub
+
+[G2] 同源守卫（AST 静态检查：两腿不得各自实现解析）
+  [PASS] 共用模块存在 —— runtime/proto/model_path.py
+  [PASS] runtime/proto/proto_infer_leg.py 未自建解析函数 —— 无
+  [PASS] runtime/proto/proto_infer_leg.py 从 model_path 导入 require_model —— INSTANCE_LAYOUTS、pick_model、require_model
+  [PASS] runtime/proto/proto_infer_leg.py 不直接读 DC_MODEL 环境变量 —— 无
+  [PASS] runtime/proto/proto_infer_leg.py 确实调用了 require_model —— 已调用
+  [PASS] runtime/proto/proto_train_leg.py 未自建解析函数 —— 无
+  [PASS] runtime/proto/proto_train_leg.py 从 model_path 导入 require_model —— pick_model、require_model
+  [PASS] runtime/proto/proto_train_leg.py 不直接读 DC_MODEL 环境变量 —— 无
+  [PASS] runtime/proto/proto_train_leg.py 确实调用了 require_model —— 已调用
+
+[G3] 早失败：取不到模型必须 exit 4 且说清三种传法
+  [PASS] 取不到模型 ⇒ SystemExit(4) —— code=4
+  [PASS] 指引含「普通目录」
+  [PASS] 指引含「snapshot」
+  [PASS] 指引含「HF 缓存根」
+  [PASS] 指引显式劝阻「所有模型的父目录」
+
+==========================================================================
+DC_MODEL 口径自检: 23 通过 / 0 失败 / 0 跳过
+⚠️ 结论边界：本结果只证明**解析形态与同源关系**。真机上两腿解析到同一路径必须上机实测（比对 `[model] … → 解析 <path>` 行）。
+==========================================================================

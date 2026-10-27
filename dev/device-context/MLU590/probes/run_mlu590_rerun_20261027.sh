@@ -19,11 +19,15 @@ C=dc-mlu590-hliu553
 PY=/flagos/bin/python3
 DEV=${DEV:-0}
 MODEL=${MODEL:-/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B}
-# ⚠️ 训练腿必须收 **snapshot 路径**：`proto_infer_leg` 有 resolve_model（把 HF 缓存根解析到
+# ⚠️ 训练腿原先必须收 **snapshot 路径**：`proto_infer_leg` 有 resolve_model（把 HF 缓存根解析到
 #    snapshots/<hash>），而 `proto_train_leg` **没有**该解析（共享层两腿不一致，2026-10-27 实测
 #    `ValueError: Unrecognized model in .../models--Qwen--Qwen3-Embedding-0.6B`）⇒ 按历史用法先解析。
 #    ⚠️ 解析必须**在容器内**做：`/hf_cache` 是容器内挂载点，宿主上是 `/srv/data/hf_cache`
 #    （第一版在宿主算，结果为空 ⇒ 回落到缓存根 ⇒ 仍然报同一个错，实测踩过）。
+# ✅ **2026-10-27 当日已修**：解析已抽成 `prototype/runtime/proto/model_path.py` 两腿共用，
+#    训练腿可直接吃缓存根；复验读数 `MLU590/probes/legparity_20261027_out/`。
+#    本脚本**保留** `MODEL_SNAP_EXPR` 仅为复现当次读数（同轮证据要与当时的命令一致），
+#    新跑请直接用 `run_mlu590_legparity_20261027.sh` 或去掉该表达式。
 MODEL_SNAP_EXPR='export DC_MODEL=$(ls -d "$DC_MODEL"/snapshots/*/ 2>/dev/null | head -1 || echo "$DC_MODEL")'
 
 PROTO=$WC/dev/device-context/prototype

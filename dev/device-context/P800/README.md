@@ -176,7 +176,7 @@ P800/
 
 | 用途 | 证据入口 |
 |---|---|
-| 当前结论 = 哪一份 | `probes/audit_20261008_out/`（自证审计）· `probes/d2_20261008_out/` · `probes/e1_regress_kunlun_20261008_out/` · `probes/r8_regress_kunlun_20260930*` |
+| 当前结论 = 哪一份 | `probes/audit_20261008_out/`（自证审计）· `probes/d2_20261008_out/` · `probes/e1_regress_kunlun_20261008_out/` · `probes/r8_regress_kunlun_20260930*` · `probes/rerun_20261026_out/`（共享层复跑）· `probes/legparity_20261027_out/`（两腿 `DC_MODEL` 口径，`LEGPARITY_PASS` 9/0） |
 | KL3 缺陷取证 | `probes/A_round1_battery_20260914.log` · `B_round2_repeat_*` · `C_round3_dose_*` · `D_verify_truthvalue_*` · `E_train_ab.log` |
 | 卡 1 故障判别 | `probes/DIAG_kunlun_card1_event_hang_20260929.log`（A/B/C 三组 + 卡身份硬核对） |
 | 两条腿 / 服务化 / 错误闭环 | `probes/E_train_leg_result_rank{0,1}.json` · `F_infer_leg_result_20260920.json` · `F2_serve_result_20260920.json` · `error_recovery_loop_kunlun_KL3{on,off}.json` |

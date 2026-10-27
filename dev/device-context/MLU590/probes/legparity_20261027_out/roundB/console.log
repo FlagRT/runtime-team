@@ -1,0 +1,79 @@
+############################################################
+# DC_MODEL 两腿口径复验  2026-10-27 11:48:45
+# 容器=dc-mlu590-hliu553 ｜ 解释器=/flagos/bin/python3 ｜ 后端=cambricon ｜ 选卡变量 MLU_VISIBLE_DEVICES=0,1
+# 模型（本实例真实目录）=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+# 宿主工作区=/srv/hliu553/dc_rerun_20261027 ｜ 容器工作区=/work/dc_rerun_20261027
+############################################################
+标记文件双向一致: legparity-470203-1793072925（宿主 /srv/hliu553/dc_rerun_20261027 ≡ 容器 /work/dc_rerun_20261027）
+
+=== [0] 版本自证（跑的是哪份代码）===
+  4dbeac01baf974aa54678281c945040f  runtime/proto/model_path.py
+  3068fb9322392fda1a605ce8cc550da3  runtime/proto/proto_infer_leg.py
+  173cd1bb4adf55291d3de380baf6a309  runtime/proto/proto_train_leg.py
+  3d086075f651882623da46d7e7dfab5c  scripts/model_path_parity_check.py
+  model_path 内 refs/main 处理行数: 6
+  proto_infer_leg 导入共用模块: 1
+  proto_train_leg 导入共用模块: 1
+
+=== [1] 离线口径自检（P1：含 AST 同源守卫，无设备）===
+  rc=0（out/s1_offline.log）
+    DC_MODEL 口径自检: 23 通过 / 0 失败 / 0 跳过
+  [PASS] P1 离线口径自检 0 失败
+
+=== [1.5] 合成 HF 缓存（P3 诱饵：refs/main 指向真 hash，另放一个字典序更大的假目录）===
+    total 8
+    lrwxrwxrwx 1 root root   99 Oct 27 11:48 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 -> /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    drwxr-xr-x 2 root root 4096 Oct 27 11:48 zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+  refs/main = 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+  真 snapshot 有 config.json: OK
+  诱饵无 config.json: OK（选中它必失败）
+  普通目录传法 = /work/dc_rerun_20261027/legparity_plain/Qwen3-Embedding-0.6B -> /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+  [PASS] P3-0 合成缓存 + 普通目录软链就绪
+
+=== [2] 推理腿 × HF 缓存根（P2 上半）===
+  rc=0（out/s2_infer_hub.log）
+    [model] DC_MODEL=/work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    [rank0] INFER_LEG_PASS 13/13 | backend=cambricon dev=mlu:0 | dim 1024 | 37.97 句/s p50 74.08ms | 区分度 0.6391 -> /work/dc_rerun_20261027/legparity_out/roundB/infer_hub.json
+  [PASS] P2-a 推理腿（缓存根）INFER_LEG_PASS
+
+=== [3] 训练腿 50 步 × HF 缓存根（P2 下半；**故意不做任何手工 snapshot 解析**）===
+  rc=0（out/s3_train_hub.log）
+    [step  45] loss=11.1804
+    [step  49] loss=11.1479
+    [rank1] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3065.6 tok/s(两卡合计) -> /work/dc_rerun_20261027/legparity_out/roundB/train_leg_result_rank1.json
+    [rank0] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3065.0 tok/s(两卡合计) -> /work/dc_rerun_20261027/legparity_out/roundB/train_leg_result_rank0.json
+  [PASS] P2-b 训练腿（缓存根）TRAIN_LEG_PASS
+
+=== [4] 推理腿 × 普通模型目录（P4 回归）===
+  rc=0（out/s4_infer_plain.log）
+    [model] DC_MODEL=/work/dc_rerun_20261027/legparity_plain/Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /work/dc_rerun_20261027/legparity_plain/Qwen3-Embedding-0.6B
+    [rank0] INFER_LEG_PASS 13/13 | backend=cambricon dev=mlu:0 | dim 1024 | 40.01 句/s p50 73.21ms | 区分度 0.6391 -> /work/dc_rerun_20261027/legparity_out/roundB/infer_plain.json
+  [PASS] P4-a 推理腿（普通目录）INFER_LEG_PASS
+
+=== [5] 训练腿 50 步 × 普通模型目录（P4 回归）===
+  rc=0（out/s5_train_plain.log）
+    [step  45] loss=11.1804
+    [step  49] loss=11.1479
+    [rank1] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3037.8 tok/s(两卡合计) -> /work/dc_rerun_20261027/legparity_out/roundB/train_leg_result_rank1.json
+    [rank0] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 3036.0 tok/s(两卡合计) -> /work/dc_rerun_20261027/legparity_out/roundB/train_leg_result_rank0.json
+  [PASS] P4-b 训练腿（普通目录）TRAIN_LEG_PASS
+
+=== [6] 解析路径对账（P2/P3 的核心判据）===
+  推理腿·缓存根  → /work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3|
+  训练腿·缓存根  → /work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3[model] rank0 DC_MODEL=/work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3|
+  推理腿·普通目录 → /work/dc_rerun_20261027/legparity_plain/Qwen3-Embedding-0.6B|
+  训练腿·普通目录 → /work/dc_rerun_20261027/legparity_plain/Qwen3-Embedding-0.6B|
+  [FAIL] P2 缓存根：两腿解析同一 snapshot 且=refs/main 指向的真 hash
+  [PASS] P3 未选中诱饵 snapshot
+  [PASS] P4 普通目录：两腿解析同一路径
+
+=== [7] 两次训练腿 loss 对比（模型被换掉则不可能相同）===
+  s3_train_hub   loss=11.1479
+  s5_train_plain loss=11.1479
+  |Δloss| = 0.000000  （逐字相同 ⇒ 两条传法喂的是同一份权重）
+
+############ 汇总 ############
+  DC_MODEL 口径复验: 8 通过 / 1 失败
+  证据目录：宿主 /srv/hliu553/dc_rerun_20261027/legparity_out/roundB ｜ 容器 /work/dc_rerun_20261027/legparity_out/roundB
+  ⚠️ 结论边界：只覆盖「模型路径口径」改动面；离线 114/103/92、smoke、契约不变式、审计 78 不在本轮范围。
+VERDICT: LEGPARITY_FAIL

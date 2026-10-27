@@ -65,11 +65,14 @@
 
 ## 未解释 / 待修项
 
-1. ⭐ **共享层两腿对 `DC_MODEL` 传法不一致**（本轮实测暴露）：`proto_infer_leg` 有 `resolve_model`
+1. ~~**共享层两腿对 `DC_MODEL` 传法不一致**~~ ✅ **2026-10-27 当日已修**：`proto_infer_leg` 有 `resolve_model`
    会把 HF 缓存根解析到 `snapshots/<hash>`，`proto_train_leg` **没有**该解析 ⇒ 同一份
-   `DC_MODEL=/hf_cache/hub/models--Qwen--…` 推理腿过、训练腿报
+   `DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B` 推理腿过、训练腿报
    `ValueError: Unrecognized model in …`。本轮按历史用法（先解析 snapshot 路径）绕过，
-   **未临时改共享层**（改共享层须四实例复验，不能在 parity 跑里夹带）。⇒ 待办：训练腿补同一解析，并四实例复验。
+   **未临时改共享层**（改共享层须多实例复验，不能在 parity 跑里夹带）。
+   → 修法：抽成 `prototype/runtime/proto/model_path.py` 两腿共用 + 静态同源守卫；
+   本机复验 **`LEGPARITY_PASS` 9/0**（两腿对同一缓存根解析同一 snapshot、loss 与归档逐字相同）。
+   证据 `../legparity_20261027_out/MANIFEST.md`，报告 `../../prototype/docs/LEG_MODEL_PATH_PARITY_20261027.md`。
 2. 上面那条「910C 区分度待查」：三机 `model.safetensors` 全量 sha256 对账。
 
 ## 踩坑（都写进脚本注释了）
