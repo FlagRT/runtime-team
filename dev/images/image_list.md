@@ -133,6 +133,40 @@ flagtree 线号理解。
 
 ---
 
+---
+
+# 平头哥 PPU
+
+## 版本线：FlagTree ppu3.6
+
+**BAAI·FlagTree 官方 PPU 线**（ppu3.6：PPU SDK v2.1.0 / Python 3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。
+本系列两版：**v1 = 官方基座登记式**（未改一字节）；**v2 = 在 v1 之上加一层本组派生**（把服务化前置
+`triton` 固化进镜像）。与昇腾/昆仑芯的差别：本系列的血统锚在上游 Harbor digest（基座）与
+**单 wheel sha256**（派生层），没有 FlagTree git commit 式构建。
+
+## 版本索引
+
+**`thead-ppu-runtime` 系列**（FlagTree 官方 PPU 基座 + 本组派生层）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`） | 🟢 FlagTree 官方镜像（Harbor digest 锁定，登记式基线 ADR-0007） | `thead-ppu-runtime/v1/` |
+| v2 | `flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64`（`1ba7ead15378`） | 🟢 functional-repro（实机 `docker build` 6 轮，**末轮产物即交付镜像**；全新容器 `TRITON_PPU_SMOKE_PASS` + `SERVE_STANDARD_PASS`） | [`thead-ppu-runtime/v2/`](thead-ppu-runtime/v2/README.md) |
+
+> v2 解决的是一件会让整条腿不可用的事：官方基座**不含 `triton`**，而 vLLM 起服务前门控
+> `find_spec("flash_attn") and find_spec("triton")` ⇒ 服务化腿必然起不来；此前靠手工 `docker cp`
+> 从共享目录补三件、**容器重建即丢**。v2 用共享盘既有 flagtree wheel（sha256 `b57daff7…`，
+> 一个 wheel 同时提供 `triton` + `flagtree`）经 `pip install --no-index --no-deps` 固化成一层，
+> 做到「拉起镜像即可服务化」。派生层**只做加法**：不升级/降级基座任何包、不装本组运行时。
+>
+> 分发：本机构建、**未 push**（`RepoDigests` 为空）⇒ 走离线包（[`thead-ppu-runtime/v2/ARCHIVE.md`](thead-ppu-runtime/v2/ARCHIVE.md)）
+> + 仓内配方重建，与训练腿镜像同口径。跨机 image id 不同属预期，版本锚 = `lock.yaml` 的 `image_id` + wheel sha256。
+>
+> ⚠️ **两个会误判的版本标签**（2026-10-27 实测）：① `pip show triton` **无输出** —— `triton` 是
+> flagtree wheel 内部的一段，没有独立 `dist-info`，用 `pip show`/`pip freeze` 判"装没装"会判成没装；
+> ② `flagtree.__version__` 自报 **3.6.0**（跟随 triton 线号），而 pip 元数据是 **0.7.0+ppu.gite223f42c**。
+> 版本锚一律用 pip 元数据 + wheel sha256，不用 `__version__`。
+
 # 当前生效版本
 
 > 2026-10-14 发版后口径。锁定声明见 [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)
@@ -147,7 +181,7 @@ flagtree 线号理解。
 | 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
 | 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
-| 平头哥 PPU | thead-ppu-runtime | `flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64`（image id `sha256:1ba7ead1…`，**本组派生层**：官方基座 + 固化 triton/flagtree 的 flagtree wheel；`check` 实测 PASS） | `thead-ppu-runtime/v2/` |
+| 平头哥 PPU | thead-ppu-runtime | **生效版本 = v1**（`flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`，官方基座 🟢 digest 锁定）—— 与 `stack.lock.thead-ppu.v1.yaml` 的 `lock:` 一致；**候选 v2**（`1ba7ead1…`，🟢 派生层，已入档、离线包已产出）待总组裁定；device-context 方向运行容器已在用 v2 | `thead-ppu-runtime/v1/`（生效）+ [`v2/`](thead-ppu-runtime/v2/README.md)（候选） |
 | 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基线；不含 vLLM，推理腿未入锁） | `cambricon-mlu-runtime/v1/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方

@@ -1,0 +1,67 @@
+===== thead-ppu-runtime v2 入档验收 · 2026-10-27T10:24:47+08:00 =====
+=== [0] 被验镜像的版本锚（证据必须对应这个 id）===
+$ docker inspect flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64 --format '  image_id   = {{.Id}}'
+  image_id   = sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8
+$ docker inspect flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64 --format '  created    = {{.Created}}'
+  created    = 2026-10-27T10:05:56.284499121+08:00
+$ docker inspect flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64 --format '  size_bytes = {{.Size}}'
+  size_bytes = 41745259535
+$ docker inspect flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64 --format '  RepoDigests= {{.RepoDigests}}'
+  RepoDigests= []
+
+=== [1] 起全新容器（独立名字，用空闲 ppu2/ppu3）===
+$ docker rm -f hliu553-v2-verify >/dev/null 2>&1 || true
+$ docker run -d --name hliu553-v2-verify --network host --restart no   --device=/dev/alixpu --device=/dev/alixpu_ctl   --device=/dev/alixpu_ppu2 --device=/dev/alixpu_ppu3   --shm-size=32g --add-host=ai-server:127.0.0.1   -e NCCL_SOCKET_IFNAME=bond0   -v /bmcp_lvm_fs/hliu553:/workspace -v /etc/localtime:/etc/localtime:ro   flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64 sleep infinity
+5c129eadbba24efc7a65a0f8a46944e4988231f38de3287a793a2032bc798dc8
+$ docker ps --filter name=hliu553-v2-verify --format '  {{.Names}}  {{.Status}}  {{.Image}}'
+hliu553-v2-verify  Up Less than a second  flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64
+
+=== [2] 镜像自证：triton/flagtree 在（且来自镜像层，不是手工拷贝）===
+$ docker exec hliu553-v2-verify bash -lc 'python3 - <<PY
+import importlib.util as u, triton, flagtree, torch, sys
+print("  python   :", sys.version.split()[0])
+print("  torch    :", torch.__version__, "| cuda:", torch.cuda.is_available(), "| n:", torch.cuda.device_count())
+print("  triton   :", triton.__version__, "| path:", triton.__file__)
+print("  flagtree :", getattr(flagtree, "__file__", "?"))
+print("  flagtree.__version__ :", getattr(flagtree, "__version__", "?"), "（注意：跟随 triton 线号，不作版本锚）")
+print("  find_spec triton/flagtree:", u.find_spec("triton") is not None, u.find_spec("flagtree") is not None)
+PY'
+  python   : 3.12.3
+  torch    : 2.10.0 | cuda: True | n: 2
+  triton   : 3.6.0 | path: /usr/local/lib/python3.12/site-packages/triton/__init__.py
+  flagtree : /usr/local/lib/python3.12/site-packages/flagtree/__init__.py
+  flagtree.__version__ : 3.6.0 （注意：跟随 triton 线号，不作版本锚）
+  find_spec triton/flagtree: True True
+
+=== [3] 非空转：真编 kernel（关键判据）===
+$ docker exec -e CUDA_VISIBLE_DEVICES=0 hliu553-v2-verify bash -lc 'cd /workspace/runtime-team/dev/device-context/prototype && python3 /workspace/runtime-team/dev/device-context/PPU/probes/triton_smoke.py'
+triton 3.6.0 | torch 2.10.0
+triton file = /usr/local/lib/python3.12/site-packages/triton/__init__.py
+device_count = 1 | dev0 = PPU-ZW810E
+[编译+执行] 耗时 1.37s  最大误差 0.000e+00  一致=True
+[边界尺寸 n=3000] 一致=True
+TRITON_PPU_SMOKE_PASS
+
+=== [4] vLLM 前置门控（基座在这里为 False ⇒ 服务化必挂）===
+$ docker exec hliu553-v2-verify bash -lc 'python3 - <<PY
+import importlib.util as u
+print("  flash_attn:", u.find_spec("flash_attn") is not None)
+print("  triton    :", u.find_spec("triton") is not None, " <= vLLM 门控项")
+PY'
+  flash_attn: True
+  triton    : True  <= vLLM 门控项
+
+=== [5] 服务化端到端（embed 形态；STOP_AFTER=1 会在验证后主动停机，日志里的 Killed 属预期）===
+  等待服务化判定（约 120 s）...
+$ grep -aE 'verdict|SERVE_STANDARD' /bmcp_lvm_fs/hliu553/probes_ppu/v2_verify_20261027/serve/serve_standard.log | tail -3
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+$ docker ps -a --filter name=hliu553-v2-serve --format '  容器状态: {{.Status}}'
+容器状态: Exited (0) 4 seconds ago
+
+=== [6] 收尾：删除验证容器（不留带卡容器占别人名额）===
+$ docker rm -f hliu553-v2-verify hliu553-v2-serve >/dev/null 2>&1 || true
+$ docker ps --filter name=hliu553-v2 --format '  残留: {{.Names}}'
+
+证据目录：/bmcp_lvm_fs/hliu553/probes_ppu/v2_verify_20261027
+判据汇总：
+  SERVE_STANDARD_PASS TRITON_PPU_SMOKE_PASS 
