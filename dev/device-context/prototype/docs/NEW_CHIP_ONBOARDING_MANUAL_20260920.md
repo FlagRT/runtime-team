@@ -383,6 +383,8 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 15 | **职责响应审计 78 项**（2026-10 增补） | `DUTY_RESPONSE_PASS`；SKIP 须为如实不具备 | ✅ 73/0/5 | ✅ **68/0/10** | ✅ 61/0/17 | ✅ 73/0/5 |
 | 16 | **单入口复跑**（2026-10 增补） | 一条命令跑完判据，逐段留 rc 与 verdict | ✅ `910C/probes/run_910c_p9_acceptance.sh` 等 | ✅ 分项脚本 | ✅ 分项脚本 | ✅ `PPU/probes/run_acceptance_ppu.sh`（13 段） |
 
+> ⚠️ **数字要对得上归档**：第 15 行 910C 的 `73/0/5` 在 2026-10-27 之前**没有 78 项版的归档支撑**（仓库里 910C 的审计归档只有 `duty_audit_ascend_20260928.json` 等 **39 项版旧清单**，且当时 C13 是「OK 但 `elapsed_time=0.0`」——正是后来在 P800 上被判为「如实不具备/假通过」的形态）。该机首次以 78 项版实测并归档即为 `73/0/5`（C13 = 10.474 ms），见 `910C/probes/rerun_20261027_out/`。⇒ **引用本表前先确认对应版本的归档存在**。
+
 > ⚠️ **第 15 条的历史读数需重述（2026-10-26 发现）**：四家的 `C13 event.elapsed_time(end)`
 > 一直是**假 SKIP** —— 统一 API 原本没有「建可计时事件」的入口（`create_event()` 无参数），
 > 于是该判据在四家**恒跳过、从未真正执行**；且修掉入口后暴露出方向写反（`e2.elapsed_time(e1)` 得负值仍判 OK）。
