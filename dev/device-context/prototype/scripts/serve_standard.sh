@@ -21,12 +21,15 @@
 #           GEMS_VENDOR=kunlunxin / KLX_USE_AUTOTUNE=0
 #         · 选卡 CUDA_VISIBLE_DEVICES
 #         · 停机必须连带清理 EngineCore 残留（实测占卡 73850 MiB / 96 GiB）
-#   MLU590（寒武纪，2026-09-22 新增，⚠️ 尚未真机验证）：
-#         · 设备 API 走 torch.mlu（PrivateUse1），选卡 MLU_VISIBLE_DEVICES
-#         · 镜像定档 flagos-runtime-cambricon-neuware4.4.3:2.2.0（宿主驱动 v6.2.29 同 6.2.x 线）
-#         · 推理形态**待实测**：寒武纪有厂商移植版 vLLM（Cambricon/vllm-mlu），
-#           但是否需要在社区 vLLM 之外额外装插件、--runner pooling 是否被支持，均未验证
-#           ⇒ 首次跑请保留本脚本日志，按实际报错回填本节
+#   MLU590（寒武纪，2026-09-22 新增；✅ 2026-10-24 真机验证通过，推理腿已定档）：
+#         · 设备 API 走 torch.mlu（PrivateUse1），选卡 MLU_VISIBLE_DEVICES；集合通信后端 cncl
+#         · 镜像 = 推理腿发布物 flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2
+#           （cambricon-infer-vllm v1；运行时基座镜像不含 vLLM，服务化须用本 app 镜像）
+#         · 实测（2026-10-24 HWJ_1，Qwen3-Embedding-0.6B / dev0 / TP=1 / eager）：
+#           vllm 0.20.2+flagos 自带 vllm-plugin-FL 0.2.2 dispatch 层（寒武纪线必需，
+#           无 910C 的 unset VLLM_PLUGINS 纪律）；--runner pooling --convert embed 可用；
+#           init engine（profile+KV+warmup）149.5s ⇒ READY_BUDGET 建议 ≥300s（默认 180 会误判）；
+#           verdict SERVE_STANDARD_PASS (ready=1 smoke=1)，停机后 8 卡释放 0 MiB
 #   PPU（平头哥，2026-10-14 新增，✅ 2026-10-14 真机首验）：
 #         · 形态判定 = **路径 B**：设备 API 走 torch.cuda 命名空间，vLLM 平台自识别
 #           NvmlCudaPlatform ⇒ 不需要任何厂商插件/平台环境变量

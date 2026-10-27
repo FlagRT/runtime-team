@@ -1,0 +1,68 @@
+# cambricon-infer-vllm v1 的 demo 运行环境（登记式，ADR-0007）。
+# 本目录只管容器生命周期（sleep infinity）；服务起停一律走
+# dev/device-context/prototype/scripts/serve_standard.sh（组内唯一服务入口，DC_BACKEND=cambricon）。
+#
+# 用法（仓根执行）：
+#   WORKSPACE_ROOT=<仓根绝对路径> MLU_MODELS_DIR=<模型目录> dev/lib/up.sh dev/images/cambricon-infer-vllm/v1/demo
+#   # 服务化验收（容器内一行式；READY_BUDGET 建议 >=300，见 image.baseline.yaml）：
+#   docker exec flagrt-mlu-infer-v1-demo-mlu2 bash -c "DC_BACKEND=cambricon DEV=0 STOP_AFTER=1 READY_BUDGET=600 MODEL=/root/models/Qwen3-Embedding-0.6B bash prototype/scripts/serve_standard.sh"
+#   # 收尾：
+#   WORKSPACE_ROOT=<仓根绝对路径> MLU_MODELS_DIR=<模型目录> docker compose -f dev/images/cambricon-infer-vllm/v1/demo/docker-compose.yml down
+#
+# 设备纪律：无带卡容器独占（同 P800/PPU）；用卡前 cnmon 挑空闲卡，MLU_VISIBLE_DEVICES 选卡。
+# 映射全部 8 卡 ⇒ 容器内逻辑号 == 宿主物理号。
+
+name: flagrt-mlu-infer-v1-demo-mlu2
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {}
+
+services:
+  runtime-mlu-infer:
+    container_name: flagrt-mlu-infer-v1-demo-mlu2
+    image: harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2
+    network_mode: host
+    shm_size: 64g
+    tty: true
+    stdin_open: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    devices:
+      # 同 cambricon-mlu-runtime/v1 demo：ctl 是设备访问前提，共 18 个节点
+      - /dev/cambricon_ctl:/dev/cambricon_ctl
+      - /dev/cambricon_gdr:/dev/cambricon_gdr
+      - /dev/cambricon_dev0:/dev/cambricon_dev0
+      - /dev/cambricon_dev1:/dev/cambricon_dev1
+      - /dev/cambricon_dev2:/dev/cambricon_dev2
+      - /dev/cambricon_dev3:/dev/cambricon_dev3
+      - /dev/cambricon_dev4:/dev/cambricon_dev4
+      - /dev/cambricon_dev5:/dev/cambricon_dev5
+      - /dev/cambricon_dev6:/dev/cambricon_dev6
+      - /dev/cambricon_dev7:/dev/cambricon_dev7
+      - /dev/cambricon_ipcm0:/dev/cambricon_ipcm0
+      - /dev/cambricon_ipcm1:/dev/cambricon_ipcm1
+      - /dev/cambricon_ipcm2:/dev/cambricon_ipcm2
+      - /dev/cambricon_ipcm3:/dev/cambricon_ipcm3
+      - /dev/cambricon_ipcm4:/dev/cambricon_ipcm4
+      - /dev/cambricon_ipcm5:/dev/cambricon_ipcm5
+      - /dev/cambricon_ipcm6:/dev/cambricon_ipcm6
+      - /dev/cambricon_ipcm7:/dev/cambricon_ipcm7
+    volumes:
+      - /usr/bin/cnmon:/usr/bin/cnmon:ro
+      - ${WORKSPACE_ROOT}:/workspace
+      - ${MLU_MODELS_DIR:?set_models_dir}:/root/models:ro
+    environment:
+      - DO_NOT_TRACK=1
+    working_dir: /workspace/dev/device-context
+    restart: "no"
+    command: sleep infinity
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-10-24  新建 demo（随目录首登）：形态 = 入锁验收当日所用（18 设备节点 + cnmon + 仓根 +
+#             模型目录 + host 网络/shm64g/seccomp+SYS_PTRACE，working_dir 对齐 serve_standard
+#             相对路径）。SERVE_STANDARD_PASS (ready=1 smoke=1) 于本形态取得（HWJ_1，dev0，
+#             Qwen3-Embedding-0.6B，init engine 149.5s）。

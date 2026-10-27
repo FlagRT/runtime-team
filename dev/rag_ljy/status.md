@@ -1,91 +1,97 @@
-# RAG 工作流进展
+# RAG 当前状态
 
-更新日期：2026-09-10
+文档更新：2026-10-20（北京时间）。最近完整回归与设备内存实测：2026-10-14。
 
-## 已完成进展
+**本文件必须保留在 `dev/rag_ljy/status.md`，作为项目当前状态的固定入口，随开发持续更新。**
 
-**已跑通 Elasticsearch + Qwen3 Embedding + Qwen3 Reranker 的完整检索精排链路，基于 5 条样本文档返回按相关性排序的 Top 5 片段。常驻查询 API 已完成实现。**
+目前交付形态是可运行的 **RAG检索与阶段调度原型**：支持在线多请求、独立有界阶段队列、
+混合检索、精排及设备内存探测。内存感知准入和答案生成尚未实现，尚未达到生产部署标准。
+本文根据当前源码及已保存的实测证据整理；以下验证日期是实际运行日期。
 
-| 成果 | 当前进展 |
+## 已实现功能
+
+| 模块 | 当前实现 |
 |---|---|
-| NPU 模型运行环境 | 已启动单一 vLLM Ascend 容器，加载 embedding、reranker 两个模型并完成查询 |
-| Elasticsearch 数据链路 | 已完成服务启动、1024 维索引创建、样本文档向量化入库及检索 |
-| 混合检索与精排 | 已完成 BM25 + dense 双路检索、RRF 融合、Qwen3 精排，返回片段、来源及各阶段分数 |
-| 常驻查询服务 | 已实现模型启动时加载一次、后续请求复用、无空闲卸载；目标 NPU 连续运行待验证 |
-| 双数据库适配 | 已实现 Elasticsearch / Milvus 统一接口；Elasticsearch 已实跑，Milvus 实跑待完成 |
-| 环境依赖修正 | 已修正项目依赖范围，并在安装脚本中按镜像版本约束推理栈，避免覆盖镜像要求的 Transformers 版本 |
+| 数据处理与入库 | NFCorpus原始3,633篇文档按1200字符、重叠150字符切为6,543块，保留文档与块ID；同一批文档向量复用于两个数据库。 |
+| 文本向量化 | 文档和查询默认使用Qwen3-Embedding-0.6B的vLLM服务，输出1024维向量；CLI、API、入库与基准使用同一embedding工厂。 |
+| 混合检索 | 通过统一数据库接口选择Milvus或Elasticsearch，在所选数据库内执行BM25和dense检索，支持顺序／并发两种模式，再进行RRF融合。 |
+| 结果精排 | Qwen3-Reranker-0.6B通过Transformers执行，返回排序片段、来源及分数；当前精排后端仍是Transformers。 |
+| 在线多请求 | FastAPI接受同时及错峰到达的HTTP请求；每个请求拥有独立asyncio任务、请求ID及中间结果，按自身依赖推进。 |
+| 独立阶段队列 | 向量化、检索和精排各使用一个有界`asyncio.Queue`；每个任务通过自己的Future接收结果，完成后即可进入下一阶段，无需整组等待。 |
+| 数量准入与背压 | 默认最多8个在途请求，包含执行与等待；超限返回503及`Retry-After: 1`；已接收请求遇阶段队列满时等待空间。 |
+| 取消、异常与关闭 | 请求异常反馈到对应请求；HTTP等待取消后，已接收工作继续执行并占用容量；服务关闭前排空请求和阶段队列。 |
+| 设备适配 | 设备选择、可见性检查与初始化通过`dev/device-context` runtime；底层Torch、厂商扩展、驱动及运行库由平台环境提供。 |
+| 设备内存探测 | 通过`runtime.memory_stats()`后台读取总量／已用／可用内存，默认每秒采样；`/health.device_memory`暴露缓存读数、时间、年龄、过期标记及错误状态。 |
+| 可观察性 | `/health`展示真实数据库、检索模式、在途数量、阶段队列状态及设备内存；服务端日志记录请求ID和阶段排队／执行时间。 |
+| 数据库部署 | Milvus采用内嵌etcd的单容器部署；Elasticsearch单容器部署；数据通过RAID目录持久化。 |
 
-## 已取得的查询结果
+阶段worker默认为：向量化2个HTTP worker、检索4个worker、精排1个worker；每个阶段8个等待槽。
+本地模型在其初始化线程执行，内存探测使用独立采样线程。向量化worker并发指向vLLM提交请求，
+不等同于已验证这些请求进入同一次模型forward。
 
-查询：`How does hybrid search work?`。样本规模：**5 条文档**。以下为实际终端返回结果，分数保留 8 位小数。
+每个请求的查询、向量、候选与结果目前通过参数和局部变量传递，采用固定阶段依赖；
+尚未抽象为通用流程上下文或动态工作流引擎。
 
-| 最终排名 | 文档 | BM25 排名 | Dense 排名 | RRF score | Rerank score |
-|---|---|---:|---:|---:|---:|
-| 1 | `hybrid-search` | 1 | 1 | 0.03278689 | 0.99944717 |
-| 2 | `ranking` | — | 3 | 0.01587302 | 0.63703084 |
-| 3 | `rag-overview` | — | 4 | 0.01562500 | 0.03114383 |
-| 4 | `generation` | — | 2 | 0.01612903 | 0.01590639 |
-| 5 | `ascend-runtime` | — | 5 | 0.01538462 | 0.00555492 |
+## 已保存的验证证据
 
-直接解释 hybrid search 的文档位于第 1，BM25 和 dense 均将其排在首位。精排将 `ranking` 从 dense 第 3 提升至最终第 2，将 `generation` 从 dense 第 2 降至最终第 4，完成了候选顺序调整。首条 RRF 分数与两路首位一致：`2 / 61 ≈ 0.03278689`。
+| 日期 | 验证范围 | 结果与证据 |
+|---|---|---|
+| 2026-10-09 | 双库全量重建与持久化 | 两个后端各6,543块，全量ID及向量核对通过；Milvus重启后数据保留。[重建记录](artifacts/rebuilds/vllm-rebuild-2026-10-09/manifest.json)、[重启后验证](artifacts/rebuilds/vllm-rebuild-2026-10-09/post_restart_verification.json)。 |
+| 2026-10-09 | 检索阶段顺序／并发比较 | 固定50条查询×两数据库×两模式，共200次检索成功，两库各50/50排序一致；测量前预计算向量，不包含模型阶段。[检索报告](artifacts/rebuilds/vllm-rebuild-2026-10-09/comparison-20261009T045201Z-2a44ec/report.md)。 |
+| 2026-10-09 | 独立队列完整API链路 | 同一50条查询×两库×两种配置，共200次完整向量化→检索→精排调用全部成功；两库各50/50有序结果、内容及容差内分数一致。[完整链路报告](artifacts/benchmarks/queued-pipeline-2026-10-09_134251-78a48d/report.md)。 |
+| 2026-10-09 | 同时／错峰、超限及恢复 | 同时8请求、错峰8请求均成功且匹配串行参考；9请求突发接受8个、预期拒绝1个，之后恢复成功；本轮34次调用中33次成功、1次预期503。[简要报告](artifacts/checks/queue_evidence/2026-10-09-summary/report.md)、[详细证据](artifacts/checks/queue_evidence/2026-10-09_140744-milvus-30d953/report.md)。 |
+| 2026-10-09 | 跨请求阶段推进 | 33个成功请求均有完整三阶段记录且自身依赖顺序正确；观察到60对跨请求阶段区间重叠。[服务端时间线](artifacts/checks/queue_evidence/2026-10-09_140744-milvus-30d953/stage_timeline.csv)。 |
+| 2026-10-14 | 设备内存及跨进程占用 | NPU总量62,748MiB，初始化后单次读取约0.7–1.2ms；独立进程分配128MiB时已用158→348MiB，退出后回到158MiB，增量包含运行环境开销。[单文件实测报告](artifacts/checks/memory_probe/2026-10-14_132823-f0ad80/report.md)。 |
+| 2026-10-14 | 真实API后台内存采样 | 173次health检查均得到正常且未过期的缓存读数，采样时间戳持续刷新；2条串行及同样2条并发查询全部成功，结果一致。这173次是HTTP检查次数，并非173次独立设备采样。[实测报告](artifacts/checks/memory_probe/2026-10-14_132823-f0ad80/report.md)。 |
+| 2026-10-14 | 完整回归 | `python -m pytest tests -q`：120项通过，覆盖设备路由、队列、API、内存指标校验、采样失败恢复及线程隔离等。[回归记录](artifacts/checks/memory_probe/2026-10-14_132823-f0ad80/report.md)。 |
 
-`—` 表示该片段未出现在返回的 BM25 排名中。Rerank score 是相关性信号，不作为准确率。当前结果验证了小样本链路；尚未形成整体检索质量或性能指标。
+固定输入是[同一组50条NFCorpus查询](data/queries/nfcorpus-50.jsonl)，200次调用不代表200条不同查询。
+有序结果比较采用分数相对容差1e-4、绝对容差1e-6；一致性验证不等于基于qrels的检索质量评估。
+完整API的两种配置同时改变了检索模式与客户端提交并发度，不能单独据此计算新增队列的开销。
+该轮未观察到明显吞吐提升，不能将阶段重叠表述为已取得吞吐加速。
 
-## 实现概要
+vLLM曾出现相同输入的向量不稳定问题，当前启动器为embedding进程设置
+`TRITON_ENABLE_TASKQUEUE=true`；固定输入及pipeline控制实验已保存。
+定位记录见[诊断结果](artifacts/diagnostics/vllm-mismatch-diagnosis-2026-10-09/summary.json)。
 
-### 入库与查询
+## 当前运行配置与依赖
 
-```text
-入库：文档 → 切块 → Qwen3 embedding → 片段、元数据及向量写入数据库
-查询：问题 → query embedding → BM25 + dense → RRF → Qwen3 reranker → 排序片段 JSON
-```
+以下是部署配置；容器和服务的实时在线状态通过health检查确认。
 
-- **文档处理**：[documents.py](src/rag_engine/documents.py) 按字符切块，通过文档 ID、版本、片段序号和内容生成 SHA-256 `chunk_id`，支持同一数据重复写入时更新相同 ID。
-- **Embedding**：[embedding.py](src/rag_engine/embedding.py) 使用 `Qwen/Qwen3-Embedding-0.6B`，执行最后有效 token pooling 和 L2 归一化；query 添加检索 instruction。
-- **检索融合**：[retrieval.py](src/rag_engine/retrieval.py) 合并 BM25 与 dense 结果，按 `sum(1 / (60 + rank))` 计算 RRF 分数；[pipeline.py](src/rag_engine/pipeline.py) 编排完整查询。
-- **精排**：[reranker.py](src/rag_engine/reranker.py) 使用 `Qwen/Qwen3-Reranker-0.6B`，依据 query/document 提示的 `yes` / `no` logits 计算分数并降序排序。
-- **数据库适配**：[stores/](src/rag_engine/stores/) 提供统一接口。Elasticsearch 使用 BM25 + cosine kNN；Milvus 使用 BM25 sparse index + cosine dense AUTOINDEX。一次查询使用一个后端，复用相同的融合与精排逻辑。
-
-### 常驻查询
-
-[scripts/serve_queries.py](scripts/serve_queries.py) 与 [server.py](src/rag_engine/server.py) 实现 FastAPI 常驻服务；[query_runtime.py](src/rag_engine/query_runtime.py) 统一 CLI / API 的模型初始化与输出格式。
-
-服务采用 **1 个进程、1 个专用推理线程、1 组 embedding / reranker 模型**。启动时加载模型，后续请求复用，不按查询释放，也不进行空闲卸载；进程停止后结束模型生命周期。已实现健康检查、请求校验和并发保护，同一时刻处理 1 个查询，重叠请求返回 503 供重试。目标 NPU 上的连续查询、显存常驻及持续运行时长待记录。
-
-### 当前配置规模
-
-以下为实现参数，不是性能实测值。
-
-| 参数 | 默认值 |
-|---|---:|
-| Embedding 输出维度 | 1024 |
-| 切块长度 / 重叠 | 1200 / 150 字符 |
-| 每路检索候选上限 | 50 |
-| RRF 常数 / 融合后候选上限 | 60 / 30 |
-| 精排返回上限 | 5 |
-| Embedding / reranker batch size | 8 / 4 |
-| 两模型输入长度上限 | 各 8192 tokens |
-| NPU 推理 dtype | BF16 |
-
-## 运行镜像
-
-RAG 模型执行统一使用 **一个 NPU 容器**：
-
-| 项目 | 当前环境 |
+| 项目 | 当前配置 |
 |---|---|
-| 镜像 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` |
-| 容器 | `rag-ljy-vllm-910c` |
-| Python | 镜像提供的 Python 3.11.15 |
-| 模型执行 | Transformers + PyTorch / `torch_npu` |
-| 模型存储 | 宿主机 RAID：`/mnt/raid/jliu171/models` |
-| 数据服务 | 独立 CPU Elasticsearch / Milvus 服务 |
+| 开发容器 | `rag-ljy-vllm-910c`；物理NPU7，容器内逻辑`npu:0`。 |
+| vLLM embedding服务 | `http://127.0.0.1:8089`；独立模型进程。 |
+| RAG查询API | `http://127.0.0.1:8088`；入口`POST /query`，状态`GET /health`。 |
+| Elasticsearch | `rag-ljy-elasticsearch`，宿主机`127.0.0.1:9201`映射到容器9200；索引`nfcorpus-chunks-v1`。 |
+| Milvus | `rag-ljy-milvus`，`127.0.0.1:19530`；集合`nfcorpus_chunks_v1`。 |
+| 计算分工 | 两个数据库的BM25／dense检索均在CPU执行；向量化与精排模型在NPU执行。 |
+| device-context | 目前通过`PYTHONPATH`加载`dev/device-context/prototype`，用于设备初始化与内存探测。 |
+| 推理环境 | 当前昇腾环境依赖镜像中的PyTorch／torch_npu、vLLM-Ascend及匹配驱动／运行库；跨平台完整验证尚未完成。 |
+| Python打包 | 已有`pyproject.toml`，包名`flagos-rag-ljy`；独立安装交付的命令入口与依赖验收仍待完善。 |
 
-当前 embedding、reranking 在该镜像内通过 Transformers 直接推理；常驻查询 API 由本项目实现。尚未接入 vLLM generation server。
+启动时须使用现有NFCorpus索引／集合名称；操作命令、环境变量和端口说明见[运行指南](docs/operations.md)。
 
-## 下一阶段
+## 当前限制与下一步
 
-1. 完成常驻 API 的 NPU 连续查询验证，记录加载耗时、后续请求耗时和空闲显存占用。
-2. 完成 Milvus 同数据集入库与查询，保存与 Elasticsearch 可对比的结果。
-3. 扩充带相关文档标注的数据集，评估 Recall@K、MRR / nDCG；此前讨论的约 100 条 mock 数据尚未生成。
-4. 采集 P50 / P95 延迟、QPS、显存峰值和错误率；目前尚无生产负载测量数据。
-5. 接入 generation 模型，将精排片段作为上下文生成带来源的最终回答。当前输出仍止于排序片段。
+- **内存感知准入尚未实现。** 当前内存读数只用于观察，请求数量上限仍控制准入；主机内存监测、请求内存预算及基于内存的接收／拒绝策略待补充。
+- 内存接口统一返回值的统计范围尚未由后端元数据明确，故标记`backend_reported_unverified`；Ascend兼容回退可能只反映当前进程分配量。跨进程测试仅验证了本次环境，后续准入需确认读数来源、范围和时效。
+- 下一步先尝试可配置的内存阈值准入原型，初步验证超限限制与回落恢复，记录测试结果；水位值及更短采样间隔尚未确定。
+- 尚未验证vLLM实际forward合批，尚未实现跨请求精排合批或vLLM精排后端；当前单请求候选batch不等同于跨请求batch。
+- 阶段队列为进程内存对象，暂无重启后的请求恢复或跨进程任务分发；请求截止时间、持续负载及更多故障场景仍需完善。
+- 尚未完成NFCorpus qrels的nDCG／MRR／Recall质量评测；中文analyzer配置及其重建验证待按需求开展。
+- 生成模型尚未接入，目前API输出为精排后的检索片段。
+- 独立pip安装包的交付验证待完成，设备运行环境、模型与数据库仍需分别准备。
+
+## 实现与文档入口
+
+| 内容 | 入口 |
+|---|---|
+| 阶段队列与请求调度 | [scheduler.py](src/rag_engine/scheduler.py)、[server.py](src/rag_engine/server.py) |
+| 设备适配与内存采样 | [device.py](src/rag_engine/device.py)、[memory_probe.py](src/rag_engine/memory_probe.py) |
+| 内存探测复跑 | [check_memory.py](scripts/checks/check_memory.py) |
+| 服务启动 | [serve_embeddings.py](scripts/runtime/serve_embeddings.py)、[serve_queries.py](scripts/runtime/serve_queries.py) |
+| 结构、操作与评测 | [实现结构](docs/architecture.md)、[运行指南](docs/operations.md)、[评测指南](docs/evaluation.md)、[device-context接入](docs/device-context.md) |
+| 测试与原始证据 | [结果索引](artifacts/README.md)、[机器可读索引](artifacts/index.json) |
+
+后续功能、配置或验证结果发生变化时，直接更新本文件，并链接对应的实现与证据。
