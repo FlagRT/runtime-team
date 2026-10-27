@@ -1,0 +1,32 @@
+证据目录（本轮）: /bmcp_lvm_fs/hliu553/probes_ppu/dc_t456_20261014/20261027_am-t456
+===== 前置：确认无服务残留并显示用卡 =====
+4
+dev free=90.7 GiB / total 96.0
+
+===== T4 错误闭环四类注入 =====
+[09:35:07] start
+rc=0
+[09:35:13] end
+
+===== T5 多流语义探针（8 项）=====
+[09:35:13] start
+rc=0
+[09:35:16] end
+STREAM_SEMANTICS_PASS: 8/8 子项通过
+
+===== T6 D2 流优先级「调度效果」（含正对照 + 分辨力判据）=====
+[09:35:16] start
+rc=0
+[09:35:29] end
+STREAM_PRIORITY_SCHED_EFFECT_PASS（applicable=True · instrument_valid=True · effect_observed=False）
+  [PASS] D1_measurement_resolution: 一趟扫描 1.13 µs = 工作量级（34.794 ms）的 0.003%（阈值 ≤ 5.0%）⇒ 分辨力足够
+  [PASS] G10_ungated_effect_summary: 未 gated 场景汇总：G4（取值 0 先提交）= -1.0205 ms / 0/8；G8（取值 -3 先提交）= 1.0425 ms / 8/8；同序同取值对照 G7 = -1.0373 ms ⇒ 未达到「两向一致 ∧ 幅度阈值 ∧ 与对照可区分」⇒ 如实标 False
+
+===== 产物清单 =====
+total 20
+drwxrwxr-x 2 hliu553 hliu553 4096 Oct 27 09:35 .
+drwxrwxr-x 6 hliu553 hliu553 4096 Oct 27 09:35 ..
+-rw-rw-r-- 1 hliu553 hliu553  818 Oct 27 09:35 t4_errorloop_ppu.log
+-rw-rw-r-- 1 hliu553 hliu553 2173 Oct 27 09:35 t5_stream_semantics_ppu.log
+-rw-rw-r-- 1 hliu553 hliu553 3885 Oct 27 09:35 t6_sched_effect_ppu.log
+T456_DONE
