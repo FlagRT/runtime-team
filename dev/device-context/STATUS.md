@@ -173,6 +173,7 @@
 ⑧ ✅ **`EVIDENCE_INDEX_PPU.md`（10-14）**（含 `rc=139` 覆盖表与 T10 命名偏离登记）；
 ⑨ ✅ **退出期段错误（T11）本层侧已收口（10-14）**：原生采集现场 = `Py_Exit → Py_FinalizeEx → _PyWeakref_ClearRef`（`si_code=1`、`si_addr=0xab`）⇒ 根因＝**平台侧弱引用书签失效**（**不含本层**的纯 torch 最小复现同样 `rc=139`）；本层修法＝不依赖弱引用语义（无上下文不登记 · `_released_streams` 强持有 · 登记表加上限）⇒ 三载体真机 `rc=0`、判据不变；⚠️ **平台侧缺陷未修、转厂商**；⚠️ 该修法落**共享层** ⇒ **910C/P800/MLU590 需再各复跑一次 78 项审计**。
 ⑩ ✅ **第五载体（契约不变式 I3）已收口（10-26）**：原生现场 `_PyWeakref_ClearRef` ← `Py_FinalizeEx`（`si_addr=(nil)`，与 T11 的 `0xab` **不同签名**）；二分到**只有 `i3_invalidated_governed`** 单独复现；暴露面＝`_stream_ctx`（本层**最后一处**弱引用）⇒ 改强持有后 `rc=139 → rc=0`，判据逐字不变，**13 段全量 13/13 段 `rc=0`**；⚠️ 复现纪律：**不得在退出前 `gc.collect()`**（会掩盖缺陷）；📤 厂商材料已备 `PPU/docs/PPU_VENDOR_WEAKREF_ISSUE_20261026.md`（含不含本层的最小复现 4/4）。
+⑪ ✅ **PPU 服务化前置 triton 已固化进镜像（10-27，镜像侧）**：官方基座不含 triton ⇒ 服务化必挂、此前靠手工 `docker cp`、容器重建即丢 ⇒ 新建 **`dev/images/thead-ppu-runtime/v2/`**（派生层：一个 flagtree wheel `pip install` 同时提供 triton 3.6.0 + flagtree，wheel sha256 `b57daff7…`）。验证均在**全新容器、零手工干预**下：真编 kernel `TRITON_PPU_SMOKE_PASS`、服务化 `SERVE_STANDARD_PASS (ready=1 smoke=1)`、现役容器切 v2 后 `s03 PASS` + `s06 CONTRACT_INVARIANTS_PASS 4/4`（`rc=0`）。基线为 ADR-0007 **登记式**，`check` 实测 **PASS**（`baseline.py` 暂不支持 wheel 固化形态 ⇒ 已提总组 TODO #23/#24）。共享机根盘余量**未恶化**（构建前后均 ~3G，旧容器可写层已回收）。
 
 ⑩ ✅ **T1-re（共享层再改后的破坏面复跑）三家全部闭环（10-14）**：910C `DUTY_RESPONSE_PASS` **73 / 0 / 5**（`L1`–`L4` OK、`L5` SKIP，与 10-13 一致）· P800 **68 / 0 / 10** · MLU590 **62 / 0 / 16**；
 三家契约不变式各 **4/4** · 离线自检 **92 / 114 / 103**（0 失败），且**与各自基线逐项状态零差异**（唯一 `detail` 差异 = 厂商句柄地址 或 B4 显存读数 `157→156 MB`）

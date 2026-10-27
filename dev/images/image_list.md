@@ -147,7 +147,7 @@ flagtree 线号理解。
 | 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
 | 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
-| 平头哥 PPU | thead-ppu-runtime | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线） | `thead-ppu-runtime/v1/` |
+| 平头哥 PPU | thead-ppu-runtime | `flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64`（image id `sha256:1ba7ead1…`，**本组派生层**：官方基座 + 固化 triton/flagtree 的 flagtree wheel；`check` 实测 PASS） | `thead-ppu-runtime/v2/` |
 | 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基线；不含 vLLM，推理腿未入锁） | `cambricon-mlu-runtime/v1/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
@@ -160,6 +160,7 @@ flagtree 线号理解。
 > registry 官方镜像，按 digest 拉取。
 
 <!-- changelog: 2026-10-14 —— 本文件对齐 dev/stack.lock.910c.v4.yaml 口径（依据指挥台
+<!-- changelog: 2026-10-27 —— 平头哥 PPU 生效版本由 v1（官方基座登记式）改为 **v2 派生镜像**：官方基座不含 triton ⇒ vLLM 起服务必挂、此前靠手工 `docker cp` 补；v2 用 flagtree wheel `pip install` 固化（wheel sha256 `b57daff7…`），服务化端到端 `SERVE_STANDARD_PASS`。基线为 ADR-0007 登记式（`baseline.py` 暂不支持 wheel 固化形态，见 TODO #24），`check` 已 PASS。v1 保留为基座登记。 -->
 <!-- changelog: 2026-10-15 —— 新增平头哥 PPU 行：thead-ppu-runtime v1（FlagTree 官方基座，登记式基线 ADR-0007 同款，Harbor digest 锚），锁定声明 dev/stack.lock.thead-ppu.v1.yaml。 -->
      ADR-0004「推理腿切回官方 vllm-ascend」，取代 ADR-0003 §3.5）。修订点：
      ① 版本线节补明 ascend-infer-vllm 为版本纪元对齐 ascend3.5、非 FlagTree 构建物；
