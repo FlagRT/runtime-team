@@ -39,13 +39,18 @@
 P800 与 MLU590 用**同一 snapshot 哈希**仍差 0.0001 ⇒ 该指标有 ±1e-4 平台抖动；
 910C 的 0.6380 偏离 0.0011（≈10 倍抖动）⇒ 仍指向 910C 那份副本与另两机不同源。**未下结论**（三份副本全量 sha256 未对账完）。
 
-## 本轮暴露的共享层缺口（已登记，未夹带修改）
+## 本轮暴露的共享层缺口（当日已修，未夹带进本轮读数）
 
 ⭐ **两腿对 `DC_MODEL` 传法不一致**：`proto_infer_leg` 有 `resolve_model`（把 HF 缓存根解析到
 `snapshots/<hash>`），`proto_train_leg` **没有** ⇒ 同一份 `DC_MODEL=/hf_cache/hub/models--Qwen--…`
 推理腿过、训练腿报 `ValueError: Unrecognized model in …`。
-本轮按历史用法（先解析 snapshot 路径）绕过，**没有在 parity 跑里顺手改共享层**（改共享层须四实例复验）。
-⇒ 待办：训练腿补同一解析 + 四实例复验。
+本轮按历史用法（先解析 snapshot 路径）绕过，**没有在 parity 跑里顺手改共享层**（改共享层须多实例复验）。
+
+✅ **2026-10-27 当日已单独修并复验**：抽成 `prototype/runtime/proto/model_path.py` 两腿共用（+ 静态同源守卫，
+任一条腿自建 `resolve_model` 即 FAIL）。本机复验 `LEGPARITY_PASS` 9/0 —— 两腿对同一份缓存根解析到同一
+snapshot、训练腿 loss `15.4498→11.1479` 与本文归档逐字相同。报告
+`../../prototype/docs/LEG_MODEL_PATH_PARITY_20261027.md`，证据 `../probes/legparity_20261027_out/`。
+⚠️ 910C 与 PPU 的同类复验**未做**（当日网络不可达），故「四实例」尚未齐。
 
 ## 环境与两条踩坑
 

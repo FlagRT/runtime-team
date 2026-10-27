@@ -24,6 +24,7 @@
 > ⭐ **2026-10-27（共享层四处改动后复跑 · 三实例收尾）**：离线 **103/0/0**（归档 97，**+6 全为共享层新增检查**，逐条点名见 MANIFEST）· smoke **46/0** · 契约不变式 **4/4 且 `rc=0`** · 职责审计 **`63/0/15`** · 推理腿 **13/13**（区分度 **0.6391**，与归档逐字相同）· 训练腿 **6/6**（**loss 15.4498→11.1479 与归档逐字相同**，`dist=cncl`）⇒ **零回归**。
 > ⚠️ **更正**：C13（`event.elapsed_time`）归档里是 SKIP、原因是 `CNRT error: failed to call the driver-…`，**看着像寒武纪驱动缺陷，其实是我们统一 API 缺「建可计时事件」入口** —— 补入口后本机计时正常 `11.381 ms`，审计 **62/0/16 → 63/0/15**。
 > 数字与证据：`docs/CAMBRICON_MLU_RERUN_20261027.md` · `probes/rerun_20261027_out/MANIFEST.md`；复跑入口 `probes/run_mlu590_rerun_20261027.sh`。
+> ⭐ **本实例还是「两腿 `DC_MODEL` 口径不一致」的发现地**（同轮暴露：推理腿给缓存根能过、训练腿报 `Unrecognized model`）。当日已修（抽成 `prototype/runtime/proto/model_path.py` 两腿共用 + 静态同源守卫），本机复验 **`LEGPARITY_PASS` 9/0**：两腿对同一份缓存根解析到同一 snapshot、loss `15.4498→11.1479` 与归档逐字相同。报告与证据：`../prototype/docs/LEG_MODEL_PATH_PARITY_20261027.md` · `probes/legparity_20261027_out/MANIFEST.md`；入口 `probes/run_mlu590_legparity_20261027.sh`。
 >
 > ⭐ **2026-10-14 再更新（T1-re：共享层**再次**改动后复跑）**：T11 修法又落在共享层
 > `prototype/runtime/backends/base.py` ⇒ 同日真机复跑：**`DUTY_RESPONSE_PASS` 62/0/16**（FAIL=0，`L1`–`L5` 全 OK）·

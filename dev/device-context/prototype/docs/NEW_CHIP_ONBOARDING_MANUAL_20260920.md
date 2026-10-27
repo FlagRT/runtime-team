@@ -312,9 +312,18 @@ python3 runtime/smoke_runtime.py --backend <vendor>                          # �
 
 ```bash
 CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=<vendor> DC_ROOT=<prototype> \
-DC_MODEL=<...>/snapshots/<hash> DC_OUT_DIR=<out> MAX_STEPS=50 BATCH=4 SEQ=128 \
+DC_MODEL=<模型目录 | snapshot 目录 | HF 的 models--<org>--<name> 缓存根> \
+DC_OUT_DIR=<out> MAX_STEPS=50 BATCH=4 SEQ=128 \
 python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 ```
+
+**`DC_MODEL` 的三种传法两条腿必须一致**（`runtime/proto/model_path.py` 是唯一实现，2026-10-27 起）：
+普通模型目录 / `snapshots/<hash>` 目录 / HF 缓存根 `models--<org>--<name>`（后者自动解析到
+`snapshots/<hash>`，优先听 `refs/main`）。⛔ 不要给 `/hf_cache/hub` 这种**所有模型的父目录**。
+⚠️ 这条曾经只在推理腿落地：同一份缓存根，推理腿过、训练腿报
+`ValueError: Unrecognized model in …`（10-27 第 3 家实例复跑实测暴露）——
+正是"同一个环境变量、两条腿理解不一致"的老毛病，故抽成共用模块 + 静态同源守卫
+（`scripts/model_path_parity_check.py`，任一条腿自建 `resolve_model` 即 FAIL）。
 
 **判据**：两 rank 均 `TRAIN_LEG_PASS 6/6`（设备绑定 / 模型加载 / 反向 / 集合通信同步 /
 三类通信对照 / 无死锁），且 loss 正常下降。
@@ -406,7 +415,7 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 3 | **同一集合通信库在不同芯片注册的后端名不同** | 910C 是 `hccl`；P800 是 `flagcx`（且需显式 `import flagcx`）；MLU590 是 `cncl` | 不要照搬；探测可用后端再写进配置 |
 | 4 | **`timeout` 杀不掉挂死进程** | 挂死点持 GIL 自旋，SIGTERM 被推迟（实测存活 73 分钟） | 必须 `kill -9` 按 PID 强杀，再 `xpu-smi` 复查卡释放 |
 | 5 | **同一插件跨芯片可用性相反** | `vllm-plugin-FL` 在昆仑芯**必需**、在昇腾**必须禁用** | 逐个实测，不类推 |
-| 6 | **HF 缓存路径层级** | 传缓存根目录报 `Unrecognized model ... Should have a model_type key` | 必须给到 `snapshots/<hash>`；注意有的脚本自带 `resolve_model()`、有的没有 |
+| 6 | **HF 缓存路径层级** | 传"所有模型的父目录"（如 `/hf_cache/hub`）报 `Unrecognized model ... Should have a model_type key` | ✅ 2026-10-27 起**三种传法都合法**（普通模型目录 / `snapshots/<hash>` / HF 缓存根 `models--<org>--<name>`），由共用模块 `runtime/proto/model_path.py` 统一解析（优先听 `refs/main`）；⛔ 仍不给"所有模型的父目录"。判定方式：`scripts/model_path_parity_check.py`（离线，含两腿同源守卫） |
 | 7 | **镜像大小有两套口径** | `docker images`（磁盘占用，含共享层）vs `image inspect Size`（镜像层之和），差近 3 倍 | 引用时必须注明口径，否则被误读成版本差异 |
 | 8 | **多环境对照不能只看总数** | 只看"N/N 通过"会漏掉语义差异 | 按**逐用例状态**与**逐条 `detail` 字符串**比对；共享机上的**单次吞吐不可直接对比**，须交替复测 |
 | 9 | **vLLM 停机残留占卡** | EngineCore 子进程残留（实测 73850 MiB / 96 GiB） | 停机连子进程一起 `kill -9` |
@@ -421,6 +430,7 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 
 | 18 | ⭐ **`event.elapsed_time` 依赖 `enable_timing=True`，且部分栈"接受该 flag 但计时恒 0"** | 判据若只查"可调用/返回是数字"⇒ 会拿 `0.0`（甚至负值）判通过：**假通过**。实测：P800 裸 torch 正反向都 `0.0`（平台不提供计时）；PPU 正常（10.089 / 16.395 ms）；未建计时事件时 CUDA 系栈直接抛 `ValueError: Both events must be created with argument 'enable_timing=True'` | ① 判据必须建**可计时**事件；② 校验**数值**而不只是可调用性：跨"设备工作 + 10 ms 睡眠"应落在 `[5, 5000] ms`；③ 三态口径 —— 负值 ⇒ **FAIL**（方向/实现错误）；恒近 0 ⇒ **如实不具备(SKIP)** 并登记为平台缺口；落带内 ⇒ OK。④ 方向是契约：`start.elapsed_time(end)`，反了必得负值 |
 | 19 | ⭐ **复现「退出期段错误」时，不得在退出前手动 `gc.collect()`** | 加上它对象被提前回收，最终化阶段已无弱引用可清 ⇒ `rc=139` 变 `rc=0`，**缺陷整个隐身**（本轮纯净复现曾因此 4/4 "复现失败"，去掉才翻案） | ① 观察点必须是**进程退出码**而非日志末尾（`main()` 返回 0，崩溃在其后）；② 用 `python3 -X faulthandler` 看是否落在 `Garbage-collecting` / `<no Python frame>`；③ 容器无 gdb 时用 `LD_PRELOAD` + `dladdr` 采集器（`PPU/probes/t11_segv_handler.c`，用时现编） |
+| 20 | ⭐⭐ **同一个环境变量，两条腿理解不一致**（"只在一条腿里实现"） | 同一份 `DC_MODEL=/hf_cache/hub/models--<org>--<name>`：推理腿过（它自带 `resolve_model()`）、训练腿报 `ValueError: Unrecognized model in …`（它没有）。2026-10-27 第 3 家实例复跑实测暴露；当时只能"在容器内先手工把 DC_MODEL 解析成 snapshot"绕过 | ① **判据不是"两腿各自能跑"**，而是**同一输入⇒同一解析结果**：两腿必须 import 同一份实现（`runtime/proto/model_path.py`），**禁止各写一份**（复制即漂移）；② 加**静态同源守卫**（`scripts/model_path_parity_check.py`：AST 检查两条腿不得定义 `resolve_model`、不得直接读该环境变量）；③ 上机复验用 `prototype/scripts/run_legparity_dcmodel.sh`：合成一个缓存根（`refs/main` 指真 hash + 放一个字典序更大的**诱饵**目录），若实现退化回"排序取最后"必选中诱饵而失败 |
 
 ### 已知厂商缺陷的结构化声明（模板）
 

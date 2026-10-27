@@ -166,7 +166,7 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 |---|---|---|---|
 | 验收模型 | `Qwen/Qwen3-Embedding-0.6B` | 全组 9 月统一验收模型：向量检索任务，输出是可量化的向量，便于跨芯片比对"语义区分度"这类与硬件无关的指标 | 同一模型在两实例上给出近乎一致的语义区分度（服务化 0.4123 / 0.4102），说明该指标可作跨芯片一致性判据 |
 | 910C 路径 | `/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B` | 该机数据盘本地目录 | 两条腿的运行结果 JSON 中 `model` 字段即此路径 |
-| P800 路径 | `/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | **必须给到 `snapshots/<hash>` 这一层**：该目录是 HuggingFace 缓存根，只含 `blobs/`、`refs/`、`snapshots/` | 直接传缓存根目录会报 `Unrecognized model ... Should have a model_type key`；实测改为快照路径后加载正常。脚本已内置 `resolve_model()` 自动把 `models--xxx` 解析到 `snapshots/<hash>`，两种传法都能用 |
+| P800 路径 | `/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3` | 该目录是 HuggingFace 缓存根，只含 `blobs/`、`refs/`、`snapshots/`；**可直接给 `models--xxx` 缓存根**，脚本自动解析到 `snapshots/<hash>`（优先听 `refs/main`） | ✅ 2026-10-27 起**两条腿同口径**（`runtime/proto/model_path.py` 唯一实现）：普通模型目录 / `snapshots/<hash>` / 缓存根三者都行。改前只有推理腿会解析，训练腿给缓存根直接 `Unrecognized model`。⛔ 仍不要给 `/hf_cache/hub`（所有模型的父目录）；⚠️ 服务化的 `MODEL` 是另一套消费者，仍要求目录下真有 `config.json` |
 | 其他模型 | 910C 服务化健康检查另用 `Qwen3-4B` | 生成类任务与 embedding 任务分开验证，避免用同一条判据混测两种能力 | 生成侧健康检查输出 68.4 tok/s（256 tokens）、`ready_wait 55 s`；embedding 侧另用 0.6B 模型，两者判据不混用 |
 
 ### 2.3 训练形态与参数
@@ -242,7 +242,7 @@ export FLAGCX_ADAPTOR=klx                           # 训练腿集合通信（P8
 | 2 | **同一解释器内只能有一个占用 PrivateUse1 的插件** | 910C（锁定训练镜像） | 该镜像自带的校验脚本会拒绝"两个插件同进程共存"。**2026-09-22 起训练腿已统一 `npu`（torch_npu）**，用只装 torch_npu 的解释器即**物理隔离**，本坑已不适用 |
 | 3 | 服务化推理 `unset VLLM_PLUGINS` | 910C 推理腿 | 设 `VLLM_PLUGINS=fl` → `current_platform.device_type` 为空 → `RuntimeError: Device string must not be empty` |
 | 4 | 推理服务化要求依赖链完整：**镜像须含 `triton`**，且 `PYTHONPATH=/env/FlagGems/src` 不可省 | P800 推理服务化 | 两层断链**都表现为同一句 `Failed to infer device type`**（看着像设备问题，其实是 Python 包问题）：① 官方 `-base`（及 `-base-ssh`）的 site-packages **既无 `triton` 目录、pip 也无记录** → `vllm_fl/utils.py:8 import flag_gems` → `flag_gems/runtime/configloader.py:4 import triton` 断链，须装 `flagtree===0.7.0rc3+xpu3.6` 补齐；② 即便 `triton` 就位，`flag_gems.runtime.backend.device` 仍须靠 `PYTHONPATH=/env/FlagGems/src` 才能导入（site-packages 里那份子模块不完整） |
-| 5 | HF 缓存路径必须到 `snapshots/<hash>` | 两实例（P800 强制） | 传缓存根目录报 `Unrecognized model ... Should have a model_type key`。⚠️ 两脚本处理方式不同：`proto_infer_leg.py` 内置 `resolve_model()` 可自动把 `models--xxx` 解析到快照，而 **`proto_train_leg.py` 没有该函数，必须手给快照路径**（实测传缓存根目录时训练腿直接 `ChildFailedError` 退出） |
+| 5 | HF 缓存路径层级 | 两实例都受影响 | 传"所有模型的父目录"报 `Unrecognized model ... Should have a model_type key`。✅ **2026-10-27 起两条腿（训练/推理）同口径**：`DC_MODEL` 三种传法都行（普通模型目录 / `snapshots/<hash>` / HF 缓存根 `models--xxx`），由 `runtime/proto/model_path.py` 统一解析、优先听 `refs/main`（改前只有推理腿会解析，训练腿传缓存根直接 `ChildFailedError`）。⚠️ **服务化侧（`scripts/serve_standard.sh` 的 `MODEL`）仍要求目录下真有 `config.json`**，即缓存根不能直接给它 —— 两者是不同的消费者，别混写 |
 | 6 | 用卡前 `xpu-smi` 挑空闲卡；挂死进程必须 `kill -9` | P800 | `timeout` 发出的 SIGTERM **无法中断**这类挂死进程（挂死点持 GIL 自旋、信号被推迟），曾观察到进程存活 73 分钟；清理后要复查 `xpu-smi` 确认卡释放 |
 | 7 | SSH 非标准端口 **26008**；需 `docker` 组 + 自有可写数据目录 | P800 | `~/.ssh/config` 缺 `Port` 行时表现为连接被拒，易误判为网络/VPN 问题 |
 | 8 | 引用镜像大小时**必须注明口径** | 通用 | `docker images` 显示的是**磁盘占用**（含共享层），`docker image inspect Size` 是**镜像层大小之和**，两者差近 3 倍：现用变体 107 GB vs 38.3 GB；官方 `-base` 94.2 GB vs 33.8 GB。混用会被误读成"镜像版本差异" |
@@ -294,10 +294,11 @@ CUDA_VISIBLE_DEVICES=$DEV python3 runtime/smoke_runtime.py --backend kunlun
 CUDA_VISIBLE_DEVICES=$DEV python3 runtime/conformance/runner.py --backend kunlun
 CUDA_VISIBLE_DEVICES=$DEV python3 runtime/conformance/runner.py --backend kunlun --cases infer_cases
 
-# 训练腿（2 卡）—— ⚠️ DC_MODEL 必须给到 snapshots/<hash>
+# 训练腿（2 卡）—— DC_MODEL 三种传法都行（2026-10-27 起两腿共用 model_path.py）：
+#   普通模型目录 / snapshots/<hash> / HF 缓存根 models--<org>--<name>（自动解析，优先 refs/main）
 CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=kunlun \
 DC_ROOT=/workspace/prototype \
-DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
+DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B \
 DC_OUT_DIR=/workspace/out_base MAX_STEPS=50 BATCH=4 SEQ=128 \
 python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 

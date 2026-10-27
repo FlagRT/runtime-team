@@ -1,0 +1,12 @@
+[model] DC_MODEL=/workspace/dc_rerun_20261026/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /workspace/dc_rerun_20261026/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[1] 设备上下文: backend=kunlun dev=cuda:0 count=1 mem={'total_mb': 98304, 'used_mb': 12292, 'free_mb': 86012, 'all
+[2] 模型加载完成 → cuda:0
+[3] 向量: dim=1024 同主题 0.7822 / 异主题 0.1429 / 范数 1.0
+[4] 吞吐: 27.16 句/s, p50 111.09 ms, avg 110.45 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=kunlun dev=cuda:0 | dim 1024 | 27.16 句/s p50 111.09ms | 区分度 0.6392 -> /workspace/dc_rerun_20261026/legparity_out/roundC/infer_hub.json
+  （如实跳过：vendor_code_map）
