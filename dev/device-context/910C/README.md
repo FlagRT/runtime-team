@@ -58,6 +58,7 @@
 | ⭐ **「不适用」自证审计（10-08）** | 结论**成立**，且根因**升级**：**不是设备限制** —— ACL 侧 `aclrtCreateStreamWithConfig(0/3/7)` 全部保留；是**插件 Python 绑定缺失**（C++ 已有 `getStreamFromExternal`） | `../prototype/docs/STREAM_PRIORITY_NOT_APPLICABLE_AUDIT_20261008.md` **L46–L62**（§2.1 逐条读数） |
 | 流优先级统一 API 落地（09-30 第九轮） | `STREAM_PRIORITY_API_PASS` **8/8**；本家**如实结论 = 只读**（范围 `(7,0)` 可读、**不声明设置**） | `../prototype/docs/STREAM_PRIORITY_API_20260930.md` **L152–L169**（§4.3 六条证据） |
 | B2 收尾：流配额 + 优先级（09-30） | **真实配额上限 1979**（pyACL 建满 1979、第 1980 条 `rc=207005`）；优先级**在插件层丢参数**（C API 回读恒 0） | `../prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md` |
+| ⭐ **共享层四处改动零回归复跑（10-27 · RAID 重建后首次复工）** | 离线 **92/0/2** · smoke **52/0** · 契约不变式 **4/4 且 `rc=0`** · 职责审计 **73/0/5**（C13=10.474 ms，该机**首次**以 78 项版归档）· 推理腿 **14/14**（不传 `DC_MODEL` 亦通过）· 训练腿 **6/6**，**loss 15.4498→11.1479 与 09-29 归档逐字相同** ⇒ 零回归；⚠️ 途中抓到**迁移快照模型权重损坏**（410 NaN，已替换并留证） | `docs/ASCEND_910C_RERUN_20261027.md` · 读数 `probes/rerun_20261027_out/MANIFEST.md` |
 | A1+A4：两条腿 + 服务化四形态（09-29 r6） | 训练腿 **6/6**（4513.2 tok/s）· 推理腿前向 **14/14** · 服务化 TP=1/2 × EAGER=1/0 **全 PASS**（TP=2 实测 `world_size=2`+`backend=hccl`） | `docs/ASCEND_910C_LEGS_SERVE_RERUN_20260929.md` **L45–L142** |
 | A2：多卡多进程 `real` 恢复压测（09-29 第七轮） | `MULTIPROC_REAL_RECOVER_PASS`（3 rank × 30 轮 · **30 次真重建零失败**） | `docs/ASCEND_910C_A2_RECOVER_STRESS_20260929.md` |
 | 公开入口：`set_device_state` / `handle_error`（09-29 第七轮续） | `ENTRY_VERIFY_PASS`（端到端 R1–R5）+ 能力键 `device_state_control` | `../prototype/docs/PUBLIC_ENTRYPOINTS_RECOVERY_20260929.md` |

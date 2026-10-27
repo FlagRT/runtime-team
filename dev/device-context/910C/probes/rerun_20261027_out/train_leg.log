@@ -1,0 +1,22 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+[W1027 02:54:38.500460847 ProcessGroupHCCL.cpp:1152] Warning: The watchdog timeout 180000ms(which is set by init_process_group) is less than or equal to HCCL execution timeout 1836000ms! The plog may not be recorded. (function ProcessGroupHCCL)
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:   0%|          | 1/310 [00:00<00:40,  7.61it/s]Loading weights:   0%|          | 1/310 [00:00<00:40,  7.63it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2014.96it/s]
+Loading weights: 100%|██████████| 310/310 [00:00<00:00, 1982.05it/s]
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4340.9 tok/s(两卡合计) -> /workspace/out/train_leg_result_rank1.json
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4341.3 tok/s(两卡合计) -> /workspace/out/train_leg_result_rank0.json
