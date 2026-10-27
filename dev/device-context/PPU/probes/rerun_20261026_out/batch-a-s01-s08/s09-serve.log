@@ -1,0 +1,19 @@
+证据目录（本轮）: /bmcp_lvm_fs/hliu553/probes_ppu/dc_t3_20261014/20261026_110942-t3
+===== [0] 容器与版本 =====
+[11:10:46]
+hliu553-dc-dev|Up 12 minutes
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'triton'
+MODEL ✓ config.json 在
+
+===== [A] serve_standard.sh（SERVE_FORM=embed · DEV=0 · EAGER=1 · STOP_AFTER=1）=====
+[11:10:49] start
+form rc=0
+[11:11:47] end
+-- verdict 与关键行（宿主路径 /bmcp_lvm_fs/hliu553/probes_ppu/dc_t3_20261014/20261026_110942-t3/form/serve_standard.log）--
+---- vllm 实际启动参数 ----
+---- [A] 未通过，取 vllm 日志的异常尾 ----
+
+===== [B] proto_infer_serve.py（本层消费方）=====
+[11:11:47] start serve (detached)

@@ -1,0 +1,24 @@
+# thead-ppu-runtime v2 · 固化层资产指纹（wheel）
+#
+# 这一层是「内容寻址」的：派生层只有一个 wheel，其 sha256 即版本锚。
+# 本体不入仓（dev/images/.gitignore 挡 *.whl），实体在共享盘与离线包。
+
+wheel: flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl
+size_bytes: 375145745            # 357.8 MiB
+sha256: b57daff7393972d9c5ff2487930caf2416d0cbd79d8f50b0fd6a5ca56c5378b4
+zip_entries: 389
+top_level_dirs: [triton/, flagtree/, flagtree-0.7.0+ppu.gite223f42c.dist-info/]
+
+# 资产来源（非网络下载；构建不依赖外网可达性）
+source_host_path: /bmcp_lvm_fs/A/data/flagtree-src/dist/
+source_note: >-
+  平头哥共享机既有构建产物（FlagTree ppu3.6 线）。构建时由 build.sh 复制到
+  /bmcp_lvm_fs/hliu553/image-build/thead-ppu-runtime-v2/src/flagtree/ 作为 docker 上下文
+  （数据盘内复制，root 盘零额外开销；用完即删）。
+
+# 复核命令（在任何有该 wheel 的机器上可复现）
+how_to_verify: |
+  sha256sum flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl
+  python3 -c 'import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); \
+    print(len(z.namelist())); print(sorted({n.split("/")[0] for n in z.namelist()}))' \
+    flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl

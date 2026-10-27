@@ -1,0 +1,7 @@
+=== 统一运行时 conformance: backend=ppu, chip=ppu, 用例数=1 ===
+[env] runtime:ppu=0.1.0 devices=1
+  [PASS   ] only_i3                      A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → R
+
+=== 汇总: 1/1 通过 ===
+结论: CI_I3_ONLY_PASS
+结果已写入 /tmp/fix_i3_2.json

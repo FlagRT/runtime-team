@@ -454,10 +454,24 @@ class AscendBackend(RuntimeBackend):
                 f"`prototype/docs/WORKPACKAGE_D_STREAM_PRIORITY_QUOTA_20260930.md`。")
         return self.torch.npu.Stream()
 
-    def create_event(self):
+    def create_event(self, enable_timing: bool = False):
         """优先复用已有 NpuEventAdapter（补 wait_host + 未 record query 修正），
-        保证与 910C 阶段的事件语义契约完全一致；不可用时退回原生 Event。"""
+        保证与 910C 阶段的事件语义契约完全一致；不可用时退回原生 Event。
+
+        ⚠️ `enable_timing=True` 时**不许兜底**：原生 `torch.npu.Event` 是否接受该参数
+        在 910C 上**未实测**（2026-10-26 机器处于 RAID 重建窗口）⇒ 不接受就抛
+        `NotImplementedError`，绝不用「不可计时事件」冒充（否则 `elapsed_time()`
+        会在上层炸，且看起来"支持计时"）。
+        """
         self._load_conformance()
+        if enable_timing:
+            try:
+                from npu_events import NpuEventAdapter
+                return NpuEventAdapter(enable_timing=True)
+            except TypeError as e:
+                raise NotImplementedError(
+                    f"ascend：原生事件不支持 enable_timing ⇒ 无可用计时事件（{e}）"
+                ) from e
         try:
             from npu_events import NpuEventAdapter
             return NpuEventAdapter()

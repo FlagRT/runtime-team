@@ -1,0 +1,19 @@
+{
+  "runner": "runtime/conformance",
+  "backend": "ppu",
+  "chip": "ppu",
+  "env": {
+    "runtime:ppu": "0.1.0",
+    "devices": 1
+  },
+  "cases": {
+    "only_i3": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → RuntimeError ✓；B 未登记句柄 → ValueError ✓"
+    }
+  },
+  "verdict": "CI_I3_ONLY_PASS",
+  "passed": 1,
+  "total": 1
+}
