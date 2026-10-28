@@ -38,6 +38,16 @@ python -c "import gemm_compat; import flag_gems, torch; print('ok')"   # 自证�
 sha256；`import flag_gems` 后 `flag_gems.__file__` 应为 `/workspace/FlagGems/src/…`
 （补丁版）。up.sh --strict 已强制核对宿主 FlagGems HEAD = 补丁分支提交。
 
+两条使用注意（机制使然）：
+
+- **跑 FlagGems 自带测试须用补丁树的 tests**（`/workspace/FlagGems/tests/…`）。
+  镜像内 `/env/FlagGems/tests` 的 conftest 会把 `/env/FlagGems/src` 插回 import
+  路径最前，绕过补丁版（表现为 GEMM 测试回到未修复的失败形态）。
+- **启用 shell 内的一切 Python 进程自动生效**（含测试工具起的子进程）：compat
+  目录进入 PYTHONPATH 后，其 `sitecustomize.py` 在解释器启动期完成全套启用
+  （解除镜像内 scikit-build editable finder 对 flag_gems 的 import 劫持 +
+  compiler 副本挂载 + 补丁源树置前）。未 source 的 shell 完全不受影响。
+
 ## 数值限制（K-5 —— 启用前必读）
 
 编译维度已验收（2026-10-27，锁定镜像 xpu4）：minirepro 12/12 编译通过、

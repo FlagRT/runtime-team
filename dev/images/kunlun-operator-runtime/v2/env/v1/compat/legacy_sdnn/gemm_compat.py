@@ -64,6 +64,27 @@ def enable() -> None:
                 "检出 xliu969/kunlun-gemm-compat。"
             )
 
+    # 2.5 撤销镜像内 scikit-build editable finder 对 flag_gems 的劫持。
+    #     _flag_gems_editable.ScikitBuildRedirectingFinder 在 sys.meta_path 中排在
+    #     PathFinder 之前，把 flag_gems.* 固定解析到 /env/FlagGems/src（安装时的
+    #     模块名→绝对路径映射），完全绕过 sys.path / PYTHONPATH。移除后由
+    #     PathFinder 按 sys.path 解析，补丁源树（首位）生效。若 flag_gems 的
+    #     csrc C 扩展在运行路径上需要镜像内构建产物，import 将显式报错，
+    #     不会静默取到错版本。
+    _hijackers = [f for f in sys.meta_path
+                  if type(f).__name__ == "ScikitBuildRedirectingFinder"]
+    if _hijackers:
+        sys.meta_path[:] = [f for f in sys.meta_path if f not in _hijackers]
+        print(f"[gemm_compat] removed meta_path hijacker(s): "
+              f"{[type(f).__module__ + '.' + type(f).__name__ for f in _hijackers]}",
+              file=sys.stderr)
+
+    # 防御：若 flag_gems 已被（旧版）加载，清掉缓存再继续（本模块要求在
+    # torch/flag_gems 之前 import，正常不触发）
+    for _m in [m for m in list(sys.modules)
+               if m == "flag_gems" or m.startswith("flag_gems.")]:
+        del sys.modules[_m]
+
     # 3. 安装 compiler 版本锁（漂移即拒绝）
     import triton  # noqa: F401
     backend = importlib.import_module("triton.backends.xpu.compiler")
