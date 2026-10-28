@@ -1,0 +1,52 @@
+{
+  "verdict": "PASS",
+  "backend": "flagcx",
+  "seq_len": 64,
+  "steps": 50,
+  "runs": 6,
+  "identical_initial_hashes_all_runs": true,
+  "identical_final_hashes_all_ranks_and_buckets": true,
+  "metrics": {
+    "64": {
+      "runs": 3,
+      "run_mean_step_seconds_excluding_first": [
+        0.7632707305352336,
+        0.7512912727958921,
+        0.734110745078675
+      ],
+      "mean_seconds": 0.7495575828032669,
+      "sample_stddev_seconds": 0.014657095506940459,
+      "end_used_mib_max": [
+        36747,
+        36746,
+        36747
+      ],
+      "gradient_calls_per_rank": [
+        12550,
+        12550,
+        12550
+      ]
+    },
+    "128": {
+      "runs": 3,
+      "run_mean_step_seconds_excluding_first": [
+        0.676151681936118,
+        0.6860265252893144,
+        0.7181067917001794
+      ],
+      "mean_seconds": 0.6934283329752039,
+      "sample_stddev_seconds": 0.021935083236513636,
+      "end_used_mib_max": [
+        36748,
+        36747,
+        36747
+      ],
+      "gradient_calls_per_rank": [
+        6300,
+        6300,
+        6300
+      ]
+    }
+  },
+  "scope": "Synthetic tokens, full-parameter BF16/SGD; end memory snapshots, not peaks. Timing includes finite checks; shared machine; no business quality claim."
+}

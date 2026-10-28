@@ -1,0 +1,12 @@
+# Reuse the verified narrow-device environment and pin this week's instance.
+name: flagrt-communication-1028
+x-flagrt:
+  image_baseline: ../../../images/ascend-train-comm/v3/image.baseline.yaml
+  mounted_repos:
+    FlagCX: {activation: pip-editable}
+services:
+  runtime-dev:
+    extends:
+      file: ../910c-bucketed/docker-compose.yml
+      service: runtime-dev
+    container_name: flagrt-communication-1028-910c

@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "/usr/local/python3.11.15/bin/python3",
+    "-m",
+    "torch.distributed.run",
+    "--standalone",
+    "--nproc_per_node=2",
+    "/workspace/dev/communication/training/onerec_smoke.py",
+    "--runtime-root",
+    "/workspace/dev/device-context/prototype",
+    "--model-root",
+    "/workspace/models/OneRec-8B",
+    "--collective",
+    "flagcx",
+    "--mode",
+    "bucketed",
+    "--bucket-mib",
+    "64",
+    "--seq-len",
+    "64",
+    "--steps",
+    "50",
+    "--output",
+    "/workspace/evidence/onerec-seq64/03-bucket64"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "elapsed_seconds": 93.07676982879639
+}

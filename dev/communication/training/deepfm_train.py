@@ -77,7 +77,8 @@ def run(args):
     if args.steps < 1 or args.warmup < 0:
         raise ValueError('Require positive steps, nonnegative warmup and equal local batches >=2')
     if args.collective == 'flagcx' and (args.backend != 'ascend' or args.comm_mode not in ('manual', 'fused')):
-        raise ValueError('v3 FlagCX requires Ascend + manual/fused mode; native DDP is unsupported')
+        raise ValueError('This FlagCX model entry validates Ascend manual/fused only; '
+                         'native DDP is covered by the separate FlagCX regression suite')
     shard_start, shard_stop = shard_bounds(args.global_batch, rank, world)
     torch.set_num_threads(1)
     runtime = None
