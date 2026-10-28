@@ -7,6 +7,8 @@
 
 ## 10-28源码候选交付
 
+代码与证据快照：[runtime-team 8963353](https://github.com/FlagRT/runtime-team/commit/8963353653ff8610d44b1f6a89be43ea680b77cf)，位于cgu135/framework-adapter分支；功能仓为85a9896。固定链接：[模型/算子报告](https://github.com/FlagRT/runtime-team/blob/8963353653ff8610d44b1f6a89be43ea680b77cf/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md)、[双rank联调报告](https://github.com/FlagRT/runtime-team/blob/8963353653ff8610d44b1f6a89be43ea680b77cf/dev/framework-adapter/docs/双rank步骤门控验证-20261028.md)、[结构化证据](https://github.com/FlagRT/runtime-team/blob/8963353653ff8610d44b1f6a89be43ea680b77cf/dev/framework-adapter/docs/evidence-step-guard-20261028/summary.json)。本条为后续文档更新，实验快照固定不变。
+
 功能代码固定为[85a9896](https://github.com/FlagRT/framework-adapter/commit/85a9896537a7d88f758d36ae20465e19470985e2)，版本0.3.0.dev0，package.lock已更新；历史v0.2.0标签保留。提交后重建69项包CPU及30项集成控制通过，9个运行时文件与实测包一致。[交付记录](docs/候选交付记录-20261028.md)、[模型结果](docs/环境准入与算子扩展验证-20261023.md)、[双rank结果](docs/双rank步骤门控验证-20261028.md)、[精简证据](docs/evidence-step-guard-20261028/summary.json)。协调仓材料仅在个人分支交付，未合dev-1.0。
 
 双rank步骤门控按集成参考原型交付，正式任务级失败处理归属需与设备/通信方向对齐，不视作本方向独立完成分布式容错。P800权限已解除但未做本方向算子实测。下方按日期保留的“未提交/待发布”等属于历史过程；当前以本节和依赖锁为准。
@@ -31,13 +33,13 @@
 
 | 项目 | 当前结果 | 证据 / 边界 |
 |---|---|---|
-| 独立交付 | 已发布v0.2.0仍锁定93daa5e；最新本地0.3.0.dev0步骤门控候选安装包69项CPU通过 | 新仓main HEAD仍1befe4d；10-28最终wheel ea060217…，尚未发布；[最新报告](docs/双rank步骤门控验证-20261028.md) |
+| 独立交付 | 0.3.0.dev0源码候选85a9896，安装包69项CPU通过；历史v0.2.0标签保留 | 当前锁已更新；实测wheel ea060217…，提交后重建783d111b…，9文件一致 |
 | 三算子及多模型 | SiLU/sigmoid/tanh共9组NPU前反向资格；两个组合小模型×4路径×3步=24步通过，目标真实命中24次 | [10-23报告](docs/环境准入与算子扩展验证-20261023.md)；合成数据、确定性模式，不算新增业务模型 |
 | 0.6B与公共训练入口 | 10-23最终wheel单卡推理+3步回归通过，每步28前向/28反向、310梯度/参数张量对照；10-20已发布包双rank三配置证据保留 | [10-20报告](docs/训练入口配置接入验证-20261020.md)；本轮没有重复双rank验收或长训练 |
 | 失败与严格准入 | 10-28修补后双rank正常/前向故障/反向故障三组通过；故障均双方0次optimizer调用 | 单机更新前门控；更新放行后故障、跨机、驱动恢复未验，不是完整三级回退 |
 | 训练v3与shmem | 两镜像均无shmem；v3的TLE引入该依赖。新wheel在v3完成关闭/允许降级各3步原生、严格阻断；未导入Gems | 不是shmem修复或v3目标内核通过；继续旧官方目标实验，或v3明确原生运行 |
 | FlagOP SDPA | 固定79b1b1a审查完整调用链；2组限定NPU前反向直接调用通过。CPU复现2类数学反向边界、默认参数及撤销缺口 | [对接Issue](docs/handoff/算子组对接Issue.md)新增4项具体确认事项，尚未发布/发送；通用SDPA模型适配未做 |
-| 发布状态 | runtime-team个人分支HEAD a31e559，未合dev-1.0；新仓及协调仓本轮代码/材料均未提交推送 | package.lock.json保留已发布0.2.0；未写OneDrive、未发布镜像 |
+| 发布状态 | 功能仓main提交85a9896；协调仓个人分支代码/证据快照8963353，本STATUS为后续文档补记；未合dev-1.0 | package.lock.json锁0.3.0.dev0源码候选；未写OneDrive、未发布镜像/PyPI |
 | 其他范围 | RMSNorm继续原生；P800 sudo/Docker权限已于10-28复核，尚未做本方向实测；完整三级回退未完成 | 不将单环境成功推广到全部芯片、模型及框架 |
 
 ## 10-23实施结果与下一步
