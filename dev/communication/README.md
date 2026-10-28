@@ -2,9 +2,9 @@
 
 ## 📋 本周更新：长序列重复验收与FlagCX自有分支
 
-OneRec-8B序列16→64，64/128 MiB各三轮×50步，6/6通过，399个参数张量最终哈希在两端、两档和三轮之间一致。非首步平均耗时0.750±0.015 / 0.693±0.022 s，结束显存均约35.9 GiB，当前配置建议128 MiB。DeepFM新版原型复验6/6通过，主机回归54/54。见[本周报告](docs/TRAINING_REGRESSION_20261028.md)。
+OneRec-8B序列16→64，64/128 MiB各三轮×50步，6/6通过，399个参数张量最终哈希在两端、两档和三轮之间一致。非首步平均耗时0.750±0.015 / 0.693±0.022 s，结束显存均约35.9 GiB，当前配置建议128 MiB。DeepFM新版原型复验6/6通过；新增P800消费侧适配后主机回归72/72。见[本周报告](docs/TRAINING_REGRESSION_20261028.md)。
 
-库层回归已交付[FlagCX自有分支并合入dev-1.0](https://github.com/FlagRT/FlagCX/tree/dev-1.0/test/regression/training_consumer)：每Rank3033次检查、3次正常组重建、30步原生DDP通过。公共推荐训练环境现已正式采用FlagCX挂载覆盖；模型组织仍在本目录。P800空间恢复一些，健康双卡窗口待确认。原始MiB与周报GiB换算已对齐，历史实验见[上周报告](docs/FLAGCX_FIX_AND_BOUNDED_BUCKETS_20261021.md)与[当前状态](STATUS.md)。
+库层回归已交付[FlagCX自有分支并合入dev-1.0](https://github.com/FlagRT/FlagCX/tree/dev-1.0/test/regression/training_consumer)：每Rank3033次检查、3次正常组重建、30步原生DDP通过。公共推荐训练环境现已正式采用FlagCX挂载覆盖；模型组织仍在本目录。新增[P800 DeepFM单卡准备实测](docs/P800_DEEPFM_PREPARATION_20261028.md)：两模式各50步、17/17梯度参考、最终哈希一致，修正容器无网络导致的BKCL初始化失败；尚不计双卡迁移验收。原始MiB与周报GiB换算已对齐，历史实验见[上周报告](docs/FLAGCX_FIX_AND_BOUNDED_BUCKETS_20261021.md)与[当前状态](STATUS.md)。
 
 ## 📚 历史交付
 

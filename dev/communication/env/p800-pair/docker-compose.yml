@@ -1,0 +1,15 @@
+name: flagrt-communication-p800-pair
+x-flagrt:
+  image_baseline: ../../../images/kunlun-operator-runtime/v2/image.baseline.yaml
+  mounted_repos: {}
+services:
+  runtime-dev:
+    extends:
+      file: ../p800-single/docker-compose.yml
+      service: runtime-dev
+    container_name: flagrt-communication-p800-pair-1028
+    cpus: 4
+    devices:
+      - ${COMM_XPU_NODE_B:?set_verified_second_node}:${COMM_XPU_NODE_B}
+    environment:
+      CUDA_VISIBLE_DEVICES: '0,1'
