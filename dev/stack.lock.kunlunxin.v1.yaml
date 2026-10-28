@@ -51,8 +51,8 @@ device_registration:
 lock:
   runtime:                              # 训练（transformers + FlagCX）与推理（vLLM + vllm-plugin-fl）共用
     image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
-    notes: "= 训练/推理推荐默认底座（超集，无需按场景选镜像）；带 4 条已知限制（K-1~K-4），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
-    container_name: "flagrt-kunlun-v2-demo-p800（demo 运行环境容器：dev/images/kunlun-operator-runtime/v2/demo/）"
+    notes: "= 训练/推理推荐默认底座（超集，无需按场景选镜像）；带 5 条已知限制（K-1~K-5；K-1 按运行环境版本分述、K-5 为数值正确性），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。现行运行环境 = dev/images/kunlun-operator-runtime/v2/env/v1/（GEMM 编译修复接入，显式 opt-in，ADR-0010；demo/ 为冻结的第 0 版）。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
+    container_name: "flagrt-kunlun-v2-env-v1-p800（现行运行环境容器：dev/images/kunlun-operator-runtime/v2/env/v1/；demo 容器 flagrt-kunlun-v2-demo-p800 对应冻结的第 0 版）"
     base_image_entry: "dev/images/kunlun-operator-runtime/v2"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
     registry_status: "组内镜像无 registry 要求。image id：sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a（P800 机 VM-0-2-ubuntu 本机 docker images）｜ repro_status 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 overall: PASS）。获取：首选 dev/images/kunlun-operator-runtime/v2/build.sh 从公开源头重建（约 15 分钟）；兜底离线包 kunlun-operator-runtime-2.0.0-rootfs.tar.gz（30.80 GiB，sha256 2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5，实体路径记该机同目录 BACKUP.local），还原方式是 docker import --change（该机 docker save 对巨型镜像失效），不是 docker load"
     superseded: |
@@ -96,8 +96,11 @@ rules:
 # ---------------------------------------------------------------
 known_issues:
   - id: "K-1"
-    summary: "FlagGems GEMM 类算子（mm/bmm/addmm）在 flagtree 0.6.1+xpu3.6 下编译阶段即失败，无一形状可用，无 workaround，需绕开 FlagGems 的 GEMM"
-    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-triton-compile/；dev/images/kunlun-operator-runtime/v2/lock.yaml known_issues: gemm-same-defect-two-failure-stages"
+    summary: "FlagGems GEMM 类算子（mm/bmm/addmm）在 flagtree 0.6.1+xpu3.6 下编译阶段即失败。按运行环境版本分述：第 0 版（demo/）仍命中、无 workaround；现行运行环境 env/v1（显式启用 GEMM compat 后）编译维度已修（minirepro 12/12 编译 + pytest mm 18/18 + 扩展 99/99，2026-10-28 真机验收）——数值缺口独立为 K-5"
+    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-triton-compile/；dev/images/kunlun-operator-runtime/v2/env/v1/（现行运行环境与启用方式）；dev/images/kunlun-operator-runtime/v2/lock.yaml known_issues: gemm-same-defect-two-failure-stages"
+  - id: "K-5"
+    summary: "GEMM 数值正确性（demo 与 env/v1 均命中，缺陷在 compiler/kernel 本体、与运行环境版本无关）：64×64×64 fp32 非确定性乱值（同输入 rel 0.29~1.02，任何口径不可接受，禁用于关键路径）+ 64³ bf16 超绝对容差 4.5× + 大形状 fp16/bf16 超本组绝对容差 1.6×~9.8×（相对误差 2.8e-4~6e-3，口径裁定中）；已验可用面 = pytest 18/99 矩阵 + minirepro 12 组"
+    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-numeric-64cube/（已同步编译组、被动等进展）"
   - id: "K-2"
     summary: "vLLM 推理默认 dispatch（flagos 优先）下 rotary embedding 的 index_select 触发 CUDA error: invalid device function，服务起不来；必设 VLLM_FL_PREFER=vendor"
     ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: flagos-index-select-invalid-device-function"
@@ -123,3 +126,17 @@ changelog:
       分叉，不照抄昇腾。依据文件：dev/images/kunlun-operator-runtime/v2/lock.yaml、
       image.baseline.yaml、ARCHIVE.md，dev/images/kunlun-operator-runtime/v1/lock.yaml，
       docs/基座发版说明-20261014.md。
+  - date: "2026-10-28"
+    who: "总组"
+    what: |
+      依据 ADR-0010：昆仑芯首个运行环境修订 env/v1 落地（demo/ 冻结为第 0 版）——
+      挂载补丁版 FlagGems（FlagRT/FlagGems 分支 xliu969/kunlun-gemm-compat @4a00b845，
+      基点 = 镜像固化 73c5aff1）+ 编译组 compat 包收录（Xproject-CHKU-SZ/FlagTree 分支
+      fix/xpu-sdnn-legacy-lowering-20261019 @edca42a，进程内加载），GEMM 修复显式
+      opt-in（enable-gemm-compat.sh / import gemm_compat / sitecustomize 启动期启用），
+      不启用时行为与 demo 一致。真机验收全过（up.sh --strict + 装置自证 4 项 +
+      pytest mm 18/18 + mm·bmm·addmm 99/99 + minirepro 12/12 编译，P800 卡 0）。
+      K-1 改按运行环境版本分述；新增 K-5（数值正确性缺口，独立跟踪
+      dev/issues/kunlunxin-gemm-numeric-64cube/）。镜像与 image id 不变、不新建锁定
+      声明文件（运行环境修订与镜像锁定为两根轴，ADR-0008/0010；现行运行环境口径见
+      dev/images/image_list.md）。

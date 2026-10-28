@@ -1,0 +1,82 @@
+# kunlun-operator-runtime v2 的现行推荐运行环境，第 1 版（env/v1；规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）+ compat/legacy_sdnn/（编译组 compat 包收录）
+# + enable-gemm-compat.sh（GEMM 修复显式启用）。
+#
+# 【定位】现行推荐 = 本目录 env/v1；同级 ../../demo/ = 冻结的第 0 版，只作该镜像版本验收时
+# 所用配置的历史记录，内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明为准，
+# 不以目录名判断。本目录发布后不再修改，后续变更只新增下一版目录。
+#
+# 【与第 0 版的差异】挂载宿主仓根 FlagGems/（补丁版源树，分支 xliu969/kunlun-gemm-compat，
+# 基点 73c5aff1 = 镜像固化 FlagGems，叠加昆仑芯 GEMM block-pointer 补丁 04/05-bmm/06，吸收自
+# Xproject-CHKU-SZ/FlagTree @edca42a）并收录 compiler compat 包。**GEMM 修复默认不生效**：
+# 不启用时本环境行为与 demo（第 0 版）一致；要跑 GEMM 类算子（mm/bmm/addmm）须显式启用——
+# source 本目录 enable-gemm-compat.sh（交互）或脚本首行 import gemm_compat（进程内）。
+# 启用前的数值限制（64×64×64 fp32 非确定性乱值等）见本目录 README「数值限制」。
+#
+# 【启动前须确认宿主 FlagGems 在哪个提交】
+#   git -C FlagGems rev-parse HEAD
+# 须为现行锁定声明登记的补丁分支提交；up.sh --strict 启动时照 env.baseline.yaml 的
+# mounted_repos.FlagGems.commit 强制核对，不一致即拒绝启动。
+#
+# 【设备纪律】与第 0 版相同：P800 无带卡容器独占，用 xpu-smi 挑 0% 利用率 / 0MiB 显存的
+# 空闲卡，跑负载以 CUDA_VISIBLE_DEVICES=<物理卡号> 自律；多卡训练选同 NUMA 连续空闲卡，
+# 卡 1 历史上反复被占，优先避开。设备模型四条实测结论见 ../../demo/docker-compose.yml 文件头。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 共享机礼貌：先看本机有哪些容器（不要动他人容器）
+#   xpu-smi                         # 挑空闲卡
+#   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/kunlun-operator-runtime/v2/env/v1 --strict
+#   # 跑 GEMM 前（docker exec 进容器后）：
+#   #   source /workspace/dev/images/kunlun-operator-runtime/v2/env/v1/enable-gemm-compat.sh
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-kunlun-v2-env-v1
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # FlagGems 以源树方式挂载（补丁版，PYTHONPATH 生效，见 enable 脚本）；其余 repo 仍为镜像
+  # 固化资产（见镜像基线 baked_repos），仓根挂到 /workspace 只使其代码可见、不使其生效
+  # （ENV-SPEC §2.1）。不启用 enable 脚本时挂载的源树不进入任何进程的 import 路径。
+  mounted_repos:
+    FlagGems: {activation: pythonpath-source}
+
+services:
+  runtime-dev:
+    container_name: flagrt-kunlun-v2-env-v1-p800
+    image: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+    network_mode: host
+    shm_size: 32g
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    devices:
+      # 全部 8 张卡 + xpuctrl：保证容器内逻辑号 == 宿主物理号（见 demo 文件头设备模型）
+      - /dev/xpu0:/dev/xpu0
+      - /dev/xpu1:/dev/xpu1
+      - /dev/xpu2:/dev/xpu2
+      - /dev/xpu3:/dev/xpu3
+      - /dev/xpu4:/dev/xpu4
+      - /dev/xpu5:/dev/xpu5
+      - /dev/xpu6:/dev/xpu6
+      - /dev/xpu7:/dev/xpu7
+      - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录（同 demo）。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    environment:
+      # 推理腿（vLLM）必需开关（K-2，与 demo 相同）
+      - VLLM_FL_PREFER=vendor
+      - PYTHONDONTWRITEBYTECODE=1
+      # GEMM compat 的四个环境变量刻意不在此预设：启用一律走 enable-gemm-compat.sh /
+      # import gemm_compat（显式 opt-in，见本文件头【与第 0 版的差异】）。
+      #
+      # 注：**不要设置 XPU_EVENT_KL3_ENABLE**（K-3，同 demo）。
+      # 注：CUDA_VISIBLE_DEVICES 刻意不设默认值（选卡是每次运行的纪律，同 demo）。
+    restart: "no"

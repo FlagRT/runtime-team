@@ -1,0 +1,10 @@
+branch: fix/xpu-sdnn-legacy-lowering-20261019
+commit: edca42a7bd9c6bebfb0c6951beb64b9b84e36ccf
+origin: Xproject-CHKU-SZ/FlagTree
+relay: local Windows shallow clone, files extracted via "git show" (raw blobs, LF preserved; P800 github direct timed out curl 56), scp 2026-10-27
+
+---
+2026-10-28 收录于 runtime-team dev/images/kunlun-operator-runtime/v2/env/v1/compat/legacy_sdnn/（ADR-0010）：
+- 补丁 04/05-bmm/06 同步吸收至 FlagRT/FlagGems 分支 xliu969/kunlun-gemm-compat（基点 73c5aff1，commit 4a00b845）；05-addmm 为未验收诊断变体，仅本包留档、未吸收
+- 本目录新增 gemm_compat.py（我方加载胶水：版本锁校验 + 进程内挂载，逻辑等价 run_pytest.py 的 load_profile）
+- 实物链：Xproject-CHKU-SZ/FlagTree @edca42a → 本机中继 /data2/xliu969/flagtree-fix-20261027/ → 本目录
