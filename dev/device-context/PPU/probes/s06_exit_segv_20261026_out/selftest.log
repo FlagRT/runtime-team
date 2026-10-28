@@ -1,0 +1,33 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+
+===== T11_CRASH_CAPTURED (native) =====
+signal=11 si_code=1 si_addr=(nil)
+RIP=0x7fd9e659b95c RSP=0x7ffc7dbd8618
+RIP_MODULE=/lib/x86_64-linux-gnu/libc.so.6
+RIP_BASE=0x7fd9e6400000
+RIP_OFFSET=0x19b95c
+RIP_SYMBOL=(no symbol)
+BACKTRACE_FRAMES=21
+  FRAME#0 module=/workspace/probes_ppu/dc_s06_20261026/t11_segv_handler.so offset=0x150f symbol=?
+  FRAME#1 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x45330 symbol=?
+  FRAME#2 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x19b95c symbol=?
+  FRAME#3 module=/usr/local/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so offset=0xa77a symbol=?
+  FRAME#4 module=/lib/x86_64-linux-gnu/libffi.so.8 offset=0x7b16 symbol=?
+  FRAME#5 module=/lib/x86_64-linux-gnu/libffi.so.8 offset=0x43ef symbol=?
+  FRAME#6 module=/lib/x86_64-linux-gnu/libffi.so.8 offset=0x70be symbol=ffi_call
+  FRAME#7 module=/usr/local/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so offset=0x15625 symbol=?
+  FRAME#8 module=/usr/local/lib/python3.12/lib-dynload/_ctypes.cpython-312-x86_64-linux-gnu.so offset=0x8f5e symbol=?
+  FRAME#9 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x20fa0f symbol=_PyObject_MakeTpCall
+  FRAME#10 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x189274 symbol=?
+  FRAME#11 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x2e3216 symbol=PyEval_EvalCode
+  FRAME#12 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x304af7 symbol=?
+  FRAME#13 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x304a6b symbol=?
+  FRAME#14 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x3049bd symbol=PyRun_StringFlags
+  FRAME#15 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30490c symbol=PyRun_SimpleStringFlags
+  FRAME#16 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30db99 symbol=Py_RunMain
+  FRAME#17 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30d5cb symbol=Py_BytesMain
+  FRAME#18 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a1ca symbol=?
+  FRAME#19 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a28b symbol=__libc_start_main
+  FRAME#20 module=/usr/local/bin/python3 offset=0x1095 symbol=_start

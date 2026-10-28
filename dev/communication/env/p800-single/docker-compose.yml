@@ -1,0 +1,26 @@
+name: flagrt-communication-p800-single
+x-flagrt:
+  image_baseline: ../../../images/kunlun-operator-runtime/v2/image.baseline.yaml
+  mounted_repos: {}
+services:
+  runtime-dev:
+    container_name: flagrt-communication-p800-single-1028
+    image: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+    # BKCL requires a non-loopback interface even for one host/one rank.
+    # Use the existing Docker bridge; no host networking or published ports.
+    network_mode: bridge
+    cpus: 2
+    mem_limit: 8g
+    shm_size: 512m
+    devices:
+      - ${COMM_XPU_NODE_A:?set_verified_device_node}:${COMM_XPU_NODE_A}
+      - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+    environment:
+      CUDA_VISIBLE_DEVICES: '0'
+      VLLM_FL_PREFER: vendor
+      PYTHONDONTWRITEBYTECODE: '1'
+    working_dir: /workspace
+    command: [sleep, infinity]
+    restart: 'no'

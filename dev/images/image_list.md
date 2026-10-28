@@ -133,10 +133,57 @@ flagtree 线号理解。
 
 > 本系列为登记式基线（ADR-0007）：镜像整体为上游官方产物，无仓内 `Dockerfile.repro`、不可重建；
 > 版本主锚 = Harbor digest `sha256:e55b420e…`，辅锚 = pip 版本号与镜像 Label 的上游配方 commit
-> `827dc613…`。运行时镜像**不含 vLLM**，推理服务化须用同线应用镜像（`flagos-app/vllm*-cambricon-*`）；
-> 该应用镜像尚未入锁，前置见 `../stack.lock.cambricon.v1.yaml` 的 `known_issues: C-1`。
+> `827dc613…`。运行时镜像**不含 vLLM**，推理服务化用下方 `cambricon-infer-vllm` 系列（推理腿发布物）。
+
+**`cambricon-infer-vllm` 系列**（FlagOS 官方寒武纪推理应用镜像，推理腿发布物，登记式基线）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2`（`4f298aa57807`） | 🟢 FlagOS 官方镜像（公开 Harbor，匿名可按 digest 拉取；2026-10-24 serve_standard 口径验收 PASS） | `cambricon-infer-vllm/v1/` |
+
+> 登记式基线（ADR-0007）：版本主锚 = Harbor digest `sha256:76a673a8…`；vllm 0.20.2+flagos +
+> vllm-plugin-FL 0.2.2（寒武纪线必需）+ neuware4.4.3 栈。服务起停走 serve_standard.sh
+> （DC_BACKEND=cambricon，embed 形态；READY_BUDGET 建议 ≥300s）。
 
 ---
+
+---
+
+# 平头哥 PPU
+
+## 版本线：FlagTree ppu3.6
+
+**BAAI·FlagTree 官方 PPU 线**（ppu3.6：PPU SDK v2.1.0 / Python 3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。
+本系列两版：**v1 = 官方基座登记式**（未改一字节）；**v2 = 在 v1 之上加一层本组派生**（把服务化前置
+`triton` 固化进镜像）。与昇腾/昆仑芯的差别：本系列的血统锚在上游 Harbor digest（基座）与
+**单 wheel sha256**（派生层），没有 FlagTree git commit 式构建。
+
+## 版本索引
+
+**`thead-ppu-runtime` 系列**（FlagTree 官方 PPU 基座 + 本组派生层）
+
+| 版本 | tag（image id） | repro_status | 目录 |
+|---|---|---|---|
+| v1 | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`） | 🟢 FlagTree 官方镜像（Harbor digest 锁定，登记式基线 ADR-0007）；`superseded_by: v2`（**非废弃**：仍是 v2 的基座层，可按 digest 拉取） | `thead-ppu-runtime/v1/` |
+| v2 | `flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64`（`1ba7ead15378`） | 🟢 functional-repro（实机 `docker build` 6 轮，**末轮产物即交付镜像**；全新容器 `TRITON_PPU_SMOKE_PASS` + `SERVE_STANDARD_PASS`；离线包三重核验） | [`thead-ppu-runtime/v2/`](thead-ppu-runtime/v2/README.md) |
+
+> v2 解决的是一件会让整条腿不可用的事：官方基座**不含 `triton`**，而 vLLM 起服务前门控
+> `find_spec("flash_attn") and find_spec("triton")` ⇒ 服务化腿必然起不来；此前靠手工 `docker cp`
+> 从共享目录补三件、**容器重建即丢**。v2 用共享盘既有 flagtree wheel（sha256 `b57daff7…`，
+> 一个 wheel 同时提供 `triton` + `flagtree`）经 `pip install --no-index --no-deps` 固化成一层，
+> 做到「拉起镜像即可服务化」。派生层**只做加法**：不升级/降级基座任何包、不装本组运行时。
+>
+> 分发：本机构建、**未 push**（`RepoDigests` 为空）⇒ 走离线包（[`thead-ppu-runtime/v2/ARCHIVE.md`](thead-ppu-runtime/v2/ARCHIVE.md)）
+> + 仓内配方重建，与训练腿镜像同口径。跨机 image id 不同属预期，版本锚 = `lock.yaml` 的 `image_id` + wheel sha256。
+> 离线包实测：17.15 GiB · sha256 `6ab0dfb9…` · `pigz -t` rc=0 · `docker load` 回读 image id 与发布物逐字相同。
+>
+> 流程状态（2026-10-27）：v2 已入档，**生效切换待总组裁定**（候选登记在
+> [`../stack.lock.thead-ppu.v1.yaml`](../stack.lock.thead-ppu.v1.yaml) 的 `candidates:`；`lock:` 仍指 v1）。
+>
+> ⚠️ **两个会误判的版本标签**（2026-10-27 实测）：① `pip show triton` **无输出** —— `triton` 是
+> flagtree wheel 内部的一段，没有独立 `dist-info`，用 `pip show`/`pip freeze` 判"装没装"会判成没装；
+> ② `flagtree.__version__` 自报 **3.6.0**（跟随 triton 线号），而 pip 元数据是 **0.7.0+ppu.gite223f42c**。
+> 版本锚一律用 pip 元数据 + wheel sha256，不用 `__version__`。
 
 # 当前生效版本
 
@@ -152,8 +199,9 @@ flagtree 线号理解。
 | 昇腾 910C（训练腿） | ascend-operator-runtime-comm | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（**训练腿发布物**，🟡 带 4 条已知限制） | `ascend-train-comm/v3/` |
 | 昇腾 910C（推理腿） | ascend-infer-vllm | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`，华为昇腾官方镜像，🟢，不带已知限制） | `ascend-infer-vllm/v1/` |
 | 昆仑芯 P800 | kunlun-operator-runtime | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`（🟢） | `kunlun-operator-runtime/v2/` |
-| 平头哥 PPU | thead-ppu-runtime | `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`（`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线） | `thead-ppu-runtime/v1/` |
-| 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基线；不含 vLLM，推理腿未入锁） | `cambricon-mlu-runtime/v1/` |
+| 平头哥 PPU | thead-ppu-runtime | **生效版本 = v1**（`flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`，`@sha256:50a906e6…`，BAAI·FlagTree 官方镜像，🟢 登记式基线）—— 与 `stack.lock.thead-ppu.v1.yaml` 的 `lock:` 一致；**候选 v2**（`1ba7ead1…`，🟢 派生层，已入档、离线包已产出）待总组裁定；device-context 方向运行容器已在用 v2 | `thead-ppu-runtime/v1/`（生效）+ [`v2/`](thead-ppu-runtime/v2/README.md)（候选） |
+| 寒武纪 MLU590 | cambricon-mlu-runtime | `harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0`（`@sha256:e55b420e…`，FlagOS 官方镜像，🟢 登记式基座；不含 vLLM） | `cambricon-mlu-runtime/v1/` |
+| 寒武纪 MLU590（推理腿） | cambricon-infer-vllm | `harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2`（`@sha256:76a673a8…`，FlagOS 官方镜像，🟢 登记式基线） | `cambricon-infer-vllm/v1/` |
 
 > 昇腾 910C **两腿分栈**：训练腿 = `ascend-train-comm` v3 完整镜像，推理腿 = 华为昇腾官方
 > `vllm-ascend`；使用方按腿选镜像，结论性验证须注明所在腿。三条自建血统 + 官方推理镜像均
@@ -165,6 +213,10 @@ flagtree 线号理解。
 > registry 官方镜像，按 digest 拉取。
 
 <!-- changelog: 2026-10-14 —— 本文件对齐 dev/stack.lock.910c.v4.yaml 口径（依据指挥台
+<!-- changelog: 2026-10-27 —— 平头哥 PPU 新增 v2（在官方基座之上加一层派生，把服务化前置 triton 固化进镜像；
+     官方基座不含 triton ⇒ vLLM 起服务必挂、此前靠手工 docker cp 且容器重建即丢）。新增「平头哥 PPU」一级节与
+     版本索引表；v1 加 superseded_by: v2（非废弃，仍是 v2 基座层）；「当前生效版本」表按 stack.lock 口径写 v1 生效、
+     v2 为候选（candidates 已登记，生效切换待总组裁定）。⚠️ 该「v2 已在用」仅指 device-context 方向运行容器。 -->
 <!-- changelog: 2026-10-15 —— 新增平头哥 PPU 行：thead-ppu-runtime v1（FlagTree 官方基座，登记式基线 ADR-0007 同款，Harbor digest 锚），锁定声明 dev/stack.lock.thead-ppu.v1.yaml。 -->
      ADR-0004「推理腿切回官方 vllm-ascend」，取代 ADR-0003 §3.5）。修订点：
      ① 版本线节补明 ascend-infer-vllm 为版本纪元对齐 ascend3.5、非 FlagTree 构建物；

@@ -1,0 +1,12 @@
+=== probe_graph_capture_stream_v2.py: graph capture 流语义（后端无关 V2）===
+[env] backend=ppu dev_api=cuda devices=1 torch=2.10.0
+[env] 图对象类: CUDAGraph
+[G1] capture vs eager: val=-27973.708984 ref=-27973.708984 rel_err=0.00e+00 ✅
+[G2] replay 确定性: val1=-27973.708984 val2=-27973.708984 差=0.00e+00 ✅
+[G3] 输入更新后 replay: val3=32413.605469 eager3=32413.605469 rel_err=0.00e+00 ✅
+[G5] capture 显式 stream 参数: rel_err=0.00e+00 ✅
+[G4*] capture 内切流（**契约外用法**，观察项）: 不容忍 —— AcceleratorError: CUDA error: operation failed due to a previous error during capture
+Search for `hggcErrorStreamCaptureInvalidated' in ht
+
+GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+结果已写入 /workspace/probes_ppu/acceptance_ppu/20261026_110942-cont/graph_capture_stream_result.json

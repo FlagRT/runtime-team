@@ -1,0 +1,78 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: >-
+  manual-registration（ADR-0007 登记式基线）。原因见 gaps[0]：本镜像是「官方基座 + 本组派生层」，
+  派生层资产是**单文件 wheel**，而 `dev/lib/baseline.py` §4.2 只识别「`COPY src/<Repo>/` + `pip install <同一目录>`」
+  这一种固化形态（对 wheel 单文件安装报 `pip install 的来源未登记为固化 repo`）⇒ `export --image` 暂不适用，
+  故手工登记；字段口径同 ENV-SPEC §3.1，数值均为 2026-10-27 真机实测。
+generated_at: 2026-10-27T10:20:00+08:00
+
+image:
+  ref: flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64
+  id: sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8   # check 项（本机 docker inspect 实测）
+  size_bytes: 41745259535                                                      # 41.7GB（docker images 口径）
+  recipe: [dev/images/thead-ppu-runtime/v2/Dockerfile.repro]
+  demo: dev/images/thead-ppu-runtime/v2/env/v1/
+
+base_image:                                    # L1：FlagTree 官方基座（被动继承、按 digest 锁定）
+  ref: flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base
+  id: sha256:f5366712d6a0856a429f9df3503bc377c929df806acc654973e350e27fed9239
+  digest: sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53
+  provides: {python: 3.12.3, torch: 2.10.0, vllm: 0.19.0+cu130, transformers: 4.57.0, ppu_sdk: v2.1.0}
+
+baked_repos:
+  # ──────────────── 本组派生层（唯一一处加法）────────────────
+  flagtree:
+    layer: L2
+    from: thead-ppu-runtime/v2 Dockerfile.repro(wheel)
+    commit: e223f42c                 # 取自 wheel 版本号 `+ppu.gite223f42c`
+    version: 0.7.0+ppu.gite223f42c
+    install: pip (wheel, --no-index --no-deps)
+    provides: [triton 3.6.0, flagtree]
+    source_filename: flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl
+    source_sha256: b57daff7393972d9c5ff2487930caf2416d0cbd79d8f50b0fd6a5ca56c5378b4
+    source_path: /bmcp_lvm_fs/A/data/flagtree-src/dist          # 共享盘既有产物，非网络下载
+    info: >-
+      官方基座**不含 triton** ⇒ vLLM 起服务必挂（门控 find_spec("flash_attn") and find_spec("triton")）；
+      本层把一个 wheel 同时提供的 triton+flagtree 固化进镜像，消除历史「手工 docker cp、容器重建即丢」。
+
+  # ──────────────── FlagTree 官方基座自带（被动继承，不可重建）────────────────
+  torch:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.10.0
+    install: pip (wheel)
+  vllm:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 0.19.0+cu130
+    install: pip (wheel)
+  transformers:
+    layer: L3
+    from: base_image
+    commit: unavailable
+    version: 4.57.0
+    install: pip (wheel)
+  ppu_sdk:
+    layer: L1
+    from: base_image
+    commit: unavailable
+    version: v2.1.0
+    install: in-image (/usr/local/PPU_SDK)
+    info: CUDA wrapper cu130（设备 API 走 torch.cuda 命名空间）；/opt/accl-p = 集合通信库 libpccl
+
+gaps:
+  - >-
+    `dev/lib/baseline.py` 不支持「wheel 单文件固化」：`COPY src/<Repo>/` 形态要求 pip install 的目标
+    **恰等于** COPY 的目的目录（`copy()` 只接受两段路径；`pip install` 的 target 必须命中 dir_repo 键），
+    而 `pip install <dir>/<file>.whl` 不命中 ⇒ 报「pip install 的来源未登记为固化 repo」。
+    已作为待办提给总组（`dev/images/TODO.md`）：建议扩展 §4.2 识别「COPY 目录 + pip install 目录内 wheel」
+    这一形态，使派生镜像能走 `export --image` 全自动入档。
+  - >-
+    本镜像**未 push** 到 registry（与组内镜像口径一致，RepoDigests 为空）⇒ 无 registry digest 锚；
+    跨机分发须 `docker save`，而本仓已知巨型镜像 `docker save` 会静默导出空 tar（`dev/images/TODO.md` #21）。
+  - >-
+    triton 的 pip 元数据由本 wheel 提供（`flagtree-0.7.0+…dist-info` 覆盖 triton/ 与 flagtree/ 两个包目录），
+    故 `pip show triton` 的版本字段口径与该 dist-info 一致、不等于 PyPI 上的 `triton 3.6.0` 条目 —— 排查时别混淆。

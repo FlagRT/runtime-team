@@ -1,10 +1,10 @@
 # communication — 多卡通信项目
 
-## 📋 本周更新：FlagCX 修复复验与有界分桶
+## 📋 本周更新：长序列重复验收与FlagCX自有分支
 
-在公共 v3 镜像上按 ENV-SPEC 挂载覆盖设备方向已合入的 FlagCX 修复 `62fe615`，DeepFM 逐张量/合并梯度各三轮全部通过，上周参数不一致与退出崩溃未复现。进一步为 [OneRec-8B 全参数双卡训练](docs/FLAGCX_FIX_AND_BOUNDED_BUCKETS_20261021.md) 实现有界梯度分桶：64/128 MiB 各 50 步通过，399 个参数张量最终哈希两端一致；128 MiB 将 50 步调用从 19,950 次降至 6,300 次，结束显存约 36.7 GiB，接近逐张量且低于全量合并约 51.5 GiB。主机回归 48/48。
+OneRec-8B序列16→64，64/128 MiB各三轮×50步，6/6通过，399个参数张量最终哈希在两端、两档和三轮之间一致。非首步平均耗时0.750±0.015 / 0.693±0.022 s，结束显存均约35.9 GiB，当前配置建议128 MiB。DeepFM新版原型复验6/6通过；新增P800消费侧适配后主机回归72/72。见[本周报告](docs/TRAINING_REGRESSION_20261028.md)。
 
-分桶只约束新增通信 scratch，不改变模型显存；测试仍为合成 token 功能验收，不代表业务收敛。公共镜像仍固化旧 FlagCX，修复需通过挂载覆盖消费。P800 权限已恢复但共享盘接近满，本轮未执行训练验收。详见[实测报告](docs/V3_DEEPFM_COMMUNICATION_20261014.md)与[当前状态](STATUS.md)。
+库层回归已交付[FlagCX自有分支并合入dev-1.0](https://github.com/FlagRT/FlagCX/tree/dev-1.0/test/regression/training_consumer)：每Rank3033次检查、3次正常组重建、30步原生DDP通过。公共推荐训练环境现已正式采用FlagCX挂载覆盖；模型组织仍在本目录。新增[P800 DeepFM单卡准备实测](docs/P800_DEEPFM_PREPARATION_20261028.md)：两模式各50步、17/17梯度参考、最终哈希一致，修正容器无网络导致的BKCL初始化失败；尚不计双卡迁移验收。原始MiB与周报GiB换算已对齐，历史实验见[上周报告](docs/FLAGCX_FIX_AND_BOUNDED_BUCKETS_20261021.md)与[当前状态](STATUS.md)。
 
 ## 📚 历史交付
 

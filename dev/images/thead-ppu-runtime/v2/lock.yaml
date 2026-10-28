@@ -1,0 +1,116 @@
+# thead-ppu-runtime v2 —— 派生镜像（FlagTree 官方 PPU 基座 + 固化 triton/flagtree 的 flagtree wheel）
+# 结构对齐 ../v1/lock.yaml 先例；版本事实（image id / 资产 sha256）以同目录 image.baseline.yaml 为准。
+
+image_tag: "flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64"
+image_id: "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8"
+image_size_bytes: 41745259535          # 41.75 GB = 基座 40.3 GB + 派生层 ≈1.4 GB（docker inspect .Size）
+built_at: "2026-10-27"                 # 制造机：PTG_0（平头哥共享机，ai-server）
+flagtree_line: >-
+  ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。本镜像 = v1 官方基座
+  + 本组一层派生；基座本身仍是 BAAI·FlagTree 官方构建物，本组不改其任何字节。
+
+repro_status: "🟢 functional-repro"
+# 🟢 判据（README §5）在本条目上的落地：
+#   ① Dockerfile.repro + assets 已**实机重建**成立——本镜像**就是** build.sh 的构建产物，
+#      配方迭代 6 轮、末轮成功产物即本条目的 image id（不是"配方在手未验证"）。
+#   ② README §5 的"与原镜像比对"在本条目**不适用**：v2 没有前身镜像（v1 是它的基座、不是它的前身），
+#      故不存在"重建物 vs 原物"的比对对象。替代证据 = 派生层内容**只有一个 wheel**（内容寻址、
+#      sha256 可校验）+ 全新容器跑非空转判据（见 assets/evidence/）。
+#   ③ 未宣称项：跨机 image id 一致性（本组镜像未 push，无 registry digest ⇒ 别机重建得不同 id 属预期）。
+
+dockerfile: "Dockerfile.repro（仓内配方；build.sh 一键重建，含资产自证与磁盘水位守卫）"
+distribution: >-
+  本机构建、**未 push**（`RepoDigests` 为空）⇒ 分发走「离线包 + 仓内配方重建」，与组内训练腿
+  镜像同口径（image_list.md「分发方式」段）。离线包见 ARCHIVE.md。
+
+# --- official / custom 边界（见 README §4；此处 official = BAAI·FlagTree 官方原样产物） ---
+layers:
+  - name: "flagtree-ppu 202607-3.6-base（继承，本组不可重建）"
+    origin: official          # BAAI·FlagTree
+    pin: "digest sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53"
+    pin_local_image_id: "sha256:f5366712d6a0856a429f9df3503bc377c929df806acc654973e350e27fed9239"
+    note: >-
+      含 PPU SDK v2.1.0（CUDA wrapper cu130）+ torch 2.10.0 + vLLM 0.19.0 + accl-p 集合通信库；
+      **不含** triton / flagtree（2026-10-27 空跑实测 `import triton` ⇒ ModuleNotFoundError）。
+      本组对它只做继承，不重建、不改包。
+
+  - name: "triton + flagtree 固化层（本组派生）"
+    origin: custom
+    pin: "wheel sha256 b57daff7393972d9c5ff2487930caf2416d0cbd79d8f50b0fd6a5ca56c5378b4"
+    asset: >-
+      flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl（375,145,745 字节 = 357.8 MiB；
+      zipfile 实测 389 条目；顶层恰为 triton/ + flagtree/ + flagtree-…dist-info/）
+    asset_origin: >-
+      共享盘既有构建产物 /bmcp_lvm_fs/A/data/flagtree-src/dist/（**非网络下载**，无外网可达性依赖）
+    install: "pip install --no-index --no-deps --no-cache-dir <wheel>（离线、不连索引、不装依赖）"
+    note: >-
+      一个 wheel 同时提供 triton 与 flagtree —— 与此前"手工 docker cp 三件"同源，但改为镜像内固化：
+      有 pip 元数据、sha256 可校验、容器重建不丢（ENV-SPEC 四硬规则之一"外部依赖声明"）。
+
+custom_layers: 1            # 派生层只做加法：不升级/降级基座任何包，不装本组运行时（经挂载使用）
+
+# --- 已知限制 / 缺口（如实登记，勿读成"已验证通过"） ---
+gaps:
+  - "无 registry digest（本机构建未 push）⇒ 跨机 image id 必然不同；版本锚 = 本文件 image_id + wheel sha256"
+  - "基座内 /opt/vllm 无 .git ⇒ vLLM 版本锚 = pip 版本号（0.19.0），无 commit 自证（沿用 v1 的同一 gap）"
+  - "本组 ppu 后端（runtime 0.1.0）不在镜像内，经 WORKSPACE_ROOT 挂载使用（不固化，同 v1）"
+
+known_issues:
+  - id: ppu-v2-flagtree-version-label
+    what: "`flagtree.__version__` 自报 **3.6.0**（跟随 triton 版本线），而 wheel 名/dist-info 是 **0.7.0+ppu.gite223f42c**"
+    impact: "拿 `flagtree.__version__` 当版本锚会误读成 3.6.0 ⇒ 版本判据一律用 wheel 文件名/dist-info 与 sha256"
+    evidence: "2026-10-27 现役容器实测：python 3.12.3 / torch 2.10.0 / triton 3.6.0 / flagtree.__version__ 3.6.0 / vllm 0.19.0"
+  - id: ppu-v2-baseline-is-registered
+    what: "`image.baseline.yaml` 为 **ADR-0007 登记式**（手工登记），不是 `baseline.py export` 生成"
+    reason: >-
+      baseline.py 只接受「COPY 目录 + pip install 同一目录」这一种固化形态；本镜像为「单 wheel 文件」
+      形态，三种写法均被拒（`COPY triton/`、`COPY src/<repo>/<file>`、`pip install <dir>/<file>.whl`）。
+      已提 TODO #24 请求扩展。
+    residual: "`baseline.py check` 已实测 PASS（rc=0）；但少一道「由工具生成」的自动核对"
+
+# --- 验证（全部在**全新容器 + 零手工干预**下进行；历史开发容器里 triton 是手工 docker cp 进去的，不算证据） ---
+verification:
+  - check: "镜像自证 `import triton / flagtree`"
+    result: "triton 3.6.0 / flagtree ok（基座为 ModuleNotFoundError）"
+  - check: "vLLM 前置门控 `find_spec('flash_attn') / ('triton')`"
+    result: "True / True（基座为 True / **False** ⇒ 服务化必挂）"
+  - check: "非空转：真编一个 Triton kernel 上卡"
+    result: "`TRITON_PPU_SMOKE_PASS` · 1.50 s · 最大误差 0.000e+00 · 边界 n=3000 一致"
+  - check: "服务化端到端（serve_standard.sh，embed 形态）"
+    result: "`SERVE_STANDARD_PASS (ready=1 smoke=1)`"
+  - check: "本方向运行容器切 v2 后跑 device-context 判据"
+    result: "`s03 smoke PASS`（46/0）· `s06 CONTRACT_INVARIANTS_PASS 4/4`（rc=0）"
+  - check: "基线合法性"
+    result: "`python3.11 dev/lib/baseline.py check dev/images/thead-ppu-runtime/v2/env/v1` ⇒ PASS（rc=0）"
+
+verification_evidence_dir: >-
+  assets/evidence/（本次入档的原始日志，均带被验镜像的 image id）；
+  device-context 判据运行记录另见 dev/device-context/PPU/probes/rerun_20261027_out/batch-v2img-s03-s06/
+
+notes: |
+  为什么这一层必须存在（消费方视角）：
+  vLLM 起服务前会门控 `find_spec("flash_attn") and find_spec("triton")`，官方 PPU 基座两项中
+  triton 缺失 ⇒ 服务化腿必然起不来。此前靠"从共享目录 docker cp 三件"手工补齐，**容器重建即丢**，
+  且属于镜像外隐性依赖（违反 ENV-SPEC「外部依赖须声明」）。v2 把它固化 ⇒ 「拉起镜像即可服务化」。
+
+  启动纪律沿用 v1（三条环境事实，非镜像缺陷，env/v1 已内置规避）：
+  ① 非 privileged；声明式 devices 授 /dev/alixpu + /dev/alixpu_ctl + 所用 alixpu_ppuN。
+  ② `--network host` 下宿主主机名（ai-server）不在 DNS ⇒ torchrun/c10d rendezvous 静默挂 300 s
+     ⇒ 须 `--add-host=ai-server:127.0.0.1`。
+  ③ 镜像写死 `NCCL_SOCKET_IFNAME=eth0` 而真网卡是 bond0 ⇒ 须显式覆盖 `NCCL_SOCKET_IFNAME=bond0`。
+
+  升级/退出条件：官方 PPU 基座线一旦自带 triton（见 dev/images/TODO.md #23），本派生层整体废弃、
+  生效版本回落到纯基座（届时删 v2，不再产生新 v3）。
+
+changelog:
+  - date: "2026-10-27"
+    what: |
+      首次入档（版本 v2 = 镜像第一层本组派生）。起因：官方基座不含 triton ⇒ vLLM 服务化必挂、
+      此前靠手工 docker cp 且容器重建即丢。做法：用共享盘既有 flagtree wheel 经 pip 离线固化
+      （一个 wheel 同时提供 triton + flagtree），派生层只做加法。
+      配方迭代 6 轮（前面 5 轮的失败原因已写入 REBUILD.md「踩坑」：heredoc 被 baseline.py 误判为
+      Dockerfile 指令 / 硬链接跨属主被 protected_hardlinks 拒 / wheel 改名触发 PEP 427 解析失败 /
+      baseline.py 只接受 src/<Repo> 目录形态）。
+      同步新建 env/v1 运行环境（ADR-0008：镜像版本 v2 下的环境版本 v1），容器参数逐项沿用 v1/demo
+      以便 A/B 对照。基线为 ADR-0007 登记式（工具不支持 wheel 形态，TODO #24），check 实测 PASS。
+      分发：本机构建未 push，走离线包（ARCHIVE.md）+ 仓内配方重建。

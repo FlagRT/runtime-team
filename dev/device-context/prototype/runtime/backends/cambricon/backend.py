@@ -501,8 +501,17 @@ class CambriconBackend(RuntimeBackend):
             return None
         return self._stream_priority_read_raw(handle)
 
-    def create_event(self):
-        # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
+    def create_event(self, enable_timing: bool = False):
+        """统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）。
+
+        `enable_timing=True` ⇒ `torch.mlu.Event(enable_timing=True)`。
+        ⚠️ **本分支在该实例上未实测**（2026-10-26 仅在 PPU 上验证）；失败须
+        `NotImplementedError` 而非静默降级。
+        """
+        if enable_timing:
+            ev = CambriconEventAdapter(enable_timing=True)
+            ev._ensure()
+            return ev
         return CambriconEventAdapter()
 
     def current_stream(self):

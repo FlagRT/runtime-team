@@ -19,9 +19,15 @@
 |---|---|---|---|
 | 第 1 家 | 华为昇腾 910C | conformance 13/13 + 6/6；两条腿全闭环 | 基线实例（自建原型期） |
 | 第 2 家 | 昆仑芯 P800 | conformance 13/13 + 6/6；smoke 42/0；训练腿 6/6；推理腿前向 13/13、服务化 10/10；错误闭环两设置各 5/0/0 | **单日完成**（月度目标：单个 ≤5 人天） |
+| 第 3 家 | 寒武纪 MLU590 | conformance 13/13 + 6/6；smoke 46/0；两条腿 6/6 与 13/13；服务化**四形态**（TP∈{1,2}×EAGER∈{1,0}）全 PASS；错误闭环 5/0/0；职责审计 62/0/16 | 09-28 收口（跨两机分期；09-22 因 SSH 超时缺的 2 项已补） |
+| 第 4 家 | 平头哥 PPU | conformance 13/13 + 6/6；smoke 46/0；两条腿 6/6（5167 tok/s）与 13/13（135.77 句/s）；服务化 10/10；错误闭环 5/0/0；契约不变式 4/4；职责审计 73/0/5 | **10-10 上机 → 10-14 收官（约 5 天）**，含一处**平台侧缺陷**的原生定位与转厂商；10-26 **13 段全量重跑零回归** |
 
 ⇒ 第 2 家的"单日完成"是**接入动作本身**（写 backend + 跑 conformance），
 不含**环境打通**（机器/驱动/镜像/网络）与**厂商缺陷排障**。后两项才是真正的工期风险，见 §1 与 §7。
+
+**四家横向看，工期结构一致**：接入动作 1–2 天；真正吃掉时间的是 ① 环境打通（PPU 的 `--network host` 主机名、
+`NCCL_SOCKET_IFNAME`、镜像缺 `triton` 三条见 §9-14/15/16）② 厂商/平台缺陷的**归属判定**（PPU 的退出期段错误用了
+4 天定位到「平台侧弱引用书签失效」，并给出本层不依赖其语义的修法）⇒ **排期按「1–2 天接入 + 3–5 天环境与缺陷」估**。
 
 ---
 
@@ -306,9 +312,18 @@ python3 runtime/smoke_runtime.py --backend <vendor>                          # �
 
 ```bash
 CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=<vendor> DC_ROOT=<prototype> \
-DC_MODEL=<...>/snapshots/<hash> DC_OUT_DIR=<out> MAX_STEPS=50 BATCH=4 SEQ=128 \
+DC_MODEL=<模型目录 | snapshot 目录 | HF 的 models--<org>--<name> 缓存根> \
+DC_OUT_DIR=<out> MAX_STEPS=50 BATCH=4 SEQ=128 \
 python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 ```
+
+**`DC_MODEL` 的三种传法两条腿必须一致**（`runtime/proto/model_path.py` 是唯一实现，2026-10-27 起）：
+普通模型目录 / `snapshots/<hash>` 目录 / HF 缓存根 `models--<org>--<name>`（后者自动解析到
+`snapshots/<hash>`，优先听 `refs/main`）。⛔ 不要给 `/hf_cache/hub` 这种**所有模型的父目录**。
+⚠️ 这条曾经只在推理腿落地：同一份缓存根，推理腿过、训练腿报
+`ValueError: Unrecognized model in …`（10-27 第 3 家实例复跑实测暴露）——
+正是"同一个环境变量、两条腿理解不一致"的老毛病，故抽成共用模块 + 静态同源守卫
+（`scripts/model_path_parity_check.py`，任一条腿自建 `resolve_model` 即 FAIL）。
 
 **判据**：两 rank 均 `TRAIN_LEG_PASS 6/6`（设备绑定 / 模型加载 / 反向 / 集合通信同步 /
 三类通信对照 / 无死锁），且 loss 正常下降。
@@ -358,21 +373,32 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 
 复制这张表逐项打勾，全绿即接入完成。
 
-| # | 项 | 判据 | 910C | P800 |
-|---|---|---|---|---|
-| 1 | 环境打通 | 连得上 / 有权限 / 有可写目录 / 会挑空闲卡 | ✅ | ✅ |
-| 2 | 厂商栈判别 | 明确落在 A/B/C/D 哪条路径，并记录证据 | ✅ A（`npu`） | ✅ B（`cuda`） |
-| 3 | 镜像就绪 | 5 条判据全过（含**依赖链完整**自检） | ✅ | ✅ |
-| 4 | backend 落地 | 13 抽象 + `build()` + `supports()` 如实声明 | ✅ | ✅ |
-| 5 | conformance 13 例 | 全绿或如实 stub-skip | ✅ 13/13 | ✅ 13/13 |
-| 6 | conformance 推理 6 例 | 全绿 | ✅ 6/6 | ✅ 6/6 |
-| 7 | smoke 自检 | 全通过 / 0 失败 | ✅ 37/37 | ✅ 42/0 |
-| 8 | 训练腿 | 两 rank `TRAIN_LEG_PASS 6/6` | ✅ | ✅ |
-| 9 | 推理腿（前向） | 维度 / 范数 / 区分度 / 时延 / 异常分级 | ✅ 10/10 | ✅ 13/13 |
-| 10 | 推理腿（服务化） | 含超长输入防御与同卡共存 | ✅ 10/10 | ✅ 10/10 |
-| 11 | 错误闭环 | 四类注入分级处置正确、业务继续 | ✅ 5 闭环 | ✅ 两设置各 5 闭环 |
-| 12 | 已知问题如实声明 | `known_issues()` 结构化 + 前后端告警 | ✅ | ✅ |
-| 13 | 证据归档 | 原始日志/JSON 入版本库（**注意 `*.log` 例外规则**），不是"声称已归档" | ✅ | ✅ |
+| # | 项 | 判据 | 910C | P800 | MLU590 | PPU |
+|---|---|---|---|---|---|---|
+| 1 | 环境打通 | 连得上 / 有权限 / 有可写目录 / 会挑空闲卡 | ✅ | ✅ | ✅ | ✅（`ppu-smi` 挑卡） |
+| 2 | 厂商栈判别 | 明确落在 A/B/C/D 哪条路径，并记录证据 | ✅ A（`npu`） | ✅ B（`cuda`） | ✅ A（`mlu`） | ✅ **B（`cuda` 复用）** |
+| 3 | 镜像就绪 | 5 条判据全过（含**依赖链完整**自检） | ✅ | ✅ | ✅ | ✅ **v2 派生镜像已固化 `triton`**（基座本身仍缺，见 §9-16；`thead-ppu-runtime/v2`） |
+| 4 | backend 落地 | 13 抽象 + `build()` + `supports()` 如实声明 | ✅ | ✅ | ✅ | ✅ |
+| 5 | conformance 13 例 | 全绿或如实 stub-skip | ✅ 13/13 | ✅ 13/13 | ✅ 13/13 | ✅ 13/13 |
+| 6 | conformance 推理 6 例 | 全绿 | ✅ 6/6 | ✅ 6/6 | ✅ 6/6 | ✅ 6/6 |
+| 7 | smoke 自检 | 全通过 / 0 失败 | ✅ 37/0 | ✅ 42/0 | ✅ 46/0 | ✅ 46/0 |
+| 8 | 训练腿 | 两 rank `TRAIN_LEG_PASS 6/6`（50 步） | ✅ | ✅ | ✅ | ✅（5167 tok/s） |
+| 9 | 推理腿（前向） | 维度 / 范数 / 区分度 / 时延 / 异常分级 | ✅ 10/10 | ✅ 13/13 | ✅ 13/13 | ✅ 13/13（区分度 0.6391） |
+| 10 | 推理腿（服务化） | 含超长输入防御与同卡共存 | ✅ 10/10 | ✅ 10/10 | ✅ 四形态全 PASS | ✅ 10/10（区分度 0.4118） |
+| 11 | 错误闭环 | 四类注入分级处置正确、业务继续 | ✅ 5 闭环 | ✅ 两设置各 5 闭环 | ✅ 5/0/0 | ✅ 5/0/0 |
+| 12 | 已知问题如实声明 | `known_issues()` 结构化 + 前后端告警 | ✅ | ✅ | ✅ | ✅（含**平台侧**缺陷转厂商声明） |
+| 13 | 证据归档 | 原始日志/JSON 入版本库（**注意 `*.log` 例外规则**），不是"声称已归档" | ✅ | ✅ | ✅ | ✅ |
+| 14 | **契约不变式 I1–I4**（2026-10 增补） | 真机 `CONTRACT_INVARIANTS_PASS 4/4` | ✅ | ✅ | ✅ | ✅ 4/4 **且 `rc=0`**（2026-10-26 第五载体收口：`_stream_ctx` 改强持有；原为「判据过、退出期 `rc=139`」，见 `PPU/docs/PPU_EXIT_SEGV_CARRIER5_20261026.md`）。⚠️ **读法**：退出码是**独立判据**，不得当判据结果读；复现时**不得在退出前手动 `gc.collect()`**（会掩盖缺陷） |
+| 15 | **职责响应审计 78 项**（2026-10 增补） | `DUTY_RESPONSE_PASS`；SKIP 须为如实不具备 | ✅ 73/0/5（10-27） | ✅ **68/0/10**（10-26） | ✅ **63/0/15**（10-27） | ✅ 73/0/5（10-26） |
+| 16 | **单入口复跑**（2026-10 增补） | 一条命令跑完判据，逐段留 rc 与 verdict | ✅ `910C/probes/run_910c_p9_acceptance.sh` 等 | ✅ 分项脚本 | ✅ 分项脚本 | ✅ `PPU/probes/run_acceptance_ppu.sh`（13 段） |
+
+> ⚠️ **数字要对得上归档**：第 15 行 910C 的 `73/0/5` 在 2026-10-27 之前**没有 78 项版的归档支撑**（仓库里 910C 的审计归档只有 `duty_audit_ascend_20260928.json` 等 **39 项版旧清单**，且当时 C13 是「OK 但 `elapsed_time=0.0`」——正是后来在 P800 上被判为「如实不具备/假通过」的形态）。该机首次以 78 项版实测并归档即为 `73/0/5`（C13 = 10.474 ms），见 `910C/probes/rerun_20261027_out/`。⇒ **引用本表前先确认对应版本的归档存在**。
+> ⭐ 四家 C13 的共同更正（2026-10-26/27 实测）：`event.elapsed_time` 的 SKIP **不是任何一家的平台限制** —— 统一 API 原先**没有「建可计时事件」入口**，判据因此在四家恒跳过。补入口后四家全部计时正常：910C `10.474 ms` · P800 **仍恒 0（如实不具备，裸 torch 复核）** · MLU590 `11.381 ms` · PPU `10.089 ms`。⇒ 只有 **P800 是真正的平台缺口**，其余三家是「我们没测到」。
+
+> ⚠️ **第 15 条的历史读数需重述（2026-10-26 发现）**：四家的 `C13 event.elapsed_time(end)`
+> 一直是**假 SKIP** —— 统一 API 原本没有「建可计时事件」的入口（`create_event()` 无参数），
+> 于是该判据在四家**恒跳过、从未真正执行**；且修掉入口后暴露出方向写反（`e2.elapsed_time(e1)` 得负值仍判 OK）。
+> 两处已在 `PPU` 上修并验证（`73/0/5`）；**其余三家需各自复跑后按 +1 OK / −1 SKIP 更新上表**。
 
 **第 13 条的教训**：仓库根 `.gitignore` 有 `*.log` 通用规则，P800 曾因此导致 8 份证据日志
 **历次提交都写"已归档"实则从未入库**。修法是在 `probes/.gitignore` 写 `!*.log`；
@@ -389,7 +415,7 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 3 | **同一集合通信库在不同芯片注册的后端名不同** | 910C 是 `hccl`；P800 是 `flagcx`（且需显式 `import flagcx`）；MLU590 是 `cncl` | 不要照搬；探测可用后端再写进配置 |
 | 4 | **`timeout` 杀不掉挂死进程** | 挂死点持 GIL 自旋，SIGTERM 被推迟（实测存活 73 分钟） | 必须 `kill -9` 按 PID 强杀，再 `xpu-smi` 复查卡释放 |
 | 5 | **同一插件跨芯片可用性相反** | `vllm-plugin-FL` 在昆仑芯**必需**、在昇腾**必须禁用** | 逐个实测，不类推 |
-| 6 | **HF 缓存路径层级** | 传缓存根目录报 `Unrecognized model ... Should have a model_type key` | 必须给到 `snapshots/<hash>`；注意有的脚本自带 `resolve_model()`、有的没有 |
+| 6 | **HF 缓存路径层级** | 传"所有模型的父目录"（如 `/hf_cache/hub`）报 `Unrecognized model ... Should have a model_type key` | ✅ 2026-10-27 起**三种传法都合法**（普通模型目录 / `snapshots/<hash>` / HF 缓存根 `models--<org>--<name>`），由共用模块 `runtime/proto/model_path.py` 统一解析（优先听 `refs/main`）；⛔ 仍不给"所有模型的父目录"。判定方式：`scripts/model_path_parity_check.py`（离线，含两腿同源守卫） |
 | 7 | **镜像大小有两套口径** | `docker images`（磁盘占用，含共享层）vs `image inspect Size`（镜像层之和），差近 3 倍 | 引用时必须注明口径，否则被误读成版本差异 |
 | 8 | **多环境对照不能只看总数** | 只看"N/N 通过"会漏掉语义差异 | 按**逐用例状态**与**逐条 `detail` 字符串**比对；共享机上的**单次吞吐不可直接对比**，须交替复测 |
 | 9 | **vLLM 停机残留占卡** | EngineCore 子进程残留（实测 73850 MiB / 96 GiB） | 停机连子进程一起 `kill -9` |
@@ -397,6 +423,14 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 | 11 | **非零 rc / 非零返回值一律当失败** | 把"重复初始化"当成错误：ACL `acl.init()` 返回 **`100002 = ACL_ERROR_REPEAT_INITIALIZE`**（厂商扩展已初始化过），被误判为不可用 ⇒ 能力静默降级、`memory_stats` 退化成 `total_mb=0` | **非零码必须逐码确认语义**（查厂商头文件，如 CANN `acl/acl_base.h`）。同类：把"参数错误码"当超时上报（见第 12 条） |
 | 12 | **验证脚本在参数退化时静默跳过** | OOM 注入按 `memory_stats["total_mb"]` 算"3 倍显存"，该值为 **0** 时变成 `torch.empty(0)`：**不报错、不占显存，却仍记"已注入"** ⇒ **假证据**（记录显示"未触发异常"，看着像后端缺陷） | 测试工具在关键参数退化时**必须回退默认值并打印提示**，不得静默；`expectation` 必须参与判定 |
 | 13 | **厂商缺陷不可"改判据变绿"** | 真实厂商缺陷（如某 `query()` 语义不成立）若把判据放宽/改判 SKIP，下游会误以为能力可用 | 正确做法：登记 `known_issues`（复现率 + 矩阵证据 + 规避路径 + 上报对象）+ **如实保留红灯**。**该降的要整组降，该红的要留着红** |
+| 14 | ⭐ **`--network host` 下容器不代管 `/etc/hosts`** | 宿主主机名不在 DNS ⇒ torchrun 的 c10d rendezvous 拿主机名自连，**静默挂 300 s** 后报 `The client socket has timed out after 300000ms while trying to connect to (<hostname>, <port>)`（其前身是一串 `IPv6 network addresses … cannot be retrieved`）。⚠️ **同一容器内 `mp.spawn` + `tcp://127.0.0.1` 不受影响** ⇒ 只在 torchrun / `--rdzv-endpoint=<主机名>` 路径暴露 | 容器启动加 `--add-host=<hostname>:127.0.0.1`（PPU 实测：加之前 `timeout 90` ⇒ RC=124 且无子进程输出；加之后 RC=0） |
+| 15 | ⭐ **镜像写死 `NCCL_SOCKET_IFNAME=eth0`，而机器没有 eth0** | `init_process_group('nccl')` 能建组，**真实 all_reduce 才失败**：`NCCL ERROR Bootstrap : no socket interface found`（看着像集合通信库缺陷） | 容器启动 `-e NCCL_SOCKET_IFNAME=<真网卡>`（PPU 是 `bond0`，先 `ip route` 确认）；**建组成功 ≠ 通信可用**，必须跑一次真实 collective |
+| 16 | ⭐ **服务化前置 `triton` 不在镜像内，且容器内 pip 索引不可达** | 起 vLLM 报 `ModuleNotFoundError: No module named 'triton'`（由 vLLM 的 `if find_spec("flash_attn")` 门控触发：装了 `flash_attn` 却没装 `triton` 必踩）；`pip index versions triton` 全部 `ConnectTimeout`、"No matching distribution" | 从共享 wheel 目录 `docker cp` 复制 `triton/` + `flagtree/` + dist-info 到 site-packages（PPU 实测源：`/bmcp_lvm_fs/A/data/whl/`）；⚠️ **容器重建即丢**，须写进实例手册并做**非空转验证**（`probes/triton_smoke.py`：真编 kernel，PPU 实测 `TRITON_PPU_SMOKE_PASS`、误差 0）。✅ **根治路径（PPU 已落地，2026-10-27）**：不要长期靠手工复制——把该 wheel 用 `pip install --no-index --no-deps` **固化进派生镜像**（先例 `dev/images/thead-ppu-runtime/v2/`），此后「拉起镜像即可服务化」、容器重建不丢；新芯片接入时优先走这条。见 `dev/images/TODO.md` #23（把 triton 上提官方基座线） |
+| 17 | ⭐ **容器内以 root 跑 ⇒ bind-mount 目录出现 root 拥有的文件，宿主用户接手时"静默失败"** | 两种表象：① 复跑时 `mkdir`/`cp` 建不了子目录、日志重定向失败 ⇒ **测据空目录、屏幕上只有 rc=0**（PPU 服务化段曾因此"卡在等一个没起来的服务"）；② 宿主侧无法覆盖这些文件 | 交叉使用前 `chown -R <宿主 uid>`（**容器内 uid ≠ 宿主 uid**：PPU 上容器 `ubuntu`=1000、宿主 `hliu553`=**1020**，按名义用户 chown 会 chown 错人）；⚠️ 只改归属不动内容。同族见 `910C/docs/STORAGE_MIGRATION_20261021.md` §4 |
+
+| 18 | ⭐ **`event.elapsed_time` 依赖 `enable_timing=True`，且部分栈"接受该 flag 但计时恒 0"** | 判据若只查"可调用/返回是数字"⇒ 会拿 `0.0`（甚至负值）判通过：**假通过**。实测：P800 裸 torch 正反向都 `0.0`（平台不提供计时）；PPU 正常（10.089 / 16.395 ms）；未建计时事件时 CUDA 系栈直接抛 `ValueError: Both events must be created with argument 'enable_timing=True'` | ① 判据必须建**可计时**事件；② 校验**数值**而不只是可调用性：跨"设备工作 + 10 ms 睡眠"应落在 `[5, 5000] ms`；③ 三态口径 —— 负值 ⇒ **FAIL**（方向/实现错误）；恒近 0 ⇒ **如实不具备(SKIP)** 并登记为平台缺口；落带内 ⇒ OK。④ 方向是契约：`start.elapsed_time(end)`，反了必得负值 |
+| 19 | ⭐ **复现「退出期段错误」时，不得在退出前手动 `gc.collect()`** | 加上它对象被提前回收，最终化阶段已无弱引用可清 ⇒ `rc=139` 变 `rc=0`，**缺陷整个隐身**（本轮纯净复现曾因此 4/4 "复现失败"，去掉才翻案） | ① 观察点必须是**进程退出码**而非日志末尾（`main()` 返回 0，崩溃在其后）；② 用 `python3 -X faulthandler` 看是否落在 `Garbage-collecting` / `<no Python frame>`；③ 容器无 gdb 时用 `LD_PRELOAD` + `dladdr` 采集器（`PPU/probes/t11_segv_handler.c`，用时现编） |
+| 20 | ⭐⭐ **同一个环境变量，两条腿理解不一致**（"只在一条腿里实现"） | 同一份 `DC_MODEL=/hf_cache/hub/models--<org>--<name>`：推理腿过（它自带 `resolve_model()`）、训练腿报 `ValueError: Unrecognized model in …`（它没有）。2026-10-27 第 3 家实例复跑实测暴露；当时只能"在容器内先手工把 DC_MODEL 解析成 snapshot"绕过 | ① **判据不是"两腿各自能跑"**，而是**同一输入⇒同一解析结果**：两腿必须 import 同一份实现（`runtime/proto/model_path.py`），**禁止各写一份**（复制即漂移）；② 加**静态同源守卫**（`scripts/model_path_parity_check.py`：AST 检查两条腿不得定义 `resolve_model`、不得直接读该环境变量）；③ 上机复验用 `prototype/scripts/run_legparity_dcmodel.sh`：合成一个缓存根（`refs/main` 指真 hash + 放一个字典序更大的**诱饵**目录），若实现退化回"排序取最后"必选中诱饵而失败 |
 
 ### 已知厂商缺陷的结构化声明（模板）
 

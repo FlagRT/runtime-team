@@ -1,0 +1,9 @@
+[1] 设备上下文: backend=ppu dev=cuda:0 count=1 mem={'total_mb': 98304, 'used_mb': 5464, 'free_mb': 92839, 'allo
+WARNING:torchao.kernel.intmm:Warning: Detected no triton, on systems without Triton certain kernels will not work
+[2] 模型加载完成 → cuda:0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 138.66 句/s, p50 21.53 ms, avg 21.64 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=ppu dev=cuda:0 | dim 1024 | 138.66 句/s p50 21.53ms | 区分度 0.6391 -> /workspace/probes_ppu/acceptance_ppu/20261026_110942/s08_infer_leg.json
+  （如实跳过：vendor_code_map）

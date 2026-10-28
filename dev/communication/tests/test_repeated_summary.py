@@ -42,5 +42,27 @@ class RepeatedEvidenceTests(unittest.TestCase):
         self.change('execution.json', lambda d:d['runs'].append(d['runs'][0]))
         with self.assertRaises(ValueError): summarize(self.root)
 
+    def kunlun_fixture(self):
+        # Mutation of host fixtures tests validation only; not hardware evidence.
+        self.change('execution.json',lambda d:d.update(scope='Kunlun integration'))
+        for path in self.root.glob('*/rank*.json'):
+            self.change(path.relative_to(self.root),lambda d:d.update(
+                backend='flagcx',evidence_scope='P800 integration',
+                device='cuda:'+str(d['rank']),runtime_info={'name':'kunlun'}))
+
+    def test_kunlun_metadata_accepted(self):
+        self.kunlun_fixture()
+        self.assertEqual(summarize(self.root)['scope'],'Kunlun integration')
+
+    def test_kunlun_wrong_vendor_rejected(self):
+        self.kunlun_fixture()
+        self.change('01-manual/rank0.json',lambda d:d.update(runtime_info={'name':'nvidia'}))
+        with self.assertRaises(ValueError):summarize(self.root)
+
+    def test_kunlun_cpu_fallback_rejected(self):
+        self.kunlun_fixture()
+        self.change('01-manual/rank0.json',lambda d:d.update(device='cpu'))
+        with self.assertRaises(ValueError):summarize(self.root)
+
 
 if __name__ == '__main__': unittest.main()

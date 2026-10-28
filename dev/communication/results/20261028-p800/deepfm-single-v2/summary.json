@@ -1,0 +1,39 @@
+{
+  "verdict": "PASS",
+  "scope": "P800 single-card preparation only",
+  "world_size": 1,
+  "two_card_acceptance": false,
+  "launchers": 2,
+  "warmup_steps_per_launcher": 5,
+  "measured_steps_per_launcher": 50,
+  "global_batch": 64,
+  "selected": [
+    {
+      "physical_card": 5,
+      "node": "/dev/xpu7",
+      "uuid": "GPU-f396486d-9850-50e4-81c4-50f2e9f6ca87"
+    }
+  ],
+  "gradient_checks_per_launcher": 17,
+  "gradient_reference_max_abs": 3.725290298461914e-09,
+  "update_reference_max_abs": 3.725290298461914e-09,
+  "manual_fused_loss_max_abs": 0.0,
+  "mode_final_parameter_hashes_equal": true,
+  "modes": {
+    "manual": {
+      "loss_first": 1.2515761852264404,
+      "loss_last": 1.0966758728027344,
+      "mean_step_ms": 12.369852461852133,
+      "gradient_allreduce_calls": 850,
+      "input_payload_bytes": 84290400
+    },
+    "fused": {
+      "loss_first": 1.2515761852264404,
+      "loss_last": 1.0966758728027344,
+      "mean_step_ms": 8.508562012575567,
+      "gradient_allreduce_calls": 50,
+      "input_payload_bytes": 84290400
+    }
+  },
+  "caveat": "One rank cannot establish inter-card communication, rank consistency or scaling. Synthetic labels are not CTR quality. Shared-server one-run timings are diagnostic only. Input bytes are not wire traffic."
+}

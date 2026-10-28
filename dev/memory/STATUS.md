@@ -1,7 +1,7 @@
 # memory · STATUS
 
 > 总组速览入口（战略文档 §8.2 格式）｜ 详细看板见 [PROGRESS.md](PROGRESS.md) / [README.md](README.md)
-> 最近更新：2026-10-14
+> 最近更新：2026-10-28
 
 ## 设备接入路线
 
@@ -41,6 +41,24 @@
      8 GiB 边界档（上游默认值）：等效扩容 +20.4%（账面）、decode 代价 7-8%（第一版，未优化）；**Host 池 > GPU 池（>39.2 GiB）才成真两级缓存（64 GiB 档实测验证）**。
      FL 栈未测卸载（decode 性能限制，结论可平移，实测排 v3 验证窗口）。
      报告：[docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md](docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md)。
+  7. P800（昆仑芯）KV 卸载 xpu 适配全链闭环 + 真模型 A/B —— ✅ **完成**（2026-10-23/24，P800 节点 xpu5，
+     vLLM 0.20.2 + vllm-plugin-fl 0.2.0 + offload.xpu_offload 外挂 connector）。
+     卸→存→召回→正确四步实测闭环（store/load DMA 逐批日志实锤）；真模型 A/B 收口用**暖跑配对口径**
+     （冷跑噪声 ±70% 弃用）：expand 超池档开卸载快 38%、TTFT max −24%、池内代价≈0；
+     多模型链独占口径可用性验证（OneRec-8B / Qwen3-4B 零漂移）。
+     报告：[docs/goals/proto-p800-202610/](docs/goals/proto-p800-202610/)
+     （RESULT_诊断与四步闭环_P800昆仑_20261023 + RESULT_AB卸载开关_P800昆仑_20261024）。
+  8. 画像规范 PROFILE-PROTOCOL 首次双芯完整执行 —— ✅ **完成**（2026-10-25，P800 + 910C，真模型 OneRec-8B 全腿本，
+     「换芯不换脑」）。执行抓出规范 4 处漏洞并修订升 v0.3；P800 池满悬崖场景开卸载快 17%
+     （批量病态=池 100% 满载态，昆仑特有）；910C FL 0.2.0 补测：decode 慢路未修复（0.06 tok/s 与 0.0.0 持平）、
+     50% 池预留依旧（worker.py:524）——归因进一步指向 vendor 分发层而非芯片本体。
+     报告：[docs/goals/proto-p800-202610/](docs/goals/proto-p800-202610/)
+     （PLAN_protocol_run + RESULT_规范验证跑_{P800,910C} + 通俗版；原始数据本地/服务器归档）。
+  9. PPU（ZW810E）ppu_offload 移植闭环 —— ✅ **冒烟级完成**（2026-10-26，PPU 节点单卡 TP=1，
+     vLLM 0.24.0（FL vendor）+ vllm-plugin-fl 0.3.0rc0 + offload.ppu_offload 四补丁外挂）。
+     store/load DMA 逐块日志实锤；开关冒烟对照：池内零代价、超池 200% 净代价 +2.1%；
+     真模型规范级验证待通道恢复后另行排期（本项以冒烟口径交付，不作规范验证口径引用）。
+     报告：[docs/goals/proto-ppu-202610/](docs/goals/proto-ppu-202610/)（PLAN_AB + RESULT_AB卸载开关）。
 
 ## 关键结论（供总组 / device-context / 调度）
 
@@ -97,4 +115,4 @@
 
 ## 最近更新日期
 
-2026-09-11
+2026-10-28
