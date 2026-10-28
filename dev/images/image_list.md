@@ -102,6 +102,11 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 > v2 用修正后的配方走正规 `docker build` 重建，组件集合与 pin 与 v1 完全相同，**从零重建用 v2**。
 > v1 未接入环境基线机制（无 `image.baseline.yaml` 与 demo 运行环境目录）；v2 已接入
 > （`kunlun-operator-runtime/v2/image.baseline.yaml` + `kunlun-operator-runtime/v2/demo/`）。
+>
+> **现行运行环境（昆仑芯）**：`kunlun-operator-runtime/v2/env/v1/`（2026-10-28 起，
+> ADR-0010）—— GEMM 编译修复接入（挂载补丁版 FlagGems + 编译组 compat 包，显式
+> opt-in）；K-1 编译维度已修、数值缺口 K-5 见发版说明。`demo/` 为冻结的第 0 版验收
+> 记录，不再承担推荐用法。
 
 ---
 
