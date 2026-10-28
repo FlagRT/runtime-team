@@ -4,6 +4,10 @@
 
 ## 用途与现状
 
+双rank阶段：`--stage rank-failure --failure-scenario control|forward|backward`，需`--second-device`、`--model`、`--records`及精确候选wheel。先正常对照3步，再独立测试两种单rank故障。10-28修补后使用`--guarded-ranks`和wheel ea060217…，在27物理0/1三组通过，故障双方均0次optimizer调用，见[步骤门控报告](../../docs/双rank步骤门控验证-20261028.md)。该标志启用门控测试判据，须配合带step_guard的候选包；历史不带门控wheel用旧判据，不能混用。每次输出目录和容器名必须唯一。此阶段挂载探针，不修改公共入口；限单机固定训练流程，不承诺更新后的回滚或完整三级。保留[修补前FAIL](../../docs/双rank失败联动验证-20261028.md)及[首次初始化失败](../../docs/双rank失败联动验证-20261024.md)。
+
+10-23新增阶段使用未发布候选包0.3.0.dev0：三算子资格、两个组合小模型、三类模型异常与FlagOP SDPA限定候选测试。精确wheel和结果见[1023报告](../../docs/环境准入与算子扩展验证-20261023.md)。旧package.lock.json仍锁已发布0.2.0，不能用它运行新增tanh能力。
+
 消费官方镜像`quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`，精确ID见image.baseline.yaml；用于单卡PyTorch eager下SiLU/sigmoid接入、执行前回退和短训练回归，不调用vLLM服务。不是训练v3验收，也不修复shmem。
 
 镜像基线逐字引用runtime-team公共863315d的`dev/images/ascend-infer-vllm/v1/image.baseline.yaml`；本方向不重新构建该镜像。runtime、依赖与方向代码为只读快照，runner记录文件哈希；FlagGems挂载仓由公共baseline检查提交。真实使用前必须重新确认空卡。
@@ -40,6 +44,10 @@ runner生成该次demo/env.baseline.yaml，执行镜像check及公共up.sh --str
 | stage | 类别 | 额外参数 | 判据 |
 |---|---|---|---|
 | qualification | 验证 | 无 | 独立候选3种dtype输出/梯度及注册恢复 |
+| expanded-qualification | 验证 | 无 | SiLU/sigmoid/tanh，shape=(32,64)，3种dtype共9组前反向及恢复；只产出证据 |
+| expanded-models | 验证 | --records 审核记录 | sigmoid+tanh门控及SiLU+tanh MLP，原生/目标/关闭/无资格各3步，共24步；真实内核命中及回退逐值一致 |
+| model-failures | 验证 | --records 审核记录 | 3个独立worker注入前向/反向/恢复异常；失败步不更新参数、不原生重试；不是驱动故障恢复 |
+| sdpa-candidate | 验证 | --flagop-root 干净FlagOS-OP仓 | 固定79b1b1a，直接调用SDPA autograd包装；(1,2,64,64)/FP16/无mask/dropout=0，causal两值；不是全局A1注册或模型路由 |
 | sigmoid | 验证 | --records 审核记录绝对路径 | 四条各5步轨迹：原生、目标、关闭、无资格；全部梯度/权重/重载预测对照 |
 | unary | 验证 | --records 上轮两算子的审核记录 | 12组目标前反向＋12组回退 |
 | qwen | 验证 | --records 上轮审核记录 --model 已核源权重目录 | 0.6B推理及3步SiLU训练回归 |
@@ -51,10 +59,12 @@ sigmoid模型正式回归增加`--deterministic`，开启PyTorch确定性执行�
 
 模型对照容差atol=1e-5、rtol=1e-4，回退轨迹要求逐值相同；所有4组参数张量均比较，不抽样。目标轨迹每步应命中1次sigmoid前向和反向，两种回退轨迹目标命中必须为0。只验证机制，不以loss下降或分类准确率作为交付指标。
 
-最近实测结果及证据位置见[报告](../../docs/910C公共适配器实测-20261018.md)。未推送的快照不等于已发布package；本例没有镜像重建配方，继承公共官方基线。
+最近DeepFM结果见[10-23报告](../../docs/环境准入与算子扩展验证-20261023.md)。`--stage deepfm-qualification`验证sigmoid的(32,)/(16,)三种dtype；`--stage deepfm --model <公共deepfm/v1目录> --records <审核JSON> --deepfm-batch-size 32`运行公共模型（16另开输出目录）。模型定义固定1d39898并核哈希；需0.3.0.dev0候选wheel，不是已发布0.2.0。当前DeepFM开启路径数值验收FAIL，历史审核记录只用于复现，常规使用保持关闭/无资格原生。失败会保存张量，不自动重试或回滚。10-18结果另见[历史报告](../../docs/910C公共适配器实测-20261018.md)。未推送的快照不等于已发布package；本例没有镜像重建配方，继承公共官方基线。
 
 dc-train使用[训练配置](../../demo/training-configs/README.md)，继承同一精确官方镜像并生成独立baseline/demo；映射两个设备，host网络/IPC、48GB内存上限，用于HCCL。不是训练v3镜像验收，也不是所有模型通用入口。必须先确认两设备当前空闲且可初始化。开启组仅对审核通过组合放行；不满足条件组不给记录并检查明确的native原因，不能以仅跑通模型代替路由验证。
 
-所有stage要求`--wheel /绝对路径/flagrt_framework_adapter-0.2.0-py3-none-any.whl`。dc-train不挂载/code，只挂wheel和配置；其他stage挂载测试脚本但不包含包实现。每个新容器离线、无依赖安装到/results/installed，不改原有torch，并检查实际导入位置。训练以torchrun --module调用包入口。install.log、installed-import.log和summary中的wheel SHA256均保留；source只供case、配置和探针定位。
+所有stage要求`--wheel <本次核对过的wheel>`。历史阶段为0.2.0；新增阶段为0.3.0.dev0候选。dc-train不挂载/code，只挂wheel和配置；其他stage挂载测试脚本但不包含包实现。每个新容器离线、无依赖安装到/results/installed，不改原有torch，并检查实际导入位置。训练以torchrun --module调用包入口。install.log、installed-import.log和summary中的wheel SHA256均保留；source只供case、配置和探针定位。
+
+OneRec单卡入口：先`--stage onerec-qualification --seq-len 16`，验证SiLU `(1,16,12288)`三种dtype；seq32必须另做资格。审核后`--stage onerec --onerec-mode native --steps 1 --seq-len 16 --model <完整OneRec-8B目录> --records <空记录>`生成原生单步SGD梯度/参数基线；再用独立输出目录依次选择native_repeat、disabled、unqualified、target，并加`--reference <成功native输出目录>`，target传入精确BF16资格。当前支持steps=1/2/3（case默认3）、seq=16/32；复现旧单步必须显式steps=1。模式间重载同一完整权重，梯度检查点、batch1、SGD0.01沿用公共训练配方，不运行通信。容器主存上限64GB，原生梯度/参数磁盘快照每步约32GB；先确认容量。目标预设atol=1e-3/rtol=1e-2，其他对照严格逐值一致；并非业务精度标准。固定三片权重哈希写在探针中。输出名称须唯一，避免历史容器名冲突；不能覆盖旧输出。有界多步不等于长训练验收。新增[配置启动入口](../../tools/README.md)可统一填写参数；native基线的步数/输入必须与对照一致。
 
 10-18实际结果：qualification、确定性sigmoid、unary三个stage PASS；默认sigmoid与原生重复诊断FAIL并保留[判定截选](assets/evidence/20261018-summary.md)。qwen选项尚未通过本入口重跑，0.6B既有证据不重复计入此次demo验收。demo/env.baseline.yaml是已执行样本，实际运行时由runner重生成。

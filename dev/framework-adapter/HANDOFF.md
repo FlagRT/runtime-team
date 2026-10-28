@@ -1,8 +1,56 @@
 # framework-adapter · 开发交接
 
-更新：2026-10-20。当前成果/目标只看[STATUS](STATUS.md)，协作流程看[规则](/Users/empty/PhD/Workspace/DomesticRuntime/协作/协作与交接.md)。
+更新：2026-10-28。当前成果/目标只看[STATUS](STATUS.md)，协作流程看[规则](/Users/empty/PhD/Workspace/DomesticRuntime/协作/协作与交接.md)。
 
 ## 接管前
+
+10-28源码候选交付入口：[交付记录](docs/候选交付记录-20261028.md)。功能commit=85a9896537a7d88f758d36ae20465e19470985e2，锁定版本0.3.0.dev0，提交后构建Project/outputs/framework-package/20261028-publish通过，69项包测试+30项集成控制、9文件与NPU包一致。本轮不连接服务器；协调仓只提交个人分支，不合并dev-1.0。双rank代码保留为联调参考，正式任务级容错需另对齐责任。下方准备阶段“待授权/未提交/旧锁”等已被本条替代；后续接管仍用git核远端状态。
+
+10-28 18:27 P800补记：SSH/sudo/Docker已只读核实可用；cgu135属sudo组，不属docker组，使用sudo即可，本轮未改组。8卡均有进程，卡1占72MiB且0%不是无人使用；驱动5.0.21.47。昆仑芯v2本机镜像ID cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a，仍需与公共baseline核对。根盘余6.5GB、/data2余3.2TB；未创建个人目录/容器或安装，未进入他人容器。SSH22839退出。历史“P800权限挂起”已过时，现阻塞转为选卡/环境准入，未验证本方向算子。
+
+10-28发布准备已收尾：先读[候选清单](docs/候选发布准备-20261028.md)。功能仓新增RELEASE、修正文档测试数和范围，build_local源码包携带发布说明；运行时未改。Project/outputs/framework-package/20261028-release-prep构建PASS、69项包测试+30项协调仓控制通过，9个包源码文件与ea060217…NPU产物一致，新wheel哈希0f3089fe…。仓内summary.json提供可发布精简证据。未创建Git提交/标签、未推送/改锁/占卡；两仓dirty仍须保留。下一次发布须获授权，用真实功能仓提交SHA更新协调仓锁，不能拿main旧HEAD代表候选。
+
+最新10-28后续已收尾，可接管：独立包step_guard.py及train_cli.py已实现单机两rank更新前门控；最终安装包CPU69项、协调仓8+6项通过。27物理0/1正常各3步、故障两组均双方0次optimizer调用，三组PASS，详见[步骤门控报告](docs/双rank步骤门控验证-20261028.md)。最终wheel在Project/outputs/framework-package/20261028-step-guard-03，SHA ea060217…；不要用初版02（正常回归暴露包装问题）。证据Project/outputs/framework-runs/20261028-step-guard/evidence，归档7a767f62…两端一致；远端/home/cgu135/framework-step-guard-20261028。4本人guard容器均停/OOMfalse/Pid0，SSH95275/31415及SCP12440退出，无后台任务。两仓dirty保留、未提交推送；package.lock仍发布版。下一步对齐device-context步骤边界，更新放行后失败仍需恢复协议。下方为历史同日修补前FAIL，不是当前三组结果；原失败证据不可删。
+
+10-28已收尾可接管：27 RAID和官方镜像恢复可用；0/5失败有udevid5 namespace冲突日志，0/1原生检查和双rank各3步通过。故障两组均在对端进入optimizer后终止，严格FAIL，勿写“联动通过”或“权重确定已更新”。报告[1028](docs/双rank失败联动验证-20261028.md)，本地outputs/framework-runs/20261028-rank-failure含全部轻量结果/源码，归档8dd9c472…；远端/home/cgu135/framework-rank-failure-20261028。run.sh control 1 02 / forward 1 01 / backward 1 01已执行，新输出编号才能重跑。7本人容器均停/OOMfalse/Pid0，SSH92557/81422和SCP均退出，无后台任务。功能包未改，所有旧dirty保留，未提交推送。下一步先设计训练步更新前全rank确认及独立故障通知，与device-context对齐后在独立包实现。不要再次盲跑0/5，也不要把10-24的11初始化失败根因直接套用；资源使用前仍重核。
+
+10-24双rank测试已收尾可接管：新增rank_failure_worker/test_rank_failure_npu及7项CPU判定，case6项通过；功能包未改。11正常对照双rank初始化资源忙，故障组未运行，不能按已通过续报。见[报告](docs/双rank失败联动验证-20261024.md)。本地outputs/framework-runs/20261024-rank-failure含完整命令、初次源码和轻量证据，SHA f6cbd639…；远端/home/cgu135/framework-rank-failure-20261024。容器cgu135-unary-rank-control-01停止/OOMfalse/Pid0，SSH67299/82393及传输均结束。源码快照后本地只增强判定器错误信息，重做CPU7项，未NPU重跑。下一步重新核两个设备可初始化，再control/forward/backward；输出用新编号。数值失败只记录，不改算子，不推送。
+
+多步续跑已收尾，可接管：SSH68033/52027及旧断线会话均结束，9容器Running=false/OOMfalse/Pid0，docker ps为空。11输出/mnt/raid/cgu135/framework-multistep-20261023，源码及配置/home/cgu135/framework-multistep-20261023。seq16四路模型3步PASS（on外层清理ERROR保留，已人工停）；seq32原生/关闭/缺资格3步PASS，开启首步梯度FAIL、0更新。不要重复硬跑或改内核/容差。全部轻量结果本地Project/outputs/framework-runs/20261023-multistep/all-results，归档SHA6b2afda4…；188GiB原生张量仅11大盘。records-s32.json是历史实验准入，不作当前放行；本地records-denied-s32.json引用失败证据并已CPU验证拒绝。下一步对齐数值准入/模型范围，或独立推进双rank失败联动；发布另授权。不要覆盖单步目录、不要动27。
+
+最新OneRec已收尾：11 `/home/cgu135/framework-onerec-20261023`保留完整权重、原生32GB梯度/参数快照及六组PASS；五轨迹各单步，四组各799张量对照最大差0，开启36前向+36反向。精确wheel沿用c5b9796…，新增test_onerec_adapter_npu.py和官方case onerec/onerec-qualification阶段，未改独立包/内核。详见10-23报告OneRec节。轻量归档备份Project/outputs/framework-runs/20261023-onerec，SHA9191be68…；完整模型/32GB张量仅在11独立/home，不宣称本地全量备份。6容器停止/OOMfalse/Pid0，SSH75077/26870/35138及传输均结束。首个同名容器预检ERROR保留，未覆盖旧对象。
+
+27计划15点重构/mnt/raid：本人该盘1.3MB旧仓已完整归档到独立/home并取回本地，SHA8843b829…；近期实验挂载在/home，Docker镜像/可写层仍受影响。本人27容器已停，本轮没在27新增实验。备份范围见本地onerec/raid-backup.md，不代表其他人数据安全。不要在维护窗口使用27。
+
+同日后续DeepFM已收尾：公共1d39898模型不改架构，11官方镜像最终c5b9796… wheel；6组单算子通过，原生/关闭/缺资格18步及原生重复6步一致；两batch开启首步Adam参数验收FAIL，保持原生。详见10-23报告DeepFM节。新增test_deepfm_adapter_npu.py及官方case两stage，功能包本轮未再改。
+
+原始证据11 `/home/cgu135/framework-deepfm-20261023`，本地Project/outputs/framework-runs/20261023-deepfm/11-results；两端归档哈希62fb35f8…一致。source-capture保存失败张量；review为历史实验资格，不是模型准入，本地records-final.json为空。四个本人容器均停止，最后本人前缀docker ps为空，SSH2640/16361及SCP已退出。27后续RAID已挂载但官方镜像overlay路径缺失，不能照先前环境描述启动；未修共享Docker。两仓未提交/推送、OneDrive未动。
+
+10-23实施已完成并收尾。当前先读[报告](docs/环境准入与算子扩展验证-20261023.md)和[证据摘要](docs/evidence-expansion-20261023/README.md)，不要重做本轮9组算子/24步小模型/0.6B回归。功能包0.3.0.dev0在独立仓main上未提交；协调仓个人分支未提交baseline/demo、探针、报告和状态。已发布HEAD仍为新仓1befe4d、协调仓a31e559，package.lock锁已发布0.2.0，未合并/推送/写OneDrive。
+
+### 本轮代码与精确产物
+
+- 功能代码：Workspace/framework-adapter/src/flagrt_adapter，新增startup.py、严格准入与tanh，修改配置/桥接/训练入口；新增2组CPU测试文件及strict配置。57项安装包CPU控制通过；协调仓case另17项通过。
+- 最终实测包：Project/outputs/framework-package/20261023-final/wheels/flagrt_framework_adapter-0.3.0.dev0-py3-none-any.whl，SHA c5b9796c2db41320092d10bcc3e8d82228693acd89f3863e95a2f70ae8b295d1。20261023-rebuild是独立源码重建；20261023-expansion是较早56项版本，不要混称最终版。8个包文件已核与当前源码完全一致。
+- 集成测试：本方向cases/ascend-official-unary新增expanded-qualification、expanded-models、model-failures、sdpa-candidate；cases/ascend-train-v3/assets/run_startup.py为v3启动准入单入口。当前报告/Issue在仓内仅本地，不能用旧发布URL声称本轮已上线。
+
+### 本轮环境与结果（已结束，不是资源预约）
+
+- 27 SSH及Docker正常；/mnt/raid/docker当时实际落在根分区，非独立RAID挂载，根盘约45GB余量；未迁移存储。使用官方image 2e56022ae5b3…、物理0→逻辑0，实际Triton模块3.2.0/发行triton-ascend3.2.1。
+- 27源快照/结果：/home/cgu135/framework-expansion-20261023。source-candidate为最终功能探针快照，source-final为较早快照；FlagOS-OP固定79b1b1a只读。模型/FlagGems沿用本人历史已核目录，不是共享/model。运行参数见各summary/runner.log、case README，勿手工补猜命令。
+- 11使用精确训练v3 e13a15d0d02b…、物理0→逻辑0，安装最终wheel。/home/cgu135/framework-startup-result-20261023-01保留off/degrade/strict结果；/home/cgu135/framework-startup-20261023保留本轮源码。sudo Docker包装需本人认证，凭证不写记录。
+- 本地备份：Project/outputs/framework-runs/20261023-expansion/27-results与framework-startup-result-20261023-01。27归档排除installed/cache，两端哈希一致；原始失败/控制结果均保留。无卡环境审计JSON及最终CPU SDPA复现另放同根。
+- 27本轮8个本人容器均停止；11本轮3个本人容器已核Running=false/OOMKilled=false/Pid=0；SSH93566、72135已退出。本轮无后台任务，未创建goal。下一次执行仍须实时重核资源。
+
+### 下一条动作
+
+按STATUS推进：OneRec多步/第二形状已完成有界验证，seq32失败保持不准入；先对齐与DeepFM的数值判据或推进公共双rank失败联动，不改内核。SDPA稳定接口仍待确认。shmem未修复，P800/PPU暂挂；发布需新授权和真实commit/锁更新。27维护后需重核镜像，不能沿用旧容器状态。
+
+## 历史接管记录（以下“最新/未推送”等只指对应日期）
+
+10-21会议纪要已读取（Workspace/周会纪要/*1021.txt，元宝摘要非逐字稿），行动项见STATUS：优先可用镜像，补v3版本/路径差异与迁移成本；FlagOP需继续到实际代码而不仅文档，核对注册/原生退路/训练支持。A1与vllm-ascend兼容为跨组待核项，未实施。保持总组统一发镜像，不据纪要自动推送合并。本轮仅更新本地记录，无新增实验。
+
+10-21只读核对：origin/dev-1.0=72411ea、origin/kistich/device-context=17d8b90，未merge；设备prototype与2926d1c一致。新增文件为设备目录910C/docs/INFERENCE_VLLM_ADAPTER_CHOICE_20261020.md及STORAGE_MIGRATION_20261021.md。27 Docker位于待重建RAID这一信息来自后者，尚未实机核验，勿复用旧“镜像存在”的结论。FlagOP HEAD79b1b1a，贡献规范读取成功，具体catalog读取失败；后续优先确认训练支持条件、原生回退入口、注册生命周期。详细分析在STATUS的10-21节；本轮无新服务器任务或发布。
 
 10-20拆仓：包开发转到Workspace/framework-adapter（FlagRT/framework-adapter）；runtime-team保留测试/文档/环境。当前package.lock.json锁定93daa5e；源码/bootstrap已拆除，先在新仓构建安装再跑协调仓测试。官方case所有stage显式--wheel，训练v3 case未做拆仓后的硬件验收。最新跨仓58项控制通过，新旧包payload7文件一致。不要按下方旧日期指令在runtime-team里寻找src/build_local。
 
@@ -30,7 +78,7 @@
 |---|---|---|
 | 910C 11：10.120.72.11 | 10-16 cgu135可SSH、sudo操作Docker；精确训练v3镜像e13a15d0d02b…；本人单物理2→容器逻辑0，结束已停止 | /home/cgu135/framework-v3-20261016 |
 | 910C 27：10.120.72.27 | 10-14旧官方环境实测通过；10-16只读复制本人模型。用户反馈盘维修，优先不用；同源训练镜像7028028bb62c…不等于锁定e13a | /home/cgu135/framework-adapter-910c/acceptance-20260916 |
-| P800：43.180.254.67:26008 | 10-18 SSH通，8卡各96GB、当时全空闲；无Docker/sudo权限，暂挂起。根盘仅3.7GB；/data2余4TB，但本人目录未创建 | 本方向尚无确认的容器/数据目录 |
+| P800：43.180.254.67:26008 | 10-28 SSH/sudo/Docker已可用；8卡各96GiB均有进程。根盘余6.5GB，/data2余3.2TB | 本方向尚无确认的容器/数据目录；见本页顶部权限复核 |
 | 本地CPU | 既有tablerag Python，torch2.12.0；只用于控制测试 | /opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python |
 
 其他主机不自动沿用旧五机授权；用户10-16允许11/27空卡使用，不授权进入他人容器。P800权限不能沿用910C的sudo假设。凭证不写入这些文件。

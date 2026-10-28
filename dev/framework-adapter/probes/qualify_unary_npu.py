@@ -20,7 +20,7 @@ class Hits(logging.Handler):
         self.counts = Counter()
     def emit(self, record):
         message = record.getMessage()
-        if message in {f"GEMS {op} {stage}" for op in ("SILU", "SIGMOID")
+        if message in {f"GEMS {op} {stage}" for op in ("SILU", "SIGMOID", "TANH")
                        for stage in ("FORWARD", "BACKWARD")}:
             self.counts[message] += 1
 
@@ -63,7 +63,7 @@ def run(args, report):
     logger.addHandler(hits)
     report["cases"] = []
     for op in args.operators:
-        native = F.silu if op == "silu" else torch.sigmoid
+        native = {"silu":F.silu,"sigmoid":torch.sigmoid,"tanh":torch.tanh}[op]
         ops = (op, op + "_backward")
         for shape in args.shapes:
             for dtype, tolerance in ((torch.float32, 1e-5), (torch.float16, 5e-3), (torch.bfloat16, 3e-2)):
@@ -79,7 +79,7 @@ def run(args, report):
                     with torch.no_grad(), flag_gems.use_gems(include=list(ops)):
                         actual = getattr(torch.ops.aten, op).default(x)
                         grad = getattr(torch.ops.aten, op + "_backward").default(
-                            dy, actual if op == "sigmoid" else x)
+                            dy, actual if op in ("sigmoid","tanh") else x)
                         runtime.synchronize(0)
                 finally:
                     if before != {name: torch._C._dispatch_dump_table("aten::" + name) for name in ops}:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--runtime-root", required=True)
     parser.add_argument("--image-id", required=True)
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--operator", dest="operators", action="append", choices=("silu", "sigmoid"))
+    parser.add_argument("--operator", dest="operators", action="append", choices=("silu", "sigmoid", "tanh"))
     parser.add_argument("--shape", dest="shapes", action="append", help="positive dimensions, e.g. 32,64")
     args = parser.parse_args()
     args.operators = args.operators or ["silu", "sigmoid"]

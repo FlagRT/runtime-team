@@ -2,15 +2,19 @@
 
 ## 当前仓库分工（2026-10-20拆分）
 
+当前候选：0.3.0.dev0，功能提交[85a9896](https://github.com/FlagRT/framework-adapter/tree/85a9896537a7d88f758d36ae20465e19470985e2)，依赖见package.lock.json；本周结果和验证身份见[交付记录](docs/候选交付记录-20261028.md)。下方旧日期开发状态不代表当前发布状态。
+
 功能包已迁至[FlagRT/framework-adapter](https://github.com/FlagRT/framework-adapter)，不再在本目录维护src或构建脚本。本目录保留baseline/demo、模型/算子集成测试、报告，以及历史实验探针（旧qwen/pytorch适配器仅供历史复现，不作当前交付）。单元测试镜像保留用于跨仓安装验证，修改公共机制应先在新仓处理。
 
 先按[包依赖说明](PACKAGE.md)构建/安装固定版本，再运行本目录测试；官方case现在要求显式--wheel。下方旧日期内容和旧报告路径是历史记录，不代表仍在本仓开发包。
 
-负责人：顾宬 / cgu135。入口整理：2026-10-20。跨会话接管见[Workspace入口](/Users/empty/PhD/Workspace/DomesticRuntime/README.md)。
+负责人：顾宬 / cgu135。入口整理：2026-10-23。跨会话接管见[Workspace入口](/Users/empty/PhD/Workspace/DomesticRuntime/README.md)。
 
 复用框架入口和统一算子库，明确何时优先调用目标实现、何时保持原生，以及执行失败后的安全边界。本目录保存方向原型、部署配置与验证材料；正式算子内核和子库改动不搬入协调仓。
 
-最新增量：[训练入口配置开关](demo/training-configs/README.md)接入未经修改的device-context训练脚本，关闭/开启/无资格三组双进程0.6B训练已实测通过，见[10-20报告](docs/训练入口配置接入验证-20261020.md)。旧官方环境、未推送，不代表训练v3或完整三级回退验收。
+最新增量：[10-23环境准入与算子扩展](docs/环境准入与算子扩展验证-20261023.md)：三算子、两个组合小模型、模型异常、0.6B回归及v3原生启动三路实测；SDPA为限定候选直接调用，包装问题已记录。候选0.3.0.dev0未发布，训练v3目标编译和完整三级仍未完成。已发布0.2.0的双rank训练配置证据见[10-20报告](docs/训练入口配置接入验证-20261020.md)。
+
+同日真实模型扩展：公共DeepFM目标数值未通过，保留原生；完整OneRec-8B单卡单步关闭/缺资格/开启及原生重复通过，每组799项与原生一致，目标SiLU 36前向+36反向。见同一报告末两节；不等于长训练或全算子验收。27待重构盘本人旧仓已备份，本轮实验在11独立/home；源码/报告未推送。
 
 ## 开发纲领（2026-10-14用户确认）
 
@@ -22,15 +26,19 @@
 
 机制验收包括：启停与恢复、执行前准入与原生路径、执行后失败不重试、调用和原因记录、前反向数值及异常测试。芯片不兼容在任务启动前处理；不做失败算子的逐算子跨芯片迁移。完整三级回退仍按方案逐项实现，不以一个开关代替。
 
-本轮不扩大模型训练轮数或优化检索指标。新实现先通过控制测试，再在重新核验资源的本人容器运行真实NPU回归；模拟测试不能计作设备通过。后续状态见STATUS。
+本轮只做有界多步回归，不优化检索指标或开展长训练。新实现先通过控制测试，再在重新核验资源的本人容器运行真实NPU回归；模拟测试不能计作设备通过。后续状态见STATUS。
 
 ## 从哪里看
 
+当前候选收口与发布入口：[发布准备](docs/候选发布准备-20261028.md)。10-28新增双rank步骤门控三组通过；包CPU69项及集成控制30项通过，尚未提交推送。下方早期实验入口保留用于历史复现。
+
 技术材料统一导航：[文档目录](docs/README.md)。`docs/handoff/`放近期交接材料，已发布报告及原始证据保留原位置。
 
-当前执行顺序见[STATUS的10-18节](STATUS.md)：P800权限暂挂起，先环境准入，再公共机制/第二算子和本地交付包；计划不当作已实现。
+统一验证启动配置：[tools/README.md](tools/README.md)，覆盖OneRec四路和既有Qwen成对探针的参数映射；实际硬件支持以日期报告为准，公共双rank入口仍单独保留。
 
-最新实测：[10-16训练v3回归](docs/训练v3基线与回归准备-20261016.md)，5类执行前回退通过，目标SiLU编译缺shmem，模型三步未运行。此前可用环境结果：[10-14设备v0.3系列推理、原生训练及SiLU训练替换对照](docs/910C-v03推理与训练验证-20261014.md)。训练入口：[qwen_training_smoke.py](probes/qwen_training_smoke.py)；替换测试：[test_silu_training_npu.py](probes/test_silu_training_npu.py)。新适配器三步通过，但不撤销此前raw注册长轨迹第4步超差或扩大训练数值准入。
+当前执行顺序见[STATUS](STATUS.md)：本轮环境准入/三算子回归已完成；下一步SDPA稳定接口与限定模型、双rank失败联动；P800权限仍挂起，计划不当作已实现。
+
+历史失败与早期证据：[10-16训练v3回归](docs/训练v3基线与回归准备-20261016.md)、[10-14设备v0.3系列推理及训练对照](docs/910C-v03推理与训练验证-20261014.md)。最新完整结果从上方10-23报告进入。训练入口：[qwen_training_smoke.py](probes/qwen_training_smoke.py)；替换测试：[test_silu_training_npu.py](probes/test_silu_training_npu.py)。后续通过不撤销此前raw注册长轨迹第4步超差，也不自动扩大训练数值准入。
 
 进一步定位：同权重10轮梯度对照通过；[真实文本Embedding训练测试](probes/qwen_embedding_train_test.py)原生/替换各10步完成，含独立验证与权重保存重载。指标两组均下降，不能称正式业务模型效果验收；详情同日报告末节。
 
@@ -38,17 +46,17 @@
 |---|---|
 | 现在做到了哪、下一步做什么 | [STATUS.md](STATUS.md)（唯一当前进度入口） |
 | 接着开发、恢复环境、运行测试 | [HANDOFF.md](HANDOFF.md) |
-| 最新模型结果及RMSNorm问题细节 | [09-22实验报告](docs/910C模型接入与安全回退-20260922.md)，RMSNorm定位见§8 |
-| 找对应日志、失败结果、版本和源码哈希 | [09-22证据目录说明](docs/evidence-model-20260922/README.md) |
-| 给算子组沟通：清单、接口、替换/融合及回退规则 | [对接Issue](docs/handoff/算子组对接Issue.md)（已发布，10-13已沟通分工；不代表全部接口/精度标准已确认） |
-| 给周报作证：实现、测试和复跑入口 | [实验复现说明](docs/handoff/实验复现说明.md)（10-09整理，实机数据为09-22） |
+| 最新模型结果 / 历史RMSNorm问题 | [10-23报告](docs/环境准入与算子扩展验证-20261023.md) / [09-22报告§8](docs/910C模型接入与安全回退-20260922.md) |
+| 找对应日志、失败结果、版本和源码哈希 | [10-23证据摘要](docs/evidence-expansion-20261023/README.md) |
+| 给算子组沟通：SDPA实际接口问题 | [对接Issue](docs/handoff/算子组对接Issue.md)（10-23增量未发布/发送；旧版已发布，10-13已沟通分工） |
+| 给周报作证：实现、测试和复跑入口 | [最新报告与case](docs/环境准入与算子扩展验证-20261023.md)；[旧实验复现说明](docs/handoff/实验复现说明.md)仅对应09-22 |
 | 三级回退边界、实现状态和设备方向对接 | [原型与三级回退方案v0.2](docs/handoff/原型与三级回退方案.md)（待跨组评审） |
 
 日常不必逐个读日志。当前结论看STATUS，核对数字再进报告和对应证据。
 
 ## 代码地图与运行入口
 
-本地包入口：[PACKAGE.md](PACKAGE.md)；实现为src/flagrt_adapter，probes保留兼容入口。`tools/build_local.py --output <新目录>`离线构建并测试安装包，详见[10-18开发记录](docs/公共适配包开发记录-20261018.md)。
+本地包入口：[PACKAGE.md](PACKAGE.md)；实现及`tools/build_local.py`已在独立framework-adapter仓，本目录probes只保留兼容导入及集成测试。离线构建需在独立仓执行；旧[10-18开发记录](docs/公共适配包开发记录-20261018.md)是拆仓前历史。
 
 以下路径相对本目录。统一命令从runtime-team根执行：
 `bash dev/framework-adapter/probes/run_checks.sh <模式> [参数]`。不带参数只显示帮助，不会连接服务器或启动容器。
@@ -57,7 +65,7 @@
 |---|---|---|
 | 新训推SiLU实验接入及准入策略（10-14局部NPU回归通过） | [silu_training_adapter.py](probes/silu_training_adapter.py) / [silu_policy.py](probes/silu_policy.py) | 默认原生；独占eager进程、一阶梯度，允许autograd反向引擎线程；环境身份由启动方实测 |
 | 新机制本地控制 | [test_silu_policy.py](probes/test_silu_policy.py) / [test_silu_training_adapter.py](probes/test_silu_training_adapter.py) | unittest；模拟注册，不作为目标内核验证 |
-| 当前模型接入逻辑 | [qwen_scoped_adapter.py](probes/qwen_scoped_adapter.py) | 被测试脚本调用；默认不准入任何算子 |
+| 历史Qwen模型实例接入 | [qwen_scoped_adapter.py](probes/qwen_scoped_adapter.py) | 供09-22复现；当前公共机制使用已安装flagrt_adapter包 |
 | 原生模型与算子基线 | [qwen_embedding_baseline.py](probes/qwen_embedding_baseline.py) | `model-baseline` |
 | 接入、回退与模型对照 | [qwen_gems_validation.py](probes/qwen_gems_validation.py) | `qwen-gems`，保守示例显式准入SiLU |
 | RMSNorm同输入旁路诊断 | [qwen_rms_shadow.py](probes/qwen_rms_shadow.py) | `rms-shadow`，不替换模型输出 |
@@ -82,7 +90,7 @@
 
 ## 维护规则
 
-当前可用官方环境的单入口：[baseline＋demo与小模型回归](cases/ascend-official-unary/README.md)。与训练v3失败case分开；结果见1018报告，不默认启用目标算子。
+当前可用官方环境的单入口：[baseline＋demo与小模型回归](cases/ascend-official-unary/README.md)。与训练v3的原生启动/目标编译失败分开；最新结果见10-23报告，不默认启用目标算子。
 
 - README只管导航，STATUS只管当前成果/问题/下一步，HANDOFF只管环境和续接操作；不要在三处重复追加完整实验日志。
 - 同一天同主题的追加实验写进已有日期报告；原始结果留在对应evidence目录，由该目录README说明最终版、失败版和替代关系。

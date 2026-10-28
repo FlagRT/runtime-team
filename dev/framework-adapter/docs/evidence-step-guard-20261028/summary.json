@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "publication": "source candidate; see package.lock.json for exact committed dependency",
+  "version": "0.3.0.dev0",
+  "source_commit": "85a9896537a7d88f758d36ae20465e19470985e2",
+  "post_commit_rebuild_wheel_sha256": "783d111bb68d086ee9010921d2b4802e1037446fbab06e0a296e72ceb4337cbc",
+  "source_base_commit": "1befe4d027cb0214779a6b563e29a4e8fe7f31a5",
+  "hardware_wheel_sha256": "ea0602174f2765f4268c22e73bed9213be7d011adc47280d547b192072cf3114",
+  "rebuilt_wheel_sha256": "0f3089fe80e7127bb96af4d279fd7a0dabbd6d02b16c2dadf53b5e7a4f7984aa",
+  "scope": "single host, two ranks, fixed entry, first-step injected errors; no post-update rollback",
+  "scenarios": {
+    "control": {
+      "result_sha256": "50e0d4a675fc0b9c37b122d21e20d76270dfcc55028c084e94b04142a778a309",
+      "status": "pass",
+      "worker_returncode": 0,
+      "optimizer_calls": {
+        "0": 3,
+        "1": 3
+      },
+      "optimizer_steps": {
+        "0": 3,
+        "1": 3
+      },
+      "step_guard": {
+        "0": {
+          "status": "PASS",
+          "rank": 0,
+          "steps": 3,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [
+            {
+              "phase": "backward",
+              "step": 0,
+              "seconds": 0.0004558300133794546
+            },
+            {
+              "phase": "update",
+              "step": 0,
+              "seconds": 0.01031284499913454
+            },
+            {
+              "phase": "backward",
+              "step": 1,
+              "seconds": 0.01032877602847293
+            },
+            {
+              "phase": "update",
+              "step": 1,
+              "seconds": 0.00017284799832850695
+            },
+            {
+              "phase": "backward",
+              "step": 2,
+              "seconds": 0.05108423496130854
+            },
+            {
+              "phase": "update",
+              "step": 2,
+              "seconds": 0.010297794011421502
+            }
+          ],
+          "scope": "single-host pre-update gate; no rollback"
+        },
+        "1": {
+          "status": "PASS",
+          "rank": 1,
+          "steps": 3,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [
+            {
+              "phase": "backward",
+              "step": 0,
+              "seconds": 0.070957153046038
+            },
+            {
+              "phase": "update",
+              "step": 0,
+              "seconds": 0.00017802801448851824
+            },
+            {
+              "phase": "backward",
+              "step": 1,
+              "seconds": 0.00026975100627169013
+            },
+            {
+              "phase": "update",
+              "step": 1,
+              "seconds": 0.010291594022419304
+            },
+            {
+              "phase": "backward",
+              "step": 2,
+              "seconds": 0.0001930579892359674
+            },
+            {
+              "phase": "update",
+              "step": 2,
+              "seconds": 0.000173417036421597
+            }
+          ],
+          "scope": "single-host pre-update gate; no rollback"
+        }
+      },
+      "workers_gone": true,
+      "peer_finally_observed": true,
+      "elapsed_after_injection_s": null
+    },
+    "forward": {
+      "result_sha256": "410058340039302535b25db28761c6e70731bb789748ef69110a9f87c7f0bb93",
+      "status": "pass",
+      "worker_returncode": 1,
+      "optimizer_calls": {
+        "0": 0,
+        "1": 0
+      },
+      "optimizer_steps": {
+        "0": 0,
+        "1": 0
+      },
+      "step_guard": {
+        "0": {
+          "status": "FAIL",
+          "rank": 0,
+          "steps": 0,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [],
+          "scope": "single-host pre-update gate; no rollback"
+        },
+        "1": {
+          "status": "FAIL",
+          "rank": 1,
+          "steps": 0,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [],
+          "scope": "single-host pre-update gate; no rollback"
+        }
+      },
+      "workers_gone": true,
+      "peer_finally_observed": true,
+      "elapsed_after_injection_s": 9.562139188987203
+    },
+    "backward": {
+      "result_sha256": "20112ae5a44d47275f41c69037f3b8f8ee02889062fc0c27eb5116e0a3ad81dd",
+      "status": "pass",
+      "worker_returncode": 1,
+      "optimizer_calls": {
+        "0": 0,
+        "1": 0
+      },
+      "optimizer_steps": {
+        "0": 0,
+        "1": 0
+      },
+      "step_guard": {
+        "0": {
+          "status": "FAIL",
+          "rank": 0,
+          "steps": 0,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [],
+          "scope": "single-host pre-update gate; no rollback"
+        },
+        "1": {
+          "status": "FAIL",
+          "rank": 1,
+          "steps": 0,
+          "phase": "start",
+          "hooks_restored": true,
+          "waits": [],
+          "scope": "single-host pre-update gate; no rollback"
+        }
+      },
+      "workers_gone": true,
+      "peer_finally_observed": true,
+      "elapsed_after_injection_s": 6.597134048992302
+    }
+  },
+  "runtime_files_sha256": {
+    "flagrt_adapter/__init__.py": "453e2bafdfeef05fa1d5b4a3a7a6cad068969a1f72c3e05519936b2c32fed7a3",
+    "flagrt_adapter/bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "flagrt_adapter/config.py": "dffe9855236f2ef36119c43e25e108dc3d4f8736da813bba21680b25596b9bc0",
+    "flagrt_adapter/policy.py": "3789e3fdfbc3ef4da69f1fd1d92f1e435165fe95f21443d757a8be1982648d5d",
+    "flagrt_adapter/records.py": "fd5a50ad9fa56e320c7ac88c9e8d2c69ba17d48cfda6f5ca2aa84d467130313d",
+    "flagrt_adapter/startup.py": "35054063a6c7426ea893cf4a725d2f18d30fcf8b91bc73c65673aad1f962b3ba",
+    "flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+    "flagrt_adapter/train_cli.py": "e247449bd20781c7e42e562a2a5b8820a6fd70dfa2a121dce536f5271401a4ee",
+    "flagrt_adapter/training.py": "32ee540c94463c03d3a55347da720a20ee40b75006ab0533d6fa1319267db569"
+  },
+  "cpu_checks": {
+    "installed_package": 69,
+    "rank_verdict": 8,
+    "official_case": 6,
+    "validation_config": 5,
+    "v3_runner": 11
+  },
+  "archive_sha256": "7a767f62fd1541426c6c2cb0c087f4570f6947cadc6e0f914bbc02dc7cb4127d"
+}

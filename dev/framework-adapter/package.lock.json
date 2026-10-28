@@ -1,12 +1,14 @@
 {
   "schema": 1,
   "repository": "https://github.com/FlagRT/framework-adapter",
-  "commit": "93daa5e49cd17929d691cc5d7f066fec00da730d",
+  "commit": "85a9896537a7d88f758d36ae20465e19470985e2",
   "distribution": "flagrt-framework-adapter",
-  "version": "0.2.0",
-  "hardware_tested_wheel_sha256": "b3f1fffe6e16b75b4b6736dc6186dc8e80fbcd8fc0b2325d9d502978336ddde7",
-  "split_rebuild_wheel_sha256": "81ad79593da40a01134f6b6337b2985e59893fc697b86ca22b20e42843289591",
-  "payload_comparison": "All 7 flagrt_adapter package files byte-identical; rebuilt archive hash differs",
-  "hardware_scope": "910C official image 2e56022ae5b3; Qwen3-Embedding-0.6B; two ranks; three steps; off/on/unqualified",
-  "not_validated": ["training-v3 target kernels", "other chips", "complete three-level fallback"]
+  "version": "0.3.0.dev0",
+  "release_kind": "experimental source candidate; not a stable release",
+  "hardware_tested_wheel_sha256": "ea0602174f2765f4268c22e73bed9213be7d011adc47280d547b192072cf3114",
+  "split_rebuild_wheel_sha256": "783d111bb68d086ee9010921d2b4802e1037446fbab06e0a296e72ceb4337cbc",
+  "payload_comparison": "All 9 flagrt_adapter runtime files byte-identical to hardware-tested wheel and committed source; rebuilt archive hash differs",
+  "hardware_scope": "910C official image 2e56022ae5b3; Qwen3-Embedding-0.6B; two ranks; normal three steps and first-step forward/backward injected failures; guarded integration prototype",
+  "evidence": "docs/evidence-step-guard-20261028/summary.json",
+  "not_validated": ["training-v3 target kernels", "other chips", "complete three-level fallback", "post-update rollback", "multi-host failure recovery"]
 }

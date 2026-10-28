@@ -2,6 +2,8 @@
 
 ## 用途与现状
 
+10-23新增独立启动准入验证，见下方“启动准入三路”。关闭/允许原生各3步训练通过，严格要求目标为BLOCKED，未导入FlagGems；这不替代10-16目标编译失败结论。旧完整回归入口及历史日期说明保留。
+
 本 case 消费总组训练镜像 `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`，不构建新镜像。
 镜像 ID 锁定 `sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15`。
 公共规范锚为 runtime-team `74197bf7d4b5dc8cdd3b2b89b15ac3561936dda6`：`dev/ENV-SPEC.md`、`dev/images/CASE-TEMPLATE.md`、训练 v3 demo。
@@ -16,6 +18,23 @@
 - 这是局部实验，不是完整三级回退、vLLM 或多卡训练验收。默认准入策略不变。
 
 ## 复现
+
+### 启动准入三路
+
+使用本方向0.3.0.dev0候选wheel、已核对device-context runtime快照、PyYAML/Compose和上述精确v3镜像，不需要模型权重。默认只映射一个已协调的设备，不挂shmem stub、不改变镜像包。
+
+```bash
+python3 dev/framework-adapter/cases/ascend-train-v3/assets/run_startup.py \
+  --public-root /绝对路径/公共runtime-team \
+  --source /绝对路径/本方向dev/framework-adapter \
+  --runtime /绝对路径/device-context/prototype \
+  --wheel /绝对路径/flagrt_framework_adapter-0.3.0.dev0-py3-none-any.whl \
+  --device 0 --output /绝对路径/全新输出目录
+```
+
+入口生成image.baseline.yaml和demo，执行公共check/export/up.sh --strict，离线安装wheel，运行合成SiLU小模型并自动停止本人容器。原始结果、命令、输入hash、安装路径及退出状态保留在output。不修改公共启动脚本。
+
+预期：off/degrade各3步原生训练，loss/参数逐值一致；strict在训练前BLOCKED，目标导入和调用均为0。外层`overall: PASS`只表示这三个控制行为符合预期，不表示目标内核成功。超时、原生环境损坏或其他异常为ERROR，不伪装成成功回退。最新结果见[1023报告](../../docs/环境准入与算子扩展验证-20261023.md)。
 
 ### 前置条件
 

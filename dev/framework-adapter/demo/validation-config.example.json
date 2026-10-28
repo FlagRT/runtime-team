@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "model_kind": "onerec-8b",
+  "operator": "silu",
+  "mode": "on",
+  "device": 0,
+  "steps": 3,
+  "seq_len": 16,
+  "public_root": "/ABS/public-runtime-team",
+  "source": "/ABS/runtime-team/dev/framework-adapter",
+  "gems": "/ABS/FlagGems",
+  "deps": "/ABS/deps",
+  "runtime": "/ABS/device-context/prototype",
+  "output": "/ABS/NEW-output",
+  "wheel": "/ABS/flagrt_framework_adapter-0.3.0.dev0-py3-none-any.whl",
+  "model": "/ABS/OneRec-8B",
+  "records": "/ABS/reviewed-records.json",
+  "reference": "/ABS/completed-native-output"
+}
