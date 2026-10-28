@@ -1,0 +1,86 @@
+--- a/third_party/xpu/backend/compiler.py
++++ b/third_party/xpu/backend/compiler.py
+@@ -208,6 +208,67 @@
+         handle.write(text)
+         handle.flush()
+         return ir.parse_mlir_module(handle.name, mod.context)
++
++
++def _legalize_sdnn_fp32_scalar_relu(mod):
++    """Legalize scalar maximum(x, +0) for the bundled XPU3 SDNN converter.
++
++    The old converter emits no EW min/max instruction for its scalar-C form.
++    Materialize the zero as an on-chip tensor before allocation/scheduling,
++    then use its existing tensor/tensor maximum lowering. This keeps one
++    kernel and leaves buffer ownership and synchronization to SDNN passes.
++
++    Deliberately limited to one function, static rank-2 FP32, identical result
++    and src0 types, and an unambiguous positive-zero SSA constant. Other forms
++    retain their original lowering. No activation register encoding is assumed.
++    """
++    text = str(mod)
++    if len(re.findall(r'\bfunc\.func\b', text)) != 1:
++        return mod, 0
++    ssa = r'%[\w.$]+'
++    tensor = r'tensor<[1-9]\d*x[1-9]\d*xf32>'
++    pattern = re.compile(
++        rf'(?m)^([ \t]*)({ssa}) = triton_sdnn\.ew maximum '
++        rf'({ssa}) src0 ({ssa}) c ({ssa}) : '
++        rf'\(({tensor}), \6, f32\) -> \6([ \t]*(?:loc\([^\n]*\))?)$')
++    count = 0
++
++    def replace(match):
++        nonlocal count
++        indent, result, dest, source, scalar, ty, location = match.groups()
++        definitions = re.findall(rf'(?m)^[ \t]*{re.escape(scalar)} = ([^\n]+)$', text)
++        if len(definitions) != 1 or not re.fullmatch(
++                r'arith.constant 0(?:\.0*)?(?:e\+?0+)? : f32(?: loc\([^\n]*\))?', definitions[0]):
++            return match.group(0)
++        name = '%sdnn_relu_scalar_' + str(count)
++        while re.search(re.escape(name) + r'(?:_empty)?\b', text):
++            name += '_'
++        count += 1
++        return (f'{indent}{name}_empty = tensor.empty() : {ty}{location}\n'
++                f'{indent}{name} = triton_sdnn.ew fill {name}_empty c {scalar} : '
++                f'({ty}, f32) -> {ty}{location}\n'
++                f'{indent}{result} = triton_sdnn.ew maximum {dest} src0 {source} '
++                f'src1 {name} : ({ty}, {ty}, {ty}) -> {ty}{location}')
++
++    rewritten = pattern.sub(replace, text)
++    if not count:
++        return mod, 0
++    context = mod.context
++    with tempfile.NamedTemporaryFile(mode='w', suffix='.mlir') as handle:
++        handle.write(rewritten)
++        handle.flush()
++        result = ir.parse_mlir_module(handle.name, context)
++    result.context = context
++    if not result.verify():
++        raise RuntimeError('SDNN scalar ReLU legalization produced invalid MLIR')
++    dump_dir = os.environ.get('XPU_FIX_IR_DIR')
++    if dump_dir:
++        dump = Path(dump_dir)
++        dump.mkdir(parents=True, exist_ok=True)
++        (dump / 'relu_scalar.before.mlir').write_text(text)
++        (dump / 'relu_scalar.after.mlir').write_text(rewritten)
++    print(f'SDNN_SCALAR_RELU_MATERIALIZATIONS={count}', flush=True)
++    return result, count
+ 
+ 
+ class XPUBackend(BaseBackend):
+@@ -310,6 +371,15 @@
+             passes.ttir.add_loop_aware_cse(pm)
+             xpu.passes.ttsdnnir.add_tritonsdnn_legalize_pass(pm, opt.arch)
+             xpu.passes.ttsdnnir.add_tritonsdnn_combine_before_pass(pm, opt.arch)
++            # Only the bundled XPU3 SDNN scalar-ReLU path needs legalization.
++            # Run producer/legalization passes first; allocate and schedule the
++            # extra tensor through the original bufferization/pipeline passes.
++            if opt.arch == 3:
++                pm.run(mod, 'make_ttxir_before_scalar_relu')
++                mod, count = _legalize_sdnn_fp32_scalar_relu(mod)
++                metadata['sdnn_scalar_relu_materializations'] = count
++                pm = ir.pass_manager(mod.context)
++                pm.enable_debug()
+             xpu.passes.ttsdnnir.add_tritonsdnn_bufferize_pass(pm, opt.arch)
+             xpu.passes.ttsdnnir.add_tritonsdnn_combine_pass(pm, opt.arch)
+             if opt.exp_range != ":0":

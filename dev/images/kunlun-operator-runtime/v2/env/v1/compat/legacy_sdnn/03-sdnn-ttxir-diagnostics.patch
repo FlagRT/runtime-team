@@ -1,0 +1,20 @@
+--- a/compiler.py
++++ b/compiler.py
+@@ -309,5 +309,8 @@
+             xpu.passes.ttsdnnir.add_linalg_to_tritonsdnn_pass(pm, opt.arch)
+             passes.ttir.add_loop_aware_cse(pm)
+             xpu.passes.ttsdnnir.add_tritonsdnn_legalize_pass(pm, opt.arch)
+-            xpu.passes.ttsdnnir.add_tritonsdnn_combine_before_pass(pm, opt.arch)
++            if os.environ.get("XPU_SDNN_SKIP_EARLY_COMBINE", "0") != "1":
++                xpu.passes.ttsdnnir.add_tritonsdnn_combine_before_pass(pm, opt.arch)
++            else:
++                print("SDNN_EXPERIMENT skip_early_combine", flush=True)
+             xpu.passes.ttsdnnir.add_tritonsdnn_bufferize_pass(pm, opt.arch)
+@@ -389,5 +389,7 @@
+         try:
+             pm.run(mod, 'make_ttxir')
+         except Exception as e:
++            if os.environ.get("XPU_SDNN_PRESERVE_TTXIR_ERRORS", "0") == "1":
++                raise
+             from triton import OutOfResources
+             raise OutOfResources(0, 0, f"uni_sram {e}")

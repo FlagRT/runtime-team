@@ -1,0 +1,131 @@
+--- a/src/flag_gems/runtime/backend/_kunlunxin/ops/addmm.py
++++ b/src/flag_gems/runtime/backend/_kunlunxin/ops/addmm.py
+@@ -1,4 +1,5 @@
+ import logging
++import os
+ 
+ import torch
+ import triton
+@@ -12,12 +13,23 @@
+ logger = logging.getLogger("flag_gems").getChild(__name__.lstrip("."))
+ 
+ 
++# XPU3 device-event autotuning can report zero duration. The explicit
++# compatibility mode uses a fixed configuration; normal tuning is unchanged.
++_addmm_autotune = triton.autotune(
++    configs=[], generate_configs="addmm", key=["M", "N", "K"]
++)
++if os.environ.get("KLX_USE_AUTOTUNE", "1") == "0":
++    _addmm_autotune = triton.autotune(
++        configs=[triton.Config(
++            {"BLOCK_SIZE_M": 32, "BLOCK_SIZE_N": 32, "BLOCK_SIZE_K": 32},
++            num_warps=4, num_stages=2,
++        )],
++        key=["M", "N", "K"],
++    )
++
++
+ @libentry()
+-@triton.autotune(
+-    configs=[],
+-    generate_configs="addmm",
+-    key=["M", "N", "K"],
+-)
++@_addmm_autotune
+ @triton.jit(do_not_specialize=["alpha", "beta"])
+ def addmm_kernel(
+     a_ptr,
+@@ -43,31 +55,52 @@
+ ):
+     pid_m = tle.program_id(0)
+     pid_n = tle.program_id(1)
+-
+-    offs_am = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
+-    offs_bn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
+-    offs_k = tl.arange(0, BLOCK_SIZE_K)
+-    a_ptrs = a_ptr + (offs_am[:, None] * stride_am + offs_k[None, :] * stride_ak)
+-    b_ptrs = b_ptr + (offs_k[:, None] * stride_bk + offs_bn[None, :] * stride_bn)
++    m_offset = (pid_m * BLOCK_SIZE_M).to(tl.int32)
++    n_offset = (pid_n * BLOCK_SIZE_N).to(tl.int32)
+ 
+     accumulator = tl.zeros((BLOCK_SIZE_M, BLOCK_SIZE_N), dtype=tl.float32)
+     for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):
+-        a = tl.load(a_ptrs)
+-        b = tl.load(b_ptrs)
++        k_offset = (k * BLOCK_SIZE_K).to(tl.int32)
++        a_block = tl.make_block_ptr(
++            base=a_ptr,
++            shape=(M, K),
++            strides=(stride_am, stride_ak),
++            offsets=(m_offset, k_offset),
++            block_shape=(BLOCK_SIZE_M, BLOCK_SIZE_K),
++            order=(1, 0),
++        )
++        b_block = tl.make_block_ptr(
++            base=b_ptr,
++            shape=(K, N),
++            strides=(stride_bk, stride_bn),
++            offsets=(k_offset, n_offset),
++            block_shape=(BLOCK_SIZE_K, BLOCK_SIZE_N),
++            order=(1, 0),
++        )
++        a = tl.load(a_block, boundary_check=(0, 1), padding_option="zero")
++        b = tl.load(b_block, boundary_check=(0, 1), padding_option="zero")
+         accumulator += tl.dot(a, b, allow_tf32=False)
+-        a_ptrs += BLOCK_SIZE_K * stride_ak
+-        b_ptrs += BLOCK_SIZE_K * stride_bk
+ 
+-    offs_cm = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
+-    offs_cn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
+-    c_ptrs = c_ptr + stride_cm * offs_cm[:, None] + stride_cn * offs_cn[None, :]
+-    c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
+-    i_ptrs = i_ptr + stride_im * offs_cm[:, None] + stride_in * offs_cn[None, :]
+-    bias = tl.load(i_ptrs, mask=c_mask, other=0.0)
+-
++    i_block = tl.make_block_ptr(
++        base=i_ptr,
++        shape=(M, N),
++        strides=(stride_im, stride_in),
++        offsets=(m_offset, n_offset),
++        block_shape=(BLOCK_SIZE_M, BLOCK_SIZE_N),
++        order=(1, 0),
++    )
++    bias = tl.load(i_block, boundary_check=(0, 1), padding_option="zero")
+     accumulator = accumulator * alpha + bias * beta
+-    c = accumulator.to(bias.dtype)
+-    tl.store(c_ptrs, c, mask=c_mask)
++    c = accumulator.to(c_ptr.dtype.element_ty)
++    c_block = tl.make_block_ptr(
++        base=c_ptr,
++        shape=(M, N),
++        strides=(stride_cm, stride_cn),
++        offsets=(m_offset, n_offset),
++        block_shape=(BLOCK_SIZE_M, BLOCK_SIZE_N),
++        order=(1, 0),
++    )
++    tl.store(c_block, c, boundary_check=(0, 1))
+ 
+ 
+ def addmm(bias, mat1, mat2, *, beta=1.0, alpha=1.0):
+@@ -82,7 +115,9 @@
+     mat1 = mat1.contiguous()
+     # mat2 = mat2.contiguous()
+     out = torch.empty((M, N), device=mat1.device, dtype=mat1.dtype)
+-    bias = bias.broadcast_to(out.shape)
++    # The legacy SDNN epilogue consumes FP32 bias alongside its accumulator.
++    # Preserve broadcast strides; materializing this view is unnecessary.
++    bias = bias.float().broadcast_to(out.shape)
+ 
+     grid = lambda META: (
+         triton.cdiv(M, META["BLOCK_SIZE_M"]),
+@@ -125,7 +160,9 @@
+         assert out.shape == (M, N), "Incompatible output shape"
+ 
+     mat1 = mat1.contiguous()
+-    bias = bias.broadcast_to(out.shape)
++    # The legacy SDNN epilogue consumes FP32 bias alongside its accumulator.
++    # Preserve broadcast strides; materializing this view is unnecessary.
++    bias = bias.float().broadcast_to(out.shape)
+ 
+     grid = lambda META: (
+         triton.cdiv(M, META["BLOCK_SIZE_M"]),
