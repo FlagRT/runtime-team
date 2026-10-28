@@ -34,6 +34,11 @@ def summarize(root):
             elif manifest['scope'] == 'Ascend integration':
                 if r['backend'] not in ('hccl','flagcx') or r['evidence_scope'] != 'NPU integration':
                     raise ValueError('Scope mismatch')
+            elif manifest['scope'] == 'Kunlun integration':
+                if (r['backend'] != 'flagcx' or r['evidence_scope'] != 'P800 integration'
+                        or not r.get('device','').startswith('cuda:')
+                        or r.get('runtime_info',{}).get('name') != 'kunlun'):
+                    raise ValueError('Kunlun vendor/device/backend mismatch')
             else: raise ValueError('Unknown scope')
             o, t = r['oracle'], r['training']
             if not (len(o['gradient_checks']) == 17 and all(c['pass'] for c in o['gradient_checks'])

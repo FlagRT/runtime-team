@@ -1,6 +1,6 @@
 """DeepFM data-parallel training, with a controlled single-global-batch oracle.
 
-CPU/gloo results are explicitly host-only. Ascend requires the device team's
+CPU/gloo results are explicitly host-only. Accelerators require the device team's
 prototype and uses its public API, never importing vendor extensions here.
 """
 import argparse
@@ -22,7 +22,7 @@ from distributed import (TrainingGroup, observed_mean_hook, shard_bounds,
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--backend', choices=['cpu', 'ascend'], required=True)
+    p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun'], required=True)
     p.add_argument('--runtime-root', type=Path)
     p.add_argument('--prototype-revision', default='unrecorded')
     p.add_argument('--model-root', type=Path, required=True)
@@ -70,32 +70,43 @@ def wrap(model, group, device, mode):
     return wrapped
 
 
+def bind_runtime_device(runtime, backend, local_rank):
+    """Kunlun uses the CUDA namespace; keep vendor and device type distinct."""
+    expected={'ascend':'npu','kunlun':'cuda'}
+    if backend not in expected:
+        raise ValueError('Unsupported accelerator backend')
+    runtime.use(backend)
+    if runtime.device_count() <= local_rank:
+        raise RuntimeError('Insufficient visible accelerator devices')
+    runtime.set_device(local_rank)
+    current=runtime.current()
+    if current.name != backend or current.device_type != expected[backend]:
+        raise RuntimeError('Runtime vendor/device identity mismatch; no fallback')
+    return torch.device(current.device_type, local_rank)
+
+
 def run(args):
     rank = int(os.environ.get('RANK', '0'))
     world = int(os.environ.get('WORLD_SIZE', '1'))
     local_rank = int(os.environ.get('LOCAL_RANK', '0'))
     if args.steps < 1 or args.warmup < 0:
         raise ValueError('Require positive steps, nonnegative warmup and equal local batches >=2')
-    if args.collective == 'flagcx' and (args.backend != 'ascend' or args.comm_mode not in ('manual', 'fused')):
-        raise ValueError('This FlagCX model entry validates Ascend manual/fused only; '
+    if args.backend == 'kunlun' and args.collective != 'flagcx':
+        raise ValueError('Kunlun training requires explicit FlagCX; HCCL is Ascend-only')
+    if args.collective == 'flagcx' and (args.backend not in ('ascend','kunlun') or args.comm_mode not in ('manual', 'fused')):
+        raise ValueError('This FlagCX model entry accepts accelerator manual/fused only; '
                          'native DDP is covered by the separate FlagCX regression suite')
     shard_start, shard_stop = shard_bounds(args.global_batch, rank, world)
     torch.set_num_threads(1)
     runtime = None
-    if args.backend == 'ascend':
+    if args.backend in ('ascend','kunlun'):
         if args.runtime_root is None:
-            raise ValueError('Ascend requires --runtime-root')
+            raise ValueError('Accelerator training requires --runtime-root')
         if args.prototype_revision == 'unrecorded':
             raise ValueError('Record the prototype commit with --prototype-revision')
         sys.path.insert(0, str(args.runtime_root.resolve()))
         import runtime
-        runtime.use('ascend')
-        if runtime.device_count() <= local_rank:
-            raise RuntimeError('Insufficient visible NPU devices')
-        runtime.set_device(local_rank)  # Triggers vendor backend registration before c10d.
-        device = torch.device(runtime.current().device_type, local_rank)
-        if device.type != 'npu':
-            raise RuntimeError('Ascend must not silently fall back to CPU')
+        device = bind_runtime_device(runtime, args.backend, local_rank)
         sync = lambda: runtime.synchronize(local_rank, timeout_ms=30000)
         backend = args.collective
     else:
@@ -118,7 +129,8 @@ def run(args):
               'global_batch': args.global_batch, 'local_batch': local_batch,
               'dtype': 'float32', 'dataset': 'deterministic synthetic; not recommendation accuracy',
               'seed': args.seed, 'warmup_steps': args.warmup, 'measured_steps': args.steps,
-              'evidence_scope': 'NPU integration' if runtime else 'CPU/gloo host-only'}
+              'evidence_scope': {'ascend':'NPU integration','kunlun':'P800 integration',
+                                 'cpu':'CPU/gloo host-only'}[args.backend]}
     try:
         if runtime:
             result['runtime_info'] = runtime.current().info()

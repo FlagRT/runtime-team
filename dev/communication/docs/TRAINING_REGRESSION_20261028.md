@@ -6,7 +6,7 @@ _通信方向本周交付：OneRec 长序列重复验收、DeepFM 新原型复�
 
 ## 📋 结论与对齐
 
-OneRec-8B 序列长度从16扩至64，64/128 MiB各三轮、每轮50步，[六轮全部通过](../results/20261028-onerec/matrix-summary.json)。399个参数张量的最终SHA256在两Rank、两档和全部独立运行间逐项一致。当前配置建议128 MiB。DeepFM新版原型[六轮复验通过](../results/20261028-deepfm/summary.json)，主机回归54/54。
+OneRec-8B 序列长度从16扩至64，64/128 MiB各三轮、每轮50步，[六轮全部通过](../results/20261028-onerec/matrix-summary.json)。399个参数张量的最终SHA256在两Rank、两档和全部独立运行间逐项一致。当前配置建议128 MiB。DeepFM新版原型[六轮复验通过](../results/20261028-deepfm/summary.json)，新增P800消费侧适配后主机回归72/72。
 
 执行前核对公共提交`c3f7fb9671aca514a917a3c926a857f8e8e2c8ab`。设备方向近期更新可计时Event、共享模型路径解析及多实例复验；本方向消费的`use/device_count/set_device/current/synchronize(timeout_ms=30000)`契约继续通过检查，不重复申报设备conformance或训推腿成果。
 
@@ -48,7 +48,7 @@ DeepFM为421,452参数、FP32、全局batch64、每端32、预热5步再训练50
 
 本周11号机驱动26.1.1，使用经容器映射核查和真实初始化的逻辑设备10/11。性能比较仅限本周两档bucket，不与上周不同驱动或HCCL数据直接推导收益。正常销毁/重建不等于故障恢复；模型均为合成输入功能验收。
 
-P800根盘空间恢复至约6.6 GiB，观察时八卡都有进程。卡1有[公开Event/同步挂死记录](../../device-context/P800/docs/KUNLUN_P800_REGRESS_AFTER_FIX_20260929.md)，未找到恢复后的确认材料，选卡排除；未执行P800通信或训练验收。本月交付仍2/4=50%，整体按原表7/37=18.9%，重复轮次不折算为新增功能项。
+P800继续推进后，sudo与Docker权限已实际确认，数据盘约3.1 TiB可用。卡1有当天设备执行超时及他人活进程，本轮不选用、不reset，但不据此认定物理损坏。利用物理卡5的空闲窗口完成[DeepFM单卡消费侧准备](P800_DEEPFM_PREPARATION_20261028.md)：逐张量/合并各50步、17/17梯度参考通过、最大梯度及更新误差3.73e-9、两模式loss轨迹和最终参数哈希一致，两个启动器退出0、组CLOSED。首轮无网络容器的BKCL初始化失败已保留，修正为Docker bridge后通过。健康连续双卡仍待窗口，单Rank不计多卡验收；本月交付仍2/4=50%，整体按原表7/37=18.9%，重复轮次不折算为新增功能项。
 
 首批DeepFM命令的`prototype_revision`录入错误，留在服务器`evidence/deepfm-current/`，不计正式验收；正确完整版本号的`deepfm-verified/`六轮重新执行通过，对应仓内结果，原记录未改写。
 

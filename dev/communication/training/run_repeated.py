@@ -16,7 +16,7 @@ import time
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--backend', choices=['cpu', 'ascend'], required=True)
+    p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun'], required=True)
     p.add_argument('--collective', choices=['hccl', 'flagcx'], default='flagcx')
     p.add_argument('--runtime-root', type=Path)
     p.add_argument('--prototype-revision', required=True)
@@ -29,7 +29,8 @@ def main():
     args = p.parse_args()
     if args.repeats < 3 or args.launch_timeout < 1: p.error('Require >=3 repeats and positive timeout')
     args.output.mkdir(parents=True, exist_ok=False)
-    manifest = {'scope': 'CPU/Gloo host-only' if args.backend == 'cpu' else 'Ascend integration',
+    manifest = {'scope': {'cpu':'CPU/Gloo host-only','ascend':'Ascend integration',
+                          'kunlun':'Kunlun integration'}[args.backend],
                 'prototype_revision': args.prototype_revision, 'runs': []}
     try:
         for repeat in range(args.repeats):
@@ -45,8 +46,8 @@ def main():
                        '--steps', '50', '--warmup', '5', '--seed', '923',
                        '--prototype-revision', args.prototype_revision,
                        '--model-root', str(args.model_root.resolve()), '--output', str((args.output/name).resolve())]
-                if args.backend == 'ascend':
-                    if args.runtime_root is None: raise ValueError('Ascend requires runtime root')
+                if args.backend in ('ascend','kunlun'):
+                    if args.runtime_root is None: raise ValueError('Accelerator requires runtime root')
                     cmd += ['--runtime-root', str(args.runtime_root.resolve()), '--collective', args.collective]
                 if args.save_final_parameters:
                     cmd += ['--save-final-parameters']
