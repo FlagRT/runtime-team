@@ -8,6 +8,7 @@
 #
 # 用法：在【个人开发分支】上、工作区干净时执行
 #   bash dev/sync_to_dev.sh
+#   推送成功后停留在 dev-1.0（不切回个人分支）；如需继续个人分支开发自行 git checkout <分支>
 #
 # 任一步失败（非快进 / 合并冲突 / 远端分叉）即中止，按提示手动处理后重跑。
 
@@ -56,6 +57,5 @@ else
 fi
 git push "$REMOTE" "$DEV_BRANCH"
 
-# 5. 回个人分支
-git checkout "$FEATURE_BRANCH"
-echo "==> 完成：$FEATURE_BRANCH 已同步进 $REMOTE/$DEV_BRANCH"
+# 5. 停留在 dev-1.0（不切回个人分支）
+echo "==> 完成：$FEATURE_BRANCH 已同步进 $REMOTE/$DEV_BRANCH；当前停留在 $DEV_BRANCH"
