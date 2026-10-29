@@ -6,28 +6,31 @@
 # 记录：2026-10-15 ｜ 定稿：2026-10-15 ｜ 状态：生效
 # 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
 #
-# 本文件为平头哥 PPU 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 = thead-ppu-runtime v1
-# （BAAI·FlagTree 官方基座镜像，登记式基线 ADR-0007，repro_status 🟢）。
-# 2026-10-27 增补：新增**候选** thead-ppu-runtime v2（官方基座 + 固化 triton/flagtree 的一层派生），
-# 已按入档门槛入 dev/images/thead-ppu-runtime/v2/；**lock: 未改**（生效切换待总组裁定），
-# 详见本文件 candidates 段与 dev/images/image_list.md。
-# 与昆仑芯侧的类似点：无带卡容器独占（实测多容器并存可用）；与昆仑芯的不同点：无 git commit 式
-# FlagTree 构建、也无索引 wheel pin —— 镜像整体 = FlagTree 官方构建物（Harbor digest 锚）。
+# 本文件为平头哥 PPU 首份锁定声明（版本化规范：影响已锁定承诺的变更 → 原地改 lock: 并记 changelog）。
+# 现行生效 = thead-ppu-runtime v2（官方基座 + 固化 triton/flagtree 的一层派生；2026-10-29 总组
+# 裁定切生效，指挥台 ADR-0011）：基座字节不动（Harbor digest 锚仍可拉），其上加恰一个
+# flagtree wheel（sha256 在案）固化 triton + flagtree，修掉 vLLM 服务化前置门控对 triton 的
+# 镜像外隐性依赖。
+# v1 = v2 的基座层（非废弃，可按 digest 拉取）；v2 血统/证据/重建配方见 dev/images/thead-ppu-runtime/v2/。
+# 派生层纪律（ADR-0011 例外授权边界）：官方基座之上、只做加法、恰一层、wheel 内容寻址、
+# 经本文件 candidates 登记并提请总组裁定后生效；方向不得自行切 lock。当前无在途候选。
 # =====================================================================
 
 version: 1
 recorded_at: "2026-10-15"
-updated_at: "2026-10-27"
+updated_at: "2026-10-29"
 owner: 总组
 chip: "平头哥 PPU（真武 ZW810E）"
 acceptance_model: "Qwen/Qwen3-Embedding-0.6B（与 P800 同款基准模型；模型资产在 PTG_0 /bmcp_lvm_fs/hliu553/models/）"
 flagtree_line: |
-  ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。锁定镜像为
-  BAAI·FlagTree 官方构建物（harbor.baai.ac.cn/flagtree），非本组构建、无仓内配方，
-  版本锚 = Harbor digest（公开可拉）。本组 PPU 后端（runtime ppu 0.1.0）不在镜像内，
-  在仓内 dev/device-context/prototype/runtime/，经 WORKSPACE_ROOT 挂载使用。
-  版本事实（image id、内置组件版本）以
-  dev/images/thead-ppu-runtime/v1/image.baseline.yaml 为准。
+  ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。锁定镜像 =
+  thead-ppu-runtime v2 派生镜像：基座 = BAAI·FlagTree 官方构建物（harbor.baai.ac.cn/flagtree，
+  digest 锚、字节不动），其上加恰一层本组派生（一个 flagtree wheel 经 pip 离线固化，
+  同时提供 triton 3.6.0 + flagtree，wheel sha256 b57daff7…），配方在仓内
+  dev/images/thead-ppu-runtime/v2/Dockerfile.repro。本组 PPU 后端（runtime ppu 0.1.0）
+  不在镜像内，在仓内 dev/device-context/prototype/runtime/，经 WORKSPACE_ROOT 挂载使用。
+  版本事实（image id、wheel sha256、内置组件版本）以
+  dev/images/thead-ppu-runtime/v2/image.baseline.yaml 为准。
 
 # ---------------------------------------------------------------
 # 设备注册路线（与 P800 同型：无带卡容器独占；与昇腾相反，勿照抄昇腾纪律）
@@ -47,52 +50,21 @@ device_registration:
     ② 镜像写死 NCCL_SOCKET_IFNAME=eth0 而本机真网卡是 bond0 → 须覆盖为 bond0。
 
 # ---------------------------------------------------------------
-# 锁定镜像（FlagTree 官方基座，训练/推理同底座）
+# 锁定镜像（训练/推理同底座：官方基座 + 本组派生层）
 # ---------------------------------------------------------------
 lock:
   runtime:                              # 训练（transformers DDP）与推理（镜像自带 vllm 0.19.0+cu130）同底座
-    image: "flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base"
-    notes: "BAAI·FlagTree 官方基座镜像（登记式基线，ADR-0007）：无已知镜像限制；两条启动坑（hostname / NCCL 网卡）为环境事实非镜像缺陷，demo 已内置规避。版本事实以 dev/images/thead-ppu-runtime/v1/image.baseline.yaml 为准"
-    container_name: "flagrt-ppu-v1-demo-ptg0（demo 运行环境容器：dev/images/thead-ppu-runtime/v1/demo/）"
-    base_image_entry: "dev/images/thead-ppu-runtime/v1"          # 血统 / 内置版本 / 重建指针 / 登记证据
-    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagtree），digest 锁定可拉。image id：sha256:f5366712d6a0856a429f9df3503bc377c929df806acc654973e350e27fed9239（PTG_0 本机 docker inspect 实测）｜ repro_status 🟢 FlagTree 官方镜像（镜像不可重建是设计边界，官方产物）"
+    image: "flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64"
+    notes: "thead-ppu-runtime v2 派生镜像（官方基座 + 单 wheel 派生层；2026-10-29 总组裁定生效，指挥台 ADR-0011）：triton 3.6.0 + flagtree 固化在镜像内，vLLM 服务化前置门控（find_spec triton）直接满足；无镜像缺陷级已知限制；两条启动坑（hostname / NCCL 网卡）为环境事实非镜像缺陷，env/v1 已内置规避。版本事实以 dev/images/thead-ppu-runtime/v2/image.baseline.yaml 为准"
+    container_name: "flagrt-ppu-v2-env-v1-ptg0（运行环境容器：dev/images/thead-ppu-runtime/v2/env/v1/）"
+    base_image_entry: "dev/images/thead-ppu-runtime/v2"          # 血统 / 内置版本 / 重建指针 / 登记证据（v1 条目 = 其基座层，digest 可拉）
+    registry_status: "本机构建、未 push（RepoDigests 空）⇒ 分发 = 离线包（dev/images/thead-ppu-runtime/v2/ARCHIVE.md，17.15 GiB，sha256/pigz/docker load 三重核验）+ 仓内配方重建（Dockerfile.repro + build.sh）；跨机 image id 不同属预期，版本锚 = image_id + wheel sha256。基座层可按 Harbor digest 拉取（sha256:50a906e6…）。image id：sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8（PTG_0 本机 docker inspect 实测）｜ repro_status 🟢 functional-repro（末轮构建产物即交付镜像）"
 
 # ---------------------------------------------------------------
-# 候选血统（2026-10-27 起在途 1 项；lock: 仍未改，生效切换待总组裁定）
+# 候选血统（当前无在途候选。流程：方向按入档门槛入 dev/images/<name>/vN/ 后在此登记候选，
+# 总组裁定切生效 ⇒ 改 lock: 并收口本段、记 changelog——v2 为该流程首例完整走通，见 ADR-0011）
 # ---------------------------------------------------------------
-candidates:
-  thead-ppu-runtime-v2:
-    image: "flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64"
-    image_id: "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8"
-    size_bytes: 41745259535          # 41.75 GB = 基座 40.3 + 派生层 ≈1.4
-    entry: "dev/images/thead-ppu-runtime/v2"          # 入档门槛已满足：lock.yaml + image.baseline.yaml + 🟢 functional-repro
-    relation_to_lock: >-
-      在 lock.runtime.image（v1 官方基座）**之上加一层**派生；基座字节未变、不重建基座。
-      派生层 = 一个 flagtree wheel（sha256 b57daff7…）经 `pip install --no-index --no-deps` 固化，
-      同时提供 triton + flagtree。
-    why: >-
-      官方基座**不含 triton**，而 vLLM 起服务前门控 `find_spec("flash_attn") and find_spec("triton")`
-      ⇒ 服务化腿必然起不来。此前靠手工 `docker cp` 从共享目录补三件，**容器重建即丢**，且属镜像外
-      隐性依赖（违反 ENV-SPEC「外部依赖须声明」）。v2 把它变成镜像内事实。
-    evidence: >-
-      全新容器（零手工干预）：`TRITON_PPU_SMOKE_PASS`（真编 kernel，耗时 1.37–1.50 s，最大误差
-      0.000e+00，边界 n=3000 一致）· `SERVE_STANDARD_PASS (ready=1 smoke=1)` · `find_spec('triton')=True`
-      · 现役容器切 v2 后 `s03 PASS` + `s06 CONTRACT_INVARIANTS_PASS 4/4`(rc=0) ·
-      基线 `baseline.py check` PASS(rc=0)。证据：dev/images/thead-ppu-runtime/v2/assets/evidence/
-    status: >-
-      已入档、**未切生效**（lock: 仍指 v1）；device-context 方向在 PTG_0 的运行容器已改用 v2。
-      离线归档已产出（dev/images/thead-ppu-runtime/v2/ARCHIVE.md）。
-    needs_decision: >-
-      ① 是否把 v2 切为该芯片生效版本（切则改本文件 lock.runtime.image + base_image_entry，
-      image_list「当前生效版本」表随之更新）；
-      ② 本文件 rules 有一条「统一基座的确定/调整/发布由总组裁定；各方向只消费不自建」——
-      **本候选恰是本方向自建的派生层**，属该条需要总组例外授权的情形；替代路径是 TODO #23
-      （把 triton 上提官方基座线，届时 v2 整体废弃、不再产生 v3）。
-    blockers: "无技术阻塞（入档门槛已满足）；待总组对上面 ①② 表态"
-    registered_by: >-
-      device-context 方向（Kistich/hliu553）**代填登记**，2026-10-27。本文件 owner 为总组，
-      方向直接编辑属灰区 ⇒ 若总组认为该登记应由总组登账，**请删除本 candidates 段**、改由总组按
-      dev/images/thead-ppu-runtime/v2/ 与 dev/device-context/STATUS.md 的诉求收拢，不必先行征询。 
+candidates: {}
 
 # ---------------------------------------------------------------
 # 使用规则（按 PPU 实情；PPU 特有纪律置于最前）
@@ -105,8 +77,8 @@ rules:
   - |
     共享机纪律（PTG_0，同 P800 型）：无带卡容器独占，但绝不 stop/rm 他人容器（本机
     25+ 容器常在跑，基座镜像被 5 个工作负载容器共用）；选卡纪律见
-    device_registration.selection；根分区 94% / /data 99%（勿写入），docker 与大文件
-    落 /bmcp_lvm_fs（11T，剩 2.1T）。
+    device_registration.selection；根分区 100% 满（2026-10-29 实测，勿写入、git 写操作前先 df）、
+    /data 99%（勿写入），docker 与大文件落 /bmcp_lvm_fs（11T，剩 628G）。
   - |
     基座镜像入锁门槛（沿用既有口径）：任何镜像进入本文件 lock: 前，
     dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
@@ -121,11 +93,24 @@ known_issues: []
 # 说明：PPU 侧已定位的平台缺陷（退出期弱引用悬垂 SIGSEGV，根因在平台侧 Py_FinalizeEx→
 # _PyWeakref_ClearRef，本层已规避、不影响正常结论；转厂商跟进）由 device-context 方向
 # 在其目录内跟踪；属运行时层职责外的平台事实，不入本清单。
+# 镜像使用注意（pip show triton 无输出 ⇒ 勿用 pip show 判装没装；flagtree.__version__ 自报
+# 3.6.0 跟随 triton 线号 ⇒ 版本锚一律用 wheel 文件名/dist-info + sha256；image.baseline 为
+# ADR-0007 登记式）登记于 dev/images/thead-ppu-runtime/v2/lock.yaml 的 known_issues 与 gaps。
 
 # ---------------------------------------------------------------
 # 变更记录
 # ---------------------------------------------------------------
 changelog:
+  - date: "2026-10-29"
+    who: "总组（ADR-0011）"
+    what: |
+      thead-ppu-runtime v2 切为生效版本：lock.runtime 由 v1 改指 v2（官方基座 + 单 wheel 派生层，
+      image_id 1ba7ead1…）；candidates 段收口（v2 候选转正，无在途候选）。v1 降为基座层条目
+      （Harbor digest 可拉，不废弃）。同步 dev/images/image_list.md「当前生效版本」、
+      docs/基座发版说明-20261015-PPU.md、docs/运行时基座-使用与维护指南.md PPU 入口。
+      裁定依据、例外授权边界（rules「各方向只消费不自建」的范围化例外）与退出条件
+      （dev/images/TODO.md #23 官方基座自带 triton ⇒ 派生层废弃回落）见指挥台 ADR-0011。
+      发版复核（PTG_0）：image id 逐字核对一致 + baseline.py check PASS + 全新容器镜像自证。
   - date: "2026-10-27"
     who: "device-context 方向（Kistich/hliu553）"
     what: |
