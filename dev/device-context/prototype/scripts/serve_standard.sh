@@ -89,7 +89,9 @@
 #   MAX_MODEL_LEN   （4096）
 #   GPU_MEM_UTIL    （embed 形态默认 **0.4**〔memory 方向建议，2026-11-03 起〕；显式给则优先。
 #                    generate 形态默认留空=不传。独占卡生产建议 0.9 —— dev/memory/STATUS.md 建议 #4）
-#   MAX_NUM_SEQS    （embed 形态默认 **128**〔同上〕；显式给则优先；generate 形态默认不传）
+#   MAX_NUM_SEQS    （embed 形态**默认不传**＝vLLM 默认 256，2026-11-03 起；显式给则优先。
+#                    改因：PPU 四臂实测显示「显存只由 GPU_MEM_UTIL 决定」，压它只掉吞吐 5.1~13.1%）
+#                    generate 形态默认不传
 #   EAGER           1=加 --enforce-eager（默认 1）；0=启用图捕获
 #                   （P800 实测：去掉 eager 反而更慢 p50 132ms，故默认保留）
 #   DC_OUT_DIR      日志与 pid 目录（默认 /tmp/dc_serve）
@@ -342,23 +344,35 @@ ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
 # ⚠️ 分芯片给默认值（不当"一刀切"）：
 #    ascend 0.4 = memory 方向 910C 实测值；kunlun 0.25 = 本方向 09-20 P800 共享机实测建议；
 #    cambricon / ppu **未实测** ⇒ 暂按 0.4 平移并在日志里显式告警（不静默）。
+#    ⭐ **PPU 已于 2026-11-03 实测（不再是"未实测"）**：宿主 ppu-smi 2 s 外部采样
+#       gmu 0.9 → 峰值 88,517 MB = **90.0%**；gmu 0.4 → **39,341 MB = 40.0%**；两臂 verdict 均
+#       `SERVE_STANDARD_PASS (ready=1 smoke=1)` ⇒ 「显存由 gmu 决定」在 PPU 上同样成立。
 # ⚠️ 910C 上的 A/B（0.4 vs 0.9 + 运行期 HBM 峰值 + 同卡共存判据）仍在排期 ⇒
-#    ascend 分支属「已落地、待本方向实测背书」；P800 分支已有 0.25 的既有实测依据。
+#    ascend 分支属「已落地、待本方向实测背书」；P800 / PPU 两支已有本方向实测依据。
 if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
   case "$BACKEND" in
     ascend)    GPU_MEM_UTIL=0.4   # memory 方向 910C 实测（同卡同模型）：0.4 与 0.9 吞吐无差，HBM 91%→43%
                ;;
     kunlun)    GPU_MEM_UTIL=0.25  # 本方向 2026-09-20 P800 共享机实测建议值（97 GiB 卡；与他人共卡）
                ;;
-    *)         GPU_MEM_UTIL=0.4   # cambricon / ppu：**未实测**，按 910C 实测值平移取保守值
+    ppu)       GPU_MEM_UTIL=0.4   # 本方向 2026-11-03 PPU 实测：0.9→90.0% / 0.4→40.0%，两臂均 PASS
+               ;;
+    *)         GPU_MEM_UTIL=0.4   # cambricon：**未实测**，按 910C 实测值平移取保守值
                echo "  [gmu][WARN] $BACKEND 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL"
                ;;
   esac
   echo "  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ $BACKEND 默认 $GPU_MEM_UTIL（可 GPU_MEM_UTIL=<x> 覆盖）"
 fi
+# ⭐ **2026-11-03 改：embed 形态默认不再强行设 max_num_seqs**（对 memory 建议 #1 的「部分不采纳」）
+#    依据＝PPU 四臂单变量实测（同机同时段、v2 镜像、区分度与 verdict 全部相同 0.4118 / 10-of-10）：
+#      gmu 0.9 + seqs 256 → 115.51 句/s ｜ gmu 0.9 + 128 → 102.13 ｜ gmu 0.4 + 128 → 105.79 ｜ gmu 0.4 + 256 → 111.21
+#    ⇒ ① **显存由 gmu 决定的杠杆**（90.0% → 40.0%），与 seqs 无关；
+#      ② **吞吐主要由并发上限决定**：同为 gmu 0.4 时 128→256 是 +5.1%，gmu 0.9 时 +13.1%；
+#      ③ gmu 0.4 下 vLLM 自报 `Maximum concurrency for 4096 tokens: 84.45x` > 128 ⇒ 128 **确实在卡并发**。
+#    ⇒ 既然降显存的目的已由 gmu 达成，再压 seqs 只会掉吞吐 ⇒ 默认**不传**（= vLLM 默认 256），
+#       需要限流时显式 `MAX_NUM_SEQS=<n>`。
 if [ -z "$MAX_NUM_SEQS" ] && [ "$SKIP_EXTRA" = "0" ]; then
-  MAX_NUM_SEQS=128
-  echo "  [max_num_seqs] embed 形态未显式给 ⇒ 采用建议默认 128（可 MAX_NUM_SEQS=<n> 覆盖；HBM 峰值几乎不随它变化）"
+  echo "  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>"
 fi
 [ -n "$GPU_MEM_UTIL" ] && ARGS+=( --gpu-memory-utilization "$GPU_MEM_UTIL" )
 [ -n "$MAX_NUM_SEQS" ] && ARGS+=( --max-num-seqs "$MAX_NUM_SEQS" )

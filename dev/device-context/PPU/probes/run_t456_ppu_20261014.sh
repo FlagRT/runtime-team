@@ -16,8 +16,13 @@ PY=/usr/local/bin/python3
 #    现改为**按 run-id 分目录**：新批次落在 $HO/<runid>/，历史批次永久保留。
 RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
 HO=$HO/$RUNID
+# ⚠️ **2026-11-03 修**：同上（run_t3 同族）——`DC_OUT_DIR=$O` 用的是**没拼 runid 的容器路径**
+#    ⇒ 每轮产物都写进同一扁平目录、被下一轮覆盖，而外层判据 grep 的是 `$HO/<runid>/*.log`。
+#    写与读必须同一路径：O 也要拼 runid。
+O=$O/$RUNID
 mkdir -p "$HO"
-echo "证据目录（本轮）: $HO"
+echo "证据目录（本轮，宿主观角）: $HO"
+echo "证据目录（本轮，容器视角）: $O"
 echo "===== 前置：确认无服务残留并显示用卡 ====="
 docker exec "$C" bash -lc 'ps -eo pid,cmd | grep -E "[v]llm|[s]erve_standard" | wc -l'
 docker exec "$C" bash -lc "CUDA_VISIBLE_DEVICES=$DEV $PY -c \"import torch;f,t=torch.cuda.mem_get_info(0);print('dev free=%.1f GiB / total %.1f'%(f/2**30,t/2**30))\""
