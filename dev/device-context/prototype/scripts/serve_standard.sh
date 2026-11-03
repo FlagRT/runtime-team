@@ -87,7 +87,9 @@
 #                   / cambricon→MLU_VISIBLE_DEVICES）
 #   TP              tensor parallel（1）
 #   MAX_MODEL_LEN   （4096）
-#   GPU_MEM_UTIL    （留空则不传；P800 实测共享机建议 0.25）
+#   GPU_MEM_UTIL    （embed 形态默认 **0.4**〔memory 方向建议，2026-11-03 起〕；显式给则优先。
+#                    generate 形态默认留空=不传。独占卡生产建议 0.9 —— dev/memory/STATUS.md 建议 #4）
+#   MAX_NUM_SEQS    （embed 形态默认 **128**〔同上〕；显式给则优先；generate 形态默认不传）
 #   EAGER           1=加 --enforce-eager（默认 1）；0=启用图捕获
 #                   （P800 实测：去掉 eager 反而更慢 p50 132ms，故默认保留）
 #   DC_OUT_DIR      日志与 pid 目录（默认 /tmp/dc_serve）
@@ -114,6 +116,7 @@ PORT=${PORT:-8100}
 TP=${TP:-1}
 MAX_MODEL_LEN=${MAX_MODEL_LEN:-4096}
 GPU_MEM_UTIL=${GPU_MEM_UTIL:-}
+MAX_NUM_SEQS=${MAX_NUM_SEQS:-}
 EAGER=${EAGER:-1}
 DEV=${DEV:-}
 DC_OUT_DIR=${DC_OUT_DIR:-/tmp/dc_serve}
@@ -329,7 +332,29 @@ ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
        --max-model-len "$MAX_MODEL_LEN" --tensor-parallel-size "$TP" )
 # embedding 服务形态（三实例同口径）：--runner pooling --convert embed
 [ "$SKIP_EXTRA" = "0" ] && ARGS+=( --runner pooling --convert embed )
+
+# ── 显存参数 · 按 memory 方向实测建议落地（2026-11-03，见 dev/memory/STATUS.md 建议 #1/#4）──
+# 依据（910C 64G 单卡实测，2026-09-10/11 与 09-23，dev/memory/docs/goals/proto-910c-202609/
+#   design_显存池定义_910c.md §6）：embedding 的 KV 池是**纯余量**（pooling runner 永不使用），
+#   gmu 0.9 会把单卡 HBM 顶到 ~90%（55.15/61.27 GiB，我方 10-08 归档同读数）而吞吐与 0.4 无差。
+#   ⚠️ PPU 同口径 84.95/96 GiB ≈ 88%；P800 传 0.25 → 23% —— 该杠杆跨实例同向。
+# ⚠️ 显式给 GPU_MEM_UTIL / MAX_NUM_SEQS 时**一律优先用户值**（独占卡生产场景 gmu 0.9 合理，建议 #4）。
+# ⚠️ 此默认尚未逐实例 A/B 实测（910C A/B 排期中）⇒ 本行为「已落地、待实测背书」，
+#    A/B 轮（0.4 vs 0.9 + npu-smi 运行期峰值 + 同卡共存判据）完成后本注释升级为实测结论。
+if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
+  GPU_MEM_UTIL=0.4
+  echo "  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ 采用 memory 方向建议默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）"
+fi
+if [ -z "$MAX_NUM_SEQS" ] && [ "$SKIP_EXTRA" = "0" ]; then
+  MAX_NUM_SEQS=128
+  echo "  [max_num_seqs] embed 形态未显式给 ⇒ 采用建议默认 128（可 MAX_NUM_SEQS=<n> 覆盖；HBM 峰值几乎不随它变化）"
+fi
 [ -n "$GPU_MEM_UTIL" ] && ARGS+=( --gpu-memory-utilization "$GPU_MEM_UTIL" )
+[ -n "$MAX_NUM_SEQS" ] && ARGS+=( --max-num-seqs "$MAX_NUM_SEQS" )
+# ⚠️ enforce_eager 默认保留 1 —— 对 memory 建议 #1 的「部分采纳」：
+#   同意其「graph/alloc 不是显存问题」（910C 同池差 0.01 GiB）；但我们的服务验收场景
+#   「起停频繁 + 与设备上下文判据同卡共存」下启动时延是真成本（TP=2：eager 50s vs graph 95s，
+#   10-08 实测；P800 去 eager p50 反升 132ms，09-20）⇒ 默认 eager、EAGER=0 可切。
 [ "$EAGER" = "1" ] && ARGS+=( --enforce-eager )
 [ -n "${EXTRA_ARGS:-}" ] && ARGS+=( ${EXTRA_ARGS} )
 
