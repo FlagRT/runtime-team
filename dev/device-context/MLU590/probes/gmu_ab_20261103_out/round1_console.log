@@ -1,0 +1,27 @@
+--- 臂 H09: gmu=0.9 卡2 端口8105 mode=0 ---
+  起前显存=0 MiB  残留=2
+  ready@168s
+  consumer rc=0
+    [4] 语义: 同主题 0.6975 / 异主题 0.2884 / 区分度 0.4091
+    [5] 吞吐: 0.09 句/s | p50 648.3ms | max 86544.0ms
+    === SERVE_LEG_PASS | 10/10 ===
+  峰值= MiB ｜ 停机后=2 个残留进程 ｜ 释放后显存=0 MiB
+--- 臂 L04: gmu=0.4 卡2 端口8105 mode=0 ---
+  起前显存=0 MiB  残留=2
+  ready@171s
+  consumer rc=0
+    [4] 语义: 同主题 0.6975 / 异主题 0.2884 / 区分度 0.4091
+    [5] 吞吐: 0.13 句/s | p50 656.5ms | max 73575.5ms
+    === SERVE_LEG_PASS | 10/10 ===
+  峰值= MiB ｜ 停机后=2 个残留进程 ｜ 释放后显存=0 MiB
+=== 最终默认（不传 gmu，走脚本 cambricon 分支）===
+--- 臂 DEF: gmu=<不传=脚本默认> 卡2 端口8105 mode=1 ---
+  起前显存=0 MiB  残留=2
+  ready@171s
+  峰值= MiB ｜ 停机后=2 个残留进程 ｜ 释放后显存=0 MiB
+  [gmu][WARN] cambricon 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL
+  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ cambricon 默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）
+  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>
+=== 汇总（卡2 98304 MiB）===
+H09   峰值=         MiB  
+L04   峰值=         MiB  
