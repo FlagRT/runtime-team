@@ -1,6 +1,6 @@
 # 【问题反馈】PPU 栈：`torch.cuda.Stream` 的 `weakref` 在解释器退出期触发段错误（可最小复现）
 
-> 提交方：FlagOS 运行时层（device-context 方向） ｜ 日期：**2026-10-26** ｜ 状态：**平台侧复现，我方已自保**
+> 提交方：FlagOS 运行时层（device-context 方向） ｜ 日期：**2026-10-26**（**11-03 补上游同源先例，见 §九**） ｜ 状态：**平台侧复现，我方已自保**
 > 我方内部取证全文：`PPU_EXIT_SEGV_CARRIER5_20261026.md` · `PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`
 
 ## 一、一句话
@@ -112,3 +112,23 @@ RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0   RIP_OFFSET=0x2569de
 | `t11_segv_handler.c` | 我们的 `LD_PRELOAD` 段错误采集器源码（可自行编译复采） |
 
 （附件均位于 `dev/device-context/PPU/probes/s06_exit_segv_20261026_out/`）
+
+## 九、⭐ 上游同源先例（2026-11-03 检索补充——本缺陷**非 PPU 独有**，是 PyTorch 2.8+ 已知缺陷模式）
+
+**同一机制的已知案例：昇腾 torch_npu 踩过一模一样的坑，且已修复。**
+
+| 项 | 内容 |
+|---|---|
+| 缺陷模式 | PyTorch **2.8** 起官方为 `Stream`/`Event` 父类（`THPStream`/`THPEvent`）加了 **weakref 支持**并在析构里调 `PyObject_ClearWeakRefs()`；但**各硬件后端子类覆写 `tp_dealloc()` 时未显式调用父类清理**（CPython 对静态类型**不会链式调用父类析构**）⇒ 弱引用未清理、`wr_object` 悬空指向已释放内存 ⇒ 退出期段错误 |
+| 上游出处 | PyTorch 官方缺陷 **PR #183403**（昇腾侧复现分析所引）；触发面之一即 `torch._dynamo` 的 `index_to_external_object_weakref` 登记表——**与我方「登记表+弱引用」触发形态同构** |
+| 昇腾修复 | **Ascend/pytorch PR #41596**（gitcode.com/Ascend/pytorch/pull/41596）：子类 `tp_dealloc()` 中**显式调用父类弱引用清理**；配套回归测试 `test/dynamo/test_stream.py`（`_assert_weakref_callback_fires`，断言 weakref 回调必须触发——注释明确指出"`weakref.ref(s)() is None` 可能在缺陷存在时仍返回 True，回调触发才是可靠信号"） |
+| 与本报告的对应 | ① 触发条件同构：**Stream 子类对象 + 挂 weakref + 对象被回收**（我方 §四.1 判别矩阵三必要条件）；② 崩溃点同族：`_PyWeakref_ClearRef` / `_PyModule_ClearDict`（我方 §四 两处签名）；③ torch_npu 侧实测组合也是 **torch 2.10.x**（我方环境同为 2.10.0） |
+| ⚠️ 差异待厂商确认 | 昇腾案例触发路径含 dynamo 登记表；我方最小复现**仅 `weakref.ref(stream)` 即可**（不含 dynamo）⇒ PPU 侧覆盖面可能**更宽**（任何挂弱引用的下游都受影响），也可能 PPU 栈版本不同 —— 请厂商按 §六 三点确认 |
+
+**给厂商的建议查起点**：PPU 兼容层的 `Stream`/`Event` Python 包装（`THPStream` 子类）的 `tp_dealloc` 是否调用了
+父类 `PyObject_ClearWeakRefs` —— 与昇腾修法对照即可定位。若确认同因，修法可直接参考 PR #41596。
+
+**对我方材料的自评（诚实声明）**：本报告的复现与判别矩阵**独立于该先例完成**（10-26 取证时未检索到），
+机制推断（§四「弱引用书签不可信」）与昇腾根因分析**一致**——这既是交叉印证，也说明我方"平台侧缺陷"的定性**成立**；
+唯一需修正的预期是：**该缺陷大概率不是 PPU 独有实现错误，而是"PyTorch 2.8 改父类 + 各后端子类没跟上"的生态共性问题**，
+PPU 兼容层属于"未跟上的后端"之一（CUDA 官方实现是否也有此问题，以 PyTorch PR #183403 为准）。
