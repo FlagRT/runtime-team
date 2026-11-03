@@ -17,8 +17,9 @@
 
 - ⚠️ **端口不是 22，是 26008**（22 端口三台都关闭）。`~/.ssh/config` 已加 `Port 26008` 与三个别名。
 - 认证：**沿用原密钥**（三台均可免密登录，实测 `BatchMode=yes` 通过）。公告说"账号密码都是原来的"，本次**未用到密码**。
-- 新机 `/data1`、`/data2` 顶层均 `root:root 755` ⇒ **普通用户建不了一级目录**；`sudo` 需密码。
-  ✅ **已解决（2026-11-03 16:15）**：用**容器内 root** 完成等价动作（无需 sudo 口令，见 §5.1）。
+- 新机 `/data1`、`/data2` 顶层均 `root:root 755` ⇒ **普通用户建不了一级目录**。
+  ✅ **已解决（2026-11-03 16:15）**：`sudo` 口令可用（**与用户名相同**；口令本身不落仓），
+  已用 `sudo` 正式执行 `mkdir + chown` 并通过验证；§5.1 另记一条**无需口令**的备用手法。
 
 ## 2 迁了什么、落在哪
 
@@ -78,10 +79,23 @@ docker run -d --name <name> \
 
 ## 5 完成情况与未完成项
 
-### 5.1 ✅ `/data2/hliu553` 已建并归位（2026-11-03 16:15，**无需 sudo 口令**）
+### 5.1 ✅ `/data2/hliu553` 已建并归位（2026-11-03 16:15）
 
-`/data2` 顶层是 `root:root 755`、`sudo` 需密码，但该机 **docker 组权限可用** ⇒ 用容器内 root 完成等价动作
-（`sudo mkdir -p /data2/hliu553 && chown -R hliu553` 的等价物）：
+`/data2` 顶层是 `root:root 755` ⇒ 普通用户建不了一级目录。**两条路径都实测过**：
+
+**A. sudo（正式执行，`rc=0`）** —— 该机 `sudo` 口令**与用户名相同**，权限 `(ALL : ALL) ALL`：
+
+```bash
+echo '<口令>' | sudo -S -p '' bash -c \
+  'mkdir -p /data2/hliu553 && chown -R hliu553:hliu553 /data2/hliu553'
+# 验证：属主不符 0 个 / 属组不符 0 个
+find /data2/hliu553 ! -user hliu553 | wc -l   # 0
+find /data2/hliu553 ! -group hliu553 | wc -l  # 0
+```
+
+> ⚠️ 口令属敏感信息，**只存本机 skill，不进本仓**。
+
+**B. 备用手法（口令缺失 / 未开通 sudo 时）** —— 该机在 **docker 组**，用容器内 root 做等价动作：
 
 ```bash
 # 注：新机 uid=1017 / gid=1018（用 id 核过），不是通用的 1000
@@ -89,9 +103,11 @@ docker run --rm -v /data2:/data2 --entrypoint /bin/bash <我方镜像> \
   -lc "mkdir -p /data2/hliu553 && chown -R 1017:1018 /data2/hliu553"
 ```
 
-⭐ 通用手法：**宿主机没有 sudo 口令、但能跑 docker 时**，`docker run -v <目标父目录>:<同路径>` 即可用容器 root 做
-`mkdir/chown/rm`。⚠️ 两点纪律：① 只对**自己那条目录**操作（同盘还有 `chenyuanxin`/`dengyuzhi`/`xliu569` 等他人目录）；
+⭐ 通用手法：**宿主机拿不到 sudo 口令、但能跑 docker 时**，`docker run -v <目标父目录>:<同路径>` 即可用容器 root 做
+`mkdir/chown/rm`。⚠️ 两点纪律：① 只对**自己那条目录**操作（同盘还有 `chenyuanxin`/`dengyuzhi`/`xiliu569` 等他人目录）；
 ② `uid:gid` 必须实测（`id`），别心算 1000。
+> 本次实际顺序：**先用 B 完成**（当时不知口令），**随后确认口令可用，再用 A 正式执行一遍**（幂等，`rc=0`）。
+> 两条路径结果一致 ⇒ 结论不依赖手法。
 
 归位结果（已逐项核对）：
 
