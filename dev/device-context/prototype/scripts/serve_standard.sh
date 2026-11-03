@@ -339,11 +339,22 @@ ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
 #   gmu 0.9 会把单卡 HBM 顶到 ~90%（55.15/61.27 GiB，我方 10-08 归档同读数）而吞吐与 0.4 无差。
 #   ⚠️ PPU 同口径 84.95/96 GiB ≈ 88%；P800 传 0.25 → 23% —— 该杠杆跨实例同向。
 # ⚠️ 显式给 GPU_MEM_UTIL / MAX_NUM_SEQS 时**一律优先用户值**（独占卡生产场景 gmu 0.9 合理，建议 #4）。
-# ⚠️ 此默认尚未逐实例 A/B 实测（910C A/B 排期中）⇒ 本行为「已落地、待实测背书」，
-#    A/B 轮（0.4 vs 0.9 + npu-smi 运行期峰值 + 同卡共存判据）完成后本注释升级为实测结论。
+# ⚠️ 分芯片给默认值（不当"一刀切"）：
+#    ascend 0.4 = memory 方向 910C 实测值；kunlun 0.25 = 本方向 09-20 P800 共享机实测建议；
+#    cambricon / ppu **未实测** ⇒ 暂按 0.4 平移并在日志里显式告警（不静默）。
+# ⚠️ 910C 上的 A/B（0.4 vs 0.9 + 运行期 HBM 峰值 + 同卡共存判据）仍在排期 ⇒
+#    ascend 分支属「已落地、待本方向实测背书」；P800 分支已有 0.25 的既有实测依据。
 if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
-  GPU_MEM_UTIL=0.4
-  echo "  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ 采用 memory 方向建议默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）"
+  case "$BACKEND" in
+    ascend)    GPU_MEM_UTIL=0.4   # memory 方向 910C 实测（同卡同模型）：0.4 与 0.9 吞吐无差，HBM 91%→43%
+               ;;
+    kunlun)    GPU_MEM_UTIL=0.25  # 本方向 2026-09-20 P800 共享机实测建议值（97 GiB 卡；与他人共卡）
+               ;;
+    *)         GPU_MEM_UTIL=0.4   # cambricon / ppu：**未实测**，按 910C 实测值平移取保守值
+               echo "  [gmu][WARN] $BACKEND 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL"
+               ;;
+  esac
+  echo "  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ $BACKEND 默认 $GPU_MEM_UTIL（可 GPU_MEM_UTIL=<x> 覆盖）"
 fi
 if [ -z "$MAX_NUM_SEQS" ] && [ "$SKIP_EXTRA" = "0" ]; then
   MAX_NUM_SEQS=128
