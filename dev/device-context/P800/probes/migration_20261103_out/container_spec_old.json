@@ -1,0 +1,270 @@
+[
+    {
+        "Id": "e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4",
+        "Created": "2026-09-14T02:05:29.824813436Z",
+        "Path": "/bin/bash",
+        "Args": [],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 137,
+            "Error": "",
+            "StartedAt": "2026-11-03T02:09:55.250101245Z",
+            "FinishedAt": "2026-11-03T06:35:57.553552047Z"
+        },
+        "Image": "sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975",
+        "ResolvConfPath": "/data2/docker/containers/e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4/resolv.conf",
+        "HostnamePath": "/data2/docker/containers/e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4/hostname",
+        "HostsPath": "/data2/docker/containers/e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4/hosts",
+        "LogPath": "/data2/docker/containers/e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4/e61057e3a4d5180c0b82bf93933a823e405010dc536dc37def9e7dba889be2b4-json.log",
+        "Name": "/hliu553-device-context-p800",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/data2/hliu553:/workspace",
+                "/data1/dinghaisong/hf_cache:/hf_cache:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 68719476736,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [
+                {
+                    "PathOnHost": "/dev/xpu0",
+                    "PathInContainer": "/dev/xpu0",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu1",
+                    "PathInContainer": "/dev/xpu1",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu2",
+                    "PathInContainer": "/dev/xpu2",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu3",
+                    "PathInContainer": "/dev/xpu3",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu4",
+                    "PathInContainer": "/dev/xpu4",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu5",
+                    "PathInContainer": "/dev/xpu5",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu6",
+                    "PathInContainer": "/dev/xpu6",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpu7",
+                    "PathInContainer": "/dev/xpu7",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/xpuctrl",
+                    "PathInContainer": "/dev/xpuctrl",
+                    "CgroupPermissions": "rwm"
+                },
+                {
+                    "PathOnHost": "/dev/fuse",
+                    "PathInContainer": "/dev/fuse",
+                    "CgroupPermissions": "rwm"
+                }
+            ],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/data1/dinghaisong/hf_cache",
+                "Destination": "/hf_cache",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/data2/hliu553",
+                "Destination": "/workspace",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "e61057e3a4d5",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "Tty": true,
+            "OpenStdin": true,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/root/.cargo/bin:/usr/local/go/bin:/usr/local/cuda-12.8/bin:/root/miniconda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "TZ=Asia/Shanghai",
+                "LANG=zh_CN.UTF-8",
+                "CONDA_DEFAULT_ENV=python310_torch29_cuda"
+            ],
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "Image": "flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608",
+            "Volumes": null,
+            "WorkingDir": "/workspace",
+            "Entrypoint": null,
+            "Labels": {
+                "description": "xvllm_ubuntu2204_torch29 环境",
+                "maintainer": "huangyun <huangyun07@kunlunxin.com>",
+                "org.opencontainers.image.ref.name": "ubuntu",
+                "org.opencontainers.image.version": "22.04",
+                "version": "xvllm_ubuntu2204_torch29:dev_0.1"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "d68428c7c6c20ad025e44ffc8b5462bb43f7f27ad91f5b3ba77b4f999032f354",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:cd53efa40eb7ddc49c2ad76a9bfbd252572c5fb01bd10d02cffbf667c34a1975",
+            "size": 6138,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]
