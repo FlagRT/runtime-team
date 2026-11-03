@@ -438,6 +438,8 @@ python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
 
 | 24 | ⭐⭐ **驱动侧的两种「假 FAIL」：把被测脚本提前杀掉 / 代码路径拼错** | MLU590 实测（2026-11-03）同一轮各踩一次：① `serve_standard.sh` 在 `STOP_AFTER=1` 下会**自己**做 ready+smoke 再打 verdict，我的外层驱动在它自查完成前就 `pkill` ⇒ 拿到 `SERVE_STANDARD_FAIL (ready=0 smoke=0)`，而**同一服务在我自己的就绪轮询里是 HTTP 200**；② 单入口脚本把 `P`（代码副本）拼在了 run-id 目录下（`$WC/dev/...` 而 `WC` 已含 `acceptance_2026XXXX`）⇒ `cd` 失败 ⇒ **9 段全部 rc=1 且日志文件为空** | ① **自证型脚本必须等它自己出 verdict 再停**：驱动侧 `hard_stop` 只能在日志里 `grep` 到 verdict 之后调；② **基目录 / run-id 目录 / 代码副本**三者分开声明，开头各打印一行自证；③ 见到「整轮所有段同时 rc=1 且日志 0 字节」⇒ **先查 `cd` 的目标是否存在**，不要怀疑被测对象；④ **假 FAIL 与假 PASS 一样危险**：它会让你去改一个本来没坏的东西 |
 
+| 25 | ⭐⭐ **`--privileged` 下挂载白名单不生效 ⇒ 容器内设备索引是「物理索引」，不是「挂载后 0 基」；且 `npu-smi` 的 HBM 读数有 10~20 s 滞后** | 910C 实测（2026-11-03）：只挂 `--device /dev/davinci6` 的 privileged 容器内可见 **16 个** `/dev/davinci*`；设 `ASCEND_RT_VISIBLE_DEVICES=0` 分配 2 GiB ⇒ **物理 die0** 的 HBM 上涨 2,113 MB（不是 die6）。另一处：分配后立刻读 `npu-smi` 仍是基线、进程已退出后 HBM 仍高位停留十几秒 | ① privileged 容器**按物理 die 号选卡**，别用「0 基」心算；② 选卡后必须用「分配前后 HBM 差值」**实证**落在哪张 die（尤其共享机上，落错会占别人的卡）；③ 采运行期峰值要在服务稳定 **≥25 s** 后再采，释放判据要等 **≥22 s** 再读；④ 把 `npu-smi`/`cnmon` 输出重定向进 JSON 时，注意镜像可能每次打印一行提示（如 `can not use command: npu-smi info`）⇒ 解析端要「找第一个 `{`」容错 |
+
 ### 已知厂商缺陷的结构化声明（模板）
 
 接入过程中遇到厂商缺陷时，按这个结构写进 `known_issues()`，让下游"读到后端即知坑"：

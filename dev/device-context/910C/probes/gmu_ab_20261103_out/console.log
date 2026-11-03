@@ -1,0 +1,44 @@
+############################################################
+# 910C gmu 对照  2026-11-03 14:15:11  卡=die4 端口=8110
+############################################################
+起前 die4 显存=3130 MB
+--- H09: gmu=0.9 STOP_AFTER=0 ---
+  清场后基线=3130 MB
+can not use command: npu-smi info
+  ready@15s
+  采样 60 s（3 s 间隔）…
+  运行期峰值=59811 MB（91.3%）
+  预热（丢弃）…
+  计时轮…
+    吞吐: 41.72 句/s | p50 72.1ms | max 74.6ms
+    区分度 0.4123 SERVE_LEG_PASS | 10/10 
+  同卡共存 smoke rc=0 → 52 通过 / 0 失败
+  停机后 die4=3130 MB（应回落至基线附近）
+--- D04: gmu=<不传=脚本默认> STOP_AFTER=0 ---
+  清场后基线=3130 MB
+can not use command: npu-smi info
+  ready@9s
+  采样 60 s（3 s 间隔）…
+  运行期峰值=28452 MB（43.4%）
+  预热（丢弃）…
+  计时轮…
+    吞吐: 40.65 句/s | p50 72.8ms | max 78.8ms
+    区分度 0.4123 SERVE_LEG_PASS | 10/10 
+  同卡共存 smoke rc=0 → 52 通过 / 0 失败
+  停机后 die4=3129 MB（应回落至基线附近）
+=== 默认值端到端（STOP_AFTER=1）===
+--- D1: gmu=<不传=脚本默认> STOP_AFTER=1 ---
+  清场后基线=3130 MB
+can not use command: npu-smi info
+  ready@9s
+  采样 60 s（3 s 间隔）…
+  运行期峰值=3188 MB（4.9%）
+can not use command: npu-smi info
+  verdict 已出
+  停机后 die4=3130 MB（应回落至基线附近）
+  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ ascend 默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）
+  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=== 汇总（die4，65536 MB）===
+H09  峰值=59811   MB  吞吐: 41.72 句/s  | 区分度 0.4123  | SERVE_LEG_PASS | 10/10
+D04  峰值=28452   MB  吞吐: 40.65 句/s  | 区分度 0.4123  | SERVE_LEG_PASS | 10/10

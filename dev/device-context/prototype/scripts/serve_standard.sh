@@ -347,8 +347,12 @@ ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
 #    ⭐ **PPU 已于 2026-11-03 实测（不再是"未实测"）**：宿主 ppu-smi 2 s 外部采样
 #       gmu 0.9 → 峰值 88,517 MB = **90.0%**；gmu 0.4 → **39,341 MB = 40.0%**；两臂 verdict 均
 #       `SERVE_STANDARD_PASS (ready=1 smoke=1)` ⇒ 「显存由 gmu 决定」在 PPU 上同样成立。
-# ⚠️ 910C 上的 A/B（0.4 vs 0.9 + 运行期 HBM 峰值 + 同卡共存判据）仍在排期 ⇒
-#    ascend 分支属「已落地、待本方向实测背书」；P800 / PPU 两支已有本方向实测依据。
+# ✅ **910C 已于 2026-11-03 完成 A/B 背书**（宿主 npu-smi 外部采样，die4）：
+#      gmu 0.9 → 运行期峰值 59,811 MB = **91.3%**（余量仅 5.7 GB）；gmu 0.4 → **28,452 MB = 43.4%**；
+#      两臂吞吐 41.72 / 40.65 句/s（−2.6%，p50 同档）、区分度均 0.4123、消费方腿均 10/10，
+#      **同卡共存判据（服务占用同 die 时跑设备上下文 smoke）两臂均 52 通过 / 0 失败**。
+#    ⇒ ascend / kunlun / ppu / cambricon 四支现在**各自都有本方向实测依据**。
+#    ⚠️ 选卡注意：`--privileged` 容器内 `ASCEND_RT_VISIBLE_DEVICES` 指**物理 die 号**（手册坑 25）。
 if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
   case "$BACKEND" in
     ascend)    GPU_MEM_UTIL=0.4   # memory 方向 910C 实测（同卡同模型）：0.4 与 0.9 吞吐无差，HBM 91%→43%
