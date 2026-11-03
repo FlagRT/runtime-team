@@ -3,8 +3,9 @@
 > 触发：组内公告 —— 昆仑芯**新增两台服务器**，原 `43.180.254.67:26008`（VM-0-2-ubuntu）**2026-11-07 到期**，
 > 到期后原机清理释放。本文件记录「搬了什么、搬到哪、还差什么、怎么复核」。
 >
-> 结论先行：**数据与模型已迁至新机，并在新机上跑通推理腿（`INFER_LEG_PASS 13/13`、区分度 `0.6392` 与老机归档逐字一致）**；
-> 仍有两件需要有权限的人配合（§5）：`/data2/hliu553` 目录创建、以及新机**卡 1/卡 2 分配挂死**的排查。
+> 结论先行：**数据与模型已迁至新机 `/data2/hliu553`（与老机同路径），新机端到端复验通过**
+> （离线判据 `43/0/1`、推理腿 `INFER_LEG_PASS 13/13`、区分度 `0.6392` 与老机归档逐字一致）。
+> ⚠️ 仅余一件需外部配合：新机**卡 1/卡 2 分配显存挂死**的排查/报厂商（§5）。
 
 ## 1 服务器与凭据（脱敏记录）
 
@@ -16,20 +17,22 @@
 
 - ⚠️ **端口不是 22，是 26008**（22 端口三台都关闭）。`~/.ssh/config` 已加 `Port 26008` 与三个别名。
 - 认证：**沿用原密钥**（三台均可免密登录，实测 `BatchMode=yes` 通过）。公告说"账号密码都是原来的"，本次**未用到密码**。
-- 新机 `/data1`、`/data2` 顶层均 `root:root 755` ⇒ **普通用户建不了一级目录**；`sudo` 需密码（我没有）。
+- 新机 `/data1`、`/data2` 顶层均 `root:root 755` ⇒ **普通用户建不了一级目录**；`sudo` 需密码。
+  ✅ **已解决（2026-11-03 16:15）**：用**容器内 root** 完成等价动作（无需 sudo 口令，见 §5.1）。
 
 ## 2 迁了什么、落在哪
 
 新机路径（`P800-new1`）：
 
 ```
-$HOME/p800-migrate-20261103/
-└── data2_hliu553/          # 老机 /data2/hliu553 的完整副本（1.2 G / 1337 文件）
-    ├── prototype/          # 原型代码副本（1286 个原文件之一部分）
-    ├── dc_*/  out_*/ ...   # 历次验收/复跑的证据目录
-    └── models/
-        └── Qwen3-Embedding-0.6B/   # 11 个文件、1.2 GiB（**普通目录形态**，可直接作 DC_MODEL）
+/data2/hliu553/             # ← 与老机**同名同路径**（2026-11-03 归位完成，5.1 TiB 可用盘）
+├── prototype/              # 原型代码副本
+├── dc_*/  out_*/ ...       # 历次验收/复跑的证据目录
+└── models/
+    └── Qwen3-Embedding-0.6B/   # 11 个文件、1.2 GiB（**普通目录形态**，可直接作 DC_MODEL）
 ```
+
+> 迁移中转站 `$HOME/p800-migrate-20261103/` 已清空（`/` 盘当时只剩 15 GB，不宜久留）。
 
 | 资产 | 老机位置 | 新机处理 | 校验 |
 |---|---|---|---|
@@ -54,7 +57,7 @@ docker run -d --name <name> \
   --device /dev/xpu0 … /dev/xpu7 \
   --device /dev/xpuctrl --device /dev/fuse \      # ← 关键：缺 xpuctrl 会 torch.cuda.is_available()==False
   --shm-size=64g \
-  -v $HOME/p800-migrate-20261103/data2_hliu553:/workspace \
+  -v /data2/hliu553:/workspace \
   <镜像> sleep infinity
 ```
 
@@ -73,25 +76,40 @@ docker run -d --name <name> \
 
 证据：`probes/migration_20261103_out/new1_infer_leg_result.json`。
 
-## 5 ⚠️ 未完成项（需有权限的人配合）
+## 5 完成情况与未完成项
 
-### 5.1 `/data2/hliu553` 建不了（需管理员）
+### 5.1 ✅ `/data2/hliu553` 已建并归位（2026-11-03 16:15，**无需 sudo 口令**）
 
-新机 `/data1`、`/data2` 是 `root:root 755`，`sudo` 需密码 ⇒ 数据暂落 `$HOME/p800-migrate-20261103/data2_hliu553`（`/` 盘，15 GB 可用）。
-**请管理员执行**（或给我 sudo）：
-
-```bash
-sudo mkdir -p /data2/hliu553 && sudo chown -R hliu553:hliu553 /data2/hliu553
-```
-
-之后一条命令归位（不改变内容，只换位置）：
+`/data2` 顶层是 `root:root 755`、`sudo` 需密码，但该机 **docker 组权限可用** ⇒ 用容器内 root 完成等价动作
+（`sudo mkdir -p /data2/hliu553 && chown -R hliu553` 的等价物）：
 
 ```bash
-mv $HOME/p800-migrate-20261103/data2_hliu553/* /data2/hliu553/ && rmdir $HOME/p800-migrate-20261103/data2_hliu553
+# 注：新机 uid=1017 / gid=1018（用 id 核过），不是通用的 1000
+docker run --rm -v /data2:/data2 --entrypoint /bin/bash <我方镜像> \
+  -lc "mkdir -p /data2/hliu553 && chown -R 1017:1018 /data2/hliu553"
 ```
 
-⚠️ 归位后所有脚本的挂载要从 `-v $HOME/p800-migrate-20261103/data2_hliu553:/workspace`
-改成 `-v /data2/hliu553:/workspace`（与老机一致）。
+⭐ 通用手法：**宿主机没有 sudo 口令、但能跑 docker 时**，`docker run -v <目标父目录>:<同路径>` 即可用容器 root 做
+`mkdir/chown/rm`。⚠️ 两点纪律：① 只对**自己那条目录**操作（同盘还有 `chenyuanxin`/`dengyuzhi`/`xliu569` 等他人目录）；
+② `uid:gid` 必须实测（`id`），别心算 1000。
+
+归位结果（已逐项核对）：
+
+| 项 | 读数 |
+|---|---|
+| 目录属主 | `hliu553:hliu553`（`drwxr-xr-x 1017 1018`），本人 `touch` 写入实测通过 |
+| 文件数 / 字节数 | **1337 = 1337** / **1,221,715,797 = 1,221,715,797**（rsync 后核对，再删中转副本） |
+| 模型权重 sha256 | `0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd`（与老机/910C/MLU590 逐字节相同） |
+| 容器挂载 | 已重建为 `-v /data2/hliu553:/workspace`（**与老机一致**） |
+| 中转目录 | `$HOME/p800-migrate-20261103/` 已清空（其中 root 属主残留同样用容器 root 清） |
+
+### 5.1b 归位后的端到端复验（同一容器、同一镜像）
+
+| 判据 | 读数 |
+|---|---|
+| 离线自检（kunlun） | **43 通过 / 0 失败 / 1 跳过**（与迁移前逐项相同） |
+| 推理腿（卡 3） | **`INFER_LEG_PASS 13/13`** · dim 1024 · **52.58 句/s** · p50 55.92 ms · 区分度 **0.6392** |
+| 设备可见性 | `torch.cuda.is_available()=True` · `count=8` |
 
 ### 5.2 ⭐ 新机 **卡 1、卡 2 分配显存时挂死**（需排查/报厂商）
 
@@ -116,13 +134,16 @@ ssh P800-new1 'hostname; id -un'
 
 # 2) 数据完整性：两侧同口径文件数应相等（老机上执行）
 ssh P800-old 'find /data2/hliu553 -type f ! -path "*__pycache__*" | wc -l'      # 1286
-ssh P800-new1 'find $HOME/p800-migrate-20261103/data2_hliu553 -type f ! -path "*models*" | wc -l'
+ssh P800-new1 'find /data2/hliu553 -type f ! -path "*models*" ! -path "*out_new*" | wc -l'
 
-# 3) 模型权重指纹
-ssh P800-new1 'sha256sum $HOME/p800-migrate-20261103/data2_hliu553/models/Qwen3-Embedding-0.6B/model.safetensors'
+# 3) 目录属主（应为 hliu553:hliu553）
+ssh P800-new1 'ls -ld /data2/hliu553'
+
+# 4) 模型权重指纹
+ssh P800-new1 'sha256sum /data2/hliu553/models/Qwen3-Embedding-0.6B/model.safetensors'
 # 期望 0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd
 
-# 4) 逐卡可用性（**必须**，别只看 xpu-smi）
+# 5) 逐卡可用性（**必须**，别只看 xpu-smi）
 ssh P800-new1 'for c in 0 1 2 3; do echo -n "card$c: "; docker exec -e CUDA_VISIBLE_DEVICES=$c \
   hliu553-dc-probe-new1 bash -lc "timeout -s KILL 90 /root/miniconda/envs/python310_torch29_cuda/bin/python3 \
   -c \"import torch;x=torch.zeros(2,2,device=\\\"cuda\\\");print(float(x.sum().item()))\"" ; done'
