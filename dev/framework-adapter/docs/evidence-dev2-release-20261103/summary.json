@@ -1,0 +1,262 @@
+{
+  "date": "2026-11-03",
+  "overall": "PASS",
+  "source_commit": "6ee91294e7ab028f2e804225482f58d24c8ccd5a",
+  "version": "0.3.0.dev2",
+  "scope": "CPU build/install/controls and historical payload identity; no new accelerator runs",
+  "builds": [
+    {
+      "package_controls": 100,
+      "wheel_sha256": "63edc3a232e9b47137fb6f627b2785a331276227d17f27ad91addb8959f5498d",
+      "source_sha256": {
+        "PACKAGE.md": "2358da5f816cb66520b58e43c0c982ec28611a4f49bb3c3e03b7a03007445cf5",
+        "README.md": "d62fee61b91c31ad6d9bc760ae7875e4e5f67f335b4cb2b47e5489f150a649ae",
+        "RELEASE.md": "bffa287aae1dfff6053dd6d88016076e81bc3db700800b296fd81a6737294c3b",
+        "demo/native_cpu.py": "cc250b2e2c2a08ab3d4d3f40ce008882649a14dae3c170a969bb01326df97816",
+        "demo/training-configs/README.md": "3662c1a1fa0318853fd26958834b9bacb526db430dd5fb437005f7514ea010d7",
+        "demo/training-configs/off.json": "2dc7fb5ca4b073271830addacf9e4dfc52530d65edf7073bbb20025b2e2d9dbb",
+        "demo/training-configs/on.json": "9d86aadc7db8e8903c29c0eb8a319257dafaff106fcb5956cc6180a904246756",
+        "demo/training-configs/strict.json": "f77873eea2a5c3e82044e545c0a0fd52cc6fc686a670e19b6e0ab8d9dd591ea1",
+        "demo/training-configs/unqualified.json": "82d667a84f6e29b2ca8141f401f34e630b9397af4181bd7839ab96966ac8c008",
+        "docs/README.md": "221d7600346cbaabe85ba06dfabc5e7f31e94e8c29937061a721441d9b135c4b",
+        "docs/三通道接入方案.md": "b1f1e5c9e78bb8b8c8cdc907814421088d76ea3cb0dda4b19d2e59bb34b6e88c",
+        "docs/接入接口约定.md": "c99cd4eda476136f9c8e1a7683d7745f7fed11fd94e01db90d797dbe9438c991",
+        "docs/资格验证与审核流程.md": "307107febdfd6617d4043afe8dd490c29ddae150a5b500c33c5a6c584769c8ad",
+        "probes/_adapter_package.py": "030a0291391d36447a5a3f48d0e6b5073015bf7fe16b1dd429ee23bcf651fcbb",
+        "probes/admission_records.py": "717c1906f6c08c927730deff5630c70a3db63095e274297498c5d6adde45988d",
+        "probes/silu_policy.py": "b18bc4daf8bb51026e33b104baf42f95ae2dd1e42dd96c7eb5a3351c76f37a3f",
+        "probes/silu_training_adapter.py": "e236ab94a2b1ffd91b9d4c843502ea286100ff1468f3e7a48378db51e0dd71f0",
+        "probes/test_admission_records.py": "237db1e098a5fdb02c6f9cff037a94675bcad1b19a5c3c107ce07f6c5c31c896",
+        "probes/test_model_safety.py": "84f5d0c1703f6b4182783bb915c908dd1828d257224196fec7679539842f8a5d",
+        "probes/test_multi_operator.py": "61314ea61699cc453075add70264ea1ed20696dc95d4695b132670ba9f5b92d8",
+        "probes/test_silu_policy.py": "aaaa49bd9bb456dc7dc3260d9ccde2253bfa0bf9116f0e19489bba39031e64b9",
+        "probes/test_silu_training_adapter.py": "a2a9a79ae42ebb8f87bb5b69ba5528bff98d4e3936c6c4c24d8f845792c0aa79",
+        "probes/test_startup.py": "e30302f8f32228251720dd6b9622bfd68ad33b2c09b131888ce7c00c811d49b2",
+        "probes/test_step_guard.py": "bb82c4383e52afa911b7132352878abb8571be005181867845043f3b87a2a825",
+        "probes/test_training_config.py": "da4d645e9fdfb63e285a27e27566c0abda55bae957dca995a31e91ba6ca76be3",
+        "probes/test_workload.py": "de9ef03f54e2d48d6e1f7288132b46ba28a015a7ac82861e8a09cbf82b3ce107",
+        "pyproject.toml": "d78f784f3520b6c81bdc53d9af7e0eebc30d975968f70d427f1ed4246127ef88",
+        "src/flagrt_adapter/__init__.py": "3c803d56c065b091c2a802b90d227aba588097c98b697e7ad6fd4c4c9340fa45",
+        "src/flagrt_adapter/bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+        "src/flagrt_adapter/config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+        "src/flagrt_adapter/policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+        "src/flagrt_adapter/records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+        "src/flagrt_adapter/startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+        "src/flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+        "src/flagrt_adapter/train_cli.py": "e247449bd20781c7e42e562a2a5b8820a6fd70dfa2a121dce536f5271401a4ee",
+        "src/flagrt_adapter/training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4",
+        "src/flagrt_adapter/workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d",
+        "tools/build_local.py": "4d2d0525e6c4899e2d5aecbf2f714e8430f07438f45969f4268c6123cee5bf0a",
+        "tools/train_with_adapter.py": "c6567df0ef50299bd6975ac48836928aeb4029af4c067f1f4fa33f15a42d891b"
+      },
+      "python": "3.10.20 | packaged by conda-forge | (main, Mar  5 2026, 17:06:34) [Clang 19.1.7 ]",
+      "platform": "macOS-26.5-arm64-arm-64bit",
+      "dependencies": {
+        "torch": "2.12.0",
+        "setuptools": "81.0.0",
+        "pip": "26.1.1",
+        "wheel": "0.47.0"
+      },
+      "commands": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "install",
+          "exit_code": 0
+        },
+        {
+          "name": "import",
+          "exit_code": 0
+        },
+        {
+          "name": "test_silu_policy",
+          "exit_code": 0
+        },
+        {
+          "name": "test_silu_training_adapter",
+          "exit_code": 0
+        },
+        {
+          "name": "test_admission_records",
+          "exit_code": 0
+        },
+        {
+          "name": "test_multi_operator",
+          "exit_code": 0
+        },
+        {
+          "name": "test_training_config",
+          "exit_code": 0
+        },
+        {
+          "name": "test_startup",
+          "exit_code": 0
+        },
+        {
+          "name": "test_model_safety",
+          "exit_code": 0
+        },
+        {
+          "name": "test_step_guard",
+          "exit_code": 0
+        },
+        {
+          "name": "test_workload",
+          "exit_code": 0
+        },
+        {
+          "name": "demo",
+          "exit_code": 0
+        },
+        {
+          "name": "training-cli-help",
+          "exit_code": 0
+        },
+        {
+          "name": "training-console-help",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "package_controls": 100,
+      "wheel_sha256": "a3a52620f9808740621413b4d10ef61c63516f329117094502594f2c1e0ebc7c",
+      "source_sha256": {
+        "PACKAGE.md": "2358da5f816cb66520b58e43c0c982ec28611a4f49bb3c3e03b7a03007445cf5",
+        "README.md": "d62fee61b91c31ad6d9bc760ae7875e4e5f67f335b4cb2b47e5489f150a649ae",
+        "RELEASE.md": "bffa287aae1dfff6053dd6d88016076e81bc3db700800b296fd81a6737294c3b",
+        "demo/native_cpu.py": "cc250b2e2c2a08ab3d4d3f40ce008882649a14dae3c170a969bb01326df97816",
+        "demo/training-configs/README.md": "3662c1a1fa0318853fd26958834b9bacb526db430dd5fb437005f7514ea010d7",
+        "demo/training-configs/off.json": "2dc7fb5ca4b073271830addacf9e4dfc52530d65edf7073bbb20025b2e2d9dbb",
+        "demo/training-configs/on.json": "9d86aadc7db8e8903c29c0eb8a319257dafaff106fcb5956cc6180a904246756",
+        "demo/training-configs/strict.json": "f77873eea2a5c3e82044e545c0a0fd52cc6fc686a670e19b6e0ab8d9dd591ea1",
+        "demo/training-configs/unqualified.json": "82d667a84f6e29b2ca8141f401f34e630b9397af4181bd7839ab96966ac8c008",
+        "docs/README.md": "221d7600346cbaabe85ba06dfabc5e7f31e94e8c29937061a721441d9b135c4b",
+        "docs/三通道接入方案.md": "b1f1e5c9e78bb8b8c8cdc907814421088d76ea3cb0dda4b19d2e59bb34b6e88c",
+        "docs/接入接口约定.md": "c99cd4eda476136f9c8e1a7683d7745f7fed11fd94e01db90d797dbe9438c991",
+        "docs/资格验证与审核流程.md": "307107febdfd6617d4043afe8dd490c29ddae150a5b500c33c5a6c584769c8ad",
+        "probes/_adapter_package.py": "030a0291391d36447a5a3f48d0e6b5073015bf7fe16b1dd429ee23bcf651fcbb",
+        "probes/admission_records.py": "717c1906f6c08c927730deff5630c70a3db63095e274297498c5d6adde45988d",
+        "probes/silu_policy.py": "b18bc4daf8bb51026e33b104baf42f95ae2dd1e42dd96c7eb5a3351c76f37a3f",
+        "probes/silu_training_adapter.py": "e236ab94a2b1ffd91b9d4c843502ea286100ff1468f3e7a48378db51e0dd71f0",
+        "probes/test_admission_records.py": "237db1e098a5fdb02c6f9cff037a94675bcad1b19a5c3c107ce07f6c5c31c896",
+        "probes/test_model_safety.py": "84f5d0c1703f6b4182783bb915c908dd1828d257224196fec7679539842f8a5d",
+        "probes/test_multi_operator.py": "61314ea61699cc453075add70264ea1ed20696dc95d4695b132670ba9f5b92d8",
+        "probes/test_silu_policy.py": "aaaa49bd9bb456dc7dc3260d9ccde2253bfa0bf9116f0e19489bba39031e64b9",
+        "probes/test_silu_training_adapter.py": "a2a9a79ae42ebb8f87bb5b69ba5528bff98d4e3936c6c4c24d8f845792c0aa79",
+        "probes/test_startup.py": "e30302f8f32228251720dd6b9622bfd68ad33b2c09b131888ce7c00c811d49b2",
+        "probes/test_step_guard.py": "bb82c4383e52afa911b7132352878abb8571be005181867845043f3b87a2a825",
+        "probes/test_training_config.py": "da4d645e9fdfb63e285a27e27566c0abda55bae957dca995a31e91ba6ca76be3",
+        "probes/test_workload.py": "de9ef03f54e2d48d6e1f7288132b46ba28a015a7ac82861e8a09cbf82b3ce107",
+        "pyproject.toml": "d78f784f3520b6c81bdc53d9af7e0eebc30d975968f70d427f1ed4246127ef88",
+        "src/flagrt_adapter/__init__.py": "3c803d56c065b091c2a802b90d227aba588097c98b697e7ad6fd4c4c9340fa45",
+        "src/flagrt_adapter/bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+        "src/flagrt_adapter/config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+        "src/flagrt_adapter/policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+        "src/flagrt_adapter/records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+        "src/flagrt_adapter/startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+        "src/flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+        "src/flagrt_adapter/train_cli.py": "e247449bd20781c7e42e562a2a5b8820a6fd70dfa2a121dce536f5271401a4ee",
+        "src/flagrt_adapter/training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4",
+        "src/flagrt_adapter/workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d",
+        "tools/build_local.py": "4d2d0525e6c4899e2d5aecbf2f714e8430f07438f45969f4268c6123cee5bf0a",
+        "tools/train_with_adapter.py": "c6567df0ef50299bd6975ac48836928aeb4029af4c067f1f4fa33f15a42d891b"
+      },
+      "python": "3.10.20 | packaged by conda-forge | (main, Mar  5 2026, 17:06:34) [Clang 19.1.7 ]",
+      "platform": "macOS-26.5-arm64-arm-64bit",
+      "dependencies": {
+        "torch": "2.12.0",
+        "setuptools": "81.0.0",
+        "pip": "26.1.1",
+        "wheel": "0.47.0"
+      },
+      "commands": [
+        {
+          "name": "build",
+          "exit_code": 0
+        },
+        {
+          "name": "install",
+          "exit_code": 0
+        },
+        {
+          "name": "import",
+          "exit_code": 0
+        },
+        {
+          "name": "test_silu_policy",
+          "exit_code": 0
+        },
+        {
+          "name": "test_silu_training_adapter",
+          "exit_code": 0
+        },
+        {
+          "name": "test_admission_records",
+          "exit_code": 0
+        },
+        {
+          "name": "test_multi_operator",
+          "exit_code": 0
+        },
+        {
+          "name": "test_training_config",
+          "exit_code": 0
+        },
+        {
+          "name": "test_startup",
+          "exit_code": 0
+        },
+        {
+          "name": "test_model_safety",
+          "exit_code": 0
+        },
+        {
+          "name": "test_step_guard",
+          "exit_code": 0
+        },
+        {
+          "name": "test_workload",
+          "exit_code": 0
+        },
+        {
+          "name": "demo",
+          "exit_code": 0
+        },
+        {
+          "name": "training-cli-help",
+          "exit_code": 0
+        },
+        {
+          "name": "training-console-help",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "case_controls": 34,
+  "model_review_evidence_hash_checks": 3,
+  "hardware_tested_wheel_sha256": "de5da93ab72d00456993f74baf98a2b9aeaf1cae0a21844d2423ba4462f83008",
+  "identical_runtime_files": {
+    "flagrt_adapter/__init__.py": "3c803d56c065b091c2a802b90d227aba588097c98b697e7ad6fd4c4c9340fa45",
+    "flagrt_adapter/bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "flagrt_adapter/config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+    "flagrt_adapter/policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+    "flagrt_adapter/records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+    "flagrt_adapter/startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+    "flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+    "flagrt_adapter/train_cli.py": "e247449bd20781c7e42e562a2a5b8820a6fd70dfa2a121dce536f5271401a4ee",
+    "flagrt_adapter/training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4",
+    "flagrt_adapter/workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d"
+  },
+  "limitations": [
+    "source candidate only, not PyPI or stable release",
+    "wheel archive hashes differ",
+    "new P800 env/v1 unqualified",
+    "training v3 target unqualified",
+    "public training CLI has no measured workload identity",
+    "complete three-level fallback unfinished"
+  ]
+}

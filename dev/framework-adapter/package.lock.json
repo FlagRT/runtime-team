@@ -1,14 +1,16 @@
 {
   "schema": 1,
   "repository": "https://github.com/FlagRT/framework-adapter",
-  "commit": "85a9896537a7d88f758d36ae20465e19470985e2",
+  "commit": "6ee91294e7ab028f2e804225482f58d24c8ccd5a",
   "distribution": "flagrt-framework-adapter",
-  "version": "0.3.0.dev0",
+  "version": "0.3.0.dev2",
   "release_kind": "experimental source candidate; not a stable release",
-  "hardware_tested_wheel_sha256": "ea0602174f2765f4268c22e73bed9213be7d011adc47280d547b192072cf3114",
-  "split_rebuild_wheel_sha256": "783d111bb68d086ee9010921d2b4802e1037446fbab06e0a296e72ceb4337cbc",
-  "payload_comparison": "All 9 flagrt_adapter runtime files byte-identical to hardware-tested wheel and committed source; rebuilt archive hash differs",
-  "hardware_scope": "910C official image 2e56022ae5b3; Qwen3-Embedding-0.6B; two ranks; normal three steps and first-step forward/backward injected failures; guarded integration prototype",
-  "evidence": "docs/evidence-step-guard-20261028/summary.json",
-  "not_validated": ["training-v3 target kernels", "other chips", "complete three-level fallback", "post-update rollback", "multi-host failure recovery"]
+  "hardware_tested_wheel_sha256": "de5da93ab72d00456993f74baf98a2b9aeaf1cae0a21844d2423ba4462f83008",
+  "split_rebuild_wheel_sha256": "63edc3a232e9b47137fb6f627b2785a331276227d17f27ad91addb8959f5498d",
+  "independent_rebuild_wheel_sha256": "a3a52620f9808740621413b4d10ef61c63516f329117094502594f2c1e0ebc7c",
+  "payload_comparison": "All 10 flagrt_adapter runtime files byte-identical to the 2026-10-29 hardware-tested dev2 wheel, both rebuilt wheels and committed source; archive hashes differ",
+  "hardware_scope": "Historical 2026-10-29 P800 v2 without GEMM compatibility patch: DeepFM FP32 batch16/32 short-training passes; Qwen FP32 seq32 and OneRec BF16 seq16 target gradients fail and are denied. No new hardware run for this source publication",
+  "evidence": "docs/evidence-dev2-release-20261103/summary.json",
+  "hardware_evidence": "docs/P800接入与安全回退验证-20261029.md",
+  "not_validated": ["new P800 env/v1 qualification", "training-v3 target kernels", "public training CLI measured workload integration", "complete three-level fallback", "post-update rollback", "multi-host failure recovery"]
 }
