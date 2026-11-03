@@ -1,0 +1,41 @@
+{
+ "leg": "P",
+ "tag": "OFF",
+ "pool_log_line": "GPU KV cache size: 403,936 tokens",
+ "pool_tok": 403936,
+ "concurrency_log_line": "Maximum concurrency for 4,096 tokens per request: 98.62x",
+ "bytes_per_tok_crossval": {
+  "bytes_per_tok_model_const": 147456,
+  "derivation": "2(K+V) x 36 layers x 8 kv_heads x 128 head_dim x 2B (bfloat16)",
+  "pool_bytes_est": 59562786816,
+  "pool_bytes_est_GiB": 55.47,
+  "block_divisible_16": true,
+  "kiB_per_tok": 144.0,
+  "lock64_measured_bytes_per_tok": 147457,
+  "magnitude_ok_145KiB": true
+ },
+ "steady_hbm_samples": [
+  {
+   "t_off_s": 0,
+   "meminfo": {
+    "free_GiB": 18.41,
+    "total_GiB": 96.0
+   }
+  },
+  {
+   "t_off_s": 150,
+   "meminfo": {
+    "free_GiB": 18.38,
+    "total_GiB": 96.0
+   }
+  },
+  {
+   "t_off_s": 300,
+   "meminfo": {
+    "free_GiB": 18.38,
+    "total_GiB": 96.0
+   }
+  }
+ ],
+ "note": "xpu-smi 仅参考不作判据；自然档无锁定 bytes，交叉验证=模型常数+块整除"
+}

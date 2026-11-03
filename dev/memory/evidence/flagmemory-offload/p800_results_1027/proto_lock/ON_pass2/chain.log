@@ -1,0 +1,68 @@
+CHAIN START tag=ON base=http://127.0.0.1:18321 out=/data1/chenyuanxin/p800-1027/proto_lock/ON_pass2 log=/data1/chenyuanxin/p800-1027/logs/serve_lock64_on_20261028_pass2.log
+[STATUS] {"ts": 1793161977.4030173, "iso": "10-28 12:32:57", "tag": "ON", "last_leg": "start"}
+P sample 0: {'free_GiB': 9.88, 'total_GiB': 96.0}
+P sample 1: {'free_GiB': 9.88, 'total_GiB': 96.0}
+P sample 2: {'free_GiB': 9.88, 'total_GiB': 96.0}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/P-ON.json
+[STATUS] {"ts": 1793162435.5188713, "iso": "10-28 12:40:35", "tag": "ON", "last_leg": "P", "pool_tok": 466032}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/calib.json
+[STATUS] {"ts": 1793162435.5517182, "iso": "10-28 12:40:35", "tag": "ON", "last_leg": "calib", "tok_per_word": 2.900390625}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-256tok-r1-ON.json
+[STATUS] {"ts": 1793162440.5676367, "iso": "10-28 12:40:40", "tag": "ON", "last_leg": "S1-256-r1", "valid": true, "ttft_s": 0.93}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-256tok-r2-ON.json
+[STATUS] {"ts": 1793162445.5857804, "iso": "10-28 12:40:45", "tag": "ON", "last_leg": "S1-256-r2", "valid": true, "ttft_s": 0.64}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-256tok-r3-ON.json
+[STATUS] {"ts": 1793162450.6037135, "iso": "10-28 12:40:50", "tag": "ON", "last_leg": "S1-256-r3", "valid": true, "ttft_s": 0.62}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-1024tok-r1-ON.json
+[STATUS] {"ts": 1793162455.6259203, "iso": "10-28 12:40:55", "tag": "ON", "last_leg": "S1-1024-r1", "valid": true, "ttft_s": 2.37}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-1024tok-r2-ON.json
+[STATUS] {"ts": 1793162460.6435206, "iso": "10-28 12:41:00", "tag": "ON", "last_leg": "S1-1024-r2", "valid": true, "ttft_s": 2.18}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-1024tok-r3-ON.json
+[STATUS] {"ts": 1793162465.664481, "iso": "10-28 12:41:05", "tag": "ON", "last_leg": "S1-1024-r3", "valid": true, "ttft_s": 2.17}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-3072tok-r1-ON.json
+[STATUS] {"ts": 1793162475.69886, "iso": "10-28 12:41:15", "tag": "ON", "last_leg": "S1-3072-r1", "valid": true, "ttft_s": 6.56}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-3072tok-r2-ON.json
+[STATUS] {"ts": 1793162485.7366965, "iso": "10-28 12:41:25", "tag": "ON", "last_leg": "S1-3072-r2", "valid": true, "ttft_s": 6.37}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S1-3072tok-r3-ON.json
+[STATUS] {"ts": 1793162495.773589, "iso": "10-28 12:41:35", "tag": "ON", "last_leg": "S1-3072-r3", "valid": true, "ttft_s": 6.35}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S2-r1-ON.json
+[STATUS] {"ts": 1793162535.8654187, "iso": "10-28 12:42:15", "tag": "ON", "last_leg": "S2-r1", "decode_tok_s": 13.48, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S2-r2-ON.json
+[STATUS] {"ts": 1793162575.9550464, "iso": "10-28 12:42:55", "tag": "ON", "last_leg": "S2-r2", "decode_tok_s": 13.81, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S2-r3-ON.json
+[STATUS] {"ts": 1793162616.0463808, "iso": "10-28 12:43:36", "tag": "ON", "last_leg": "S2-r3", "decode_tok_s": 13.67, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/S2-r4-ON.json
+[STATUS] {"ts": 1793162656.1370378, "iso": "10-28 12:44:16", "tag": "ON", "last_leg": "S2-r4", "decode_tok_s": 13.69, "ctok": 512}
+B leg c=28 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c28-r1-ON.json
+[STATUS] {"ts": 1793162969.546874, "iso": "10-28 12:49:29", "tag": "ON", "last_leg": "B-c28-r1", "wall_s": 307.8, "ok": 28, "capW": 23.0, "dma": {"store_batches": 108, "load_batches": 0}}
+B leg c=28 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c28-r2-ON.json
+[STATUS] {"ts": 1793163017.5428352, "iso": "10-28 12:50:17", "tag": "ON", "last_leg": "B-c28-r2", "wall_s": 42.5, "ok": 28, "capW": 0.0, "dma": {"store_batches": 7, "load_batches": 0}}
+B leg c=57 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c57-r1-ON.json
+[STATUS] {"ts": 1793163336.0928977, "iso": "10-28 12:55:36", "tag": "ON", "last_leg": "B-c57-r1", "wall_s": 312.4, "ok": 57, "capW": 24.0, "dma": {"store_batches": 120, "load_batches": 0}}
+B leg c=57 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c57-r2-ON.json
+[STATUS] {"ts": 1793163419.006493, "iso": "10-28 12:56:59", "tag": "ON", "last_leg": "B-c57-r2", "wall_s": 77.7, "ok": 57, "capW": 0.0, "dma": {"store_batches": 36, "load_batches": 0}}
+B leg c=102 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c102-r1-ON.json
+[STATUS] {"ts": 1793163927.9571726, "iso": "10-28 13:05:27", "tag": "ON", "last_leg": "B-c102-r1", "wall_s": 505.5, "ok": 102, "capW": 42.0, "dma": {"store_batches": 133, "load_batches": 0}}
+B leg c=102 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c102-r2-ON.json
+[STATUS] {"ts": 1793164071.017638, "iso": "10-28 13:07:51", "tag": "ON", "last_leg": "B-c102-r2", "wall_s": 140.1, "ok": 102, "capW": 0.0, "dma": {"store_batches": 33, "load_batches": 0}}
+B leg c=125 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c125-r1-ON.json
+[STATUS] {"ts": 1793164469.8354635, "iso": "10-28 13:14:29", "tag": "ON", "last_leg": "B-c125-r1", "wall_s": 392.1, "ok": 125, "capW": 20.0, "dma": {"store_batches": 116, "load_batches": 2}}
+B leg c=125 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/B-c125-r2-ON.json
+[STATUS] {"ts": 1793165705.2319255, "iso": "10-28 13:35:05", "tag": "ON", "last_leg": "B-c125-r2", "wall_s": 1229.0, "ok": 125, "capW": 120.0, "dma": {"store_batches": 204, "load_batches": 1}}
+[STATUS] {"ts": 1793166905.7057185, "iso": "10-28 13:55:05", "tag": "ON", "last_leg": "L-r1", "wall_s": 1194.0, "eq_r2": 111}
+[STATUS] {"ts": 1793168098.2964861, "iso": "10-28 14:14:58", "tag": "ON", "last_leg": "L-r2", "wall_s": 1189.1, "eq_r2": 111}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/L-c125-ON.json
+[STATUS] {"ts": 1793168101.088222, "iso": "10-28 14:15:01", "tag": "ON", "last_leg": "L", "load_batches": 3, "store_batches": 397}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/R-cancel-ON.json
+[STATUS] {"ts": 1793168118.0390615, "iso": "10-28 14:15:18", "tag": "ON", "last_leg": "R-cancel", "returned": true, "followup_ok": true}
+WROTE /data1/chenyuanxin/p800-1027/proto_lock/ON_pass2/dma_ledger-ON.json
+[STATUS] {"ts": 1793168118.1503434, "iso": "10-28 14:15:18", "tag": "ON", "last_leg": "DONE", "dma_total": {"store_batches": 1247, "store_blocks": 202388, "load_batches": 6, "load_blocks": 2135}}
+CHAIN DONE

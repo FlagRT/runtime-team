@@ -11,6 +11,9 @@
   （布局登记处 `dev/repos.yaml` 只管布局与协作线，不锁提交）
 - **与 dev-1.0 的关系**：**不并仓**。本目录保留看板、状态与实测证据；
   显存池管理器的组件代码、接口头文件与单测在独立仓。依据 ADR-0014。
+- **实测证据目录**：KV 卸载线的原始数据（逐腿 JSON / 服务端与链日志 / DMA marker 账本 / 腿本脚本）
+  在 [evidence/flagmemory-offload/](evidence/flagmemory-offload/)，批次与引用方式见该目录 README；
+  结果报告仍在 [docs/goals/](docs/goals/) 对应批次目录。
 
 ## 设备接入路线
 
