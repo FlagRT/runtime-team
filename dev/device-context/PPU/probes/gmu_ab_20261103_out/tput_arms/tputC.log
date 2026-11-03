@@ -1,0 +1,13 @@
+ready@33s
+consumer rc=0
+[4] 语义: 同主题 0.7000 / 异主题 0.2883 / 区分度 0.4118
+[5] 吞吐: 111.21 句/s | p50 28.6ms | max 30.4ms
+=== SERVE_LEG_PASS | 10/10 ===
+最大并发行（若打印）：
+/tmp/tput4/C_04_256/vllm_serve.log:Available KV cache memory: 36.95 GiB
+/tmp/tput4/C_04_256/vllm_serve.log:Maximum concurrency for 4,096 tokens per request: 84.45x
+=== 四臂汇总 ===
+A2_09_256    吞吐: 115.51 句/s
+A1_09_128    吞吐: 102.13 句/s
+B_04_128     吞吐: 105.79 句/s
+C_04_256     吞吐: 111.21 句/s

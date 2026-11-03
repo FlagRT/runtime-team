@@ -5,6 +5,11 @@ C=hliu553-dc-dev
 CP=/workspace/runtime-team/dev/device-context/prototype
 O=/workspace/probes_ppu/dc_t5_20261014
 HO=/bmcp_lvm_fs/hliu553/probes_ppu/dc_t5_20261014
+# ⚠️ **2026-11-03 修**：本脚本原先**没有 runid 分目录**（每轮结果写同一扁平目录、互相覆盖）。
+#    同族问题见 skill/记忆「驱动脚本覆盖式落盘会静默销毁证据」；现按 run-id 分目录，且 O/HO 同步。
+RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
+O=$O/$RUNID
+HO=$HO/$RUNID
 mkdir -p "$HO"
 
 echo "=== 前置：无残留 + 两卡可见性 ==="
