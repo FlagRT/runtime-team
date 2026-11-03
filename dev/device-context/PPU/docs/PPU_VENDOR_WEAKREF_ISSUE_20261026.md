@@ -147,6 +147,26 @@ RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0   RIP_OFFSET=0x2569de
 复现脚本与原始读数（可直接拿去对照）：`dev/device-context/910C/probes/weakref_check_20261103_out/`；
 分析报告：`dev/device-context/910C/docs/ASCEND_WEAKREF_EXIT_UAF_20261103.md`。
 
+## 十、⭐ 我方已做出「运行时等价补丁」并验证有效（2026-11-03，供贵方直接对照实现）
+
+由于 PPU 侧暂无含修复的版本，我方在**不改贵方 libtorch** 的前提下，于进程内给
+`torch._C._CudaStreamBase` / `_CudaEventBase` 换了一个 `tp_dealloc` 包装，
+语义与 PR #41596 完全一致（先 `PyObject_ClearWeakRefs`，再回跳原 dealloc）。**四道判据全过**：
+
+| 判据 | 修前 | 修后 |
+|---|---|---|
+| Stream/Event 的 weakref **回调是否触发** | False / False | **True / True** |
+| `Stream + weakref + 被回收` 进程 rc | **139 / 139** | **0 / 0** |
+| 功能形态（流可用/事件计时/张量正确） | — | `SANITY verdict=PASS`（`elapsed_ms=56.800` 带内） |
+| 我方验收读数（离线 / smoke / 契约不变式） | 118·0·1 / 46·0 / 4/4 `rc=0` | **逐项相同**（补丁臂 vs 对照臂同时跑） |
+
+源码与证据（可直接编译复采）：`dev/device-context/PPU/probes/weakref_check_20261103_out/`
+（`wrfix.c` + `README.md`，约 150 行，含副作用登记）。
+
+⚠️ **这只是止血，不是修复**：类型对象若在只读页，补丁会把该页放开为可写且不还原；进程退出即失效。
+**正式修复仍请贵方把 PR #41596 那两行编进 libtorch**（`THNPStream_dealloc` / `THNPEvent_dealloc`），
+这样任何下游（`torch.compile`、profiler、多进程 worker 清理）都不必各自打补丁。
+
 **对我方材料的自评（诚实声明）**：本报告的复现与判别矩阵**独立于该先例完成**（10-26 取证时未检索到），
 机制推断（§四「弱引用书签不可信」）与昇腾根因分析**一致**——这既是交叉印证，也说明我方"平台侧缺陷"的定性**成立**；
 唯一需修正的预期是：**该缺陷大概率不是 PPU 独有实现错误，而是"PyTorch 2.8 改父类 + 各后端子类没跟上"的生态共性问题**，
