@@ -1,0 +1,165 @@
+{
+  "deepfm": {
+    "status": "pass",
+    "environment": {
+      "chip": "P800",
+      "torch": "2.9.0+cu129",
+      "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+      "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+      "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+      "triton": "3.6.0",
+      "compiler_build": "flagtree==0.6.1+xpu3.6",
+      "backend": "kunlunxin",
+      "device_type": "cuda"
+    },
+    "model_files": {
+      "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964",
+      "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+      "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef"
+    },
+    "workload": {
+      "model": "public DeepFM v1",
+      "dtype": "torch.float32",
+      "batch": 32,
+      "steps": 3,
+      "initialization": "random",
+      "initial_seed": 20261023,
+      "data_seed": 29000,
+      "dropout_seed": 23000,
+      "data": "synthetic categorical fields and binary labels",
+      "optimizer": "Adam",
+      "lr": 0.001,
+      "eps": 1e-08,
+      "weight_decay": 0,
+      "foreach": false,
+      "deterministic": true,
+      "dropout": 0.2
+    },
+    "runtime_sources": {
+      "runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef"
+    },
+    "provider_calls": {
+      "GEMS SIGMOID FORWARD": 3,
+      "GEMS SIGMOID BACKWARD": 3
+    },
+    "optimizer_steps": 3,
+    "public_config": {
+      "field_dims": [
+        1000,
+        2000,
+        500,
+        300,
+        50
+      ],
+      "embed_dim": 16,
+      "mlp_dims": [
+        400,
+        400,
+        400
+      ],
+      "dropout": 0.2
+    },
+    "raw_result_sha256": "f9bcef401cfbe197fb6ecece2beed29beb239aea0ac0b990da1107a6af287eed",
+    "comparison_count": 294,
+    "max_abs": 0.0,
+    "failures": [],
+    "decision": "passed",
+    "adapter_bridge_sha256": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "review_scope": "Executor-reviewed fixed 2026-10-29 experimental workload, not production approval"
+  },
+  "qwen": {
+    "status": "fail",
+    "environment": {
+      "chip": "P800",
+      "torch": "2.9.0+cu129",
+      "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+      "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+      "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+      "triton": "3.6.0",
+      "compiler_build": "flagtree==0.6.1+xpu3.6",
+      "backend": "kunlunxin",
+      "device_type": "cuda"
+    },
+    "model_files": {
+      "config.json": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+      "model.safetensors": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd"
+    },
+    "workload": {
+      "model": "Qwen3-Embedding-0.6B",
+      "formulation": "synthetic causal LM",
+      "dtype": "torch.float32",
+      "batch": 1,
+      "sequence_length": 32,
+      "steps": 3,
+      "seed": 1234,
+      "data_seed": 999,
+      "optimizer": "AdamW",
+      "lr": 1e-05,
+      "eps": 1e-08,
+      "weight_decay": 0.01,
+      "foreach": false,
+      "gradient_clip": 1.0,
+      "attention": "eager",
+      "deterministic": true
+    },
+    "runtime_sources": {
+      "runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef"
+    },
+    "provider_calls": {
+      "GEMS SILU FORWARD": 28,
+      "GEMS SILU BACKWARD": 28
+    },
+    "optimizer_steps": 0,
+    "raw_result_sha256": "7e033dabf34282ab0ed1a473bafd9f413585c5e056ff85135c647514263960c5",
+    "comparison_count": 33,
+    "max_abs": 5.4836273193359375e-05,
+    "failures": [
+      {
+        "name": "step1/gradient/model.layers.2.mlp.down_proj.weight",
+        "file": "1e45c26405a6f1b77382abe1107d34387439c808126ffd1ac6ddc8f87ec7212c.pt",
+        "shape": [
+          1024,
+          3072
+        ],
+        "dtype": "torch.float32",
+        "max_abs": 5.4836273193359375e-05,
+        "mismatches": 4,
+        "mismatch_examples": [
+          {
+            "flat_index": 528439,
+            "actual": 0.07994589954614639,
+            "reference": 0.07997329533100128,
+            "abs_error": 2.7395784854888916e-05,
+            "allowed_error": 1.799732953310013e-05
+          },
+          {
+            "flat_index": 528512,
+            "actual": -0.042933300137519836,
+            "reference": -0.04295298457145691,
+            "abs_error": 1.9684433937072754e-05,
+            "allowed_error": 1.4295298457145692e-05
+          },
+          {
+            "flat_index": 529873,
+            "actual": -0.051398854702711105,
+            "reference": -0.05142184719443321,
+            "abs_error": 2.2992491722106934e-05,
+            "allowed_error": 1.5142184719443322e-05
+          },
+          {
+            "flat_index": 2150455,
+            "actual": 0.028495628386735916,
+            "reference": 0.028481926769018173,
+            "abs_error": 1.370161771774292e-05,
+            "allowed_error": 1.2848192676901818e-05
+          }
+        ]
+      }
+    ],
+    "decision": "failed",
+    "adapter_bridge_sha256": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "review_scope": "Executor-reviewed fixed 2026-10-29 experimental workload, not production approval"
+  }
+}

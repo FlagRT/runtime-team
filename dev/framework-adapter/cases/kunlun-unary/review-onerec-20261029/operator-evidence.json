@@ -1,0 +1,153 @@
+{
+  "review": "Manually reviewed 2026-10-29 after full three-dtype evidence; limited experiment, no model approval.",
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "device_mapping": {
+    "smi_index": 3,
+    "pci_bus": "0000:2e:00.0",
+    "device_node": "/dev/xpu1",
+    "logical_device": 0
+  },
+  "source_sha256": {
+    "onerec-qual-01/inputs.json": "7c9642432c9ddcd0a7f6dd3a361294d8b54b4a656a919968e9256f79c570d03e",
+    "onerec-qual-01/result.json": "c1cf4e62845a4d1df0480d778a47425ca6cf652be8437719ac75e1dffce10179",
+    "onerec-qual-01/summary.json": "a0dea7c9fabb1ba241fe1dd679a0c833db470539d1891c2336ef881dcbfd142f"
+  },
+  "cases": [
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.float32",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 1e-05,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.float16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.005,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.bfloat16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.03,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "records": [
+    {
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "operator": "silu",
+      "dtype": "torch.float32",
+      "shape": [
+        1,
+        32,
+        3072
+      ],
+      "stages": [
+        "forward",
+        "backward"
+      ],
+      "evidence": "model-summary.json",
+      "evidence_sha256": "0191ab56bf20eadaba3420b98d9b5c326458bc2820bc59a165ee742fc6f89fd0",
+      "status": "revoked",
+      "revision": 1
+    }
+  ]
+}

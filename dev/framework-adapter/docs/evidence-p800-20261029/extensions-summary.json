@@ -1,0 +1,1040 @@
+{
+  "date": "2026-10-29",
+  "scope": "P800 sigmoid/tanh and public DeepFM short training; not business-quality/full three-level fallback acceptance",
+  "published": false,
+  "source_host": "VM-0-2-ubuntu",
+  "source_directory": "/data2/cgu135/framework-extensions-xpu-20261029",
+  "public_commit": "71197e73d13021556de04ff04c42c89b3bfc8f73",
+  "package_base_commit": "85a9896537a7d88f758d36ae20465e19470985e2",
+  "package_worktree": "0.3.0.dev1 uncommitted, runtime code unchanged during this extension",
+  "wheel_sha256": "d85ee77c70044aac9bd48f292e59657cebfdba38d8c68f534964661cd2f0460f",
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "source_archive_sha256": "7ae0eb9ffe5e283c2eb208e8d16ec2e3bf15217b3e44ff7f8c861d23b08357d0",
+  "model_snapshot_sha256": "795522484da834500cae3fc7e2e15752e2f213eb66c6f6af2479dde6479e0bf5",
+  "source_file_sha256": {
+    "test_expansion.py": "603e1af3a8bb896bae6e3bf8d4ba546c28dd88f117f698a27c617458da174bd3",
+    "run.py": "fbe5e399466e517f1bc80cc5d71687faf8f787103cd3fae42b7a1f20771c96f3",
+    "model_probe.py": "a3923e09d451bf7a54b6a1ba5d169a185cb211568402f2553ef7144cf6303aeb",
+    "test_model_probe.py": "847df8c8c7abeb033996a41ba2e16a3054b4a01c67903fb7e0dc2c4d6813c3eb",
+    "test_runner.py": "520f4673bf3a4d1584e07c254529121236ffad1b0b62fc32925b3bd7dc609f17",
+    "probe.py": "db2fb5124362b99f0743d2bfbe5d39d653a6b3a476e29dfea83ed25f1e89df40",
+    "deepfm_probe.py": "12dfab8b66538dc296711cabb752cd86e314ab29f55dff91b7aec305e9b8c82a"
+  },
+  "evidence_archive_sha256": "8a0e83333498f9ade8c286a7853485292b58cba38f6813cd4f4e2d67473b60c9",
+  "local_backup": "Project/outputs/framework-runs/20261029-xpu-extensions/evidence",
+  "backup_scope": "logs, JSON, baseline/demo, source/model definition, review bundle and all DeepFM native-reference tensors; excludes installed packages and caches",
+  "local_validation": {
+    "cpu_tests": 16,
+    "cpu_test_log_sha256": "9ac7a9b07475792f67b8d7686077f0fd9b20706ec8832acbb9232d1570d29882",
+    "source_matches_measured_snapshot": true,
+    "runtime_files_matching_measured_wheel": 9,
+    "raw_evidence_files_checked": 108,
+    "qualification_records_checked": 12
+  },
+  "totals": {
+    "qualification_groups": 12,
+    "qualification_repeats": 36,
+    "normal_route_groups": 36,
+    "normal_route_repeats": 108,
+    "deepfm_trajectories": 10,
+    "deepfm_steps": 30,
+    "deepfm_non_native_comparisons": 2352,
+    "deepfm_target_forward_calls": 6,
+    "deepfm_target_backward_calls": 6
+  },
+  "live_cleanup_check": {
+    "time": "2026-10-29T18:36:49+08:00",
+    "checked_containers": 18,
+    "all_stopped": true,
+    "all_pid_zero": true,
+    "all_oom_false": true,
+    "physical_device_1_memory_mib": 0,
+    "physical_device_1_utilization_percent": 0,
+    "physical_device_1_processes": 0,
+    "note": "137 is the stopped sleep container exit; worker results are independently PASS"
+  },
+  "limits": [
+    "Fixed FP32 DeepFM batch16/32, 3 steps, random initialization and synthetic labels; not CTR quality or long training",
+    "P800 Qwen SiLU and prior 910C DeepFM failures remain unchanged",
+    "Qualification bundle is explicitly selected by caller; current record format has no automatic model identity field",
+    "No kernel/compiler/shared-image edits, no tolerance changes; no commit/push/OneDrive"
+  ],
+  "runs": [
+    {
+      "run": "deepfm-b16-native-01",
+      "stage": "deepfm",
+      "mode": "native",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:29:35.273063816Z",
+      "finished_at": "2026-10-29T10:29:55.332902612Z",
+      "batch_size": 16,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 0,
+      "saved_reference_tensors": 294,
+      "max_abs": 0,
+      "losses": [
+        1.69354248046875,
+        1.3495591878890991,
+        0.5912370085716248
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0022764690220355988,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b16-native_repeat-01",
+      "stage": "deepfm",
+      "mode": "native_repeat",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:29:59.034900444Z",
+      "finished_at": "2026-10-29T10:30:19.481988474Z",
+      "batch_size": 16,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.69354248046875,
+        1.3495591878890991,
+        0.5912370085716248
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0022764690220355988,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b16-off-01",
+      "stage": "deepfm",
+      "mode": "off",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:30:25.864853706Z",
+      "finished_at": "2026-10-29T10:30:46.444686987Z",
+      "batch_size": 16,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.69354248046875,
+        1.3495591878890991,
+        0.5912370085716248
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0022764690220355988,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b16-on-01",
+      "stage": "deepfm",
+      "mode": "on",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 3,
+        "GEMS SIGMOID BACKWARD": 3
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:31:57.987394717Z",
+      "finished_at": "2026-10-29T10:32:24.742558573Z",
+      "batch_size": 16,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.69354248046875,
+        1.3495591878890991,
+        0.5912370085716248
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0022764690220355988,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0.00001,
+        "rtol": 0.0001
+      }
+    },
+    {
+      "run": "deepfm-b16-unqualified-01",
+      "stage": "deepfm",
+      "mode": "unqualified",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:30:55.507257794Z",
+      "finished_at": "2026-10-29T10:31:15.270585925Z",
+      "batch_size": 16,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.69354248046875,
+        1.3495591878890991,
+        0.5912370085716248
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0022764690220355988,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b32-native-01",
+      "stage": "deepfm",
+      "mode": "native",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:25:14.628840575Z",
+      "finished_at": "2026-10-29T10:25:34.183031955Z",
+      "batch_size": 32,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 0,
+      "saved_reference_tensors": 294,
+      "max_abs": 0,
+      "losses": [
+        1.1338770389556885,
+        0.7584530115127563,
+        1.0672987699508667
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0013925457606092095,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b32-native_repeat-01",
+      "stage": "deepfm",
+      "mode": "native_repeat",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:26:50.190717253Z",
+      "finished_at": "2026-10-29T10:27:11.697054493Z",
+      "batch_size": 32,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.1338770389556885,
+        0.7584530115127563,
+        1.0672987699508667
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0013925457606092095,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b32-off-01",
+      "stage": "deepfm",
+      "mode": "off",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:27:15.324846715Z",
+      "finished_at": "2026-10-29T10:27:36.646306102Z",
+      "batch_size": 32,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.1338770389556885,
+        0.7584530115127563,
+        1.0672987699508667
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0013925457606092095,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "deepfm-b32-on-01",
+      "stage": "deepfm",
+      "mode": "on",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 3,
+        "GEMS SIGMOID BACKWARD": 3
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:28:30.692828053Z",
+      "finished_at": "2026-10-29T10:29:01.605520803Z",
+      "batch_size": 32,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.1338770389556885,
+        0.7584530115127563,
+        1.0672987699508667
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0013925457606092095,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0.00001,
+        "rtol": 0.0001
+      }
+    },
+    {
+      "run": "deepfm-b32-unqualified-01",
+      "stage": "deepfm",
+      "mode": "unqualified",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:27:45.912300077Z",
+      "finished_at": "2026-10-29T10:28:07.351795266Z",
+      "batch_size": 32,
+      "steps": 3,
+      "optimizer_steps": 3,
+      "compared_tensors": 294,
+      "saved_reference_tensors": 0,
+      "max_abs": 0,
+      "losses": [
+        1.1338770389556885,
+        0.7584530115127563,
+        1.0672987699508667
+      ],
+      "parameter_count": 421452,
+      "sampled_parameter_update": 0.0013925457606092095,
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      }
+    },
+    {
+      "run": "sigmoid-off-01",
+      "stage": "routes",
+      "mode": "off",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:32:38.20674729Z",
+      "finished_at": "2026-10-29T10:32:53.244006977Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "sigmoid-on-01",
+      "stage": "routes",
+      "mode": "on",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 18,
+        "GEMS SIGMOID BACKWARD": 18
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:33:22.068220185Z",
+      "finished_at": "2026-10-29T10:34:02.643534227Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "sigmoid-qual-01",
+      "stage": "qualification",
+      "mode": "off",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 18,
+        "GEMS SIGMOID BACKWARD": 18
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:22:48.091718759Z",
+      "finished_at": "2026-10-29T10:23:28.86713592Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "sigmoid-unqualified-01",
+      "stage": "routes",
+      "mode": "unqualified",
+      "operator": "sigmoid",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:33:02.562369551Z",
+      "finished_at": "2026-10-29T10:33:17.969340301Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "tanh-off-01",
+      "stage": "routes",
+      "mode": "off",
+      "operator": "tanh",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:34:07.424364261Z",
+      "finished_at": "2026-10-29T10:34:22.595626564Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "tanh-on-01",
+      "stage": "routes",
+      "mode": "on",
+      "operator": "tanh",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS TANH FORWARD": 18,
+        "GEMS TANH BACKWARD": 18
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:34:45.636934451Z",
+      "finished_at": "2026-10-29T10:35:20.287821131Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 1.1920928955078125e-7,
+          "max_backward_abs": 2.086162567138672e-7
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 1.1920928955078125e-7,
+          "max_backward_abs": 2.384185791015625e-7
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "tanh-qual-01",
+      "stage": "qualification",
+      "mode": "off",
+      "operator": "tanh",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {
+        "GEMS TANH FORWARD": 18,
+        "GEMS TANH BACKWARD": 18
+      },
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:24:18.181789748Z",
+      "finished_at": "2026-10-29T10:24:52.912930857Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 1.1920928955078125e-7,
+          "max_backward_abs": 2.086162567138672e-7
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 1.1920928955078125e-7,
+          "max_backward_abs": 2.384185791015625e-7
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    },
+    {
+      "run": "tanh-unqualified-01",
+      "stage": "routes",
+      "mode": "unqualified",
+      "operator": "tanh",
+      "status": "PASS",
+      "physical_device": 1,
+      "provider_calls": {},
+      "stopped": true,
+      "oom": false,
+      "started_at": "2026-10-29T10:34:27.541408512Z",
+      "finished_at": "2026-10-29T10:34:42.038420714Z",
+      "cases": 6,
+      "repeats": 18,
+      "dispatcher_restored": true,
+      "details": [
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            16
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float32",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        },
+        {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.bfloat16",
+          "max_forward_abs": 0,
+          "max_backward_abs": 0
+        }
+      ]
+    }
+  ],
+  "raw_file_sha256": {
+    "deepfm-b16-native-01/result.json": "05d6d5caa0109b2e6d943b64ec51008795c543e0dd48ea787b82bd2efa6720fa",
+    "deepfm-b16-native-01/summary.json": "9dd0da2bdd54413ce3c664ce2a5377d286b5f243de2427bc616af94a17f71bae",
+    "deepfm-b16-native-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b16-native-01/probe.log": "77ddb3065c15c31382c921eb49a9f8fe2163f259f6a49c473de0126ddfb415a0",
+    "deepfm-b16-native-01/demo/docker-compose.yml": "6c8e4864f4dd09750f31d12427e5336c64201a0fb4bd9d49edd9fffd6b452b06",
+    "deepfm-b16-native-01/demo/env.baseline.yaml": "54844721f19030cec418e508927e6aff99957130d256eab46cc603a56b2b2a7c",
+    "deepfm-b16-native_repeat-01/result.json": "9dc7fdf57343ba99d38eedcd975f800479d5519162fcf495024fa940edcde2c6",
+    "deepfm-b16-native_repeat-01/summary.json": "a48af417ba96216d099b408bbbc61aeb311f2aaf85e246ccc3ecd9f270c9bd59",
+    "deepfm-b16-native_repeat-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b16-native_repeat-01/probe.log": "77ddb3065c15c31382c921eb49a9f8fe2163f259f6a49c473de0126ddfb415a0",
+    "deepfm-b16-native_repeat-01/demo/docker-compose.yml": "b2e93a8288ac2dc36369e9c5be3a20dd4c9e191a582a2841fe175c8afb06bebf",
+    "deepfm-b16-native_repeat-01/demo/env.baseline.yaml": "a5e22c30579e9515b385fd5215b2fcf282216884205d553e5d0909f220aeb137",
+    "deepfm-b16-off-01/result.json": "a93130650a91668eb394d291091f3257475929da91221182a605756aabf39d6f",
+    "deepfm-b16-off-01/summary.json": "1ead81cf922dc3929b7cc73c6ab22c205f284a460299d2e1fade22d16f16a6b7",
+    "deepfm-b16-off-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b16-off-01/probe.log": "6f92389701081c03c0b71a513891bddc388005ef4a2f7005cac93b3a54147fe8",
+    "deepfm-b16-off-01/demo/docker-compose.yml": "7dbd2ef1d2c2f09729ad4d0ec70cb9624e8a20eaa6722d22b01991c82372b184",
+    "deepfm-b16-off-01/demo/env.baseline.yaml": "031f94b7adceeaad0ee7287fa1d01ede57edfa1317226c6858b0764ebad3f402",
+    "deepfm-b16-on-01/result.json": "5e53935df0e6ec22fb475c82ae3584b7e4921b3e23b7ba774ecfb8774e5279f7",
+    "deepfm-b16-on-01/summary.json": "aa80585125cda880314a1247729db078535432f3021357a11202095a79e9bf06",
+    "deepfm-b16-on-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b16-on-01/probe.log": "8ae8807d60d13ab6dd77be79d0cf31ebd9b1331531d834de4eebed1541f07728",
+    "deepfm-b16-on-01/demo/docker-compose.yml": "c6835fbea03a79f2255f2e2e5dd5832ff237060b648224b3d1b8b4fda6566f55",
+    "deepfm-b16-on-01/demo/env.baseline.yaml": "cb1e160664a0c4f9ace4be8eca327557ba34db5333d803721aace94333047bc0",
+    "deepfm-b16-unqualified-01/result.json": "73e595dd7a430475749cf1fdf1d92a2852e5a9334c77d857c822efd90152bf0f",
+    "deepfm-b16-unqualified-01/summary.json": "40899a6d592cecb3616f6dc45667ec3751bf227d3c017e12c0e231479fe1d1a7",
+    "deepfm-b16-unqualified-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b16-unqualified-01/probe.log": "76e382c08a3f09395ef7fec1a1ed16b655b37e8409d388e0b6c5d5841deac0b0",
+    "deepfm-b16-unqualified-01/demo/docker-compose.yml": "f0d39eda7512acdda0b893aac3f2587281d9078cd355dba3c780f1661810611c",
+    "deepfm-b16-unqualified-01/demo/env.baseline.yaml": "bead3fe9c1639f06afcb0f4b670feea03c5de3e530f3383cb478f9f91d23f0c0",
+    "deepfm-b32-native-01/result.json": "3d01c19621818210f6aa17a664a58c70d4580fb52067479d379175cdde38605c",
+    "deepfm-b32-native-01/summary.json": "d6d611f5c452c647f62b2d75dca3b028b1a0f5fccb396a3c0a4bbf2c24e66cb4",
+    "deepfm-b32-native-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b32-native-01/probe.log": "2ab894f35a779ad0833c79b662933516c4da5bed3fdee62f06782cc3f9fe817b",
+    "deepfm-b32-native-01/demo/docker-compose.yml": "67baa241b54f22004244a9cd373aa211a82fde6bc8bd50a30254ef50aa55c36a",
+    "deepfm-b32-native-01/demo/env.baseline.yaml": "92dc07dd87ea4583a0e69015f9fb6046fe379e6083d93b58849dd6b85701c88d",
+    "deepfm-b32-native_repeat-01/result.json": "5e2883b0228dcf9ef8d993311a52e4ee43213133172dff9ec17ffac8015b6887",
+    "deepfm-b32-native_repeat-01/summary.json": "2fbaf787cade285ad57389838d89a1e63f276d051e9418cdcddc84e1c4615645",
+    "deepfm-b32-native_repeat-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b32-native_repeat-01/probe.log": "2ab894f35a779ad0833c79b662933516c4da5bed3fdee62f06782cc3f9fe817b",
+    "deepfm-b32-native_repeat-01/demo/docker-compose.yml": "0f24baee6803f71780a4f9f9ea0d8595fa2140c8571fc832dfc8373710055d22",
+    "deepfm-b32-native_repeat-01/demo/env.baseline.yaml": "7eb02d5d7c24896336b5fe8504ae7d7e51cff00390aaae67239a9e95b43f5261",
+    "deepfm-b32-off-01/result.json": "fc6aff659d5bf284450099ab04bc3aeafd191c1eb08bfb5993aee8769add2b5e",
+    "deepfm-b32-off-01/summary.json": "4f58729ca8ea9ffcf5b9467ea49c4fab3aea6fa229f69c15ba434478f902b355",
+    "deepfm-b32-off-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b32-off-01/probe.log": "2ac9a1925644baa06c3a3247732cd04e8ce8d95cb39928953b3042fe81c18d0e",
+    "deepfm-b32-off-01/demo/docker-compose.yml": "38dd117bdbc6ccd2f244c6faf1ae3941264aa719f19bc1aa0c2994980bf6377b",
+    "deepfm-b32-off-01/demo/env.baseline.yaml": "f29a64d82bc17197d978d801be49f5728e862718dfa21ce888bc4e0d71d5f351",
+    "deepfm-b32-on-01/result.json": "f9bcef401cfbe197fb6ecece2beed29beb239aea0ac0b990da1107a6af287eed",
+    "deepfm-b32-on-01/summary.json": "1cce5f50ef224f1bde7ad4642518e868a39dd17d640fc27d7f041d10c230f2f0",
+    "deepfm-b32-on-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b32-on-01/probe.log": "d5d3d2e9cf13a6a2a643d55c5e6282fb5fcf359c56c06b1e473b2482ba1855b0",
+    "deepfm-b32-on-01/demo/docker-compose.yml": "c414be91f2825519109e9fbef2908b71ed88e16d7e2d2a274af39f891d1f72c2",
+    "deepfm-b32-on-01/demo/env.baseline.yaml": "9dafdcab452e40e5bd68799efd207c3586d4eb6cd966179fa2fd1462b611713a",
+    "deepfm-b32-unqualified-01/result.json": "8d6e72131c2fefc47631b915edfd78a5c607d399726f33e90aa8c5b53d6d8552",
+    "deepfm-b32-unqualified-01/summary.json": "a20b4bfa72a2805005330651edc578b4c39ad2d70f2891683cf6040db71f0c30",
+    "deepfm-b32-unqualified-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "deepfm-b32-unqualified-01/probe.log": "a5120b076127c41a65e8d3512810fb9e17559c8580ef8c78e0cd72a4ad72e91e",
+    "deepfm-b32-unqualified-01/demo/docker-compose.yml": "f596781485ee412eb5c3e3e4b3f93474985d5a4c031b5a131167ef066ba80425",
+    "deepfm-b32-unqualified-01/demo/env.baseline.yaml": "bb96dc5b63cbd070c55cd2bc6fe432b24ac827b31d1e1c78ac434780c2243454",
+    "sigmoid-off-01/result.json": "d4fef42af3e57a04037006f99b72808085a144fe6dadd24729e4a1cb742c182c",
+    "sigmoid-off-01/summary.json": "6f767675082cabe90cd7d132d55783e7e0d08ff23df7c6d1e419ed9062141623",
+    "sigmoid-off-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "sigmoid-off-01/probe.log": "3f9e5b1d8e923e6f929ddc6d9991c971394ad937730a078a06ed4ca2793657e1",
+    "sigmoid-off-01/demo/docker-compose.yml": "1472e30203e10b2adeb9e33de7a2cec42e77de24439fa7a46c52ff081be46fd9",
+    "sigmoid-off-01/demo/env.baseline.yaml": "1ad9d61fb6022d16cb03cda64c83c7e39d354e0e17d6b8518e4f044617de60b1",
+    "sigmoid-on-01/result.json": "9a53897b10ab9632090a5b95eac1cdabd84e0b099c041128d64ce801373391b9",
+    "sigmoid-on-01/summary.json": "d79cec48b22a07718aba1f41b8d1fc563b4bb9b4eb16607edbf8df46172009ed",
+    "sigmoid-on-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "sigmoid-on-01/probe.log": "69204463b045fd87292128f262c5664d2e5604c1ac34e7a964ded622ecb0dad5",
+    "sigmoid-on-01/demo/docker-compose.yml": "0f10317b67290930a9be2e84e279bcbb834810889b4f33233a83cd894cc96ed0",
+    "sigmoid-on-01/demo/env.baseline.yaml": "3e0e1fae166d2a63ca87d8c5b3ea22aa0fb2d58f9991a105332066bd9b18ba38",
+    "sigmoid-qual-01/result.json": "e38b06d9a45608b7b756baaaa970816db9b823733b6a6016c48213056adf04c4",
+    "sigmoid-qual-01/summary.json": "3dd4d0c8bc2260e1e838b7dfa73ec6984bf282670c70a3bec422eec1ef73775a",
+    "sigmoid-qual-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "sigmoid-qual-01/probe.log": "fe4f84c92c33002710fda00c782afbb894b37dc66328b80dd39373b0c512a92c",
+    "sigmoid-qual-01/demo/docker-compose.yml": "e12810c732e23a5f1d82d5e5bfb01e03674c5088c51b405b3e5d0b2a71097c1e",
+    "sigmoid-qual-01/demo/env.baseline.yaml": "7e8faca6ee96c56b297bfc18d6fd16e011bd76f93aff2a3eae916d82e345ebc7",
+    "sigmoid-unqualified-01/result.json": "cff20c8c132ddebea98aec7cd2b5553755263caaf36ef31e70ef5544db585cc8",
+    "sigmoid-unqualified-01/summary.json": "5f8e3b1ce4a6413118e833115cd186ffa3aacfe82ef19d74d6f71497555ad414",
+    "sigmoid-unqualified-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "sigmoid-unqualified-01/probe.log": "ba07f6fbfa6a698a48b3a60e9e8a6aaf8e620786671cde8592002aba30d15c3a",
+    "sigmoid-unqualified-01/demo/docker-compose.yml": "c14b49ebf98be13fa0225d426c9baba47283e4bf1e29f15121f2a4ef669341f5",
+    "sigmoid-unqualified-01/demo/env.baseline.yaml": "549be3caf0393bf99da21937388673bff3727319e64903a65adc9ad32f35d086",
+    "tanh-off-01/result.json": "2ad519b2e56ec44970b88b2fd165c3f01e8ff3bed34a2757f89245a1cd84f11d",
+    "tanh-off-01/summary.json": "4a9217cd63ae559293fe82adc86eafbcb8f056d935767e512af60b74d66bf384",
+    "tanh-off-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "tanh-off-01/probe.log": "b76fa319c30ef706bb4b0a55b246f38186a6297314049c24eeca48617f911ae2",
+    "tanh-off-01/demo/docker-compose.yml": "8c1147952de330651d60bb2c357021f7b683bb512f915e511a8588ea37baffb9",
+    "tanh-off-01/demo/env.baseline.yaml": "01def7b580afdfbd586b19212d2cebef45499046add822e7dd0ff1df24bcaf76",
+    "tanh-on-01/result.json": "2f90a5c958fcd390d2d9f1baf723b2d11907e8a3cac2de6d8c80fc537aa2ece1",
+    "tanh-on-01/summary.json": "c4b51575e71a473976165545ea05212086948dfe43f9cbaa912c537df4f81562",
+    "tanh-on-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "tanh-on-01/probe.log": "2734d4da838b7679dc210e8c0de4dd9b728eab4daa24cc421e9484b01e8d946b",
+    "tanh-on-01/demo/docker-compose.yml": "a685b65cb42cfe191326dc18c12892d455adc777971a4d9780582c932c00df8f",
+    "tanh-on-01/demo/env.baseline.yaml": "2eb6fe3e3025e619ef4e143ca2131131fcbe777a9251ccf14a91af20eb0624e2",
+    "tanh-qual-01/result.json": "df002cda7ca9d8c57b256e8844706c2cf96e70822afc82a4b2815f0ec2c988dd",
+    "tanh-qual-01/summary.json": "803c1c57cf4e6905ec850975375c360baef169707284e54fae1bd79e780a6762",
+    "tanh-qual-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "tanh-qual-01/probe.log": "a1792f46159218d4dd05eec0fa37576dd6c158c745478b11475af5295cc6bbc4",
+    "tanh-qual-01/demo/docker-compose.yml": "784c4cd184f0eb6983169913d3c7f2cc610951a594edc1786fa8b70db0f8ba47",
+    "tanh-qual-01/demo/env.baseline.yaml": "b4163355908e6da1e5a6ad15ceb5e18381da4ab6c2ad9ab16324c82d965021af",
+    "tanh-unqualified-01/result.json": "3507cc79f119a36ec46b1dff04545f5d28d0404cc2f1ebf331e1cef9e91392cb",
+    "tanh-unqualified-01/summary.json": "24b946bd7fa5e4cf872565c3fe4f004e7b9f9f83ba9885a6eb32478cf047b35b",
+    "tanh-unqualified-01/inputs.json": "8924c99a117aff0a5cb5055b624766b5ebc387d807214509b1a46979f072f26e",
+    "tanh-unqualified-01/probe.log": "b1eaf198f3d1cd5111f09f80f6d0a12b2604435aaf14976a6db9b179ab2ebf97",
+    "tanh-unqualified-01/demo/docker-compose.yml": "86f7d3ece2eb22d09b317d19fd94128e88b01eef94bec689a288c53661e18409",
+    "tanh-unqualified-01/demo/env.baseline.yaml": "fc4fe220571d28bf5e2d32638049c47a359cc3d264612a30319c191d0895fbc7"
+  }
+}

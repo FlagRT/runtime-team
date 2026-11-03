@@ -1,0 +1,1368 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "scope": "P800 OneRec-8B BF16 single-card 3-step integration, admission and native fallback; not business training or full three-level fallback",
+  "publication": "local uncommitted; not pushed",
+  "conclusion": {
+    "native_training": "PASS",
+    "target_candidate": "FAIL; not admitted",
+    "denied_native_fallback": "PASS",
+    "strict_pre_model_block": "PASS",
+    "successful_training_trajectories": 4,
+    "successful_optimizer_steps": 12,
+    "exact_nonbaseline_tensor_comparisons": 7191,
+    "single_operator_cases": 3,
+    "single_operator_repeats": 9,
+    "case_cpu_tests": 34
+  },
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "public_commit": "71197e73d13021556de04ff04c42c89b3bfc8f73",
+  "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+  "package": {
+    "version": "0.3.0.dev2",
+    "wheel_sha256": "de5da93ab72d00456993f74baf98a2b9aeaf1cae0a21844d2423ba4462f83008",
+    "unchanged_this_turn": true,
+    "runtime_files_verified": 10,
+    "previous_package_cpu_tests": 94
+  },
+  "workload": {
+    "model": "OpenOneRec/OneRec-8B",
+    "revision": "29f95b3da63a4bbc00a1cd3aeee948efb2ff40ff",
+    "formulation": "synthetic causal LM",
+    "dtype": "torch.bfloat16",
+    "batch": 1,
+    "sequence_length": 16,
+    "steps": 3,
+    "seed": 1014,
+    "data_seed": 1014,
+    "optimizer": "SGD",
+    "lr": 0.01,
+    "momentum": 0,
+    "foreach": false,
+    "gradient_checkpointing": "non-reentrant",
+    "attention": "eager",
+    "use_cache": false,
+    "deterministic": true
+  },
+  "workload_identity": {
+    "model_id": "OpenOneRec/OneRec-8B",
+    "phase": "train",
+    "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+    "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+    "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+  },
+  "model_files_sha256": {
+    "model-00000-of-00003.safetensors": "54144c8a0fccb57ace38e288dd507401d6e6c89fabcc616748cb09db059964ca",
+    "model-00001-of-00003.safetensors": "9c6bcb75cc225008d937c3ce875f4b5c90db45b0cdf0db9b2ef2bf80a301ed6c",
+    "model-00002-of-00003.safetensors": "dec154ac50baceb71093e6cb1e60cfcb3218d91e4eafc5d7fe371fac4564af0b",
+    "config.json": "7cfca63823e48a9a61cb457bf40bf30263704f7e0dfa4472a626008a38728a30",
+    "model.safetensors.index.json": "c463df452d9333ec9f5c954bd6b315ff9ebd46f817c610d09bdb458afe6b531f"
+  },
+  "parameter_count": 8391013376,
+  "parameter_tensors": 399,
+  "candidate_tolerance": {
+    "atol": 0.001,
+    "rtol": 0.01
+  },
+  "native_path_tolerance": {
+    "atol": 0,
+    "rtol": 0
+  },
+  "single_operator_cases": [
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.float32",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.00001,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0,
+          "backward_max_abs": 4.76837158203125e-7,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0,
+          "backward_max_abs": 4.76837158203125e-7,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0,
+          "backward_max_abs": 4.76837158203125e-7,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.float16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.005,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "silu",
+      "shape": [
+        1,
+        16,
+        12288
+      ],
+      "dtype": "torch.bfloat16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.03,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0,
+          "backward_max_abs": 0.00048828125,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    }
+  ],
+  "runs": [
+    {
+      "run": "onerec-native-01",
+      "source": "source-01",
+      "outer_status": "PASS",
+      "probe_status": "pass",
+      "mode": "native",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-native-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "native",
+          "--out",
+          "/results/result.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 0
+      },
+      "all_commands_in": "onerec-native-01/summary.json",
+      "optimizer_steps": 3,
+      "baseline_tensor_count": 2397,
+      "compared_tensors": 0,
+      "max_abs": null,
+      "mismatched_elements": 0,
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.138385772705078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 14.962549209594727,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 15.785455703735352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        }
+      ],
+      "provider_calls": {},
+      "routes": [],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "OpenOneRec/OneRec-8B",
+          "phase": "train",
+          "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+          "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+          "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+        }
+      },
+      "dispatcher_restored": true,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0,
+        "reconstructed_from": "live PID/sysfs and container mapping, not old numeric label"
+      },
+      "started_at": "2026-10-29T12:17:35.504019353Z",
+      "finished_at": "2026-10-29T12:23:07.82683446Z"
+    },
+    {
+      "run": "onerec-qual-01",
+      "source": "source-02",
+      "outer_status": "PASS",
+      "probe_status": "pass",
+      "mode": "off",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-qual-01",
+          "timeout",
+          "--kill-after=10s",
+          "300",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--stage",
+          "qualification",
+          "--mode",
+          "off",
+          "--operator",
+          "silu",
+          "--shape-profile",
+          "onerec16",
+          "--out",
+          "/results/result.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 0
+      },
+      "all_commands_in": "onerec-qual-01/summary.json",
+      "optimizer_steps": 0,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 0,
+      "max_abs": null,
+      "mismatched_elements": 0,
+      "steps": [],
+      "provider_calls": {
+        "GEMS SILU FORWARD": 9,
+        "GEMS SILU BACKWARD": 9
+      },
+      "routes": [],
+      "startup": null,
+      "dispatcher_restored": null,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": null,
+      "optimizer_created": null,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:23:53.078559544Z",
+      "finished_at": "2026-10-29T12:24:24.768032806Z"
+    },
+    {
+      "run": "onerec-repeat-01",
+      "source": "source-02",
+      "outer_status": "PASS",
+      "probe_status": "pass",
+      "mode": "native_repeat",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-repeat-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "native_repeat",
+          "--out",
+          "/results/result.json",
+          "--reference",
+          "/reference"
+        ],
+        "log": "probe.log",
+        "exit_code": 0
+      },
+      "all_commands_in": "onerec-repeat-01/summary.json",
+      "optimizer_steps": 3,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 2397,
+      "max_abs": 0,
+      "mismatched_elements": 0,
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.138385772705078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 14.962549209594727,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 15.785455703735352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        }
+      ],
+      "provider_calls": {},
+      "routes": [],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "OpenOneRec/OneRec-8B",
+          "phase": "train",
+          "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+          "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+          "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+        }
+      },
+      "dispatcher_restored": true,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:24:55.077779285Z",
+      "finished_at": "2026-10-29T12:36:10.424789816Z"
+    },
+    {
+      "run": "onerec-candidate-01",
+      "source": "source-03",
+      "outer_status": "FAIL",
+      "probe_status": "fail",
+      "mode": "candidate",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-candidate-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "candidate",
+          "--out",
+          "/results/result.json",
+          "--reference",
+          "/reference",
+          "--records",
+          "/review/records.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 1
+      },
+      "all_commands_in": "onerec-candidate-01/summary.json",
+      "optimizer_steps": 0,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 2,
+      "max_abs": 0.375,
+      "mismatched_elements": 25631,
+      "steps": [
+        {
+          "step": 1,
+          "status": "fail",
+          "loss": 17.138385772705078,
+          "provider_calls": {
+            "GEMS SILU FORWARD": 36,
+            "GEMS SILU BACKWARD": 36
+          },
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "flaggems",
+              "forward",
+              "completed",
+              36
+            ],
+            [
+              "silu",
+              "flaggems",
+              "backward",
+              "completed",
+              36
+            ]
+          ]
+        }
+      ],
+      "provider_calls": {
+        "GEMS SILU FORWARD": 36,
+        "GEMS SILU BACKWARD": 36
+      },
+      "routes": [
+        [
+          "silu",
+          "flaggems",
+          "backward",
+          "completed",
+          36
+        ],
+        [
+          "silu",
+          "flaggems",
+          "forward",
+          "completed",
+          36
+        ]
+      ],
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "target",
+            "reason": null
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": false,
+        "workload": null
+      },
+      "dispatcher_restored": true,
+      "qualification_experiment": true,
+      "model_approved": false,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:36:51.118345788Z",
+      "finished_at": "2026-10-29T12:38:28.214828771Z"
+    },
+    {
+      "run": "onerec-off-01",
+      "source": "source-03",
+      "outer_status": "PASS",
+      "probe_status": "pass",
+      "mode": "off",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-off-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "off",
+          "--out",
+          "/results/result.json",
+          "--reference",
+          "/reference",
+          "--adapter-config",
+          "/review/off.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 0
+      },
+      "all_commands_in": "onerec-off-01/summary.json",
+      "optimizer_steps": 3,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 2397,
+      "max_abs": 0,
+      "mismatched_elements": 0,
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.138385772705078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 14.962549209594727,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 15.785455703735352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        }
+      ],
+      "provider_calls": {},
+      "routes": [
+        [
+          "silu",
+          "native",
+          "forward",
+          "experimental_disabled",
+          108
+        ]
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "OpenOneRec/OneRec-8B",
+          "phase": "train",
+          "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+          "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+          "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+        }
+      },
+      "dispatcher_restored": true,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:39:33.760767225Z",
+      "finished_at": "2026-10-29T12:50:39.087674562Z"
+    },
+    {
+      "run": "onerec-strict-01",
+      "source": "source-04",
+      "outer_status": "PASS",
+      "probe_status": "blocked",
+      "mode": "strict",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-strict-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "strict",
+          "--out",
+          "/results/result.json",
+          "--adapter-config",
+          "/review/strict.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 3
+      },
+      "all_commands_in": "onerec-strict-01/summary.json",
+      "optimizer_steps": 0,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 0,
+      "max_abs": null,
+      "mismatched_elements": 0,
+      "steps": [],
+      "provider_calls": {},
+      "routes": [],
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "native",
+            "reason": "workload_denied"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "OpenOneRec/OneRec-8B",
+          "phase": "train",
+          "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+          "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+          "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+        }
+      },
+      "dispatcher_restored": null,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": false,
+      "optimizer_created": false,
+      "provider_imported": false,
+      "block_reason": "workload_denied",
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:52:02.863427697Z",
+      "finished_at": "2026-10-29T12:52:29.096764839Z"
+    },
+    {
+      "run": "onerec-denied-01",
+      "source": "source-04",
+      "outer_status": "PASS",
+      "probe_status": "pass",
+      "mode": "denied",
+      "probe_command": {
+        "command": [
+          "docker",
+          "exec",
+          "cgu135-xpu-onerec-denied-01",
+          "timeout",
+          "--kill-after=10s",
+          "1800",
+          "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+          "-B",
+          "/case/onerec_probe.py",
+          "--runtime-root",
+          "/runtime",
+          "--model",
+          "/model",
+          "--steps",
+          "3",
+          "--mode",
+          "denied",
+          "--out",
+          "/results/result.json",
+          "--reference",
+          "/reference",
+          "--adapter-config",
+          "/review/denied.json"
+        ],
+        "log": "probe.log",
+        "exit_code": 0
+      },
+      "all_commands_in": "onerec-denied-01/summary.json",
+      "optimizer_steps": 3,
+      "baseline_tensor_count": 0,
+      "compared_tensors": 2397,
+      "max_abs": 0,
+      "mismatched_elements": 0,
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.138385772705078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_denied",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 14.962549209594727,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_denied",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 15.785455703735352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_denied",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        }
+      ],
+      "provider_calls": {},
+      "routes": [
+        [
+          "silu",
+          "native",
+          "forward",
+          "workload_denied",
+          108
+        ]
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              16,
+              12288
+            ],
+            "dtype": "torch.bfloat16",
+            "decision": "native",
+            "reason": "workload_denied"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "OpenOneRec/OneRec-8B",
+          "phase": "train",
+          "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+          "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+          "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+        }
+      },
+      "dispatcher_restored": true,
+      "qualification_experiment": false,
+      "model_approved": null,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "block_reason": null,
+      "actual_device_mapping": {
+        "smi_index": 3,
+        "pci_bus": "0000:2e:00.0",
+        "device_node": "/dev/xpu1",
+        "logical_device": 0
+      },
+      "started_at": "2026-10-29T12:53:55.325451769Z",
+      "finished_at": "2026-10-29T13:04:49.355106187Z"
+    }
+  ],
+  "candidate_first_failed_comparison": {
+    "name": "step1/gradient/model.embed_tokens.weight",
+    "file": "4288ff161cecc39e684afddf81627d2ad1e3269a207ba422049e2152a5e67898.pt",
+    "shape": [
+      176384,
+      4096
+    ],
+    "dtype": "torch.bfloat16",
+    "max_abs": 0.375,
+    "mismatches": 25631,
+    "mismatch_examples": [
+      {
+        "flat_index": 81596463,
+        "actual": -0.00469970703125,
+        "reference": -0.0034332275390625,
+        "abs_error": 0.0012664794921875,
+        "allowed_error": 0.001034332275390625
+      },
+      {
+        "flat_index": 81596496,
+        "actual": 0.1181640625,
+        "reference": 0.115234375,
+        "abs_error": 0.0029296875,
+        "allowed_error": 0.0021523437499999997
+      },
+      {
+        "flat_index": 81596508,
+        "actual": 0.01312255859375,
+        "reference": 0.0118408203125,
+        "abs_error": 0.00128173828125,
+        "allowed_error": 0.001118408203125
+      },
+      {
+        "flat_index": 81596535,
+        "actual": -0.01806640625,
+        "reference": -0.016845703125,
+        "abs_error": 0.001220703125,
+        "allowed_error": 0.0011684570312500001
+      },
+      {
+        "flat_index": 81596569,
+        "actual": 0.004241943359375,
+        "reference": 0.0031585693359375,
+        "abs_error": 0.0010833740234375,
+        "allowed_error": 0.001031585693359375
+      },
+      {
+        "flat_index": 81596587,
+        "actual": -0.06689453125,
+        "reference": -0.06494140625,
+        "abs_error": 0.001953125,
+        "allowed_error": 0.0016494140625
+      },
+      {
+        "flat_index": 81596617,
+        "actual": -0.00531005859375,
+        "reference": -0.0064697265625,
+        "abs_error": 0.00115966796875,
+        "allowed_error": 0.001064697265625
+      },
+      {
+        "flat_index": 81596680,
+        "actual": 0.0223388671875,
+        "reference": 0.0211181640625,
+        "abs_error": 0.001220703125,
+        "allowed_error": 0.001211181640625
+      }
+    ]
+  },
+  "candidate_error": "Traceback (most recent call last):\n  File \"/case/onerec_probe.py\", line 196, in main\n    try: run(a,r)\n  File \"/case/onerec_probe.py\", line 163, in run\n    check(prefix+'gradient/'+name,p.grad)\n  File \"/case/onerec_probe.py\", line 108, in check\n    save(); raise AssertionError(f'{name}: {row[\"mismatches\"]} mismatches, max_abs={row[\"max_abs\"]}')\nAssertionError: step1/gradient/model.embed_tokens.weight: 25631 mismatches, max_abs=0.375\n",
+  "notes": [
+    "Candidate compared loss and the first gradient only; remaining gradients were not compared after first failure.",
+    "Full failed candidate gradient was not saved; eight mismatch excerpts, original native baseline and reproducible inputs retained.",
+    "Numerical root cause not assigned to kernel or compiler. No kernel changes or tolerance loosening.",
+    "Failed model review was curated after examining experiment evidence, not automatically generated by an online accuracy check.",
+    "unknown.json is an unexecuted optional example; no normal on configuration was admitted.",
+    "raw early summary batch_size=32 is an outer-label bug; actual result.workload and probe input were always batch=1. source-04 fixes labels only.",
+    "Old physical_device=1 meant driver-minor /dev/xpu1. Native live PID3804949 and sysfs showed SMI3/PCI2e:00.0. Source-02 onwards resolves PCI before idle checks. Historical earlier P800 indices are not retroactively verified.",
+    "Container ExitCode137 is after stopping persistent sleep, with OOMKilled=false; use probe exit code for test result."
+  ],
+  "local_verification": {
+    "final_case_assets_sha256": {
+      "deepfm_probe.py": "241a8c33dbb1852ecb5ab9d4ecca11a7c7effbb19d009841dbbf694f393b28c5",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+      "onerec_probe.py": "17c80d066944114a363cf85fcaeb516b5412545168ad9eecbe6b403a337524bc",
+      "probe.py": "e4be7cb008efe9dc9a7c6d496e237ea057ae157c915c1d8116120da6ce2cb349",
+      "run.py": "d072d27e873edc4fd5047b8a510637fe4752a7169ab05146adfc7fa97c277478",
+      "test_expansion.py": "603e1af3a8bb896bae6e3bf8d4ba546c28dd88f117f698a27c617458da174bd3",
+      "test_model_admission.py": "98431b65969e992c19eba3147f3445b2ca84bece08c12eaa1d939a3a5af7ed3e",
+      "test_model_probe.py": "ec26003ecb751d36480b7682d4c0c4887b79dbbf99ef6195c78c2054db9930cb",
+      "test_onerec.py": "c105a900b2d8363847785dc6008dd805397bebda9f5570ab70a0c2a0fa889a3d",
+      "test_runner.py": "7383960aba91d3b98e5419e2f76ec7e17db131f87fa799c52d85a829652236e5"
+    },
+    "final_review_json_sha256": {
+      "denied.json": "a5b0d63ba21f1643310b19fde188dc41e0fa9e57a61ca9f74594d28339d711c7",
+      "model-evidence.json": "a1a530b4d903be988f3d2d6691208d35ad18558fd17dfee77e6a05e7bc3c4323",
+      "model-reviews.json": "1eb07599d63e1eba8b4f21d2dd78b81bc7e34b3ae5cef3543ffc36d432bf93ae",
+      "off.json": "be5ac1773d021491ea5f7a9d9588aeeeab7c6714d92bce53a699ca9998cc3487",
+      "operator-evidence.json": "5683645fb5eaf895af1aa37a952b4f031c3d8a25b5ed57277b361bcbfb389d65",
+      "records.json": "a5324b67911e052db9170fff9822514733e1e70bdb0df8f4297718c87d738714",
+      "strict.json": "32b7ba07428990a78e296cdc39cbcfd423167465aefee4cdd6cfd68bf620c3cc",
+      "unknown.json": "a8c1343052e92b6a47e94d7f60b57001290334fa35b5f7edce72e2fab181098e"
+    },
+    "raw_evidence_file_count": 90,
+    "raw_evidence_sha256": {
+      "onerec-native-01/container.json": "dac7b56962adda85522f3cab9c67b9f50f8d5764f71c97561b5f5e8681aa53cd",
+      "onerec-native-01/demo/.last-check.json": "13583f80eb57ec3f4fb0d5a7c8bd16f84ac7e39c015267114ee82ec585e5d748",
+      "onerec-native-01/demo/docker-compose.yml": "30dd1dea02adf2577679f8c7ee0988ef4016f06097e6c6593065a3f4079b1f4e",
+      "onerec-native-01/demo/env.baseline.yaml": "7ea5161378e380fcd43b35c83c26d6a5701117334ded78b6eface6984d1b17fa",
+      "onerec-native-01/export.log": "4a1f8497e055132fa964c31453e0e2d1565089ddbb6f0319df1470ab26f5c0d6",
+      "onerec-native-01/inputs.json": "aec22167ba9f72f5841f2fcf186a3c61bcc1f1c1a870ed879abd41345108ec42",
+      "onerec-native-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-native-01/probe.log": "4525971024996245c40d677595c9f677205bb09381fc17e255a2a2f1d3388b07",
+      "onerec-native-01/resource-before.log": "e310cc75c0f754f1999f6131e0fc7b02bbab1ee0e0dbe042901343ecfb1c3a41",
+      "onerec-native-01/result.json": "cffa102fbc8235883836f7b382f8847681e7c773ff999f9a4e01f6d5ab54821b",
+      "onerec-native-01/strict-start.log": "c5f5d96d9473e81817dc1a0d2442d88fe27120867333344e8ec405895d17bf4b",
+      "onerec-native-01/summary.json": "fe43b7fa01db4839a98ba5d4dabe2262e652e22d67642a90fac64321bc256703",
+      "onerec-qual-01/container.json": "e375e69abedce16c2c146f516651895ca6918cc1adc0d6945a87767792805eaf",
+      "onerec-qual-01/demo/.last-check.json": "e2f7284ab6863c2f277bb9608007b00860d5aa2cfd2034ec1e6feb192aa6f05e",
+      "onerec-qual-01/demo/docker-compose.yml": "42067a7a7f388e3ed6b15e9a1b66792c2e59e58664d0e00ad8558ee27dbe8aca",
+      "onerec-qual-01/demo/env.baseline.yaml": "2d3edbf0a13a3c8cc16f5d12302d1970e583b7089ed38515905689804270ad14",
+      "onerec-qual-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-qual-01/export.log": "fb9bf3f23d434869cca7da368e65ef4a76d5f5d6c98f9faaa0726b8676af8cd2",
+      "onerec-qual-01/inputs.json": "7c9642432c9ddcd0a7f6dd3a361294d8b54b4a656a919968e9256f79c570d03e",
+      "onerec-qual-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-qual-01/probe.log": "a6316c9af0f9788d5ffec865034186660877233431553dc7040ccb41d7bf1dd6",
+      "onerec-qual-01/resource-before.log": "cde66a0208b469d0f7d19b237dab9fdb7c7dbe52c3554821422fb42ab69fd625",
+      "onerec-qual-01/result.json": "c1cf4e62845a4d1df0480d778a47425ca6cf652be8437719ac75e1dffce10179",
+      "onerec-qual-01/strict-start.log": "7629464241f1ef86123fc6abe2a8e12c6f0fb14426eca2227a36efb5b06924c2",
+      "onerec-qual-01/summary.json": "a0dea7c9fabb1ba241fe1dd679a0c833db470539d1891c2336ef881dcbfd142f",
+      "onerec-repeat-01/container.json": "6bda1d29ba16aafbf7b6d08d7560218cff35078ca00c7a4117d69a8a25b979c1",
+      "onerec-repeat-01/demo/.last-check.json": "7cbd68bf30e32a409fef2221b5d4c7572d47cd6a7e1cf8d1f49cec9064477e85",
+      "onerec-repeat-01/demo/docker-compose.yml": "61525a5ec244436adad70ff046465336462d2f1a982a7b38e9b391b83ef3cc2a",
+      "onerec-repeat-01/demo/env.baseline.yaml": "3f1669fdd2f875724838dd7a7c73020d11a0ded9292db9371fcb321e001b2e28",
+      "onerec-repeat-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-repeat-01/export.log": "e5180cc6b5fcbd5c52efeb17bfb45aed7500a163f36536baef1584e219e60fc1",
+      "onerec-repeat-01/inputs.json": "7c9642432c9ddcd0a7f6dd3a361294d8b54b4a656a919968e9256f79c570d03e",
+      "onerec-repeat-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-repeat-01/probe.log": "defa4574fe1d370ee96790cc87a6a99890c5b9cf9eb228df6df757838bd891fe",
+      "onerec-repeat-01/resource-before.log": "7f91aa761e9945ea46dcf17ba91b905c430b7da2175efce61e6ded6b97d42beb",
+      "onerec-repeat-01/result.json": "0649e1380f8acbb28d1ffd7e4516632bca02440aed72202b580631884cf15c5d",
+      "onerec-repeat-01/strict-start.log": "865275fbacf8bb3d8d2c1476ad905eecff776a8738e25115c4d418ab1720c5d5",
+      "onerec-repeat-01/summary.json": "64d333a41c7e94363a12067d1e9dcffec11d65d76a77022285c09b62aa73af4c",
+      "onerec-candidate-01/container.json": "53e234cde7013163ef6453c8f8730986ef5bf804866749b2df805028621e0532",
+      "onerec-candidate-01/demo/.last-check.json": "12864f343327e9efa5d5981250a2821a066aee75d9df16dc3a988425f85d4ea2",
+      "onerec-candidate-01/demo/docker-compose.yml": "42428a058c37ab286ccb8de6dc88e43f36aaf3e7047ed6033fab239901f1861e",
+      "onerec-candidate-01/demo/env.baseline.yaml": "89a89b851c8bd91fd0de9919001fa20245de7fbfec4499aaa65b88cc5f94cc73",
+      "onerec-candidate-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-candidate-01/export.log": "92cc3c0e9229035976bd2d49299149c93a96da496e0e9d77c1af038efde428c5",
+      "onerec-candidate-01/inputs.json": "fdd7937d9c8359aee5b7cb3c15f552ed54a61ec63854647a36c66439aa5d959e",
+      "onerec-candidate-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-candidate-01/probe.log": "efd5990d3995b0e5ea392c99fbd214268e6e9755342ec2e17a8137f00d550926",
+      "onerec-candidate-01/resource-before.log": "d919ded790e63a68de49bacd7793228f73bdf551abeef401b5cc5944282a642f",
+      "onerec-candidate-01/result.json": "20b61cc520e1f89fb817d9488e765e0a1907d6e5560518c3a6559f4bde191d53",
+      "onerec-candidate-01/strict-start.log": "8c31aec6e6bbf8635971048b5f9e46c9b128a34b0c6f5223b2db6b5928f28191",
+      "onerec-candidate-01/summary.json": "964ed792ad9aa39aaccca2cd2a9e83dd8ec2c7e0e31dc51550ae0cae01e9d03e",
+      "onerec-off-01/container.json": "7f45079a620c42bbba04850e63e7e01ecf244251a206b0e03635e8eb3fe1edd3",
+      "onerec-off-01/demo/.last-check.json": "5c417b6c27712bf6368603fbc220b95d96e46980641f14cff3f07468fda0b1b4",
+      "onerec-off-01/demo/docker-compose.yml": "de4af72e4534cb7cee8eda88b5a939df38648267cbc70fcabac86f976d04b0ac",
+      "onerec-off-01/demo/env.baseline.yaml": "1998dfdb80a81e444fd4909bd31b4e75f96cbdb34c9bef7dba34c09fc61400fb",
+      "onerec-off-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-off-01/export.log": "006def491716056bd0d975212e0918b4e559d5518f9260b564be0c31fc6873fc",
+      "onerec-off-01/inputs.json": "fdd7937d9c8359aee5b7cb3c15f552ed54a61ec63854647a36c66439aa5d959e",
+      "onerec-off-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-off-01/probe.log": "94ccc07f85efd9423bfa65c0dfd55a2ec808c80c7d3d9f1ce9906ca6e4e89028",
+      "onerec-off-01/resource-before.log": "1753e7673759274cf335ef66017cec714029f739d1b93216557ebb85a344e4ef",
+      "onerec-off-01/result.json": "7e4bd9d9668eedb022e48f00ad5ab735ea36fc8a50f6e5a3846584110a244d54",
+      "onerec-off-01/strict-start.log": "6ee1e2a42f480eba44cd5feb8fbd191457247b217c56a1cd144c680109d89ba1",
+      "onerec-off-01/summary.json": "a431ec8d9b472ca8e45b9efae19c1000d45b752c09a3100b883ac87686354937",
+      "onerec-strict-01/container.json": "e6375546ca58135ee36413f9fb3edb3e1402761938204f6f2c0cde3f2d20961f",
+      "onerec-strict-01/demo/.last-check.json": "e5a35cb01ce51ccd97c243a20052cdfb39be3105253b594c25cf983da6e65309",
+      "onerec-strict-01/demo/docker-compose.yml": "a1a2276804dd67facdda21ec9c1157112ddeaacb7c8dbb9ddedc6f199e4d3f92",
+      "onerec-strict-01/demo/env.baseline.yaml": "c956cc80e03bb4120dcbb80653d86495ee6b6f23c53140c8c48e040a32429889",
+      "onerec-strict-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-strict-01/export.log": "5189794cfae91334889ca91f5e755de35e564016384040d445c3361ee8d7e9c1",
+      "onerec-strict-01/inputs.json": "d91af01085b3e51802782a4b34ce1e071dc6380a20967e49bb90e9f42f8f8f34",
+      "onerec-strict-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-strict-01/probe.log": "a6d67cb6f13a960af1af560ddd6abe80daf367a16b187e2c16461cb6ebafbf16",
+      "onerec-strict-01/resource-before.log": "1d287bd6369b7feb0bb41342535246cb2e4dc4f05cf502bd1450732973fb16dd",
+      "onerec-strict-01/result.json": "cf8178f1c469a3f14da450725a0f6422a3c844d9a7b522ae5a2d742ca462efb2",
+      "onerec-strict-01/strict-start.log": "4849d1efce251105e506f12349a501785e391012aadd0d548e986cdc57602e07",
+      "onerec-strict-01/summary.json": "8dc7a0304fc692b4c03bae90a160324271832b395a9cf066a852139443d3bbdf",
+      "onerec-denied-01/container.json": "8f7aad1d9e9a1f942c76321f905649fe831ec418dc0ca948d4d362e84696a68c",
+      "onerec-denied-01/demo/.last-check.json": "ee9b6d901c5482a9e3507b115149be6b82cd7b20caf3a48d39adfd2ef1e5a306",
+      "onerec-denied-01/demo/docker-compose.yml": "11ad3492e0310eda119b664fdd99b672f59e692fc7cb53c4ad8d7e11d5f3e67b",
+      "onerec-denied-01/demo/env.baseline.yaml": "11530f004fd7bd819a0dfebded4e57e6fb7ba6176442b369bc80ef11d26265aa",
+      "onerec-denied-01/device-mapping.json": "7a9f16e7e219131319d22fda10872db7bbd47a07d40c263b8f7d63f38fb118a0",
+      "onerec-denied-01/export.log": "19433a335ed64a3b2594f48e499ec29187a27a1b431e7e049f02ff2b5bde053f",
+      "onerec-denied-01/inputs.json": "d91af01085b3e51802782a4b34ce1e071dc6380a20967e49bb90e9f42f8f8f34",
+      "onerec-denied-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+      "onerec-denied-01/probe.log": "72c0ded476376f146f1319a91a3b71eeb74e02b6f6767f03d17950fb6f63a60a",
+      "onerec-denied-01/resource-before.log": "d408cc230be65fc93a02f433f8b95b717261af012ce05f16c8f39e2a41e366d9",
+      "onerec-denied-01/result.json": "f4de9865a50dd04d6817ffc72b063334fab7a09481d5a45b5d7262cbc73a177c",
+      "onerec-denied-01/strict-start.log": "d7b2a2f54e0e7474bf710505be76ab27893ad4097512b159aaa4198902648767",
+      "onerec-denied-01/summary.json": "b2acd204033b969e0ffb711bcbe1189f140b3d25eaf4d3eee82983b5e0b07b2a"
+    },
+    "source_archives_sha256": {
+      "source-01": "c78d37ec2409d03c87dd1019cd0732301892fafc66342c43f302e32cb88ae98f",
+      "source-02": "62c9f7ab95737a1eae31e6c37613f324ecc738163800319c8492b42d8c432fb5",
+      "source-03": "4809e9f25ed40868bbd87538c32a3f63489dafabe120008d665ccbb3b9c21b23",
+      "source-04": "be347ef170cd9958880ae7a6d1b080bcfd9d2edb49e29dfe1d8b0c322b181769"
+    },
+    "source_change_scope": {
+      "source-01": "initial native run",
+      "source-02": "PCI mapping guard",
+      "source-03": "exact-finite tensor equality fast path; unequal values use unchanged original formula",
+      "source-04": "outer result batch/operator labels only"
+    },
+    "cpu_log_sha256": "148a7c29fe60da83bd758ecfdd99001ac3fd071a51a34d4be5bc40f0982693a7"
+  },
+  "cleanup": {
+    "observed_at": "2026-10-29T21:07:06.215803+08:00",
+    "containers": [
+      {
+        "name": "/cgu135-xpu-onerec-native-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-qual-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-repeat-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-candidate-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-off-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-strict-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      },
+      {
+        "name": "/cgu135-xpu-onerec-denied-01",
+        "running": false,
+        "pid": 0,
+        "oom_killed": false,
+        "container_exit_code": 137,
+        "image": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "devices": [
+          {
+            "PathOnHost": "/dev/xpu1",
+            "PathInContainer": "/dev/xpu1",
+            "CgroupPermissions": "rwm"
+          },
+          {
+            "PathOnHost": "/dev/xpuctrl",
+            "PathInContainer": "/dev/xpuctrl",
+            "CgroupPermissions": "rwm"
+          }
+        ]
+      }
+    ],
+    "observation_sha256": "58d0491b9fb22409780d0a6ebef6e7a40736704d422798083cec3a1036892789",
+    "smi3_at_observation": "0 MiB, 0 percent, no process",
+    "ssh_sessions_closed": [
+      96381,
+      90147
+    ],
+    "last_scp_session_completed": 57334
+  },
+  "backup": {
+    "archive": "framework-onerec-evidence-20261029.tar.gz",
+    "archive_sha256": "471e85d42b58bb49d5b945ffe34c6e142128644147ba007a7457bf4c471a968c",
+    "bytes": 1039350,
+    "local_evidence": "outputs/framework-runs/20261029-onerec-xpu/evidence",
+    "remote_root": "/data2/cgu135/framework-onerec-xpu-20261029",
+    "excluded": "94 GiB native tensors remain remote in onerec-native-01/tensors; shared model weights, installed environments and caches not in light archive"
+  },
+  "limitations": [
+    "No model-approved target training for this exact OneRec/P800 configuration.",
+    "No online precision monitoring or in-process retry after target failure.",
+    "Single-device bounded synthetic-token regression only.",
+    "Full three-level fallback, public distributed model-identity integration, and training-v3 target compilation remain incomplete."
+  ]
+}

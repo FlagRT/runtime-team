@@ -1,0 +1,726 @@
+{
+  "date": "2026-10-29",
+  "scope": "P800 Qwen3-Embedding-0.6B FP32 single-card synthetic-token short training; SiLU only",
+  "conclusion": "native/off/unqualified pass; target dispatch works but first-step gradient validation fails, keep this model native",
+  "public_commit": "71197e73d13021556de04ff04c42c89b3bfc8f73",
+  "package_base_commit": "85a9896537a7d88f758d36ae20465e19470985e2",
+  "package_worktree": "uncommitted 0.3.0.dev1; no package changes during model stage",
+  "wheel_sha256": "d85ee77c70044aac9bd48f292e59657cebfdba38d8c68f534964661cd2f0460f",
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "runtime_sources": {
+    "runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+    "runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+    "runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef"
+  },
+  "workload": {
+    "model": "Qwen3-Embedding-0.6B",
+    "formulation": "synthetic causal LM",
+    "dtype": "torch.float32",
+    "batch": 1,
+    "sequence_length": 32,
+    "steps": 3,
+    "seed": 1234,
+    "data_seed": 999,
+    "optimizer": "AdamW",
+    "lr": 0.00001,
+    "eps": 1e-8,
+    "weight_decay": 0.01,
+    "foreach": false,
+    "gradient_clip": 1,
+    "attention": "eager",
+    "deterministic": true
+  },
+  "model_files": {
+    "config.json": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+    "model.safetensors": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd"
+  },
+  "initial_parameter_sha256": "9823eb8852ffa926db67135b7d118b0e5311fb65084fe6b220178abc2e9ff354",
+  "parameter_count": 595776512,
+  "parameter_tensors": 310,
+  "loading_info": {
+    "missing_keys": [],
+    "unexpected_keys": [],
+    "mismatched_keys": [],
+    "error_msgs": []
+  },
+  "runs": [
+    {
+      "run": "qwen-native-01",
+      "source_snapshots": [
+        "source-01"
+      ],
+      "inputs_sha256": "320787e30e97113ca5aa631db56e17b34954874fd0f2c2847054bcce5e38fbc2",
+      "status": "PASS",
+      "physical_device": 5,
+      "summary_sha256": "5476b4ec1d17e3412d6f4361e901fd01bdc8d50487e07b193bef34f06d84201f",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T08:47:10.68834848Z",
+          "FinishedAt": "2026-10-29T08:48:10.793575726Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "050b8879395f7929915034ea69c148f48e426113269787577ffb93e79e722994",
+      "mode": "native",
+      "probe_status": "pass",
+      "optimizer_steps": 3,
+      "completed_steps": 3,
+      "comparison_count": 1863,
+      "comparison_kind": "saved baseline",
+      "max_abs": null,
+      "failures": [],
+      "losses": [
+        18.588773727416992,
+        15.87241268157959,
+        14.525705337524414
+      ],
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      },
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-native-repeat-01",
+      "source_snapshots": [
+        "source-01"
+      ],
+      "inputs_sha256": "320787e30e97113ca5aa631db56e17b34954874fd0f2c2847054bcce5e38fbc2",
+      "status": "PASS",
+      "physical_device": 5,
+      "summary_sha256": "8b2baecea2599cf108027da69d654efa6b8effda85456cda115123d28dff5d57",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T08:48:44.965682461Z",
+          "FinishedAt": "2026-10-29T08:49:58.009641215Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "bfa3400c1ce84ce5e786392cc74d9fd7858dc55ebbdb5b4b35f604216a7eb843",
+      "mode": "native_repeat",
+      "probe_status": "pass",
+      "optimizer_steps": 3,
+      "completed_steps": 3,
+      "comparison_count": 1863,
+      "comparison_kind": "against native",
+      "max_abs": 0,
+      "failures": [],
+      "losses": [
+        18.588773727416992,
+        15.87241268157959,
+        14.525705337524414
+      ],
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      },
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-native-repeat-02",
+      "source_snapshots": [
+        "source-03"
+      ],
+      "inputs_sha256": "73cfac87fc71359290e31a9734aea1d8f91493bc81997cdcac96bd3d2f20ae89",
+      "status": "PASS",
+      "physical_device": 1,
+      "summary_sha256": "204d4d0ca190c3348d6c901829d93f6c19830fcc2caac75b495291cc7dff05aa",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T09:08:08.288022278Z",
+          "FinishedAt": "2026-10-29T09:09:16.831394719Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "d49a3aa34f7dce649382f9f1f7387e666f6c7e3a6079f26b61fb595fb82be7b2",
+      "mode": "native_repeat",
+      "probe_status": "pass",
+      "optimizer_steps": 3,
+      "completed_steps": 3,
+      "comparison_count": 1863,
+      "comparison_kind": "against native",
+      "max_abs": 0,
+      "failures": [],
+      "losses": [
+        18.588773727416992,
+        15.87241268157959,
+        14.525705337524414
+      ],
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      },
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-off-01",
+      "source_snapshots": [
+        "source-01"
+      ],
+      "inputs_sha256": "320787e30e97113ca5aa631db56e17b34954874fd0f2c2847054bcce5e38fbc2",
+      "status": "PASS",
+      "physical_device": 5,
+      "summary_sha256": "51f610e24e587ce59a022d97d9ab1607f877d1059eccdb3340ce4c40debd3b2b",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T08:52:29.898138332Z",
+          "FinishedAt": "2026-10-29T08:53:41.200817828Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "0689a08760cfcc9245ff8fa095ad3320c66163f4d4b6f8d7089742a8f9e3465f",
+      "mode": "off",
+      "probe_status": "pass",
+      "optimizer_steps": 3,
+      "completed_steps": 3,
+      "comparison_count": 1863,
+      "comparison_kind": "against native",
+      "max_abs": 0,
+      "failures": [],
+      "losses": [
+        18.588773727416992,
+        15.87241268157959,
+        14.525705337524414
+      ],
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "experimental_disabled",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "experimental_disabled",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "experimental_disabled",
+            28
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      },
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-on-01",
+      "source_snapshots": [
+        "source-02"
+      ],
+      "inputs_sha256": "ca1d9461ce7820cb88550d3609828522f3917cbea00b5168149ddb582dd22c57",
+      "status": "FAIL",
+      "physical_device": 5,
+      "summary_sha256": "d916686a6e31ba2f9f47f0a6f8426f22da305534bc104ad590a3f7be29c1deec",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T08:58:48.998306822Z",
+          "FinishedAt": "2026-10-29T08:59:35.289043755Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "dea7ff651f5eb33eefd6dca1a9fec04fe598dca7bc0ac084e4b59e9f0c15ff3f",
+      "mode": "on",
+      "probe_status": "fail",
+      "optimizer_steps": 0,
+      "completed_steps": 0,
+      "comparison_count": 33,
+      "comparison_kind": "against native",
+      "max_abs": 0.000054836273193359375,
+      "failures": [
+        {
+          "name": "step1/gradient/model.layers.2.mlp.down_proj.weight",
+          "file": "1e45c26405a6f1b77382abe1107d34387439c808126ffd1ac6ddc8f87ec7212c.pt",
+          "shape": [
+            1024,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "max_abs": 0.000054836273193359375,
+          "mismatches": 4
+        }
+      ],
+      "losses": [
+        18.588773727416992
+      ],
+      "provider_calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "routes": [
+        [
+          [
+            "silu",
+            "flaggems",
+            "forward",
+            "completed",
+            28
+          ],
+          [
+            "silu",
+            "flaggems",
+            "backward",
+            "completed",
+            28
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0.00001,
+        "rtol": 0.0001
+      },
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "target",
+            "reason": null
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-on-02",
+      "source_snapshots": [
+        "source-03"
+      ],
+      "inputs_sha256": "73cfac87fc71359290e31a9734aea1d8f91493bc81997cdcac96bd3d2f20ae89",
+      "status": "ERROR",
+      "physical_device": 5,
+      "summary_sha256": "9a7b8504fac7ae602d37bffdbbc5fc4212512068856c4e2b2a43f425cfd162c8",
+      "stop": null,
+      "launch_error": "Traceback (most recent call last):\n  File \"/data2/cgu135/framework-qwen-xpu-20261029/source-03/assets/run.py\", line 132, in main\n    summary['resource_check']=idle_p800(resource,a.device)\n                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/data2/cgu135/framework-qwen-xpu-20261029/source-03/assets/run.py\", line 38, in idle_p800\n    raise ValueError('Selected P800 is not idle (0 MiB and 0%)')\nValueError: Selected P800 is not idle (0 MiB and 0%)\n"
+    },
+    {
+      "run": "qwen-on-03",
+      "source_snapshots": [
+        "source-03"
+      ],
+      "inputs_sha256": "73cfac87fc71359290e31a9734aea1d8f91493bc81997cdcac96bd3d2f20ae89",
+      "status": "FAIL",
+      "physical_device": 1,
+      "summary_sha256": "f83135e318a7c92bbbdda81550d70da5afd5a4920fa43a268b600ef87da21010",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T09:09:29.802409163Z",
+          "FinishedAt": "2026-10-29T09:10:13.563345834Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "7e033dabf34282ab0ed1a473bafd9f413585c5e056ff85135c647514263960c5",
+      "mode": "on",
+      "probe_status": "fail",
+      "optimizer_steps": 0,
+      "completed_steps": 0,
+      "comparison_count": 33,
+      "comparison_kind": "against native",
+      "max_abs": 0.000054836273193359375,
+      "failures": [
+        {
+          "name": "step1/gradient/model.layers.2.mlp.down_proj.weight",
+          "file": "1e45c26405a6f1b77382abe1107d34387439c808126ffd1ac6ddc8f87ec7212c.pt",
+          "shape": [
+            1024,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "max_abs": 0.000054836273193359375,
+          "mismatches": 4,
+          "mismatch_examples": [
+            {
+              "flat_index": 528439,
+              "actual": 0.07994589954614639,
+              "reference": 0.07997329533100128,
+              "abs_error": 0.000027395784854888916,
+              "allowed_error": 0.00001799732953310013
+            },
+            {
+              "flat_index": 528512,
+              "actual": -0.042933300137519836,
+              "reference": -0.04295298457145691,
+              "abs_error": 0.000019684433937072754,
+              "allowed_error": 0.000014295298457145692
+            },
+            {
+              "flat_index": 529873,
+              "actual": -0.051398854702711105,
+              "reference": -0.05142184719443321,
+              "abs_error": 0.000022992491722106934,
+              "allowed_error": 0.000015142184719443322
+            },
+            {
+              "flat_index": 2150455,
+              "actual": 0.028495628386735916,
+              "reference": 0.028481926769018173,
+              "abs_error": 0.00001370161771774292,
+              "allowed_error": 0.000012848192676901818
+            }
+          ]
+        }
+      ],
+      "losses": [
+        18.588773727416992
+      ],
+      "provider_calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "routes": [
+        [
+          [
+            "silu",
+            "flaggems",
+            "forward",
+            "completed",
+            28
+          ],
+          [
+            "silu",
+            "flaggems",
+            "backward",
+            "completed",
+            28
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0.00001,
+        "rtol": 0.0001
+      },
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "target",
+            "reason": null
+          }
+        ],
+        "provider_reason": null
+      }
+    },
+    {
+      "run": "qwen-unqualified-01",
+      "source_snapshots": [
+        "source-01"
+      ],
+      "inputs_sha256": "320787e30e97113ca5aa631db56e17b34954874fd0f2c2847054bcce5e38fbc2",
+      "status": "ERROR",
+      "physical_device": 5,
+      "model_started": false,
+      "launcher_transcript_sha256": "5e607ea7121339f5fcb6830d52496085381a5ce9ad2cc0fe66dd6cb447f3d0e3",
+      "launch_error": "Docker image metadata lookup timed out before container creation; no original summary.json"
+    },
+    {
+      "run": "qwen-unqualified-02",
+      "source_snapshots": [
+        "source-02"
+      ],
+      "inputs_sha256": "ca1d9461ce7820cb88550d3609828522f3917cbea00b5168149ddb582dd22c57",
+      "status": "PASS",
+      "physical_device": 5,
+      "summary_sha256": "058a7fd9aba01eb9d682c0d80e6d085ae092618cd5c26b76fa451349d2e90264",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T08:57:15.08669689Z",
+          "FinishedAt": "2026-10-29T08:58:24.966575205Z"
+        }
+      },
+      "launch_error": null,
+      "result_sha256": "140f030c9edcfaa334f31075271fd0b0a4bbcb759654f9cb90e809bdbdb3c2b0",
+      "mode": "unqualified",
+      "probe_status": "pass",
+      "optimizer_steps": 3,
+      "completed_steps": 3,
+      "comparison_count": 1863,
+      "comparison_kind": "against native",
+      "max_abs": 0,
+      "failures": [],
+      "losses": [
+        18.588773727416992,
+        15.87241268157959,
+        14.525705337524414
+      ],
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "capability_unverified",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "capability_unverified",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "capability_unverified",
+            28
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "tolerance": {
+        "atol": 0,
+        "rtol": 0
+      },
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "capability_unverified"
+          }
+        ],
+        "provider_reason": null
+      }
+    }
+  ],
+  "source_archives": {
+    "source-01": "06a7607260d0a8d36554862d1f45ffae2b9f080fcd397ae8e6a2b8c6396716b6",
+    "source-02": "acdfe8e023b42a4f8724e4c70b6dd5dfdc4d5d35eb377c0b78599e551d3f7341",
+    "source-03": "0c3f3cddcceb011b751175b2176a6b8925d6eccb0399da3286a2990253084e4d"
+  },
+  "local_validation": {
+    "case_cpu_tests": 11,
+    "package_cpu_tests_from_prior_single_op_stage": 78,
+    "case_source_check": "All current 5 scripts equal source-03; every run inputs manifest matches its archived source including AppleDouble metadata",
+    "on_failure_repeat": "Same first 33 comparison values, 4 out-of-tolerance gradient elements and zero updates on physical 5 and 1; physical 1 native repeat first passed exactly"
+  },
+  "evidence_archive_sha256": "14bca29ad5f3ce52807e810d0a5548cfa565ab9e043bcb5f0008a2453d23a0f9",
+  "remote_root": "/data2/cgu135/framework-qwen-xpu-20261029",
+  "local_root": "Project/outputs/framework-runs/20261029-xpu-model/evidence",
+  "archive_exclusions": [
+    "installed",
+    "cache",
+    "tmp",
+    "home",
+    "native tensors",
+    "extracted AppleDouble sidecars (retained in source tarballs)"
+  ],
+  "native_tensor_storage": "14 GiB on P800 only; lightweight local archive does not contain baseline tensors",
+  "cleanup": "7 created model-stage containers inspected Running=false/Pid=0/OOMKilled=false; no running cgu135-xpu-qwen containers; both SSH sessions exited",
+  "publication": "local only; no commit/push/merge/PR/OneDrive",
+  "limitations": [
+    "Numerical stop is performed by the regression probe, not automatic online detection by the adapter",
+    "No operator or tolerance changes; no GEMM compatibility patch",
+    "Single-op qualifications are historical experimental inputs, not approval for this model",
+    "No long training, quality, distributed P800 or complete three-level fallback acceptance"
+  ]
+}

@@ -1,0 +1,1046 @@
+{
+  "date": "2026-10-29",
+  "scope": "P800 model-scoped admission; synthetic single-card short training, not kernel fix or complete three-level fallback",
+  "conclusion": "approved DeepFM target, mismatched DeepFM native, denied Qwen native and strict pre-training block all meet expected behavior",
+  "publication": "local uncommitted 0.3.0.dev2; no push or lock update",
+  "package_base_commit": "85a9896537a7d88f758d36ae20465e19470985e2",
+  "public_commit": "71197e73d13021556de04ff04c42c89b3bfc8f73",
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "measured_wheel_sha256": "de5da93ab72d00456993f74baf98a2b9aeaf1cae0a21844d2423ba4462f83008",
+  "rebuilt_wheel_sha256": "f6632f78178592238e294630e185ea05cd9f88e785254649e464549a2673d293",
+  "runtime_files_sha256": {
+    "flagrt_adapter/train_cli.py": "e247449bd20781c7e42e562a2a5b8820a6fd70dfa2a121dce536f5271401a4ee",
+    "flagrt_adapter/startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+    "flagrt_adapter/config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+    "flagrt_adapter/records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+    "flagrt_adapter/bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "flagrt_adapter/policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+    "flagrt_adapter/__init__.py": "3c803d56c065b091c2a802b90d227aba588097c98b697e7ad6fd4c4c9340fa45",
+    "flagrt_adapter/workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d",
+    "flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+    "flagrt_adapter/training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4"
+  },
+  "source_archive_sha256": "dbd88dd03a3af08fa5d3256db483c755f8f93d661ddc7500fb8a4f582d4858b4",
+  "evidence_archive_sha256": "f37d6d55759a5e71d0bb8a4c366908c66b5d4388ccb47fc12c0666d183ca4bda",
+  "controls": {
+    "package_cpu_tests": 94,
+    "new_model_review_tests": 16,
+    "case_cpu_tests": 21,
+    "new_model_entry_tests": 5,
+    "independent_rebuild": "PASS",
+    "runtime_file_identity_count": 10,
+    "case_cpu_log_sha256": "39a9b5f401f9b0141fb4f8ae3c9f204e0722aed316eca5c792dff8670082c606"
+  },
+  "raw_digests": {
+    "deepfm-native-01/summary.json": "4a233b79f3ee3dc12ee563449f1a5218869628939e47188cfe3941c62e3ef004",
+    "deepfm-native-01/result.json": "fd06ea7cbf83952fbc9043f6e0997699b50fa8ffe198ddb0cc2ec0b4f59946ef",
+    "deepfm-native-01/inputs.json": "479db93a7995c194c5e5d9bfa28945b34bcc8ad6a29a2f537be5a16d88ddcd27",
+    "deepfm-native-01/probe.log": "2ab894f35a779ad0833c79b662933516c4da5bed3fdee62f06782cc3f9fe817b",
+    "deepfm-native-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "deepfm-native-01/strict-start.log": "e1928ff6206f686de3783967ff6ccab685e15cacbac546372cdd5e2fd2f7ab3f",
+    "deepfm-native-01/export.log": "971997c667086bc71a762f7cca04bfc1ba6fafda34bd06ea02feb4a7ad81cd37",
+    "deepfm-native-01/demo/docker-compose.yml": "182696e6350957c2ac063972955cf8371e251dd885692b92cd265f2f97c18cc3",
+    "deepfm-native-01/demo/env.baseline.yaml": "44c50a96e2de26ed87842e0bf63563bc6d61f88d20f6359d2889fe9a067023f2",
+    "deepfm-on-01/summary.json": "77953e10e65e6ff887424f9b2990400d2e342cd6b656877e8f5522a742f7e12b",
+    "deepfm-on-01/result.json": "b449a1b585ab7421bdc9fdc4bf86a7a38bd871b95f4e5aff943af13cde87494b",
+    "deepfm-on-01/inputs.json": "1b7d899dccb22c397db53badc520e1ad6d897cbfde71e6b5167b80bcd74daa75",
+    "deepfm-on-01/probe.log": "d5d3d2e9cf13a6a2a643d55c5e6282fb5fcf359c56c06b1e473b2482ba1855b0",
+    "deepfm-on-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "deepfm-on-01/strict-start.log": "08a77088cd089c8c27b027ec0a6c28440592e2710cd4feb8eb48999dfb232c64",
+    "deepfm-on-01/export.log": "7146aeeae69ff8e5d5ec7f93f7e91fa3f3af74d4cbe3907abd1da4f9b14d80e5",
+    "deepfm-on-01/demo/docker-compose.yml": "5f94c4554dd4fe1aebd1b3c61b88870fdf5393ac4edb0ec9156e2e3abadca980",
+    "deepfm-on-01/demo/env.baseline.yaml": "6c55a1050d173086d51121ee8cd2ae23672d7f5083c29241bc5240865a06f844",
+    "deepfm-unknown-01/summary.json": "41cc034733f86da1ca43241cffa2d83299d2703eb82c1b966f9d0903aa93601c",
+    "deepfm-unknown-01/result.json": "15b2d6e9d045034720cbd28577e87a635e781405effc83d2dfcde1b883a79628",
+    "deepfm-unknown-01/inputs.json": "1b7d899dccb22c397db53badc520e1ad6d897cbfde71e6b5167b80bcd74daa75",
+    "deepfm-unknown-01/probe.log": "d8431b24c4fbba1c4745c5e700b6164099ccc07f26baa88c2c6ca99c7e51b7f1",
+    "deepfm-unknown-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "deepfm-unknown-01/strict-start.log": "a7183aa48e4f9a897b7bfd8daf7221a9882cc6eadedd579afd2bf5aef7f7d625",
+    "deepfm-unknown-01/export.log": "a5fab1f540cefb48183a61732c0906c026495820b0b67891369543f0ea0ed31e",
+    "deepfm-unknown-01/demo/docker-compose.yml": "e2cd355d1407edd5d836d05ff9050be437b8506281916bda7724195451cfe9a8",
+    "deepfm-unknown-01/demo/env.baseline.yaml": "f0dce3538f4b00e186b60899375978357fab0faf009407b88eb185c9ed4edaf2",
+    "qwen-strict-01/summary.json": "efb00f0af19378d345c029a496866c0c6d9d87468a1688e9e72f50a052a8c21a",
+    "qwen-strict-01/result.json": "90e2655f4e1e48ae3ba8991d9b174fef9583c145fe8cdb25ed24d4c9a25881b5",
+    "qwen-strict-01/inputs.json": "1b7d899dccb22c397db53badc520e1ad6d897cbfde71e6b5167b80bcd74daa75",
+    "qwen-strict-01/probe.log": "a6d67cb6f13a960af1af560ddd6abe80daf367a16b187e2c16461cb6ebafbf16",
+    "qwen-strict-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "qwen-strict-01/strict-start.log": "26dfa1a76aa2554e52ef99175a8908d1fb7c48c2abb2a1584e16d184094d14b3",
+    "qwen-strict-01/export.log": "890a6d7f1281da7778cb74074ef094b26b531e6273210af44363165eaedf8577",
+    "qwen-strict-01/demo/docker-compose.yml": "c125a11831e849e21df290de3ebddb2924ee44070dd7cba60a857c0c8c3ac7fc",
+    "qwen-strict-01/demo/env.baseline.yaml": "5367e3b44b48825ec34f4214335c1632389c7104957710ce4e37a3367ed5563d",
+    "workload-qwen-denied-01/summary.json": "c155bdff2840eaac67118759d8df9fccef6ae178227edd41a79194b2b59ae1ef",
+    "workload-qwen-denied-01/result.json": "36d99d31a6aa56cf2bcda34fae37904554433305acf2f374765849da99821fc5",
+    "workload-qwen-denied-01/inputs.json": "1b7d899dccb22c397db53badc520e1ad6d897cbfde71e6b5167b80bcd74daa75",
+    "workload-qwen-denied-01/probe.log": "089b644d423350e0e26dfe53e99af465d41562c75884d3065283dce86d73f4ab",
+    "workload-qwen-denied-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "workload-qwen-denied-01/strict-start.log": "643abf35f0553b2f06495ed422ea0a9b5f8ca95674d4899099868dcdc5736ab3",
+    "workload-qwen-denied-01/export.log": "10a43399c8022c5bbb9b383dcefc417ab33bf17581cf341cff323757f507a174",
+    "workload-qwen-denied-01/demo/docker-compose.yml": "88268d91f0fda0a5f5a73769f046863d5f5257456dc1089c48c9bda8b819bf7c",
+    "workload-qwen-denied-01/demo/env.baseline.yaml": "a988df55d47a71b56eeee7a1f43bb3de44df351d834ce4f986623a4fe1e3e256",
+    "workload-qwen-native-01/summary.json": "86f287580474e991fc3ab0c62680acbcba101a35ea705370d70a821ab89321cd",
+    "workload-qwen-native-01/result.json": "08c3f6d686ab3587c7045427ff28041068cbe719c628f21c8fbcadea012407f6",
+    "workload-qwen-native-01/inputs.json": "479db93a7995c194c5e5d9bfa28945b34bcc8ad6a29a2f537be5a16d88ddcd27",
+    "workload-qwen-native-01/probe.log": "25e0f24b9b2332b9c6c46f5775da6ebc24666db83a51bd5f98521741d2ed8806",
+    "workload-qwen-native-01/install.log": "227e6f819134b801ac9db544206927310698825b0659c95109ccc5f11a4d2107",
+    "workload-qwen-native-01/strict-start.log": "0c795d7d5ed98e5440298d1404057f37913ee64a2c01404f0daef341a73884ad",
+    "workload-qwen-native-01/export.log": "39d3c465834980b2d6b6652687072a1402d044bb6f2af36077d2b6e24648fb94",
+    "workload-qwen-native-01/demo/docker-compose.yml": "fdf17a37c5b74c99ccec1d285ecd56b56abd9f6365af439b9dd3a8d77121f762",
+    "workload-qwen-native-01/demo/env.baseline.yaml": "a2929418fa727a76b3c388a770d381cb0bfb198b13d2f9e392437460d9496195"
+  },
+  "runs": [
+    {
+      "run": "deepfm-native-01",
+      "mode": "native",
+      "status": "PASS",
+      "execution_status": "pass",
+      "steps": 3,
+      "updates": 3,
+      "comparison_count": 294,
+      "comparison_type": "saved native tensors",
+      "max_abs": null,
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "sigmoid",
+            "shape": [
+              32
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "public DeepFM v1",
+          "phase": "train",
+          "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+          "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+          "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+        }
+      },
+      "dispatcher_restored": true,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "container": "cgu135-xpu-deepfm-native-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:44:39.40686963Z",
+          "FinishedAt": "2026-10-29T11:44:59.481609495Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-native-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-native-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-native-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-native-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/deepfm_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "native",
+            "--out",
+            "/results/result.json",
+            "--batch-size",
+            "32"
+          ],
+          "log": "probe.log",
+          "exit_code": 0
+        }
+      ],
+      "physical_device": 1
+    },
+    {
+      "run": "deepfm-on-01",
+      "mode": "on",
+      "status": "PASS",
+      "execution_status": "pass",
+      "steps": 3,
+      "updates": 3,
+      "comparison_count": 294,
+      "comparison_type": "against native",
+      "max_abs": 0.0,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 3,
+        "GEMS SIGMOID BACKWARD": 3
+      },
+      "routes": [
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ]
+      ],
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "sigmoid",
+            "shape": [
+              32
+            ],
+            "dtype": "torch.float32",
+            "decision": "target",
+            "reason": null
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "public DeepFM v1",
+          "phase": "train",
+          "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+          "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+          "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+        }
+      },
+      "dispatcher_restored": true,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "container": "cgu135-xpu-deepfm-on-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:46:15.11980563Z",
+          "FinishedAt": "2026-10-29T11:46:46.742594738Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-on-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-on-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-on-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-on-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/deepfm_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "on",
+            "--out",
+            "/results/result.json",
+            "--batch-size",
+            "32",
+            "--reference",
+            "/reference",
+            "--adapter-config",
+            "/review/deepfm-on.json"
+          ],
+          "log": "probe.log",
+          "exit_code": 0
+        }
+      ],
+      "physical_device": 1
+    },
+    {
+      "run": "deepfm-unknown-01",
+      "mode": "unknown",
+      "status": "PASS",
+      "execution_status": "pass",
+      "steps": 3,
+      "updates": 3,
+      "comparison_count": 294,
+      "comparison_type": "against native",
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ]
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "sigmoid",
+            "shape": [
+              32
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "workload_unverified"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "public DeepFM v1",
+          "phase": "train",
+          "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+          "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+          "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+        }
+      },
+      "dispatcher_restored": true,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "container": "cgu135-xpu-deepfm-unknown-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:47:15.799438134Z",
+          "FinishedAt": "2026-10-29T11:47:37.263884776Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-unknown-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/deepfm-unknown-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-unknown-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-deepfm-unknown-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/deepfm_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "unknown",
+            "--out",
+            "/results/result.json",
+            "--batch-size",
+            "32",
+            "--reference",
+            "/reference",
+            "--adapter-config",
+            "/review/deepfm-unknown.json"
+          ],
+          "log": "probe.log",
+          "exit_code": 0
+        }
+      ],
+      "physical_device": 1
+    },
+    {
+      "run": "qwen-strict-01",
+      "mode": "strict",
+      "status": "PASS",
+      "execution_status": "blocked",
+      "steps": 0,
+      "updates": 0,
+      "comparison_count": 0,
+      "comparison_type": "no model execution",
+      "max_abs": null,
+      "provider_calls": {},
+      "routes": [],
+      "startup": {
+        "require_target": true,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "workload_denied"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "Qwen3-Embedding-0.6B",
+          "phase": "train",
+          "model_sha256": "90dd28008b27ed7d9bebd30e695d496ba8e6ed492fa557979bfed794cebe62bd",
+          "settings_sha256": "18c114d0fda28748bc6a0cff39028cf927d23d934b71af5dd3328528a9192695",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        }
+      },
+      "dispatcher_restored": null,
+      "model_loaded": false,
+      "optimizer_created": false,
+      "provider_imported": false,
+      "container": "cgu135-xpu-qwen-strict-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:48:21.807433915Z",
+          "FinishedAt": "2026-10-29T11:48:37.512494651Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/qwen-strict-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/qwen-strict-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-qwen-strict-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-qwen-strict-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/model_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "strict",
+            "--out",
+            "/results/result.json",
+            "--adapter-config",
+            "/review/qwen-strict.json"
+          ],
+          "log": "probe.log",
+          "exit_code": 3
+        }
+      ],
+      "physical_device": 1
+    },
+    {
+      "run": "workload-qwen-denied-01",
+      "mode": "denied",
+      "status": "PASS",
+      "execution_status": "pass",
+      "steps": 3,
+      "updates": 3,
+      "comparison_count": 1863,
+      "comparison_type": "against native",
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "workload_denied",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "workload_denied",
+            28
+          ]
+        ],
+        [
+          [
+            "silu",
+            "native",
+            "forward",
+            "workload_denied",
+            28
+          ]
+        ]
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "workload_denied"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "Qwen3-Embedding-0.6B",
+          "phase": "train",
+          "model_sha256": "90dd28008b27ed7d9bebd30e695d496ba8e6ed492fa557979bfed794cebe62bd",
+          "settings_sha256": "18c114d0fda28748bc6a0cff39028cf927d23d934b71af5dd3328528a9192695",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        }
+      },
+      "dispatcher_restored": true,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "container": "cgu135-xpu-workload-qwen-denied-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:51:11.123052968Z",
+          "FinishedAt": "2026-10-29T11:52:26.137395793Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/workload-qwen-denied-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/workload-qwen-denied-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-workload-qwen-denied-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-workload-qwen-denied-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/model_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "denied",
+            "--out",
+            "/results/result.json",
+            "--reference",
+            "/reference",
+            "--adapter-config",
+            "/review/qwen-denied.json"
+          ],
+          "log": "probe.log",
+          "exit_code": 0
+        }
+      ],
+      "physical_device": 1
+    },
+    {
+      "run": "workload-qwen-native-01",
+      "mode": "native",
+      "status": "PASS",
+      "execution_status": "pass",
+      "steps": 3,
+      "updates": 3,
+      "comparison_count": 1863,
+      "comparison_type": "saved native tensors",
+      "max_abs": null,
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "startup": {
+        "require_target": false,
+        "checks": [
+          {
+            "operator": "silu",
+            "shape": [
+              1,
+              32,
+              3072
+            ],
+            "dtype": "torch.float32",
+            "decision": "native",
+            "reason": "experimental_disabled"
+          }
+        ],
+        "provider_reason": null,
+        "workload_required": true,
+        "workload": {
+          "model_id": "Qwen3-Embedding-0.6B",
+          "phase": "train",
+          "model_sha256": "90dd28008b27ed7d9bebd30e695d496ba8e6ed492fa557979bfed794cebe62bd",
+          "settings_sha256": "18c114d0fda28748bc6a0cff39028cf927d23d934b71af5dd3328528a9192695",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        }
+      },
+      "dispatcher_restored": true,
+      "model_loaded": true,
+      "optimizer_created": true,
+      "provider_imported": null,
+      "container": "cgu135-xpu-workload-qwen-native-01",
+      "stop": {
+        "exit_code": 0,
+        "state": {
+          "Status": "exited",
+          "Running": false,
+          "Paused": false,
+          "Restarting": false,
+          "OOMKilled": false,
+          "Dead": false,
+          "Pid": 0,
+          "ExitCode": 137,
+          "Error": "",
+          "StartedAt": "2026-10-29T11:49:38.65612212Z",
+          "FinishedAt": "2026-10-29T11:50:30.056822455Z"
+        }
+      },
+      "commands": [
+        {
+          "command": [
+            "/usr/bin/python3",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/baseline.py",
+            "export",
+            "/data2/cgu135/framework-workload-xpu-20261029/workload-qwen-native-01/demo"
+          ],
+          "log": "export.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "bash",
+            "/data2/cgu135/framework-xpu-20261029/public/dev/lib/up.sh",
+            "/data2/cgu135/framework-workload-xpu-20261029/workload-qwen-native-01/demo",
+            "--strict"
+          ],
+          "log": "strict-start.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-workload-qwen-native-01",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--no-compile",
+            "--target",
+            "/results/installed",
+            "/package/flagrt_framework_adapter-0.3.0.dev2-py3-none-any.whl"
+          ],
+          "log": "install.log",
+          "exit_code": 0
+        },
+        {
+          "command": [
+            "docker",
+            "exec",
+            "cgu135-xpu-workload-qwen-native-01",
+            "timeout",
+            "--kill-after=10s",
+            "900",
+            "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+            "-B",
+            "/case/model_probe.py",
+            "--runtime-root",
+            "/runtime",
+            "--model",
+            "/model",
+            "--steps",
+            "3",
+            "--mode",
+            "native",
+            "--out",
+            "/results/result.json"
+          ],
+          "log": "probe.log",
+          "exit_code": 0
+        }
+      ],
+      "physical_device": 1
+    }
+  ],
+  "total_training_steps": 15,
+  "total_comparisons": 2451,
+  "strict_block_tests": 1,
+  "review_files_sha256": {
+    "deepfm-on.json": "8deb61a99fc40e09fcdce868236c8aa20cd58ef0b81e985bbca1247c488fc3da",
+    "deepfm-unknown.json": "433092e42ff98011db42f98207c79b68eb490b48d94a5eb5edbe3e126f870c87",
+    "model-reviews.json": "b431c751bfab8d1d45233bc28f163ec1c1073a8cd3cc61f8bae7e40cdd7860fb",
+    "operator-records.json": "693d904a22403c663b94ec2f4ac5a97aa12a9a9024a208495aca6fbe0c975afe",
+    "qwen-denied.json": "aba2f733c20edefaf29a474ceca0d4126ccf8730db51fbe87c817d0fb2e5a400",
+    "qwen-only-reviews.json": "f29baedde975671b0fd8550dca7bbfe2d7ec6fe79c6372405adda75925bb58c5",
+    "qwen-strict.json": "b3befa108ea45d0c3dd13a734ff1e801a9592e2df7c6ee1087f26dc00ec130ca",
+    "reviewed-model-evidence.json": "17f44654f5216513529e9060b4a17dac91d3c364da3c45edf2ba033d7710695a",
+    "reviewed-operator-evidence.json": "c9f34f2bda0ce447cb44306509414bdeb11e0033a1eb59b084c39f331471736e"
+  },
+  "source_files_sha256": {
+    "deepfm_probe.py": "241a8c33dbb1852ecb5ab9d4ecca11a7c7effbb19d009841dbbf694f393b28c5",
+    "model_admission.py": "8a13e4114a3d46bde3395540f78c0858fff6622c435bb77d2a6c45c774efde3f",
+    "model_probe.py": "8676e4d82984d88132b79ca73e8916e09f2464acf1a0e8d26cd5adc35bf22d2e",
+    "probe.py": "db2fb5124362b99f0743d2bfbe5d39d653a6b3a476e29dfea83ed25f1e89df40",
+    "run.py": "137059c8b7c069e38ea01695c641550b9103b2b8d00a25e41c2b6270e83578c4",
+    "test_expansion.py": "603e1af3a8bb896bae6e3bf8d4ba546c28dd88f117f698a27c617458da174bd3",
+    "test_model_admission.py": "98431b65969e992c19eba3147f3445b2ca84bece08c12eaa1d939a3a5af7ed3e",
+    "test_model_probe.py": "847df8c8c7abeb033996a41ba2e16a3054b4a01c67903fb7e0dc2c4d6813c3eb",
+    "test_runner.py": "520f4673bf3a4d1584e07c254529121236ffad1b0b62fc32925b3bd7dc609f17"
+  },
+  "remote_root": "/data2/cgu135/framework-workload-xpu-20261029",
+  "local_backup": "Project/outputs/framework-runs/20261029-workload/evidence",
+  "archive_exclusions": [
+    "installed packages",
+    "compiled cache",
+    "tmp/home",
+    "Qwen native baseline tensors (14 GiB, remote only)"
+  ],
+  "cleanup": {
+    "live_recheck": "2026-10-29T19:53:56+08:00",
+    "source": "SSH docker inspect recheck and xpu-smi, separate from original run summaries",
+    "containers_stopped": 6,
+    "physical_device": 1,
+    "memory_mib": 0,
+    "utilization_percent": 0,
+    "device_pids": [],
+    "ssh_23774": "exited",
+    "scp_69277": "completed"
+  },
+  "prestart_rejected_attempt": {
+    "output_basename": "qwen-native-01",
+    "reason": "historical container name exists",
+    "created_container": false,
+    "rerun_basename": "workload-qwen-native-01"
+  },
+  "limitations": [
+    "Review identity must be measured by trusted integration, not copied from an approval",
+    "Schema 1/2 retain legacy operator-only semantics",
+    "Existing Ascend two-rank CLI has no workload identity collector",
+    "No online numerical oracle or post-execution native retry",
+    "Qwen target numerical failure remains; tested here only pre-admitted native/blocked paths",
+    "No P800 OneRec or cross-chip migration in this round"
+  ]
+}

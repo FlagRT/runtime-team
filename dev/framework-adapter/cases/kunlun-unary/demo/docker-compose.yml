@@ -1,0 +1,43 @@
+name: cgu135-xpu-routes-on-01
+x-flagrt:
+  image_baseline: /data2/cgu135/framework-xpu-20261029/public/dev/images/kunlun-operator-runtime/v2/image.baseline.yaml
+  mounted_repos: {}
+services:
+  runtime-dev:
+    image: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+    container_name: cgu135-xpu-routes-on-01
+    restart: 'no'
+    network_mode: none
+    shm_size: 2g
+    mem_limit: 12g
+    pids_limit: 512
+    devices:
+    - /dev/xpu5:/dev/xpu5
+    - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+    - /data2/cgu135/framework-xpu-20261029/routes-on-01:/results
+    - /data2/cgu135/framework-xpu-20261029/source-04/assets:/case:ro
+    - /data2/cgu135/framework-xpu-20261029/public/dev/device-context/prototype:/runtime:ro
+    - /data2/cgu135/framework-xpu-20261029/package-02/flagrt_framework_adapter-0.3.0.dev1-py3-none-any.whl:/package/flagrt_framework_adapter-0.3.0.dev1-py3-none-any.whl:ro
+    - /data2/cgu135/framework-xpu-20261029/package-02:/review:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: '/results/installed:'
+      CUDA_VISIBLE_DEVICES: '0'
+      VLLM_FL_PREFER: vendor
+      TRITON_CACHE_DIR: /results/cache
+      FLAGRT_VERIFIED_CHIP: P800
+      TMPDIR: /results/tmp
+      XDG_CACHE_HOME: /results/cache
+      PIP_NO_CACHE_DIR: '1'
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    command:
+    - sleep
+    - infinity
+    logging:
+      driver: json-file
+      options:
+        max-size: 2m
+        max-file: '1'

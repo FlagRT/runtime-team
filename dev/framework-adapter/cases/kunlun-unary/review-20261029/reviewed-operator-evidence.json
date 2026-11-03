@@ -1,0 +1,115 @@
+{
+  "sigmoid": {
+    "environment": {
+      "chip": "P800",
+      "torch": "2.9.0+cu129",
+      "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+      "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+      "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+      "triton": "3.6.0",
+      "compiler_build": "flagtree==0.6.1+xpu3.6",
+      "backend": "kunlunxin",
+      "device_type": "cuda"
+    },
+    "raw_result_sha256": "e38b06d9a45608b7b756baaaa970816db9b823733b6a6016c48213056adf04c4",
+    "cases": [
+      {
+        "operator": "sigmoid",
+        "shape": [
+          32
+        ],
+        "dtype": "torch.float32",
+        "mode": "off",
+        "status": "pass",
+        "tolerance": 1e-05,
+        "repeats": [
+          {
+            "repeat": 0,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 0.0,
+            "calls": {
+              "GEMS SIGMOID FORWARD": 1,
+              "GEMS SIGMOID BACKWARD": 1
+            }
+          },
+          {
+            "repeat": 1,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 0.0,
+            "calls": {
+              "GEMS SIGMOID FORWARD": 1,
+              "GEMS SIGMOID BACKWARD": 1
+            }
+          },
+          {
+            "repeat": 2,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 0.0,
+            "calls": {
+              "GEMS SIGMOID FORWARD": 1,
+              "GEMS SIGMOID BACKWARD": 1
+            }
+          }
+        ],
+        "dispatcher_restored": true
+      }
+    ]
+  },
+  "silu": {
+    "environment": {
+      "chip": "P800",
+      "torch": "2.9.0+cu129",
+      "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+      "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+      "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+      "triton": "3.6.0",
+      "compiler_build": "flagtree==0.6.1+xpu3.6",
+      "backend": "kunlunxin",
+      "device_type": "cuda"
+    },
+    "raw_result_sha256": "58aa86d858a2884a45e147177319983993c43e85581bc25be89eee0829b48df5",
+    "cases": [
+      {
+        "shape": [
+          1,
+          32,
+          3072
+        ],
+        "dtype": "torch.float32",
+        "mode": "off",
+        "status": "pass",
+        "tolerance": 1e-05,
+        "repeats": [
+          {
+            "repeat": 0,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 4.76837158203125e-07,
+            "calls": {
+              "GEMS SILU FORWARD": 1,
+              "GEMS SILU BACKWARD": 1
+            }
+          },
+          {
+            "repeat": 1,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 4.76837158203125e-07,
+            "calls": {
+              "GEMS SILU FORWARD": 1,
+              "GEMS SILU BACKWARD": 1
+            }
+          },
+          {
+            "repeat": 2,
+            "forward_max_abs": 0.0,
+            "backward_max_abs": 4.76837158203125e-07,
+            "calls": {
+              "GEMS SILU FORWARD": 1,
+              "GEMS SILU BACKWARD": 1
+            }
+          }
+        ],
+        "dispatcher_restored": true
+      }
+    ]
+  }
+}

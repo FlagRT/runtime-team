@@ -1,0 +1,159 @@
+{
+  "review": "Manually rejected after native-repeat PASS and explicit candidate gradient FAIL on 2026-10-29; no kernel diagnosis or tolerance changes.",
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "workload": {
+    "model": "OpenOneRec/OneRec-8B",
+    "revision": "29f95b3da63a4bbc00a1cd3aeee948efb2ff40ff",
+    "formulation": "synthetic causal LM",
+    "dtype": "torch.bfloat16",
+    "batch": 1,
+    "sequence_length": 16,
+    "steps": 3,
+    "seed": 1014,
+    "data_seed": 1014,
+    "optimizer": "SGD",
+    "lr": 0.01,
+    "momentum": 0.0,
+    "foreach": false,
+    "gradient_checkpointing": "non-reentrant",
+    "attention": "eager",
+    "use_cache": false,
+    "deterministic": true
+  },
+  "workload_identity": {
+    "model_id": "OpenOneRec/OneRec-8B",
+    "phase": "train",
+    "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+    "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+    "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+  },
+  "source_sha256": {
+    "onerec-candidate-01/inputs.json": "fdd7937d9c8359aee5b7cb3c15f552ed54a61ec63854647a36c66439aa5d959e",
+    "onerec-candidate-01/result.json": "20b61cc520e1f89fb817d9488e765e0a1907d6e5560518c3a6559f4bde191d53",
+    "onerec-candidate-01/summary.json": "964ed792ad9aa39aaccca2cd2a9e83dd8ec2c7e0e31dc51550ae0cae01e9d03e",
+    "onerec-repeat-01/inputs.json": "7c9642432c9ddcd0a7f6dd3a361294d8b54b4a656a919968e9256f79c570d03e",
+    "onerec-repeat-01/result.json": "0649e1380f8acbb28d1ffd7e4516632bca02440aed72202b580631884cf15c5d",
+    "onerec-repeat-01/summary.json": "64d333a41c7e94363a12067d1e9dcffec11d65d76a77022285c09b62aa73af4c"
+  },
+  "native_repeat": {
+    "steps": 3,
+    "comparisons": 2397,
+    "max_abs": 0.0
+  },
+  "candidate": {
+    "status": "fail",
+    "optimizer_steps": 0,
+    "steps": [
+      {
+        "step": 1,
+        "status": "fail",
+        "loss": 17.138385772705078,
+        "provider_calls": {
+          "GEMS SILU FORWARD": 36,
+          "GEMS SILU BACKWARD": 36
+        },
+        "dispatcher_restored": true,
+        "routes": [
+          [
+            "silu",
+            "flaggems",
+            "forward",
+            "completed",
+            36
+          ],
+          [
+            "silu",
+            "flaggems",
+            "backward",
+            "completed",
+            36
+          ]
+        ]
+      }
+    ],
+    "failure": {
+      "name": "step1/gradient/model.embed_tokens.weight",
+      "file": "4288ff161cecc39e684afddf81627d2ad1e3269a207ba422049e2152a5e67898.pt",
+      "shape": [
+        176384,
+        4096
+      ],
+      "dtype": "torch.bfloat16",
+      "max_abs": 0.375,
+      "mismatches": 25631,
+      "mismatch_examples": [
+        {
+          "flat_index": 81596463,
+          "actual": -0.00469970703125,
+          "reference": -0.0034332275390625,
+          "abs_error": 0.0012664794921875,
+          "allowed_error": 0.001034332275390625
+        },
+        {
+          "flat_index": 81596496,
+          "actual": 0.1181640625,
+          "reference": 0.115234375,
+          "abs_error": 0.0029296875,
+          "allowed_error": 0.0021523437499999997
+        },
+        {
+          "flat_index": 81596508,
+          "actual": 0.01312255859375,
+          "reference": 0.0118408203125,
+          "abs_error": 0.00128173828125,
+          "allowed_error": 0.001118408203125
+        },
+        {
+          "flat_index": 81596535,
+          "actual": -0.01806640625,
+          "reference": -0.016845703125,
+          "abs_error": 0.001220703125,
+          "allowed_error": 0.0011684570312500001
+        },
+        {
+          "flat_index": 81596569,
+          "actual": 0.004241943359375,
+          "reference": 0.0031585693359375,
+          "abs_error": 0.0010833740234375,
+          "allowed_error": 0.001031585693359375
+        },
+        {
+          "flat_index": 81596587,
+          "actual": -0.06689453125,
+          "reference": -0.06494140625,
+          "abs_error": 0.001953125,
+          "allowed_error": 0.0016494140625
+        },
+        {
+          "flat_index": 81596617,
+          "actual": -0.00531005859375,
+          "reference": -0.0064697265625,
+          "abs_error": 0.00115966796875,
+          "allowed_error": 0.001064697265625
+        },
+        {
+          "flat_index": 81596680,
+          "actual": 0.0223388671875,
+          "reference": 0.0211181640625,
+          "abs_error": 0.001220703125,
+          "allowed_error": 0.001211181640625
+        }
+      ]
+    },
+    "provider_calls": {
+      "GEMS SILU FORWARD": 36,
+      "GEMS SILU BACKWARD": 36
+    },
+    "dispatcher_restored": true
+  }
+}

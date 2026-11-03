@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "reviews": [
+    {
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload": {
+        "model_id": "OpenOneRec/OneRec-8B",
+        "phase": "train",
+        "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+        "settings_sha256": "cfc230a27d82bc41b912d478f62e8cdef3971b683216b94db42c8bb962b74a91",
+        "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+      },
+      "status": "failed",
+      "revision": 1,
+      "evidence": "model-evidence.json",
+      "evidence_sha256": "a1a530b4d903be988f3d2d6691208d35ad18558fd17dfee77e6a05e7bc3c4323"
+    }
+  ]
+}
