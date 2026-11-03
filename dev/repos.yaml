@@ -91,3 +91,13 @@ repos:
     purge_primaries: []
     note: main 即唯一工作线（同 FlagPerf 例外）；私有仓，需总组开通权限
     registered: "2026-10-23"
+
+  - url: git@github.com:FlagRT/FlagMemory.git
+    dir: FlagMemory
+    branch: dev-1.0
+    kind: direction
+    owner: memory（显存与缓存管理）
+    visibility: public
+    purge_primaries: [main]
+    note: 显存池管理器组件交付仓（招标清单 18 条）；按严格三线分支模型维护，依据 ADR-0014
+    registered: "2026-11-03"
