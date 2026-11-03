@@ -1,0 +1,70 @@
+############################################################
+# MLU590 共享层复跑（2026-11-03）  2026-11-03 12:32:26
+# 容器=dc-mlu590-hliu553 ｜ 解释器=/flagos/bin/python3 ｜ 选卡 MLU_VISIBLE_DEVICES=3 ｜ RUNID=run1103b
+# 证据（宿主）=/srv/hliu553/dc_rerun_20261027/acceptance_20261103/run1103b
+# 证据（容器）=/work/dc_rerun_20261027/acceptance_20261103/run1103b
+############################################################
+dc-mlu590-hliu553|Up 48 minutes
+torch 2.7.1+cpu torch_mlu 1.29.2+torch2.7.1 mlu_cnt 8
+===== [s01] 12:32:32 =====
+  rc=0  verdict=103 通过 / 0 失败 / 0 跳过（stub 能力边界，非失败）
+      [PASS] [10] I2_no_fabrication（禁止伪造） 陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+      [PASS] [10] I3_invalidated_governed（失效受管） 不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`（如实不具备；**未验证 ≠ 已确认不具备**）
+      [PASS] [10] I4_degradation_observable（降级可观测） ② .native 计数 0→1、退化保持 1 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓
+
+===== [s02] 12:32:33 =====
+  rc=0  verdict=7 通过 / 0 失败
+      [PASS] 声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR []
+      [PASS] info() 含契约最小键集 name/device_type/capabilities（真实后端也守） {}
+      [PASS] info() 均含公共字段 capabilities/native_accesses/degradations {}
+
+===== [s03] 12:32:33 =====
+  rc=0  verdict=46 通过 / 0 失败 ===
+      [PASS] 码表内码串入 → error_code 必须为 None（非本厂商码） None
+      [PASS] info.capabilities 与 supports() 自洽 []
+      [PASS] info.supports 与 supports() 一致 []
+
+===== [s04] 12:32:40 =====
+  rc=0  verdict=CONFORMANCE_PASS
+      [PASS   ] t2_inflight_protection       拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）
+      [PASS   ] t3_topology_path             单设备：跳过跨设备传输（拓扑路径不适用）
+    结论: CONFORMANCE_PASS
+
+===== [s05] 12:32:47 =====
+  rc=0  verdict=CONFORMANCE_PASS
+      [PASS   ] i5_longrun_device_state      长驻 20 轮: 累计 logits=5.06e-01, 无 NaN/Inf = True
+      [PASS   ] i6_pipeline_overlap          流水线依赖链: 末轮数据正确(rel_err=1.03e-07)=True | 观测: pipe=0.007s serial=0.001s 重叠率=-641.7
+    结论: CONFORMANCE_PASS
+
+===== [s06] 12:32:53 =====
+  rc=0  verdict=CONTRACT_INVARIANTS_PASS
+      [PASS   ] i3_invalidated_governed      不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`（如实不具备；**未验证 ≠ 已确认不具备**）
+      [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓
+    结论: CONTRACT_INVARIANTS_PASS
+
+===== [s11] 12:33:00 =====
+  rc=0  verdict=GRAPH_CAPTURE_PASS
+    GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+
+===== [s12] 12:33:07 =====
+  rc=0  verdict=STREAM_QUOTA_PASS
+    STREAM_QUOTA_PASS: 3/3 子项通过
+
+===== [s13] 12:33:14 =====
+  rc=0  verdict=DUTY_RESPONSE_PASS
+    DUTY_RESPONSE_AUDIT cambricon: OK 63 / FAIL 0 / SKIP 15（共 78 项）
+    verdict: DUTY_RESPONSE_PASS
+
+=========== 汇总（/srv/hliu553/dc_rerun_20261027/acceptance_20261103/run1103b/summary.tsv）===========
+step  rc  verdict
+s01   0   103 通过 / 0 失败 / 0 跳过（stub 能力边界，非失败）
+s02   0   7 通过 / 0 失败
+s03   0   46 通过 / 0 失败 ===
+s04   0   CONFORMANCE_PASS
+s05   0   CONFORMANCE_PASS
+s06   0   CONTRACT_INVARIANTS_PASS
+s11   0   GRAPH_CAPTURE_PASS
+s12   0   STREAM_QUOTA_PASS
+s13   0   DUTY_RESPONSE_PASS
+
+overall: PASS（9 段全部 rc=0）

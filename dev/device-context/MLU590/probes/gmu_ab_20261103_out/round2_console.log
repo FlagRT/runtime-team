@@ -1,0 +1,24 @@
+--- T09: gmu=0.9 STOP_AFTER=0 卡2 端口8105 起前=0MiB ---
+  ready@168s
+  预热（丢弃）…
+  计时轮…
+    吞吐: 4.66 句/s | p50 644.9ms | max 647.2ms
+    区分度 0.4091 SERVE_LEG_PASS | 10/10 
+  峰值(采样)=87762 MiB（见 CSV）
+--- T04: gmu=<不传=脚本默认> STOP_AFTER=0 卡2 端口8105 起前=0MiB ---
+  ready@144s
+  预热（丢弃）…
+  计时轮…
+    吞吐: 4.62 句/s | p50 647.7ms | max 658.3ms
+    区分度 0.4091 SERVE_LEG_PASS | 10/10 
+  峰值(采样)=39210 MiB（见 CSV）
+--- D1: gmu=<不传=脚本默认> STOP_AFTER=1 卡2 端口8105 起前=0MiB ---
+  ready@144s
+  verdict 已出
+  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ cambricon 默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）
+  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=== 汇总 ===
+T09  吞吐: 4.66 句/s | SERVE_LEG_PASS | 10/10
+T04  吞吐: 4.62 句/s | SERVE_LEG_PASS | 10/10
+最终显存=0 MiB

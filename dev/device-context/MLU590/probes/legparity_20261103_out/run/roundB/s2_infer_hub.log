@@ -1,0 +1,9 @@
+[model] DC_MODEL=/work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /work/dc_rerun_20261027/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+[1] 设备上下文: backend=cambricon dev=mlu:0 count=1 mem={'total_mb': 97057, 'used_mb': 256, 'free_mb': 96801}
+[2] 模型加载完成 → mlu:0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[4] 吞吐: 37.97 句/s, p50 74.08 ms, avg 79.01 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=message_hint)
+
+[rank0] INFER_LEG_PASS 13/13 | backend=cambricon dev=mlu:0 | dim 1024 | 37.97 句/s p50 74.08ms | 区分度 0.6391 -> /work/dc_rerun_20261027/legparity_out/roundB/infer_hub.json
+  （如实跳过：vendor_code_map）

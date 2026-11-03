@@ -357,7 +357,9 @@ if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
                ;;
     ppu)       GPU_MEM_UTIL=0.4   # 本方向 2026-11-03 PPU 实测：0.9→90.0% / 0.4→40.0%，两臂均 PASS
                ;;
-    *)         GPU_MEM_UTIL=0.4   # cambricon：**未实测**，按 910C 实测值平移取保守值
+    cambricon) GPU_MEM_UTIL=0.4   # 本方向 2026-11-03 MLU590 实测：0.9→89.4%(87,858 MiB) / 0.4→40.0%(39,274 MiB)，两臂均 PASS
+               ;;
+    *)         GPU_MEM_UTIL=0.4   # 其余后端：**未实测**，按 910C 实测值平移取保守值
                echo "  [gmu][WARN] $BACKEND 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL"
                ;;
   esac
