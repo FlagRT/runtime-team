@@ -2,6 +2,7 @@
 
 > 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-11-03**
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
+> 🆕 **交付仓（自建仓，2026-11-03 起）**：可安装的 runtime 包已迁至 **`FlagRT/flagos-device-context`（public）**，当前发布 **v0.4.0**（[Release](https://github.com/FlagRT/flagos-device-context/releases/tag/runtime-v0.4.0)，`pip install` 可用 wheel）。本目录**只留芯片实例资产、看板与证据**；报备四字段与版本锚见 `STATUS.md`「交付仓报备」节。
 > 统一基座配置：**`dev/stack.lock.910c.v2.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
 > 本方向状态文件：**`STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
 > 当前快照：**四实例接入完成**（910C / P800 / MLU590 / PPU；PPU 13 段全量重跑零回归 10-26）·

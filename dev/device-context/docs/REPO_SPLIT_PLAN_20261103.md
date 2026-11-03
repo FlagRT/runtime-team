@@ -1,6 +1,6 @@
 # 原型独立仓报备计划（草稿，v0.4.0 时启用）
 
-> 起草：2026-11-03 ｜ 状态：**草稿**（未报备、未建仓）｜ 启用时点：**v0.4.0 发布**（四实例复验收口后）
+> 起草：2026-11-03 ｜ 状态：**已执行（Phase 1 完成，2026-11-03）** —— 仓已建、v0.4.0 已发；`dev/repos.yaml` 收录待总组 | 启用时点：**v0.4.0 发布**（四实例复验收口后）
 > 依据：《组内公告-自建仓规范与双版本机制-20261023》＋ `dev/repos.yaml` 头注 + 首例 `dev/framework-adapter/STATUS.md`
 
 ## 一、为什么要独立仓（先想清楚再动）
@@ -48,3 +48,28 @@
 | 两处看板漂移（协作仓 STATUS vs 新仓 README） | 公告纪律「dev-1.0 只放指针」——协作仓 STATUS 记「新仓地址 + 版本锚」，事实本体只在新仓 |
 | clone_all 对 private 仓无权限降级 | 报备时显式列「需访问成员=全组」；总组开通前不影响其他仓对齐（公告第 3 条） |
 | pip 化后 `sys.path` 旧用法断 | `pyproject.toml` 同版保留 `runtime` 包名与导入路径不变；旧用法（sys.path 指 prototype）在 v0.4.0 过渡期继续可用，v0.5.0 起 README 只推 pip |
+
+
+---
+
+## 六、执行记录（2026-11-03 · Phase 1 完成）
+
+| 步骤 | 结果 |
+|---|---|
+| 建仓 | **`FlagRT/flagos-device-context`**，**public**（用户裁定；等价满足公告「开放全组 clone」），`main` 单协作线 |
+| 搬迁内容 | `runtime/`（31 个 `.py`/`.md`）+ **新建 `pyproject.toml`** + 顶层 `README.md` + `RELEASE_NOTES_v0.4.0.md` + `.gitignore` |
+| 未搬（按 §四） | 芯片 `910C|P800|MLU590|PPU/` 资产与证据、`prototype/scripts/`（服务入口等组内标准工具）、`prototype/docs/` 看板类文档 |
+| 包内清理 | **排除全部历史产物 JSON**（`runtime/proto/*.json`、`runtime/conformance/*.json` —— 已核实代码不读它们，只是归档产物）；wheel 内 0 个 json |
+| pip 化验证 | clean venv **从 Release URL 直接 `pip install` 成功**；`runtime.__version__=0.1.0`、`__component_version__=0.4.0`、46 出口、4 个子包全部可导入 |
+| 发布 | Release `runtime-v0.4.0`（id `432357486`）+ wheel（193,406 B）+ sdist（168,829 B）；`tag^{}` = `main` tip = `984687f` |
+| 报备 | 四字段 + 版本锚 + `dev/repos.yaml` 待粘块（逐字段对齐第 85–93 行）已写入 `STATUS.md`「交付仓报备」节；**未自行改 `dev/repos.yaml`** |
+| 过渡期 | 协作仓 `prototype/runtime/` 暂留同一份内容，**已核对与新仓逐字节一致（31 文件零差异）**，避免打断四实例验收 |
+
+### Phase 2（v0.5.0 时做）
+
+1. 实例侧取包方式切换：`DC_ROOT=<协作仓 prototype>` → 「`pip install` 或挂新仓」；
+2. 切换后**删除协作仓 `prototype/runtime/` 副本**（消除两处漂移风险）；
+3. README 只推 `pip install`；
+4. 新环境目录的 `env.baseline.yaml` 增 `mounted_repos` 条目（remote=新仓 / commit=当次发版提交）。
+
+⚠️ **Phase 1 → Phase 2 之间**：任何对 runtime 包的改动**必须两处同步提交**（协作仓 + 新仓），否则两边会漂。

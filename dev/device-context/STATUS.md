@@ -1,6 +1,6 @@
 # device-context · 当前状态
 
-更新：2026-11-03（第二十轮 · **910C gmu 实测背书 + 三机模型副本对账**：gmu 0.9→**91.3%** / 0.4→**43.4%**，吞吐 −2.6%、**同卡共存判据两臂 52/0** ⇒ `ascend` 分支默认值获本方向实测背书（四支现已全部有依据）；`model.safetensors` **三机逐字节相同** ⇒ 区分度 0.0011 差**不是模型副本问题**（只关闭该分支，不对算子下结论）；新核出环境事实：`--privileged` 下 `ASCEND_RT_VISIBLE_DEVICES` 指**物理 die 号**、`npu-smi` HBM 读数滞后 10~20 s（手册坑 25）。第十九轮为 MLU590 全套复跑。）
+更新：2026-11-03（第二十一轮 · **原型 v0.4.0 发布 + 交付仓建立**：自建仓 `FlagRT/flagos-device-context`（public/main）已建，Release `runtime-v0.4.0` 含 wheel（`pip install` 实测通过）与源码包；新增 `pyproject.toml` 完成 pip 化；双版本轴 `__version__`(接口 0.1) / `__component_version__`(发布 0.4.0) 显式化；报备四字段与 `dev/repos.yaml` 可粘块见「交付仓报备」节。第二十轮为 910C gmu 实测背书 + 三机模型副本对账。）
 
 ## 近期轮次速览（**本表只给一行结论 + 报告与行号**）
 
@@ -10,6 +10,7 @@
 
 | 轮次 | 结论（一行） | 详见（报告 + 行号） |
 |---|---|---|
+| **原型 v0.4.0 发布 + 交付仓建立（自建仓报备）· 11-03** | ① **组件 v0.4.0 已发布**（四实例收口版）：新建自建仓 **`FlagRT/flagos-device-context`（public，`main` 单协作线）**，Release `runtime-v0.4.0` 含 `flagos_device_context-0.4.0-py3-none-any.whl`（**可 pip install**）+ `.tar.gz`；发版提交 `984687f`。② **交付形态首次 pip 化**：新增 `pyproject.toml`（分包名 `flagos-device-context` / 导入名仍是 `runtime`），核心包**只用标准库**（`import runtime` 不需要 torch），`[torch]` 为可选 extra；clean venv 实测**从 Release URL 直接装成功**（46 出口、子包全可导入）。③ **双版本轴显式化**：`__version__`=0.1.0（接口轴）/ 新增 `__component_version__`=0.4.0（发布轴），**有意不对齐**。④ **报备四字段 + 版本锚**已按公告写入本文件「交付仓报备」节；`dev/repos.yaml` 待总组收录（已给逐字段对齐的可粘块，本方向不自行改）。⑤ 过渡期：协作仓 `prototype/runtime/` 暂留同一份内容（**已核对新仓逐字节一致，31 文件零差异**）以不打断四实例验收，**v0.5.0 起只推 pip**；⚠️ 在此之前改 runtime 包须两处同步提交 | `docs/REPO_SPLIT_PLAN_20261103.md` **§1–§6** · 本文件 **「交付仓（自建仓）报备与版本锚」节** · https://github.com/FlagRT/flagos-device-context/releases/tag/runtime-v0.4.0 |
 | **910C gmu 实测背书 + 三机模型副本对账 · 11-03** | ① **gmu A/B 完成**（宿主 `npu-smi` 外部采样，die4，容器 `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`）：`gmu=0.9` ⇒ 运行期峰值 **59,811 MB = 91.3%**（余量仅 5.7 GB）；`gmu=0.4`（新默认）⇒ **28,452 MB = 43.4%**；两臂吞吐 **41.72 / 40.65 句/s**（−2.6%，p50 72.1/72.8 ms 同档）、区分度均 **0.4123**、消费方腿均 **10/10**；⭐ **同卡共存判据**（服务占 die 时跑设备上下文 smoke）两臂均 **52 通过 / 0 失败** ⇒ `serve_standard.sh` 的 ascend 分支从「待实测背书」升级为**已背书**，四支（ascend/kunlun/ppu/cambricon）默认值各自都有本方向实测依据。② ⭐⭐ **三机模型副本 sha256 对账**：`model.safetensors` **三机逐字节相同**（`0437e45c9456…`，1,191,586,416 B），config/tokenizer/vocab/merges/modules 亦一致 ⇒ **区分度 0.6380 vs 0.6391 的 0.0011 差不能归因于模型副本**，只能落在后端数值/算子实现；本轮**只关闭「副本不同」分支，不对具体算子下结论**。差异仅 910C 侧多 4 个非权重文件（ModelScope 整包形态）+ 1 个留证坏件 `*.CORRUPT-20261027`。③ ⚠️ 环境事实（手册坑 25）：**`--privileged` 下挂载白名单不生效** ⇒ 容器内 `ASCEND_RT_VISIBLE_DEVICES=n` 指**物理 die n**（实证：挂 davinci6 的容器设 0 分配 2 GiB ⇒ 物理 die0 涨 2,113 MB）；且 **`npu-smi` HBM 读数有 10~20 s 滞后** ⇒ 峰值须稳定 ≥25 s 后采、释放判据等 ≥22 s | `910C/docs/ASCEND_910C_GMU_AND_MODEL_SHA_20261103.md` **§1–§5** · `910C/probes/gmu_ab_20261103_out/MANIFEST.md` · `910C/probes/model_sha_20261103_out/MANIFEST.md`（含 `weight_sha.txt` · `compare.txt`）· `prototype/scripts/serve_standard.sh` **L338–L381** · `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` **坑 25** |
 | **MLU590 共享层改动后全套复跑 · 11-03** | ① **单入口 9 段 `overall: PASS`（逐段 rc=0）**：离线 **103/0/0** · 对称性 7/0 · smoke **46/0** · conformance 13 与推理 6 均 PASS · 契约不变式 PASS（rc=0）· 图捕获 **4/4** · 配额 **3/3** · 职责审计 **OK 63 / FAIL 0 / SKIP 15（共 78）** —— 与 10-27 归档**逐项一致**。② **`DC_MODEL` 两腿口径 `LEGPARITY_PASS` 9/0**：推理 13/13·区分度 **0.6391**、训练 50 步 6/6·loss **15.4498→11.1479**（两种传法各一遍）、`|Δloss|=0`。③ ⭐ **weakref 四家矩阵补齐**：MLU590（torch 2.7.1）**未中招** 🟢（Stream/Event 回调均触发、30 次创建回收 rc=0），且 **weakref 可创建（30/30）** ⇒ 此前「2.7 不支持 weakref」的推测**已证伪**，缺陷本质是「父类支持 but 子类 `tp_dealloc` 未链式清理」。④ **服务化 gmu 两轮实测**（宿主 cnmon 外部采样）：0.9→**89.3%**(87,762 MiB) / 0.4→**39.9%**(39,210 MiB)；⭐ 且**预热后计时**吞吐 4.66→4.62 句/s（−0.9%，p50 645/648 ms 同档）⇒ **MLU 上 gmu 无吞吐代价**；区分度 **0.4091** 与 10-14 归档逐字同（0.4118 是 PPU 的值，两实例不可混用）。⑤ 由此把 `serve_standard.sh` 的 `cambricon` 分支从「未实测平移 + 告警」升级为**实测 0.4**，端到端 `SERVE_STANDARD_PASS` | `MLU590/docs/CAMBRICON_MLU_RERUN_20261103.md` **§1–§7** · `MLU590/probes/acceptance_20261103_out/MANIFEST.md` · `MLU590/probes/legparity_20261103_out/MANIFEST.md` · `MLU590/probes/weakref_check_20261103_out/MANIFEST.md` · `MLU590/probes/gmu_ab_20261103_out/MANIFEST.md` · `prototype/scripts/serve_standard.sh` **L338–L377** · `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` **坑 24** |
 | **PPU v2 分版全量复跑 + 四实例口径复验补齐 · 11-03** | ① **v2 镜像全量 13 段 `overall: PASS`（逐段 rc=0）**，与 10-26（v1）基线**零回归**：训练 50 步 6/6·loss 15.4498→**11.1530**、推理 13/13·区分度 **0.6391**、服务化 10/10·区分度 **0.4118**（三处关键读数与归档**逐字相同**）、审计 OK 73/FAIL 0/SKIP 5、多流 8/8、图捕获 4/4、配额 3/3。② **`DC_MODEL` 两腿口径 `LEGPARITY_PASS` 9/0**（补齐 10-27 遗留）⇒ **四实例口径复验 4/4**。③ **gmu 四臂单变量**（宿主 ppu-smi 外部采样）：gmu 0.9⇒**90.0%** / 0.4⇒**40.0%**，两臂均 PASS ⇒「KV 池是纯余量」在 PPU 成立；⭐ 但 **`max_num_seqs=128` 是对 memory 建议 #1 的部分不采纳**——四臂吞吐 115.51(0.9/256) · 102.13(0.9/128) · 105.79(0.4/128) · 111.21(0.4/256)，区分度全 0.4118，即**它不省显存（显存由 gmu 决定）却掉吞吐 5.1~13.1%** ⇒ embed 形态改为**不传**。④ **核出一处假 FAIL 并修**：`run_t3/t456/t5` 只给宿主视角变量拼了 runid、容器视角没拼 ⇒ 服务臂实际 PASS 却判「未通过」，且 10-14 起每轮证据互相覆盖。⑤ ⚠️ 环境事实：共享盘 `/bmcp_lvm_fs` **100% 满（可用 0）**，本轮对照改用容器 `/tmp` 落盘并在证据里标注 | `PPU/docs/PPU_V2_ACCEPTANCE_20261103.md` **§1–§8** · `PPU/probes/v2_acceptance_20261103_out/MANIFEST.md` · `PPU/probes/legparity_20261103_out/MANIFEST.md` · `PPU/probes/gmu_ab_20261103_out/MANIFEST.md` · `prototype/scripts/serve_standard.sh` **L338–L375** · `prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md` **坑 22/23** |
@@ -50,6 +51,56 @@
 
 > 依据：总组在 `stack.lock.910c.v2.yaml` 中约定「统一基座的确定/调整/发布由总组裁定，
 > 依据各子方向 STATUS.md 暴露的问题与意见；各方向只消费不自建」。
+
+## 交付仓（自建仓）报备与版本锚（2026-11-03 起）
+
+> 依据《组内公告-自建仓规范与双版本机制-20261023》第 4/5 条：自建仓**在方向 STATUS 报备**，总组收录 `dev/repos.yaml`；
+> **交付物正文在独立仓，dev-1.0 只放「仓地址 + 当前版本锚」指针**。
+
+### 报备四字段（请总组收录）
+
+| 字段 | 值 |
+|---|---|
+| **仓地址** | `git@github.com:FlagRT/flagos-device-context.git`（https: `https://github.com/FlagRT/flagos-device-context`） |
+| **仓根目录名** | `flagos-device-context`（clone_all 收拢到**仓根一级**；容器内可见为 `/workspace/flagos-device-context`） |
+| **协作线** | **`main`**（kind: `direction` —— 不要求 dev-1.0；main 即唯一工作线，开发仍走个人分支 + merge） |
+| **可见性** | **public**（等价满足公告第 3 条「开放全组 clone」；无需逐个开通成员） |
+| **需访问成员** | 全组（FlagRT/runtime-team） |
+
+### 待总组收录的 `dev/repos.yaml` 条目（原样可粘）
+
+```yaml
+  - url: git@github.com:FlagRT/flagos-device-context.git
+    dir: flagos-device-context
+    branch: main
+    kind: direction
+    owner: device-context（Kistich）
+    visibility: public
+    purge_primaries: []
+    note: main 即唯一工作线（同 framework-adapter 例外）；public 即满足「开放全组 clone」
+    registered: "2026-11-03"
+```
+
+> ✅ 字段已按 `dev/repos.yaml` 第 85–93 行（`framework-adapter` 同类条目）**逐字段对齐**：`url/dir/branch/kind/owner/visibility/purge_primaries/note/registered`。
+> 本方向**不自行修改** `dev/repos.yaml`（收录属总组动作），此处只给原样可粘的行。
+
+### 当前版本锚
+
+| 项 | 值 |
+|---|---|
+| 组件版本（发布轴） | **v0.4.0**（`runtime.__component_version__`） |
+| Release | https://github.com/FlagRT/flagos-device-context/releases/tag/runtime-v0.4.0 |
+| 发版提交 | `984687f`（`main` tip；tag `runtime-v0.4.0` 仅作提交指针，**发布状态只看 Release**） |
+| 接口版本（兼容轴） | **v0.1 · 原型期**（`runtime.__version__`）—— 与组件版本**有意不对齐** |
+| 附件 | `flagos_device_context-0.4.0-py3-none-any.whl`（可 `pip install`）· `flagos_device_context-0.4.0.tar.gz` |
+
+### 过渡期约定（v0.4.0 → v0.5.0）
+
+- 协作仓 `prototype/runtime/` **暂时保留同一份包内容**（本轮已核对：与新仓 `.py`/`.md` **逐字节一致，31 文件零差异**），
+  目的是**不打断四实例验收**（各芯片 `probes/` 里的脚本仍按 `DC_ROOT=<prototype>` 取包）。
+- **v0.5.0 起**：README 只推 `pip install`；届时把实例侧的取包方式切到「装包 / 挂新仓」后，
+  再删协作仓里的副本（避免两处漂移）。⚠️ **在此之前改动 runtime 包必须两处同步提交**。
+- 上一版 Release（`runtime-v0.3.0`）留在协作仓 `FlagRT/runtime-team`，**保留不删**。
 
 ## 当前阶段
 
