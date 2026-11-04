@@ -92,5 +92,31 @@ class RepeatedEvidenceTests(unittest.TestCase):
         self.change('01-native/rank0.json',lambda d:d['training'].update(gradient_communication={'observed':True}))
         with self.assertRaises(ValueError):summarize(self.root,True)
 
+    def observed_fixture(self):
+        self.native_fixture()
+        manifest=json.loads((self.root/'execution.json').read_text())
+        for run in manifest['runs']:
+            if run['mode']!='native':continue
+            old=run['name'];new=old.replace('native','observed')
+            (self.root/old).rename(self.root/new)
+            run.update(name=new,mode='observed')
+            for rank in range(2):
+                def mutate(d):
+                    d['comm_mode']='observed'
+                    t=d['training'];size=t['parameter_count']*4
+                    t['ddp_bucket_sizes_bytes']=[size-4,4]
+                    t['gradient_communication']={'gradient_allreduce_calls':100,'gradient_payload_bytes':size*50}
+                self.change(f'{new}/rank{rank}.json',mutate)
+        (self.root/'execution.json').write_text(json.dumps(manifest))
+
+    def test_observed_two_buckets_accepted(self):
+        self.observed_fixture()
+        self.assertEqual(summarize(self.root,include_observed=True)['runs'],9)
+
+    def test_observed_bad_bucket_coverage_rejected(self):
+        self.observed_fixture()
+        self.change('01-observed/rank0.json',lambda d:d['training'].update(ddp_bucket_sizes_bytes=[1]))
+        with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
+
 
 if __name__ == '__main__': unittest.main()

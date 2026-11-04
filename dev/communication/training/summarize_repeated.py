@@ -6,10 +6,11 @@ from pathlib import Path
 import statistics
 
 
-def summarize(root, include_native=False):
+def summarize(root, include_native=False, include_observed=False):
     manifest = json.loads((root/'execution.json').read_text())
     runs = manifest['runs']
     modes=('manual','fused','native') if include_native else ('manual','fused')
+    if include_observed:modes+=('observed',)
     grouped = {m: [r for r in runs if r['mode'] == m] for m in modes}
     if len(runs) != sum(map(len, grouped.values())) or any(len(v) < 3 for v in grouped.values()):
         raise ValueError('Require >=3 trials per mode; no unknown modes')
@@ -55,7 +56,13 @@ def summarize(root, include_native=False):
             if run['mode']=='native':
                 if stats.get('observed') is not False:raise ValueError('Native calls must not be fabricated')
                 continue
-            if stats['gradient_allreduce_calls'] != (850 if run['mode']=='manual' else 50):
+            expected_calls=850 if run['mode']=='manual' else 50
+            if run['mode']=='observed':
+                buckets=t['ddp_bucket_sizes_bytes']
+                if not buckets or any(type(v)!=int or v<=0 for v in buckets) or sum(buckets)!=t['parameter_count']*4:
+                    raise ValueError('DDP bucket coverage mismatch')
+                expected_calls=len(buckets)*50
+            if stats['gradient_allreduce_calls'] != expected_calls:
                 raise ValueError('Unexpected gradient call count')
             if stats['gradient_payload_bytes'] != t['parameter_count']*4*50:
                 raise ValueError('Unexpected input payload count')
@@ -89,7 +96,8 @@ def summarize(root, include_native=False):
 
 if __name__ == '__main__':
     p=argparse.ArgumentParser(description=__doc__); p.add_argument('root',type=Path)
-    p.add_argument('--include-native',action='store_true');args=p.parse_args()
-    result=summarize(args.root,args.include_native)
+    p.add_argument('--include-native',action='store_true')
+    p.add_argument('--include-observed',action='store_true');args=p.parse_args()
+    result=summarize(args.root,args.include_native,args.include_observed)
     with (args.root/'summary.json').open('x') as output: json.dump(result,output,indent=2)
     print(json.dumps(result,indent=2))

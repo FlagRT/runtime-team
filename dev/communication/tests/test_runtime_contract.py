@@ -64,7 +64,8 @@ class RuntimeConsumerTests(unittest.TestCase):
         group = self.group()
         with patch.object(comm.dist, 'all_reduce'):
             value = comm.observed_mean_hook(group, self.bucket()).wait()
-        self.backend.synchronize.assert_called_once_with(1, timeout_ms=30000)
+        self.assertEqual(self.backend.synchronize.call_count,2)
+        self.backend.synchronize.assert_called_with(1, timeout_ms=30000)
         torch.testing.assert_close(value, torch.tensor([1., 2.]))
         self.assertEqual(group.calls, 1)
 
@@ -78,7 +79,7 @@ class RuntimeConsumerTests(unittest.TestCase):
             self.assertIs(caught.exception, failure)
             with self.assertRaises(RuntimeError):
                 comm.observed_mean_hook(group, self.bucket())
-            reduce.assert_called_once()
+            reduce.assert_not_called()
         self.assertEqual(group.state, 'FAILED')
         self.assertEqual(group.calls, 0)
 
