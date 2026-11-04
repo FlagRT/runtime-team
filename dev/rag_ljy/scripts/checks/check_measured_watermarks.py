@@ -15,6 +15,7 @@ import signal
 import sys
 import threading
 import time
+from memory_backend import require_backend
 from check_watermarks_modes import ROOT, http, conflicting_processes, sha256
 from check_request_memory_modes import assess, measured_phase_ok
 
@@ -22,6 +23,7 @@ from check_request_memory_modes import assess, measured_phase_ok
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='store_true')
+    parser.add_argument('--backend',choices=['milvus','elasticsearch'],default='milvus')
     parser.add_argument('--modes', nargs='+', choices=['burst','staggered','continuous'], default=['burst','staggered','continuous'])
     parser.add_argument('--profiles', default='original:4,1024:4,1024:8,1024:16,2048:4,2048:8,4096:1,4096:2,6144:1')
     parser.add_argument('--warmup-profile', help='Optional two-request burst of the same corpus input (index 1) before each mode, recorded separately')
@@ -40,8 +42,10 @@ def main():
     def health():
         code, _, h = http(url+'/health', timeout=10)
         if code != 200: raise RuntimeError('health failed')
+        require_backend(h,args.backend)
         return h
     before = health()
+    require_backend(before, args.backend)
     cfg = before['memory_admission']['config']
     assert before['inflight'] == 0 and before['memory_admission']['reserved_mib'] == 0
     assert before['max_inflight'] == 0 and cfg['estimate_requests'] and cfg['request_budget_mib'] is None
@@ -51,7 +55,7 @@ def main():
     assert before['memory_estimation']['fault'] is None
     print('Measured-only policy preflight passed', flush=True)
     if not args.run: return 0
-    out = ROOT/'experiment_outputs/checks/measured_watermarks'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    out = ROOT/'experiment_outputs/checks/measured_watermarks'/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     out.mkdir(parents=True)
     print('OUTPUT='+str(out), flush=True)
     source = ROOT/'experiment_outputs/inputs/request_pressure/queries.jsonl'
@@ -79,7 +83,7 @@ def main():
     for model in ('Qwen3-Embedding-0.6B','Qwen3-Reranker-0.6B'):
         root = __import__('pathlib').Path('/mnt/raid/jliu171/models/Qwen')/model
         hashes[model] = {str(p.relative_to(root)):sha256(p) for p in root.rglob('*') if p.is_file() and '.cache' not in p.parts}
-    (out/'manifest.json').write_text(json.dumps({'command':sys.argv,'options':vars(args),'initial_health':before,'models':hashes,
+    (out/'manifest.json').write_text(json.dumps({'retrieval_backend':args.backend,'command':sys.argv,'options':vars(args),'initial_health':before,'models':hashes,
         'input_sha256':sha256(source),'pressure_source':'real RAG requests only',
         'protocol':'measured-only-v1; replaces unsafe linear escalation, preserves old safety_hold evidence',
         'compute_utilization':'not measured'},indent=2))
@@ -89,7 +93,7 @@ def main():
     probing = threading.Event()
     samples, rows, pending = [], [], []
     pool = ThreadPoolExecutor(max_workers=32)
-    summary = {'status':'incomplete','modes':{},'errors':[]}
+    summary = {'retrieval_backend':args.backend,'status':'incomplete','modes':{},'errors':[]}
     def emit(kind, **data):
         with mutex:
             events.write(json.dumps({'kind':kind,'utc':datetime.now(timezone.utc).isoformat(),**data})+'\n');events.flush()
@@ -134,7 +138,10 @@ def main():
             row['after']=health()
             detail=row['body'].get('detail') if isinstance(row['body'],dict) else None
             row['reason']=detail.get('reason') if isinstance(detail,dict) else detail
-            if row['status']!=200 and not (row['status']==503 and row['reason'] in ('memory_pressure','request_budget') and row['headers'].get('retry-after')):unsafe.set()
+            if row['status']!=200 and not (row['status']==503 and row['reason'] in ('memory_pressure','request_budget') and row['headers'].get('retry-after')):
+                unsafe.set()
+                emit('unexpected_http',mode=row['mode'],role=role,status=row['status'],reason=row['reason'],body=row['body'])
+                print(f"Unexpected HTTP {row['status']} during {row['mode']}: {row['reason']}",flush=True)
         except Exception as e:
             row['error']=repr(e);unsafe.set()
         finally:

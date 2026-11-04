@@ -83,3 +83,26 @@ docker exec -w /workspace/dev/rag_ljy rag-ljy-vllm-910c \
 - `checks/memory_acceptance/<UTC>/`：三轮审计汇总、部署日志副本、代码哈希、Git基线及未提交修改状态。汇总工具`summarize_measured_acceptance.py`，绘图工具`plot_measured_acceptance.py`。
 
 旧97.17%越过保护线的实验仍为failed，旧450次请求最高44.629%仍未达到阈值，外部分配实验不计入本验收。旧`check_request_memory_modes.py`的安全暂停记录保持；当前入口使用新的逐forward保护，不删除历史失败后照旧重跑。
+
+## Elasticsearch入口（2026-11-04，压力验收待用户执行）
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run
+```
+
+省略`--run`仅检查索引和预览配置。脚本显式切换`RETRIEVAL_BACKEND=elasticsearch`，逐轮冷启动后运行相同三模式及采样过期检查，实际health后端不匹配即停止。索引预检查确认向量映射、3,633文档/6,543分块及640-token文档上界，保存语料指纹。服务正常回收完成滞回恢复，不以准备阶段重启作恢复证据。
+
+默认profile与Milvus相同，但Elasticsearch检索候选不同，实际峰值必须重新验证。未达85%或缺少中间滞回等证据会返回非零，停止套件，不生成通过汇总。需要调整真实输入档位或请求batch时可显式传`--profiles 2048:32`和`--warmup-profile 1024:32`；不得更改水位或使用额外分配冒充请求压力。
+
+新结果分别位于`checks/measured_watermarks/elasticsearch/`等按后端分隔的目录；全部检查通过后自动调用汇总工具。运行结束API保留Elasticsearch后端。只读预检查已通过，尚未执行Elasticsearch高水位压力实验。
+
+### Elasticsearch长查询子句超限修复（2026-11-04）
+
+首次用户运行在两条预热请求的BM25阶段返回500，原始ES错误为`maxClauseCount=1024`；没有达到高水位。当前仅对子句超限400进行一次有界词法回退：各字段analyzer产生的词项去重后各取前256项，构造最多512个term子句的dis_max，title boost保留2。普通查询仍用原multi_match，其他错误不隐藏。完整查询仍进入embedding/rerank；有界词法回退可能改变候选排序，需与显存验收结果分别理解。
+
+预检查现包含64条已保存长输入的真实CPU词法检索；已通过该检查和234项回归，未重跑NPU压力。启动命令不变，套件开始前重启API会加载新代码。失败证据和修复验证位置见根目录status.md。
+
+## Elasticsearch已通过的最终配置（2026-11-04）
+
+用户使用`bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run --profiles 2112:32`完成三模式及采样过期检查，汇总[20261104T113704Z](../experiment_outputs/checks/memory_acceptance/elasticsearch/20261104T113704Z/summary.json)为passed。突发/错峰/持续实测峰值分别85.443%/85.442%/85.440%，每轮高位拒绝、中间滞回、低位恢复、在途完成均通过，最低采样空闲9,134MiB。复现已通过配置时须明确传入`--profiles 2112:32`；默认2048档曾只达到84.557%，此前失败及未达阈值记录不修改。上述较早“待用户执行”的表述为历史进度。

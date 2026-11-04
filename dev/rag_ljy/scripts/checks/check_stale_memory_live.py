@@ -3,20 +3,23 @@
 import argparse, fcntl, json, os, signal, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
+from memory_backend import require_backend
 from check_watermarks_modes import ROOT, http, conflicting_processes
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run',action='store_true')
+    parser.add_argument('--backend',choices=['milvus','elasticsearch'],default='milvus')
     args=parser.parse_args()
     lock=open('/tmp/rag-watermarks-modes.lock','w')
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     if conflicting_processes():raise RuntimeError('Another test is running')
     url='http://127.0.0.1:8088'
     def health():
-        code,_,h=http(url+'/health');assert code==200;return h
-    initial=health()
+        code,_,h=http(url+'/health');assert code==200;require_backend(h,args.backend);return h
+    initial = health()
+    require_backend(initial, args.backend)
     assert initial['inflight']==0 and initial['memory_admission']['reserved_mib']==0
     assert initial['memory_admission']['status']=='ready'
     assert initial['device_memory']['stats']['memory_used_percent']<=75
@@ -24,9 +27,9 @@ def main():
     assert pid!=os.getpid() and Path(f'/proc/{pid}').exists()
     print('Isolated sampler preflight passed',flush=True)
     if not args.run:return 0
-    out=ROOT/'experiment_outputs/checks/stale_memory'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    out=ROOT/'experiment_outputs/checks/stale_memory'/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     out.mkdir(parents=True);print('OUTPUT='+str(out),flush=True)
-    result={'status':'failed','command':sys.argv,'initial_health':initial,
+    result={'retrieval_backend':args.backend,'status':'failed','command':sys.argv,'initial_health':initial,
             'fault_injection':'SIGSTOP isolated telemetry process; no NPU workload or memory allocations'}
     body={'query':'How does exercise affect blood pressure?','reranker_batch_size':1}
     identity=Path(f'/proc/{pid}/stat').read_text().split()[21]
