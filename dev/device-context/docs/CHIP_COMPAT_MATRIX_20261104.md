@@ -1,6 +1,6 @@
-# 国产芯片兼容性对照表（设备执行上下文层 · v0.2）
+# 国产芯片兼容性对照表（设备执行上下文层 · v0.3）
 
-> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**已上机核验 910C / P800（v0.2）；MLU590 / PPU 待核**
+> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**已上机核验 910C / P800（v0.3）；MLU590 / PPU 待核**
 > 范围：**设备执行上下文层（device-context / 多流 Stream）** 在四款国产芯片上的软件栈兼容性。
 > 口径：**只登记本方向实际跑过的组合**；没跑过的一律标 🟡/⚪，**不按厂商宣传或镜像名推断**。
 
@@ -10,8 +10,8 @@
 
 | 你要问的 | 答案 |
 |---|---|
-| **哪些是确定的（可直接对外声明）** | **11 格 ✅**（v0.2 由 8 格升至 11 格）：910C 操作系统·驱动·开发包；P800 操作系统·驱动·框架；MLU590 驱动·开发包·框架；PPU 驱动·开发包 |
-| **哪些要上机核验** | **8 格 🟡 + 1 格 ⚪**。**910C 与 P800 已于 2026-11-04 上机核验完毕**；剩余集中在 **MLU590 与 PPU**（本轮两台机器网络不可达），以及两家共有的**算子库无逐算子对照** |
+| **哪些是确定的（可直接对外声明）** | **12 格 ✅**（v0.3，由初表 8 格升至 12 格）：910C 操作系统·驱动·开发包；**P800 操作系统·驱动·开发包·框架**（四格全绿）；MLU590 驱动·开发包·框架；PPU 驱动·开发包 |
+| **哪些要上机核验** | **7 格 🟡 + 1 格 ⚪**。**910C 与 P800 已于 2026-11-04 上机核验完毕**；剩余集中在 **MLU590 与 PPU**（本轮两台机器网络不可达），以及四家共有的**算子库无逐算子对照** |
 | **哪些是不支持的** | **§5 共 9 条**。真正「芯片级不支持」只有 2 条：MLU590 的 **FP8/MX 量化**（设备能力 `(5,0)` 不满足）与 **FlagTree 无寒武纪线** |
 
 ⚠️ **本表不声明的事**：算子库的**逐算子数值正确性**、性能、以及「另三家做不到」这类横向推断。这些属算子/数值域，超出本方向职责（见 §7）。
@@ -23,7 +23,7 @@
 | **910C 驱动** | `25.5.0`（ascendhal `7.35.23`），来源 `910C/docs/DIAG_TRAIN_IMAGE_NPU_20260908.md` L64 | **`26.1.1`**（ascendhal `7.35.23`、`package_version=26.1.1`） | ⚠️ **v0.1 的 `25.5.0` 是 09-08 单次采集的历史值，已过期**。本次实测驱动已升级到 `26.1.1` ⇒ 该旧值**作废**。另：`910C/docs/OFFICIAL_RUNTIME_COUNTERPART_20260922.md` L149「现网驱动未采集」的表述**当时是对的**，本条冲突已闭合 |
 | **910C 操作系统** | 「宿主 OS **未采集**」 | **`openEuler 22.03 (LTS-SP4)`** / kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64` | ⚠️ **不是 Ubuntu**。宿主是 openEuler aarch64，容器基座才是 Ubuntu 22.04 —— 两者不可混写 |
 | **P800 宿主** | 「新机未采集」（现有值全来自 11-07 到期的老机） | **新机 `VM-20-4-ubuntu`：Ubuntu 24.04.2 LTS / kernel `6.8.0-87-generic` / 驱动 `5.0.21.47`** | ✅ 新机与老机**三项完全一致** ⇒ 老机到期不再影响这两格依据 |
-| **P800 开发包** | ✅（直接依据基线 `provides`） | **降为 🟡** | 容器内**找不到 XTDK/XRE 自证文件**（`find`/`dpkg`/版本文件皆空）⇒ 只有基线声明，不能算「已验证」 |
+| **P800 开发包** | ✅（直接依据基线 `provides`）→ **v0.2 曾误降 🟡** → **v0.3 恢复 ✅** | **`XTDK 3.6.0.1` / `XRE 5.13.0.0` / `XCCL 20260209_9` 有自证文件**：`<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`，2026-11-04 在锁定镜像内 `cat` 实测，三项**逐字一致** | ⚠️ **v0.2 的降级是错的**：当时只搜了 `/usr/local`、`/opt`、`/etc`、`/env`，**没搜 site-packages**；而 `dev/images/kunlun-operator-runtime/v2/lock.yaml` **L13 早就写明**该文件位置。已在 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` 的 `provides` 行补上指针，避免再踩 |
 
 ## 1 状态定义（四态）
 
@@ -47,19 +47,19 @@
 |---|---|---|---|---|
 | **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 容器基座 **Ubuntu 24.04**（x86_64）<br>宿主 OS/内核 **未采集**（本轮不可达）<br>🟡 部分验证 |
 | **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>固件版本 `NA`（未获取）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
-| **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（实测）<br>容器 XTDK `3.6.0.1` / XRE `5.13.0.0`<br>⚠️ **仅基线声明，容器内无自证**<br>🟡 部分验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
+| **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（`/usr/local/xpu/version.txt`）<br>容器 **XTDK `3.6.0.1`** · **XRE `5.13.0.0`** · XCCL `20260209_9`<br>（自证 `torch_xmlir/_versions.txt`，容器内）<br>✅ 已验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
 | **框架（PyTorch）** | torch **`2.10.0+cpu`** · torch_npu **`2.10.0`**（**无 `post7`**）· py `3.11.15`<br>⚠️ 退出期 weakref UAF 仍在<br>🟡 部分验证 | torch **`2.9.0+cu129`** · py `3.10.18`<br>设备 API 走 **`torch.cuda`**（实测 `torch.xpu.is_available()=False`）<br>✅ 已验证 | torch **`2.7.1+cpu`** · torch_mlu **`1.29.2+torch2.7.1`** · py `3.10`<br>退出期 weakref **未中招**<br>✅ 已验证 | torch **`2.10.0`** · py `3.12.3` · transformers `4.57.0`<br>⚠️ 退出期 weakref UAF 为**平台缺陷**，我方运行时已自保<br>🟡 部分验证 |
 | **算子库** | flag_gems `0.0.0+f7ae8e6b934a`<br>flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton **`3.5.1`**<br>flagcx `0.13.0`<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）<br>flagtree **`0.6.1+xpu3.6`**<br>xtorch_ops `0.1.2640`<br>⚠️ GEMM **数值缺口未解**（`K-5`，禁用于关键路径）<br>🟡 部分验证 | flag_gems **`5.4.0rc2.post3`**<br>triton **`3.2.0+mlu1.7.2`**（厂商 triton-mlu 变体）<br>torch_mlu_ops `1.8.0`<br>⚪ **本组未做结论性验证** | FlagGems **`5.4.0rc2`**<br>triton **`3.6.0`**（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
 
 ### 2.1 计数
 
-| 状态 | v0.1 | **v0.2** | 变化 |
-|---|---|---|---|
-| ✅ 已验证 | 8 | **11** | +910C OS / +910C 驱动 / +P800 OS / +P800 驱动 −P800 开发包降级 = 净 +3 |
-| 🟡 部分验证 | 11 | **8** | 同上 |
-| ⚪ 待核验 | 1 | **1** | 不变（MLU590 算子库） |
-| ⛔ 不支持 | 0（格级） | **0** | 能力级不支持见 §5 |
-| 合计 | 20 | **20** | — |
+| 状态 | v0.1 | v0.2 | **v0.3** | 变化 |
+|---|---|---|---|---|
+| ✅ 已验证 | 8 | 11 | **12** | +12 = 910C OS/驱动/开发包 · **P800 OS/驱动/开发包/框架** · MLU590 驱动/开发包/框架 · PPU 驱动/开发包 |
+| 🟡 部分验证 | 11 | 8 | **7** | 910C 框架·算子库；P800 算子库；MLU590 OS；PPU OS·框架·算子库 |
+| ⚪ 待核验 | 1 | 1 | **1** | MLU590 算子库（不变） |
+| ⛔ 不支持 | 0（格级） | 0 | **0** | 能力级不支持见 §5 |
+| 合计 | 20 | 20 | **20** | — |
 
 ## 3 逐格证据指针
 
@@ -81,7 +81,7 @@
 |---|---|---|
 | OS | `grep PRETTY_NAME /etc/os-release` ⇒ `Ubuntu 24.04.2 LTS`；`uname -r` ⇒ `6.8.0-87-generic`；容器 ⇒ `Ubuntu 22.04.5 LTS` | `P800/docs/KUNLUN_P800_MIGRATION_20261103.md` **§5.1b**（离线 43/0/1 · 推理 13/13 · 区分度 0.6392） |
 | 驱动 | `xpu-smi` 首行 ⇒ `Driver Version: 5.0.21.47  XPU-RT Version: 5.0.21`；`/usr/src/kunlun-5.0.21.47`、`/usr/local/xpu-5.0.21.47` 存在 | 同上；⭐ 与老机 `P800/docs/KUNLUN_P800_ENV_REPORT_20260914.md` **L68** 的 `5.0.21.47` **一致** |
-| 开发包 | 宿主 `xpu-5.0.21.47`（实测）；容器 `provides: {xtdk: 3.6.0.1, xre: 5.13.0.0, xccl: 20260209_9}` 见 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` **L16** | ⚠️ **容器内无自证**：`find / -maxdepth 3 -iname "*xtdk*"`、`dpkg -l` 过滤 xpu/xtdk、`ls /usr/local` 均无 XTDK/XRE ⇒ 降级 🟡，需上游/厂商确认 |
+| 开发包 | 宿主：`/usr/local/xpu/version.txt` ⇒ `5.0.21.47`（老机与新机同）<br>容器：`cat <conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt` ⇒ **`XTDK: 3.6.0.1` / `XRE: 5.13.0.0` / `XCCL: 20260209_9`**（另含 `XPYTORCH: XMLIR--bc1b1dc6f-dev+2026032411`、`XHPC: 20770323`、`CUPTI: 1.1.0.0`、`compile_date: 20260324-11:53:49`、`arch: x86_64`） | 与 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` **L16** 的 `provides` **逐字一致** ⇒ ✅ |
 | 框架 | 容器 ⇒ `torch 2.9.0+cu129`（`torch.version.cuda=12.9`）、py `3.10.18`；`hasattr(torch,"xpu")=True` 但 **`torch.xpu.is_available()=False`**（另有 `torch_xray 2.0.4` 负责符号重写） | 同 §5.1b；命名空间结论与 `P800/README.md` **L74** 一致 |
 | 算子库 | 容器 `pip list` ⇒ `flag_gems 4.2.1rc0`（editable `/env/FlagGems`）、`flagtree 0.6.1+xpu3.6`、`flagcx 0.10.0`、`xtorch_ops 0.1.2640+9bc36a18`、`xmlir 1.0.0.1` | GEMM 编译维度已在 `env/v1` 修复；**数值缺口 `K-5` 未解**，见 `dev/stack.lock.kunlunxin.v1.yaml` known_issues |
 
@@ -164,7 +164,7 @@
 | ~~P0~~ | ~~P800~~ | ~~新机宿主 OS / 内核 / 驱动~~ | ✅ **2026-11-04 完成**：`Ubuntu 24.04.2 / 6.8.0-87 / 5.0.21.47`，与老机一致 |
 | **P0** | PPU | 宿主 OS + 内核（现有只有容器基座 OS） | ⛔ 本轮网络不可达（`192.168.5.112:22` 超时），待恢复 |
 | **P1** | MLU590 | ① 容器 `/etc/os-release`（现为**包名推断**）② **FlagGems 算子对照**（唯一 ⚪ 格） | ⛔ 本轮网络不可达（`10.1.1.21:22` 超时），待恢复 |
-| **P1** | P800 | 容器内 XTDK/XRE 的真实来源（现无自证） | 待上游/厂商确认；或改为只声明到宿主 `xpu-5.0.21.47` |
+| ~~P1~~ | ~~P800~~ | ~~容器内 XTDK/XRE 的真实来源~~ | ✅ **2026-11-04 结案**：`torch_xmlir/_versions.txt` 实测 `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9`，与基线逐字一致 |
 | **P2** | 910C | 固件版本（`npu-smi info -t board` 报 `NA`） | 待查其他采集入口 |
 | **P2** | 全部 | 逐格把「随验收间接可用」升级为「逐算子对照」 | 属算子域，**建议与算子方向联合，本方向不单独下结论** |
 
@@ -221,9 +221,19 @@ xpu-smi | grep -c "P800 OAM"               →  8
   flagtree / torch_xray                    →  0.6.1+xpu3.6 / 2.0.4
   vllm / vllm-plugin-fl                    →  0.13.0 / 0.1.0
   xmlir / xtorch_ops                       →  1.0.0.1 / 0.1.2640+9bc36a18
-  find / -maxdepth 3 -iname "*xtdk*"       →  （空）
-  dpkg -l | grep -iE "xpu|xtdk"            →  （无相关包）
+  cat <conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt
+                                           →  XPYTORCH: XMLIR--bc1b1dc6f-dev+2026032411
+                                              XHPC: 20770323
+                                              XTDK: 3.6.0.1        ← 与基线 provides 一致
+                                              XRE: 5.13.0.0        ← 与基线 provides 一致
+                                              CUPTI: 1.1.0.0
+                                              XCCL: 20260209_9     ← 与基线 provides 一致
+                                              compile_date: 20260324-11:53:49
+                                              arch: x86_64
 ```
+
+⭐ **找版本文件别只搜 `/usr/local` `/opt` `/etc`**：P800 的 `XTDK/XRE/XCCL` 自证在 `<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`（**site-packages 下**）。
+本轮 v0.2 就因为只搜了那三处，误判成「无自证」并错误降级 —— **先读 `dev/images/<name>/v<N>/lock.yaml` 里的指针，再决定找不到**。
 
 **本轮不可达**：`PPU-2`（`192.168.5.112:22`）、`Mlu-1`（`10.1.1.21:22`）均 `Operation timed out` ⇒ 两家数据沿用历史记录，标注「本轮未复核」。
 
@@ -239,4 +249,5 @@ xpu-smi | grep -c "P800 OAM"               →  8
 | 日期 | 版本 | 变更 |
 |---|---|---|
 | 2026-11-04 | v0.1 | **初表**：四芯片 × 五层共 20 格，✅ 8 / 🟡 11 / ⚪ 1 / ⛔ 0；给出 §6 上机核验清单 |
+| 2026-11-04 | **v0.3** | **纠正 v0.2 的一处误降**：① **P800 开发包恢复 ✅** —— `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9` 的自证文件是 `<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`，实测逐字一致；② ⚠️ 误降原因记为教训：v0.2 只搜 `/usr/local` `/opt` `/etc` `/env`，**漏了 site-packages**，而 `dev/images/kunlun-operator-runtime/v2/lock.yaml` **L13 早已写明**该路径；③ 已在 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` 的 `provides` 行**补上自证指针**，避免后人重复踩；④ 计数 ✅ 11 → **12**、🟡 8 → **7** |
 | 2026-11-04 | **v0.2** | **910C 与 P800 上机核验完成**：✅ 由 8 升至 **11**、🟡 由 11 降至 **8**。① **910C 驱动 `25.5.0` → `26.1.1`（旧值作废）**；② **910C 宿主 OS 首次采集 = openEuler 22.03 LTS-SP4**（此前完全空白，且非 Ubuntu）；③ 910C 宿主 CANN 9.1.0 与容器 CANN 9.0.0 分列；④ **P800 新机 OS/内核/驱动实测，与老机完全一致** ⇒ 老机到期不再影响这两格；⑤ **P800 开发包降为 🟡**（容器内无 XTDK/XRE 自证）；⑥ 新增 §0.1 更正表与 §6.4 采集记录；⑦ 910C 固件报 `NA`，如实标「未获取」；⑧ 修正 v0.1 §0 与 §2.1 的 🟡 格数不一致（§0 误写 10，实为 11） |

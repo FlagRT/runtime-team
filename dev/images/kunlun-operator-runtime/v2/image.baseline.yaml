@@ -14,6 +14,10 @@ base_image:                                    # L1
   ref: harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
   digest: sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34
   provides: {xtdk: 3.6.0.1, xre: 5.13.0.0, xccl: '20260209_9', python: 3.10.18, torch: 2.9.0+cu129, torchvision: 0.24.0+cu129, torchaudio: 2.9.0+cu129, vllm: 0.13.0, xmlir: 1.0.0.1, xtorch_ops: 0.1.2640+9bc36a18}
+  # ↑ xtdk / xre / xccl 三项的**自证文件**：`<site-packages>/torch_xmlir/_versions.txt`
+  #   （容器内 `<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`；2026-11-04 在锁定镜像内实测，
+  #    内容含 `XTDK: 3.6.0.1` / `XRE: 5.13.0.0` / `XCCL: 20260209_9`，与本行逐字一致）。
+  #   ⚠️ 它们**不在** `/usr/local`、`/opt`、`/etc` 下 —— 只搜那三处会误判为「无自证」。
 
 baked_repos:
   # ──────────────── 厂商基座自带（被动继承，不可重建） ────────────────
