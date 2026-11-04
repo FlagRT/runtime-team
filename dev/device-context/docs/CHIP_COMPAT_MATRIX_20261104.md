@@ -1,6 +1,6 @@
-# 国产芯片兼容性对照表（设备执行上下文层 · v0.4）
+# 国产芯片兼容性对照表（设备执行上下文层 · v0.5）
 
-> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**已上机核验 910C / P800（v0.4，新增 §5.4「算子库判定口径与三条路径」）；MLU590 / PPU 待核**
+> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**已上机核验 910C / P800（v0.5，§5.4-C 补齐各腿算子路径逐条核对）；MLU590 / PPU 待核**
 > 范围：**设备执行上下文层（device-context / 多流 Stream）** 在四款国产芯片上的软件栈兼容性。
 > 口径：**只登记本方向实际跑过的组合**；没跑过的一律标 🟡/⚪，**不按厂商宣传或镜像名推断**。
 
@@ -49,7 +49,7 @@
 | **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>固件版本 `NA`（未获取）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
 | **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（`/usr/local/xpu/version.txt`）<br>容器 **XTDK `3.6.0.1`** · **XRE `5.13.0.0`** · XCCL `20260209_9`<br>（自证 `torch_xmlir/_versions.txt`，容器内）<br>✅ 已验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
 | **框架（PyTorch）** | torch **`2.10.0+cpu`** · torch_npu **`2.10.0`**（**无 `post7`**）· py `3.11.15`<br>⚠️ 退出期 weakref UAF 仍在<br>🟡 部分验证 | torch **`2.9.0+cu129`** · py `3.10.18`<br>设备 API 走 **`torch.cuda`**（实测 `torch.xpu.is_available()=False`）<br>✅ 已验证 | torch **`2.7.1+cpu`** · torch_mlu **`1.29.2+torch2.7.1`** · py `3.10`<br>退出期 weakref **未中招**<br>✅ 已验证 | torch **`2.10.0`** · py `3.12.3` · transformers `4.57.0`<br>⚠️ 退出期 weakref UAF 为**平台缺陷**，我方运行时已自保<br>🟡 部分验证 |
-| **算子库** | flag_gems `0.0.0+f7ae8e6b934a`<br>flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton **`3.5.1`**<br>flagcx `0.13.0`<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）<br>flagtree **`0.6.1+xpu3.6`**<br>xtorch_ops `0.1.2640`<br>⚠️ GEMM **数值缺口未解**（`K-5`，禁用于关键路径）<br>🟡 部分验证 | flag_gems **`5.4.0rc2.post3`**<br>triton **`3.2.0+mlu1.7.2`**（厂商 triton-mlu 变体）<br>torch_mlu_ops `1.8.0`<br>⚪ **本组未做结论性验证** | FlagGems **`5.4.0rc2`**<br>triton **`3.6.0`**（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
+| **算子库** | flag_gems `0.0.0+f7ae8e6b934a`<br>flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton **`3.5.1`**<br>flagcx `0.13.0`<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）<br>flagtree **`0.6.1+xpu3.6`**<br>xtorch_ops `0.1.2640`<br>⚠️ GEMM **数值缺口未解**（`K-5`，禁用于关键路径）<br>**路径：vendor 原生，不经过它**（见 §5.4-C）<br>🟡 部分验证 | flag_gems **`5.4.0rc2.post3`**<br>triton **`3.2.0+mlu1.7.2`**（厂商 triton-mlu 变体）<br>torch_mlu_ops `1.8.0`<br>⚪ **本组未做结论性验证** | FlagGems **`5.4.0rc2`**<br>triton **`3.6.0`**（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
 
 ### 2.1 计数
 
@@ -169,13 +169,40 @@
 
 ⭐ **我的建议：B + C 并行，A 作追踪项。** 理由：K-5 属算子域、修复权不在我们手里；而本表要回答的问题是「**设备执行上下文层在这款芯片上能不能用**」，不是「FlagGems 每个形状都对」。收窄声明面 + 兜底路由能把这个问题的答案变成 ✅，同时把 K-5 完整保留在 §5.3（不隐藏）。
 
-#### C. 一条必须写清的事实（影响 B 的可行性）
+#### C. 各腿/判据的算子路径逐条核对（K-5 是否落在我方路径上）
 
-**本方向代码从不启用 FlagGems**：`prototype/` 全仓 grep `flag_gems` / `use_gems` / `enable(` 只有**注释**，无任何启用调用
-⇒ 训练腿、推理腿、多流、conformance、服务化消费方全部走**厂商原生算子路径**。
-间接佐证：四家验收读数逐字一致（推理区分度 910C `0.6380` / P800 `0.6392` / MLU590 `0.6391` / PPU `0.6391`）——
-若 GEMM 走了坏路径，读数不可能对齐。
-⇒ **K-5 对我方验收路径的实际影响 = 未观测到**；但它对「用 FlagGems 跑 GEMM 的下游」是真实风险，**必须保留在表里**。
+> 结论：**训练腿、推理腿、多流、conformance、服务化消费方全部走厂商原生算子路径，从不进 FlagGems 的 GEMM。**
+> 依据不是推断，而是**逐文件核对**（2026-11-04，`prototype/` 内 21 个入口文件全部扫过，**启用 FlagGems 的 = 0**）。
+
+| 腿 / 判据 | 入口文件 | `import flag_gems` | `use_gems()` / `enable()` | 实际算子路径 |
+|---|---|---|---|---|
+| **训练腿**（50 步微调） | `prototype/runtime/proto/proto_train_leg.py` | 无 | 无 | **vendor 原生** |
+| **推理腿**（13 项前向） | `prototype/runtime/proto/proto_infer_leg.py` | 无 | 无 | **vendor 原生** |
+| **多流**（语义/配额/优先级/图捕获，14 个探针） | `prototype/probes/probe_stream_*.py` · `prototype/probes/audit_stream_priority_*.py` · `prototype/probes/probe_graph_capture_stream_v2.py` | 无 | 无 | **vendor 原生** |
+| **conformance 13 例 + 推理 6 例 + 契约不变式 I1–I4** | `prototype/runtime/conformance/`{`runner`,`cases`,`infer_cases`,`contract_invariants`}`.py` | 无 | 无 | **vendor 原生** |
+| **服务化消费方**（10/10 判据） | `prototype/runtime/proto/proto_infer_serve.py` | 无 | 无 | **vendor 原生** |
+| **服务化服务端**（vLLM 进程） | `prototype/scripts/serve_standard.sh` | 脚本本身不 import | **配置层显式关闭** | `VLLM_FL_PREFER=vendor` + **`USE_FLAGGEMS=0`**（**L166**）⇒ dispatch 强制 vendor |
+| 离线自检 / 跨后端对称性 / 两腿口径 | `prototype/scripts/backend_offline_check.py` · `prototype/scripts/model_path_parity_check.py` · `prototype/scripts/run_legparity_dcmodel.sh` | 无 | 无 | 纯契约校验，不跑算子 |
+| 错误恢复 / 压力 | `prototype/runtime/proto/proto_error_recovery_loop.py` · `prototype/probes/recover_*.py` | 无 | 无 | **vendor 原生** |
+
+⚠️ **必须分清两种「不走 FlagGems」**（性质不同，不可混写）：
+
+1. **代码层不启用**（前 5 行 + 探针）：我方脚本**从不 import `flag_gems`、从不调 `use_gems()`/`enable()`** ⇒ 天然走 vendor 原生。
+2. **配置层强制关闭**（服务化服务端）：vLLM 的默认 dispatch **会**优先 flagos（FlagGems），所以必须显式
+   `VLLM_FL_PREFER=vendor` + `USE_FLAGGEMS=0` 才走 vendor —— 这不是"不启用"，是**主动关掉**（与 K-2 的规避同一条配置）。
+
+⚠️ **一个容易被误读的点（先自证）**：`prototype/scripts/serve_standard.sh` **L164** 确实把 `PYTHONPATH=/env/FlagGems/src` 挂上了，
+看起来像"在用 FlagGems"。但脚本原注释（L162–L163）写明它的作用是 **import 完整性**——
+镜像 site-packages 里的 `flag_gems` 子模块不完整，`vllm_fl` import 会失败并报 `Failed to infer device type`
+（看着像设备问题，其实是包问题）。**它只为"能 import"服务，dispatch 走哪条路由 L166 的 `USE_FLAGGEMS=0` 决定。**
+⇒ 判定时不能只看 PYTHONPATH 有没有它，要看 `USE_FLAGGEMS` / `VLLM_FL_PREFER`。
+
+**间接佐证**：四家推理区分度逐字接近（910C `0.6380` / P800 `0.6392` / MLU590 `0.6391` / PPU `0.6391`）——
+若 P800 的 GEMM 走了坏路径（rel 0.29~1.02 的乱值），读数不可能与另三家对齐到 1e-3 量级。
+
+⇒ **K-5 对「我方验收路径」的实际影响 = 未观测到，且代码/配置两层都可自证不经过它**；
+但它对「**用 FlagGems 跑 GEMM 的下游**」是真实风险，**必须保留在 §5.3 不隐藏**。
+⇒ 这正是路径 B（收窄声明面）可成立的技术依据：我方承诺面 = **vendor 原生算子路径**，FlagGems GEMM 不在其中。
 
 #### D. 要在新机复跑判据，缺什么（老机 11-07 到期，有归档风险）
 
@@ -304,6 +331,7 @@ xpu-smi | grep -c "P800 OAM"               →  8
 | 日期 | 版本 | 变更 |
 |---|---|---|
 | 2026-11-04 | v0.1 | **初表**：四芯片 × 五层共 20 格，✅ 8 / 🟡 11 / ⚪ 1 / ⛔ 0；给出 §6 上机核验清单 |
+| 2026-11-04 | **v0.5** | **§5.4-C 由一句话扩成「各腿/判据算子路径逐条核对表」**：训练腿 / 推理腿 / 多流（14 探针）/ conformance 13+6+I1–I4 / 服务化消费方 / 服务化服务端 / 离线自检 / 错误恢复共 8 类，逐条给出入口文件、是否 `import flag_gems`、是否 `use_gems()`，结论 **`prototype/` 内 21 个入口文件全部不启用 FlagGems（= 0）**；并辨析两种"不走"的性质（**代码层不启用** vs **服务端配置层 `USE_FLAGGEMS=0` 主动关闭**），另**先自证一个易误读点**：`prototype/scripts/serve_standard.sh` L164 的 `PYTHONPATH=/env/FlagGems/src` 是 **import 完整性前置**（缺它 `vllm_fl` 报 `Failed to infer device type`），**不代表在用 FlagGems**。P800 算子库格补指针「路径：vendor 原生，不经过它」。⚠️ **20 格状态计数仍为 ✅12 / 🟡7 / ⚪1**（一格仍一个标记）|
 | 2026-11-04 | **v0.4** | **新增 §5.4「算子库这格怎么才能变 ✅」**：把 K-5 的性质讲清（**已定判据 + 已跑出 FAIL**，不是未测清）、给出三条路径（**A 等上游 / B 收窄声明面 / C 兜底路由**）与各自责任人和代价，建议 **B+C 并行、A 追踪**；并记入两条关键事实：① **本方向代码从不启用 FlagGems**（全仓只 grep 到注释）⇒ K-5 不在我方验收路径上，四家区分度 0.6380/0.6392/0.6391/0.6391 逐字接近为间接佐证；② **新机复现 K-5 的三步重建法**（镜像内 `/env/FlagGems` = `73c5aff1` 基础树 + 仓内 patch 04/05/06），并标出**老机 11-07 到期的归档风险**。⚠️ **20 格状态计数不变**（仍 ✅12 / 🟡7 / ⚪1）—— 本节只定口径，不改判定 |
 | 2026-11-04 | **v0.3** | **纠正 v0.2 的一处误降**：① **P800 开发包恢复 ✅** —— `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9` 的自证文件是 `<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`，实测逐字一致；② ⚠️ 误降原因记为教训：v0.2 只搜 `/usr/local` `/opt` `/etc` `/env`，**漏了 site-packages**，而 `dev/images/kunlun-operator-runtime/v2/lock.yaml` **L13 早已写明**该路径；③ 已在 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` 的 `provides` 行**补上自证指针**，避免后人重复踩；④ 计数 ✅ 11 → **12**、🟡 8 → **7** |
 | 2026-11-04 | **v0.2** | **910C 与 P800 上机核验完成**：✅ 由 8 升至 **11**、🟡 由 11 降至 **8**。① **910C 驱动 `25.5.0` → `26.1.1`（旧值作废）**；② **910C 宿主 OS 首次采集 = openEuler 22.03 LTS-SP4**（此前完全空白，且非 Ubuntu）；③ 910C 宿主 CANN 9.1.0 与容器 CANN 9.0.0 分列；④ **P800 新机 OS/内核/驱动实测，与老机完全一致** ⇒ 老机到期不再影响这两格；⑤ **P800 开发包降为 🟡**（容器内无 XTDK/XRE 自证）；⑥ 新增 §0.1 更正表与 §6.4 采集记录；⑦ 910C 固件报 `NA`，如实标「未获取」；⑧ 修正 v0.1 §0 与 §2.1 的 🟡 格数不一致（§0 误写 10，实为 11） |
