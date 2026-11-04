@@ -20,6 +20,7 @@ class VllmQwen3Embedder(Qwen3Embedder):
                  output_dims=1024,
                  instruction='Given a web search query, retrieve relevant passages that answer the query',
                  *, url='http://127.0.0.1:8089/v1', model_name='rag-embedding', timeout=120):
+        self.model_path = Path(model_path)
         if not model_path.exists():
             raise FileNotFoundError(f'Embedding model is missing: {model_path}')
         if not 32 <= output_dims <= 1024 or max_length < 1 or timeout <= 0:

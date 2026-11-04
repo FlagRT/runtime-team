@@ -11,13 +11,15 @@ services:
     image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
     container_name: rag-ljy-vllm-910c
     # Replace the shared base's all-card list; never merge it back in.
-    # Host physical device 7 becomes logical npu:0 inside this container.
+    # Host /dev/davinci1 (die 1) becomes logical npu:0 inside this container.
     devices: !override
-      - /dev/davinci7:/dev/davinci7
+      - /dev/davinci1:/dev/davinci1
       - /dev/davinci_manager:/dev/davinci_manager
       - /dev/devmm_svm:/dev/devmm_svm
       - /dev/hisi_hdc:/dev/hisi_hdc
     environment:
+      # Container path stays fixed; MODEL_DIR in .env selects the host mount.
+      - MODEL_DIR=/mnt/raid/jliu171/models
       - RAG_EMBEDDING_BACKEND=${RAG_EMBEDDING_BACKEND:-vllm}
       - PYTHONPATH=/workspace/dev/device-context/prototype:${RAG_EXTRA_PYTHONPATH:-}
       - DO_NOT_TRACK=1
@@ -31,5 +33,6 @@ services:
       - MILVUS_COLLECTION=${MILVUS_COLLECTION:-rag_chunks_v1}
       - MILVUS_TOKEN=${MILVUS_TOKEN:-}
     volumes:
+      - ${RAG_OUTPUT_DIR:-/tmp/rag-experiment-outputs}:${RAG_OUTPUT_DIR:-/tmp/rag-experiment-outputs}
       - ${MODEL_DIR:-/mnt/raid/jliu171/models}:/mnt/raid/jliu171/models
     restart: "no"

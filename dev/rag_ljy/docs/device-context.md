@@ -1,6 +1,6 @@
 # Device-context 接入现状
 
-更新：2026-10-14。设备初始化由 [device.py](../src/rag_engine/device.py) 统一处理。
+更新：2026-10-20。设备初始化由 [device.py](../src/rag_engine/device.py) 统一处理。
 当前精排使用此接口；默认embedding由独立vLLM HTTP引擎执行。
 
 ## 当前使用方式
@@ -36,7 +36,7 @@ vLLM embedding：`serve_embeddings.py` 独立启动pooling服务，设备由
 
 runtime提供设备、内存、stream/event与错误分类等接口；匹配的torch、驱动、
 镜像和模型算子仍由各厂商环境提供。RAG现已接入设备初始化及内存采样接口；
-runtime错误恢复、内存感知准入及跨芯片完整验收尚未接入调度器。
+内存感知准入已作为可选原型接入；runtime错误恢复及跨芯片完整验收尚未接入调度器。
 
 ## 设备内存探测
 
@@ -44,7 +44,8 @@ runtime错误恢复、内存感知准入及跨芯片完整验收尚未接入调�
 读取后端报告的 `total_mb` / `used_mb` / `free_mb`，单位为 MiB。查询API默认每秒
 在独立采样线程读取一次，`/health.device_memory` 返回缓存读数、时间、年龄及错误状态；
 HTTP健康检查不会同步调用驱动。采样绑定本地精排设备，不使用 `remote-vllm` 字符串
-作为设备编号。采样失败会报告 `unavailable` 并清除数据，不影响查询服务。
+作为设备编号。采样失败会报告 `unavailable` 并清除数据；开启内存准入时会暂停
+接收新请求，已接收请求继续处理。
 
 ```bash
 python scripts/checks/check_memory.py --device npu:0 --count 5 --interval 1
@@ -63,8 +64,12 @@ python scripts/runtime/serve_queries.py --device npu:0 --memory-probe-interval 1
 PyTorch分配量，不能保证覆盖独立的vLLM进程。其他后端缺少字段时显示 `partial`，
 不自行推算缺失的可用内存。计算利用率不属于这个接口。
 
-本次仅启用可观察的内存探测；准入上限仍是请求数量，后续需确认统计范围、采样
-时效性及请求内存预算后再使用读数控制准入。
+2026-10-20增加可选内存准入：有效读数参与高低水位、每请求全链路预算及安全
+余量检查，读数过期或失败时暂停新接收。默认仍为数量准入，开启方式见
+[运行指南](operations.md)。当前 `backend_reported_unverified` 范围默认不被准入
+接受，验证适用环境后需显式设置 `--memory-allow-unverified-scope`；此选项不改变
+统计接口，也不保证兼容回退能观察其他进程。2026-10-20验证使用受控读数，未重新
+验证真机范围或做真实内存压力测试。
 
 2026-10-14物理NPU7实测：独立进程128MiB分配后，已用158→348MiB，退出后回到
 158MiB（增量含运行环境开销）。该结果确认本次Ascend后端能观察跨进程占用；

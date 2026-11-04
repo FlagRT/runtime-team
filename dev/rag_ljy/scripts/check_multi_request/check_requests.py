@@ -6,7 +6,7 @@ Run from dev/rag_ljy:
 
 Start serve_queries.py separately against the named backend. --backend labels the
 report; it does not change or verify the server's configured database. Output is
-saved under artifacts/checks/multi_request/<Asia-Shanghai-date-time>-<unique-id>/.
+saved under experiment_outputs/checks/multi_request/<Asia-Shanghai-date-time>-<unique-id>/.
 Uses only the Python standard library. No automatic retries hide rejected work.
 """
 from __future__ import annotations
@@ -133,7 +133,7 @@ def main():
     parser.add_argument('--count', type=int, default=2, help='same N queries in each of three scenarios')
     parser.add_argument('--stagger-ms', type=float, default=20)
     parser.add_argument('--timeout', type=float, default=120)
-    parser.add_argument('--output-dir', type=Path, default=PROJECT / 'artifacts/checks/multi_request')
+    parser.add_argument('--output-dir', type=Path, default=PROJECT / 'experiment_outputs/checks/multi_request')
     args = parser.parse_args()
     if args.count < 2 or not math.isfinite(args.stagger_ms) or args.stagger_ms <= 0 or not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error('count must be >=2; stagger-ms and timeout must be finite and positive')

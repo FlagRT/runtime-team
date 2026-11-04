@@ -2,7 +2,7 @@
 """Start the default vLLM embedding engine on this container's visible NPU.
 
 Default endpoint: http://127.0.0.1:8089/v1/embeddings
-The current container maps physical NPU 7 to logical 0. RAG_DEVICE does not
+The container configuration maps host /dev/davinci1 to logical 0. RAG_DEVICE does not
 control this separate process; ASCEND_RT_VISIBLE_DEVICES selects its NPU.
 """
 
