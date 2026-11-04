@@ -1,6 +1,6 @@
-# 国产芯片兼容性对照表（设备执行上下文层 · v0.5）
+# 国产芯片兼容性对照表（设备执行上下文层 · v0.6）
 
-> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**已上机核验 910C / P800（v0.5，§5.4-C 补齐各腿算子路径逐条核对）；MLU590 / PPU 待核**
+> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**910C / P800 核验完成（v0.6，含 910C 第二轮深核 §3.1b）；MLU590 / PPU 待核**
 > 范围：**设备执行上下文层（device-context / 多流 Stream）** 在四款国产芯片上的软件栈兼容性。
 > 口径：**只登记本方向实际跑过的组合**；没跑过的一律标 🟡/⚪，**不按厂商宣传或镜像名推断**。
 
@@ -45,8 +45,8 @@
 
 | 层 | **昇腾 910C** | **昆仑芯 P800** | **寒武纪 MLU590** | **平头哥 PPU（真武 ZW810E）** |
 |---|---|---|---|---|
-| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 容器基座 **Ubuntu 24.04**（x86_64）<br>宿主 OS/内核 **未采集**（本轮不可达）<br>🟡 部分验证 |
-| **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>固件版本 `NA`（未获取）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
+| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>**裸金属 `Atlas 800T A3`**（非虚拟化）<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 容器基座 **Ubuntu 24.04**（x86_64）<br>宿主 OS/内核 **未采集**（本轮不可达）<br>🟡 部分验证 |
+| **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>安装于 **2026-09-16**（早于 10-27 验收）<br>固件：平台不支持该查询（见 §3.1b）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
 | **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（`/usr/local/xpu/version.txt`）<br>容器 **XTDK `3.6.0.1`** · **XRE `5.13.0.0`** · XCCL `20260209_9`<br>（自证 `torch_xmlir/_versions.txt`，容器内）<br>✅ 已验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
 | **框架（PyTorch）** | torch **`2.10.0+cpu`** · torch_npu **`2.10.0`**（**无 `post7`**）· py `3.11.15`<br>⚠️ 退出期 weakref UAF 仍在<br>🟡 部分验证 | torch **`2.9.0+cu129`** · py `3.10.18`<br>设备 API 走 **`torch.cuda`**（实测 `torch.xpu.is_available()=False`）<br>✅ 已验证 | torch **`2.7.1+cpu`** · torch_mlu **`1.29.2+torch2.7.1`** · py `3.10`<br>退出期 weakref **未中招**<br>✅ 已验证 | torch **`2.10.0`** · py `3.12.3` · transformers `4.57.0`<br>⚠️ 退出期 weakref UAF 为**平台缺陷**，我方运行时已自保<br>🟡 部分验证 |
 | **算子库** | flag_gems `0.0.0+f7ae8e6b934a`<br>flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton **`3.5.1`**<br>flagcx `0.13.0`<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）<br>flagtree **`0.6.1+xpu3.6`**<br>xtorch_ops `0.1.2640`<br>⚠️ GEMM **数值缺口未解**（`K-5`，禁用于关键路径）<br>**路径：vendor 原生，不经过它**（见 §5.4-C）<br>🟡 部分验证 | flag_gems **`5.4.0rc2.post3`**<br>triton **`3.2.0+mlu1.7.2`**（厂商 triton-mlu 变体）<br>torch_mlu_ops `1.8.0`<br>⚪ **本组未做结论性验证** | FlagGems **`5.4.0rc2`**<br>triton **`3.6.0`**（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
@@ -74,6 +74,22 @@
 | 开发包 | 容器 `ls /usr/local/Ascend/` ⇒ `cann-9.0.0`；宿主 `ls -l /usr/local/Ascend/` ⇒ `cann -> cann-9.1.0`，另有 `cann-8.5.0` | 同上（验收在容器 CANN 9.0.0 上完成） |
 | 框架 | 容器 `pip list` ⇒ `torch 2.10.0+cpu` / `torch_npu 2.10.0`（`pip show` 的 `Version:` 无 `post` 后缀 ⇒ **post7 修复未进镜像**） | `910C/probes/weakref_check_20261103_out/MANIFEST.md`；`910C/docs/ASCEND_WEAKREF_EXIT_UAF_20261103.md` |
 | 算子库 | 容器 `pip list` ⇒ `flag_gems 0.0.0+f7ae8e6b934a`、`flagtree 0.6.0+ascend.git15ec1a6c`、`flagcx 0.13.0`；`import triton` ⇒ **3.5.1**；`import flagtree` 自报 **3.5.1**（跟随 triton 线号，同类说明见 `dev/images/thead-ppu-runtime/v2/image.baseline.yaml`） | 随全量验收间接跑通（无逐算子对照）；构建期需 `FLAGGEMS_KERNEL=OFF` 补丁，见 `910C/docs/PROGRESS_20260822.md` **L31** |
+
+### 3.1b 昇腾 910C 深核补充（2026-11-04 第二轮，专查「还有哪些不确定」）
+
+> 目的：把 910C 上**仍标「未获取 / 未核」的项**逐一定性。结论：**没有新增不确定项，但纠正了两处认知**。
+
+| # | 项 | 实测（`npu1-27`，2026-11-04 10:0x） | 定性 |
+|---|---|---|---|
+| 1 | **机器形态** | `systemd-detect-virt` = **none**；`/sys/class/dmi/id/product_name` = **`Atlas 800T A3`**；`sys_vendor` = `Huawei`；`bios_version` = `32.85`；**640 核 / 2013 GB 内存** | ⭐ **裸金属，不是虚拟机** ⇒ 「固件查不到」不能再用「VM 直通看不到」解释 |
+| 2 | **硬件口径** | `npu-smi info -l` ⇒ `Total Count 8`，`NPU ID 0..7` 每个 `Chip Count 2` ⇒ **8 卡 / 16 chip**；`ls /dev/davinci[0-9]*` = **16**；每 chip HBM **65,536 MB** ⇒ 合计 **1,024 GB** | ✅ 闭合（⚠️ 旧文档 `910C/distributed_training/docs/flagcx_ascend_aline_validation_20260824.md` 写的「4 NPU / 8 chip」是 **08-24 当时环境**，非现行口径，已加注） |
+| 3 | **整机型号与序列** | `-t board -i 0` ⇒ `Product Name: IT22HMDA_2_S` · `Serial Number: 10255B485124` · `Board ID 0x71` · `Main Board ID 0x14` · `PCIe Bus 0000:9D:00.0` | ✅ 记录（供报障/报厂商时定位） |
+| 4 | **固件版本** | `Firmware Version: **NA**` —— **8 个 NPU 全部一致**；`npu-smi info -t firmware` **不是合法类型**（`-t` 合法表里无 firmware）；`-t product` 与 `-t first-power-on-date` 均返回 **`This device does not support querying …`**；`Compatibility` 同为 **`NOT SUPPORT`** | ⭐ **判定为「该平台不支持此查询」，不是「固件不兼容」**。三重佐证：三种查询同源报不支持；8 卡行为一致（非单卡异常）；机器是裸金属（非直通限制）。⚠️ `/usr/local/Ascend/firmware` 是 `dr-xr-x--- root` ⇒ **非 root 不可读**，若确需固件版本须 root 或 BMC |
+| 5 | **验收证据是否适用于当前栈** | `driver/version.info` mtime = **2026-09-16 12:47**；`cann-9.1.0` = **2026-10-16**；锁定镜像 `Created = 2026-10-08T23:35Z`；最近一次 910C 全量验收 = **2026-10-27** | ⭐ **三者都早于验收日** ⇒ 10-27 的证据**确实跑在当前栈上**，✅ 成立（按 mtime 推断，非事后重装） |
+| 6 | **8 卡健康** | `-t health` ⇒ **8 × 2 chip 全 `OK`**；空闲 die 基线占用 ~2.9–3.2 GB / 65,536 MB | ✅ 无坏卡（与 P800 新机卡 1/2 挂死形成对照） |
+| 7 | host CANN vs 容器 CANN | 宿主 `cann -> cann-9.1.0`（另有 `8.5.0`），容器内 `cann-9.0.0` | 两版本并存，验收在容器 9.0.0 上；结论**只对 9.0.0 成立**（已入 §2 表） |
+
+**仍未闭合的（如实标明）**：固件**具体版本号**——用户态不可得，需 root 或 BMC 读取；本方向不为此专门申请权限，除非厂商要求提供。
 
 ### 3.2 昆仑芯 P800（新机 `VM-20-4-ubuntu` / `P800-new1`，实测 2026-11-04 09:34）
 
@@ -246,8 +262,9 @@ docker exec -e CUDA_VISIBLE_DEVICES=3 <容器> <python> \
 | **P0** | PPU | 宿主 OS + 内核（现有只有容器基座 OS） | ⛔ 本轮网络不可达（`192.168.5.112:22` 超时），待恢复 |
 | **P1** | MLU590 | ① 容器 `/etc/os-release`（现为**包名推断**）② **FlagGems 算子对照**（唯一 ⚪ 格） | ⛔ 本轮网络不可达（`10.1.1.21:22` 超时），待恢复 |
 | ~~P1~~ | ~~P800~~ | ~~容器内 XTDK/XRE 的真实来源~~ | ✅ **2026-11-04 结案**：`torch_xmlir/_versions.txt` 实测 `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9`，与基线逐字一致 |
+| — | **P800 总收尾** | **事实项全部闭合**：OS / 内核 / 驱动 / 开发包 / 框架 / 各腿算子路径 六类均有实测依据；唯一遗留是**工程能力**（新机复现 K-5 判据，见 §5.4-D），不是事实缺口 | ✅ **P800 视为核验完成** |
 | **P1** | P800 | **新机复现 K-5 判据的能力**（env/v1 的补丁版 FlagGems 不在新机） | 见 §5.4-D 三步重建；**建议 11-07 老机清理前实跑一遍**确认 |
-| **P2** | 910C | 固件版本（`npu-smi info -t board` 报 `NA`） | 待查其他采集入口 |
+| ~~P2~~ | ~~910C~~ | ~~固件版本~~ | ✅ **2026-11-04 已定性**：不是「没查」而是「**该平台不支持此查询**」（三种查询同源报 `does not support`、8 卡一致、裸金属非直通、固件目录 `root` 不可读）⇒ 用户态不可得，需 root/BMC。**不再作为待核项** |
 | **P2** | 全部 | 逐格把「随验收间接可用」升级为「逐算子对照」 | 属算子域，**建议与算子方向联合，本方向不单独下结论** |
 
 ### 6.3 核验记录写法（避免返工）
@@ -283,6 +300,31 @@ npu-smi info -l                            →  Total Count 8，每 NPU Chip Cou
   flag_gems / flagcx                       →  0.0.0+f7ae8e6b934a / 0.13.0
   vllm / vllm-plugin-fl                    →  0.20.2+empty / 0.0.0+g8b059122e
   ls /usr/local/Ascend/                    →  cann-9.0.0
+```
+
+**昇腾 910C 深核（同机 `npu1-27`，10:0x，第二轮）**
+
+```
+systemd-detect-virt                                  →  none（裸金属）
+/sys/class/dmi/id/product_name                       →  Atlas 800T A3
+/sys/class/dmi/id/bios_version                       →  32.85
+nproc / free -g                                      →  640 核 / 2013 GB
+npu-smi info -l                                      →  Total Count 8；NPU 0..7 每个 Chip Count 2
+                                                        ⇒ 8 卡 / 16 chip
+ls /dev/davinci[0-9]* | wc -l                        →  16
+npu-smi info -t board -i 0                           →  Product Name: IT22HMDA_2_S
+                                                        Serial Number: 10255B485124 / Board ID 0x71
+                                                        Software Version: 26.1.1
+                                                        Firmware Version: NA
+                                                        Compatibility: NOT SUPPORT
+npu-smi info -t board -i 1..7 | grep Compatibility   →  全部 NOT SUPPORT（8 卡一致）
+npu-smi info -t firmware                             →  Error parameter of -t（**该类型不合法**）
+npu-smi info -t product / -t first-power-on-date      →  This device does not support querying …
+npu-smi info -t health -i 0..7                       →  8 × 2 chip 全 OK
+ls -ld /usr/local/Ascend/firmware                    →  dr-xr-x--- root（**非 root 不可读**）
+ls -l  /usr/local/Ascend/driver/version.info         →  Sep 16 12:47（驱动升级时间）
+ls -ld /usr/local/Ascend/cann-9.1.0                  →  Oct 16 15:42
+docker inspect <锁定镜像> --format {{.Created}}       →  2026-10-08T23:35:58Z
 ```
 
 **昆仑芯 P800（新机 `VM-20-4-ubuntu`，09:34）**
@@ -331,6 +373,7 @@ xpu-smi | grep -c "P800 OAM"               →  8
 | 日期 | 版本 | 变更 |
 |---|---|---|
 | 2026-11-04 | v0.1 | **初表**：四芯片 × 五层共 20 格，✅ 8 / 🟡 11 / ⚪ 1 / ⛔ 0；给出 §6 上机核验清单 |
+| 2026-11-04 | **v0.6** | **① P800 收尾**：事实项全部闭合（六类均有实测依据），唯一遗留是工程能力（新机复现 K-5）不是事实缺口。**② 910C 第二轮深核（新增 §3.1b）**：⭐ 纠正两处认知 —— (a) 机器是**裸金属 `Atlas 800T A3`**（`systemd-detect-virt`=none）**不是虚拟机**，所以「固件查不到」不能再用 VM 直通解释，实为 **该平台不支持该查询**（`-t firmware` 类型不合法、`-t product`/`-t first-power-on-date` 均报 `This device does not support querying`、8 卡 `Compatibility` 同为 `NOT SUPPORT`、固件目录 `root` 不可读）；(b) 硬件口径 **8 卡 / 16 chip / 每 chip 65,536 MB = 1,024 GB**，旧文档「4 NPU / 8 chip」为 08-24 环境已加注；③ 新增两条闭合结论：**驱动 09-16 / CANN 10-16 / 镜像 10-08 三者的 mtime 都早于 10-27 验收** ⇒ 该验收证据确实跑在当前栈上；**8 卡 health 全 OK**（与 P800 新机卡 1/2 挂死对照）；④ 记录整机 `Product Name: IT22HMDA_2_S` / SN `10255B485124` 供报障定位。⚠️ 20 格状态计数仍 ✅12 / 🟡7 / ⚪1 |
 | 2026-11-04 | **v0.5** | **§5.4-C 由一句话扩成「各腿/判据算子路径逐条核对表」**：训练腿 / 推理腿 / 多流（14 探针）/ conformance 13+6+I1–I4 / 服务化消费方 / 服务化服务端 / 离线自检 / 错误恢复共 8 类，逐条给出入口文件、是否 `import flag_gems`、是否 `use_gems()`，结论 **`prototype/` 内 21 个入口文件全部不启用 FlagGems（= 0）**；并辨析两种"不走"的性质（**代码层不启用** vs **服务端配置层 `USE_FLAGGEMS=0` 主动关闭**），另**先自证一个易误读点**：`prototype/scripts/serve_standard.sh` L164 的 `PYTHONPATH=/env/FlagGems/src` 是 **import 完整性前置**（缺它 `vllm_fl` 报 `Failed to infer device type`），**不代表在用 FlagGems**。P800 算子库格补指针「路径：vendor 原生，不经过它」。⚠️ **20 格状态计数仍为 ✅12 / 🟡7 / ⚪1**（一格仍一个标记）|
 | 2026-11-04 | **v0.4** | **新增 §5.4「算子库这格怎么才能变 ✅」**：把 K-5 的性质讲清（**已定判据 + 已跑出 FAIL**，不是未测清）、给出三条路径（**A 等上游 / B 收窄声明面 / C 兜底路由**）与各自责任人和代价，建议 **B+C 并行、A 追踪**；并记入两条关键事实：① **本方向代码从不启用 FlagGems**（全仓只 grep 到注释）⇒ K-5 不在我方验收路径上，四家区分度 0.6380/0.6392/0.6391/0.6391 逐字接近为间接佐证；② **新机复现 K-5 的三步重建法**（镜像内 `/env/FlagGems` = `73c5aff1` 基础树 + 仓内 patch 04/05/06），并标出**老机 11-07 到期的归档风险**。⚠️ **20 格状态计数不变**（仍 ✅12 / 🟡7 / ⚪1）—— 本节只定口径，不改判定 |
 | 2026-11-04 | **v0.3** | **纠正 v0.2 的一处误降**：① **P800 开发包恢复 ✅** —— `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9` 的自证文件是 `<conda env>/lib/python3.10/site-packages/torch_xmlir/_versions.txt`，实测逐字一致；② ⚠️ 误降原因记为教训：v0.2 只搜 `/usr/local` `/opt` `/etc` `/env`，**漏了 site-packages**，而 `dev/images/kunlun-operator-runtime/v2/lock.yaml` **L13 早已写明**该路径；③ 已在 `dev/images/kunlun-operator-runtime/v2/image.baseline.yaml` 的 `provides` 行**补上自证指针**，避免后人重复踩；④ 计数 ✅ 11 → **12**、🟡 8 → **7** |

@@ -4,7 +4,7 @@
 > 环境：910C（4 NPU / 8 chip, HBM 64GB, CANN 9.0.0, 驱动 25.5.0）+
 > `flagrt/ascend-operator-runtime:0.1.0-cann9.0-py311-torch2.10-arm64` 官方镜像 +
 > torch_npu 2.10.0
-> ⚠️ **2026-11-04 注**：以上是 **08-24 当时环境**；该机驱动已升级为 **`26.1.1`**、宿主 OS 为 `openEuler 22.03 (LTS-SP4)`。当前版本事实见 `docs/CHIP_COMPAT_MATRIX_20261104.md`；本文其余内容作为历史记录保留不删。
+> ⚠️ **2026-11-04 注**：以上是 **08-24 当时环境**；该机驱动已升级为 **`26.1.1`**（2026-09-16 安装）、宿主 OS 为 `openEuler 22.03 (LTS-SP4)`。另：文中「**4 NPU / 8 chip**」也是 08-24 当时所见——现行 `npu1-27` 实测为 **8 卡 / 16 chip**（`npu-smi info -l`：`Total Count 8`，每 NPU `Chip Count 2`），每 chip HBM `65,536 MB`。当前版本与硬件口径见 `docs/CHIP_COMPAT_MATRIX_20261104.md` **§3.1b**；本文其余内容作为历史记录保留不删。
 > 定位：把 910C 双卡 HCCL 实测的四层根因修复带到 dev-1.0 基线（A 线主线，
 > torch_npu 路线）；原 `kistich/ascend-flagcx-adapt`（torch_fl/B 线基线）降级为
 > 预研支线，不再作为开发主线。
