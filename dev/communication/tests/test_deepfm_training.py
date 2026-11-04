@@ -56,7 +56,16 @@ class DeepFMCommunicationTests(unittest.TestCase):
             result=comm.observed_mean_hook(group,bucket).wait()
         torch.testing.assert_close(result,torch.tensor([2.,4.]))
         self.assertEqual(group.calls,1);self.assertEqual(group.payload_bytes,8)
-        group.synchronize.assert_called_once()
+        self.assertEqual(group.synchronize.call_count,2)
+
+    def test_hook_orders_production_reduce_and_consumption(self):
+        group=self.group();events=[]
+        group.synchronize.side_effect=lambda:events.append('sync')
+        bucket=Mock();bucket.buffer.return_value=torch.tensor([2.,4.])
+        with patch.object(comm.dist,'all_reduce',side_effect=lambda *a,**k:events.append('reduce')):
+            result=comm.observed_mean_hook(group,bucket).wait()
+        self.assertEqual(events,['sync','reduce','sync'])
+        torch.testing.assert_close(result,torch.tensor([1.,2.]))
 
     def test_failed_collective_marks_failed(self):
         group=self.group();bucket=Mock();bucket.buffer.return_value=torch.ones(2)

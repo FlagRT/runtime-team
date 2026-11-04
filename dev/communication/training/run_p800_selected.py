@@ -59,9 +59,10 @@ def main():
     p.add_argument('--prototype-revision',required=True)
     p.add_argument('--output-name',required=True)
     p.add_argument('--include-native',action='store_true')
+    p.add_argument('--include-observed',action='store_true')
     p.add_argument('--failure-restart',action='store_true')
     a=p.parse_args()
-    if (a.include_native and a.failure_restart) or (a.mode!='pair' and (a.include_native or a.failure_restart)):
+    if (a.failure_restart and (a.include_native or a.include_observed)) or (a.mode!='pair' and (a.include_native or a.include_observed or a.failure_restart)):
         p.error('Choose one pair-only experiment: native matrix or failure/restart')
     if a.wait_seconds<1 or not 1<=a.poll_seconds<=60 or not re.fullmatch(r'[a-zA-Z0-9_-]+',a.output_name):
         p.error('positive wait, polling in [1,60] and simple output name required')
@@ -135,6 +136,7 @@ def main():
                  '--prototype-revision',a.prototype_revision,'--model-root','/workspace/dev/model-defs/deepfm/v1',
                  '--output','/workspace/evidence/'+a.output_name+'/training','--launch-timeout','240']
             if a.include_native:cmd.append('--include-native')
+            if a.include_observed:cmd.append('--include-observed')
             if a.failure_restart:
                 cmd=[py,'dev/communication/training/failure_restart.py','--backend','kunlun',
                      '--runtime-root','/workspace/dev/device-context/prototype',
@@ -144,7 +146,7 @@ def main():
             record['runs'].append(dict(argv=cmd,exit_code=code));save()
             if code==0:
                 summary=(json.loads((output/'failure/execution.json').read_text()) if a.failure_restart
-                         else summarize(output/'training',a.include_native))
+                         else summarize(output/'training',a.include_native,a.include_observed))
                 if summary['verdict']!='PASS':raise ValueError('Incomplete acceptance')
                 # Container-created training/ is root-owned; publish to the
                 # host-owned execution directory instead of chmod/chown trees.
