@@ -13,6 +13,7 @@ from urllib.request import urlopen
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--run',action='store_true')
+parser.add_argument('--retrieval-backend',choices=['milvus','elasticsearch'])
 parser.add_argument('--cache-bridge',default='/workspace/dev/rag_ljy/experiment_outputs/runtime_extensions/82f0cce02d30e7b44704/libnpu_cache_bridge.so')
 options=parser.parse_args()
 lock=open('/tmp/rag-watermarks-modes.lock','w')
@@ -42,6 +43,8 @@ if not h['memory_admission']['enabled']:
     raise RuntimeError('Memory admission must stay enabled')
 env=dict(v.split('=',1) for v in Path(f'/proc/{pid}/environ').read_bytes().decode().rstrip('\0').split('\0'))
 old_env=dict(env)
+backend=options.retrieval_backend or h['retrieval_backend']
+env['RETRIEVAL_BACKEND']=backend
 env['RAG_PROFILE_FIRST_FORWARD']='1'
 env['RAG_MEMORY_PROBE_PROCESS']='1'
 env['RAG_RERANK_DOCUMENT_TOKENS']='640'
@@ -65,13 +68,19 @@ for flag, value in [('--memory-safety-mib','5120'), ('--max-reranker-batch-size'
 # Preserve a bounded stage waiting queue; this does not reject new requests.
 if '--stage-queue-capacity' not in new:
     new+=['--stage-queue-capacity','8']
+database_check=None
+if backend == 'elasticsearch':
+    checked=subprocess.run([old[0],str(cwd/'scripts/runtime/check_elasticsearch_memory_inputs.py')],cwd=cwd,env=env,capture_output=True,text=True,timeout=120)
+    if checked.returncode:
+        raise RuntimeError('Elasticsearch preflight failed before stopping the API:\n'+checked.stderr[-3000:])
+    database_check=json.loads(checked.stdout)
 if not options.run:
-    print(json.dumps({'proposed_command':new,'cache_bridge':options.cache_bridge,'note':'Read-only. --run restarts the drained API before an independent experiment.'},indent=2))
+    print(json.dumps({'retrieval_backend':backend,'database_check':database_check,'proposed_command':new,'cache_bridge':options.cache_bridge,'note':'Read-only. --run restarts the drained API before an independent experiment.'},indent=2))
     raise SystemExit(0)
 if not Path(options.cache_bridge).is_file():raise RuntimeError('Build the native cache bridge first')
-out=cwd/'experiment_outputs/checks/dynamic_memory_admission'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+out=cwd/'experiment_outputs/checks/dynamic_memory_admission'/backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 out.mkdir(parents=True)
-(out/'config.json').write_text(json.dumps({'old_command':old,'new_command':new,'health_before':h,'environment':{k:v for k,v in env.items() if k.startswith('RAG_') or k in ('DC_BACKEND','PYTHONPATH','PYTORCH_NPU_ALLOC_CONF')}},indent=2))
+(out/'config.json').write_text(json.dumps({'retrieval_backend':backend,'database_check':database_check,'old_command':old,'new_command':new,'health_before':h,'environment':{k:v for k,v in env.items() if k.startswith('RAG_') or k in ('DC_BACKEND','PYTHONPATH','PYTORCH_NPU_ALLOC_CONF','RETRIEVAL_BACKEND')}},indent=2))
 print('OUTPUT='+str(out),flush=True)
 os.kill(pid,signal.SIGTERM)
 end=time.monotonic()+60
@@ -92,6 +101,7 @@ try:
         try:
             h=health()
             if h['status']=='ready' and h['memory_admission']['status']=='ready':
+                assert h['retrieval_backend']==backend, 'API started with the wrong retrieval backend'
                 assert h['max_inflight']==0 and h['memory_estimation']['enabled'] and h['memory_admission']['config']['request_budget_mib'] is None
                 (out/'health_after.json').write_text(json.dumps(h,indent=2))
                 print(json.dumps(h),flush=True)

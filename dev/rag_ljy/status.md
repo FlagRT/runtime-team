@@ -1,16 +1,89 @@
 # RAG 当前状态
 
-文档更新：2026-10-30（北京时间）。最近完整回归：222项通过；真实显存三模式验收及采样过期检查：2026-10-30 00:19～00:24通过（目录采用UTC日期2026-10-29）。
+文档更新：2026-11-04（北京时间）。Milvus真实显存验收于2026-10-30完成；Elasticsearch于2026-11-04 19:35～19:37完成。最近完整回归234项通过（2026-11-04）；实验目录时间使用UTC。
 
 **本文件必须保留在 `dev/rag_ljy/status.md`，作为项目当前状态的固定入口，随开发持续更新。**
 
-**当前结果：真实请求驱动的85%三模式验收已通过。突发、错峰、持续三轮均完成高位拒绝、中间滞回、低位恢复及已接收请求完成；没有额外显存填充。当前为Milvus链路、每轮独立冷启动的有限场景验收，不能扩展成任意负载/缓存状态或Elasticsearch均已验证。**
+**当前结果：Milvus与Elasticsearch均已完成真实请求驱动的85%三模式显存准入验收。两后端各自通过突发、错峰、持续到达的高位拒绝、中间滞回、低位恢复及在途请求完成检查，并通过采样过期检查。验证范围为各自记录配置下的独立冷启动实验，不代表任意负载/缓存状态；尚未实现请求优先级调度。**
 
 目前交付形态是可运行的 **RAG检索与阶段调度原型**：支持在线多请求、独立有界阶段队列、
 混合检索、精排、设备内存探测及可选内存感知准入。答案生成尚未实现，尚未达到生产部署标准。
 本文根据当前源码及已保存的实测证据整理；以下验证日期是实际运行日期。
 
-## 最终验收结果（2026-10-30 00:25，北京时间）
+## 当前完成情况与后续工作（2026-11-04）
+
+| 项目 | 当前状态 |
+|---|---|
+| 多请求与阶段队列 | 已实现每请求依赖推进、有界阶段队列及中间结果传递；rerank仍为单worker |
+| 显存准入 | 动态逐请求预算；实测≥85%暂停，≤75%恢复；新请求预计剩余≥5GiB；503携带Retry-After，拒绝请求不自动重入队，已接收请求继续完成 |
+| Milvus专项 | 突发／错峰／持续到达及采样过期检查通过，三模式峰值均85.627%；正式profile `2048:32` |
+| Elasticsearch专项 | 相同验收项全部通过，峰值85.443%／85.442%／85.440%；正式profile `2112:32`，最低采样空闲9,134MiB |
+| 优先级调度 | 尚未实现；高／中／低优先级及老化机制属于后续计划，不能把三种到达模式称为三级优先级 |
+| 生成与可组合工作流 | 生成模型尚未接入；当前为固定向量化—检索—精排流程，阶段按需组合、通用流程上下文等仍待开发 |
+
+两种数据库的通过范围均为记录配置下的独立冷启动实验；不表示任意输入或缓存布局都必然达到85%，也不表示估算是通用峰值上界。数据库检索在CPU执行，尚未验证卡商加速检索能力。
+
+Elasticsearch已通过配置的复现命令：
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run --profiles 2112:32
+```
+
+默认`2048:32`曾未达85%，复现成功实验应显式保留上述参数。测试会在每轮开始前准备独立冷启动环境，在每轮内部完成真实高位拒绝、中间滞回与低位恢复；当前更新仅整理已有证据，没有重跑实验或提交、推送Git。
+
+## Elasticsearch最终验收通过（2026-11-04 19:35～19:37，北京时间）
+
+用户执行`bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run --profiles 2112:32`后，[最终汇总](experiment_outputs/checks/memory_acceptance/elasticsearch/20261104T113704Z/summary.json)为`passed`；已核对原始结果，真实后端为Elasticsearch。
+
+| 到达方式 | 实测峰值 | 高位拒绝／中间滞回／低位恢复／在途完成 |
+|---|---:|---|
+| 同时突发 | 85.443% | 全部通过 |
+| 错峰到达 | 85.442% | 全部通过 |
+| 持续到达 | 85.440% | 全部通过 |
+
+三轮均采用真实RAG请求，预热profile `1024:32`、正式profile `2112:32`（档位与请求batch上限，实际执行形状以日志为准）；保持85%/75%实测水位、5GiB余量及动态预算。最低采样空闲9,134MiB，高于5GiB；每轮结束约18.38%。[采样过期检查](experiment_outputs/checks/stale_memory/elasticsearch/20261104T113656Z/result.json)也为passed。各轮准备阶段独立冷启动，实验内通过服务正常回收验证恢复，不以重启作为恢复证据。
+
+原始记录：[突发](experiment_outputs/checks/measured_watermarks/elasticsearch/20261104T113512Z/summary.json)、[错峰](experiment_outputs/checks/measured_watermarks/elasticsearch/20261104T113555Z/summary.json)、[持续](experiment_outputs/checks/measured_watermarks/elasticsearch/20261104T113639Z/summary.json)。首次子句超限失败和第二次84.557%未达阈值的记录保留，以下相关“待重跑/尚未通过”描述为历史进度。本次没有重新运行压力实验、提交或推送Git。
+
+## 历史记录：Elasticsearch第二次运行未达阈值（2026-11-04）
+
+[20261104T112549Z](experiment_outputs/checks/measured_watermarks/elasticsearch/20261104T112549Z/summary.json)已正常执行完整预热及正式负载，没有HTTP500或估算fault，但burst峰值仅84.557%，因此为`threshold_not_reached`，套件返回`incomplete`并停止，错峰/持续和采样过期尚未运行。共5条HTTP：初始化1条、预热2条、正式负载2条（1条200、1条request_budget 503）；最少采样空闲9,690MiB。未观察到memory_pressure拒绝，不构成85%验收通过。
+
+实际预热rerank长度1,435 token，批次32+18及15+15+15+5；正式成功请求仍为2,454 token、30+20批次，初始增量预算24,679MiB。预热设备占用约50.61%，低于Milvus通过试验约51.685%；实际缓存布局不同，沿用同一profile不保证相同峰值。当时建议下一步在独立冷启动下尝试`--profiles 2112:32`，小幅增加真实输入长度，仍由原动态预算和5GiB执行保护约束；当时该profile尚未实测；后续已完成并通过，见顶部最终验收记录。未改动85%/75%阈值、预算系数或使用外部分配。
+
+## 历史记录：Elasticsearch首次失败与修复（2026-11-04）
+
+用户运行[20261104T111437Z](experiment_outputs/checks/measured_watermarks/elasticsearch/20261104T111437Z/summary.json)失败：初始化短请求200，两条1,024档预热请求在BM25检索阶段触发`too many nested clauses; maxClauseCount=1024`，返回500；峰值仅18.364%，正式三模式显存验收未完成。服务并未宕机，记录结束时ready、在途0、预留0，估算fault为空。[API错误日志](experiment_outputs/checks/dynamic_memory_admission/elasticsearch/20261104T111417Z/api.log)保留。
+
+已修复Elasticsearch词法检索：普通请求沿用原multi_match；仅遇到明确的查询子句超限400时，按title/text各自analyzer产生词项，每字段保留前256个去重词项，以最多512个term叶子子句构造dis_max检索，保留title的2倍boost。不提高集群上限；其他400继续报告错误。该回退会改变长查询词法排序/召回，不能称检索语义完全不变。embedding与rerank使用的原始完整查询不截短，NPU压力输入长度未被缩小。
+
+234项回归通过。[64条真实长输入的CPU检索验证](experiment_outputs/checks/elasticsearch_long_query/20261104T112002Z/summary.json)覆盖1,024/2,048/4,096/6,144档，均返回检索结果；没有运行RAG/NPU压力请求。重启前预检查已加入这些长查询的实际词法检索，避免仅核对索引数量后漏掉查询上限；脚本遇异常HTTP会直接打印状态及阶段。用户仍需自行重跑以下同一命令，脚本重启API时加载修复：
+
+```bash
+bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run
+```
+
+此次修复不等于Elasticsearch显存验收通过，原失败记录不修改。未提交或推送Git。
+
+## 历史记录：Elasticsearch实验代码准备（2026-11-04，验收前）
+
+已准备测试代码，**Elasticsearch真实显存三模式专项尚未通过；首次执行在预热检索阶段失败，修复后待用户重跑**；由用户手动启动。此次只读预检查确认容器healthy、索引`nfcorpus-chunks-v1`有3,633篇文档/6,543个分块，全部有向量，最长578 token，小于部署文档上限640。未切换运行API、未提交NPU压力请求。
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+bash scripts/checks/run_elasticsearch_memory_acceptance.sh --run
+```
+
+该入口在每轮开始前将已排空API明确切换到Elasticsearch并冷启动，依次运行突发、错峰、持续三模式，以及采样过期拒绝/恢复检查；每轮内部不重启。使用与Milvus相同的真实请求预热`1024:32`和压力profile `2048:32`、85%/75%水位及5GiB余量。通过health在实验开始和后续采样核验真实后端，禁止将Milvus结果标为Elasticsearch。Elasticsearch检索候选可能不同，实际padding/显存峰值须重新测量，不能保证照搬profile就达到85%；未达到阈值或缺少滞回证据时返回非零并停止后续轮次，不生成通过汇总。
+
+不带`--run`只做只读索引/长度核验及配置预览。每次重启前再次核对索引、向量映射、数量和长度上界；失败时不停止原API。新API启动失败时尝试恢复原命令及原环境。运行结束保留Elasticsearch后端；若需恢复Milvus，排空后执行`docker exec -w /workspace/dev/rag_ljy rag-ljy-vllm-910c .venv/bin/python scripts/runtime/restart_memory_api.py --run --retrieval-backend milvus`。
+
+新输出按后端归档到外部experiments目录的`checks/{dynamic_memory_admission,measured_watermarks,stale_memory,memory_acceptance}/elasticsearch/<UTC>/`；三模式及采样过期检查均通过后自动核验、汇总。保存索引/语料/tokenizer指纹及原有输入、源码、模型版本、HTTP与实测时间线。原Milvus历史目录不变。
+
+代码验证：完整回归227项通过；随后新增的编排检查与后端检查共8项通过（其中5项已包含在227项中），使用模拟Docker验证只读默认、三模式传参和失败停止；不等同于Elasticsearch真机压力验收。未提交或推送Git。
+
+## Milvus最终验收结果（2026-10-30 00:25，北京时间）
 
 [汇总与审计](experiment_outputs/checks/memory_acceptance/20261029T162525Z/summary.json) · [显存/预算分开展示的时间线](experiment_outputs/checks/memory_acceptance/20261029T162525Z/memory_timelines.svg) · [复现说明](docs/watermarks-experiment.md)
 
