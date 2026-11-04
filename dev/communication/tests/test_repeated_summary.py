@@ -64,5 +64,33 @@ class RepeatedEvidenceTests(unittest.TestCase):
         self.change('01-manual/rank0.json',lambda d:d.update(device='cpu'))
         with self.assertRaises(ValueError):summarize(self.root)
 
+    def native_fixture(self):
+        # Validator-only mutation; these are not accelerator results.
+        for repeat in range(1,4):
+            old=f'{repeat:02d}-fused';name=f'{repeat:02d}-native'
+            shutil.copytree(self.root/old,self.root/name)
+            for rank in range(2):
+                self.change(f'{name}/rank{rank}.json',lambda d:d.update(
+                    comm_mode='native',training={**d['training'],
+                    'gradient_communication':{'observed':False}}))
+            self.change('execution.json',lambda d:d['runs'].append(
+                dict(name=name,mode='native',repeat=repeat,exit_code=0,timed_out=False)))
+
+    def test_native_matrix_requires_opt_in(self):
+        self.native_fixture()
+        with self.assertRaises(ValueError):summarize(self.root)
+
+    def test_native_matrix_complete(self):
+        self.native_fixture()
+        self.assertEqual(summarize(self.root,True)['runs'],9)
+
+    def test_native_matrix_missing_trial_rejected(self):
+        with self.assertRaises(ValueError):summarize(self.root,True)
+
+    def test_native_counters_not_invented(self):
+        self.native_fixture()
+        self.change('01-native/rank0.json',lambda d:d['training'].update(gradient_communication={'observed':True}))
+        with self.assertRaises(ValueError):summarize(self.root,True)
+
 
 if __name__ == '__main__': unittest.main()
