@@ -16,7 +16,7 @@ import yaml
 IMAGE = 'sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a'
 REF = 'flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64'
 PYTHON = '/root/miniconda/envs/python310_torch29_cuda/bin/python3'
-PUBLIC = '71197e73d13021556de04ff04c42c89b3bfc8f73'
+PUBLIC = 'a7e90e750fcf5a8b8adcd53858815c4d97cddac4'
 
 
 def digest(path):
@@ -141,7 +141,7 @@ def main():
     summary=dict(status='ERROR',stage=a.stage,mode=a.mode,physical_device=a.device,logical_device=0,
                  **workload_labels(a.stage,a.operator,a.batch_size),
                  container=name,image=IMAGE,public_commit=PUBLIC,wheel_sha256=digest(a.wheel),
-                 source='uncommitted scoped case; exact hashes in inputs.json',commands=[])
+                 source='scoped case snapshot; exact hashes in inputs.json',commands=[])
     try:
         image_env=subprocess.check_output(['docker','image','inspect',REF,'--format','{{json .Config.Env}}'],text=True,timeout=30)
         resource=subprocess.check_output(['xpu-smi'],text=True,timeout=15)

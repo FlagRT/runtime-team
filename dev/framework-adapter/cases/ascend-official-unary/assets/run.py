@@ -39,6 +39,10 @@ def main():
     p.add_argument('--deepfm-batch-size',type=int,choices=(16,32))
     p.add_argument('--second-device',type=int)
     p.add_argument('--training-config',choices=('off','on','unqualified'))
+    p.add_argument('--training-config-file',type=Path,
+                   help='Schema 3 config with measured public model review; bundle mounted read-only')
+    p.add_argument('--training-qualification',choices=('native','repeat','candidate'),
+                   help='Independent qualification probe, never creates model approval')
     p.add_argument('--wheel',type=Path,required=True,help='Independent adapter wheel, installed offline')
     p.add_argument('--native-repeat-only',action='store_true')
     p.add_argument('--deterministic',action='store_true')
@@ -58,6 +62,17 @@ def main():
         p.error('OneRec mode and completed native reference required')
     if a.stage=='dc-train' and (a.second_device is None or a.second_device<0 or a.second_device==a.device or not a.training_config):
         p.error('dc-train needs a distinct second device and training config')
+    if a.training_config_file:
+        a.training_config_file=a.training_config_file.resolve()
+        if a.stage!='dc-train' or not a.training_config_file.is_file():
+            p.error('training-config-file requires dc-train and existing file')
+        if json.loads(a.training_config_file.read_text()).get('schema')!=3:
+            p.error('Measured public entry requires schema 3')
+    if a.training_qualification:
+        if a.stage!='dc-train' or not a.training_config_file:
+            p.error('Qualification requires measured dc-train config')
+        if (a.training_qualification=='native') != (a.reference is None):
+            p.error('Only native qualification has no reference')
     if a.stage=='rank-failure' and (a.second_device is None or a.second_device<0 or a.second_device==a.device or not a.failure_scenario):
         p.error('rank-failure needs two distinct devices and an explicit scenario')
     if a.stage=='sdpa-candidate':
@@ -109,7 +124,11 @@ def main():
         if a.stage=='dc-train':
             service['volumes']=[v for v in service['volumes'] if ':/code:' not in v]
         service['volumes'] += [str(a.wheel)+':/package/'+a.wheel.name+':ro',
-            str(a.source/'demo/training-configs')+':/config:ro']
+            str(a.training_config_file.parent if a.training_config_file else
+                a.source/'demo/training-configs')+':/config:ro']
+        if a.training_qualification:
+            service['volumes'].append(str(a.source/'probes/qualify_public_training.py')+':/qualification.py:ro')
+            if a.reference: service['volumes'].append(str(a.reference.resolve())+':/reference:ro')
     (demo/'docker-compose.yml').write_text(yaml.safe_dump(config,sort_keys=False))
     empty=a.output/'empty'; empty.mkdir()
     name='cgu135-unary-'+a.output.name
@@ -118,12 +137,14 @@ def main():
         FLAGRT_OUTPUT=str(a.output),FLAGRT_RECORDS=str(a.records.resolve().parent if a.records else empty),
         FLAGRT_MODEL=str(a.model.resolve() if a.model else empty),FLAGRT_WORKSPACE_ROOT=str(a.public_root))
     identity={k:manifest(v) for k,v in [('source',a.source),('runtime',a.runtime),('deps',a.deps)]}
+    if a.training_config_file: identity['training_config_bundle']=manifest(a.training_config_file.parent)
     if a.stage=='deepfm': identity['model_definition']=manifest(a.model)
     if a.stage=='sdpa-candidate': identity['flagop']=manifest(a.flagop_root)
     (a.output/'snapshot-manifest.json').write_text(json.dumps(identity,indent=2))
     summary={'status':'ERROR','stage':a.stage,'device':a.device,'image':IMAGE,'container':name,
              'second_device':a.second_device,'training_config':a.training_config,
              'inputs':{k:str(getattr(a,k)) for k in ('source','runtime','deps','gems','records','model')}}
+    summary['training_qualification']=a.training_qualification
     if a.wheel:
         summary['wheel']={'path':str(a.wheel),'sha256':hashlib.sha256(a.wheel.read_bytes()).hexdigest()}
     def execute(cmd,log):
@@ -180,7 +201,13 @@ def main():
                 '/code/tools/train_with_adapter.py','--config','/code/demo/training-configs/'+a.training_config+'.json']
             if a.wheel:
                 command=['python','-m','torch.distributed.run','--standalone','--nproc_per_node=2',
-                    '--module','flagrt_adapter.train_cli','--config','/config/'+a.training_config+'.json']
+                    '--max-restarts=0','--module','flagrt_adapter.train_cli','--config',
+                    '/config/'+(a.training_config_file.name if a.training_config_file else a.training_config+'.json')]
+            if a.training_qualification:
+                command=['python','-m','torch.distributed.run','--standalone','--nproc_per_node=2',
+                    '--max-restarts=0','/qualification.py','--config','/config/'+a.training_config_file.name,
+                    '--mode',a.training_qualification]
+                if a.reference: command+=['--reference','/reference/train']
         if a.stage=='sigmoid':
             if a.native_repeat_only: command+=['--native-repeat-only']
             if a.deterministic: command+=['--deterministic']
@@ -197,7 +224,14 @@ def main():
         execute(['docker','exec',name,'bash','-lc',shell],'test.log')
         if a.stage=='dc-train':
             from check_training import check_run
-            result=check_run(a.output,a.training_config)
+            result=check_run(a.output,a.training_config,measured=bool(a.training_config_file) and not a.training_qualification)
+            if a.training_qualification:
+                rows=[json.loads((a.output/f'train/qualification_rank{r}.json').read_text()) for r in (0,1)]
+                if not all(row['status']=='PASS' and row['optimizer_steps']==3 for row in rows):
+                    raise RuntimeError('Qualification incomplete or failed')
+                if rows[0]['workload']!=rows[1]['workload']: raise RuntimeError('Rank workload mismatch')
+                result['qualification']={str(r):dict(status=row['status'],tensors=len(row['compared']))
+                                         for r,row in enumerate(rows)}
             (a.output/'result.json').write_text(json.dumps(result,indent=2))
         else:
             result=json.loads((a.output/'result.json').read_text())
@@ -206,6 +240,8 @@ def main():
             raise RuntimeError('Wheel changed during test')
         for key,root in [('source',a.source),('runtime',a.runtime),('deps',a.deps)]:
             if manifest(root)!=identity[key]: raise RuntimeError('Inputs changed during test: '+key)
+        if a.training_config_file and manifest(a.training_config_file.parent)!=identity['training_config_bundle']:
+            raise RuntimeError('Training review bundle changed during test')
         if a.stage=='sdpa-candidate' and manifest(a.flagop_root)!=identity['flagop']:
             raise RuntimeError('FlagOP source changed during test')
         if a.stage=='deepfm' and manifest(a.model)!=identity['model_definition']:

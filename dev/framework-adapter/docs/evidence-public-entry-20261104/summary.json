@@ -1,0 +1,508 @@
+{
+  "scope": "910C official image / measured public causal-LM entry / three steps per rank; not training-v3",
+  "public_commit": "719de8cbaea75691b38ad87d6706a949e045b892",
+  "package_base": "6ee91294e7ab028f2e804225482f58d24c8ccd5a",
+  "package_candidate": "0.3.0.dev3 local uncommitted",
+  "archive_11_sha256": "1a42ea4aac6c11b0b1bc42a8bcc2273e12c3d680d6091f599042c4e6cd89e8ed",
+  "archive_27_sha256": "52139204abea49060d1099a89e97cbf2662c1dfefce5567d81b6f0900ba49516",
+  "runs": {
+    "public-off-11-1104-03": {
+      "status": "pass",
+      "mode": "off",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "experimental_disabled",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "experimental_disabled",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    },
+    "public-unqualified-11-1104-01": {
+      "status": "pass",
+      "mode": "unqualified",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "workload_unverified",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "workload_unverified",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    },
+    "public-on-11-1104-01": {
+      "status": "pass",
+      "mode": "on",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "backward",
+              "reason": "completed",
+              "count": 84
+            },
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "forward",
+              "reason": "completed",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {
+            "GEMS SILU FORWARD": 84,
+            "GEMS SILU BACKWARD": 84
+          },
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "backward",
+              "reason": "completed",
+              "count": 84
+            },
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "forward",
+              "reason": "completed",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {
+            "GEMS SILU FORWARD": 84,
+            "GEMS SILU BACKWARD": 84
+          },
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "native": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "max_abs_diff": 0,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "unavailable",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "unavailable",
+          "compiler_build": "unavailable",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "max_abs_diff": 0,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "unavailable",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "unavailable",
+          "compiler_build": "unavailable",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      }
+    ],
+    "repeat": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "max_abs_diff": 0.0,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "unavailable",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "unavailable",
+          "compiler_build": "unavailable",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "max_abs_diff": 0.0,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "unavailable",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "unavailable",
+          "compiler_build": "unavailable",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      }
+    ],
+    "candidate": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "max_abs_diff": 9.5367431640625e-07,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "3.2.0",
+          "compiler_build": "triton-ascend==3.2.1",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "max_abs_diff": 9.5367431640625e-07,
+        "workload": {
+          "model_id": "AutoModelForCausalLM:qwen3",
+          "phase": "train",
+          "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+          "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+          "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+        },
+        "environment": {
+          "chip": "Ascend910_9382",
+          "torch": "2.10.0+cpu",
+          "backend_version": "2.10.0",
+          "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+          "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+          "triton": "3.2.0",
+          "compiler_build": "triton-ascend==3.2.1",
+          "backend": "ascend",
+          "device_type": "npu"
+        }
+      }
+    ],
+    "archive_sha256": "02533a9b5aba95e533c40bb8da2be22f286eba0fca07a64e338df1326af984ff"
+  },
+  "cpu_build": {
+    "overall": "PASS",
+    "wheel": {
+      "filename": "flagrt_framework_adapter-0.3.0.dev3-py3-none-any.whl",
+      "sha256": "191887c6418a3ec09a03b4160778bdbadb11262d8b70473cd096e08ddb0e57ca"
+    }
+  },
+  "cpu_rebuild": {
+    "overall": "PASS",
+    "wheel": {
+      "filename": "flagrt_framework_adapter-0.3.0.dev3-py3-none-any.whl",
+      "sha256": "3e7a0c3175160d324249331bda098d54d73c5cf7731f2b688441d69b591c6acf"
+    }
+  },
+  "runtime_sha256": {
+    "__init__.py": "f490923663c914ddc9c5f3a348d924c5cf163c0ed8a2a9635ea7d9f419f15625",
+    "bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+    "config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+    "policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+    "public_entry.py": "40cf01d512638f7a712a7cef28677e15f0d98934124707587a0b572eb27c3d45",
+    "records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+    "startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+    "step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+    "train_cli.py": "b0377ef85d40b6a38da0226511dcc4aa2bf10253997be498fc3dfe97079f7b7c",
+    "training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4",
+    "workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d"
+  },
+  "cpu_tests": {
+    "initial_build": 109,
+    "rebuild": 110,
+    "case_controls": 8
+  },
+  "files_sha256": {
+    "public-off-11-1104-03/result.json": "21611c1d73bf01b515b6e5fe457dc207af339661493c0ab39d8bc7829f04e663",
+    "public-off-11-1104-03/summary.json": "09f412c4ca7e7bdb1833a0816c52c54f7221a35565c173e92f17e4be46a40c28",
+    "public-off-11-1104-03/train/adapter_rank0.json": "3d1d39ddb89052aa83e99b26a9f969e155bbe896c78dbba7ba58fc0720c4aa18",
+    "public-off-11-1104-03/train/adapter_rank1.json": "5525fe00cdb5731addaad867bb35b8eb8af059620e4c23b70352283572f7fac1",
+    "public-off-11-1104-03/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "public-off-11-1104-03/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "public-off-11-1104-03/train/step-control/rank0/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank0/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank0/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank0/report.json": "2dbd886807d16d5ddf5fb5d376924970deb1fc31c071f36f3d26a51b348a3737",
+    "public-off-11-1104-03/train/step-control/rank0/run-id": "9446d4dc4949bda835d93da0f621a88cd9f0f661fd9300fc063886a46caf392b",
+    "public-off-11-1104-03/train/step-control/rank0/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank0/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank0/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/report.json": "2ff395fb890b7c003d2503924a260ee10cb92ad7b9c97af1adb043526c77a585",
+    "public-off-11-1104-03/train/step-control/rank1/run-id": "9446d4dc4949bda835d93da0f621a88cd9f0f661fd9300fc063886a46caf392b",
+    "public-off-11-1104-03/train/step-control/rank1/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/step-control/rank1/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-off-11-1104-03/train/train_leg_result_rank0.json": "c6bdcf1da10a46b17f9a787db705fd47df77854c0f1fbfbd77841eb0f0853cc7",
+    "public-off-11-1104-03/train/train_leg_result_rank1.json": "e40f9096f69a81fe19dab5d568442ae82323029f2db69240f0f540cd5eb7ac57",
+    "public-off-11-1104-03/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "public-off-11-1104-03/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "public-on-11-1104-01/result.json": "d49a4ac9f95dc6fbebc49422d138c2c54750096fd5f4979401e8b677543b2191",
+    "public-on-11-1104-01/summary.json": "18a15c4915df6779a8c34e3800992a0521cd4201fe1c611e9b6a1250211cd078",
+    "public-on-11-1104-01/train/adapter_rank0.json": "1cec21854a2f1c285978ac1b3d983365a25a768d194392e3931fd1a69b235db0",
+    "public-on-11-1104-01/train/adapter_rank1.json": "c357921b940451ab33a43b9f5d6255ea1e5945c85dc1ce2d25a6a26e813db535",
+    "public-on-11-1104-01/train/kernel_hits_rank0.json": "0bf78504d26c98e4938907c8952d9f1076294d996d9520543b3962f6751629d3",
+    "public-on-11-1104-01/train/kernel_hits_rank1.json": "0bf78504d26c98e4938907c8952d9f1076294d996d9520543b3962f6751629d3",
+    "public-on-11-1104-01/train/step-control/rank0/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank0/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank0/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank0/report.json": "50793e26cecc10c4753dbd31caf464272db48db34e92563f32f9cf17e533b5b5",
+    "public-on-11-1104-01/train/step-control/rank0/run-id": "b46ffe2b13d1c33b1d37521193a461d3c20a6530a9d3d981fd250a49aa40d7f3",
+    "public-on-11-1104-01/train/step-control/rank0/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank0/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank0/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/report.json": "febdf8c6d8050f7b0d07989b645101627946bacae9038eb9759c2637e7c33d86",
+    "public-on-11-1104-01/train/step-control/rank1/run-id": "b46ffe2b13d1c33b1d37521193a461d3c20a6530a9d3d981fd250a49aa40d7f3",
+    "public-on-11-1104-01/train/step-control/rank1/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/step-control/rank1/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-on-11-1104-01/train/train_leg_result_rank0.json": "d6ad5352f14d9807de2a43cbb33b26848f4471809b1a5cee967d229a4a31dad6",
+    "public-on-11-1104-01/train/train_leg_result_rank1.json": "9c88f2ae8b71cfe443389f0a9347ccf907c5b2594dd7ccade6e89cde14287f3e",
+    "public-on-11-1104-01/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "public-on-11-1104-01/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "public-unqualified-11-1104-01/result.json": "a6607202caee4d850b613a7af1edc0d23ed4d25be0f770ff5fdcfff880264217",
+    "public-unqualified-11-1104-01/summary.json": "5127832ef8d6ce80dca9946fa07f10a0edd4acf8b0d360555d76cdf201c1dbe1",
+    "public-unqualified-11-1104-01/train/adapter_rank0.json": "630698a6b73fd53517cbad2928201bc02f7162e8ad35ccc91954a144e5bd3054",
+    "public-unqualified-11-1104-01/train/adapter_rank1.json": "a98023f1a60578c578a9f13ca700e6269fc1eef38a0e52c45d5853b41ee01864",
+    "public-unqualified-11-1104-01/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "public-unqualified-11-1104-01/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "public-unqualified-11-1104-01/train/step-control/rank0/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank0/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank0/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank0/report.json": "3a2dd761dc565218b7e4d2a728fd0d7688528ee012572020a0a83f6557ff501f",
+    "public-unqualified-11-1104-01/train/step-control/rank0/run-id": "64fa4f1d885898147faf3663de2a81e4c5781e82b919812c586373c0e882fb8a",
+    "public-unqualified-11-1104-01/train/step-control/rank0/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank0/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank0/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/report.json": "680e2a54cd5a29738b606b2a27bee6e6a113d99b365926fc3990e099698223a4",
+    "public-unqualified-11-1104-01/train/step-control/rank1/run-id": "64fa4f1d885898147faf3663de2a81e4c5781e82b919812c586373c0e882fb8a",
+    "public-unqualified-11-1104-01/train/step-control/rank1/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/step-control/rank1/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "public-unqualified-11-1104-01/train/train_leg_result_rank0.json": "4911f5f2feddb00569d802491daba18e6541d1dba9e4c593190b44e98ac43681",
+    "public-unqualified-11-1104-01/train/train_leg_result_rank1.json": "e80b8e40fa5ac23cc2c32ae87ea72adce5c6279ac7663aa1a0ff2e7ad64ff7c2",
+    "public-unqualified-11-1104-01/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "public-unqualified-11-1104-01/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-candidate-11-1104-01/demo/.last-check.json": "a11d7b07ae01764c28bbd93ef77746256825551894a37b96bddfada708387c80",
+    "qualification/qual-candidate-11-1104-01/result.json": "838265d5d21382fe9bb92f56eecf04982617361279f4c1c327a3adbee6eeec7e",
+    "qualification/qual-candidate-11-1104-01/summary.json": "907f3ceb6fa7e19ec8ce32b85506d471a8cc7f8ca09d789b2e425d4b20506724",
+    "qualification/qual-candidate-11-1104-01/train/adapter_rank0.json": "512a18d0a5645811e7929e66bb059de38e0005f5b80177e26cd4d89eedf35d1c",
+    "qualification/qual-candidate-11-1104-01/train/adapter_rank1.json": "813cd1e171e6bb7c332e48cf7f78b6d3a7bac6322130fa8ca6a73ebc7c0e1e8b",
+    "qualification/qual-candidate-11-1104-01/train/kernel_hits_rank0.json": "0bf78504d26c98e4938907c8952d9f1076294d996d9520543b3962f6751629d3",
+    "qualification/qual-candidate-11-1104-01/train/kernel_hits_rank1.json": "0bf78504d26c98e4938907c8952d9f1076294d996d9520543b3962f6751629d3",
+    "qualification/qual-candidate-11-1104-01/train/qualification_rank0.json": "e5a39888d356c67500b97140ffa4ad897e42e27a73724d752be7c9e4686d6042",
+    "qualification/qual-candidate-11-1104-01/train/qualification_rank1.json": "a820d0074d0a1daadd04fc24fd8dd38dd4f3a6e23321defc6fc9741e7ff247ab",
+    "qualification/qual-candidate-11-1104-01/train/step-control/rank0/report.json": "7447e5b3b4c72e340c7cac67cd76a16ed0c3ac3a6d3d3fe93b756f6ee1bd9850",
+    "qualification/qual-candidate-11-1104-01/train/step-control/rank1/report.json": "3a263ab0d8f8200ff4e80043aea0fe67d68f4821c416ee802da693a38b16625d",
+    "qualification/qual-candidate-11-1104-01/train/train_leg_result_rank0.json": "517e6bdab3a4f12b3148bbece135ed029682797873d7169f4afb530d6edfb6b8",
+    "qualification/qual-candidate-11-1104-01/train/train_leg_result_rank1.json": "ac34a4d7929ce55cab939b7ccb63a3dd0d24aec849979c6c049f44a39dc040b3",
+    "qualification/qual-candidate-11-1104-01/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-candidate-11-1104-01/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-native-11-1104-01/demo/.last-check.json": "a49723d6baf2649dedad409dbb8122c2d022f6c46781f4662562ee5a55c4ad2e",
+    "qualification/qual-native-11-1104-01/result.json": "a32731f0c693d29320ecc9108df849115118d62d7ff11b94431af61431f17784",
+    "qualification/qual-native-11-1104-01/summary.json": "7a5f329685a17c1081845fbf9882a90bb4c5f261c48c82d6ac1a8fed45615a2c",
+    "qualification/qual-native-11-1104-01/train/adapter_rank0.json": "b4e6dbaa18a8035882b684ae6341fca74d04778a691748130bd240fafadeca38",
+    "qualification/qual-native-11-1104-01/train/adapter_rank1.json": "5080eb047e49c7d137fb353ff8841b4bd0df373614a5282d7706490686a235eb",
+    "qualification/qual-native-11-1104-01/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "qualification/qual-native-11-1104-01/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "qualification/qual-native-11-1104-01/train/qualification_rank0.json": "358ebcba2d9471023c51ff5347dcc4b59d7dd514178abbdd4982e81234b4f448",
+    "qualification/qual-native-11-1104-01/train/qualification_rank1.json": "9f0e75f4e56bc4dd741c2c4b978a1e24b31464c918848a71edf2d6253350e833",
+    "qualification/qual-native-11-1104-01/train/step-control/rank0/report.json": "b4756f9740ba188637c74cba2e352ffbcf1beabeb6264bc36c05b87bfc49c462",
+    "qualification/qual-native-11-1104-01/train/step-control/rank1/report.json": "d2d995a29c223af3904802cd08f58e5e8e877974ec349f0b41432c151b10122d",
+    "qualification/qual-native-11-1104-01/train/train_leg_result_rank0.json": "4cbafcbe6df451899cfb084f8284a0d1c6ab1d9f31c4431b2ad7d7996cc0d295",
+    "qualification/qual-native-11-1104-01/train/train_leg_result_rank1.json": "f2f92822208895f4b1b92d9d9c01818904c075eefa25a261ea52daa63bc6f64c",
+    "qualification/qual-native-11-1104-01/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-native-11-1104-01/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-repeat-11-1104-01/demo/.last-check.json": "9fe4f5b61beabaab2ac53ffa3960158cb89cce75043599910395c5df3ef1e0d5",
+    "qualification/qual-repeat-11-1104-01/result.json": "a32731f0c693d29320ecc9108df849115118d62d7ff11b94431af61431f17784",
+    "qualification/qual-repeat-11-1104-01/summary.json": "77e9a8b14f92d7780311f12037b0543fdd85085a197d7fb9197dcecad45145d5",
+    "qualification/qual-repeat-11-1104-01/train/adapter_rank0.json": "b4e6dbaa18a8035882b684ae6341fca74d04778a691748130bd240fafadeca38",
+    "qualification/qual-repeat-11-1104-01/train/adapter_rank1.json": "5080eb047e49c7d137fb353ff8841b4bd0df373614a5282d7706490686a235eb",
+    "qualification/qual-repeat-11-1104-01/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "qualification/qual-repeat-11-1104-01/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "qualification/qual-repeat-11-1104-01/train/qualification_rank0.json": "78e7b010fd39b4bfeedf73226c5a517517e5ac7309b186f4eaf857d1312b4840",
+    "qualification/qual-repeat-11-1104-01/train/qualification_rank1.json": "3cea52436bffbbe9f4b47bdbc33bd595df4efc8f78ef0779cad8c520b6f79a8d",
+    "qualification/qual-repeat-11-1104-01/train/step-control/rank0/report.json": "3c091d2b0b0ed184b219eb6195e134589f601ced391d6e3fce368f2b631d0b93",
+    "qualification/qual-repeat-11-1104-01/train/step-control/rank1/report.json": "91da313f8351ecd9389012556a398c71ccd31b29911d212874ad3009ad174a1f",
+    "qualification/qual-repeat-11-1104-01/train/train_leg_result_rank0.json": "7bae78eed6b74b5f01935b63211df58ea5be2a4c9d19d3c8455589a8e11857f1",
+    "qualification/qual-repeat-11-1104-01/train/train_leg_result_rank1.json": "65061e3e90dab78ae5b21b5ab40ed9fcddad133d90b17983d12e41954030ee2b",
+    "qualification/qual-repeat-11-1104-01/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "qualification/qual-repeat-11-1104-01/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6"
+  }
+}

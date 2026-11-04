@@ -1,0 +1,566 @@
+{
+  "status": "PASS",
+  "entry": "/runtime/runtime/proto/proto_train_leg.py",
+  "enabled": false,
+  "operators": [
+    "silu"
+  ],
+  "environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "backend_version": "2.10.0",
+    "gems_revision": "unavailable",
+    "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+    "triton": "unavailable",
+    "compiler_build": "unavailable",
+    "backend": "ascend",
+    "device_type": "npu"
+  },
+  "provider_identity": null,
+  "acceptance": "external",
+  "startup": {
+    "require_target": false,
+    "checks": [
+      {
+        "operator": "silu",
+        "shape": [
+          1,
+          32,
+          3072
+        ],
+        "dtype": "torch.float32",
+        "decision": "native",
+        "reason": "experimental_disabled"
+      }
+    ],
+    "provider_reason": "experimental_disabled",
+    "workload_required": false,
+    "workload": {
+      "model_id": "AutoModelForCausalLM:qwen3",
+      "phase": "train",
+      "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+      "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+      "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+    }
+  },
+  "upstream": {
+    "verdict": "TRAIN_LEG_PASS",
+    "path": "train_leg_result_rank1.json"
+  },
+  "counts": [
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled",
+      "count": 84
+    }
+  ],
+  "events_tail": [
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    },
+    {
+      "operator": "silu",
+      "backend": "native",
+      "stage": "forward",
+      "reason": "experimental_disabled"
+    }
+  ],
+  "scope_failed": false
+}

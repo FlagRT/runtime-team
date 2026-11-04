@@ -39,5 +39,36 @@ class ResultTests(unittest.TestCase):
             data=json.loads(path.read_text()); data['verdict']='TRAIN_LEG_FAIL'; path.write_text(json.dumps(data))
             with self.assertRaises(AssertionError): check_run(root,'off')
 
+    def measured_fixture(self,root,mode):
+        self.fixture(root,mode)
+        for rank in (0,1):
+            folder=root/'train'
+            path=folder/f'adapter_rank{rank}.json'; data=json.loads(path.read_text())
+            data['startup']={'workload_required':True,'workload':{'identity':'synthetic'}}
+            if mode=='unqualified': data['counts'][0]['reason']='workload_unverified'
+            path.write_text(json.dumps(data))
+            (folder/f'workload_rank{rank}.json').write_text(json.dumps({'workload':{'identity':'synthetic'}}))
+            guard=folder/f'step-control/rank{rank}'; guard.mkdir(parents=True)
+            (guard/'report.json').write_text(json.dumps(dict(status='PASS',steps=3,hooks_restored=True)))
+
+    def test_measured_three_paths(self):
+        for mode in ('off','on','unqualified'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp); self.measured_fixture(root,mode)
+                self.assertEqual(check_run(root,mode,measured=True)['status'],'pass')
+
+    def test_rank_identity_mismatch_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); self.measured_fixture(root,'off')
+            (root/'train/workload_rank1.json').write_text('{"workload":{"identity":"wrong"}}')
+            with self.assertRaises(AssertionError): check_run(root,'off',measured=True)
+
+    def test_guard_not_completed_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); self.measured_fixture(root,'off')
+            path=root/'train/step-control/rank1/report.json'
+            data=json.loads(path.read_text()); data['steps']=2; path.write_text(json.dumps(data))
+            with self.assertRaises(AssertionError): check_run(root,'off',measured=True)
+
 
 if __name__=='__main__': unittest.main()

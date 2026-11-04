@@ -1,0 +1,312 @@
+{
+  "status": "pass",
+  "stage": "qualification",
+  "mode": "off",
+  "scope": "single-card isolated unary; not model or full three-level fallback acceptance",
+  "device_detection": {
+    "reported_name": "GPU",
+    "torch_xmlir_path": "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/__init__.py",
+    "kunlun_driver_present": true
+  },
+  "provider_inventory": {
+    "path": "/env/FlagGems/src/flag_gems/__init__.py",
+    "head": "73c5aff1e304c293ab525ecb03e9449644496fbb",
+    "status": "?? output.tar.gz\n?? output/.scm/module_info\n?? output/triton-xpu-ubuntu_2004_x86_64/triton-3.0.0+03c4c9be-cp310-cp310-linux_x86_64.whl\n?? output/version.txt\n",
+    "diff_stat": "",
+    "tracked_diff": ""
+  },
+  "environment": {
+    "chip": "P800",
+    "torch": "2.9.0+cu129",
+    "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+    "triton": "3.6.0",
+    "compiler_build": "flagtree==0.6.1+xpu3.6",
+    "backend": "kunlunxin",
+    "device_type": "cuda"
+  },
+  "packages": {
+    "torch": "2.9.0+cu129",
+    "torch_xmlir": null,
+    "torch-xray": "2.0.4",
+    "xtorch_ops": "0.1.2640+9bc36a18",
+    "flagtree": "0.6.1+xpu3.6",
+    "flag_gems": "4.2.1rc0"
+  },
+  "provider_identity": {
+    "kind": "installed-content",
+    "root": "/env/FlagGems/src/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "source_head": "73c5aff1e304c293ab525ecb03e9449644496fbb",
+    "audited_inert_artifacts": [
+      "?? output.tar.gz",
+      "?? output/.scm/module_info",
+      "?? output/triton-xpu-ubuntu_2004_x86_64/triton-3.0.0+03c4c9be-cp310-cp310-linux_x86_64.whl",
+      "?? output/version.txt"
+    ]
+  },
+  "device_count": 1,
+  "adapter_version": "0.3.0.dev2",
+  "paths": {
+    "torch": "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/__init__.py",
+    "triton": "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/triton/__init__.py",
+    "provider": "/env/FlagGems/src/flag_gems/__init__.py",
+    "runtime": "/runtime/runtime/__init__.py",
+    "adapter": "/results/installed/flagrt_adapter/__init__.py"
+  },
+  "gemm_compat_enabled": false,
+  "cases": [
+    {
+      "operator": "sigmoid",
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float32",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 1e-05,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "sigmoid",
+      "shape": [
+        16
+      ],
+      "dtype": "torch.float16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.005,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "sigmoid",
+      "shape": [
+        16
+      ],
+      "dtype": "torch.bfloat16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.03,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "sigmoid",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 1e-05,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "sigmoid",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.005,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    },
+    {
+      "operator": "sigmoid",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.bfloat16",
+      "mode": "off",
+      "status": "pass",
+      "tolerance": 0.03,
+      "repeats": [
+        {
+          "repeat": 0,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 1,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        },
+        {
+          "repeat": 2,
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {
+            "GEMS SIGMOID FORWARD": 1,
+            "GEMS SIGMOID BACKWARD": 1
+          }
+        }
+      ],
+      "dispatcher_restored": true
+    }
+  ],
+  "native_smoke": {
+    "forward_max_abs": 4.76837158203125e-07,
+    "backward_max_abs": 1.1920928955078125e-07,
+    "status": "pass"
+  },
+  "operator": "sigmoid",
+  "observed_provider_calls": {
+    "GEMS SIGMOID FORWARD": 18,
+    "GEMS SIGMOID BACKWARD": 18
+  }
+}

@@ -1,0 +1,385 @@
+{
+  "date": "2026-11-04",
+  "host": "152.136.33.169",
+  "adapter_commit": "6ee91294e7ab028f2e804225482f58d24c8ccd5a",
+  "public_commit": "a7e90e750fcf5a8b8adcd53858815c4d97cddac4",
+  "wheel_sha256": "63edc3a232e9b47137fb6f627b2785a331276227d17f27ad91addb8959f5498d",
+  "device_mapping": {
+    "smi_index": 4,
+    "pci_bus": "0000:84:00.0",
+    "device_node": "/dev/xpu4",
+    "logical_device": 0
+  },
+  "scope": "P800 v2 single-device DeepFM FP32 batch32 three synthetic training steps; GEMM opt-in disabled",
+  "review_source": "Exact existing 2026-10-29 review; environment/workload identity matched before target regression; no automatic approval created",
+  "runs": [
+    {
+      "run": "inspect-01",
+      "mode": "off",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 0,
+      "step_count": 0,
+      "comparisons": 0,
+      "mismatches": 0,
+      "max_abs": 0,
+      "provider_calls": {},
+      "routes": [],
+      "dispatcher_restored": null,
+      "container": "cgu135-xpu-inspect-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": null,
+      "result_sha256": "b60edb20e5049dae980123749500b9cb38becc9105cc22ee022801d0eb40e209"
+    },
+    {
+      "run": "sigmoid-qual-01",
+      "mode": "off",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 0,
+      "step_count": 0,
+      "comparisons": 0,
+      "mismatches": 0,
+      "max_abs": 0,
+      "provider_calls": {},
+      "routes": [],
+      "dispatcher_restored": null,
+      "container": "cgu135-xpu-sigmoid-qual-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": null,
+      "result_sha256": "cd4b87ca8bfa41110c07b6557aac33a6dd633d6566887830640a560e83cb9e65",
+      "cases": 6,
+      "repeats": 18,
+      "calls": {
+        "GEMS SIGMOID FORWARD": 18,
+        "GEMS SIGMOID BACKWARD": 18
+      }
+    },
+    {
+      "run": "deepfm-native-01",
+      "mode": "native",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 3,
+      "step_count": 3,
+      "comparisons": 294,
+      "mismatches": 0,
+      "max_abs": 0,
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "dispatcher_restored": true,
+      "container": "cgu135-xpu-deepfm-native-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "result_sha256": "fd06ea7cbf83952fbc9043f6e0997699b50fa8ffe198ddb0cc2ec0b4f59946ef"
+    },
+    {
+      "run": "deepfm-native_repeat-01",
+      "mode": "native_repeat",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 3,
+      "step_count": 3,
+      "comparisons": 294,
+      "mismatches": 0,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "routes": [
+        [],
+        [],
+        []
+      ],
+      "dispatcher_restored": true,
+      "container": "cgu135-xpu-deepfm-native_repeat-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "result_sha256": "543d5964e3f31b81d3dd52a554922f1f7bde2dcdbe8d5fb44b67255dfab491c3"
+    },
+    {
+      "run": "deepfm-off-01",
+      "mode": "off",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 3,
+      "step_count": 3,
+      "comparisons": 294,
+      "mismatches": 0,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "experimental_disabled",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "experimental_disabled",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "experimental_disabled",
+            1
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "container": "cgu135-xpu-deepfm-off-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "result_sha256": "1290a45430f6e7f14d772f295cfaa500ddb755600466ceaba72377d9f29f47ee"
+    },
+    {
+      "run": "deepfm-on-01",
+      "mode": "on",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 3,
+      "step_count": 3,
+      "comparisons": 294,
+      "mismatches": 0,
+      "max_abs": 0.0,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 3,
+        "GEMS SIGMOID BACKWARD": 3
+      },
+      "routes": [
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "flaggems",
+            "forward",
+            "completed",
+            1
+          ],
+          [
+            "sigmoid",
+            "flaggems",
+            "backward",
+            "completed",
+            1
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "container": "cgu135-xpu-deepfm-on-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "result_sha256": "b449a1b585ab7421bdc9fdc4bf86a7a38bd871b95f4e5aff943af13cde87494b"
+    },
+    {
+      "run": "deepfm-unknown-01",
+      "mode": "unknown",
+      "summary_status": "PASS",
+      "status": "pass",
+      "optimizer_steps": 3,
+      "step_count": 3,
+      "comparisons": 294,
+      "mismatches": 0,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "routes": [
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ],
+        [
+          [
+            "sigmoid",
+            "native",
+            "forward",
+            "workload_unverified",
+            1
+          ]
+        ]
+      ],
+      "dispatcher_restored": true,
+      "container": "cgu135-xpu-deepfm-unknown-01",
+      "container_running": false,
+      "environment": {
+        "chip": "P800",
+        "torch": "2.9.0+cu129",
+        "backend_version": "xtorch_ops==0.1.2640+9bc36a18",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a",
+        "triton": "3.6.0",
+        "compiler_build": "flagtree==0.6.1+xpu3.6",
+        "backend": "kunlunxin",
+        "device_type": "cuda"
+      },
+      "workload_identity": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "e9c09f33f6d8602b8c53b3ee30d8c35993f8ff8b51fdf84f15010acf269384e2",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "result_sha256": "15b2d6e9d045034720cbd28577e87a635e781405effc83d2dfcde1b883a79628"
+    }
+  ],
+  "limitations": [
+    "not full env/v1 GEMM opt-in validation",
+    "not new model coverage",
+    "not distributed training",
+    "not long training or business accuracy",
+    "complete three-level fallback unfinished"
+  ],
+  "evidence_archive_sha256": "1da6cfd445f8f71762f2a0e695d622428264031f1b2293d5d4afa1f1f6bdd10c",
+  "native_reference_archive_sha256": "a541ca5d5207e0f1414e4704bb3127ffa2efe693053392b057c38d54b88306b7",
+  "retrieved_evidence_files_verified": 103,
+  "cpu_controls": 34,
+  "adapter_source_unchanged": true,
+  "selected_device_idle_after": true
+}

@@ -2,18 +2,20 @@
 
 ## 用途与现状
 
+2026-11-04新机补充：新152机使用当前公共快照a7e90e7及dev2已发布wheel，DeepFM batch32/FP32关闭、开启、模型资格不满足三路各3步/294项对照通过；sigmoid 6组资格实验通过。本轮仍明确关闭GEMM补丁，不代表完整env/v1验收。见[新机报告](../../docs/P800新机三路回归-20261104.md)和[冻结启动记录](demo/20261104-deepfm-on/README.md)。以下10-29历史结果及审核记录保留。
+
 发布范围（2026-11-03）：这是10-29实测的集成材料与CPU控制测试。功能包dev2源码现已固定为[6ee9129](https://github.com/FlagRT/framework-adapter/tree/6ee91294e7ab028f2e804225482f58d24c8ccd5a)，按[依赖锁](../../package.lock.json)构建；不包含下载即用的wheel、权重或基座镜像。新构建的10个运行时文件与历史实测wheel逐字节一致，但wheel归档哈希不同；复跑必须记录实际制品、重新核环境资格，不宣称已在新env/v1通过。见[发布审查](../../docs/dev2发布审查-20261103.md)。
 
 用昆仑芯公共v2镜像验证本方向适配包的SiLU、sigmoid、tanh前反向，以及关闭、开启和缺资格保留原生；模型入口支持Qwen3-Embedding-0.6B、公共DeepFM与OneRec-8B。每次仅挂一张空闲P800，复用device-context的kunlun后端，不修改算子或公共环境。安装包必须离线安装，不能用宿主功能源码代替wheel。
 
-本case不启用env/v1中的GEMM兼容补丁，只使用镜像固化的FlagGems和FlagTree。三种单算子及DeepFM两个batch短训练均通过；Qwen0.6B原生/off/unqualified通过，但on首步梯度超差，仍保留原生。不能将一个模型的通过推广到其他模型或完整三级回退。最新实测见[P800报告](../../docs/P800接入与安全回退验证-20261029.md)。
+本case不启用env/v1中的GEMM兼容补丁，只使用镜像固化的FlagGems和FlagTree。历史三种单算子及DeepFM两个batch短训练均通过；Qwen0.6B原生/off/unqualified通过，但on首步梯度超差，仍保留原生。不能将一个模型的通过推广到其他模型或完整三级回退。历史见[10-29报告](../../docs/P800接入与安全回退验证-20261029.md)，本轮只重验DeepFM batch32与sigmoid。
 
 ## 复现
 
 | 前置项 | 要求 |
 |---|---|
 | 镜像 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`，ID `sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a`；宿主已缓存，不自动拉取 |
-| 公共材料 | runtime-team提交`71197e73d13021556de04ff04c42c89b3bfc8f73`的dev/lib、dev/images/kunlun-operator-runtime/v2、dev/device-context/prototype；使用独立checkout或该提交快照，不切换共享仓 |
+| 公共材料 | 当前runner使用runtime-team提交`a7e90e750fcf5a8b8adcd53858815c4d97cddac4`的dev/lib、dev/images/kunlun-operator-runtime/v2、dev/device-context/prototype；使用独立快照，不切换共享仓。10-29历史版本是71197e7，不能把新脚本标成旧实测 |
 | 设备 | 1张P800，`--device`指xpu-smi显示编号，启动前须0MiB、0%、无进程；按PCI地址匹配/sys/dev/char与实际/dev/xpuN后挂载，不能假设两个编号相同；容器内逻辑号0 |
 | 功能包 | 当前模型入口使用0.3.0.dev2候选wheel，新增schema 3模型审核；历史单算子与模型成绩使用dev1，不混称同一实测包。精确SHA和结果见日期报告 |
 | 宿主工具 | Python3、PyYAML、Docker Compose v2及当前用户的Docker使用权限；不自动改用户组 |

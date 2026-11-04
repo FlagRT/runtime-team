@@ -1,0 +1,15 @@
+{
+  "review_date": "2026-11-04",
+  "reviewer": "Codex execution agent; explicit inspection, not automatic approval or operator-team sign-off",
+  "scope": "Experimental public device-context causal-LM entry on 11 / official 910C image; Qwen3-Embedding-0.6B loaded with AutoModelForCausalLM, FP32, batch1 seq32, three AdamW steps, two local ranks, SiLU only",
+  "public_commit": "719de8cbaea75691b38ad87d6706a949e045b892",
+  "entry_sha256": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+  "wheel_sha256": "191887c6418a3ec09a03b4160778bdbadb11262d8b70473cd096e08ddb0e57ca",
+  "qualification_archive_sha256": "02533a9b5aba95e533c40bb8da2be22f286eba0fca07a64e338df1326af984ff",
+  "qualification_runs": ["qual-native-11-1104-01", "qual-repeat-11-1104-01", "qual-candidate-11-1104-01"],
+  "raw_evidence": "../../../docs/evidence-public-entry-20261104/qualification",
+  "native_repeat": {"items_per_rank": 1863, "ranks": 2, "max_abs_diff": 0, "all_passed": true},
+  "candidate": {"items_per_rank": 1863, "ranks": 2, "max_abs_diff": 9.5367431640625e-7, "atol": 1e-5, "rtol": 1e-4, "all_passed": true, "forward_hits_per_rank": 84, "backward_hits_per_rank": 84, "optimizer_steps_per_rank": 3},
+  "inspection": ["Identical measured workload on both ranks and all three runs", "310 parameter gradients after synchronization/clipping and 310 updated parameters plus loss per step", "Both upstream verdicts PASS 6/6", "Step guards completed three steps and restored hooks", "Target dispatcher restoration enforced by adapter; no native retry", "Operator qualification independently retained; model review cannot override it"],
+  "limitations": ["Synthetic token input; no business quality/performance claim", "No optimizer-state tensor comparison", "No long training, other input bounds, other models, training-v3 image or XPU dualrank approval", "Read-only model/runtime/adapter inputs required; hashes are not signatures", "Test-only qualification instrumentation is separate from normal schema-3 CLI"]
+}

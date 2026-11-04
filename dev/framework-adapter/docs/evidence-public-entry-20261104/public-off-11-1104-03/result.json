@@ -1,0 +1,58 @@
+{
+  "status": "pass",
+  "mode": "off",
+  "ranks": [
+    {
+      "rank": 0,
+      "loss_curve": [
+        17.06,
+        16.3875,
+        14.4921
+      ],
+      "counts": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled",
+          "count": 84
+        }
+      ],
+      "kernel_hits": {},
+      "upstream_verdict": "TRAIN_LEG_PASS",
+      "workload": {
+        "model_id": "AutoModelForCausalLM:qwen3",
+        "phase": "train",
+        "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+        "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+        "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+      }
+    },
+    {
+      "rank": 1,
+      "loss_curve": [
+        17.06,
+        16.3875,
+        14.4921
+      ],
+      "counts": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled",
+          "count": 84
+        }
+      ],
+      "kernel_hits": {},
+      "upstream_verdict": "TRAIN_LEG_PASS",
+      "workload": {
+        "model_id": "AutoModelForCausalLM:qwen3",
+        "phase": "train",
+        "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+        "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+        "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+      }
+    }
+  ]
+}

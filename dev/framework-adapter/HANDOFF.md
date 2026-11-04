@@ -1,128 +1,131 @@
-# framework-adapter · 开发交接
+# framework-adapter 复现与运行交接
 
-更新：2026-10-28。当前成果/目标只看[STATUS](STATUS.md)，协作流程看[规则](/Users/empty/PhD/Workspace/DomesticRuntime/协作/协作与交接.md)。
+更新：2026-11-04。先看[当前状态](STATUS.md)；本页只列操作路径、环境身份与恢复注意事项。
+逐次命令、完整SHA及旧运行记录见[运行交接详录](docs/archive/session-20261103/运行交接详录-截至20261102.md)和各日期报告。旧路径只用于定位，资源、权限、文件存在性执行前重查。
 
 ## 接管前
 
-发布提交：功能仓85a9896537a7d88f758d36ae20465e19470985e2；协调仓代码/证据快照8963353653ff8610d44b1f6a89be43ea680b77cf（个人分支，当前文件是其后续文档更新）。周报固定链接见STATUS顶部。不要将准备阶段旧HEAD/未发布字样继续当作最新事实；本轮未合并dev-1.0。
+1. 读[协作规则](/Users/empty/PhD/Workspace/DomesticRuntime/协作/协作与交接.md)与[登记](/Users/empty/PhD/Workspace/DomesticRuntime/协作/会话登记.md)，确认旧执行者已停止。
+2. 两仓分别核cwd、分支、HEAD及dirty；保留既有本地整理。dev2现已固定源码提交，按package.lock.json重建，不再依赖未提交功能代码。
+3. 功能代码在独立framework-adapter仓；协调仓只维护本方向测试、环境与材料。
+4. 11-03迁移已完成并取得回执，下文PID仅为历史记录，不再发送停止信号或重复迁移。10-29资源释放是历史观察，不是现在的资源保证。
 
-10-28源码候选交付入口：[交付记录](docs/候选交付记录-20261028.md)。功能commit=85a9896537a7d88f758d36ae20465e19470985e2，锁定版本0.3.0.dev0，提交后构建Project/outputs/framework-package/20261028-publish通过，69项包测试+30项集成控制、9文件与NPU包一致。本轮不连接服务器；协调仓只提交个人分支，不合并dev-1.0。双rank代码保留为联调参考，正式任务级容错需另对齐责任。下方准备阶段“待授权/未提交/旧锁”等已被本条替代；后续接管仍用git核远端状态。
+## 本地路径
 
-10-28 18:27 P800补记：SSH/sudo/Docker已只读核实可用；cgu135属sudo组，不属docker组，使用sudo即可，本轮未改组。8卡均有进程，卡1占72MiB且0%不是无人使用；驱动5.0.21.47。昆仑芯v2本机镜像ID cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a，仍需与公共baseline核对。根盘余6.5GB、/data2余3.2TB；未创建个人目录/容器或安装，未进入他人容器。SSH22839退出。历史“P800权限挂起”已过时，现阻塞转为选卡/环境准入，未验证本方向算子。
+| 材料 | 绝对位置 |
+|---|---|
+| 功能代码与构建 | /Users/empty/PhD/Workspace/DomesticRuntime/framework-adapter |
+| 集成case与报告 | /Users/empty/PhD/Workspace/DomesticRuntime/runtime-team/dev/framework-adapter |
+| 实验原始备份 | /Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs |
+| 安装包与构建记录 | /Users/empty/PhD/Project/DomesticRuntime/outputs/framework-package |
+| 人可读的产物目录 | [运行与构建产物索引](/Users/empty/PhD/Project/DomesticRuntime/outputs/README.md) |
+| 计划与分工 | [执行计划](/Users/empty/PhD/Workspace/DomesticRuntime/协作/执行计划.md) |
 
-10-28发布准备已收尾：先读[候选清单](docs/候选发布准备-20261028.md)。功能仓新增RELEASE、修正文档测试数和范围，build_local源码包携带发布说明；运行时未改。Project/outputs/framework-package/20261028-release-prep构建PASS、69项包测试+30项协调仓控制通过，9个包源码文件与ea060217…NPU产物一致，新wheel哈希0f3089fe…。仓内summary.json提供可发布精简证据。未创建Git提交/标签、未推送/改锁/占卡；两仓dirty仍须保留。下一次发布须获授权，用真实功能仓提交SHA更新协调仓锁，不能拿main旧HEAD代表候选。
+这些是本地路径，不放进对外交付包。正式报告引用仓内相对链接或固定Git提交。
 
-最新10-28后续已收尾，可接管：独立包step_guard.py及train_cli.py已实现单机两rank更新前门控；最终安装包CPU69项、协调仓8+6项通过。27物理0/1正常各3步、故障两组均双方0次optimizer调用，三组PASS，详见[步骤门控报告](docs/双rank步骤门控验证-20261028.md)。最终wheel在Project/outputs/framework-package/20261028-step-guard-03，SHA ea060217…；不要用初版02（正常回归暴露包装问题）。证据Project/outputs/framework-runs/20261028-step-guard/evidence，归档7a767f62…两端一致；远端/home/cgu135/framework-step-guard-20261028。4本人guard容器均停/OOMfalse/Pid0，SSH95275/31415及SCP12440退出，无后台任务。两仓dirty保留、未提交推送；package.lock仍发布版。下一步对齐device-context步骤边界，更新放行后失败仍需恢复协议。下方为历史同日修补前FAIL，不是当前三组结果；原失败证据不可删。
+## 11-02旧P800到期与迁移待办
 
-10-28已收尾可接管：27 RAID和官方镜像恢复可用；0/5失败有udevid5 namespace冲突日志，0/1原生检查和双rank各3步通过。故障两组均在对端进入optimizer后终止，严格FAIL，勿写“联动通过”或“权重确定已更新”。报告[1028](docs/双rank失败联动验证-20261028.md)，本地outputs/framework-runs/20261028-rank-failure含全部轻量结果/源码，归档8dd9c472…；远端/home/cgu135/framework-rank-failure-20261028。run.sh control 1 02 / forward 1 01 / backward 1 01已执行，新输出编号才能重跑。7本人容器均停/OOMfalse/Pid0，SSH92557/81422和SCP均退出，无后台任务。功能包未改，所有旧dirty保留，未提交推送。下一步先设计训练步更新前全rank确认及独立故障通知，与device-context对齐后在独立包实现。不要再次盲跑0/5，也不要把10-24的11初始化失败根因直接套用；资源使用前仍重核。
+总组通知旧机43.180.254.67:26008于2026-11-07清理；新机81.70.153.29:26008、152.136.33.169:26008。账号cgu135，认证材料按需读取，不抄入报告。早前核验权限不足，用户随后通知sudo开通并要求重试；以下保留早前检查背景，下午实况以“权限恢复与后台迁移”为准。
 
-10-24双rank测试已收尾可接管：新增rank_failure_worker/test_rank_failure_npu及7项CPU判定，case6项通过；功能包未改。11正常对照双rank初始化资源忙，故障组未运行，不能按已通过续报。见[报告](docs/双rank失败联动验证-20261024.md)。本地outputs/framework-runs/20261024-rank-failure含完整命令、初次源码和轻量证据，SHA f6cbd639…；远端/home/cgu135/framework-rank-failure-20261024。容器cgu135-unary-rank-control-01停止/OOMfalse/Pid0，SSH67299/82393及传输均结束。源码快照后本地只增强判定器错误信息，重做CPU7项，未NPU重跑。下一步重新核两个设备可初始化，再control/forward/backward；输出用新编号。数值失败只记录，不改算子，不推送。
+### 11-03迁移前核验
 
-多步续跑已收尾，可接管：SSH68033/52027及旧断线会话均结束，9容器Running=false/OOMfalse/Pid0，docker ps为空。11输出/mnt/raid/cgu135/framework-multistep-20261023，源码及配置/home/cgu135/framework-multistep-20261023。seq16四路模型3步PASS（on外层清理ERROR保留，已人工停）；seq32原生/关闭/缺资格3步PASS，开启首步梯度FAIL、0更新。不要重复硬跑或改内核/容差。全部轻量结果本地Project/outputs/framework-runs/20261023-multistep/all-results，归档SHA6b2afda4…；188GiB原生张量仅11大盘。records-s32.json是历史实验准入，不作当前放行；本地records-denied-s32.json引用失败证据并已CPU验证拒绝。下一步对齐数值准入/模型范围，或独立推进双rank失败联动；发布另授权。不要覆盖单步目录、不要动27。
+本节为当日权限开通前检查，拒绝结果已被下午复核替代；不是当前权限结论。
 
-最新OneRec已收尾：11 `/home/cgu135/framework-onerec-20261023`保留完整权重、原生32GB梯度/参数快照及六组PASS；五轨迹各单步，四组各799张量对照最大差0，开启36前向+36反向。精确wheel沿用c5b9796…，新增test_onerec_adapter_npu.py和官方case onerec/onerec-qualification阶段，未改独立包/内核。详见10-23报告OneRec节。轻量归档备份Project/outputs/framework-runs/20261023-onerec，SHA9191be68…；完整模型/32GB张量仅在11独立/home，不宣称本地全量备份。6容器停止/OOMfalse/Pid0，SSH75077/26870/35138及传输均结束。首个同名容器预检ERROR保留，未覆盖旧对象。
-
-27计划15点重构/mnt/raid：本人该盘1.3MB旧仓已完整归档到独立/home并取回本地，SHA8843b829…；近期实验挂载在/home，Docker镜像/可写层仍受影响。本人27容器已停，本轮没在27新增实验。备份范围见本地onerec/raid-backup.md，不代表其他人数据安全。不要在维护窗口使用27。
-
-同日后续DeepFM已收尾：公共1d39898模型不改架构，11官方镜像最终c5b9796… wheel；6组单算子通过，原生/关闭/缺资格18步及原生重复6步一致；两batch开启首步Adam参数验收FAIL，保持原生。详见10-23报告DeepFM节。新增test_deepfm_adapter_npu.py及官方case两stage，功能包本轮未再改。
-
-原始证据11 `/home/cgu135/framework-deepfm-20261023`，本地Project/outputs/framework-runs/20261023-deepfm/11-results；两端归档哈希62fb35f8…一致。source-capture保存失败张量；review为历史实验资格，不是模型准入，本地records-final.json为空。四个本人容器均停止，最后本人前缀docker ps为空，SSH2640/16361及SCP已退出。27后续RAID已挂载但官方镜像overlay路径缺失，不能照先前环境描述启动；未修共享Docker。两仓未提交/推送、OneDrive未动。
-
-10-23实施已完成并收尾。当前先读[报告](docs/环境准入与算子扩展验证-20261023.md)和[证据摘要](docs/evidence-expansion-20261023/README.md)，不要重做本轮9组算子/24步小模型/0.6B回归。功能包0.3.0.dev0在独立仓main上未提交；协调仓个人分支未提交baseline/demo、探针、报告和状态。已发布HEAD仍为新仓1befe4d、协调仓a31e559，package.lock锁已发布0.2.0，未合并/推送/写OneDrive。
-
-### 本轮代码与精确产物
-
-- 功能代码：Workspace/framework-adapter/src/flagrt_adapter，新增startup.py、严格准入与tanh，修改配置/桥接/训练入口；新增2组CPU测试文件及strict配置。57项安装包CPU控制通过；协调仓case另17项通过。
-- 最终实测包：Project/outputs/framework-package/20261023-final/wheels/flagrt_framework_adapter-0.3.0.dev0-py3-none-any.whl，SHA c5b9796c2db41320092d10bcc3e8d82228693acd89f3863e95a2f70ae8b295d1。20261023-rebuild是独立源码重建；20261023-expansion是较早56项版本，不要混称最终版。8个包文件已核与当前源码完全一致。
-- 集成测试：本方向cases/ascend-official-unary新增expanded-qualification、expanded-models、model-failures、sdpa-candidate；cases/ascend-train-v3/assets/run_startup.py为v3启动准入单入口。当前报告/Issue在仓内仅本地，不能用旧发布URL声称本轮已上线。
-
-### 本轮环境与结果（已结束，不是资源预约）
-
-- 27 SSH及Docker正常；/mnt/raid/docker当时实际落在根分区，非独立RAID挂载，根盘约45GB余量；未迁移存储。使用官方image 2e56022ae5b3…、物理0→逻辑0，实际Triton模块3.2.0/发行triton-ascend3.2.1。
-- 27源快照/结果：/home/cgu135/framework-expansion-20261023。source-candidate为最终功能探针快照，source-final为较早快照；FlagOS-OP固定79b1b1a只读。模型/FlagGems沿用本人历史已核目录，不是共享/model。运行参数见各summary/runner.log、case README，勿手工补猜命令。
-- 11使用精确训练v3 e13a15d0d02b…、物理0→逻辑0，安装最终wheel。/home/cgu135/framework-startup-result-20261023-01保留off/degrade/strict结果；/home/cgu135/framework-startup-20261023保留本轮源码。sudo Docker包装需本人认证，凭证不写记录。
-- 本地备份：Project/outputs/framework-runs/20261023-expansion/27-results与framework-startup-result-20261023-01。27归档排除installed/cache，两端哈希一致；原始失败/控制结果均保留。无卡环境审计JSON及最终CPU SDPA复现另放同根。
-- 27本轮8个本人容器均停止；11本轮3个本人容器已核Running=false/OOMKilled=false/Pid=0；SSH93566、72135已退出。本轮无后台任务，未创建goal。下一次执行仍须实时重核资源。
-
-### 下一条动作
-
-按STATUS推进：OneRec多步/第二形状已完成有界验证，seq32失败保持不准入；先对齐与DeepFM的数值判据或推进公共双rank失败联动，不改内核。SDPA稳定接口仍待确认。shmem未修复，P800/PPU暂挂；发布需新授权和真实commit/锁更新。27维护后需重核镜像，不能沿用旧容器状态。
-
-## 历史接管记录（以下“最新/未推送”等只指对应日期）
-
-10-21会议纪要已读取（Workspace/周会纪要/*1021.txt，元宝摘要非逐字稿），行动项见STATUS：优先可用镜像，补v3版本/路径差异与迁移成本；FlagOP需继续到实际代码而不仅文档，核对注册/原生退路/训练支持。A1与vllm-ascend兼容为跨组待核项，未实施。保持总组统一发镜像，不据纪要自动推送合并。本轮仅更新本地记录，无新增实验。
-
-10-21只读核对：origin/dev-1.0=72411ea、origin/kistich/device-context=17d8b90，未merge；设备prototype与2926d1c一致。新增文件为设备目录910C/docs/INFERENCE_VLLM_ADAPTER_CHOICE_20261020.md及STORAGE_MIGRATION_20261021.md。27 Docker位于待重建RAID这一信息来自后者，尚未实机核验，勿复用旧“镜像存在”的结论。FlagOP HEAD79b1b1a，贡献规范读取成功，具体catalog读取失败；后续优先确认训练支持条件、原生回退入口、注册生命周期。详细分析在STATUS的10-21节；本轮无新服务器任务或发布。
-
-10-20拆仓：包开发转到Workspace/framework-adapter（FlagRT/framework-adapter）；runtime-team保留测试/文档/环境。当前package.lock.json锁定93daa5e；源码/bootstrap已拆除，先在新仓构建安装再跑协调仓测试。官方case所有stage显式--wheel，训练v3 case未做拆仓后的硬件验收。最新跨仓58项控制通过，新旧包payload7文件一致。不要按下方旧日期指令在runtime-team里寻找src/build_local。
-
-最新安装包实测：27 /home/cgu135/framework-wheel-20261020下wheel-off-01、wheel-on-01、wheel-unqualified-01全部PASS，三容器停止、SSH退出。容器不挂/code，实际从/results/installed加载0.2.0；wheel SHA b3f1fffe6e16b75b4b6736dc6186dc8e80fbcd8fc0b2325d9d502978336ddde7。本地完整备份Project/outputs/framework-runs/20261020-wheel；1020报告末节含复现参数。case新增--wheel支持，不改镜像依赖。已完成安装方式三路，不需要再测同一组合；未推送。
-
-同日包收口：训练逻辑移入src/flagrt_adapter/train_cli.py，旧tools脚本保留兼容。Project/outputs/framework-package/20261020-training-delivery是最终交付；20261020-training-entry是中间版，20261020-training-rebuild是独立重建证据。41项安装包CPU测试与后续独立NPU证据分开；未提交/推送。
-
-10-20最新：上游训练入口配置集成三组全部PASS，详细见[报告](docs/训练入口配置接入验证-20261020.md)。27 /home/cgu135/framework-training-config-20261020保存source/upstream/records及off-01(ERROR)、off-02/on-01/unqualified-01(PASS)；四容器已停。实际设备0/5，模型和Gems沿用只读历史目录；不能将此次旧官方成功写成训练v3通过。新增tools/train_with_adapter.py、src配置/训练模块、demo/training-configs，未提交推送。本地备份Project/outputs/framework-runs/20261020-training-config。接管不重跑已完成三组，先看授权和当前资源。
-
-最新增量：官方环境统一入口在cases/ascend-official-unary，宿主27 /home/cgu135/framework-demo-20261018；工具隔离在tools，源码source，公共工具public。qual-01、model-01(FAIL)、native-repeat-01(FAIL)、model-deterministic-01(PASS)、unary-01(PASS)全部已结束，容器已停，SSH退出。本地完整备份Project/outputs/framework-runs/20261018-sigmoid，含初版及修改版源码快照。看1018报告末节再续接，不把失败目录删掉。
-
-小模型复现必须使用--deterministic，判据不变。demo/env.baseline.yaml是已执行样本，实际运行由runner重新生成独立demo；不要直接启动带SET_BY_RUNNER的模板。qwen选项本轮未以新入口重跑，不把旧0.6B结果计成新demo全阶段验收。
-
-1. 确认旧执行会话已停止，读取[会话登记](/Users/empty/PhD/Workspace/DomesticRuntime/协作/会话登记.md)。
-2. git status --short、git branch --show-current，保留所有未提交改动。
-3. 不自动切分支、merge、push或创建worktree；尤其不能用HEAD覆盖10-16未提交case。
-4. 本地控制优先。硬件任务先核主机授权、空闲设备、容器归属、镜像身份和容量。
-5. 代码/数据/环境身份必须对应报告。旧绝对路径只用于查找，不保证仍存在。
-
-## 环境登记（检查日期不是资源预约）
-
-最新10-18：11/27均可SSH，选择27旧官方镜像完成SiLU/sigmoid及0.6B回归。本人容器cgu135-framework-hw-20261018已停止、OOMKilled=false，SSH已退出。宿主/home/cgu135/framework-hardware-20261018保留source/results；本地备份Project/outputs/framework-runs/20261018-npu。27驱动26.1.1，具体身份、命令、哈希见[实测报告](docs/910C公共适配器实测-20261018.md)。下表旧条目仅用于历史定位。
-
-| 环境 | 最近实查与限制 | 持久位置 |
+| 主机 | 登录及权限 | 存储 |
 |---|---|---|
-| 910C 11：10.120.72.11 | 10-16 cgu135可SSH、sudo操作Docker；精确训练v3镜像e13a15d0d02b…；本人单物理2→容器逻辑0，结束已停止 | /home/cgu135/framework-v3-20261016 |
-| 910C 27：10.120.72.27 | 10-14旧官方环境实测通过；10-16只读复制本人模型。用户反馈盘维修，优先不用；同源训练镜像7028028bb62c…不等于锁定e13a | /home/cgu135/framework-adapter-910c/acceptance-20260916 |
-| P800：43.180.254.67:26008 | 10-28 SSH/sudo/Docker已可用；8卡各96GiB均有进程。根盘余6.5GB，/data2余3.2TB | 本方向尚无确认的容器/数据目录；见本页顶部权限复核 |
-| 本地CPU | 既有tablerag Python，torch2.12.0；只用于控制测试 | /opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python |
+| 旧43.180.254.67，VM-0-2-ubuntu | SSH成功，uid1018/gid1019，仍在sudo组；本人五个目录均在 | /data2约2.3T可用；三批tensors合计6123文件、129303099624字节（120.423GiB） |
+| 新81.70.153.29，VM-20-4-ubuntu | SSH成功；密码认证后的sudo -l明确拒绝，Docker socket拒绝；uid1018/gid1019 | /data2约5.1T可用，/data1约5.8T；均不可写，无/data1/cgu135或/data2/cgu135；根盘约20G余量 |
+| 新152.136.33.169，VM-20-14-ubuntu | SSH成功；密码认证后的sudo -l明确拒绝，Docker socket拒绝；uid1018/gid1019 | /data2约5.2T可用，/data1约5.8T；均不可写，无/data1/cgu135或/data2/cgu135；根盘约20G余量 |
 
-其他主机不自动沿用旧五机授权；用户10-16允许11/27空卡使用，不授权进入他人容器。P800权限不能沿用910C的sudo假设。凭证不写入这些文件。
+两台新机都有rsync和xpu-smi命令，但未运行算子、未核Docker镜像或占卡状态；命令存在不等于环境验收。最小解除条件是在一台新机创建本人可写的/data2/cgu135；数据复制本身不要求Docker。后续容器实验另需sudo或Docker权限。
 
-## 11新基座复现
+检查命令：hostname、id、df -h、ls -ld、command -v rsync/xpu-smi、sudo -l、docker info、test -w。三批tensors用find统计文件数与字节；这不是SHA校验或数据内容完整性验收。旧机du显示约14G/14G/94G；若干本人实验的tmp/xpujitc-temp子目录由容器创建、普通账号不可读，后续迁移明确排除可再生编译临时目录或用旧机既有权限处理，不删除、不把du警告说成数据丢失。
 
-- 宿主目录内repo是本人代码快照、public为公共74197bf工具导出、tools为个人Compose/PyYAML；不改全局包。
-- tools/docker包装使用sudo，认证可能过期；Compose2.29.7配置位于config/。宿主PYTHONPATH只加tools，不注入容器。
-- 本人容器cgu135-framework-adapter-train-v3；模型只读挂/case-model，代码只读挂/case-workspace，结果挂/case-output。
-- 正式入口为[case README](cases/ascend-train-v3/README.md)，prepare生成baseline，up.sh --strict会真正启动容器，不是只读检查。
-- 物理设备号由FLAGRT_DEVICE及--device传入；入口验证单卡映射，容器内部使用逻辑0，不直接使用物理2。
-- 模型：model/model-verified-20261014；model.safetensors SHA256为0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd。
-- 锁定runtime提交0c59b9549d45d55b959294869f605a30dc3789c9，由run.py导出，不直接用本地个人分支旧子树。
-- 完整结果：results/20261016T063504772692Z；初次预检错误在20261016T063302816232Z。summary=FAIL，fallback=PASS，operators=FAIL，model未执行。
-- 本地/tmp/framework-v3-20261016-1uTFbb只是缓存，可能消失；重建方法见case，不把软链复制成独立交付包。
-- 7份结果JSON/log另有[本地持久备份](/Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs/20261016-v3-063504/README.md)，10-18复制核哈希一致，不是新增实测。
-- 当前缺shmem尚未解决，不反复重跑同一失败路径。退出已停止容器、SSH已退出；完整日志留宿主。
+旧机共享OneRec/Qwen权重路径存在，但未核完整权重哈希。两个新主机首连记录了SSH主机key，本轮未改服务器权限。三条控制socket均以ssh -O exit退出，返回0；无后台迁移。本地磁盘约521GiB可用，但按用户决定不启动大文件下载。
 
-## 旧环境与证据
+| 本人旧机资产 | 位置 | 已有本地备份 |
+|---|---|---|
+| OneRec原生对照约94GiB | /data2/cgu135/framework-onerec-xpu-20261029/onerec-native-01/tensors | 只有轻量结果，未全量备份 |
+| Qwen原生对照约14GiB | /data2/cgu135/framework-qwen-xpu-20261029/qwen-native-01/tensors | 只有轻量结果，未全量备份 |
+| 模型审核Qwen对照约14GiB | /data2/cgu135/framework-workload-xpu-20261029/workload-qwen-native-01/tensors | 只有轻量结果，未全量备份 |
+| 源码、wheel、审核与日志 | /data2/cgu135/下framework-xpu-20261029、framework-qwen-xpu-20261029、framework-extensions-xpu-20261029、framework-workload-xpu-20261029、framework-onerec-xpu-20261029 | 五批轻量归档在本地；DeepFM原生张量也在本地 |
 
-旧官方镜像及10-14运行命令见[1014报告](docs/910C-v03推理与训练验证-20261014.md)。
-本人27目录内model-verified-20261014才是核验过的源权重；旧共享/model实测含非有限值，不可复用。微调检查点不是源模型。复用前重新核哈希和有限性。
+OneRec共享权重在/data1/chenyuanxin/models/OneRec-8B，Qwen共享缓存在/data1/dinghaisong/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B。先确认总组迁移安排，不移动/删除他人材料；本方向对照张量与可重新下载的模型权重不是一回事。
 
-## 本地测试
+执行顺序：重核源文件与目标容量/归属 → 选择本人持久目录 → 复制必要资产 → 比较逐文件SHA与文件数 → 记录新路径 → 保留旧副本至确认。建议11月6日前完成。下午已获用户继续授权并启动复制，未搬动公共模型。
 
-最终10-18交付：Project/outputs/framework-package/20261018-delivery，35项安装包测试及CPU demo PASS；case11项另行通过，总46项。最终安装包测试含5种拒绝路径0目标调用，以及known_compile_failure覆盖。最终源码、命令、依赖、wheel SHA详见该目录local.baseline.json。资格边界见docs/资格验证与审核流程.md。本轮已完成本地目标；接管后不要重做打包，先按用户下一任务决定是否做新环境资格/硬件扩展。
+镜像优先用总组新机基座。P800历史docker save曾生成无效小包，export/import会涉及新镜像身份，不直接复制Docker根目录或把停机容器当备份。详见[公共归档说明](https://github.com/FlagRT/runtime-team/blob/71197e73d13021556de04ff04c42c89b3bfc8f73/dev/images/kunlun-operator-runtime/v2/ARCHIVE.md)。
 
-上述本地构建之后，10-18另完成真实硬件任务，见本页顶部实测报告；该任务容器已停止，无本会话遗留测试进程。服务器实时状态仍需重查，不能由此推断别的会话没占卡。下方本地测试最终口径为46，不与硬件用例混计。
+### 11-03权限恢复与后台迁移
 
-安装包单入口：在方向目录用既有Python执行`tools/build_local.py --output <不存在的绝对目录>`。源码阶段的中间结果与最终证据映射见[公共包记录](docs/公共适配包开发记录-20261018.md)。
+完成回执：17:06:47复制结束，17:08:08逐文件SHA和计数通过，runner.result为exit_code=0。20:13复核旧机898744/898771均已不在进程表，并从152机直接取回[verification.txt](/Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs/20261103-p800-migration/verification.txt)，与源manifest SHA一致。以下启动/PID/停止说明是本次复现记录，不表示任务仍运行。
 
-公共实现位于src/flagrt_adapter，历史probes入口只做兼容导入；case源码哈希已包含src，不能只部署probes。启动器--admission-records缺合格记录返回BLOCKED（宿主退出3），不会作为PASS。不能从actual直接生成passed。旧报告/证据原样保留。
+15:22—15:31复核：81与152均通过密码认证的sudo -l，允许ALL。152的sudo docker info通过，Docker 29.1.3、根目录/data2/docker，现有v2镜像ID cac5ddae5f62（tag：2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64）；没有启动容器，尚未核env/v1补丁或新模型资格。81本轮只确认sudo，不把152的Docker结果算给81。
 
-从当前代码仓根运行（其他agent可用等价已有Python环境，不默认安装）：
+- 新建本人目录：152机/data2/cgu135，cgu135所有，0750；/data2约5.1T余量。目的根目录为/data2/cgu135/migrations/from-43.180.254.67-20261103，初始不存在，未覆盖旧材料。
+- 源：旧机/data2/cgu135下上表五个framework-*-20261029目录。排除可再生tmp/编译临时目录；9395常规文件、129387717740字节，未发现其余不可读常规文件或符号链接。源SHA清单于15:27完成。
+- 旧机审计目录：/data2/cgu135/migration-audit-20261103；source.sha256的SHA256为27caf143978c199008a2ef14bb7d08b91bc2ee7a936e98cd5836482d4cf92992。该清单已保存本地；它证明源身份，不证明目标已复制。
+- 执行脚本：[migrate_and_verify.sh](/Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs/20261103-p800-migration/migrate_and_verify.sh)，旧机同名脚本在审计目录。rsync -a --no-owner --no-group --exclude=tmp/ --partial --stats --bwlimit=102400 --timeout=120，不使用--delete。经新机公网26008传输；私网22单次尝试不通。
+- 原前台rsync已由本人SIGINT结束（退出20），为切后台的预期暂停；已传文件保留。15:31启动nohup + setsid后台续传：旧机脚本PID/进程组898744，rsync子进程898771（PID随任务退出失效，操作前核身份）。不占卡，不删除源文件。
+- 输出：旧机审计目录runner.log、rsync-resume.log、runner.result。runner.result尚未出现表示仍运行或异常失联，必须同时核进程；exit_code=0且runner.log出现VERIFIED才可认定脚本完成。目标migration-audit/verification.txt还应包含9395文件、129387717740字节和上述manifest SHA；脚本逐文件sha256sum --quiet -c及计数均通过才写该回执。
+- 远端传输控制socket在旧机/tmp/cgu135-migration-target-20261103.sock；任务结束前不要关闭。后台不依赖本机SSH连接；不会自动通知或更新STATUS。检查完成后取回回执，再更新STATUS和登记。
+- 必须停止时，先核旧机ps -p 898744 -o user,pid,pgid,args与pgrep -P 898744，确认仍是上述本人脚本，再对该专用进程组发送TERM（kill -TERM -- -898744）；保留partial以便续传。不要对全部rsync、ssh或其他用户进程发信号。若需重试，先核失败原因及既有runner.result，使用新运行回执名，不覆盖失败记录。
 
-```bash
-/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python -B -m unittest discover -s dev/framework-adapter/probes -p test_silu_policy.py -v
-/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python -B -m unittest discover -s dev/framework-adapter/probes -p test_silu_training_adapter.py -v
-/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python -B -m unittest discover -s dev/framework-adapter/probes -p test_admission_records.py -v
-/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python -B -m unittest discover -s dev/framework-adapter/probes -p test_multi_operator.py -v
-/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python -B -m unittest discover -s dev/framework-adapter/cases/ascend-train-v3/assets -p test_runner.py -v
-```
+本地轻量审计目录：[20261103-p800-migration](/Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs/20261103-p800-migration/)，含source.sha256、runner.result、runner.log、verification.txt和执行脚本。五个源目录名在152目的根下保持不变，旧副本保留。数据迁移不等于环境复建或模型验收；共享权重和Docker根目录未迁移。完成后不需继续依赖传输socket，不凭历史PID操作进程。
 
-以上是控制测试，不证明FlagGems内核通过。收尾记录命令/返回码/结果位置、源码版本和未提交差异；只有实际结束才标完成。
-历史路径映射和全过程见[整理前HANDOFF](docs/archive/session-20261018/HANDOFF.md)，按需查，不作为当前环境保证。
+## 各平台的复现入口
+
+### 11-04新152机三路回归
+
+本轮已完成并停止，不是后台待续任务。详细判据见[新机报告](docs/P800新机三路回归-20261104.md)。只验v2/GEMM关闭的DeepFM FP32 batch32三步，没验GEMM opt-in。
+
+- 服务器目录：152.136.33.169:/data2/cgu135/framework-regression-20261104，已归本人cgu135所有；input/为冻结公共快照、case、review和wheel，结果目录为inspect-01、sigmoid-qual-01、deepfm-{native,native_repeat,off,on,unknown}-01。
+- 本地完整入口：[20261104-p800-regression](/Users/empty/PhD/Project/DomesticRuntime/outputs/framework-runs/20261104-p800-regression/)，含prepare_inputs.py、host_check.py、run_regression.py、collect_evidence.py、verify_local_evidence.py。prepare_inputs为当前轮冻结脚本，运行会拒绝已存在的input；不要覆盖本轮。
+- 命令：在本人新建目录用python3 input/assets/run.py，传--public-root该轮input/public、--wheel该轮dev2 wheel、--device选定SMI号；先--stage inspect，再--stage qualification --operator sigmoid，再--stage deepfm --mode native --model该快照dev/model-defs/deepfm/v1 --batch-size 32 --steps 3。取得有效原生后，以同一reference运行native_repeat/off/on/unknown，三路配置在input/review。完整命令保存在evidence/regression-sequence.json及逐轮summary.json。
+- run_regression.py先核新机原生、资格和既有审核环境/workload完全匹配，再执行四轮；不生成passed。移植到另一轮必须修改路径和设备并重核，不能把本轮SMI4当预约。
+- 资源：SMI4→PCI0000:84:00.0→/dev/xpu4→逻辑0；7个cgu135-xpu-对应结果目录容器均停止、Pid=0，卡4结束0MiB/0%。没有删除容器。交互shell已退出，sudo票据清除，本轮专用/tmp/cgu135-p800-20261104.sock已ssh -O exit关闭。
+- 备份：evidence.tar.gz（SHA 1da6cfd445f8f71762f2a0e695d622428264031f1b2293d5d4afa1f1f6bdd10c）已解到本地evidence/，103文件逐个SHA通过；native-reference.tar.gz（SHA a541ca5d5207e0f1414e4704bb3127ffa2efe693053392b057c38d54b88306b7）约17MiB含本轮完整原生张量。两份均保留服务器原件，不与10-29张量混用。
+- 本轮34项case CPU控制日志在cpu-controls.log；输入115文件SHA在input-manifest.json；当前runner相对发布版只改PUBLIC提交标注和source描述。功能包commit6ee9129未改；没有提交、推送或OneDrive写入。
+
+| 场景 | 入口 | 不能沿用的假设 |
+|---|---|---|
+| 910C旧官方成功环境 | [ascend-official-unary](cases/ascend-official-unary/README.md) | 不等于训练v3；11/27空闲和镜像存在性重查 |
+| 910C训练v3环境检查 | [ascend-train-v3](cases/ascend-train-v3/README.md) | up.sh --strict会创建/启动容器，不是只读；已有目标编译失败，不盲目重复 |
+| P800单算子及三模型 | [kunlun-unary](cases/kunlun-unary/README.md) | 10-29三模型证据及11-04新机DeepFM三路；均未启用gemm_compat，不覆盖补丁开启配置 |
+| 双rank训练配置 | [配置说明](demo/training-configs/README.md)、[10-28门控报告](docs/双rank步骤门控验证-20261028.md) | 仅固定入口；P800 schema3身份采集不自动覆盖此CLI |
+| 通用探针映射 | [tools说明](tools/README.md) | 以实际日期报告判定硬件成绩，不因有命令就算已测 |
+| 09-22历史推理 | [旧实验复现说明](docs/handoff/实验复现说明.md) | qwen_scoped_adapter是旧原型，不是现行包全功能入口 |
+
+P800选卡必须按SMI号 → PCI地址 → /dev/xpuN → 容器逻辑设备映射，不能按编号相同推断。上轮OneRec为SMI3→PCI0000:2e:00.0→/dev/xpu1→逻辑0，只是当次身份，不是后续预约。每次用新输出目录，不覆盖失败轨迹。
+
+## 安装包与证据身份
+
+11-03发布复现入口：独立仓6ee91294e7ab028f2e804225482f58d24c8ccd5a；协调仓依赖锁及[发布审查](docs/dev2发布审查-20261103.md)在本人分支f550a87。固定源码构建位于Project/outputs/framework-package/20261103-dev2-publish，独立重建位于20261103-dev2-rebuild，均含local.baseline.json、源码快照、wheel、安装副本及CPU日志。审查中间目录20261103-dev2-review不作为发布制品。原始构建清单含本机绝对路径，不上传公共仓。
+
+复核命令为报告中的audit.py；执行参数指向上述两个构建目录、独立仓、P800 case及下述历史wheel。两次构建的100项包CPU控制、34项case控制、3条证据SHA与10个运行时文件一致性已通过，不能将重复重建相加为200种用例或新硬件验收。精确新wheel SHA在package.lock.json及机器摘要，不替换下述历史SHA。
+
+10-29模型审核与OneRec实测使用0.3.0.dev2：
+- wheel目录：Project/outputs/framework-package/20261029-workload-01/wheels；SHA de5da93ab72d00456993f74baf98a2b9aeaf1cae0a21844d2423ba4462f83008。
+- 独立重建：20261029-workload-rebuild；SHA f6632f78178592238e294630e185ea05cd9f88e785254649e464549a2673d293。10个运行时文件与实测包一致，不能把两个wheel哈希混为一件制品。
+- 该版包CPU控制94项通过；OneRec case最终34项通过，均为历史测试，不记作11-03新测试。
+- [P800结构化证据](docs/evidence-p800-20261029/)含命令、审核及文件SHA；OneRec source-04和review-02为收尾输入。失败完整梯度并未全存，保留了差异样本，不能补称全量已备份。
+
+重建按独立仓[PACKAGE.md](/Users/empty/PhD/Workspace/DomesticRuntime/framework-adapter/PACKAGE.md)进行，输出使用不存在的绝对目录。当前曾用Python位于/opt/homebrew/Caskroom/miniconda/base/envs/tablerag/bin/python，使用前检查；不自动安装或替换厂商torch。
+
+## 11-04公共训练入口模型审核
+
+dev3固定源码40864f9，package.lock已对齐；发布重建与实测wheel的11个运行时文件一致，见docs/dev3发布审查-20261104.md。公共源码固定719de8c，入口/路径解析助手哈希见[报告](docs/公共训练入口模型审核接入-20261104.md)，两仓未改他人方向。
+
+- 本地原始材料：Project/outputs/framework-runs/20261104-public-entry。prepare.py/input是首轮冻结输入；qualification-input是追加独立资格探针后的第二份case快照，不覆盖初版。run_27.sh、run_11.sh、run_qualification_11.sh、run_on_11.sh记录实际命令；collect_qualification.py、collect_final.py用于原始取证/核验，不生成模型批准。
+- 构建：Project/outputs/framework-package/20261104-public-entry-dev3-01（109项，实测wheel191887c6…）及20261104-public-entry-dev3-rebuild（110项）；11个运行时Python文件一致。重建补CLI降级配置拒绝控制与说明，不把不同wheel归档SHA混为一个。
+- 11远端：/home/cgu135/framework-public-entry-20261104。三路为public-off-11-1104-03、public-unqualified-11-1104-01、public-on-11-1104-01。三个资格run为qual-native/repeat/candidate-11-1104-01；实际挂载2/3，逻辑0/1，结束已出现他人任务，需重新协调。
+- 正式入口仍为已安装wheel的`torchrun --nproc_per_node=2 --module flagrt_adapter.train_cli`；参数MAX_STEPS=3/BATCH=1/SEQ=32/LR=1e-5。正常开启使用review-public-20261104/on.json与精确审核，资格实验独立脚本不能当生产开关。
+- 11工具：sudo启动本人run脚本；tools/docker直接调用系统Docker并传私有DOCKER_CONFIG（本进程有root身份，不另套sudo丢失Compose变量）。GIT_CONFIG_GLOBAL只指向本任务git-safe.conf，信任本人固定Gems仓，不修改宿主全局Git配置。工具只含命令/路径，不含密码。
+- 大张量：11的qual-native-11-1104-01/train/tensors约27GB，两个rank共3726个loss/梯度/参数张量；仍保留在远端，未全量下载。重复/候选只读此参考，不再写.pt。宿主余约25GB，不启动另一份全量native保存；后续如需清理先做备份/校验并取得删除授权。
+- 27：同名任务目录下public-off-1104-01保留aclInit507899/Resource_Busy失败及基线，未进入训练。本人容器已停止。11的off-01为sudo问题，off-02为Compose环境传递问题，均保留，不能写成算法失败。
+- 轻量证据：qualification-evidence.tar.gz SHA02533a9b5aba95e533c40bb8da2be22f286eba0fca07a64e338df1326af984ff；final-11/27-evidence及evidence-manifest.json含最终取证。仓内[摘要](docs/evidence-public-entry-20261104/summary.json)记录归档与文件SHA；失败传输的空tar不是证据。
+- 资源：11七个本轮容器、27一个本轮容器均Running=false/Pid0/OOMKilled=false；不进入或停止其他人的容器。会话结束清除本人sudo票据并关闭两个SSH控制连接。是否已退出以会话登记为准。
+
+## 退出检查
+
+记录命令、退出码、结果/源码/环境身份，区分CPU控制、硬件通过、预期阻断和未运行。SSH退出与容器停止分别确认；使用中的主机、容器、PID、停止方式留在会话登记，凭证不写。

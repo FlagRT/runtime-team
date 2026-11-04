@@ -1,0 +1,54 @@
+{
+  "status": "pass",
+  "mode": "off",
+  "ranks": [
+    {
+      "rank": 0,
+      "loss_curve": [
+        17.06,
+        16.3875,
+        14.4921
+      ],
+      "counts": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled",
+          "count": 84
+        }
+      ],
+      "kernel_hits": {},
+      "upstream_verdict": "TRAIN_LEG_PASS"
+    },
+    {
+      "rank": 1,
+      "loss_curve": [
+        17.06,
+        16.3875,
+        14.4921
+      ],
+      "counts": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled",
+          "count": 84
+        }
+      ],
+      "kernel_hits": {},
+      "upstream_verdict": "TRAIN_LEG_PASS"
+    }
+  ],
+  "qualification": {
+    "0": {
+      "status": "PASS",
+      "tensors": 1863
+    },
+    "1": {
+      "status": "PASS",
+      "tensors": 1863
+    }
+  }
+}
