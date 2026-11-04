@@ -93,9 +93,8 @@ def run(args):
         raise ValueError('Require positive steps, nonnegative warmup and equal local batches >=2')
     if args.backend == 'kunlun' and args.collective != 'flagcx':
         raise ValueError('Kunlun training requires explicit FlagCX; HCCL is Ascend-only')
-    if args.collective == 'flagcx' and (args.backend not in ('ascend','kunlun') or args.comm_mode not in ('manual', 'fused', 'native')):
-        raise ValueError('This FlagCX model entry accepts accelerator manual/fused/native only; '
-                         'the observed hook is not enabled for this backend')
+    if args.collective == 'flagcx' and args.backend not in ('ascend','kunlun'):
+        raise ValueError('FlagCX requires an accelerator backend')
     shard_start, shard_stop = shard_bounds(args.global_batch, rank, world)
     torch.set_num_threads(1)
     runtime = None
@@ -216,6 +215,12 @@ def run(args):
                               'bn_note': 'local minibatch statistics; buffers need not match at exit; '
                                          'not equivalent to single-device train-mode BatchNorm'}
         result['training']['parameters_finite'] = bool(torch.isfinite(flat_parameters(model)).all().item())
+        if args.comm_mode=='observed':
+            # Locked PyTorch's diagnostic bucket metadata, not a fixed guess
+            # based on model size. Native default DDP remains unqualified.
+            logging=wrapped._get_ddp_logging_data()
+            sizes=logging.get('rebuilt_bucket_sizes') or logging.get('bucket_sizes')
+            result['training']['ddp_bucket_sizes_bytes']=[int(v.strip()) for v in sizes.split(',')]
         if not result['training']['parameters_finite'] or spread > 1e-6:
             raise AssertionError('Parameters non-finite or different across ranks')
         if runtime:

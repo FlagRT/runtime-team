@@ -85,6 +85,8 @@ def observed_mean_hook(group, bucket):
     tensor = bucket.buffer()
     start = time.perf_counter()
     try:
+        # Complete bucket production before the vendor collective consumes it.
+        group.synchronize()
         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
         tensor.div_(group.world_size)
         group.synchronize()
