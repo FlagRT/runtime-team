@@ -1,6 +1,6 @@
 # FlagScheduler（调度方向）进展
 
-更新日期：2026-11-04
+更新日期：2026-11-04（含 GPU 组批策略对照）
 
 ## 已完成进展
 
@@ -14,6 +14,7 @@
 | FlagScheduler 节点运行时 | CLI/框架发现/版本锁定启动计划/scheduler catalog/常驻队列/回环 HTTP，171 项测试基线 |
 | PyTorch 推理后端（torch-predict） | 进程内引擎，CPU/CUDA 一等路径（device 显式声明不回退、fp16 支持、批内单次 H2D）；DeepFM/DIN/MMoE 三契约覆盖 nnz/sequence/sample 三种计量族；CPU e2e 20/20 完成 |
 | v0.2.0 六层调度框架 | 四终态机 + 分段耗时（queue_ms/execution_ms）；slo_ms 排队阶段强制（超期请求收割为 timed_out，不占设备）；全链路取消（未派发移除即 cancelled，已派发执行完丢弃结果）；aging 防饥饿；`/metrics` Prometheus 导出 + 结构化事件；planner/execution/observe/profiles 四子包 + 模型族策略模板 CLI（15 契约输出可直接被 parse_config 接受）。**246 passed / 2 skipped** |
+| GPU 组批策略对照（2026-11-04） | 同一 GPU 推理路径、同一 300 条混合负载下对比四档组批策略：batch=1→8→32→32+padding≤0.3，吞吐 **76.5→123.4 req/s（+61%）**，e2e p50 **110.6→40.8ms（-63%）**，padding 约束与大批组合最优；精度（批不变性）：fp32 max 3.9e-6（批组成不改变输出），fp16 max ~6e-2 / mean ~2e-4（半精度代价量化）。证据 `artifacts/torch_gpu3_20261104/` |
 
 ## 仓布局与报备状态
 
