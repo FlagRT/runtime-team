@@ -1,0 +1,59 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+--- vendor 原生 ---
+[OK]   vendor.silu                        {'ok': True, 'sample': 0.0776965394616127}
+[OK]   vendor.triu                        {'ok': True, 'sample': 0.19002698361873627}
+[OK]   vendor.lift_fresh.empty            {'ok': True, 'sample': None}
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+--- flag_gems 启用后（同一输入）---
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/pointwise_dynamic.py:1536: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.empty_like(tensors[0], dtype=dtype)
+[OK]   gems.silu                          {'ok': True, 'sample': 0.0776965394616127}
+[FAIL] gems.triu                          CompilationError: at 16:4:
+[OK]   gems.lift_fresh.empty              {'ok': True, 'sample': None}
+[OK]   gems.matmul                        {'ok': True, 'sample': 0.037337854504585266}
+[OK]   gems.add                           {'ok': True, 'sample': 0.289823442697525}
+{
+ "vendor.silu": {
+  "ok": true,
+  "sample": 0.0776965394616127
+ },
+ "vendor.triu": {
+  "ok": true,
+  "sample": 0.19002698361873627
+ },
+ "vendor.lift_fresh.empty": {
+  "ok": true,
+  "sample": null
+ },
+ "gems.silu": {
+  "ok": true,
+  "sample": 0.0776965394616127
+ },
+ "gems.triu": {
+  "ok": false,
+  "err": "CompilationError: at 16:4:"
+ },
+ "gems.lift_fresh.empty": {
+  "ok": true,
+  "sample": null
+ },
+ "gems.matmul": {
+  "ok": true,
+  "sample": 0.037337854504585266
+ },
+ "gems.add": {
+  "ok": true,
+  "sample": 0.289823442697525
+ }
+}

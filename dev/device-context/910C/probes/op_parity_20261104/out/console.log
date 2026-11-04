@@ -1,0 +1,24 @@
+can not use command: npu-smi info
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+[env] {"device": "npu:0", "torch": "2.10.0+cpu", "torch_npu": "2.10.0", "flag_gems": "0.0.0+f7ae8e6b934a"}
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  31%|███       | 95/310 [00:00<00:00, 938.48it/s]Loading weights:  61%|██████    | 189/310 [00:00<00:00, 900.64it/s]Loading weights:  90%|█████████ | 280/310 [00:00<00:00, 885.46it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 968.81it/s]
+[model] loaded
+[phase1] record on vendor path ...
+[phase1] ops executed = 27 unique, records kept = 304
+[phase2] enabling flag_gems ...
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+[phase2] flag_gems.enable() ok
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/ops/lift_fresh.py:71: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  out = torch.empty_like(x_contig, memory_format=torch.contiguous_format)
+[summary] executed=27 replayed=304 covered=179 PASS=184 FAIL=0 SKIP=120
+DONE
+rc=0
