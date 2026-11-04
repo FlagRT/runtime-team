@@ -93,9 +93,9 @@ def run(args):
         raise ValueError('Require positive steps, nonnegative warmup and equal local batches >=2')
     if args.backend == 'kunlun' and args.collective != 'flagcx':
         raise ValueError('Kunlun training requires explicit FlagCX; HCCL is Ascend-only')
-    if args.collective == 'flagcx' and (args.backend not in ('ascend','kunlun') or args.comm_mode not in ('manual', 'fused')):
-        raise ValueError('This FlagCX model entry accepts accelerator manual/fused only; '
-                         'native DDP is covered by the separate FlagCX regression suite')
+    if args.collective == 'flagcx' and (args.backend not in ('ascend','kunlun') or args.comm_mode not in ('manual', 'fused', 'native')):
+        raise ValueError('This FlagCX model entry accepts accelerator manual/fused/native only; '
+                         'the observed hook is not enabled for this backend')
     shard_start, shard_stop = shard_bounds(args.global_batch, rank, world)
     torch.set_num_threads(1)
     runtime = None
