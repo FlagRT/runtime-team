@@ -61,4 +61,4 @@ DrvMngGetConsoleLogLevel failed (ret=4)  →  ascend_hal 拿不到设备数
 | python | /usr/local/python3.11.15/bin/python3 | 同 |
 | torch / torch_npu | 2.10.0+cpu / 2.10.0（我们补装） | 2.10.0+cpu / 2.10.0（镜像自带） |
 | device_count | **0** | **16** |
-| 驱动 | 25.5.0（ascendhal 7.35.23），两容器挂载一致 | 同 |
+| 驱动 | 25.5.0（ascendhal 7.35.23），两容器挂载一致<br>⚠️ **2026-09-08 当时值；2026-11-04 实测已升 `26.1.1`**（`package_version=26.1.1`、`Innerversion=V100R001C10SPC009B220`），见 `docs/CHIP_COMPAT_MATRIX_20261104.md` §0.1 | 同 |
