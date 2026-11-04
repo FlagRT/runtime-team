@@ -21,22 +21,56 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8088)
     parser.add_argument("--execution-mode", choices=["sequential", "concurrent"], default="concurrent")
     parser.add_argument("--max-inflight", type=int, default=8,
-                        help="maximum accepted requests, including active and queued work")
+                        help="maximum accepted requests; 0 disables count rejection (requires --memory-admission)")
     parser.add_argument("--retrieval-workers", type=int, default=4)
+    parser.add_argument("--max-reranker-batch-size", type=int, default=4,
+                        help="allowed per-request real reranker forward batch (1..50); larger values require measured memory calibration")
     parser.add_argument("--embedding-workers", type=int, default=2,
                         help="maximum outstanding vLLM embedding calls; local models stay single-threaded")
     parser.add_argument("--stage-queue-capacity", type=int,
-                        help="waiting slots per stage; defaults to max-inflight")
+                        help="waiting slots per stage; defaults to max-inflight, or 8 when count rejection is disabled")
     parser.add_argument("--memory-probe", action=argparse.BooleanOptionalAction, default=True,
                         help="sample accelerator memory through device-context (default enabled)")
     parser.add_argument("--memory-probe-interval", type=float, default=1.0,
                         help="seconds between memory samples (default 1)")
+    parser.add_argument("--memory-admission", action="store_true",
+                        help="reject new requests when memory or whole-request reservation budgets are insufficient")
+    parser.add_argument("--memory-request-mib", type=float,
+                        help="legacy fixed-mode budget only; dynamic mode estimates each request")
+    parser.add_argument("--memory-budget-mode", choices=['dynamic', 'fixed'], default='dynamic',
+                        help="dynamic (default) estimates embedding + rerank before admission; fixed is legacy compatibility")
+    parser.add_argument("--memory-safety-mib", type=float, default=5120)
+    parser.add_argument("--memory-high-watermark", type=float, default=.85)
+    parser.add_argument("--memory-low-watermark", type=float, default=.75)
+    parser.add_argument("--memory-max-sample-age", type=float, default=3)
+    parser.add_argument("--memory-allow-unverified-scope", action="store_true",
+                        help="explicitly accept runtime statistics whose device-wide scope was verified outside the API")
     args = parser.parse_args()
-    if min(args.max_inflight, args.retrieval_workers, args.embedding_workers) < 1 or (
+    if not 1 <= args.max_reranker_batch_size <= 50:
+        parser.error("max-reranker-batch-size must be in 1..50")
+    if args.max_inflight < 0 or min(args.retrieval_workers, args.embedding_workers) < 1 or (
             args.stage_queue_capacity is not None and args.stage_queue_capacity < 1):
-        parser.error("max-inflight and retrieval-workers must be positive")
+        parser.error("max-inflight must be nonnegative; worker counts and queue capacity must be positive")
     if not math.isfinite(args.memory_probe_interval) or args.memory_probe_interval <= 0:
         parser.error("memory-probe-interval must be finite and positive")
+    from rag_engine.admission import MemoryAdmissionConfig
+
+    try:
+        if args.memory_budget_mode == 'dynamic' and args.memory_request_mib is not None:
+            raise ValueError('Remove --memory-request-mib for dynamic per-request estimation')
+        admission = MemoryAdmissionConfig(
+            enabled=args.memory_admission, request_budget_mib=args.memory_request_mib,
+            estimate_requests=args.memory_budget_mode == 'dynamic',
+            safety_margin_mib=args.memory_safety_mib,
+            high_watermark=args.memory_high_watermark, low_watermark=args.memory_low_watermark,
+            max_sample_age_s=args.memory_max_sample_age,
+            allow_unverified_scope=args.memory_allow_unverified_scope)
+        if admission.enabled and not args.memory_probe:
+            raise ValueError("memory-admission requires memory-probe")
+        if args.max_inflight == 0 and not admission.enabled:
+            raise ValueError("--max-inflight 0 requires --memory-admission")
+    except ValueError as error:
+        parser.error(str(error))
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     load_project_env()
 
@@ -47,7 +81,9 @@ def main() -> None:
     uvicorn.run(create_app(args.device, execution_mode=args.execution_mode,
                            max_inflight=args.max_inflight, retrieval_workers=args.retrieval_workers,
                            embedding_workers=args.embedding_workers, stage_queue_capacity=args.stage_queue_capacity,
-                           memory_probe_enabled=args.memory_probe, memory_probe_interval_s=args.memory_probe_interval), host=args.host, port=args.port, workers=1)
+                           memory_probe_enabled=args.memory_probe, memory_probe_interval_s=args.memory_probe_interval,
+                           memory_admission=admission,
+                           max_reranker_batch_size=args.max_reranker_batch_size), host=args.host, port=args.port, workers=1)
 
 
 if __name__ == "__main__":

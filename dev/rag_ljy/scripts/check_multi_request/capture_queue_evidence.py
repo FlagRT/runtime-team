@@ -123,7 +123,7 @@ def main():
     parser.add_argument('--url',default='http://127.0.0.1:8088')
     parser.add_argument('--queries',type=Path,default=PROJECT/'data/queries/nfcorpus-50.jsonl')
     parser.add_argument('--server-log',type=Path,default=Path('/tmp/rag-query-server.log'))
-    parser.add_argument('--output-dir',type=Path,default=PROJECT/'artifacts/checks/queue_evidence')
+    parser.add_argument('--output-dir',type=Path,default=PROJECT/'experiment_outputs/checks/queue_evidence')
     parser.add_argument('--timeout',type=float,default=120)
     args=parser.parse_args()
     url=args.url.rstrip('/')
