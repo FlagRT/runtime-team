@@ -10,7 +10,14 @@
 #
 # 【与两套旧脚本的关系（差异点均已在内部分支处理，不是删旧脚本）】
 #   910C：`910C/distributed_inference/inference/start_vllm_serve_910c.sh`
-#         · 坑 A5 禁用 vllm-plugin-FL（unset VLLM_PLUGINS）
+#         · 坑 A5 避开 vllm-plugin-FL 的**平台**接管（`unset VLLM_PLUGINS`；
+#           ⚠️ 2026-11-04 实测修正：unset **不是**「禁用插件」——vLLM 里 `VLLM_PLUGINS` 为 None 时
+#           会加载**全部**插件（真禁用要给空串 `VLLM_PLUGINS=""`，本脚本未采用、未做服务回归）。
+#           910C 上插件不接管算子的真正原因是两条：① `fl` 的**平台插件**在 ascend 上不激活
+#           （无 ascend 后端）⇒ 平台解析仍为 `Platform plugin ascend is activated`；
+#           ② 即使 general 插件被 import（`flag_gems` 随之进入 `sys.modules`），它也**不调** `flag_gems.enable()`
+#           ⇒ `aten::mm/add/silu/matmul` 的 PrivateUse1 实现仍全是 `torch_npu/csrc/aten/RegisterNPU.cpp`。
+#           见 `dev/device-context/docs/CHIP_COMPAT_MATRIX_20261104.md` §3.1e
 #         · 坑 A3 DO_NOT_TRACK=1
 #         · 坑 A2 清理残留 EngineCore 子进程
 #         · 选卡 ASCEND_RT_VISIBLE_DEVICES
@@ -147,8 +154,12 @@ case "$BACKEND" in
   ascend)
     MODEL=${MODEL:-/mnt/raid/hliu553/models/Qwen3-4B}
     SERVED_NAME=${SERVED_NAME:-qwen3-4b}
-    # 坑 A5：A 线禁用 vllm-plugin-FL（该插件无 ascend 后端，启用后 platform.device_type 变空
-    #         → RuntimeError: Device string must not be empty）
+    # 坑 A5：避开 vllm-plugin-FL 接管平台（该插件无 ascend 后端）。
+    #   ⚠️ 2026-11-04 实测修正：`unset VLLM_PLUGINS` ≠ 禁用插件（vLLM 语义：None ⇒ 加载全部；
+    #      真禁用是空串 `VLLM_PLUGINS=""`，未采用、未回归）。实测 910C 上：
+    #      · 平台仍解析为 `Platform plugin ascend is activated`（fl 的平台插件不激活）；
+    #      · 服务日志**无任何** FlagGems 痕迹，`SERVE_STANDARD_PASS`；
+    #      · 即便手动 load general 插件把 `flag_gems` import 进来，dispatch **不变**（不 enable）。
     unset VLLM_PLUGINS
     # 坑 A3
     export DO_NOT_TRACK=1
