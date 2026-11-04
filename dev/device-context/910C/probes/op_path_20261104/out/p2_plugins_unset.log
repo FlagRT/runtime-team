@@ -1,0 +1,25 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+2026-11-04 03:21:24,729 - 1429 - ServiceProfiler - INFO - VLLM_USE_V1 not set, auto-detected via vLLM 0.20.2+empty: default 1
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+INFO 11-04 03:21:28 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 11-04 03:21:28 [__init__.py:46] - fl -> vllm_fl:register
+INFO 11-04 03:21:28 [__init__.py:49] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 11-04 03:21:30 [__init__.py:238] Platform plugin fl is activated
+WARNING 11-04 03:21:32 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+INFO 11-04 03:21:33 [nixl_utils.py:20] Setting UCX_RCACHE_MAX_UNRELEASED to '1024' to avoid a rare memory leak in UCX when using NIXL.
+WARNING 11-04 03:21:33 [nixl_utils.py:34] NIXL is not available
+WARNING 11-04 03:21:33 [nixl_utils.py:44] NIXL agent config is not available
+WARNING 11-04 03:21:33 [registry.py:945] Model architecture DeepseekV4ForCausalLM is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4:DeepseekV4ForCausalLM.
+WARNING 11-04 03:21:33 [registry.py:945] Model architecture DeepSeekV4MTPModel is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4_mtp:DeepSeekV4MTP.
+INFO 11-04 03:21:33 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 11-04 03:21:33 [__init__.py:46] - fl -> vllm_fl:register
+INFO 11-04 03:21:33 [__init__.py:49] All plugins in this group will be loaded. Set `VLLM_PLUGINS` to control which plugins to load.
+INFO 11-04 03:21:33 [__init__.py:238] Platform plugin fl is activated
+RESULT {"mode": "unset", "VLLM_PLUGINS": "<unset>", "load_general_plugins": "ok", "platform": "vllm_fl.platform.PlatformFL", "vllm_fl_loaded": true, "flag_gems_loaded": true}

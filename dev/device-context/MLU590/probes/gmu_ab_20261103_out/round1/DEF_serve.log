@@ -1,0 +1,20 @@
+=========== 统一推理服务启动 开始 Tue Nov  3 12:04:09 CST 2026 ===========
+backend=cambricon dev=2 port=8105 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /flagos/bin/vllm ｜ python3 = /flagos/bin/python3（Python 3.10.20）
+--- 用卡前 ---
+| 1         35C    103 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 0         34C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 2         36C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         35C    127 W/ 550 W | 10776 MiB/ 98304 MiB | FULL          Default |
+| 5         35C    104 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 4         32C    101 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         32C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+  [gmu][WARN] cambricon 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL
+  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ cambricon 默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）
+  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>
+
+############ 启动 vllm serve ############
+  pid=4888  日志: /work/dc_rerun_20261027/gmu_ab_20261103_out/DEF/vllm_serve.log

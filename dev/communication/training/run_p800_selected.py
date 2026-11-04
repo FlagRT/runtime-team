@@ -58,7 +58,11 @@ def main():
     p.add_argument('--poll-seconds',type=int,default=5)
     p.add_argument('--prototype-revision',required=True)
     p.add_argument('--output-name',required=True)
+    p.add_argument('--include-native',action='store_true')
+    p.add_argument('--failure-restart',action='store_true')
     a=p.parse_args()
+    if (a.include_native and a.failure_restart) or (a.mode!='pair' and (a.include_native or a.failure_restart)):
+        p.error('Choose one pair-only experiment: native matrix or failure/restart')
     if a.wait_seconds<1 or not 1<=a.poll_seconds<=60 or not re.fullmatch(r'[a-zA-Z0-9_-]+',a.output_name):
         p.error('positive wait, polling in [1,60] and simple output name required')
     root=a.workspace.resolve()
@@ -130,12 +134,21 @@ def main():
                  '--collective','flagcx','--runtime-root','/workspace/dev/device-context/prototype',
                  '--prototype-revision',a.prototype_revision,'--model-root','/workspace/dev/model-defs/deepfm/v1',
                  '--output','/workspace/evidence/'+a.output_name+'/training','--launch-timeout','240']
+            if a.include_native:cmd.append('--include-native')
+            if a.failure_restart:
+                cmd=[py,'dev/communication/training/failure_restart.py','--backend','kunlun',
+                     '--runtime-root','/workspace/dev/device-context/prototype',
+                     '--output','/workspace/evidence/'+a.output_name+'/failure']
             with (output/'training-driver.log').open('x') as log:
                 code=subprocess.run(['docker','exec',container,*cmd],stdout=log,stderr=subprocess.STDOUT,timeout=1800).returncode
             record['runs'].append(dict(argv=cmd,exit_code=code));save()
             if code==0:
-                summary=summarize(output/'training')
-                (output/'training/summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+                summary=(json.loads((output/'failure/execution.json').read_text()) if a.failure_restart
+                         else summarize(output/'training',a.include_native))
+                if summary['verdict']!='PASS':raise ValueError('Incomplete acceptance')
+                # Container-created training/ is root-owned; publish to the
+                # host-owned execution directory instead of chmod/chown trees.
+                (output/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
         else:
             for mode in ('manual','fused'):
                 cmd=[py,'-m','torch.distributed.run','--nnodes=1','--nproc_per_node=1',

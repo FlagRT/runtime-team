@@ -22,8 +22,17 @@ PORT=8100
 #    现改为按 run-id 分目录：新批次落在 $HO/<runid>/{form,consumer}/，历史批次永久保留。
 RUNID=${RUNID:-$(date +%Y%m%d_%H%M%S)}
 HO=$HO/$RUNID
+# ⚠️ **2026-11-03 修（自审发现，假 FAIL）**：上面只把 `HO` 拼了 runid、**`O` 没拼** ⇒
+#    `DC_OUT_DIR="$O/form"` 指向**扁平旧目录**，而判据 grep 的是 `$HO/form/serve_standard.log`
+#    （= runid 目录）⇒ ① 每轮的 form 证据都落到同一扁平目录、被下一轮覆盖；
+#    ② verdict 恒读不到 ⇒ 即使 `SERVE_STANDARD_PASS` 也判成「[A] 未通过」。
+#    实测反证：v2-20261103 轮 form 臂 rc=0、扁平目录日志明确写着
+#    `✅ 服务就绪 t=45s` / `[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)`，
+#    但 s09-serve.log 却印「[A] 未通过」。⇒ 写与读必须**同一路径**。
+O=$O/$RUNID
 mkdir -p "$HO/form" "$HO/consumer"
-echo "证据目录（本轮）: $HO"
+echo "证据目录（本轮，宿主观角）: $HO"
+echo "证据目录（本轮，容器视角）: $O"
 
 echo "===== [0] 容器与版本 ====="
 date "+[%H:%M:%S]"

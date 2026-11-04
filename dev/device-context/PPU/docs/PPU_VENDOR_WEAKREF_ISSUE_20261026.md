@@ -1,6 +1,6 @@
 # 【问题反馈】PPU 栈：`torch.cuda.Stream` 的 `weakref` 在解释器退出期触发段错误（可最小复现）
 
-> 提交方：FlagOS 运行时层（device-context 方向） ｜ 日期：**2026-10-26** ｜ 状态：**平台侧复现，我方已自保**
+> 提交方：FlagOS 运行时层（device-context 方向） ｜ 日期：**2026-10-26**（**11-03 补上游同源先例，见 §九**） ｜ 状态：**平台侧复现，我方已自保**
 > 我方内部取证全文：`PPU_EXIT_SEGV_CARRIER5_20261026.md` · `PPU_T11_EXIT_SEGV_ROOTCAUSE_20261014.md`
 
 ## 一、一句话
@@ -112,3 +112,62 @@ RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0   RIP_OFFSET=0x2569de
 | `t11_segv_handler.c` | 我们的 `LD_PRELOAD` 段错误采集器源码（可自行编译复采） |
 
 （附件均位于 `dev/device-context/PPU/probes/s06_exit_segv_20261026_out/`）
+
+## 九、⭐ 上游同源先例（2026-11-03 检索补充——本缺陷**非 PPU 独有**，是 PyTorch 2.8+ 已知缺陷模式）
+
+**同一机制的已知案例：昇腾 torch_npu 踩过一模一样的坑，且已修复。**
+
+| 项 | 内容 |
+|---|---|
+| 缺陷模式 | PyTorch **2.8** 起官方为 `Stream`/`Event` 父类（`THPStream`/`THPEvent`）加了 **weakref 支持**并在析构里调 `PyObject_ClearWeakRefs()`；但**各硬件后端子类覆写 `tp_dealloc()` 时未显式调用父类清理**（CPython 对静态类型**不会链式调用父类析构**）⇒ 弱引用未清理、`wr_object` 悬空指向已释放内存 ⇒ 退出期段错误 |
+| 上游出处 | PyTorch 官方缺陷 **PR #183403**（昇腾侧复现分析所引）；触发面之一即 `torch._dynamo` 的 `index_to_external_object_weakref` 登记表——**与我方「登记表+弱引用」触发形态同构** |
+| 昇腾修复 | **Ascend/pytorch PR #41596**（gitcode.com/Ascend/pytorch/pull/41596）：子类 `tp_dealloc()` 中**显式调用父类弱引用清理**；配套回归测试 `test/dynamo/test_stream.py`（`_assert_weakref_callback_fires`，断言 weakref 回调必须触发——注释明确指出"`weakref.ref(s)() is None` 可能在缺陷存在时仍返回 True，回调触发才是可靠信号"） |
+| 与本报告的对应 | ① 触发条件同构：**Stream 子类对象 + 挂 weakref + 对象被回收**（我方 §四.1 判别矩阵三必要条件）；② 崩溃点同族：`_PyWeakref_ClearRef` / `_PyModule_ClearDict`（我方 §四 两处签名）；③ torch_npu 侧实测组合也是 **torch 2.10.x**（我方环境同为 2.10.0） |
+| ⚠️ 差异待厂商确认 | 昇腾案例触发路径含 dynamo 登记表；我方最小复现**仅 `weakref.ref(stream)` 即可**（不含 dynamo）⇒ PPU 侧覆盖面可能**更宽**（任何挂弱引用的下游都受影响），也可能 PPU 栈版本不同 —— 请厂商按 §六 三点确认 |
+
+**给厂商的建议查起点**：PPU 兼容层的 `Stream`/`Event` Python 包装（`THPStream` 子类）的 `tp_dealloc` 是否调用了
+父类 `PyObject_ClearWeakRefs` —— 与昇腾修法对照即可定位。若确认同因，修法可直接参考 PR #41596。
+
+### 九.1 ⭐ 11-03 追加：昇腾侧同缺陷**已在本机复现并验证修复**（A/B 单变量）
+
+为确认该修法真的有效，我们在 **910C（torch 2.10.0 同主版本）** 上做了单变量 A/B：
+
+| 臂 | torch | torch_npu | 进程 rc | Stream 回调 | Event 回调 |
+|---|---|---|---|---|---|
+| A | 2.10.0+cpu | **2.10.0** | **139** | **不触发** | **不触发** |
+| B | 2.10.0+cpu | **2.10.0.post7** | **0** | **触发** | **触发** |
+
+判别矩阵（A 臂各 2 轮）：`Stream+weakref+被回收` ⇒ **139/139**；去掉任一条件 ⇒ 0/0
+—— 与贵方 PPU 侧形态**逐条同构**。即：**同一缺陷在昇腾栈上同样存在过，装上含 PR #41596 的补丁版本后消失。**
+
+⚠️ 另一条对定位有用的经验：**`ref()() is None` 不能当判据**（两臂都返回 None，缺陷存在时也一样），
+唯一可靠信号是 **weakref 回调是否被触发**（`weakref.ref(obj, callback)` + `del obj`）。
+贵方复现时建议直接看回调，而不是看 rc 或 `ref()` 的返回值。
+
+复现脚本与原始读数（可直接拿去对照）：`dev/device-context/910C/probes/weakref_check_20261103_out/`；
+分析报告：`dev/device-context/910C/docs/ASCEND_WEAKREF_EXIT_UAF_20261103.md`。
+
+## 十、⭐ 我方已做出「运行时等价补丁」并验证有效（2026-11-03，供贵方直接对照实现）
+
+由于 PPU 侧暂无含修复的版本，我方在**不改贵方 libtorch** 的前提下，于进程内给
+`torch._C._CudaStreamBase` / `_CudaEventBase` 换了一个 `tp_dealloc` 包装，
+语义与 PR #41596 完全一致（先 `PyObject_ClearWeakRefs`，再回跳原 dealloc）。**四道判据全过**：
+
+| 判据 | 修前 | 修后 |
+|---|---|---|
+| Stream/Event 的 weakref **回调是否触发** | False / False | **True / True** |
+| `Stream + weakref + 被回收` 进程 rc | **139 / 139** | **0 / 0** |
+| 功能形态（流可用/事件计时/张量正确） | — | `SANITY verdict=PASS`（`elapsed_ms=56.800` 带内） |
+| 我方验收读数（离线 / smoke / 契约不变式） | 118·0·1 / 46·0 / 4/4 `rc=0` | **逐项相同**（补丁臂 vs 对照臂同时跑） |
+
+源码与证据（可直接编译复采）：`dev/device-context/PPU/probes/weakref_check_20261103_out/`
+（`wrfix.c` + `README.md`，约 150 行，含副作用登记）。
+
+⚠️ **这只是止血，不是修复**：类型对象若在只读页，补丁会把该页放开为可写且不还原；进程退出即失效。
+**正式修复仍请贵方把 PR #41596 那两行编进 libtorch**（`THNPStream_dealloc` / `THNPEvent_dealloc`），
+这样任何下游（`torch.compile`、profiler、多进程 worker 清理）都不必各自打补丁。
+
+**对我方材料的自评（诚实声明）**：本报告的复现与判别矩阵**独立于该先例完成**（10-26 取证时未检索到），
+机制推断（§四「弱引用书签不可信」）与昇腾根因分析**一致**——这既是交叉印证，也说明我方"平台侧缺陷"的定性**成立**；
+唯一需修正的预期是：**该缺陷大概率不是 PPU 独有实现错误，而是"PyTorch 2.8 改父类 + 各后端子类没跟上"的生态共性问题**，
+PPU 兼容层属于"未跟上的后端"之一（CUDA 官方实现是否也有此问题，以 PyTorch PR #183403 为准）。

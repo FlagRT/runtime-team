@@ -42,8 +42,8 @@ name: flagrt-ppu-v2-env-v1
 
 x-flagrt:
   image_baseline: ../../image.baseline.yaml
-  # 官方镜像全部资产为固化（FlagTree 官方自带，无本组配方层），本环境不挂载任何 repo：
-  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  # 镜像全部资产为固化（FlagTree 官方基座 + 本组单 wheel 派生层，均在镜像内），
+  # 本环境不挂载任何 repo：仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
   mounted_repos: {}
 
 services:

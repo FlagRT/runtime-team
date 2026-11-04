@@ -1,6 +1,6 @@
 # performance — 性能评测与诊断
 
-> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-10-21
+> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-10-28
 > 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
 > 职责：统一国产设备的算子、推理与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
 
@@ -24,8 +24,9 @@
 | Inference A100 参考（V2/V2.1） | `oracle` 精度参考包、`performance-baseline` 基线包生成与 `--oracle`/`--baseline` 只读导入比较、入口收敛与统一结果精简已实现 | Qwen3 BF16 单卡/TP=2：A100 模型级＋全部 28 层精度参考与同规模性能比较；CPU FP64 逐样本/层指标，倍率＝被测/A100；不设达标阈值 | 仅在 `FlagPerf_advance/dev-zkm`，未同步独立 FlagPerf |
 | Inference 推荐模型（V3/V3.1） | DeepFM、DLRM（共享 RecommendationAdapter）与 OneRec-8B 有状态生成契约已接入 | DeepFM TP hidden 差分 max_abs≈5.59e-8；DLRM 398 项回归；OneRec 12 条 token 轨迹一致、每份 profile 2,304 AllReduce＋32 AllGather 全归因 | 同上 |
 | Inference 监控旁路与成本优化（V4） | `TelemetryProvider`（A3/910C DCMI）默认秒级采集与 `monitor.html`；schema 4 比较核心包、`--dry-run`/`analyze`/`repack-reference` 离线恢复已实现 | Qwen3 TP=2 监控验收 895 次采集/29,117 条记录；小规模开销对照 +0.0658%（95% 上限 +0.69%）；OneRec 比较核心 18.78 GB→52.12 MB；2.62 GB trace 解析 165.70 s→111.91 s | 同上 |
-| inference_v2 / flagprof 观测基座（P0） | 与模型解耦的账本、官方 profiler 接入、原生归属、格式契约、`record`/`attach`/`inspect` 已形成；T9.4 生产入口收口通过限定范围 Gate | 417 核心用例、50,040 次乱序比较；A100/Ascend 真机窗口；T9.4 生产入口导入 100,000 个设备事件零丢弃 | 研发快照 `FlagPerf_advance/dev-zkm@a66356b5`；本次仅同步进展，不构成代码发布；P0 未退出，详见 [§11](#inference-v2-progress) |
-| inference_v2 写入容量（T9.5/T9.5b） | B2X 补充取证已封存，待设计者 Gate；候选未选定、Stage 1 未开始 | 主矩阵 15/15 零 drop；op/span 最高三次无损登记档 70k/s；满队列采样内存在预算内；严格 100ms 死亡检测有 102.312728ms 有效失败，store 243/244 | 隔离原型未替换生产 Writer；不是实际模型开销验收或 P0 放行，见 [§11](#inference-v2-progress) |
+| inference_v2 观测基座与 Writer（P0，已退出） | 与模型解耦的账本、官方 profiler 接入、原生归属、格式契约、`record`/`attach`/`inspect` 已形成；T9.5b Gate（D39）后 Writer 完成选型与生产接入（T9.5c/T9.6/T9.7），D33 方案 B 形成单进程生产候选，T9.8 完成真实推理闭环校准 | 退出矩阵 13 项全部满足；真实负载轻量记录约 70 条/s、扰动测不出，可感知成本在官方窗口导出与离线 prepare 而非 Writer；W7/W9 合成高负载项按 D45 处置为非阻塞、失败保留 | 2026-10-27 D45 批准 P0 退出、L-字段升至 `1.0`；研发快照演进至 `FlagPerf_advance/dev-zkm@35f94819`，本次仅同步进展、不构成代码发布，见 [§11](#inference-v2-progress) |
+| inference_v2 项目探针与 profiling（P1，已退出） | dispatch/module/route/compile 项目探针、低开销档 `perf-lite`、回退清单与主机→设备桥接进入生产路径；报告口径经 T10.4（P1.1）修补 | R3 项目 linked 1,692 条；探针开/关输出逐值相等；FlagGems 命中清单与 v1 一致（23 函数、`route_table_mismatch=0`）；`perf-lite` 对基线吞吐比 1.0032 且输出字节全等；回退清单 28 键/99 行收窄为 5 个主表键并分列处理原因 | 2026-10-28 D49 批准 P1 退出；真机证据限 910C 单卡低负载场景，见 [§11](#inference-v2-progress) |
+| inference_v2 精度差分（P4 首批） | 固定输入张量采集（schema 1.2）＋四面板 oracle 分析器：身份声明、块级误差、首个不同边界、算子 `introduced` 判定，误差行可按 sid 连接性能证据 | A100/910C-off/910C-on 三组块级 372/372 配对、首差异均为 `layers.0`，首个 `introduced` 分别为 `mean.dim` 与 `pow.Tensor_Scalar`；独立 NP 采集 82/82 连接；v2 同 venv 复现 v1 A100 参考 360/360 逐字节相等 | 2026-10-28 D50 批准并当天完成三任务；设计者复审提议 D51（含 T11.3/T12.1）待批准，见 [§11](#inference-v2-progress) |
 | Base Benchmark（昆仑芯 P800） | 统一宿主入口与 P800 provider（有界路径/身份链/preflight/监控/设备租约）已形成；BF16 快路径修复已固化进 runtime 合同 | 15 case（10 可执行＋5 skip）114 run 测量与正确性通过；严格五次组 15 passed（D2H 计时 3 组为用户接受的时长例外，记录在案）；8 卡五次稳定测量 FP32 118.47 / FP16 259.17 TFLOPS、INT8 504.53 TOPS、带宽 2235.95 GB/s；BF16 修复后 223.88 TFLOPS（0.873×FP16） | 已发布至 `FlagPerf/zhiyu/kunlunxin-p800`＋冻结 tag `p800-base-frozen-20261008`，未进入 FlagRT `main`；镜像 validated:true/partial；最终验收报告（2026-10-08）为交付边界 |
 | Base Toolkit（昆仑芯 P800） | 12 case 独立 C++ native_bench（直调 XBLAS/XRE）＋完整证据链（preflight/监控/manifest/SHA256）已形成 | 2026-10-09 全量复测通过；口径固化 8192³/repeat 5/samples 50，D2D 双行分列（Scopy 2×≈2139 GB/s 与 XRE memcpy 1×≈11.4 GB/s）；与 Base 差距四类归因定案（口径/内核/厂商路径/共享卡），同机制处 1.01× 重合；XBLAS BF16≈FP32 为厂商库内核缺口（AUTOTUNE 实测无效） | 已交付（代码入口 `FlagPerf/base/toolkits/_common/kunlunxin/P800/`）；与 Base 的口径差异已在 BF16 修复说明中写明 |
 | Operation（昆仑芯 P800） | 按 Ascend 测试机制接通原生 PyTorch 与 FlagGems 路径，支持 Docker/本地执行、正确性/性能/显存/时间线采集、失败诊断和报告 | 52 case；Docker 与本地各 308 个适用组合（另 420 项 not-applicable）：Docker 为 274 passed/1 partial/27 failed/6 blocked，本地为 275 passed/27 failed/6 blocked；失败和 partial 原样保留。六组硬件计数器尚无可信采集；131 项 Operation、13 项公开分发测试通过 | PR 已提交待评审；`validated:false` 保持，完整能力与 Ascend 对齐验收未完成；详情与剩余缺口见 FlagPerf Operation 验证文档 |
@@ -305,10 +306,12 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 
 ### 5.5 尚不能宣称的能力
 
-- Oracle—Device 差分已落地第一段（A100 精度参考与同规模性能基线的只读比较），但**误差传播、敏感算子归因与唯一
-  根因闭环未实现**；Inference 的层级差分对象仍以同设备 off/on 为主，A100 参与的比较不设阈值。
+- Oracle—Device 差分已落地第一段（A100 精度参考与同规模性能基线的只读比较）；inference_v2 P4 首批进一步把
+  差分推进到算子级 `introduced` 判定（输入逐字节相同、输出首次不同），并以 ULP 分布区分舍入级/实现级差异，但
+  **隔离上游误差的 replay 与唯一根因闭环未实现**（属 P4 第二批）；两侧比较仍不设业务达标阈值。
 - 已有 Operation 级设备时间线和计数器、旧 Inference 的 HCCL 通信归因与 CUDA/Ascend 大 trace 分析（含独立时限与
-  恢复）；inference_v2 新增原生调用关系与统一账本，但项目 module/route 探针及正式分析器仍待后续阶段，均不等于
+  恢复）；inference_v2 在 P0/P1 退出后已具备原生归属、项目 module/route 探针与主机→设备桥接，但多卡（P2b）、
+  设备视图与 generate 场景（以 P2a 导入速度为前置）仍未实现，均不等于
   模型图节点、Backend、通信与运行时状态的完整跨层 Profiling（见 [§11](#inference-v2-progress)）。
 - 公共诊断、Inference 运行时与监控旁路均不包含任务自动重试、节点隔离、模型热加载、灰度切换或长期稳定性保障。
 - 单机 Device14（Operation）与单机 TP=2/固定输入（Inference）的结果不能外推到更多设备、多机或其他国产设备；
@@ -467,7 +470,7 @@ python run.py repack-reference --source /absolute/old-package \
 ### 7.4 inference_v2 / flagprof 入口
 
 在含研发快照的 `FlagPerf_advance/inference_v2/` 中运行；采集使用对应厂商已验证环境，`inspect` 只读已有账本，
-不启动模型或补跑采集。以下为命令模板，`target.py` 需要在步骤边界调用当前 attachment 的 `step()`：
+不启动模型或补跑采集。以下为命令模板：
 
 ```bash
 cd FlagPerf_advance/inference_v2
@@ -475,7 +478,7 @@ cd FlagPerf_advance/inference_v2
 # 只读查询封存 run；--verify 同时核验派生产物与原件
 python3 -m flagprof inspect /absolute/existing-run --verify --json
 
-# wrapper 直接启动 Python 目标；窗口推进仍须由目标显式接入
+# 窗口化采集仍须由目标显式接入（多窗口场景）
 python3 -m flagprof record --store /absolute/new-store --vendor ascend \
   --preset perf --active 5 --windows 2 --log-file /absolute/profiler.log \
   -- python3 /absolute/target.py
@@ -484,11 +487,37 @@ python3 -m flagprof record --store /absolute/new-store --vendor ascend \
 目标可用 `flagprof.current_attachment()` 取得 record 注入的 handle；显式接入则先用
 `flagprof.store.create_run()` 初始化 run，再用 `flagprof.attach(run, vendor="ascend")`，在迭代边界
 `handle.step()`、结束时 `close()`。自动注入仅覆盖 wrapper 直接启动的 Python 目标，`torchrun`/vLLM workers
-及 shell 包装目标须显式接入；`modules` 仅请求官方 `with_stack`/`with_modules`，不安装项目 module/route 探针。
-`--log-file` 是明确的日志来源，缺失/不可读会独立记录，不能据此假定厂商内部丢失计数已可用。
+及 shell 包装目标须显式接入。`--log-file` 是明确的日志来源，缺失/不可读会独立记录，不能据此假定厂商内部
+丢失计数已可用。
 
-D33 已确认恢复“默认 attach 不改被测代码”的方向，但自动推进路线尚待任务单与实现；当前仍需上述显式步进。
-`inspect` 展示的多种状态按 [§11](#inference-v2-progress) 分别解释，CLI 可运行不表示分析器已交付。
+D33 方案 B 已于 2026-10-25 形成单进程生产候选：目标无需添加 `handle.step()`（默认 `--capture-mode final`，
+官方 profiler 随目标起停），有界导入与恢复整合进 record；多窗口显式步进仍保留。P1/P4 交付后 `record` 提供
+`coverage`/`perf-lite`/`perf`/`modules`/`accuracy` 五种预设（`--flaggems off|on`、
+`--dispatch off|summary|each-window`、`--layers all|selected`、`--probes none` 关闭项目探针）：
+
+```bash
+# 低开销层耗时与回退清单（不请求官方 profiler；dispatch 默认关闭）
+python3 -B -m flagprof record --vendor ascend --preset perf-lite \
+  --store /absolute/new-store --flaggems off -- \
+  python3 -B -m flagprof.runner hf:/models/qwen --task embedding \
+  --inputs /absolute/inputs.jsonl --outputs /absolute/outputs \
+  --device npu:0 --warmup 0 --forwards 3
+
+# 固定输入精度采集（默认 blob none；差分经公共 StoreView 与 oracle 分析器）
+python3 -B -m flagprof record --vendor ascend --preset accuracy \
+  --store /absolute/new-acc-store --flaggems on -- \
+  python3 -B -m flagprof.runner hf:/models/qwen --task embedding \
+  --inputs /absolute/inputs.jsonl --outputs /absolute/acc-outputs \
+  --device npu:0 --warmup 0 --forwards 3
+
+# 从 Store 重建报告（只读已有账本）
+python3 -B -S -m flagprof report /absolute/store/runs/RUN_ID \
+  --out /absolute/reports --work /absolute/scratch
+```
+
+预设组合、探针职责与缓存环境变量（`TRITON_CACHE_DIR` 等）见研发快照 `inference_v2/docs/P1-usage.md`。
+`inspect` 展示的多种状态按 [§11](#inference-v2-progress) 分别解释；oracle 报告头条的口径修补（T11.3）待
+D51 批准，现有报告中的放大倍数/相对误差列按 §11.5 复审说明阅读。
 
 ## 8. 结果解释
 
@@ -522,8 +551,10 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
    能力。
 6. 昆仑芯 P800：`XMLIR_MATMUL_FAST_MODE=1` 已固化到 Base runtime 合同；快路径大矩阵实测 BF16 约 223.9 TFLOPS，约为 FP16 的 87%，精度校验通过且误差与原路径同量级。XBLAS 预编译 BF16 路径、XRE 传输路径和 P2P/AllReduce 带宽问题仍待厂商处理；Base 统一入口端到端复测仍需单独窗口。Operation PR 已提交，后续按评审意见完善，并继续定位六组硬件计数器及已登记的记录缺口。
 7. 平头哥 PPU：Base 与 Toolkit 适配已推送 `zhiyu/thead-ppu`（共 33 个提交），PR 已提交；回归 390 passed、1 skipped，Toolkit 最终验收 12/12。继续申请 16-rank 独占资格窗口，处理 qualification.py rank 上限审计，并按设备条件评估全 pair P2P 扫点。candidate runtime 仍保持 `validated:false`。
-8. inference_v2：先提交 T9.5b 已封存证据给设计者 Gate，处理死亡检测时限、跨进程内存序及在途容量口径；再按裁决
-   修订契约与验收、获得授权后推进 Stage 1 生产化和 P0 退出复审。自动步进与导入规模成本另按各自任务推进，详见
+8. inference_v2：P0/P1 已退出、P4 首批已完成并交付复审。先裁决 D51（P4 首批复审＋T11.3/T12.1 下发）：T11.3
+   修补报告口径（掩码哨兵假性放大、ULP 可读性、oracle HTML 表格化）并重出六份报告，T12.1 对三份封存采集
+   （9.7 万/52 万/240 万条）做 P2a 导入 prepare 定点分析（无需设备）；随后按 P4 第二批补 replay 与
+   `layers.27` 下钻，P2a 提速后推进设备视图与 OneRec generate，P2b 承接多卡/FlagCX，详见
    [§11](#inference-v2-progress)。
 
 ## 10. 昆仑芯 P800 与平头哥 PPU 未解决问题（更新至 2026-10-21）
@@ -544,12 +575,14 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 
 <a id="inference-v2-progress"></a>
 
-## 11. inference_v2 / flagprof：与模型解耦的观测基座（2026-10-09 → 10-21）
+## 11. inference_v2 / flagprof：与模型解耦的观测基座（2026-10-09 → 10-28）
 
-**当前交付是可采集、保存、回查的 P0 基座，以及 Writer 容量的隔离原型证据。T9.4 收口已通过限定范围 Gate；
-T9.5b 证据已提交、待设计者裁决，候选未选定，Stage 1 未开始，P0 未退出，L-字段保持 `1.0-rc`。**
+**当前主线：P0 已退出（2026-10-27 D45，L-字段升至 `1.0`），P1 已退出（10-28 D49，附 P1.1 报告口径修补），
+P4 首批三任务当天完成（10-28 D50 批准下发；设计者复审提议 D51、含 T11.3/T12.1，待用户批准）。下一阶段建议
+转 P2a 导入速度。**
 
-本节依据本地干净研发快照 `FlagPerf_advance/dev-zkm@a66356b57edc4757fbb160c07c646298a42f9c31`。
+本节 §11.1–§11.4 依据 2026-10-21 快照 `FlagPerf_advance/dev-zkm@a66356b57edc4757fbb160c07c646298a42f9c31`；
+§11.5 依据 2026-10-28 快照 `dev-zkm@35f94819` 与设计者复审材料（后者在工作区、尚未提交，随 D51 待批准）。
 它与旧 `inference/` 的精度/性能任务工具并行，先解决“观测证据来自哪里、怎样关联、缺失如何显式保留”，再支撑
 Profiling、差分与故障分析。跨厂商统一的是记录与读取契约；目前的 NVIDIA A100、Ascend 验证不代表五家设备均适配。
 本次 runtime-team 提交只记录这些进展，没有迁移或发布研发代码、原始 trace 与实验归档。
@@ -628,7 +661,10 @@ G0 是休眠节拍对照，G1 在发射间隔持续执行纯 Python 工作，G2 
 固定 CPU8/10/12/14、mem0、ext4、共享宿主；原型测量快照为 `163cf5a9`，与本节的交付快照分开登记。
 完整画像定义、供给、单窗分布与失败以 protocol、observations 和复算原件为准，不把观察扩大为真实模型结论。
 
-### 11.4 当前 Gate、下一步与复核入口
+### 11.4 当前 Gate、下一步与复核入口（2026-10-21 时点）
+
+> 本小节保留 10-21 快照时点的表述作为历史记录；下述三项 Gate 问题已由 D39（10-22）裁决、D33/T9.5c–T9.8
+> 已相继交付，最新状态以 [§11.5](#115-本周进展p0-退出--p1-退出--p4-首批2026-10-22--10-28) 为准。
 
 T9.5b 仍须由设计者裁决三项关键问题：严格死亡时限反例；纯 Python SPSC 缺少跨进程 acquire/release 屏障的
 残余风险；在途容量口径——过载扫描实际观测 `pending=enqueued-written` 达 66,046，大于登记 C=65,536。
@@ -652,3 +688,54 @@ D33 自动步进与导入规模成本另按各自任务推进，不因容量原�
 
 **本次文档核对范围**：已对照上述封存结论、状态 JSON 与当前入口核对数字和权限边界；没有重跑设备实验、压力采集
 或完整研发 CI。历史通过与失败按各轮原环境引用，不能当作本次重新测得的性能或验收结果。
+
+<a id="11-5-weekly-20261028"></a>
+
+### 11.5 本周进展：P0 退出 → P1 退出 → P4 首批（2026-10-22 → 10-28）
+
+依据研发快照 `FlagPerf_advance/dev-zkm@35f94819`（`a66356b5..35f94819` 共 166 个提交）；标注“复审”的条目
+来自设计者对封存制品的重读（工作区未提交材料），随 D51 待用户批准。
+
+| 日期 | 事件 | 已封存证据与边界 |
+| --- | --- | --- |
+| 10-22 | D39 设计者 Gate（用户裁决 T9.5b 三项） | Writer 选 B2X 类、不保留 A；Stage 1 前插 T9.5c（死亡检测时限等）；T9.6 Reader 流式化列为 P0 退出前置 |
+| 10-23 → 10-26 | T9.5c/T9.6 交付与复盘、Stage 1 准备 | 死亡检测/内存序/在途口径按裁决修订；Reader 流式化落地 |
+| 10-25 | D33 方案 B 单进程生产候选 | 官方采集＋有界导入＋恢复整合；目标无需 `handle.step()`（默认 final 捕获）；原吞吐失败由用户接受为非阻塞 |
+| 10-26 → 10-27 | T9.7 Writer Stage 1 生产接入＋T9.8 真实推理闭环校准 | B2X 进程外代理写者接入生产，正确性/生命周期/资源全部通过；真实负载轻量记录约 70 条/s、扰动测不出、可感知成本＝官方窗口导出＋离线 prepare；W7/W9 合成高负载项非阻塞处置、失败保留 |
+| 10-27 | **D45：P0 退出** | 退出矩阵 13 项全部满足；写入容量判“登记低负载范围达标”；L-字段升至 `1.0` |
+| 10-27 | T10.1–T10.3（P1 交付） | 探针生命周期、有界分析、小规模 profiling：主机→设备桥接在生产路径成立（R3 项目 linked 1,692 条，抽样 `aten::cat → aclnnCat` 等）；探针开/关输出逐值相等；FlagGems 命中清单与 v1 一致（23 函数、`route_table_mismatch=0`） |
+| 10-28 | **D49：P1 退出**（用户批准，附 P1.1 修补） | C1–C8 功能链路门全部通过；两类头条误导由 T10.4 修补：耗时头条改按测量前向并排除已归属编译，回退清单 28 键/99 行收窄为 5 个主表键并分列 device_unsupported/not_registered/policy_excluded |
+| 10-28 | **D50：P4 首批下发并当天完成**（T10.4/T11.1/T11.2；原时限 10-31 至 11-10） | 见下文 |
+
+**P4 首批三任务的关键数字：**
+
+- **T10.4 / P1.1 报告可信度**：runner 写实际 phase、编译按 op/module scope 归属；`perf-lite` 默认关闭
+  dispatch——L1/L0 吞吐比 1.0032、最终输出字节全等；L1 根层均值 268.185 ms 与 runner 同步前向
+  1,312.631 ms 分列，两个数回答不同问题。
+- **T11.1 固定输入张量采集**：校验参考包输入与模型摘要后直接加载同一份输入张量、不再重新分词；每侧 372 个
+  唯一键（12 样本 × 31 边界）、完整 blob 约 21.48 MiB/侧、探针错误 0；两侧 smoke 探针开/关输出字节全等。
+- **T11.2 oracle 分析器与跨芯片差分**：四面板（身份声明/块级误差/首个不同边界/算子 introduced）。三组对照
+  （A100 vs 910C-off、A100 vs 910C-on、910C off vs on）块级 372/372 配对、embedding 三组字节相等、首差异
+  均在 `layers.0`；首个 `introduced` 分别为 `mean.dim`（FP32）与 `pow.Tensor_Scalar`；每份下钻 129 个唯一键、
+  来源未知 0；独立 NP 采集 82/82 算子行按 sid 连接性能证据、路由一致 82。
+- **验收与计账**：Python 3.9/3.11 各 485 Store、79 correlate、21 conformance 通过；T4 历史 417 条件、
+  50,040 次比较、280,688,324 字节输出保持一致；910C 设备计账 1,543.393/3,600 秒（含一次冷编译超时重跑，
+  FlagGems 三形状冷编译 368–376 s 已写入用法）、A100 78.689/3,600 秒。
+
+**设计者复审发现（工作区未提交，随 D51 待批准）：**
+
+- 三处会误导读者的数：因果掩码哨兵值造成 `softmax` 假性 1.0e38 放大（所有 decoder 模型都会出现，P4 第二批
+  按放大倍数选 replay 目标前必须先修）；BF16 下 `relative_mean/relative_max` 两列读不出信息（v1 公式原样
+  移植，退出头条）；`max_abs` 需换算 ULP 才能读（“32”实为 1 ULP，`layers.27` 的“128”为 24 ULP、是全模型
+  唯一超出舍入量级的差异）。
+- 一条可直接交 FlagGems 组的发现：`pow_tensor_scalar` 对指数 2 未做 `x*x` 特化，910C 开 FlagGems 后同一输入
+  87.9% 元素偏离 1–14 个 FP32 ULP（两家原生实现逐字节相等）；这是项目目标“采集可归因指标反馈算子库”的第一条
+  精度反馈，正式版本随 T11.3 交付。
+- 下一阶段建议转 P2a 导入速度：它挡在 v1 已有的 OneRec generate（默认 32 步）与设备视图前面；已有线索为
+  prepare 单条耗时随规模上升（9.7 万条约 0.36 ms/条、52 万条约 0.60 ms/条）与 SQLite 页缓存 2 MiB 固定上限
+  候选（`flagprof/offline/disk.py`）。
+
+**边界**：P4 首批为 Qwen3-Embedding-0.6B、固定 12 输入、单卡、A100 参考比较，不含业务容差裁决；跨设备下钻
+各 8 行布局/stride 配置不同、只标 partial 不判 introduced；replay 未实施（P4 第二批）；百万级来源记录导入
+耗时（2,401,518 条曾于 900 秒上限退出）未重新验收。D51 与 T11.3/T12.1 任务单尚未经用户批准，不因材料存在
+视为已下发；FlagPerf_advance 的 `dev-zkm` 与其远端已分叉，本轮推送去向由用户另行决定。

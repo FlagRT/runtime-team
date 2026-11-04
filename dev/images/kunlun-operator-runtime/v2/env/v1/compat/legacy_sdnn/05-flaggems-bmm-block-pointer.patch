@@ -1,0 +1,161 @@
+--- a/src/flag_gems/runtime/backend/_kunlunxin/ops/bmm.py
++++ b/src/flag_gems/runtime/backend/_kunlunxin/ops/bmm.py
+@@ -1,4 +1,5 @@
+ import logging
++import os
+ 
+ import torch
+ import triton
+@@ -31,12 +32,22 @@
+     return args["K"] % args["TILE_K"] == 0
+ 
+ 
+-@libentry()
+-@triton.autotune(
++# The XPU3 autotuner reports a zero-duration sample for block-pointer BMM on
++# some large shapes. Keep the normal generated search, but provide a stable
++# single configuration for the reproducible compatibility path.
++_bmm_autotune = triton.autotune(
+     configs=[],
+     generate_configs="bmm",
+     key=["M", "N", "K"],
+ )
++if os.environ.get("KLX_USE_AUTOTUNE", "1") != "1":
++    _bmm_autotune = triton.autotune(
++        configs=[triton.Config({"TILE_M": 32, "TILE_N": 32, "TILE_K": 32, "GROUP_M": 1}, num_warps=4, num_stages=2)],
++        key=["M", "N", "K"],
++    )
++
++@libentry()
++@_bmm_autotune
+ @triton.heuristics(
+     {
+         "GROUP_M": heur_group_m,
+@@ -61,87 +72,63 @@
+     DIVISIBLE_N: tl.constexpr,
+     DIVISIBLE_K: tl.constexpr,
+ ):
+-    # batch offsets
+     pid_b = tle.program_id(2)
+-    A += pid_b * M * K
+-    B += pid_b * K * N
+-    O += pid_b * M * N
++    A = A + pid_b * M * K
++    B = B + pid_b * K * N
++    O = O + pid_b * M * N
+ 
+     pidx = tle.program_id(0)
+     pidy = tle.program_id(1)
+-
+     if GROUP_M == 1:
+         pid_m, pid_n = pidx, pidy
+     else:
+-        # reorder CTAs
+         gridx = tle.num_programs(0)
+         gridy = tle.num_programs(1)
+         pid = pidx + pidy * gridx
+-
+         num_CTA_per_group = gridy * GROUP_M
+-
+         group_id = pid // num_CTA_per_group
+         inner_group_id = pid % num_CTA_per_group
+-        GROUP_SIZE = tl.where(
++        group_size = tl.where(
+             (group_id * GROUP_M + GROUP_M) > gridx, gridx % GROUP_M, GROUP_M
+         )
+-        pid_m = group_id * GROUP_M + inner_group_id % GROUP_SIZE
+-        pid_n = inner_group_id // GROUP_SIZE
++        pid_m = group_id * GROUP_M + inner_group_id % group_size
++        pid_n = inner_group_id // group_size
+ 
+-    offs_m = pid_m * TILE_M + tl.arange(0, TILE_M)
+-    offs_n = pid_n * TILE_N + tl.arange(0, TILE_N)
+-    offs_k = tl.arange(0, TILE_K)
++    m_offset = (pid_m * TILE_M).to(tl.int32)
++    n_offset = (pid_n * TILE_N).to(tl.int32)
++    acc = tl.zeros((TILE_M, TILE_N), dtype=tl.float32)
++    for k in range(0, tl.cdiv(K, TILE_K)):
++        k_offset = (k * TILE_K).to(tl.int32)
++        a_block = tl.make_block_ptr(
++            base=A,
++            shape=(M, K),
++            strides=(K, 1),
++            offsets=(m_offset, k_offset),
++            block_shape=(TILE_M, TILE_K),
++            order=(1, 0),
++        )
++        b_block = tl.make_block_ptr(
++            base=B,
++            shape=(K, N),
++            strides=(N, 1),
++            offsets=(k_offset, n_offset),
++            block_shape=(TILE_K, TILE_N),
++            order=(1, 0),
++        )
++        a = tl.load(a_block, boundary_check=(0, 1), padding_option="zero")
++        b = tl.load(b_block, boundary_check=(0, 1), padding_option="zero")
++        acc += tl.dot(a, b, allow_tf32=False)
+ 
+-    if not DIVISIBLE_M:
+-        mask_m = offs_m < M
+-    if not DIVISIBLE_N:
+-        mask_n = offs_n < N
+-
+-    a_ptrs = A + offs_m[:, None] * K + offs_k[None, :]
+-    b_ptrs = B + offs_k[:, None] * N + offs_n[None, :]
+-    o_ptrs = O + offs_m[:, None] * N + offs_n[None, :]
+-
+-    num_iters = tl.cdiv(K, TILE_K)
+-    o = tl.zeros((TILE_M, TILE_N), dtype=tl.float32)
+-    for _ in range(num_iters):
+-        if DIVISIBLE_K:
+-            if DIVISIBLE_M:
+-                mask_a = tl.full([TILE_M, TILE_K], value=1, dtype=tl.int1)
+-            else:
+-                mask_a = mask_m[:, None]
+-            if DIVISIBLE_N:
+-                mask_b = tl.full([TILE_K, TILE_N], value=1, dtype=tl.int1)
+-            else:
+-                mask_b = mask_n[None, :]
+-        else:
+-            mask_k = offs_k < K
+-            offs_k += TILE_K
+-            if DIVISIBLE_M:
+-                mask_a = mask_k[None, :]
+-            else:
+-                mask_a = mask_m[:, None] & mask_k[None, :]
+-            if DIVISIBLE_N:
+-                mask_b = mask_k[:, None]
+-            else:
+-                mask_b = mask_k[:, None] & mask_n[None, :]
+-
+-        a = tl.load(a_ptrs, mask_a)
+-        b = tl.load(b_ptrs, mask_b)
+-
+-        a_ptrs += TILE_K
+-        b_ptrs += TILE_K * N
+-
+-        o += tl.dot(a, b, allow_tf32=False)
+-
+-    if DIVISIBLE_M and DIVISIBLE_N:
+-        mask_c = tl.full([TILE_M, TILE_N], value=1, dtype=tl.int1)
+-    elif DIVISIBLE_M and not DIVISIBLE_N:
+-        mask_c = mask_n[None, :]
+-    elif not DIVISIBLE_M and DIVISIBLE_N:
+-        mask_c = mask_m[:, None]
+-    else:
+-        mask_c = mask_m[:, None] & mask_n[None, :]
+-    tl.store(o_ptrs, o, mask_c)
++    o_block = tl.make_block_ptr(
++        base=O,
++        shape=(M, N),
++        strides=(N, 1),
++        offsets=(m_offset, n_offset),
++        block_shape=(TILE_M, TILE_N),
++        order=(1, 0),
++    )
++    out = acc.to(O.dtype.element_ty)
++    tl.store(o_block, out, boundary_check=(0, 1))
+ 
+ 
+ def bmm(A, B):

@@ -1,0 +1,8 @@
+[wrfix] Stream: 已打补丁 type=0x7f0189b78860  orig_dealloc=0x7f018948c690 -> 0x7f016603f320（先 ClearWeakRefs 再回跳）
+[wrfix] Event: 已打补丁 type=0x7f0189b77900  orig_dealloc=0x7f0189463800 -> 0x7f016603f300（先 ClearWeakRefs 再回跳）
+wrfix.info = {'stream_patched': True, 'event_patched': True, 'orig_stream': 139644574942864, 'orig_event': 139644574775296}
+Stream_callback_fired=True (called=1)
+Event_callback_fired=True (called=1)
+SANITY sum=196608.0 expect=196608.0 ok=True
+SANITY elapsed_ms=56.800 plausible=True
+SANITY verdict=PASS

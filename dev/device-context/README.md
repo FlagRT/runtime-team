@@ -1,9 +1,16 @@
 # 设备上下文（device-context）· 主看板
 
-> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-10-16**
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-11-04**
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
+> 🆕 **四芯片兼容性对照表 v0.9（2026-11-04，「算子库」拆两行：实际使用的厂商算子库 / 自带的 FlagGems 系）**：`docs/CHIP_COMPAT_MATRIX_20261104.md` —— 四芯片（910C / P800 / MLU590 / PPU）× 五层（OS / 驱动 / 开发包 / 框架 / 算子库）逐格标 **✅已验证 / 🟡部分验证 / ⚪待核验 / ⛔不支持**，每格附仓内证据指针。
+> 当前 **✅17 · 🟡6 · ⚪1**（**24 格** = 6 行 × 4 芯片；四家「算子库·实际使用（厂商）」全 ✅）；
+> ⭐ 已更正：**910C 驱动 `26.1.1`**（旧记 `25.5.0` 作废）、**910C 宿主 OS = openEuler 22.03 LTS-SP4**（非 Ubuntu）、**P800 `XTDK 3.6.0.1`/`XRE 5.13.0.0` 有自证**（`torch_xmlir/_versions.txt`）。
+> 🆕 **交付仓（自建仓，2026-11-03 起）**：可安装的 runtime 包已迁至 **`FlagRT/flagos-device-context`（public）**，当前发布 **v0.4.0**（[Release](https://github.com/FlagRT/flagos-device-context/releases/tag/runtime-v0.4.0)，`pip install` 可用 wheel）。本目录**只留芯片实例资产、看板与证据**；报备四字段与版本锚见 `STATUS.md`「交付仓报备」节。
 > 统一基座配置：**`dev/stack.lock.910c.v2.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
 > 本方向状态文件：**`STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
+> 当前快照：**四实例接入完成**（910C / P800 / MLU590 / PPU；PPU 13 段全量重跑零回归 10-26）·
+> 共享层四处改动三实例复跑零回归（10-26/27）· 两腿 `DC_MODEL` 口径统一（10-27，P800/MLU 复验 9/0）·
+> **thead-ppu-runtime v2 已由总组裁定生效（ADR-0011，10-29）** · memory 下游建议已落地（11-03，embed 默认 gmu 0.4）。
 > 基座依据：**只消费总组定稿**（`dev/stack.lock.910c.v1–v4.yaml` · `dev/images/**/lock.yaml`）；
 > 本方向原「工作草稿」`dev/stack.lock.910c.yaml` 已于 **2026-10-16 清理**（纪律：草稿不随 `dev-1.0` 走），
 > 新实测约束改由 `STATUS.md` 的「基座与约束 / 阻塞与需要协调的事项」登记，交总组收拢并入其定稿

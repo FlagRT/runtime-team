@@ -1,0 +1,24 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+=== 阶段1：仅 import torch + torch_npu（我方路径的真实状态）===
+flag_gems in sys.modules: False
+  aten::mm           PrivateUse1 行: ['PrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:33542 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeExplicitAutogradNonFunctional_0.cpp:7805 [default backend kernel]']
+  aten::matmul       PrivateUse1 行: ['PrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:33542 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeImplicitAutograd_0.cpp:6406 [math kernel]']
+  aten::add.Tensor   PrivateUse1 行: ['PrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:33542 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeExplicitAutogradNonFunctional_0.cpp:1374 [default backend kernel]']
+
+=== 阶段2：flag_gems.enable() 后（对照，看它新增了什么）===
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/npu/__init__.py:539: UserWarning: You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. The return value of get_device_capability is only for compatibility with PyTorch and does not represent the actual capability of the NPU device.
+  warnings.warn(f"You can set the device capability via the environment variable TORCH_NPU_DEVICE_CAPABILITY. {warning_str}")
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:58: UserWarning: [device_info] torch_device_fn.get_device_capability returned None for device_id=0, fallback to (0, 0).
+  warnings.warn(
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+flag_gems in sys.modules: True
+  aten::mm           PrivateUse1 行: ['PrivateUse1: registered at /usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/__init__.py:62 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeExplicitAutogradNonFunctional_0.cpp:7805 [default backend kernel]']
+  aten::matmul       PrivateUse1 行: ['PrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:33542 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeImplicitAutograd_0.cpp:6406 [math kernel]']
+  aten::add.Tensor   PrivateUse1 行: ['PrivateUse1: registered at /usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/__init__.py:62 [kernel]', 'QuantizedPrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeExplicitAutogradNonFunctional_0.cpp:1374 [default backend kernel]']

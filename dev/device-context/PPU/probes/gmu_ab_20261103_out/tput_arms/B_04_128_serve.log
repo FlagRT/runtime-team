@@ -1,0 +1,22 @@
+=========== 统一推理服务启动 开始 Tue Nov  3 11:32:24 CST 2026 ===========
+backend=ppu dev=1 port=8102 tp=1 max_model_len=4096 eager=1
+stop_after=0（1=验证后停机；0=保持运行）
+  vllm = /usr/local/bin/vllm ｜ python3 = /usr/local/bin/python3（Python 3.12.3）
+--- 用卡前 ---
+  [torch.cuda:0] free=95.99GiB / total=96.00GiB
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=19487  日志: /tmp/tput4/B_04_128/vllm_serve.log
+  ✅ 服务就绪 t=30s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  维度=1024 范数=1.000000
+  （冒烟耗时 4s；超时上限 SMOKE_TIMEOUT=600s）
+
+############ 服务保持运行 ############
+  base_url   = http://127.0.0.1:8102/v1
+  model      = qwen3-embedding-0.6b
+  停止服务   : STOP 时请用 cleanup 逻辑（kill -9 主进程 **与 EngineCore 子进程**），
+               或重跑本脚本并设 STOP_AFTER=1 以触发清理
+  pid        = 19487（/tmp/tput4/B_04_128/serve_standard.pid）
+=========== 结束 Tue Nov  3 11:33:03 CST 2026 ===========

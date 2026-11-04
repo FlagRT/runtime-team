@@ -1,0 +1,11 @@
+can not use command: npu-smi info
+[model] DC_MODEL=/workspace/legparity_plain/Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /workspace/legparity_plain/Qwen3-Embedding-0.6B
+can not use command: npu-smi info
+[1] 设备上下文: backend=ascend dev=npu:0 count=1 mem={'total_mb': 62740, 'used_mb': 412, 'free_mb': 62327, 'alloc
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 8485.45it/s]
+[2] 模型加载完成 → npu:0
+[3] 向量: dim=1024 同主题 0.7811 / 异主题 0.1431 / 范数 1.0
+[4] 吞吐: 69.82 句/s, p50 43.1 ms, avg 42.97 ms
+[5] 错误分级: L2_PARAM → raise (graded_by=code_map)
+
+[rank0] INFER_LEG_PASS 14/14 | backend=ascend dev=npu:0 | dim 1024 | 69.82 句/s p50 43.1ms | 区分度 0.6380 -> /workspace/legparity_out/20261103_110713/infer_plain.json
