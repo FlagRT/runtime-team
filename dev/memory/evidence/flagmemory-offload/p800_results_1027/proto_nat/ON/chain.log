@@ -1,0 +1,69 @@
+CHAIN START tag=ON base=http://127.0.0.1:18321 out=/data1/chenyuanxin/p800-1027/proto_nat/ON log=/data1/chenyuanxin/p800-1027/logs/serve_natural_on_20261028_pass2.log marker0_lines=0 neighbors0=['|   0  P800 OAM           N/A   | 00000000:03:00.0 N/A |                    0 |', '|   1  P800 OAM           N/A   | 00000000:16:00.0 N/A |                    0 |', '|   2  P800 OAM           N/A   | 00000000:1C:00.0 N/A |                    0 |', '|   3  P800 OAM           N/A   | 00000000:2E:00.0 N/A |                    0 |', '|   4  P800 OAM           N/A   | 00000000:84:00.0 N/A |                    0 |', '|   5  P800 OAM           N/A   | 00000000:9C:00.0 N/A |                    0 |', '|   6  P800 OAM           N/A   | 00000000:B6:00.0 N/A |                    0 |', '|   7  P800 OAM           N/A   | 00000000:BB:00.0 N/A |                    0 |', '|    0   N/A  N/A   2148138      C   ...vice-py310-xpu/bin/python     3022MiB |', '|    1   N/A  N/A   1709570      C   python3                            36MiB |', '|    1   N/A  N/A   3398836      C   python3                            36MiB |', '|    2   N/A  N/A   4140614      C   ...trieval-vendor/bin/python    78320MiB |', '|    2   N/A  N/A   4140615      C   ...trieval-vendor/bin/python        4MiB |', '|    3   N/A  N/A   4140614      C   ...trieval-vendor/bin/python        4MiB |', '|    3   N/A  N/A   4140615      C   ...trieval-vendor/bin/python    78984MiB |', '|    4   N/A  N/A   3954845      C   ...vice-py310-xpu/bin/python     1840MiB |', '|    5   N/A  N/A    392299      C   ...29_cuda_qwenvl/bin/python       32MiB |', '|    5   N/A  N/A    394455      C   VLLM::EngineCore                28418MiB |', '|    6   N/A  N/A   1342786      C   ...rch29_cuda/bin/python3.10       32MiB |', '|    6   N/A  N/A   1344693      C   VLLM::EngineCore                79384MiB |', '|    7   N/A  N/A    543603      C   ...ebv2-py310-xpu/bin/python    17076MiB |']
+[STATUS] {"ts": 1793175371.7136989, "iso": "10-28 16:16:11", "tag": "ON", "last_leg": "start", "marker0_lines": 0, "neighbors0": ["|   0  P800 OAM           N/A   | 00000000:03:00.0 N/A |                    0 |", "|   1  P800 OAM           N/A   | 00000000:16:00.0 N/A |                    0 |", "|   2  P800 OAM           N/A   | 00000000:1C:00.0 N/A |                    0 |", "|   3  P800 OAM           N/A   | 00000000:2E:00.0 N/A |                    0 |", "|   4  P800 OAM           N/A   | 00000000:84:00.0 N/A |                    0 |", "|   5  P800 OAM           N/A   | 00000000:9C:00.0 N/A |                    0 |", "|   6  P800 OAM           N/A   | 00000000:B6:00.0 N/A |                    0 |", "|   7  P800 OAM           N/A   | 00000000:BB:00.0 N/A |                    0 |", "|    0   N/A  N/A   2148138      C   ...vice-py310-xpu/bin/python     3022MiB |", "|    1   N/A  N/A   1709570      C   python3                            36MiB |", "|    1   N/A  N/A   3398836      C   python3                            36MiB |", "|    2   N/A  N/A   4140614      C   ...trieval-vendor/bin/python    78320MiB |", "|    2   N/A  N/A   4140615      C   ...trieval-vendor/bin/python        4MiB |", "|    3   N/A  N/A   4140614      C   ...trieval-vendor/bin/python        4MiB |", "|    3   N/A  N/A   4140615      C   ...trieval-vendor/bin/python    78984MiB |", "|    4   N/A  N/A   3954845      C   ...vice-py310-xpu/bin/python     1840MiB |", "|    5   N/A  N/A    392299      C   ...29_cuda_qwenvl/bin/python       32MiB |", "|    5   N/A  N/A    394455      C   VLLM::EngineCore                28418MiB |", "|    6   N/A  N/A   1342786      C   ...rch29_cuda/bin/python3.10       32MiB |", "|    6   N/A  N/A   1344693      C   VLLM::EngineCore                79384MiB |", "|    7   N/A  N/A    543603      C   ...ebv2-py310-xpu/bin/python    17076MiB |"]}
+P sample 0: {'free_GiB': 18.41, 'total_GiB': 96.0}
+P sample 1: {'free_GiB': 18.41, 'total_GiB': 96.0}
+P sample 2: {'free_GiB': 18.41, 'total_GiB': 96.0}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/P-ON.json
+[STATUS] {"ts": 1793175829.7561045, "iso": "10-28 16:23:49", "tag": "ON", "last_leg": "P", "pool_tok": 403712}
+B LEVELS derived from pool 403712: {0.25: 25, 0.5: 49, 0.9: 89, 1.1: 108}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/calib.json
+[STATUS] {"ts": 1793175829.80738, "iso": "10-28 16:23:49", "tag": "ON", "last_leg": "calib", "tok_per_word": 2.900390625}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-256tok-r1-ON.json
+[STATUS] {"ts": 1793175834.8241136, "iso": "10-28 16:23:54", "tag": "ON", "last_leg": "S1-256-r1", "valid": true, "ttft_s": 0.92}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-256tok-r2-ON.json
+[STATUS] {"ts": 1793175839.8435097, "iso": "10-28 16:23:59", "tag": "ON", "last_leg": "S1-256-r2", "valid": true, "ttft_s": 0.64}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-256tok-r3-ON.json
+[STATUS] {"ts": 1793175844.8651607, "iso": "10-28 16:24:04", "tag": "ON", "last_leg": "S1-256-r3", "valid": true, "ttft_s": 0.61}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-1024tok-r1-ON.json
+[STATUS] {"ts": 1793175849.9066663, "iso": "10-28 16:24:09", "tag": "ON", "last_leg": "S1-1024-r1", "valid": true, "ttft_s": 2.36}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-1024tok-r2-ON.json
+[STATUS] {"ts": 1793175854.9270391, "iso": "10-28 16:24:14", "tag": "ON", "last_leg": "S1-1024-r2", "valid": true, "ttft_s": 2.17}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-1024tok-r3-ON.json
+[STATUS] {"ts": 1793175859.9481287, "iso": "10-28 16:24:19", "tag": "ON", "last_leg": "S1-1024-r3", "valid": true, "ttft_s": 2.17}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-3072tok-r1-ON.json
+[STATUS] {"ts": 1793175869.9777045, "iso": "10-28 16:24:29", "tag": "ON", "last_leg": "S1-3072-r1", "valid": true, "ttft_s": 6.84}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-3072tok-r2-ON.json
+[STATUS] {"ts": 1793175880.0131996, "iso": "10-28 16:24:40", "tag": "ON", "last_leg": "S1-3072-r2", "valid": true, "ttft_s": 6.36}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S1-3072tok-r3-ON.json
+[STATUS] {"ts": 1793175890.0511208, "iso": "10-28 16:24:50", "tag": "ON", "last_leg": "S1-3072-r3", "valid": true, "ttft_s": 6.32}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S2-r1-ON.json
+[STATUS] {"ts": 1793175930.1394255, "iso": "10-28 16:25:30", "tag": "ON", "last_leg": "S2-r1", "decode_tok_s": 13.32, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S2-r2-ON.json
+[STATUS] {"ts": 1793175970.22736, "iso": "10-28 16:26:10", "tag": "ON", "last_leg": "S2-r2", "decode_tok_s": 13.6, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S2-r3-ON.json
+[STATUS] {"ts": 1793176010.31351, "iso": "10-28 16:26:50", "tag": "ON", "last_leg": "S2-r3", "decode_tok_s": 13.47, "ctok": 512}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/S2-r4-ON.json
+[STATUS] {"ts": 1793176050.406211, "iso": "10-28 16:27:30", "tag": "ON", "last_leg": "S2-r4", "decode_tok_s": 13.59, "ctok": 512}
+B leg c=25 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c25-r1-ON.json
+[STATUS] {"ts": 1793176311.9432929, "iso": "10-28 16:31:51", "tag": "ON", "last_leg": "B-c25-r1", "wall_s": 252.1, "ok": 25, "capW": 21.0, "dma": {"store_batches": 93, "load_batches": 0}}
+B leg c=25 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c25-r2-ON.json
+[STATUS] {"ts": 1793176358.204724, "iso": "10-28 16:32:38", "tag": "ON", "last_leg": "B-c25-r2", "wall_s": 39.4, "ok": 25, "capW": 0.0, "dma": {"store_batches": 0, "load_batches": 0}}
+B leg c=49 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c49-r1-ON.json
+[STATUS] {"ts": 1793176635.5266635, "iso": "10-28 16:37:15", "tag": "ON", "last_leg": "B-c49-r1", "wall_s": 270.4, "ok": 49, "capW": 21.0, "dma": {"store_batches": 87, "load_batches": 0}}
+B leg c=49 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c49-r2-ON.json
+[STATUS] {"ts": 1793176712.5646691, "iso": "10-28 16:38:32", "tag": "ON", "last_leg": "B-c49-r2", "wall_s": 69.8, "ok": 49, "capW": 0.0, "dma": {"store_batches": 31, "load_batches": 0}}
+B leg c=89 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c89-r1-ON.json
+[STATUS] {"ts": 1793177185.2839794, "iso": "10-28 16:46:25", "tag": "ON", "last_leg": "B-c89-r1", "wall_s": 464.7, "ok": 89, "capW": 37.0, "dma": {"store_batches": 140, "load_batches": 0}}
+B leg c=89 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c89-r2-ON.json
+[STATUS] {"ts": 1793177317.1513667, "iso": "10-28 16:48:37", "tag": "ON", "last_leg": "B-c89-r2", "wall_s": 123.1, "ok": 89, "capW": 0.0, "dma": {"store_batches": 32, "load_batches": 0}}
+B leg c=108 r=1 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c108-r1-ON.json
+[STATUS] {"ts": 1793177664.7110198, "iso": "10-28 16:54:24", "tag": "ON", "last_leg": "B-c108-r1", "wall_s": 338.6, "ok": 108, "capW": 16.0, "dma": {"store_batches": 113, "load_batches": 2}}
+B leg c=108 r=2 words=1324 prompt_tok=3840 dev=0.0
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/B-c108-r2-ON.json
+[STATUS] {"ts": 1793178743.6626778, "iso": "10-28 17:12:23", "tag": "ON", "last_leg": "B-c108-r2", "wall_s": 1069.0, "ok": 108, "capW": 104.0, "dma": {"store_batches": 202, "load_batches": 2}}
+[STATUS] {"ts": 1793179754.3662078, "iso": "10-28 17:29:14", "tag": "ON", "last_leg": "L-r1", "wall_s": 1003.7, "eq_r2": 94}
+[STATUS] {"ts": 1793180756.547658, "iso": "10-28 17:45:56", "tag": "ON", "last_leg": "L-r2", "wall_s": 1001.9, "eq_r2": 100}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/L-c108-ON.json
+[STATUS] {"ts": 1793180759.9728208, "iso": "10-28 17:45:59", "tag": "ON", "last_leg": "L", "load_batches": 4, "store_batches": 396}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/R-cancel-ON.json
+[STATUS] {"ts": 1793180777.4617786, "iso": "10-28 17:46:17", "tag": "ON", "last_leg": "R-cancel", "returned": true, "followup_ok": true}
+WROTE /data1/chenyuanxin/p800-1027/proto_nat/ON/dma_ledger-ON.json
+[STATUS] {"ts": 1793180777.7896028, "iso": "10-28 17:46:17", "tag": "ON", "last_leg": "DONE", "dma_chain_total": {"store_batches": 1187, "store_blocks": 175149, "load_batches": 8, "load_blocks": 1965}, "neighbors_end": ["|   0  P800 OAM           N/A   | 00000000:03:00.0 N/A |                    0 |", "|   1  P800 OAM           N/A   | 00000000:16:00.0 N/A |                    0 |", "|   2  P800 OAM           N/A   | 00000000:1C:00.0 N/A |                    0 |", "|   3  P800 OAM           N/A   | 00000000:2E:00.0 N/A |                    0 |", "|   4  P800 OAM           N/A   | 00000000:84:00.0 N/A |                    0 |", "|   5  P800 OAM           N/A   | 00000000:9C:00.0 N/A |                    0 |", "|   6  P800 OAM           N/A   | 00000000:B6:00.0 N/A |                    0 |", "|   7  P800 OAM           N/A   | 00000000:BB:00.0 N/A |                    0 |", "|    0   N/A  N/A   1746067      C   ...n3-Reranker-8B/bin/python    68718MiB |", "|    0   N/A  N/A   2148138      C   ...vice-py310-xpu/bin/python     3030MiB |", "|    1   N/A  N/A   1709570      C   python3                            36MiB |", "|    1   N/A  N/A   3398836      C   python3                            36MiB |", "|    2   N/A  N/A   4140614      C   ...trieval-vendor/bin/python    78320MiB |", "|    2   N/A  N/A   4140615      C   ...trieval-vendor/bin/python        4MiB |", "|    3   N/A  N/A   4140614      C   ...trieval-vendor/bin/python        4MiB |", "|    3   N/A  N/A   4140615      C   ...trieval-vendor/bin/python    78984MiB |", "|    4   N/A  N/A   1591138      C   ...-embeddings-v3/bin/python     1934MiB |", "|    4   N/A  N/A   3954845      C   ...vice-py310-xpu/bin/python     1840MiB |", "|    5   N/A  N/A   2261400      C   ...ork/fixed/venv/bin/python     2450MiB |", "|    5   N/A  N/A   2272254      C   ...ed-de-large-v1/bin/python     2522MiB |", "|    6   N/A  N/A   1342786      C   ...rch29_cuda/bin/python3.10       32MiB |", "|    6   N/A  N/A   1344693      C   VLLM::EngineCore                79526MiB |", "|    7   N/A  N/A   2092575      C   ...ank-2-reranker/bin/python    43932MiB |"]}
+CHAIN DONE
