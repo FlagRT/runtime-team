@@ -1,6 +1,6 @@
-# 国产芯片兼容性对照表（设备执行上下文层 · v0.9）
+# 国产芯片兼容性对照表（设备执行上下文层 · v0.10）
 
-> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**910C 两格 🟡 已处理（§3.1c 框架格 env 层转 ✅ · §3.1d 逐算子对照）+ §3.1e 专项核对「算式子实现归属」（v0.8）；P800 核验完成；MLU590 / PPU 待核**
+> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**910C 两格 🟡 已处理（§3.1c 框架格 env 层转 ✅ · §3.1d 逐算子对照）+ §3.1e 专项核对「算式子实现归属」（v0.8）；P800 核验完成；MLU590 待核；PPU 已完成归档复核、仍待上机（§3.4 / `PPU/docs/PPU_COMPAT_RECHECK_20261105.md`）**
 > 范围：**设备执行上下文层（device-context / 多流 Stream）** 在四款国产芯片上的软件栈兼容性。
 > 口径：**只登记本方向实际跑过的组合**；没跑过的一律标 🟡/⚪，**不按厂商宣传或镜像名推断**。
 
@@ -10,8 +10,8 @@
 
 | 你要问的 | 答案 |
 |---|---|
-| **哪些是确定的（可直接对外声明）** | **17 格 ✅**（v0.9）：**四家的「算子库·实际使用（厂商）」全部 ✅**（这是验收真正跑的路径）；910C 操作系统·驱动·开发包·框架（`2.10.0.post7`，env 层，形态须随声明写出）；P800 操作系统·驱动·开发包·框架；MLU590 驱动·开发包·框架；PPU 驱动·开发包·算子库 |
-| **哪些要上机核验** | **6 格 🟡 + 1 格 ⚪**，**全部落在「算子库·替代（FlagGems 系）」与两家宿主 OS**：910C 替代库（不可用）· P800 替代库（K-5）· PPU 替代库；MLU590/PPU 宿主 OS；MLU590 替代库 ⚪ |
+| **哪些是确定的（可直接对外声明）** | **17 格 ✅**（v0.9；v0.10 计数不变）：**四家的「算子库·实际使用（厂商）」全部 ✅**（这是验收真正跑的路径）；910C 操作系统·驱动·开发包·框架（`2.10.0.post7`，env 层，形态须随声明写出）；P800 操作系统·驱动·开发包·框架；MLU590 驱动·开发包·框架；PPU 驱动·开发包·算子库 |
+| **哪些要上机核验** | **6 格 🟡 + 1 格 ⚪**，**全部落在「算子库·替代（FlagGems 系）」与两家宿主 OS**：910C 替代库（不可用）· P800 替代库（K-5）· PPU 替代库；MLU590 宿主 OS 容器侧原文 · **PPU 宿主 os-release 原文**（PPU 内核与容器 OS 已由 10-10 归档补齐）；MLU590 替代库 ⚪ |
 | **哪些是不支持的** | **§5 共 9 条**。真正「芯片级不支持」只有 2 条：MLU590 的 **FP8/MX 量化**（设备能力 `(5,0)` 不满足）与 **FlagTree 无寒武纪线** |
 
 ⚠️ **本表不声明的事**：算子库的**逐算子数值正确性**、性能、以及「另三家做不到」这类横向推断。这些属算子/数值域，超出本方向职责（见 §7）。
@@ -45,11 +45,11 @@
 
 | 层 | **昇腾 910C** | **昆仑芯 P800** | **寒武纪 MLU590** | **平头哥 PPU（真武 ZW810E）** |
 |---|---|---|---|---|
-| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>**裸金属 `Atlas 800T A3`**（非虚拟化）<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 容器基座 **Ubuntu 24.04**（x86_64）<br>宿主 OS/内核 **未采集**（本轮不可达）<br>🟡 部分验证 |
+| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>**裸金属 `Atlas 800T A3`**（非虚拟化）<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 宿主 **Alibaba Cloud Linux 3**（归档文字记录，**缺宿主侧 `/etc/os-release` 命令原文**）· 内核 `5.10.134-17.2.al8.x86_64`（10-10 实测）<br>容器 **Ubuntu 24.04.2 LTS**（10-10 `/etc/os-release` 实测；**v2 未回读**）<br>🟡 部分验证（只缺宿主发行版直接原文；详见 §3.4） |
 | **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>安装于 **2026-09-16**（早于 10-27 验收）<br>固件：平台不支持该查询（见 §3.1b）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
 | **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（`/usr/local/xpu/version.txt`）<br>容器 **XTDK `3.6.0.1`** · **XRE `5.13.0.0`** · XCCL `20260209_9`<br>（自证 容器内 torch_xmlir/_versions.txt，容器内）<br>✅ 已验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
 | **框架（PyTorch）** | torch **`2.10.0+cpu`** · torch_npu `2.10.0`（镜像）→ **`2.10.0.post7`**（**env 层 overlay，已实测**）· py `3.11.15`<br>post7 下 weakref 回调**触发**、退出码 `0`、区分度 **0.6380 不变**（§3.1c）<br>⚠️ 形态＝**挂载覆盖（环境层）**，镜像内仍 `2.10.0`（缺陷未固化修）<br>✅ 已验证（env 层） | torch **`2.9.0+cu129`** · py `3.10.18`<br>设备 API 走 **`torch.cuda`**（实测 `torch.xpu.is_available()=False`）<br>✅ 已验证 | torch **`2.7.1+cpu`** · torch_mlu **`1.29.2+torch2.7.1`** · py `3.10`<br>退出期 weakref **未中招**<br>✅ 已验证 | torch **`2.10.0`** · py `3.12.3` · transformers `4.57.0`<br>⚠️ 退出期 weakref UAF 为**平台缺陷**，我方运行时已自保<br>🟡 部分验证 |
-| **算子库（实际使用 · 厂商）**（判定＝**验收时真正执行的那条路径**） | **CANN 算子**（随容器 `CANN 9.0.0`；由 `torch_npu` 在 `PrivateUse1` 注册，底层 CANN ACLNN）<br>含厂商**融合算子**：trace 实测出现 `npu.npu_fusion_attention_v3`<br>通信＝**HCCL**（`DC_DIST_BT=hccl`）<br>⚠️ **`flagcx` 在本机不使用**（910C 通信走 HCCL；flagcx 是 P800 的后端）<br>✅ 已验证 | **XTDK / XRE 算子**（经 `torch_xmlir` + `xtorch_ops 0.1.2640` 实现；设备 API 走 `torch.cuda`）<br>通信＝**flagcx**（`DC_DIST_BT=cuda:flagcx`）<br>✅ 已验证 | **NeuWare 算子**（`torch_mlu` PrivateUse1）+ `torch_mlu_ops 1.8.0`<br>通信＝**cncl**<br>✅ 已验证（9 段 PASS 均走此路径） | **厂商 SDK 算子**（PPU SDK 2.1.0，CUDA 兼容栈经 `torch.cuda` 命名空间；具体算子库名**未采集**）<br>通信＝**nccl**<br>✅ 已验证（13 段 PASS 均走此路径） |
+| **算子库（实际使用 · 厂商）**（判定＝**验收时真正执行的那条路径**） | **CANN 算子**（随容器 `CANN 9.0.0`；由 `torch_npu` 在 `PrivateUse1` 注册，底层 CANN ACLNN）<br>含厂商**融合算子**：trace 实测出现 `npu.npu_fusion_attention_v3`<br>通信＝**HCCL**（`DC_DIST_BT=hccl`）<br>⚠️ **`flagcx` 在本机不使用**（910C 通信走 HCCL；flagcx 是 P800 的后端）<br>✅ 已验证 | **XTDK / XRE 算子**（经 `torch_xmlir` + `xtorch_ops 0.1.2640` 实现；设备 API 走 `torch.cuda`）<br>通信＝**flagcx**（`DC_DIST_BT=cuda:flagcx`）<br>✅ 已验证 | **NeuWare 算子**（`torch_mlu` PrivateUse1）+ `torch_mlu_ops 1.8.0`<br>通信＝**cncl**<br>✅ 已验证（9 段 PASS 均走此路径） | **厂商 SDK 算子**（PPU SDK 2.1.0 · CUDA wrapper cu130 `/usr/local/PPU_SDK`；通信底层 `libpccl` `/opt/accl-p`，PyTorch 后端名 `nccl`）<br>通信＝**nccl**<br>⚠️ 登记路径已给出，**运行时 dispatch 归属待上机三层证据**（参照 §3.1e）<br>✅ 已验证（13 段 PASS 均走此路径；`PPU/probes/` 启用 FlagGems = 0） |
 | **算子库（替代 · FlagGems 系）**（随镜像自带、**默认未启用**；判它＝判「能不能替换掉厂商」） | flag_gems `0.0.0+f7ae8e6b934a` · flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton `3.5.1`<br>逐算子对照 **18 算子 / 184 条重放一致、0 条数值不一致**（§3.1d）<br>⚠️ **但启用后真实前向编译期失败**（缺 `shmem`；`triu` 可独立复现）⇒ **当前不可替换**<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）· flagtree `0.6.1+xpu3.6`<br>⚠️ GEMM 数值缺口 `K-5`（64³ fp32 乱值）未解，禁用于关键路径<br>🟡 部分验证 | flag_gems `5.4.0rc2.post3` · triton `3.2.0+mlu1.7.2`（厂商 triton-mlu 变体）<br>⚪ **本组未做结论性验证**（镜像基线原话） | FlagGems `5.4.0rc2` · triton `3.6.0`（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
 
 ### 2.1 计数
@@ -61,6 +61,8 @@
 | ⚪ 待核验 | 1 | 1 | 1 | **1** | MLU590 替代库（不变） |
 | ⛔ 不支持 | 0（格级） | 0 | 0 | **0** | 能力级不支持见 §5 |
 | 合计 | 20 | 20 | 20 | **24** | ⚠️ **格数从 20 → 24**：把「算子库」一层拆成**两行**（实际使用 / 替代），不是新增芯片或新层 |
+
+> **v0.10（2026-11-05）只更正 PPU 的表述与证据，计数不变**：✅17 / 🟡6 / ⚪1 / ⛔0；PPU 操作系统格仍 🟡，但待核理由收窄为「缺宿主侧 `/etc/os-release` 原文 + v2 容器 OS 未回读」。
 
 ⚠️ **910C 框架格的 ✅ 只对「env 层」成立**：镜像内仍是 `torch_npu 2.10.0`（缺陷版）。
 按「挂载覆盖 vs 镜像固化**不可折算**」的纪律，对外声明必须带形态，不得读作「镜像已修」。
@@ -267,7 +269,10 @@ SERVE_STANDARD_PASS (ready=1 smoke=1)                            ← 同轮服�
 | 框架 | 同上 **L25–L43**（torch `2.7.1+cpu` / torch_mlu `1.29.2+torch2.7.1` / torch_mlu_ops `1.8.0`） | 同上；weakref 未中招见 `MLU590/probes/weakref_check_20261103_out/MANIFEST.md` |
 | 算子库 | 同上 **L45–L58**（triton 在 `/opt/triton`、flag_gems `5.4.0rc2.post3`；文件原话：**「本组尚未在本芯片上做结论性验证」**） | **无** ⇒ ⚪ |
 
-### 3.4 平头哥 PPU（本轮网络不可达，沿用 10-10 / 11-03 记录）
+### 3.4 平头哥 PPU（2026-11-05 归档复核；本轮网络不可达，**未上机**）
+
+> ⭐ 本轮归档复核报告：`PPU/docs/PPU_COMPAT_RECHECK_20261105.md`（**§1** 连通性实测读数 · **§2** 六格逐格证据 · **§3** 上机清单）。
+> ⚠️ 本轮**零新真机读数**，下列全部为 10-10 / 10-27 / 11-03 归档证据，状态判定一格未改。
 
 | 层 | 版本事实来源 | 验收证据 |
 |---|---|---|
@@ -275,6 +280,10 @@ SERVE_STANDARD_PASS (ready=1 smoke=1)                            ← 同轮服�
 | 驱动 | `PPU/docs/PPU_BACKEND_ONBOARDING_20261010.md` **L33**（`KMD 1.5.1-1d747a` · SDK `2.1.0-a5f865` · HGGC `13.0` · PCCL `2.1.0`） | 同上 |
 | 框架 | image.baseline **L40–L55** | 同上；weakref 平台缺陷见 `PPU/docs/PPU_VENDOR_WEAKREF_ISSUE_20261026.md` |
 | 算子库 | image.baseline **L25–L37**（flagtree `0.7.0+ppu.gite223f42c` whl 提供 triton 3.6.0） | ⚠️ **v1 曾无 triton**（`import triton` 报 `ModuleNotFoundError`，见 `PPU/README.md` **L105**）⇒ v2 加派生层修复 |
+| 宿主内核 / 容器 OS（**11-05 新补**） | `PPU/probes/std_steps_20261010_out/preflight_env_ppu_20261010.log` **L7–L13**：`uname` → `5.10.134-17.2.al8.x86_64`；`os-release` → `NAME="Ubuntu"` / `VERSION="24.04.2 LTS (Noble Numbat)"` | ⭐ 视角自证：`docker 不可用` · `sudo 不可用` · `python3=/usr/local/bin/python3 3.12.3` · 根 fs=`overlay` · `bond0 192.168.5.112/26` ⇒ 该 preflight 在**容器内**跑 ⇒ `uname` 是宿主内核、`os-release` 是容器内发行版，**两层不是冲突**；⛔ 不得把 Ubuntu 写成宿主 OS |
+| 宿主发行版（**11-05 新补**） | `PPU/README.md` **L61** · `PPU/docs/PPU_BACKEND_ONBOARDING_20261010.md` **L31**：`Alibaba Cloud Linux 3` · 192 线程 / 2015 GB | ⚠️ 只有归档**文字记录**，缺宿主侧 `/etc/os-release` 命令原文 ⇒ 该格仍 🟡，待上机补 |
+| 算子路径（**11-05 离线代码核对**） | `grep -rInE "flag_gems\|use_gems\|flaggems.enable\|VLLM_FL_PREFER\|USE_FLAGGEMS" PPU/probes --include="*.sh" --include="*.py"` → **0 命中**；`prototype/scripts/serve_standard.sh` **L201–L215** `ppu)` 分支原注释「不需要任何厂商插件/平台环境变量」 | 与 910C「`unset VLLM_PLUGINS` ≠ 禁用」、P800「必须启用插件 + `PYTHONPATH`」两条口径都不同 ⇒ PPU 验收路径走厂商原生 |
+| 版本漂移提醒（**11-05**） | `PPU_BACKEND_ONBOARDING_20261010.md` **L35** 的 `flagtree 0.6.1+ppu3.6 · triton 3.6.0` 已被 `PPU/README.md` **§3（10-14 更正）** 判为**从镜像名推断的误读**（基座实测 `import triton` 失败） | ⛔ 该旧值**已作废**，不得再引用为 v2 版本事实；v2 以 image.baseline L29 `0.7.0+ppu.gite223f42c` 为准 |
 
 ## 4 补充：推理服务栈（vLLM 线）单列
 
@@ -416,7 +425,7 @@ docker exec -e CUDA_VISIBLE_DEVICES=3 <容器> <python> \
 |---|---|---|---|
 | ~~P0~~ | ~~910C~~ | ~~宿主 OS + 驱动真实版本~~ | ✅ **2026-11-04 完成**：`openEuler 22.03` / 驱动 `26.1.1`；旧值 `25.5.0` 已作废 |
 | ~~P0~~ | ~~P800~~ | ~~新机宿主 OS / 内核 / 驱动~~ | ✅ **2026-11-04 完成**：`Ubuntu 24.04.2 / 6.8.0-87 / 5.0.21.47`，与老机一致 |
-| **P0** | PPU | 宿主 OS + 内核（现有只有容器基座 OS） | ⛔ 本轮网络不可达（`192.168.5.112:22` 超时），待恢复 |
+| **P0** | PPU | **宿主侧 `/etc/os-release` 原文**（宿主内核 `5.10.134-17.2.al8.x86_64` 与容器 OS `Ubuntu 24.04.2 LTS` 已由 10-10 归档补齐；v2 容器 OS 仍待回读） | ⚠️ **2026-11-05 15:44–15:46** 三入口仍不可达：`:22` / `:2222` `Connection refused`、旧 `:36444` 超时、路由走 `en0` 未进 VPN ⇒ 待用户确认 VPN / 新入口；读数见 `PPU/docs/PPU_COMPAT_RECHECK_20261105.md` **§1** |
 | **P1** | MLU590 | ① 容器 `/etc/os-release`（现为**包名推断**）② **FlagGems 算子对照**（唯一 ⚪ 格） | ⛔ 本轮网络不可达（`10.1.1.21:22` 超时），待恢复 |
 | ~~P1~~ | ~~P800~~ | ~~容器内 XTDK/XRE 的真实来源~~ | ✅ **2026-11-04 结案**：容器内 torch_xmlir/_versions.txt 实测 `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9`，与基线逐字一致 |
 | — | **P800 总收尾** | **事实项全部闭合**：OS / 内核 / 驱动 / 开发包 / 框架 / 各腿算子路径 六类均有实测依据；唯一遗留是**工程能力**（新机复现 K-5 判据，见 §5.4-D），不是事实缺口 | ✅ **P800 视为核验完成** |
@@ -520,6 +529,22 @@ xpu-smi | grep -c "P800 OAM"               →  8
 
 **本轮不可达**：`PPU-2`（`192.168.5.112:22`）、`Mlu-1`（`10.1.1.21:22`）均 `Operation timed out` ⇒ 两家数据沿用历史记录，标注「本轮未复核」。
 
+**2026-11-05 15:44–15:46 CST（PPU 复核，仍不可达；本机 macOS）**
+
+```
+ssh -o BatchMode=yes -o ConnectTimeout=10 PPU-2 'hostname'    → Connection refused (192.168.5.112:22)
+ssh -o BatchMode=yes -o ConnectTimeout=10 PPU-2-alt 'hostname'→ Connection refused (192.168.5.112:2222)
+ssh -o BatchMode=yes -o ConnectTimeout=10 PPU 'hostname'      → Operation timed out (旧入口 :36444)
+ping -c 2 -t 3 192.168.5.112                                  → 100.0% packet loss
+route -n get 192.168.5.112                                     → gateway 172.25.207.254 / interface en0（未进 VPN）
+ssh -G PPU-2 | grep -E '^(hostname|port|user)'                 → 192.168.5.112 / 22 / hliu553（配置无误）
+15:45:25 与 15:46:19 两次重试 22 / 2222                        → 仍 Connection refused
+```
+
+⇒ 本轮**没有新的真机读数**；PPU 侧做的是**归档复核**：宿主内核与容器 OS 由 10-10 preflight 补齐，
+宿主发行版仍缺宿主侧 `/etc/os-release` 原文 ⇒ 操作系统格维持 🟡 但待核理由收窄。
+只读采集脚本已备：`PPU/probes/collect_ppu_compat_20261105.sh`（`bash -n` 通过；按 RUNID 分目录、只追加、不覆盖）。
+
 ## 7 边界声明
 
 1. **本表只覆盖设备执行上下文层**（init/context/queue、Stream/Event、D2D/H2D、错误恢复、多流）。算子库、集合通信、显存管理、调度、性能均**只登记不结论**。
@@ -531,6 +556,7 @@ xpu-smi | grep -c "P800 OAM"               →  8
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-11-05 | **v0.10** | ⭐ **PPU 归档复核（未上机）**：① 更正「宿主 OS/内核未采集」——宿主内核 `5.10.134-17.2.al8.x86_64`、容器 OS `Ubuntu 24.04.2 LTS` 有 10-10 preflight 原文，宿主发行版 `Alibaba Cloud Linux 3` 仍缺宿主侧 `os-release` 原文 ⇒ **🟡 维持但理由收窄**；② 更正「具体算子库名未采集」——登记路径 `/usr/local/PPU_SDK` / `/opt/accl-p` 已给出，运行时 dispatch 归属待上机；③ 补 §3.4 四行证据（含「preflight 在容器内跑」的视角自证、`flagtree 0.6.1` 旧值作废）、§6.2 P0、§6.4 三入口探测读数；④ 新增 `PPU/docs/PPU_COMPAT_RECHECK_20261105.md` 与只读采集脚本。**六格状态判定一格未改**（✅17 / 🟡6 / ⚪1 不变），因本轮零新真机读数 |
 | 2026-11-04 | v0.1 | **初表**：四芯片 × 五层共 20 格，✅ 8 / 🟡 11 / ⚪ 1 / ⛔ 0；给出 §6 上机核验清单 |
 | 2026-11-04 | **v0.9** | ⭐ **把「算子库」一层拆成两行**（因原文混装两件事、易被误读）：**「算子库（实际使用 · 厂商）」**＝验收真正执行的路径（910C: CANN 算子 + `npu_fusion_attention_v3` + **HCCL**；P800: XTDK/XRE + `xtorch_ops` + **flagcx**；MLU590: NeuWare + `torch_mlu_ops` + **cncl**；PPU: SDK 2.1.0 + **nccl**）⇒ **四家全 ✅**；**「算子库（替代 · FlagGems 系）」**＝随镜像自带但默认未启用（910C 不可用 / P800 K-5 / MLU590 ⚪ / PPU v2 已修）⇒ 判它是判「能不能替换掉厂商」。⭐ 同时更正一处事实错误：**`flagcx` 原先列在 910C 算子库格里，但 910C 通信走 HCCL、根本不用 flagcx**（flagcx 是 P800 的后端）。⚠️ 格数 20 → **24**（层数未变，是这一层拆两行）；计数 ✅17 / 🟡6 / ⚪1 |
 | 2026-11-04 | **v0.8** | **新增 §3.1e「910C 到底谁在实现算子」专项核对**：三层独立证据证明**我方路径全走厂商算子库** —— ① 注册层 `torch._C._dispatch_dump_table`：`mm/add/silu/matmul` 的 `PrivateUse1` 全为 `torch_npu/csrc/aten/RegisterNPU.cpp:33542`；② 运行期 `'flag_gems' in sys.modules` = **False**；③ 真实服务日志 `Platform plugin ascend is activated` + `SERVE_STANDARD_PASS`，FlagGems 相关字样**零命中**。⭐ 顺带两个事实：(a) **`aten::matmul` 不在 flag_gems 覆盖内**（enable 后仍回落厂商，只有 `mm` 被接管）；(b) ⚠️ **更正一句错误因果** —— vLLM 里 `VLLM_PLUGINS` 未设（None）= **加载全部插件**，「unset = 禁用 vllm-plugin-FL」是错的（真禁用要给空串）；脚本头注释与 ascend 分支注释已改，**代码行为未改**（实测插件即使被 import 也不调 `enable()`，dispatch 不变）。⚠️ 20 格状态计数不变（仍 ✅13 / 🟡6 / ⚪1）| 

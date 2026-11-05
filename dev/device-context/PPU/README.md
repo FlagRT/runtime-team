@@ -1,11 +1,21 @@
 # 平头哥 PPU · 第四实例看板（**接入完成 · 13 段全量重跑零回归（10-26）· 职责审计 73/0/5（10-26 C13 二次修正）· 契约不变式载体 `rc=139` **已收口（10-26 第五载体）**；残留：平台侧弱引用缺陷**转厂商**（材料已备）**）
 
-> 分支：`kistich/device-context` ｜ 更新：**2026-11-03** ｜ 负责人：Kistich（hliu553）
+> 分支：`kistich/device-context` ｜ 更新：**2026-11-05** ｜ 负责人：Kistich（hliu553）
 > 🆕 **v2 镜像分版表态（2026-11-03）**：总组 ADR-0011 于 10-29 裁定 `thead-ppu-runtime v2` 生效；本轮在 v2 上做全量 13 段复跑 ⇒ **`overall: PASS`（逐段 rc=0）**，训练 loss **11.1530** / 推理区分度 **0.6391** / 服务化区分度 **0.4118** 与 v1（10-26）归档**逐字相同** ⇒ **零回归**；`DC_MODEL` 两腿口径 `LEGPARITY_PASS` 9/0（四实例复验 4/4）。⚠️ 平台侧 weakref 退出期 UAF 在 v2 **仍命中**（我方 runtime 已自保，止血补丁在 `probes/weakref_check_20261103_out/`）。报告 `docs/PPU_V2_ACCEPTANCE_20261103.md`，证据 `probes/v2_acceptance_20261103_out/MANIFEST.md`。
 > **本目录 = 第四实例（平头哥 PPU）的芯片专属资产**；当前阶段 **后端接入 + 模型资产 + 训练/推理两条腿判据（50 步）已达三家同口径**；✅ **服务化 10/10 · 错误闭环 5/0/0 · 多流 16 项 · 调度效果（如实 `effect_observed=False`）· 证据索引均已补**（10-14 完成，10-26/10-27 复跑零回归），**职责响应审计 78 项 73/0/5**（10-26 C13 修正后；原 72/0/6 含一处**假 SKIP**）（审计路径 **18/18** 全绿；⚠️ 原「根因＝持有器强度」**已被复核否定**，但**改动本身有效** —— 探针序列弱引用 **5/5 FAIL** → 强持有 **5/5 OK**，交替对照）
 > （⚠️ 两条腿均在判据通过后于**退出阶段段错误**，见 §4）。
 > 芯片无关的规范与原型在 `../prototype/`；前三实例在 `../910C/`、`../P800/`、`../MLU590/`。
 > 接入方法见 **《新芯片接入手册》** `../prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`。
+
+---
+
+## 0a. 兼容性对照表 · 归档复核（2026-11-05，**未上机**）
+
+> **本轮零新真机读数**：15:44–15:46 CST 三个 SSH 入口全部不可达（`:22` / `:2222` `Connection refused`、旧 `:36444` 超时、路由走 `en0` 未进 VPN）⇒ 兼容表六格**状态判定一格未改**。
+> 更正两处表述：① 宿主内核 `5.10.134-17.2.al8.x86_64` 与容器 OS `Ubuntu 24.04.2 LTS` 有 `probes/std_steps_20261010_out/preflight_env_ppu_20261010.log` **L7–L13** 原文（原记「未采集」不准），宿主发行版 `Alibaba Cloud Linux 3` 仍缺宿主侧 `/etc/os-release` 原文 ⇒ 操作系统格仍 🟡 但 P0 收窄；② 「具体算子库名未采集」→ 登记路径 `/usr/local/PPU_SDK` / `/opt/accl-p` 已给出，运行时 dispatch 归属待上机。
+> ⚠️ **视角纪律**：该 preflight 跑在**容器内**（`docker 不可用` / `sudo 不可用` / `python3=/usr/local/bin/python3` / 根 fs=`overlay`），`uname` 是宿主内核、`os-release` 是容器内发行版 ⇒ ⛔ 不得把 Ubuntu 写成宿主 OS。
+> ⚠️ **旧值作废**：`docs/PPU_BACKEND_ONBOARDING_20261010.md` **L35** 的 `flagtree 0.6.1+ppu3.6 · triton 3.6.0` 是「从镜像名 `-3.6-base` 推断」的误读（本看板 §3 已于 10-14 更正）；v2 版本事实以 `dev/images/thead-ppu-runtime/v2/image.baseline.yaml` **L29** `0.7.0+ppu.gite223f42c` 为准。
+> 报告：`docs/PPU_COMPAT_RECHECK_20261105.md` **§1–§4**；一键只读采集：`probes/collect_ppu_compat_20261105.sh`（`bash -n` 通过，按 RUNID 分目录、只追加、默认不占卡）。
 
 ---
 
