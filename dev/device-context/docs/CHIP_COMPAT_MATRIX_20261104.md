@@ -1,6 +1,6 @@
-# 国产芯片兼容性对照表（设备执行上下文层 · v0.10）
+# 国产芯片兼容性对照表（设备执行上下文层 · v0.11）
 
-> 起草：2026-11-04 ｜ 责任人：Kistich（hliu553）｜ 状态：**910C 两格 🟡 已处理（§3.1c 框架格 env 层转 ✅ · §3.1d 逐算子对照）+ §3.1e 专项核对「算式子实现归属」（v0.8）；P800 核验完成；MLU590 待核；PPU 已完成归档复核、仍待上机（§3.4 / `PPU/docs/PPU_COMPAT_RECHECK_20261105.md`）**
+> 起草：2026-11-04 ｜ 最近更新：**2026-11-05** ｜ 责任人：Kistich（hliu553）｜ 状态：**910C 两格 🟡 已处理（§3.1c 框架格 env 层转 ✅ · §3.1d 逐算子对照）+ §3.1e 专项核对「算子实现归属」（v0.8）；P800 核验完成；⭐ MLU590 已上机逐格核验（§3.3 / `MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md`）；PPU 已完成归档复核、仍待上机（§3.4）**
 > 范围：**设备执行上下文层（device-context / 多流 Stream）** 在四款国产芯片上的软件栈兼容性。
 > 口径：**只登记本方向实际跑过的组合**；没跑过的一律标 🟡/⚪，**不按厂商宣传或镜像名推断**。
 
@@ -10,9 +10,9 @@
 
 | 你要问的 | 答案 |
 |---|---|
-| **哪些是确定的（可直接对外声明）** | **17 格 ✅**（v0.9；v0.10 计数不变）：**四家的「算子库·实际使用（厂商）」全部 ✅**（这是验收真正跑的路径）；910C 操作系统·驱动·开发包·框架（`2.10.0.post7`，env 层，形态须随声明写出）；P800 操作系统·驱动·开发包·框架；MLU590 驱动·开发包·框架；PPU 驱动·开发包·算子库 |
-| **哪些要上机核验** | **6 格 🟡 + 1 格 ⚪**，**全部落在「算子库·替代（FlagGems 系）」与两家宿主 OS**：910C 替代库（不可用）· P800 替代库（K-5）· PPU 替代库；MLU590 宿主 OS 容器侧原文 · **PPU 宿主 os-release 原文**（PPU 内核与容器 OS 已由 10-10 归档补齐）；MLU590 替代库 ⚪ |
-| **哪些是不支持的** | **§5 共 9 条**。真正「芯片级不支持」只有 2 条：MLU590 的 **FP8/MX 量化**（设备能力 `(5,0)` 不满足）与 **FlagTree 无寒武纪线** |
+| **哪些是确定的（可直接对外声明）** | **18 格 ✅**（v0.11；v0.9/v0.10 为 17）：**四家的「算子库·实际使用（厂商）」全部 ✅**（这是验收真正跑的路径）；910C 操作系统·驱动·开发包·框架（`2.10.0.post7`，env 层，形态须随声明写出）；P800 操作系统·驱动·开发包·框架；**MLU590 操作系统·驱动·开发包·框架**（11-05 实测）；PPU 驱动·开发包·算子库 |
+| **哪些要上机核验** | **6 格 🟡 + 0 格 ⚪**：四家「算子库·替代（FlagGems 系）」均 🟡（910C 编译期不可用 · P800 K-5 · **MLU590 11-05 测出当前不可替换** · PPU v1 无 triton）＋ **PPU 操作系统格**（缺宿主 `os-release` 原文、v2 容器 OS 未回读）＋ **PPU 框架格**（退出期 weakref UAF 平台缺陷）。⚠️ 910C 框架格虽为 ✅（env 层 post7），对外声明**必须带「挂载覆盖」形态**；MLU590 的 ⚪ 归零**不是测出可用**，是测出不可用 |
+| **哪些是不支持的** | **§5 共 10 条**（v0.11 新增 N-10 FlagGems↔triton-mlu 接口不匹配）。真正「芯片级不支持」只有 2 条：MLU590 的 **FP8/MX 量化**（设备能力 `(5,0)` 不满足）与 **FlagTree 无寒武纪线** |
 
 ⚠️ **本表不声明的事**：算子库的**逐算子数值正确性**、性能、以及「另三家做不到」这类横向推断。这些属算子/数值域，超出本方向职责（见 §7）。
 
@@ -45,24 +45,26 @@
 
 | 层 | **昇腾 910C** | **昆仑芯 P800** | **寒武纪 MLU590** | **平头哥 PPU（真武 ZW810E）** |
 |---|---|---|---|---|
-| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>**裸金属 `Atlas 800T A3`**（非虚拟化）<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04**（**由包名推断**）<br>🟡 部分验证 | 宿主 **Alibaba Cloud Linux 3**（归档文字记录，**缺宿主侧 `/etc/os-release` 命令原文**）· 内核 `5.10.134-17.2.al8.x86_64`（10-10 实测）<br>容器 **Ubuntu 24.04.2 LTS**（10-10 `/etc/os-release` 实测；**v2 未回读**）<br>🟡 部分验证（只缺宿主发行版直接原文；详见 §3.4） |
-| **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>安装于 **2026-09-16**（早于 10-27 验收）<br>固件：平台不支持该查询（见 §3.1b）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | **`v6.2.29`** / 固件 `v1.5.0` / CNMON `v6.2.29`<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
+| **操作系统** | 宿主 **openEuler 22.03 (LTS-SP4)**<br>kernel `5.10.0-216.0.0.115.oe2203sp4.aarch64`<br>**裸金属 `Atlas 800T A3`**（非虚拟化）<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 24.04.2 LTS**<br>kernel `6.8.0-87-generic`<br>容器 **Ubuntu 22.04.5 LTS**<br>✅ 已验证 | 宿主 **Ubuntu 20.04.6 LTS**<br>kernel `5.15.0-139-generic`<br>容器 **Ubuntu 22.04.5 LTS**（11-05 实测 `/etc/os-release`）<br>✅ 已验证 | 宿主 **Alibaba Cloud Linux 3**（归档文字记录，**缺宿主侧 `/etc/os-release` 命令原文**）· 内核 `5.10.134-17.2.al8.x86_64`（10-10 实测）<br>容器 **Ubuntu 24.04.2 LTS**（10-10 `/etc/os-release` 实测；**v2 未回读**）<br>🟡 部分验证（只缺宿主发行版直接原文；详见 §3.4） |
+| **驱动** | **`26.1.1`**<br>ascendhal `7.35.23` · npu-smi `26.1.1`<br>安装于 **2026-09-16**（早于 10-27 验收）<br>固件：平台不支持该查询（见 §3.1b）<br>✅ 已验证 | 宿主 `5.0.21.47`（XPU-RT `5.0.21`）<br>新机与老机**同版本**<br>✅ 已验证 | 验收机 Mlu-1 运行态 **`6.5.52`**（cnmon / `/sys/module/cambricon_drv/version` / `modinfo` 三处一致；**10-28** 更新）<br>Mlu-2 **`6.2.29`**；两台 `dpkg` 元数据均 `6.2.29-7.ubuntu20.04`<br>固件 `v1.5.0`<br>⚠️ 两机**已分叉**；历史值 `6.2.29` 对 Mlu-2 与 09-22~10-14 归档仍成立（§3.3）<br>✅ 已验证 | KMD **`1.5.1-1d747a`** / HGGC `13.0`<br>✅ 已验证 |
 | **开发包（SDK）** | 容器 **CANN `9.0.0`**（验收即在它上面）<br>宿主 **CANN `9.1.0`**（`cann -> cann-9.1.0`，另有 `8.5.0`）<br>✅ 已验证 | 宿主 userspace **`xpu-5.0.21.47`**（`/usr/local/xpu/version.txt`）<br>容器 **XTDK `3.6.0.1`** · **XRE `5.13.0.0`** · XCCL `20260209_9`<br>（自证 容器内 torch_xmlir/_versions.txt，容器内）<br>✅ 已验证 | **NeuWare `4.4.3`**<br>cntoolkit `4.4.3-1` · cnnl `2.1.829` · cnnlextra `2.2.7` · mluops `1.8.1` · cncl `1.29.4` · cnclep `1.1.1`<br>✅ 已验证 | **PPU SDK `2.1.0-a5f865`**（CUDA wrapper `cu130`）· PCCL `2.1.0`<br>✅ 已验证 |
 | **框架（PyTorch）** | torch **`2.10.0+cpu`** · torch_npu `2.10.0`（镜像）→ **`2.10.0.post7`**（**env 层 overlay，已实测**）· py `3.11.15`<br>post7 下 weakref 回调**触发**、退出码 `0`、区分度 **0.6380 不变**（§3.1c）<br>⚠️ 形态＝**挂载覆盖（环境层）**，镜像内仍 `2.10.0`（缺陷未固化修）<br>✅ 已验证（env 层） | torch **`2.9.0+cu129`** · py `3.10.18`<br>设备 API 走 **`torch.cuda`**（实测 `torch.xpu.is_available()=False`）<br>✅ 已验证 | torch **`2.7.1+cpu`** · torch_mlu **`1.29.2+torch2.7.1`** · py `3.10`<br>退出期 weakref **未中招**<br>✅ 已验证 | torch **`2.10.0`** · py `3.12.3` · transformers `4.57.0`<br>⚠️ 退出期 weakref UAF 为**平台缺陷**，我方运行时已自保<br>🟡 部分验证 |
 | **算子库（实际使用 · 厂商）**（判定＝**验收时真正执行的那条路径**） | **CANN 算子**（随容器 `CANN 9.0.0`；由 `torch_npu` 在 `PrivateUse1` 注册，底层 CANN ACLNN）<br>含厂商**融合算子**：trace 实测出现 `npu.npu_fusion_attention_v3`<br>通信＝**HCCL**（`DC_DIST_BT=hccl`）<br>⚠️ **`flagcx` 在本机不使用**（910C 通信走 HCCL；flagcx 是 P800 的后端）<br>✅ 已验证 | **XTDK / XRE 算子**（经 `torch_xmlir` + `xtorch_ops 0.1.2640` 实现；设备 API 走 `torch.cuda`）<br>通信＝**flagcx**（`DC_DIST_BT=cuda:flagcx`）<br>✅ 已验证 | **NeuWare 算子**（`torch_mlu` PrivateUse1）+ `torch_mlu_ops 1.8.0`<br>通信＝**cncl**<br>✅ 已验证（9 段 PASS 均走此路径） | **厂商 SDK 算子**（PPU SDK 2.1.0 · CUDA wrapper cu130 `/usr/local/PPU_SDK`；通信底层 `libpccl` `/opt/accl-p`，PyTorch 后端名 `nccl`）<br>通信＝**nccl**<br>⚠️ 登记路径已给出，**运行时 dispatch 归属待上机三层证据**（参照 §3.1e）<br>✅ 已验证（13 段 PASS 均走此路径；`PPU/probes/` 启用 FlagGems = 0） |
-| **算子库（替代 · FlagGems 系）**（随镜像自带、**默认未启用**；判它＝判「能不能替换掉厂商」） | flag_gems `0.0.0+f7ae8e6b934a` · flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton `3.5.1`<br>逐算子对照 **18 算子 / 184 条重放一致、0 条数值不一致**（§3.1d）<br>⚠️ **但启用后真实前向编译期失败**（缺 `shmem`；`triu` 可独立复现）⇒ **当前不可替换**<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）· flagtree `0.6.1+xpu3.6`<br>⚠️ GEMM 数值缺口 `K-5`（64³ fp32 乱值）未解，禁用于关键路径<br>🟡 部分验证 | flag_gems `5.4.0rc2.post3` · triton `3.2.0+mlu1.7.2`（厂商 triton-mlu 变体）<br>⚪ **本组未做结论性验证**（镜像基线原话） | FlagGems `5.4.0rc2` · triton `3.6.0`（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
+| **算子库（替代 · FlagGems 系）**（随镜像自带、**默认未启用**；判它＝判「能不能替换掉厂商」） | flag_gems `0.0.0+f7ae8e6b934a` · flagtree `0.6.0+ascend.git15ec1a6c` ⇒ triton `3.5.1`<br>逐算子对照 **18 算子 / 184 条重放一致、0 条数值不一致**（§3.1d）<br>⚠️ **但启用后真实前向编译期失败**（缺 `shmem`；`triu` 可独立复现）⇒ **当前不可替换**<br>🟡 部分验证 | flag_gems `4.2.1rc0`（`/env/FlagGems`）· flagtree `0.6.1+xpu3.6`<br>⚠️ GEMM 数值缺口 `K-5`（64³ fp32 乱值）未解，禁用于关键路径<br>🟡 部分验证 | flag_gems `5.4.0rc2.post3` · triton `3.2.0+mlu1.7.2`（厂商 triton-mlu 变体）<br>**11-05 结论性验证**：`enable()` 生效、**8/9 算子 dispatch 被接管**，但 **4/9 算子执行失败**（triton autotuner `task_type` / `BLOCK_ROW_SIZE`）且**真实前向失败** ⇒ **当前不可替换**（§3.3）<br>🟡 部分验证 | FlagGems `5.4.0rc2` · triton `3.6.0`（v2 起由 flagtree `0.7.0+ppu` whl 固化）<br>⚠️ v1 无 triton ⇒ 服务化必挂，v2 已修<br>🟡 部分验证 |
 
 ### 2.1 计数
 
 | 状态 | v0.1 | v0.3 | v0.7 | **v0.9** | 变化（v0.9） |
 |---|---|---|---|---|---|
 | ✅ 已验证 | 8 | 12 | 13 | **17** | **+4 = 四家的「算子库·实际使用（厂商）」**（原先把「实际用哪个」与「装了哪些」混在一格，v0.9 拆开后这条路径判为 ✅） |
-| 🟡 部分验证 | 11 | 7 | 6 | **6** | 数量不变但**含义变准**：现全部为「算子库·替代（FlagGems 系）」与 MLU590/PPU 宿主 OS |
+| 🟡 部分验证 | 11 | 7 | 6 | **6** | 数量不变但**含义变准**（v0.9 时）：全部为「算子库·替代（FlagGems 系）」与 MLU590/PPU 宿主 OS |
 | ⚪ 待核验 | 1 | 1 | 1 | **1** | MLU590 替代库（不变） |
 | ⛔ 不支持 | 0（格级） | 0 | 0 | **0** | 能力级不支持见 §5 |
 | 合计 | 20 | 20 | 20 | **24** | ⚠️ **格数从 20 → 24**：把「算子库」一层拆成**两行**（实际使用 / 替代），不是新增芯片或新层 |
 
 > **v0.10（2026-11-05）只更正 PPU 的表述与证据，计数不变**：✅17 / 🟡6 / ⚪1 / ⛔0；PPU 操作系统格仍 🟡，但待核理由收窄为「缺宿主侧 `/etc/os-release` 原文 + v2 容器 OS 未回读」。
+>
+> ⭐ **v0.11（2026-11-05，MLU590 真机）计数变化**：✅17→**18** / 🟡6→**6** / ⚪1→**0** / ⛔0，合计仍 **24**。① MLU590 操作系统 🟡→✅（容器 OS 实测 `Ubuntu 22.04.5 LTS`）；② MLU590 替代库 ⚪→🟡 —— **不是「测出可用」，是「测出当前不可替换」**（详见 §3.3）。⭐ **🟡 为什么仍是 6**：两处变化互相抵消 —— 操作系统 🟡→✅ 减 1、替代库 ⚪→🟡 加 1；**不是** 🟡 变成 7。⚠️ 上表 v0.1–v0.9 是**历史版本列**，不回填；三态当前值以本段为准。
 
 ⚠️ **910C 框架格的 ✅ 只对「env 层」成立**：镜像内仍是 `torch_npu 2.10.0`（缺陷版）。
 按「挂载覆盖 vs 镜像固化**不可折算**」的纪律，对外声明必须带形态，不得读作「镜像已修」。
@@ -260,14 +262,22 @@ SERVE_STANDARD_PASS (ready=1 smoke=1)                            ← 同轮服�
 | 框架 | 容器 ⇒ `torch 2.9.0+cu129`（`torch.version.cuda=12.9`）、py `3.10.18`；`hasattr(torch,"xpu")=True` 但 **`torch.xpu.is_available()=False`**（另有 `torch_xray 2.0.4` 负责符号重写） | 同 §5.1b；命名空间结论与 `P800/README.md` **L74** 一致 |
 | 算子库 | 容器 `pip list` ⇒ `flag_gems 4.2.1rc0`（editable `/env/FlagGems`）、`flagtree 0.6.1+xpu3.6`、`flagcx 0.10.0`、`xtorch_ops 0.1.2640+9bc36a18`、`xmlir 1.0.0.1` | GEMM 编译维度已在 `env/v1` 修复；**数值缺口 `K-5` 未解**，见 `dev/stack.lock.kunlunxin.v1.yaml` known_issues |
 
-### 3.3 寒武纪 MLU590（本轮网络不可达，沿用 09-22 / 11-03 记录）
+### 3.3 寒武纪 MLU590（**2026-11-05 15:55–16:07 真机核验完成**）
 
-| 层 | 版本事实来源 | 验收证据 |
+> ⭐ 本轮报告（自包含读数、命令原文、判据强度）：`MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md`；
+> 原始输出与 6 份可复跑脚本：`MLU590/probes/mlu_compat_20261105_out/`。
+> 机器 `Mlu-1` = `tza-0a06-ai01-em9`（验收机）· `Mlu-2` = `tza-0a06-ai02-em9`；只取卡 2，采集前后 `cnmon` 均为 8 卡全空闲。
+
+| 层 | 本轮实测（命令 → 读数） | 判定 |
 |---|---|---|
-| OS / 驱动 | `MLU590/docs/CAMBRICON_MLU_ENV_REPORT_20260922.md` **L33**（`Ubuntu 20.04.6 LTS / 5.15.0-139-generic`）、**L38**（驱动 `v6.2.29` / 固件 `v1.5.0`）、**L41**（CNMON `v6.2.29`） | `MLU590/docs/CAMBRICON_MLU_RERUN_20261103.md`（单入口 9 段 `overall: PASS`：离线 103/0/0 · smoke 46/0 · 审计 63/0/15） |
-| 开发包 | `dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml` **L72–L82**（neuware `4.4.3` + 六个包级版本，均 `.ubuntu22.04`） | 同上 |
-| 框架 | 同上 **L25–L43**（torch `2.7.1+cpu` / torch_mlu `1.29.2+torch2.7.1` / torch_mlu_ops `1.8.0`） | 同上；weakref 未中招见 `MLU590/probes/weakref_check_20261103_out/MANIFEST.md` |
-| 算子库 | 同上 **L45–L58**（triton 在 `/opt/triton`、flag_gems `5.4.0rc2.post3`；文件原话：**「本组尚未在本芯片上做结论性验证」**） | **无** ⇒ ⚪ |
+| 操作系统 | 宿主 `grep PRETTY_NAME /etc/os-release` → **`Ubuntu 20.04.6 LTS`**、`uname -r` → `5.15.0-139-generic`；容器 `/etc/os-release` → **`Ubuntu 22.04.5 LTS`**（原「由包名推断」被实测坐实） | 🟡 → **✅** |
+| 驱动（**两机分叉**） | `Mlu-1` `cnmon` → `CNMON v6.5.52 / Driver v6.5.52`，`/sys/module/cambricon_drv/version` → `6.5.52`，`modinfo cambricon_drv` → `version: 6.5.52`；`/usr/bin/cnmon` mtime `2026-10-28 11:18`。`Mlu-2` `cnmon` → `v6.2.29`。两台 `dpkg -l` 均 `cambricon-mlu-driver-dkms 6.2.29-7.ubuntu20.04`（**包元数据 ≠ 运行态模块**，`dpkg.log` 无 10-28 安装记录）。固件均 `v1.5.0` | ✅ 维持，内容更新 |
+| 开发包 | 容器 `cat /usr/local/neuware/version.txt` → `Neuware Version 4.4.3`；`TOOLKIT=cntoolkit_4.4.3-1.ubuntu22.04_amd64.deb`、`PKGS` 六个包均 `.ubuntu22.04`；`docker inspect` 镜像 ID `sha256:e887e0ca4333a271…` 与 `image.baseline.yaml` 的 `image.id` 逐字一致 | ✅ 维持 |
+| 框架 | 容器 `torch 2.7.1+cpu` · `torch_mlu 1.29.2+torch2.7.1` · `torch_mlu_ops 1.8.0+torch2.7.1` · py `3.10.20`（与基线逐字一致）；L2 `device_count=1`、9 算子与 Qwen3-Embedding-0.6B 真实前向全 OK | ✅ 维持 |
+| 算子库（实际使用） | 注册层：`aten::mm`/`add.Tensor`/`mul.Tensor`/`silu`/`relu`/`_softmax`/`native_layer_norm`/`triu` 的 `PrivateUse1` 全为 `RegisterMLU.cpp:43487`；厂商路径进程 `'flag_gems' in sys.modules = False`；`MLU590/probes` + `prototype/scripts` 中 `flag_gems/use_gems/enable()` **0 命中** | ✅ 证据升级 |
+| 算子库（替代 · FlagGems） | `flag_gems 5.4.0rc2.post3` + `triton 3.2.0+mlu1.7.2`。不挂卡时 `import flag_gems` 报 `RuntimeError: No MLU devices are available`（入口条件，非缺陷）；带卡后 `enable()` **成功且有效果**（8/9 算子 dispatch 由 `RegisterMLU.cpp` → `/dev/null:63`，`aten::matmul` 未覆盖）。但 **4/9 算子执行失败**（`KeyError: task_type` / `BLOCK_ROW_SIZE`，栈在 `triton.testing.do_bench → autotuner → jit.run`）、**真实前向失败** ⇒ **当前不可替换** | ⚪ → **🟡** |
+
+⚠️ **三条不得误读**：① `6.2.29` 是 09-22/10-08/10-14 归档的实测值、也是 `Mlu-2` 现值，**历史归档不改写**；② 「驱动 6.2.x ⇒ 只能 `neuware4.4.3` 档」这条选档依据对 `Mlu-1`（现 6.5.52，已越过 4.7.2 档官方标注的 6.5.48 门槛）**条件已变**，但本方向**未在 4.7.2 档做过验证** ⇒ 只登记「待总组/镜像方向重评」，锁定镜像与验收基线不变；③ `11-03` 九段 PASS 归档**未记录当次 `cnmon` 读数**（已扫 `MLU590/probes/*20261103*` 无命中）⇒ **不写「11-03 验收在 6.5.52 下取得」这个推断**；能写的是本轮 11-05 在该驱动下实测 L2 全通过。本轮**未重跑 11-03 的 9 段判据**（范围裁定 ≠ 证明无回归）。
 
 ### 3.4 平头哥 PPU（2026-11-05 归档复核；本轮网络不可达，**未上机**）
 
@@ -313,7 +323,7 @@ SERVE_STANDARD_PASS (ready=1 smoke=1)                            ← 同轮服�
 
 | # | 项 | 说明 |
 |---|---|---|
-| N-3 | **算子逐算子数值正确性** | 仍属我方**不承诺**项（只保证「上下文层/多流」行为）。⚠️ **2026-11-04 更新**：**910C 已补逐算子对照**（18 算子 / 184 条重放 / 0 数值不一致，见 §3.1d）；**P800 / MLU590 / PPU 仍未做** —— 别把 910C 的结论外推到另三家 |
+| N-3 | **算子逐算子数值正确性** | 仍属我方**不承诺**项（只保证「上下文层/多流」行为）。⚠️ **2026-11-05 更新**：910C 已补逐算子对照（18 算子 / 184 条重放 / 0 不一致，§3.1d）；**MLU590 已补 9 算子 + 1 真实前向的 vendor/FlagGems 对照（§3.3），但覆盖面有限、且 `gemm64` 实现归属待证**，仍不把「逐算子正确性」列为承诺；**P800 / PPU 未做**。别把一家的结论外推到另三家 |
 | N-4 | **性能 / 吞吐横向可比** | 四家基准模型相同（`Qwen3-Embedding-0.6B`），但**卡型、卡数、单请求延迟量级差异极大**（MLU590 单请求 p50 约 645 ms、P800 约 57 ms）⇒ **吞吐数字不可横比** |
 | N-5 | **「另三家做不到」类推断** | 禁止从两家结论外推第三家。每家结论只对本机、本镜像、本卡成立 |
 
@@ -325,6 +335,7 @@ SERVE_STANDARD_PASS (ready=1 smoke=1)                            ← 同轮服�
 | N-7 | PPU | `torch 2.10.0` 同类 weakref UAF（平台侧） | 运行时等价补丁（`PPU/probes/weakref_check_20261103_out/wrfix.c`）—— **止血，不进镜像/不进交付包** | 已对外提交厂商，**未修** |
 | N-8 | P800 | FlagGems GEMM **数值缺口**：64³ fp32 非确定性乱值（同输入 rel 0.29~1.02） | 禁用于关键路径；可用面限 pytest 18/99 矩阵 + minirepro 12 组 | **未解**，`K-5` |
 | N-9 | P800 | 流优先级**退化单点**：`range=(0,0)`，「能设置 ≠ 有效果」 | 不做基于优先级的调度决策 | 已登记 `KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL` |
+| N-10 | MLU590 | **FlagGems 与 triton-mlu autotuner 接口不匹配**：`enable()` 后 `add`/`mul`/`silu` 报 `KeyError: task_type`、`layernorm` 报 `BLOCK_ROW_SIZE`，整段真实前向随之失败（栈：`triton.testing.do_bench → autotuner.kernel_call → jit.run`） | 我方各腿**从不启用 FlagGems**（0 命中），验收路径不受影响；替代库只作对拍/fallback，不作关键路径 | **已实测登记（2026-11-05）**，修复属算子/编译方向；只登记现象，不归因到厂商/网络层 |
 
 ### 5.4 「算子库」这格怎么才能变 ✅ —— 判定口径与三条路径（2026-11-04）
 
@@ -426,7 +437,7 @@ docker exec -e CUDA_VISIBLE_DEVICES=3 <容器> <python> \
 | ~~P0~~ | ~~910C~~ | ~~宿主 OS + 驱动真实版本~~ | ✅ **2026-11-04 完成**：`openEuler 22.03` / 驱动 `26.1.1`；旧值 `25.5.0` 已作废 |
 | ~~P0~~ | ~~P800~~ | ~~新机宿主 OS / 内核 / 驱动~~ | ✅ **2026-11-04 完成**：`Ubuntu 24.04.2 / 6.8.0-87 / 5.0.21.47`，与老机一致 |
 | **P0** | PPU | **宿主侧 `/etc/os-release` 原文**（宿主内核 `5.10.134-17.2.al8.x86_64` 与容器 OS `Ubuntu 24.04.2 LTS` 已由 10-10 归档补齐；v2 容器 OS 仍待回读） | ⚠️ **2026-11-05 15:44–15:46** 三入口仍不可达：`:22` / `:2222` `Connection refused`、旧 `:36444` 超时、路由走 `en0` 未进 VPN ⇒ 待用户确认 VPN / 新入口；读数见 `PPU/docs/PPU_COMPAT_RECHECK_20261105.md` **§1** |
-| **P1** | MLU590 | ① 容器 `/etc/os-release`（现为**包名推断**）② **FlagGems 算子对照**（唯一 ⚪ 格） | ⛔ 本轮网络不可达（`10.1.1.21:22` 超时），待恢复 |
+| ~~P1~~ | ~~MLU590~~ | ~~① 容器 `/etc/os-release`（包名推断）② FlagGems 算子对照（唯一 ⚪ 格）~~ | ✅ **2026-11-05 结案**：容器 OS 实测 `Ubuntu 22.04.5 LTS`；FlagGems 结论性验证完成 ⇒ **当前不可替换**。证据 `MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md` |
 | ~~P1~~ | ~~P800~~ | ~~容器内 XTDK/XRE 的真实来源~~ | ✅ **2026-11-04 结案**：容器内 torch_xmlir/_versions.txt 实测 `XTDK 3.6.0.1 / XRE 5.13.0.0 / XCCL 20260209_9`，与基线逐字一致 |
 | — | **P800 总收尾** | **事实项全部闭合**：OS / 内核 / 驱动 / 开发包 / 框架 / 各腿算子路径 六类均有实测依据；唯一遗留是**工程能力**（新机复现 K-5 判据，见 §5.4-D），不是事实缺口 | ✅ **P800 视为核验完成** |
 | **P1** | P800 | **新机复现 K-5 判据的能力**（env/v1 的补丁版 FlagGems 不在新机） | 见 §5.4-D 三步重建；**建议 11-07 老机清理前实跑一遍**确认 |
@@ -545,6 +556,36 @@ ssh -G PPU-2 | grep -E '^(hostname|port|user)'                 → 192.168.5.112
 宿主发行版仍缺宿主侧 `/etc/os-release` 原文 ⇒ 操作系统格维持 🟡 但待核理由收窄。
 只读采集脚本已备：`PPU/probes/collect_ppu_compat_20261105.sh`（`bash -n` 通过；按 RUNID 分目录、只追加、不覆盖）。
 
+**寒武纪 MLU590（`Mlu-1` / `Mlu-2`，2026-11-05 15:55–16:07；宿主命令原文 + 容器实测）**
+
+```
+Mlu-1/Mlu-2  grep -E "^PRETTY_NAME=" /etc/os-release → Ubuntu 20.04.6 LTS（两机同）
+Mlu-1/Mlu-2  uname -r                                → 5.15.0-139-generic
+Mlu-1  cnmon（首段）                                 → CNMON v6.5.52 / Driver v6.5.52 / 固件 v1.5.0
+Mlu-2  cnmon（首段）                                 → CNMON v6.2.29 / Driver v6.2.29
+Mlu-1  cat /sys/module/cambricon_drv/version          → 6.5.52
+Mlu-1  /sbin/modinfo cambricon_drv | grep ^version    → version: 6.5.52
+        （filename /lib/modules/5.15.0-139-generic/updates/dkms/cambricon-drv.ko）
+两台   dpkg -l | grep cambricon                       → 6.2.29-7.ubuntu20.04（包元数据，与运行态不同源）
+Mlu-1  stat /usr/bin/cnmon                            → 2026-10-28 11:18:54
+Mlu-1  docker inspect <锁定镜像> --format {{.Id}}    → sha256:e887e0ca4333a27185817fb8fef6ce95d5d9220c5a9725641187d602cabeea96
+容器（锁定镜像，docker run --rm --network none，不挂设备）：
+  /etc/os-release                                   → Ubuntu 22.04.5 LTS（py 3.10.20）
+  torch / torch_mlu / torch_mlu_ops                 → 2.7.1+cpu / 1.29.2+torch2.7.1 / 1.8.0+torch2.7.1
+  triton / flag_gems                                → 3.2.0+mlu1.7.2（/opt/triton） / 5.4.0rc2.post3
+  cat /usr/local/neuware/version.txt                → Neuware Version 4.4.3
+  TOOLKIT / PKGS                                    → cntoolkit 4.4.3-1 + cnnl/cnnlextra/mluops/cncl/cnclep（均 .ubuntu22.04）
+  import register dump（vendor 路径）               → PrivateUse1 全 RegisterMLU.cpp:43487；flag_gems in sys.modules=False
+L2（带卡 MLU_VISIBLE_DEVICES=2，两个独立进程，唯一变量＝enable()）：
+  device_count                                      → 1
+  flag_gems.enable()                                → ENABLE_OK；8/9 算子 dispatch → /dev/null:63（aten::matmul 未变）
+  9 算子 vendor/FlagGems 对照                       → 5 项数值一致（0.000000）/ 4 项 FAIL（task_type ×3、BLOCK_ROW_SIZE ×1）
+  Qwen3-Embedding-0.6B 真实前向                     → vendor OK；gems FAIL（task_type KeyError）
+cnmon 采集前后：8 卡全 0 MiB / 98304 MiB、No running processes found
+```
+
+⚠️ 两个入口条件已先排除再判据：不挂卡时 `import flag_gems` 报 `RuntimeError: No MLU devices are available`；`docker exec` 直调 python 未走 login shell 时 `ModuleNotFoundError: No module named 'triton'`（补 `PYTHONPATH=/opt/triton` 消除）——**都不是算子库缺陷**。另：`docker run` 撞宿主 `docker0` 网桥缺失（`adding interface veth... Device does not exist`），L1 用 `--network none` 绕开。
+
 ## 7 边界声明
 
 1. **本表只覆盖设备执行上下文层**（init/context/queue、Stream/Event、D2D/H2D、错误恢复、多流）。算子库、集合通信、显存管理、调度、性能均**只登记不结论**。
@@ -556,6 +597,7 @@ ssh -G PPU-2 | grep -E '^(hostname|port|user)'                 → 192.168.5.112
 
 | 日期 | 版本 | 变更 |
 |---|---|---|
+| 2026-11-05 | **v0.11** | ⭐ **MLU590 上机逐格核验（15:55–16:07，`Mlu-1`/`Mlu-2`）**：① 操作系统格 🟡→**✅**（容器 `/etc/os-release` 实测 `Ubuntu 22.04.5 LTS`，原为包名推断）；② **唯一 ⚪ 格结案**：FlagGems `5.4.0rc2.post3` 已做结论性验证 —— `enable()` 生效且 8/9 算子 dispatch 被接管，但 4/9 算子与真实前向因 triton-mlu autotuner 参数（`task_type` / `BLOCK_ROW_SIZE`）失败 ⇒ **当前不可替换**，判 **🟡**（不是测出可用）；③ **驱动格内容更正**：`Mlu-1` 运行态 `6.5.52`（10-28 更新）、`Mlu-2` `6.2.29`、`dpkg` 两台仍 `6.2.29-7` ⇒ 两机分叉 + 包元数据与运行态不同源，历史值不改写；④ 注册层证据把「算子库·实际使用（厂商）」由间接推断升级为直接证据（`RegisterMLU.cpp:43487`，`flag_gems` 0 命中）；⑤ 新增 §3.3 实测表、§5.3 N-10、§6.2 P1 结案、§6.4 MLU590 采集记录、`MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md` 与 `MLU590/probes/mlu_compat_20261105_out/`。⚠️ 计数 ✅17→**18** / 🟡6→**6** / ⚪1→**0** / ⛔0，合计 24 不变。⭐ 三条边界：11-03 归档缺当次 cnmon 读数（**未记录，不反推**）、11-03 九段判据本轮**未重跑**、选档依据过期但**不换档** |
 | 2026-11-05 | **v0.10** | ⭐ **PPU 归档复核（未上机）**：① 更正「宿主 OS/内核未采集」——宿主内核 `5.10.134-17.2.al8.x86_64`、容器 OS `Ubuntu 24.04.2 LTS` 有 10-10 preflight 原文，宿主发行版 `Alibaba Cloud Linux 3` 仍缺宿主侧 `os-release` 原文 ⇒ **🟡 维持但理由收窄**；② 更正「具体算子库名未采集」——登记路径 `/usr/local/PPU_SDK` / `/opt/accl-p` 已给出，运行时 dispatch 归属待上机；③ 补 §3.4 四行证据（含「preflight 在容器内跑」的视角自证、`flagtree 0.6.1` 旧值作废）、§6.2 P0、§6.4 三入口探测读数；④ 新增 `PPU/docs/PPU_COMPAT_RECHECK_20261105.md` 与只读采集脚本。**六格状态判定一格未改**（✅17 / 🟡6 / ⚪1 不变），因本轮零新真机读数 |
 | 2026-11-04 | v0.1 | **初表**：四芯片 × 五层共 20 格，✅ 8 / 🟡 11 / ⚪ 1 / ⛔ 0；给出 §6 上机核验清单 |
 | 2026-11-04 | **v0.9** | ⭐ **把「算子库」一层拆成两行**（因原文混装两件事、易被误读）：**「算子库（实际使用 · 厂商）」**＝验收真正执行的路径（910C: CANN 算子 + `npu_fusion_attention_v3` + **HCCL**；P800: XTDK/XRE + `xtorch_ops` + **flagcx**；MLU590: NeuWare + `torch_mlu_ops` + **cncl**；PPU: SDK 2.1.0 + **nccl**）⇒ **四家全 ✅**；**「算子库（替代 · FlagGems 系）」**＝随镜像自带但默认未启用（910C 不可用 / P800 K-5 / MLU590 ⚪ / PPU v2 已修）⇒ 判它是判「能不能替换掉厂商」。⭐ 同时更正一处事实错误：**`flagcx` 原先列在 910C 算子库格里，但 910C 通信走 HCCL、根本不用 flagcx**（flagcx 是 P800 的后端）。⚠️ 格数 20 → **24**（层数未变，是这一层拆两行）；计数 ✅17 / 🟡6 / ⚪1 |
