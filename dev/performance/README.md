@@ -1,12 +1,12 @@
 # performance — 性能评测与诊断
 
-> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-10-28
+> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-11-05（P800/PPU；核心历史阶段截至 10-28）
 > 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
 > 职责：统一国产设备的算子、推理与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
 
 本目录是 runtime-team 的性能方向协作入口。正式代码在独立的
 [FlagRT/FlagPerf](https://github.com/FlagRT/FlagPerf) 仓库维护；本仓只同步阶段进展、环境约束、验证边界和后续任务，
-不复制 FlagPerf 源码或实验产物。
+不复制 FlagPerf 源码或大体积原始实验产物。[evidence/](evidence/README.md) 收录精简实测摘要与来源索引，明确未随文提供的原始记录。
 
 ## 1. 当前进展
 
@@ -27,11 +27,14 @@
 | inference_v2 观测基座与 Writer（P0，已退出） | 与模型解耦的账本、官方 profiler 接入、原生归属、格式契约、`record`/`attach`/`inspect` 已形成；T9.5b Gate（D39）后 Writer 完成选型与生产接入（T9.5c/T9.6/T9.7），D33 方案 B 形成单进程生产候选，T9.8 完成真实推理闭环校准 | 退出矩阵 13 项全部满足；真实负载轻量记录约 70 条/s、扰动测不出，可感知成本在官方窗口导出与离线 prepare 而非 Writer；W7/W9 合成高负载项按 D45 处置为非阻塞、失败保留 | 2026-10-27 D45 批准 P0 退出、L-字段升至 `1.0`；研发快照演进至 `FlagPerf_advance/dev-zkm@35f94819`，本次仅同步进展、不构成代码发布，见 [§11](#inference-v2-progress) |
 | inference_v2 项目探针与 profiling（P1，已退出） | dispatch/module/route/compile 项目探针、低开销档 `perf-lite`、回退清单与主机→设备桥接进入生产路径；报告口径经 T10.4（P1.1）修补 | R3 项目 linked 1,692 条；探针开/关输出逐值相等；FlagGems 命中清单与 v1 一致（23 函数、`route_table_mismatch=0`）；`perf-lite` 对基线吞吐比 1.0032 且输出字节全等；回退清单 28 键/99 行收窄为 5 个主表键并分列处理原因 | 2026-10-28 D49 批准 P1 退出；真机证据限 910C 单卡低负载场景，见 [§11](#inference-v2-progress) |
 | inference_v2 精度差分（P4 首批） | 固定输入张量采集（schema 1.2）＋四面板 oracle 分析器：身份声明、块级误差、首个不同边界、算子 `introduced` 判定，误差行可按 sid 连接性能证据 | A100/910C-off/910C-on 三组块级 372/372 配对、首差异均为 `layers.0`，首个 `introduced` 分别为 `mean.dim` 与 `pow.Tensor_Scalar`；独立 NP 采集 82/82 连接；v2 同 venv 复现 v1 A100 参考 360/360 逐字节相等 | 2026-10-28 D50 批准并当天完成三任务；设计者复审提议 D51（含 T11.3/T12.1）待批准，见 [§11](#inference-v2-progress) |
-| Base Benchmark（昆仑芯 P800） | 统一宿主入口与 P800 provider（有界路径/身份链/preflight/监控/设备租约）已形成；BF16 快路径修复已固化进 runtime 合同 | 15 case（10 可执行＋5 skip）114 run 测量与正确性通过；严格五次组 15 passed（D2H 计时 3 组为用户接受的时长例外，记录在案）；8 卡五次稳定测量 FP32 118.47 / FP16 259.17 TFLOPS、INT8 504.53 TOPS、带宽 2235.95 GB/s；BF16 修复后 223.88 TFLOPS（0.873×FP16） | 已发布至 `FlagPerf/zhiyu/kunlunxin-p800`＋冻结 tag `p800-base-frozen-20261008`，未进入 FlagRT `main`；镜像 validated:true/partial；最终验收报告（2026-10-08）为交付边界 |
-| Base Toolkit（昆仑芯 P800） | 12 case 独立 C++ native_bench（直调 XBLAS/XRE）＋完整证据链（preflight/监控/manifest/SHA256）已形成 | 2026-10-09 全量复测通过；口径固化 8192³/repeat 5/samples 50，D2D 双行分列（Scopy 2×≈2139 GB/s 与 XRE memcpy 1×≈11.4 GB/s）；与 Base 差距四类归因定案（口径/内核/厂商路径/共享卡），同机制处 1.01× 重合；XBLAS BF16≈FP32 为厂商库内核缺口（AUTOTUNE 实测无效） | 已交付（代码入口 `FlagPerf/base/toolkits/_common/kunlunxin/P800/`）；与 Base 的口径差异已在 BF16 修复说明中写明 |
-| Operation（昆仑芯 P800） | 按 Ascend 测试机制接通原生 PyTorch 与 FlagGems 路径，支持 Docker/本地执行、正确性/性能/显存/时间线采集、失败诊断和报告 | 52 case；Docker 与本地各 308 个适用组合（另 420 项 not-applicable）：Docker 为 274 passed/1 partial/27 failed/6 blocked，本地为 275 passed/27 failed/6 blocked；失败和 partial 原样保留。六组硬件计数器尚无可信采集；131 项 Operation、13 项公开分发测试通过 | PR 已提交待评审；`validated:false` 保持，完整能力与 Ascend 对齐验收未完成；详情与剩余缺口见 FlagPerf Operation 验证文档 |
-| Base Benchmark（平头哥 PPU） | FlagPerf 第三个完整 vendor provider（thead/PPU：CUDA-compat 语义、ppu-smi 监控、/dev/alixpu* 设备绑定），qualification.py 零改动 | 2026-10-15 冻结：17 组五次资格（85 run）＋容量查询；FP32 34.5 / FP16 135.6 / BF16 135.0 TFLOPS、INT8 269.2 TOPS（K-major 修复后）；带宽 2052.4 GB/s、容量 103.04 GB；MPI 8-rank AllReduce 25.91 GB/s、11-rank collect 94.56 GB/s；P2P 为代表性设备对结果，不外推全 pair | 分支 `zhiyu/thead-ppu`、冻结 tag `ppu-base-frozen-20261015` 已推，PR 已提交；16-rank 资格仍待独占窗口，11-rank 审计仍受 qualification.py ranks 上限限制 |
-| Base Toolkit（平头哥 PPU） | 12 case toolkit 使用官方工具并对齐 P800 runner 与严格判定；过程中修复两处 harness 问题并保留守护测试 | 最终验收 run `20261020T140938Z`：12/12 通过（测量与诊断）；FP32 34.504 / FP64 5.515 / FP16 135.064 / BF16 134.686 / TF32 67.555 TFLOPS，H2D CE/SM 29.0/26.9 GB/s，P2P 单向约 46.5、双向约 88–90 GB/s。INT8 厂商工具路径失败单独记录，不计作通过 | `zhiyu/thead-ppu` 33 个提交已推，PR 已提交；runtime 镜像仍为 candidate（`validated:false`），12/12 通过不代表晋级；16-rank 资格及全设备对 P2P 扫点未完成 |
+| Base Benchmark（昆仑芯 P800） | 统一入口、设备绑定、正确性、监控与清理已接通 | 历史 114 run 测量与正确性通过；时长例外、健康与不稳定组分别保留 | [PR #1](https://github.com/FlagRT/FlagPerf/pull/1) 已合并；candidate / `validated:false`，[验收入口](evidence/README.md) |
+| Base Toolkit（昆仑芯 P800） | 原生 XBLAS/XRE 测量与报告已接通 | 12 Case / 485 目标测量、监控、诊断通过；81 组稳定、20 组不稳定 | PR #1 已合并；性能未取得资格，[实测报告](evidence/P800-Toolkit实测结果-20261009.md) |
+| Operation（昆仑芯 P800） | Docker/local、原生/FlagGems 双路径已接通 | 各尝试 308 适用组合；Docker 274 passed / 1 partial / 27 failed / 6 blocked；local 275 passed / 27 failed / 6 blocked | [PR #5](https://github.com/FlagRT/FlagPerf/pull/5) 已合并；计数器等缺口保留，[实测报告](evidence/P800-Operation实测结果-20261021.md) |
+| Base Benchmark（平头哥 PPU） | 第三厂商 provider 与冻结验证已完成 | 17 组五次资格＋容量；资格限已测范围，16-rank 独占资格与 rank 上限审计未完成 | [PR #4](https://github.com/FlagRT/FlagPerf/pull/4) 已合并；不含 FP8，[验收入口](evidence/README.md) |
+| Base Toolkit（平头哥 PPU） | 官方工具测量、监控、诊断与报告已接通 | 已登记 12/12 Case 通过；INT8 官方工具失败排除在外 | PR #4 已合并；candidate / `validated:false`，[实测报告](evidence/PPU-Toolkit实测结果-20261020.md) |
+| Operation（平头哥 PPU） | Docker/local、原生/FlagGems 双路径已接通 | 各 299 项正确性通过、9 项失败；路由 290 passed / 9 partial；任务 299 partial / 9 failed | [PR #6](https://github.com/FlagRT/FlagPerf/pull/6) 已合并；失败未全部闭合，[实测报告](evidence/PPU-Operation实测结果-20261023.md) |
+| Inference v2（昆仑芯 P800） | Qwen/OneRec 运行、采集、分析与报告已测 | 整合软件及历史产物复核未见新增回归；klx2 代表性单卡通过；klx1 模型搬运异常、整合版新 TP2 待补 | [PR #12](https://github.com/FlagRT/FlagPerf/pull/12) 待评审；OneRec 单卡/TP2 分歧保留，[实测报告](evidence/P800-Inference-v2实测结果-20261105.md) |
+| Inference v2（平头哥 PPU） | Qwen 单卡/TP2、采集分析及归档恢复已测 | 两台同型主机核心链路可用；OneRec 未做设备端生成验证 | PR #12 待评审；性能未取得资格，[实测报告](evidence/PPU-Inference-v2实测结果-20261104.md) |
 | 两段 Demo 统一验收报告 | 未完成 | Operation/Base/Inference 是支撑能力；Inference 证据为 PyTorch/Transformers 路径与专用固定输入，不等于 vLLM 服务口径验收；训练吞吐与跨方向证据尚未统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
 当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
@@ -306,6 +309,8 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 
 ### 5.5 尚不能宣称的能力
 
+以下核心进展与待办按 10-28 历史快照保留；11-05 厂商适配的实际范围以[实测索引](evidence/README.md)为准，不以历史“未实现”概括新增已测路径，也不据厂商测试代替核心 Gate。
+
 - Oracle—Device 差分已落地第一段（A100 精度参考与同规模性能基线的只读比较）；inference_v2 P4 首批进一步把
   差分推进到算子级 `introduced` 判定（输入逐字节相同、输出首次不同），并以 ULP 分布区分舍入级/实现级差异，但
   **隔离上游误差的 replay 与唯一根因闭环未实现**（属 P4 第二批）；两侧比较仍不设业务达标阈值。
@@ -328,8 +333,11 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 | Inference TP runtime | `flagperf/inference-ascend:20260923-tp`，本机 ID `sha256:16c26e9b...dc6d` | 在 20260922 基础上仅追加 `accelerate==1.13.0`（wheel SHA256＋逐包比对）；用于单机 TP=2 HCCL 性能/通信/精度证据 |
 | Inference 三组件/TP runtime | `flagperf/inference-ascend:20260923-tp-flagtree-flagcx`，本机 ID `sha256:1147704d...7bf03` | 在 20260923-tp 基础上提取厂商编译器并集成 FlagTree/FlagCX 依赖；用于组件开关、层级性能、推荐模型、监控旁路与 10-08/10-09 续验证据 |
 | A100 采集环境 | 既有 CUDA 容器内的独立虚拟环境（PyTorch/CUDA/NCCL） | 仅用于 `oracle` 精度参考与 `performance-baseline` 基线包生成；锁定身份与合同见实现文档六/七，不参与 910C 被测链路 |
-| 昆仑芯 P800 runtime | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（Base runtime 合同含 `XMLIR_MATMUL_FAST_MODE=1`） | 8 卡物理机，共享环境按设备租约用卡；用于 P800 Base/Toolkit/Operation 全部证据 |
-| 平头哥 PPU runtime | `flagtree-ppu-3.6-dev:202608` | 16× PPU-ZW810E 96GB 单机（192.168.5.112）；用于 thead/PPU Base 资格证据与 Toolkit 官方工具调研 |
+| 昆仑芯 P800 runtime | `flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608`（Base runtime 合同含 `XMLIR_MATMUL_FAST_MODE=1`） | 8 卡物理机，共享环境按设备租约用卡；用于历史 P800 Base/Toolkit/Operation 证据；不是新主机默认镜像 |
+| 平头哥 PPU runtime | `flagtree-ppu-3.6-dev:202608` | 16× PPU-ZW810E 96GB 单机；用于 thead/PPU Base 资格证据与 Toolkit 官方工具调研 |
+| P800 当前默认 FlagRT v2 | `flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`，ID `cac5ddae5f62…` | 两台新机 Inference v2 实测与 Base/Operation 最小 smoke；不继承历史全矩阵资格 |
+| PPU Operation runtime | `flagperf-ppu-operation:654e2a3a`，ID `b3246f3fa617…` | 10-23 算子矩阵与代表性 profiling；candidate |
+| PPU Inference v2 runtime | 默认 ID `1ba7ead15378…`；coverage 变体 `087a234b7abe…` | 模型、镜像与已测范围见 [PPU 报告](evidence/PPU-Inference-v2实测结果-20261104.md)，不混用旧 Base 镜像 |
 | 宿主工具 | MindCluster ToolBox 26.1.0 | 通过配置的宿主路径只读挂载；版本门禁与容器镜像身份相互独立 |
 
 Operation 历史实机验收限定为主机 `npu1-27`、逻辑 Device14、物理 NPU7 chip0；P2P 使用 NPU6/NPU7。
@@ -469,6 +477,8 @@ python run.py repack-reference --source /absolute/old-package \
 
 ### 7.4 inference_v2 / flagprof 入口
 
+公开核心已随 PR #7/#8/#9 进入 FlagPerf dev-1.0，见[现行使用说明](https://github.com/FlagRT/FlagPerf/blob/41ab2dce5a94906919905437ebc8dec97a3d36c5/inference/docs/usage.md)。P800/PPU 适配在 PR #12 固定提交中；见[实测索引](evidence/README.md)。以下研发仓命令保留其历史上下文，不替代公开入口。
+
 在含研发快照的 `FlagPerf_advance/inference_v2/` 中运行；采集使用对应厂商已验证环境，`inspect` 只读已有账本，
 不启动模型或补跑采集。以下为命令模板：
 
@@ -549,15 +559,15 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 5. 汇总 device-context、communication、memory、调度和监控证据，生成战略 §3 第 5 条要求的统一验收报告；基础
    验收稳定后，再逐步推进 Oracle—Device 误差传播与敏感算子归因闭环、完整跨层 Profiling、故障恢复和长稳/热加载
    能力。
-6. 昆仑芯 P800：`XMLIR_MATMUL_FAST_MODE=1` 已固化到 Base runtime 合同；快路径大矩阵实测 BF16 约 223.9 TFLOPS，约为 FP16 的 87%，精度校验通过且误差与原路径同量级。XBLAS 预编译 BF16 路径、XRE 传输路径和 P2P/AllReduce 带宽问题仍待厂商处理；Base 统一入口端到端复测仍需单独窗口。Operation PR 已提交，后续按评审意见完善，并继续定位六组硬件计数器及已登记的记录缺口。
-7. 平头哥 PPU：Base 与 Toolkit 适配已推送 `zhiyu/thead-ppu`（共 33 个提交），PR 已提交；回归 390 passed、1 skipped，Toolkit 最终验收 12/12。继续申请 16-rank 独占资格窗口，处理 qualification.py rank 上限审计，并按设备条件评估全 pair P2P 扫点。candidate runtime 仍保持 `validated:false`。
+6. P800：Base/Toolkit 与 Operation 已合并；继续复核传输不稳定、六组计数器、路由与统计记录缺口。Inference v2 跟进 PR #12，补 klx1 健康设备实测和整合版 TP2，保留 OneRec 分歧。
+7. PPU：Base/Toolkit 与 Operation 已合并；补 16-rank 独占资格、16-target 监控和 rank 上限审计，继续联合复核九项算子失败及缓存路由缺口；Inference v2 的 OneRec 设备验证待补。官方全设备 P2P 共享实测已完成，但不是独占资格。
 8. inference_v2：P0/P1 已退出、P4 首批已完成并交付复审。先裁决 D51（P4 首批复审＋T11.3/T12.1 下发）：T11.3
    修补报告口径（掩码哨兵假性放大、ULP 可读性、oracle HTML 表格化）并重出六份报告，T12.1 对三份封存采集
    （9.7 万/52 万/240 万条）做 P2a 导入 prepare 定点分析（无需设备）；随后按 P4 第二批补 replay 与
    `layers.27` 下钻，P2a 提速后推进设备视图与 OneRec generate，P2b 承接多卡/FlagCX，详见
    [§11](#inference-v2-progress)。
 
-## 10. 昆仑芯 P800 与平头哥 PPU 未解决问题（更新至 2026-10-21）
+## 10. 昆仑芯 P800 与平头哥 PPU 未解决问题（更新至 2026-11-05）
 
 以下列出尚未解决的问题及需保留的已修复历史缺陷；原始日志与探针证据原样保留，失败不改写、不放宽容差、
 不绕过执行。
@@ -567,11 +577,16 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 | P800 | P2P/AllReduce 带宽偏小（XPULink 反差） | 单机 XL 直连对（物理 4+7）256 MiB float32 AllReduce 28.85 GB/s、BKCL 构建 6 条 XL ring，反而低于 PCIe 对（3+4）的 37.88 GB/s（12 rings） | 官方文档候选共 11 个环境变量变体全部无效（BKCL_CLUSTERS_PER_RING/MAX_CLUSTERS/XLINK_BW/P2P_FORCE_XLINK，及 XLINK_C2C、ENABLE_XDR+USE_XDR_COPY、RING_OPT+FLAT_RING、RING_BUFFER 16MiB+GM、CUDA_ENABLE_P2P_NO_UVA、全组合），带宽与 ring 数均不变 | 非用户侧环境变量可解；BKCL 对 XL 拓扑的 ring 构造属厂商行为，待厂商反馈 |
 | P800 | XBLAS BF16 快内核缺口 | Toolkit computation BF16≈FP32（118.85 TFLOPS，同 shape FP16 268.9）；Base 侧 `XMLIR_MATMUL_FAST_MODE=1` 修复后 223.88 TFLOPS，XBLAS 预编译内核路径不受益 | XMLIR 快路径开关实测对该预编译内核路径无效（Base 侧修复不覆盖 XBLAS） | 待厂商在 XBLAS 层提供 BF16 MMA 快路径 |
 | P800 | Toolkit XRE 传输厂商路径 | 整块 pinned `xpu_memcpy_async` 返回 -999（被迫 1 MiB×512 分块且更慢）；同步 memcpy 全家族 ~10 GB/s（对照 Base clone 核 2235.9 GB/s） | 口径/内核/共享卡三类归因已定案（同机制处 1.01× 重合），剩余为厂商路径问题 | 按归因文档向厂商反馈 |
-| P800 | Operation 完整能力对齐未完成 | 52 case/728 组合；Docker、本地两种方式各有 308 个适用组合，420 项 not-applicable；精度、编译、运行失败均保留。六组硬件计数器没有可信定义/采集链路；另有 trace 记录缺口与报告元素计数缺口 | 受限评估 PR 已提交待评审，不代表完整验收；`validated:false` 保持 | 计数器需继续查找厂商信号定义与采集接口；已知偶发 trace 记录缺失按采集前后证据分层追查；算子精度/编译/运行缺陷交对应算子组 |
+| P800 | Operation 完整能力对齐未完成 | 52 case/728 组合；Docker、本地两种方式各有 308 个适用组合，420 项 not-applicable；精度、编译、运行失败均保留。六组硬件计数器没有可信定义/采集链路；另有 trace 记录缺口与报告元素计数缺口 | PR #5 已合并；不代表完整验收，`validated:false` 保持 | 计数器需继续查找厂商信号定义与采集接口；已知偶发 trace 记录缺失按采集前后证据分层追查；算子精度/编译/运行缺陷交对应算子组 |
 | P800 | Base 统一入口端到端复测待窗口 | 2026-10-20 观察：外部训练进程持全 8 卡设备句柄（xpu-smi 显示空闲），按约定不停止他人服务；8 卡健康 degraded（卡 2 历史 ECC） | 设备级修复证据以 2026-10-19 直接复测为准 | 独占窗口后按手册流程补跑 |
 | PPU | Toolkit INT8 厂商数学库路径失败 | `acblasGemmEx` INT8 输出错误；`acblasLtMatmul` INT8 SIGSEGV。Base 的 `torch._int_mm` INT8 路径已通过，不能据此推断 Toolkit 厂商库路径通过 | 两条失败均在官方库调用中复现，记录于 `docs/thead/acblas-issues.md` ISS-1/ISS-2；未放宽检查或绕过执行 | 保留复现与厂商问题记录，交 PPU 算子/数学库团队处理；不计入 Toolkit 最终 12 项通过范围 |
 | PPU | Toolkit harness 历史缺陷（已修复） | BF16 correctness 曾复用测量规模 layout 导致小缓冲越界；P2P 双 rank stdout 曾交错撕裂 | 纯 torch 对照 17/17 干净；P2P 每 rank 独立落盘后按 rank 拼接；修复分别有 `41d329a1`、`14f6b356` 和守护测试，最终验收 run `20261020T140938Z` 12/12 | 属于 FlagPerf 测试工具问题，修复与误判撤回记录保留；不再归因给 PPU 厂商内核或官方工具 |
 | PPU | 16-rank 资格与 11-rank 审计 | 16-rank 待独占窗口（R5 降级 8-rank 记录在案）；11-rank collect 94.56 GB/s 审计被 qualification.py `ranks<=8` 上限阻塞 | 8-rank 全套资格已通过；基础回归 390 passed、1 skipped | 16-rank 独占窗口与 rank 上限审计仍待补，不因 Toolkit 12/12 通过而关闭 |
+| PPU | Operation 九项失败与 PPU-TRACE-001 | 精度、dtype 兼容及首次调用超时未全部闭合；缓存路由缺口 9 项 | linear 最小脚本实际 301.2 秒完成；已撤回“根因全部闭合、全部非框架” | [结果与归因边界](evidence/PPU-Operation实测结果-20261023.md)，按原协议联合复核 |
+| P800 | Inference v2 精度与资格 | P800-INF-007 OneRec 第 14 token 单卡/TP2 分歧；P800-INF-006 性能证据缺口 | 原计算策略保留，不通过精度/选词调整对齐输出 | [实测报告](evidence/P800-Inference-v2实测结果-20261105.md)；性能 not_qualified |
+| P800 | 整合版新设备验收 | klx1 模型搬运在纯 Transformers 中也阻塞；整合新 TP2 未运行 | klx2 代表性单卡通过，不外推两机全部通过 | 健康可用设备上接续，驱动/硬件细分因果未闭合 |
+| PPU | Inference v2 覆盖与资格 | Qwen 已测，OneRec 未设备验证；时钟一致性未验收 | 同栈 A/A 不代替独立参考；P800 整合复核不替代 PPU 实机 | [实测报告](evidence/PPU-Inference-v2实测结果-20261104.md)，保持性能 not_qualified |
+
 
 <a id="inference-v2-progress"></a>
 
