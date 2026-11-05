@@ -1,6 +1,6 @@
 # RAG 检索与阶段调度（rag_ljy）
 
-更新：2026-10-20。入口供新同学查看；详细操作、设计和结果按用途分开。
+更新：2026-10-29。入口供新同学查看；详细操作、设计和结果按用途分开。
 
 项目最新状态统一记录在根目录 [status.md](status.md)，该文件必须保留在此处并持续更新。
 
@@ -8,7 +8,9 @@
 Qwen3 精排，支持多个 HTTP 请求通过独立有界队列推进各阶段，vLLM embedding默认2路提交并发。文档与查询默认使用
 Qwen3-Embedding-0.6B 的 vLLM 引擎；精排使用 Qwen3-Reranker-0.6B 的
 Transformers 实现。当前接口返回排序片段，生成阶段待接入。
-查询API默认通过device-context后台采集设备内存，在 `/health.device_memory` 暴露缓存读数；内存感知准入待实现。
+查询API默认通过device-context后台采集设备内存，在 `/health.device_memory` 暴露缓存读数。
+可开启内存准入原型：余量不足返回503、低水位恢复接收，并保留每请求全链路预算；
+启动配置及验证范围见[运行指南](docs/operations.md)。
 
 ## 从这里开始
 
@@ -37,7 +39,8 @@ rag_ljy/
 └── artifacts/          # 具日期的结果、日志与复现快照
 ```
 
-当前部署：`rag-ljy-vllm-910c` 使用物理 NPU 7（容器内 `npu:0`）；
+NPU容器配置已改为 `/dev/davinci1`（die 1，容器内 `npu:0`），待重建生效；
+已有 `rag-ljy-vllm-910c` 仍保留旧设备映射，单独 `docker start` 不会更新映射。
 `rag-ljy-milvus` 为内嵌 etcd 的单容器；`rag-ljy-elasticsearch` 为单容器。
 NFCorpus 原始3,633文档分为6,543块，两个数据库保存相同块和向量。
 

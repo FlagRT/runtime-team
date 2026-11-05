@@ -2,6 +2,10 @@
 # （结构对齐 ascend-infer-vllm/v1/lock.yaml 先例；内容按 PPU 实情如实登记）
 
 image_tag: "flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base"
+# 2026-10-27：本系列出现 v2（在 v1 之上加一层派生）⇒ 按 dev/images/README.md §3 标后继关系。
+#   注意 v1 **不是被废弃**：它仍是 v2 的基座层，且仍可按 digest 公开拉取；标 superseded_by
+#   的含义只是「本系列当前推荐入口不再是 v1」（推荐 v2），与 kunlun v1 那种"归档镜像不可信"不同。
+superseded_by: "v2"
 digest: "sha256:50a906e6ed9dd4cb8f00be446b731f2e3738d4c6ec4296d46380e71fb5f5bd53"
 flagtree_line: >-
   ppu3.6（PPU SDK v2.1.0 / py3.12 / torch 2.10.0 / vLLM 0.19.0+cu130）。BAAI·FlagTree

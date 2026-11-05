@@ -88,7 +88,7 @@ def main():
     parser.add_argument("--interval", type=float, default=1.0)
     parser.add_argument("--cross-process-mib", type=int, default=0,
                         help="verify visibility of a separate process holding 1..256 MiB (default off)")
-    parser.add_argument("--output-dir", type=Path, default=PROJECT_ROOT / "artifacts/checks/memory_probe")
+    parser.add_argument("--output-dir", type=Path, default=PROJECT_ROOT / "experiment_outputs/checks/memory_probe")
     args = parser.parse_args()
     if not 1 <= args.count <= 1000 or not math.isfinite(args.interval) or args.interval <= 0 or not 0 <= args.cross_process_mib <= 256:
         parser.error("count must be 1..1000, interval finite/positive, cross-process-mib 0..256")

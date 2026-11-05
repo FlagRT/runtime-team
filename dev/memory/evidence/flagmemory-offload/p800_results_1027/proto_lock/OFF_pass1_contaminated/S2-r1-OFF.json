@@ -1,0 +1,34 @@
+{
+ "leg": "S2",
+ "tag": "OFF",
+ "round": 1,
+ "target_tok": 256,
+ "words": 88,
+ "actual_prompt_tok": 257,
+ "dev": 0.004,
+ "record": {
+  "i": 0,
+  "t0": 1793127533.3235874,
+  "ttft": 1.671100378036499,
+  "end": 1793127832.2663724,
+  "usage": {
+   "prompt_tokens": 257,
+   "total_tokens": 769,
+   "completion_tokens": 512
+  },
+  "finish": "length",
+  "text_sha1": "4e41bf9ab86de5796fc279465269160d0f59ef69",
+  "text_head": "                                       2 2 2   2  2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ",
+  "error": null
+ },
+ "peaks": {
+  "kv_cache_usage_perc": 0.0016480120854219793,
+  "num_requests_waiting": 0.0,
+  "num_requests_running": 1.0
+ },
+ "completion_tokens": 512,
+ "valid_decode": true,
+ "decode_tok_s": 1.71,
+ "wall_s": 298.9,
+ "chunked_prefill_note": "enable_chunked_prefill=True, prompt<<budget 无交错"
+}

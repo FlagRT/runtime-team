@@ -1,0 +1,27 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+can not use command: npu-smi info
+can not use command: npu-smi info
+[W1103 03:09:21.489105545 ProcessGroupHCCL.cpp:1152] Warning: The watchdog timeout 180000ms(which is set by init_process_group) is less than or equal to HCCL execution timeout 1836000ms! The plog may not be recorded. (function ProcessGroupHCCL)
+[model] rank0 DC_MODEL=/workspace/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /workspace/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+[model] rank1 DC_MODEL=/workspace/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B（来源=DC_MODEL）→ 解析 /workspace/legparity_hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights:  79%|███████▉  | 245/310 [00:00<00:00, 2385.66it/s]Loading weights:  79%|███████▉  | 246/310 [00:00<00:00, 2453.57it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2575.14it/s]
+Loading weights: 100%|██████████| 310/310 [00:00<00:00, 2649.25it/s]
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4285.3 tok/s(两卡合计) -> /workspace/legparity_out/20261103_110713/train_leg_result_rank1.json
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4286.1 tok/s(两卡合计) -> /workspace/legparity_out/20261103_110713/train_leg_result_rank0.json

@@ -1,6 +1,8 @@
 # 寒武纪 MLU590 · 第三实例看板
 
-> 分支：`kistich/device-context` ｜ 更新：**2026-09-28** ｜ 负责人：Kistich（hliu553）
+> 分支：`kistich/device-context` ｜ 更新：**2026-11-05** ｜ 负责人：Kistich（hliu553）
+> 🆕 **2026-11-05 兼容性逐格核验（真机 15:55–16:07）**：两机 SSH 恢复后完成 L0/L1/L2 三级采集。① 容器 OS 实测 **`Ubuntu 22.04.5 LTS`** ⇒ 对照表操作系统格 🟡→✅；② ⭐ **FlagGems 结论性验证**：`flag_gems 5.4.0rc2.post3` 的 `enable()` 生效、**8/9 算子 dispatch 被接管**，但 **4/9 算子执行失败**（`task_type` / `BLOCK_ROW_SIZE`，栈在 triton-mlu autotuner）且 Qwen3-Embedding-0.6B 真实前向失败 ⇒ **当前不可替换**，唯一 ⚪ 格转 🟡；③ **驱动分叉**：`Mlu-1` 运行态 `6.5.52`（10-28 更新）、`Mlu-2` `6.2.29`、两台 `dpkg` 仍 `6.2.29-7`；④ 注册层坐实我方路径全走厂商算子库（`RegisterMLU.cpp:43487`、FlagGems 0 命中）。对照表升至 **v0.11（✅18/🟡6/⚪0）**。报告 `docs/MLU590_COMPAT_RECHECK_20261105.md`，原始证据 `probes/mlu_compat_20261105_out/`。
+> **2026-11-03 全套复跑**：单入口 **9 段 `overall: PASS`**（离线 103/0/0 · smoke 46/0 · conformance 13 与推理 6 · 契约不变式 · 图捕获 4/4 · 配额 3/3 · 审计 **63/0/15**），与 10-27 归档逐项一致；`DC_MODEL` 两腿口径 **`LEGPARITY_PASS` 9/0**（loss **11.1479**、区分度 **0.6391** 逐字同）；**weakref 四家矩阵补齐：本实例未中招** 🟢（回调正常触发、rc=0，且 weakref 可创建 30/30 ⇒ 「2.7 不支持 weakref」的旧推测已证伪）；服务化 gmu **0.9→89.3% / 0.4→39.9%**、预热后吞吐 4.66 vs 4.62 句/s（无差）⇒ `serve_standard.sh` 的 `cambricon` 分支升级为实测默认 0.4。报告 `docs/CAMBRICON_MLU_RERUN_20261103.md`。
 > **本目录 = 第三实例（寒武纪 思元 MLU590）的芯片专属资产**；
 > 芯片无关的规范与原型在 `../prototype/`，前两实例在 `../910C/`、`../P800/`。
 > 接入方法见 **《新芯片接入手册》** `../prototype/docs/NEW_CHIP_ONBOARDING_MANUAL_20260920.md`。
@@ -20,6 +22,12 @@
 > T8 A2 如实跳过留档（`A2_BOUNDARY: SKIP_UNSUPPORTED`）。
 > 证据：`probes/t1_duty_cambricon_20261014.json` · `probes/t1_coninvariants_cambricon_20261014.json` ·
 > `probes/t2_preflight_env_cambricon_20261014.log` · `probes/t8_a2_skip_cambricon_20261014.log`。
+>
+> ⭐ **2026-10-27（共享层四处改动后复跑 · 三实例收尾）**：离线 **103/0/0**（归档 97，**+6 全为共享层新增检查**，逐条点名见 MANIFEST）· smoke **46/0** · 契约不变式 **4/4 且 `rc=0`** · 职责审计 **`63/0/15`** · 推理腿 **13/13**（区分度 **0.6391**，与归档逐字相同）· 训练腿 **6/6**（**loss 15.4498→11.1479 与归档逐字相同**，`dist=cncl`）⇒ **零回归**。
+> ⚠️ **更正**：C13（`event.elapsed_time`）归档里是 SKIP、原因是 `CNRT error: failed to call the driver-…`，**看着像寒武纪驱动缺陷，其实是我们统一 API 缺「建可计时事件」入口** —— 补入口后本机计时正常 `11.381 ms`，审计 **62/0/16 → 63/0/15**。
+> 数字与证据：`docs/CAMBRICON_MLU_RERUN_20261027.md` · `probes/rerun_20261027_out/MANIFEST.md`；复跑入口 `probes/run_mlu590_rerun_20261027.sh`。
+> 2026-11-03 全套：`docs/CAMBRICON_MLU_RERUN_20261103.md` · `probes/acceptance_20261103_out/MANIFEST.md`（单入口 9 段）· `probes/legparity_20261103_out/MANIFEST.md` · `probes/weakref_check_20261103_out/MANIFEST.md` · `probes/gmu_ab_20261103_out/MANIFEST.md`；复跑入口 `probes/run_mlu590_acceptance_20261103.sh`。
+> ⭐ **本实例还是「两腿 `DC_MODEL` 口径不一致」的发现地**（同轮暴露：推理腿给缓存根能过、训练腿报 `Unrecognized model`）。当日已修（抽成 `prototype/runtime/proto/model_path.py` 两腿共用 + 静态同源守卫），本机复验 **`LEGPARITY_PASS` 9/0**：两腿对同一份缓存根解析到同一 snapshot、loss `15.4498→11.1479` 与归档逐字相同。报告与证据：`../prototype/docs/LEG_MODEL_PATH_PARITY_20261027.md` · `probes/legparity_20261027_out/MANIFEST.md`；入口 `probes/run_mlu590_legparity_20261027.sh`。
 >
 > ⭐ **2026-10-14 再更新（T1-re：共享层**再次**改动后复跑）**：T11 修法又落在共享层
 > `prototype/runtime/backends/base.py` ⇒ 同日真机复跑：**`DUTY_RESPONSE_PASS` 62/0/16**（FAIL=0，`L1`–`L5` 全 OK）·
@@ -84,6 +92,8 @@
 
 **环境报告（含逐项依据与原始日志索引）**：`docs/CAMBRICON_MLU_ENV_REPORT_20260922.md`
 
+> ⚠️ **2026-11-05 更正（上表是 09-22 历史读数，勿当作现行值）**：`Mlu-1` 运行态驱动已变为 **`6.5.52`**（`cnmon` / `/sys/module/cambricon_drv/version` / `modinfo` 三处一致，`/usr/bin/cnmon` mtime `2026-10-28 11:18`）；`Mlu-2` 仍 `6.2.29`。两台 `dpkg` 元数据都还是 `6.2.29-7.ubuntu20.04`（**包管理器版本 ≠ 运行态内核模块**，两者互不否定）。固件均 `v1.5.0`。容器 OS 实测 `Ubuntu 22.04.5 LTS`。详见 `docs/MLU590_COMPAT_RECHECK_20261105.md` **§2–§3**。
+
 ---
 
 ## 2. 六条关键认知（实测得出，接入前必读）
@@ -105,7 +115,9 @@
 
 ## 3. 环境版本组合（⚠️ 版本号由**宿主驱动**决定，不按 torch 版本选）
 
-**一句话**：实测宿主驱动 **v6.2.29**（6.2.x 线）⇒ 定档
+> ⭐ **2026-11-05 更正（选档依据的条件已变）**：下面这段是 **09-22 的历史判断**，当时两台都是 `6.2.29`。现行 `Mlu-1` 运行态已是 `6.5.52`（已越过 4.7.2 档官方标注的 `6.5.48` 门槛），`Mlu-2` 仍 `6.2.29` ⇒ 「6.2.x ⇒ 只能 4.4.3 档」**不再普遍成立**。但本方向**未在 4.7.2 档做过任何验证**，本轮也不做档位升级判定 ⇒ 只登记「待总组 / 镜像方向重新评估」，**锁定镜像与验收基线一律不变**。另：`11-03` 归档未记录当次 `cnmon` 读数（**未记录，不反推**）；本轮 `11-05` 已在该驱动下实测 L2 全通过。
+
+**一句话（09-22 历史）**：实测宿主驱动 **v6.2.29**（6.2.x 线）⇒ 定档
 `flagos-runtime-cambricon-neuware4.4.3:2.2.0`；`neuware4.7.2` 档（torch-mlu 1.33.1）**要求驱动 6.5.48**，
 列为**上报预案、非当前诉求**（**不凭版本号要求升级**）。
 

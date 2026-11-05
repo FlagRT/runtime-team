@@ -78,7 +78,12 @@ class MockBackend(RuntimeBackend):
         return {"total_mb": 65536, "used_mb": 1024, "free_mb": 64512}
 
     def _create_stream_raw(self, priority=None): return _MockNativeStream()
-    def create_event(self): return _MockNativeEvent()
+    def create_event(self, enable_timing: bool = False):
+        # 统一契约的新参数（2026-10-26）：默认路径逐字不变；Mock 不提供计时事件，
+        # 显式请求时**如实报错**而不是返回不可计时事件（否则 elapsed_time 会在上层炸）。
+        if enable_timing:
+            raise NotImplementedError("MockBackend 不提供可计时事件（测试替身）")
+        return _MockNativeEvent()
     def current_stream(self): return "mock-current"
 
     def synchronize(self, ordinal, timeout_ms=None):

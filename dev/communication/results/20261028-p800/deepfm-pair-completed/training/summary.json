@@ -1,0 +1,48 @@
+{
+  "verdict": "PASS",
+  "scope": "Kunlun integration",
+  "identity": {
+    "backend": "flagcx",
+    "evidence_scope": "P800 integration",
+    "model_sha256": {
+      "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+      "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+      "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+    },
+    "prototype_revision": "ca76d64befc04d3a8050f7a33d22cb177c20c8fd",
+    "torch": "2.9.0+cu129",
+    "seed": 923,
+    "dtype": "float32"
+  },
+  "runs": 6,
+  "gradient_checks_per_rank": 17,
+  "gradient_reference_max_abs": 3.725290298461914e-09,
+  "update_reference_max_abs": 3.725290298461914e-09,
+  "manual_fused_loss_max_abs": 0.0,
+  "final_rank_parameter_max_abs": 0,
+  "gradient_calls_per_rank_per_50_steps": {
+    "manual": 850,
+    "fused": 50
+  },
+  "timing": {
+    "manual": {
+      "run_mean_step_ms": [
+        31.18085412774235,
+        31.17626033257693,
+        33.29169007949531
+      ],
+      "mean_ms": 31.882934846604865,
+      "sample_stddev_ms": 1.2200199815518058
+    },
+    "fused": {
+      "run_mean_step_ms": [
+        21.188754169270396,
+        20.372665892355144,
+        20.00017682556063
+      ],
+      "mean_ms": 20.520532295728724,
+      "sample_stddev_ms": 0.6079287626276781
+    }
+  },
+  "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+}

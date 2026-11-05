@@ -1,0 +1,62 @@
+{
+  "mode": "pair",
+  "prototype_revision": "c0571c3885fb6e04b6bcbb1efec471cdaba4e552",
+  "observations": [
+    {
+      "time": 1793786967.3948843,
+      "raw": "00000000:03:00.0 0 0 02K15K0264D00DNC 51 0 0 0 264 1450 1450 1450 1450 1450 1450 2 96 75752 98304 99 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 53 0 0 0 250 1450 1450 1450 1450 1450 1450 2 96 75028 98304 97 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 47 0 0 0 96 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 48 0 0 0 98 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 34 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 32 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 53 0 0 0 302 1450 1450 1450 1450 1450 1450 0 96 83638 98304 95 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 40 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 976 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 52 0 0 0 102 1450 1450 1450 1450 1450 1450 0 96 32 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+      "free_ids": [
+        2,
+        3
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "dev/communication/training/run_repeated.py",
+        "--backend",
+        "kunlun",
+        "--collective",
+        "flagcx",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype",
+        "--prototype-revision",
+        "c0571c3885fb6e04b6bcbb1efec471cdaba4e552",
+        "--model-root",
+        "/workspace/dev/model-defs/deepfm/v1",
+        "--output",
+        "/workspace/evidence/ddp-controlled-v2/training",
+        "--launch-timeout",
+        "240",
+        "--include-observed"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "verdict": "ERROR",
+  "source_sha256": {
+    "training/deepfm_train.py": "eb4abab33104401549781fc7df8a5e6ceb3fd0fd2a75d6f9c55555d36cf05a65",
+    "training/distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+    "training/run_repeated.py": "8437c96556d5d70ce0f2efc9ee264a38dc0cc1b0df85e78f205993e5d14dbcdf",
+    "training/summarize_repeated.py": "d794d9b8a028dd19367de3598bec55b5f8f519b7071f8c88c294865f3e2d875d",
+    "training/run_p800_selected.py": "e352b9bb86628eb784cf25a1cc300aea635e8cfd59e2071f9b6cb1f991127d06",
+    "probes/p800_identity.py": "bb1821838554b49c5b09054310053b96d787e11bd3cace3be482e7dae9d86d0b",
+    "env/p800-single/docker-compose.yml": "75cae32eb128b1583b8123fa0f4e92c775b3621ac64105a270af078f5229f27d",
+    "env/p800-pair/docker-compose.yml": "9f7620550ee0d55b384ded5856ba78d8ffc8dc1c0ab5a79fe3f6fd4c6005dae2"
+  },
+  "selected": [
+    {
+      "physical_card": 2,
+      "node": "/dev/xpu3",
+      "uuid": "GPU-ba906823-c8fd-5047-b68e-f8538d49d6d9"
+    },
+    {
+      "physical_card": 3,
+      "node": "/dev/xpu1",
+      "uuid": "GPU-73424df5-ae73-5be6-a646-3018e2a9cf69"
+    }
+  ],
+  "reason": "ValueError('Unexpected gradient call count')"
+}

@@ -1,0 +1,10 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[inject] mode=note_off
+=== 统一运行时 conformance: backend=ppu, chip=ppu, 用例数=1 ===
+[env] runtime:ppu=0.1.0 devices=1
+  [FAIL   ] only_i3                      A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 未登记句柄 → Val
+
+=== 汇总: 0/1 通过 ===
+结论: CI_I3_ONLY_FAIL
+结果已写入 /tmp/inj_note_off.json
+[inject] main returned 1

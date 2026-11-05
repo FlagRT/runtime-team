@@ -1,0 +1,4 @@
+# 证据日志需要入库（仓库根 .gitignore 第 18 行 `*.log` 会挡掉）—— 沿用
+# dev/device-context/PPU/probes/.gitignore 的同一写法：本目录下 .log 是**证据本体**，
+# 不是运行日志垃圾，故显式例外。体积纪律：单文件控制在 ~100KB 内，超了截选后入库。
+!*.log

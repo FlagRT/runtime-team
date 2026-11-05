@@ -44,5 +44,26 @@ class SummaryTests(unittest.TestCase):
             f=p/'rank1.json';obj=json.loads(f.read_text());obj['final_sha256']['0']='c';f.write_text(json.dumps(obj))
             self.assertEqual(module.summarize(p,1)['verdict'],'FAIL')
 
+    def test_bucketed_accounting(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d); self.fixture(p)
+            for rank in range(2):
+                f=p/f'rank{rank}.json'; obj=json.loads(f.read_text())
+                obj.update(comm_mode='bucketed', bucket_bytes=64*1024**2)
+                obj['communication']['gradient_allreduce_calls']=251
+                f.write_text(json.dumps(obj))
+            self.assertEqual(module.summarize(p,1)['verdict'],'PASS')
+            obj['communication']['gradient_allreduce_calls']=250
+            f.write_text(json.dumps(obj))
+            self.assertEqual(module.summarize(p,1)['verdict'],'FAIL')
+
+    def test_unknown_mode_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d); self.fixture(p)
+            for rank in range(2):
+                f=p/f'rank{rank}.json'; obj=json.loads(f.read_text())
+                obj['comm_mode']='unsupported'; f.write_text(json.dumps(obj))
+            self.assertEqual(module.summarize(p,1)['verdict'],'FAIL')
+
 
 if __name__ == '__main__':unittest.main()

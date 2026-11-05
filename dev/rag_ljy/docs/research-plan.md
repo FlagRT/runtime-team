@@ -11,7 +11,7 @@
 vLLM embedding(NPU) → BM25+dense 双库检索(CPU) → RRF → Transformers 精排(NPU)
 ```
 
-- 单机单卡：物理 NPU 7（容器内 `npu:0`）+ Milvus/Elasticsearch 容器。
+- 单机单设备：配置选择 `/dev/davinci1`（容器内 `npu:0`，待重建生效）+ Milvus/Elasticsearch 容器；历史实验使用die 7。
 - 不做：多厂商加速器抽象（device-context 仅用其内存/错误接口）、生成阶段、
   多节点分布式、训练。
 - 论文 claim 明确限定为 pre-generation serving，生成接入列为 future work。
@@ -50,7 +50,7 @@ vLLM embedding(NPU) → BM25+dense 双库检索(CPU) → RRF → Transformers �
 | B1 共享线程池 | 全部阶段共用一个 executor，无独立阶段队列 | 需实现（加配置开关） |
 | B2 阶段队列（现状） | 独立有界 FIFO + 固定 worker（2/4/1），仅计数准入 | 已实现 |
 | B3 B2+精排合批 | 跨请求 rerank batch dispatcher，可调等待窗口 | 需实现 |
-| B4 B2+水位准入 | device-context 内存遥测驱动准入，替代纯计数 | 需实现 |
+| B4 B2+水位准入 | device-context 内存遥测、全链路预算驱动准入，同时保留数量上限 | 可选原型已实现并完成受控测试；真实负载E4待做 |
 
 B3/B4 组合为完整方案 B5。所有基线共用同一固定查询集与同一服务端代码路径，
 仅切换配置，避免实现差异污染对比。
@@ -133,6 +133,6 @@ SLO 在 E1 数据上标定（如 e2e p99 ≤ 串行参考的 2 倍），E7 报�
   （负结果 + 解释本身可发表，但需 B1 对照支撑）。
 - vLLM 在昇腾上的 forward 合批行为不可控：E3 取证失败则精排 dispatcher
   仍是独立贡献，embedding 侧改为报告性发现。
-- device-context 内存反馈接口未接入：B4 有工程风险，需先做接口可行性验证。
+- device-context 内存反馈已接入B4可选准入原型；读数范围、真实负载预算及压力恢复仍需按E4验证。
 - 共享主机测量噪声：已见的缓存/负载影响需靠交错重复与轮次报告控制。
 - 单机单卡外部效度有限：claim 收窄为单加速器节点内的调度问题。

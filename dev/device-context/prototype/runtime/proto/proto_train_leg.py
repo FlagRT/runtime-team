@@ -20,7 +20,7 @@
   DC_DIST_BT   进程组后端（910C=`hccl`；昆仑芯见 --help 探测结果，如 `xccl`；寒武纪必须显式给；
                PPU=`nccl`）
   DC_ROOT      device-context 根路径（`/mnt/raid/hliu553/runtime-team/dev/device-context`）
-  DC_MODEL     模型路径（`/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B`）
+  DC_MODEL     模型路径（不传则按实例布局探测；三种传法都行 —— 见 runtime/proto/model_path.py）
   DC_OUT_DIR   结果输出目录（`/mnt/raid/hliu553/runtime-team/scratch`）
   MAX_STEPS / BATCH / SEQ / LR   训练超参（20 / 4 / 128 / 1e-5）
 
@@ -40,14 +40,14 @@
 
 用法（昆仑芯 P800）：
   # 用卡前先 `xpu-smi` 挑**空闲且连续同组**的卡；共享机上被他人占用的卡会触发设备侧报错
-  # ⚠️ 两处易错（2026-09-22 验收实测，照旧文档抄会直接失败）：
-  #   ① `DC_MODEL` **必须给到 `snapshots/<hash>`** —— 给 HF 缓存根目录会报
-  #      `ValueError: Unrecognized model in …`（缓存根下只有 snapshots/refs/blobs，无 config.json）；
-  #   ② 脚本路径是 **`runtime/proto/proto_train_leg.py`**（不是 `proto_train_leg.py`）。
+  # ⚠️ 易错：脚本路径是 **`runtime/proto/proto_train_leg.py`**（不是 `proto_train_leg.py`）。
+  # `DC_MODEL` 自 2026-10-27 起与推理腿同口径、**三种传法都接受**：
+  #   普通模型目录 / snapshot 目录 / HF 的 `models--<org>--<name>` 缓存根
+  #   （原先只认 snapshot 目录，给缓存根会报 `ValueError: Unrecognized model in …`）。
   CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=kunlun FLAGCX_ADAPTOR=klx \
   DC_DIST_BT="cpu:gloo,cuda:flagcx" \
   DC_ROOT=/workspace/prototype \
-  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
+  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B \
   DC_OUT_DIR=/workspace/out \
   python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
 
@@ -129,8 +129,21 @@ if not os.environ.get("DC_DIST_BT") and BACKEND not in _DIST_BT_DEFAULT:
     raise SystemExit(2)
 DIST_BT = os.environ.get("DC_DIST_BT") or _DIST_BT_DEFAULT[BACKEND]
 ROOT = os.environ.get("DC_ROOT", "/mnt/raid/hliu553/runtime-team/dev/device-context")
-MODEL = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
 OUT_DIR = os.environ.get("DC_OUT_DIR", "/mnt/raid/hliu553/runtime-team/scratch")
+
+# ── 模型路径：与推理腿**共用同一实现**（2026-10-27 修）──
+#   原先本腿直接 `MODEL = os.environ.get("DC_MODEL", <910C 路径>)`，没有推理腿那份
+#   `resolve_model()` ⇒ 同一份 `DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B`：
+#     推理腿 ✅ 解析到 snapshots/<hash>、本腿 ❌ `ValueError: Unrecognized model in …`。
+#   10-27 MLU590 复跑即踩到（当时在容器内先手工解析 snapshot 绕过，没在回归记录里夹带改共享层）。
+#   ⇒ 抽到 `runtime/proto/model_path.py`，两腿 import 同一函数；默认值也一并去掉
+#     （原默认是 910C 专有路径，在别家机器上会把「路径不存在」伪装成模型 id 错误）。
+_HERE = os.path.dirname(os.path.abspath(__file__))       # prototype/runtime/proto
+sys.path.insert(0, _HERE)
+from model_path import pick_model, require_model          # noqa: E402
+
+MODEL_RAW, MODEL_SOURCE = pick_model()
+MODEL = require_model(MODEL_RAW, MODEL_SOURCE)            # 取不到 ⇒ 打印指引并 exit 4
 
 sys.path.insert(0, ROOT)
 
@@ -191,9 +204,13 @@ def main() -> None:
 
     res: dict = {
         "rank": rank, "world_size": world, "model": MODEL,
+        "model_raw": MODEL_RAW, "model_source": MODEL_SOURCE,
         "backend": BACKEND, "dist_backend": DIST_BT,
         "checks": {},
     }
+    # 解析结果打出来：两腿对**同一份 DC_MODEL**的解析必须一致（四实例复验即按这行对账）
+    print(f"[model] rank{rank} DC_MODEL={MODEL_RAW or '<未设>'}（来源={MODEL_SOURCE}）→ 解析 {MODEL}",
+          flush=True)
 
     # ── 1. 经统一运行时 API 绑定设备 ──
     runtime.use(BACKEND)

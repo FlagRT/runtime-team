@@ -27,6 +27,11 @@ git merge-base origin/dev-1.0 HEAD              # → 4e0e0cb 本身
 git rev-list --count origin/dev-1.0..HEAD       # → 15（我们领先 15 个提交）
 ```
 
+> ⏱ **收尾时的最终状态（当日补记，以这条为准）**：本文写作时为 `8402a93`（领先 **15** 提交）；当日又追加了两个修复提交
+> （构建可编译性 `5e44b3c` + 跨厂商结构性问题 `b576fa6`）⇒ **最终 tip = `b576fa6a`、领先 17 提交**，
+> 并于当日以 merge 提交 **`62fe615`** 合入 FlagCX `dev-1.0`（`git rev-list --count 4e0e0cb..b576fa6a` = **17**）。
+> 下文凡出现「15 / `8402a93`」处，均指**写作当时**的状态，不影响结论。
+
 | 项 | 值 |
 |---|---|
 | 我们分支 | `kistich/ascend-flagcx-adapt`，tip **`8402a93`** |

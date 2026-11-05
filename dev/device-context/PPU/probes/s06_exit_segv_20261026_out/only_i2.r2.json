@@ -1,0 +1,19 @@
+{
+  "runner": "runtime/conformance",
+  "backend": "ppu",
+  "chip": "ppu",
+  "env": {
+    "runtime:ppu": "0.1.0",
+    "devices": 1
+  },
+  "cases": {
+    "only_i2": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）"
+    }
+  },
+  "verdict": "CI_I2_ONLY_PASS",
+  "passed": 1,
+  "total": 1
+}

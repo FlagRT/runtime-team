@@ -77,6 +77,7 @@ def test_background_sampler_recovers_and_keeps_one_sampling_thread():
                     await asyncio.sleep(.005)
             assert monitor.snapshot()["age_seconds"] >= 0
             assert not monitor.snapshot()["stale"]
+            assert monitor.snapshot()["sample_started_monotonic"] <= monitor._sample_time
             monitor._sample_time -= 10
             assert monitor.snapshot()["stale"]
         finally:
@@ -90,3 +91,51 @@ def test_background_sampler_recovers_and_keeps_one_sampling_thread():
 def test_invalid_intervals(interval):
     with pytest.raises(ValueError):
         memory_probe.DeviceMemoryMonitor(interval_s=interval)
+
+
+def test_sampler_recovers_from_malformed_probe_result():
+    calls = []
+    def sample():
+        calls.append(1)
+        return None if len(calls) == 1 else {"status": "ok"}
+    async def scenario():
+        monitor = memory_probe.DeviceMemoryMonitor(interval_s=.01, probe=SimpleNamespace(sample=sample))
+        monitor.start()
+        try:
+            async with asyncio.timeout(2):
+                while monitor.snapshot()["status"] != "ok":
+                    await asyncio.sleep(.005)
+            assert len(calls) >= 2
+        finally:
+            await monitor.close()
+    asyncio.run(scenario())
+
+
+def test_read_duration_is_part_of_sample_age():
+    import time
+    def sample():
+        time.sleep(.04)
+        return {'status':'ok'}
+    async def scenario():
+        monitor=memory_probe.DeviceMemoryMonitor(interval_s=1,probe=SimpleNamespace(sample=sample))
+        monitor.start()
+        try:
+            async with asyncio.timeout(2):
+                while monitor.snapshot()['status']!='ok':await asyncio.sleep(.005)
+            assert monitor.snapshot()['age_seconds']>=.04
+        finally: await monitor.close()
+    asyncio.run(scenario())
+
+
+def test_isolated_sampler_worker_keeps_runtime_result(monkeypatch):
+    class Connection:
+        def __init__(self):self.commands=iter(['sample','stop']);self.results=[];self.closed=False
+        def recv(self):return next(self.commands)
+        def send(self,result):self.results.append(result)
+        def close(self):self.closed=True
+    connection=Connection()
+    monkeypatch.setattr(memory_probe,'DeviceMemoryProbe',lambda device:SimpleNamespace(sample=lambda:{'source':'device-context.runtime.memory_stats','stats':{'total_mb':100,'used_mb':80,'free_mb':20}}))
+    memory_probe._isolated_probe_worker(connection,'npu:0')
+    assert connection.closed and len(connection.results)==1
+    assert connection.results[0]['stats']['used_mb']==80
+    assert connection.results[0]['sampling_process']>0

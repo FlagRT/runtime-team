@@ -1,0 +1,10 @@
+=== L2 VENDOR (device-bearing, flag_gems NOT imported) ===
+torch 2.7.1+cpu torch_mlu 1.29.2+torch2.7.1
+device_count 1
+flag_gems_in_modules False
+  REG aten::mm           ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG aten::add.Tensor   ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG aten::silu         ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG aten::matmul       ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+NUMJSON:{"add": {"head": [0.383699, 3.987649, 2.998698, 1.143976, 0.475412, -1.936237, 1.461703, -1.585664], "inf": 0, "nan": 0, "sum": 48.59967}, "gemm64": {"head": [-7.001629, 8.315063, 4.114503, 2.751254, 0.431171, -15.182192, -4.300372, 13.335915], "inf": 0, "nan": 0, "sum": 202.734497}, "layernorm": {"head": [0.124982, 1.837569, 1.367622, 0.486263, 0.168563, -0.977445, 0.637246, -0.810854], "inf": 0, "nan": 0, "sum": 1e-05}, "matmul": {"head": [-4.832853, 2.196734, 15.457664, -3.726482, 2.847715, -15.012392, -6.640992, -17.930714], "inf": 0, "nan": 0, "sum": 177.374008}, "mul": {"head": [0.036806, 3.975336, 2.248048, 0.32717, 0.056504, 0.937254, 0.534144, 0.628583], "inf": 0, "nan": 0, "sum": 1984.542358}, "relu": {"head": [0.191849, 1.993824, 1.499349, 0.571988, 0.237706, 0.0, 0.730851, 0.0], "inf": 0, "nan": 0, "sum": 812.490417}, "silu": {"head": [0.105098, 1.754859, 1.225684, 0.365627, 0.132913, -0.26648, 0.493319, -0.247015], "inf": 0, "nan": 0, "sum": 422.347717}, "softmax": {"head": [0.010857, 0.06581, 0.040137, 0.015878, 0.011366, 0.003404, 0.018612, 0.004056], "inf": 0, "nan": 0, "sum": 32.000004}, "triu": {"head": [0.191849, 1.993824, 1.499349, 0.571988, 0.237706, -0.968119, 0.730851, -0.792832], "inf": 0, "nan": 0, "sum": 31.688667}}
+VENDOR_RC_OK

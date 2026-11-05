@@ -79,7 +79,9 @@ python scripts/check_multi_request/capture_queue_evidence.py
 34次调用得到33次成功及1次预期拒绝；所有成功请求三阶段依赖正确，结果与参考一致；
 观察到60对跨请求的阶段区间重叠，队列采样未超限，完成后队列归零。
 另外保存22项现有调度/API测试的日志及JUnit记录，覆盖队列背压、取消、错误隔离等行为。
-这验证的是数量准入控制；内存水位准入尚未实现，也没有证明实际vLLM forward batching。
+这轮验证的是数量准入控制，没有证明实际vLLM forward batching。2026-10-20新增
+可选内存准入的受控测试见[单文件报告](../artifacts/checks/memory_admission/2026-10-20/report.md)；
+原有双库200次测试尚未在开启内存准入后重跑。
 
 ## 其他检查
 

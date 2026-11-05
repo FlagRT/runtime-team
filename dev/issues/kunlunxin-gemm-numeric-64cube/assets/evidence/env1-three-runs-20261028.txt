@@ -1,0 +1,38 @@
+# 来源：2026-10-28 env/v1 真机验收（P800 卡 0，发布形态 = 验收形态）
+# 命令：docker exec flagrt-kunlun-v2-env-v1-p800 bash -c "source …/env/v1/enable-gemm-compat.sh && \
+#        for i in 1 2 3; do CUDA_VISIBLE_DEVICES=0 python /tmp/probe_64_cube.py; done"
+# 探针：probe_64_cube.py（原始收数版，每次运行内含 trial1/trial2 两测、随机输入）
+# 判读：六次读数 rel 0.79~1.00 —— 与 2026-10-27 验收读数（rel 1.02/0.29/0.72）同性质：
+#       非确定性乱值在新基座（env/v1）完整复现，量级 O(1)。
+# 截取范围：完整输出（仅去掉环境装载横幅）
+
+run1:
+trial1: max_abs_diff=3.0012e+01 rel=9.7478e-01
+trial2: max_abs_diff=3.0958e+01 rel=1.0000e+00
+run2:
+trial1: max_abs_diff=2.5909e+01 rel=7.9203e-01
+trial2: max_abs_diff=3.2660e+01 rel=1.0000e+00
+run3:
+trial1: max_abs_diff=2.7092e+01 rel=9.8318e-01
+trial2: max_abs_diff=3.2373e+01 rel=1.0000e+00
+
+# 同窗口其他验收读数（发布形态，均在 env/v1 + 显式启用后）：
+#   pytest test_accuracy_mm        18 passed  in 16.57s（FlagGems 补丁树 tests）
+#   pytest mm/bmm/addmm 扩展        99 passed  in 60.67s
+#   minirepro 12 组                 编译 12/12（abort 0 / OOR 0）；数值超差 7 组 =
+#     [15-160-1024 fp16/bf16, 495-5333-71 fp16/bf16, 64-64-64 fp16/fp32/bf16]
+#     —— 全部落在本 case K-5 已知清单内
+# 完整日志：P800:/data2/xliu969/（验收窗口现场；逐组定量另见
+#   /data2/xliu969/sdnn-compat-acceptance-20261027/evidence/numerics-card4.log）
+
+# —— 正式自判定脚本输出（verify_numeric_64cube.py，固定种子同输入三 trial）——
+# 来源：2026-10-28 env/v1 容器（未手工 source enable，脚本自带兜底启用），卡 0，退出码 1
+# 判读：同输入三次得到完全不同的错值（trial1 输出全零）—— 非确定性的直接证据；
+#       vendor 原生对照三次稳定 1.24e-05。
+flag_gems: /workspace/FlagGems/src/flag_gems/__init__.py
+SDNN_EXPLICIT_INTRINSICS core_id=1 load_param=2
+trial0: gems rel=9.6149e-01 | vendor native max_abs=1.2398e-05 | out[0,:4]=[1.8501, 3.9134, 0.9794, 0.4945]
+trial1: gems rel=1.0000e+00 | vendor native max_abs=1.2398e-05 | out[0,:4]=[0.0, 0.0, 0.0, 0.0]
+trial2: gems rel=1.9210e-01 | vendor native max_abs=1.2398e-05 | out[0,:4]=[-4.6243, -2.3271, -8.3612, -3.8484]
+判定依据：3/3 次 trial rel > 0.001（9.615e-01, 1.000e+00, 1.921e-01）
+overall: FAIL / 1 —— 64×64×64 fp32 数值超容差（缺陷复现）

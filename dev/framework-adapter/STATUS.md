@@ -1,38 +1,57 @@
-# framework-adapter · 当前状态
+# framework-adapter 当前状态
 
-更新：2026-09-23（发布整理；NPU实测为09-22）｜顾宬 / cgu135。仅保留最新有效结论；历史过程见[报告索引](README.md)。
+更新：2026-11-04 dev3源码候选发布。顾宬 / cgu135。当前功能、验证与交付状态统一维护于本页。
 
-## 已完成与未通过
+## 本期完成
 
-范围：910C单设备、Qwen3-Embedding-0.6B、FP16、Transformers eager推理；不是全部框架/芯片或三级回退验收。
+- 公共训练入口接齐模型身份及审核：实际权重、配置、源码、依赖版本与训练设置共同匹配，通过审核后才启用目标算子。
+- 910C官方镜像：Qwen0.6B双rank关闭、开启、缺模型审核三路各3步通过；开启每rank84次SiLU前向及84次反向，其余两路保留原生。
+- 独立资格：原生重复3726项逐值一致；候选3726项通过，最大差9.54e-7。
+- 新P800：DeepFM FP32 batch32三路各3步，294项对照一致；本轮P800使用dev2。
+- dev3固定提交构建及独立重建各110项包控制通过，集成脚本控制42项通过；11个运行时文件与实测wheel一致。
 
-| 项目 | 当前结果 |
+## 功能与待办
+
+| 功能 | 当前实现 | 待完成 |
+|---|---|---|
+| 算子接入 | PyTorch eager SiLU、sigmoid、tanh前反向；开关、逐调用准入与退出恢复 | 自定义/融合及其他框架入口 |
+| 模型审核 | 固定公共双rank入口及P800 case采集真实身份，匹配模型与算子审核 | 公共入口严格负向硬件补证、稳定集成接口对齐 |
+| 安全处置 | 条件不满足保留合法原生；严格模式拒绝；执行异常停止 | 多候选实现选择、任务级恢复 |
+| 双rank联动 | 固定入口验证更新前共同阻断；正常完成与恢复有记录 | 更新后回滚、跨主机恢复由相关方向协同 |
+| 三种接入方式 | 算子注册、库替换、版本补丁的方案及接口约定已交评审稿 | 跨组确认与逐项实现 |
+
+## 平台证据
+
+| 平台/场景 | 结果与问题 | 证据 |
+|---|---|---|
+| 910C官方镜像 / 公共719de8c入口 | Qwen0.6B FP32 batch1 seq32，双rank三路通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/公共训练入口模型审核接入-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-public-entry-20261104/summary.json) |
+| 新152 P800 / v2 / GEMM补丁关闭 | DeepFM FP32 batch32三路通过，sigmoid资格6组×3次通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800新机三路回归-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-p800-regression-20261104/summary.json) |
+| 910C历史模型 | Qwen有限训推、OneRec seq16通过；OneRec seq32梯度及DeepFM参数超差，保留原生 | [10-23报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
+| P800历史模型 | 三单算子通过；DeepFM通过；Qwen FP32 seq32与OneRec BF16 seq16梯度超差，审核拒绝 | [10-29报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800接入与安全回退验证-20261029.md) |
+| 910C双rank故障注入 | 前向/反向异常均双方0次优化器更新 | [10-28报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/双rank步骤门控验证-20261028.md) |
+| 910C训练v3 | 原生/拒绝路径已有证据；目标编译TLE/shmem缺失待解决 | [环境差异](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
+
+模型回归使用合成输入短训练；数值资格由独立探针验证，本方向不改内核或放宽阈值。
+
+## 发布与复现
+
+| 材料 | 固定版本或入口 |
 |---|---|
-| 原生NPU基线 | 2组模型输入、8组模型来源算子用例通过；旧aclInit阻塞本轮未复现 |
-| 模型实例级适配器 | 覆盖真实SiLU/RMSNorm入口；15项控制测试通过，退出恢复 |
-| 目标算子与执行前回退 | 8组目标算子对照、4类NPU回退场景通过 |
-| 保守模型配置 | 2组输入×关闭/SiLU-only共4配置通过；隐藏状态和向量与原生完全一致 |
-| RMSNorm数值问题 | 全部替换未准入；226次旁路调用中30次非逐元素一致，单次均在现有容差内 |
-| 分组定位 | 仅Q/K替换2组模型完全一致；仅隐藏层替换2组均复现隐藏状态超差，具体内核原因未定 |
+| 功能源码 | [dev3@40864f9](https://github.com/FlagRT/framework-adapter/tree/40864f9ac266163a80e323ca1abe082bb6b8a2f9) |
+| 制品版本锁 | [package.lock.json](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/package.lock.json)，精确源码、实测wheel和两次重建SHA |
+| 发布审查 | [报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/dev3发布审查-20261104.md)、[核验摘要与脚本](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-dev3-release-20261104/) |
+| 三通道方案/接口 | [方案](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/三通道接入方案.md)、[接口约定](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/接入接口约定.md) |
+| 本方向材料 | 本人分支cgu135/framework-adapter；公共dev-1.0只同步STATUS及固定证据指针 |
+| 操作与索引 | [HANDOFF](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/HANDOFF.md)、[报告目录](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/README.md) |
 
-控制回归和重复实验不累加；调用次数不是独立测试数。未放宽阈值，样本不足以准入Q/K；默认allowlist为空，保守demo仅显式启用SiLU。执行后异常上抛，不盲目重跑或迁移芯片。
+源码候选按固定提交离线构建；未上传PyPI。新P800旧机迁移已完成，9395文件逐文件SHA核验通过。11-04实测结束后11机7个及27机1个本人容器均已停止。
 
-## 已验证版本与限制
+本页仅同步本方向状态与交付物指针，详细材料在上述固定个人分支提交中。独立仓由公共 dev/repos.yaml 收录。
 
-- FlagGems源码：`f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4`，本人目录挂载，未改内核。
-- [v2推理基座](../stack.lock.910c.v2.yaml)：torch/torch_npu 2.10，Triton 3.5.0 + triton-ascend 3.2.1；个人目录补SQLAlchemy 2.0.48、greenlet 3.2.5。未引入FlagTree构建物。
-- 本轮没有验证BF16模型、vLLM融合入口、Megatron训练、多流或芯片级恢复。
-- 09-22最后检查：27本人容器已于18:17停止；11可SSH但Docker权限不足。这是历史快照，执行前重查。
-- 09-23发布内容：模型实例级适配器、控制测试、RMSNorm诊断及09-22原始证据；只涉及本方向，没有写OneDrive。
-- 发布前本地检查：15个Python/4个shell语法通过，12项元数据测试通过，原始JSON/XML计数与报告一致。15项适配器控制测试沿用09-22记录，本机缺torch/transformers/pytest，09-23未重跑；NPU亦未重跑。
-- 09-23公共分支`6af89c4`已包含设备原型去torch_fl更新。本方向初始化已走ascend，但服务器仍为0916设备原型副本；同步仓库不等于新版NPU回归通过。
+## 下一步
 
-## 下一步（按优先级）
+1. 配置、模型或版本变化使旧审核失效：补公共入口硬件证据。
+2. 严格目标模式在不满足条件时训练前拒绝：检查零模型训练、零优化器更新与拒绝原因。
+3. 与device-context确认模型身份/审核的稳定传递接口，减少随公共入口更新的人工适配。
 
-1. 将隐藏层RMSNorm数值差异交算子/精度方向确认和处理；本方向不负责内核修复，继续整理算子清单/注册契约和三级回退调用方案。
-2. 扩充输入、BF16及兼容准入验证；保持执行前回退与执行后错误上抛的边界，不把模拟当跨芯片恢复。
-3. 配合device-context推进vLLM/Megatron选型及真实入口联调，复用其服务启动规范；结果另计。OneRec-8B/DeepFM为组内新增推荐场景，未计为本方向已测或本轮硬验收要求。
-
-排期新约束（用户09-22转发09-18通知）：功能开发须在2027-05-31前完成，之后主要适配及精度/性能优化；允许按实际依赖串行重排。本轮只记约束，尚未修改共享任务表。
-
-[完整结果及复现](docs/910C模型接入与安全回退-20260922.md) · [原始证据目录](docs/evidence-model-20260922/README.md) · [开发续接](HANDOFF.md)
+本页至少每两周更新，重要交付同步证据链接。详细后续计划维护于workspace执行计划；历史过程见[归档](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/archive/session-20261103/README.md)。

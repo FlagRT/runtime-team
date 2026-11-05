@@ -10,7 +10,14 @@
 #
 # 【与两套旧脚本的关系（差异点均已在内部分支处理，不是删旧脚本）】
 #   910C：`910C/distributed_inference/inference/start_vllm_serve_910c.sh`
-#         · 坑 A5 禁用 vllm-plugin-FL（unset VLLM_PLUGINS）
+#         · 坑 A5 避开 vllm-plugin-FL 的**平台**接管（`unset VLLM_PLUGINS`；
+#           ⚠️ 2026-11-04 实测修正：unset **不是**「禁用插件」——vLLM 里 `VLLM_PLUGINS` 为 None 时
+#           会加载**全部**插件（真禁用要给空串 `VLLM_PLUGINS=""`，本脚本未采用、未做服务回归）。
+#           910C 上插件不接管算子的真正原因是两条：① `fl` 的**平台插件**在 ascend 上不激活
+#           （无 ascend 后端）⇒ 平台解析仍为 `Platform plugin ascend is activated`；
+#           ② 即使 general 插件被 import（`flag_gems` 随之进入 `sys.modules`），它也**不调** `flag_gems.enable()`
+#           ⇒ `aten::mm/add/silu/matmul` 的 PrivateUse1 实现仍全是 `torch_npu/csrc/aten/RegisterNPU.cpp`。
+#           见 `dev/device-context/docs/CHIP_COMPAT_MATRIX_20261104.md` §3.1e
 #         · 坑 A3 DO_NOT_TRACK=1
 #         · 坑 A2 清理残留 EngineCore 子进程
 #         · 选卡 ASCEND_RT_VISIBLE_DEVICES
@@ -21,12 +28,15 @@
 #           GEMS_VENDOR=kunlunxin / KLX_USE_AUTOTUNE=0
 #         · 选卡 CUDA_VISIBLE_DEVICES
 #         · 停机必须连带清理 EngineCore 残留（实测占卡 73850 MiB / 96 GiB）
-#   MLU590（寒武纪，2026-09-22 新增，⚠️ 尚未真机验证）：
-#         · 设备 API 走 torch.mlu（PrivateUse1），选卡 MLU_VISIBLE_DEVICES
-#         · 镜像定档 flagos-runtime-cambricon-neuware4.4.3:2.2.0（宿主驱动 v6.2.29 同 6.2.x 线）
-#         · 推理形态**待实测**：寒武纪有厂商移植版 vLLM（Cambricon/vllm-mlu），
-#           但是否需要在社区 vLLM 之外额外装插件、--runner pooling 是否被支持，均未验证
-#           ⇒ 首次跑请保留本脚本日志，按实际报错回填本节
+#   MLU590（寒武纪，2026-09-22 新增；✅ 2026-10-24 真机验证通过，推理腿已定档）：
+#         · 设备 API 走 torch.mlu（PrivateUse1），选卡 MLU_VISIBLE_DEVICES；集合通信后端 cncl
+#         · 镜像 = 推理腿发布物 flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2
+#           （cambricon-infer-vllm v1；运行时基座镜像不含 vLLM，服务化须用本 app 镜像）
+#         · 实测（2026-10-24 HWJ_1，Qwen3-Embedding-0.6B / dev0 / TP=1 / eager）：
+#           vllm 0.20.2+flagos 自带 vllm-plugin-FL 0.2.2 dispatch 层（寒武纪线必需，
+#           无 910C 的 unset VLLM_PLUGINS 纪律）；--runner pooling --convert embed 可用；
+#           init engine（profile+KV+warmup）149.5s ⇒ READY_BUDGET 建议 ≥300s（默认 180 会误判）；
+#           verdict SERVE_STANDARD_PASS (ready=1 smoke=1)，停机后 8 卡释放 0 MiB
 #   PPU（平头哥，2026-10-14 新增，✅ 2026-10-14 真机首验）：
 #         · 形态判定 = **路径 B**：设备 API 走 torch.cuda 命名空间，vLLM 平台自识别
 #           NvmlCudaPlatform ⇒ 不需要任何厂商插件/平台环境变量
@@ -84,7 +94,11 @@
 #                   / cambricon→MLU_VISIBLE_DEVICES）
 #   TP              tensor parallel（1）
 #   MAX_MODEL_LEN   （4096）
-#   GPU_MEM_UTIL    （留空则不传；P800 实测共享机建议 0.25）
+#   GPU_MEM_UTIL    （embed 形态默认 **0.4**〔memory 方向建议，2026-11-03 起〕；显式给则优先。
+#                    generate 形态默认留空=不传。独占卡生产建议 0.9 —— dev/memory/STATUS.md 建议 #4）
+#   MAX_NUM_SEQS    （embed 形态**默认不传**＝vLLM 默认 256，2026-11-03 起；显式给则优先。
+#                    改因：PPU 四臂实测显示「显存只由 GPU_MEM_UTIL 决定」，压它只掉吞吐 5.1~13.1%）
+#                    generate 形态默认不传
 #   EAGER           1=加 --enforce-eager（默认 1）；0=启用图捕获
 #                   （P800 实测：去掉 eager 反而更慢 p50 132ms，故默认保留）
 #   DC_OUT_DIR      日志与 pid 目录（默认 /tmp/dc_serve）
@@ -111,6 +125,7 @@ PORT=${PORT:-8100}
 TP=${TP:-1}
 MAX_MODEL_LEN=${MAX_MODEL_LEN:-4096}
 GPU_MEM_UTIL=${GPU_MEM_UTIL:-}
+MAX_NUM_SEQS=${MAX_NUM_SEQS:-}
 EAGER=${EAGER:-1}
 DEV=${DEV:-}
 DC_OUT_DIR=${DC_OUT_DIR:-/tmp/dc_serve}
@@ -139,8 +154,12 @@ case "$BACKEND" in
   ascend)
     MODEL=${MODEL:-/mnt/raid/hliu553/models/Qwen3-4B}
     SERVED_NAME=${SERVED_NAME:-qwen3-4b}
-    # 坑 A5：A 线禁用 vllm-plugin-FL（该插件无 ascend 后端，启用后 platform.device_type 变空
-    #         → RuntimeError: Device string must not be empty）
+    # 坑 A5：避开 vllm-plugin-FL 接管平台（该插件无 ascend 后端）。
+    #   ⚠️ 2026-11-04 实测修正：`unset VLLM_PLUGINS` ≠ 禁用插件（vLLM 语义：None ⇒ 加载全部；
+    #      真禁用是空串 `VLLM_PLUGINS=""`，未采用、未回归）。实测 910C 上：
+    #      · 平台仍解析为 `Platform plugin ascend is activated`（fl 的平台插件不激活）；
+    #      · 服务日志**无任何** FlagGems 痕迹，`SERVE_STANDARD_PASS`；
+    #      · 即便手动 load general 插件把 `flag_gems` import 进来，dispatch **不变**（不 enable）。
     unset VLLM_PLUGINS
     # 坑 A3
     export DO_NOT_TRACK=1
@@ -326,7 +345,58 @@ ARGS=( "$MODEL" --served-model-name "$SERVED_NAME" --host "$HOST" --port "$PORT"
        --max-model-len "$MAX_MODEL_LEN" --tensor-parallel-size "$TP" )
 # embedding 服务形态（三实例同口径）：--runner pooling --convert embed
 [ "$SKIP_EXTRA" = "0" ] && ARGS+=( --runner pooling --convert embed )
+
+# ── 显存参数 · 按 memory 方向实测建议落地（2026-11-03，见 dev/memory/STATUS.md 建议 #1/#4）──
+# 依据（910C 64G 单卡实测，2026-09-10/11 与 09-23，dev/memory/docs/goals/proto-910c-202609/
+#   design_显存池定义_910c.md §6）：embedding 的 KV 池是**纯余量**（pooling runner 永不使用），
+#   gmu 0.9 会把单卡 HBM 顶到 ~90%（55.15/61.27 GiB，我方 10-08 归档同读数）而吞吐与 0.4 无差。
+#   ⚠️ PPU 同口径 84.95/96 GiB ≈ 88%；P800 传 0.25 → 23% —— 该杠杆跨实例同向。
+# ⚠️ 显式给 GPU_MEM_UTIL / MAX_NUM_SEQS 时**一律优先用户值**（独占卡生产场景 gmu 0.9 合理，建议 #4）。
+# ⚠️ 分芯片给默认值（不当"一刀切"）：
+#    ascend 0.4 = memory 方向 910C 实测值；kunlun 0.25 = 本方向 09-20 P800 共享机实测建议；
+#    cambricon / ppu **未实测** ⇒ 暂按 0.4 平移并在日志里显式告警（不静默）。
+#    ⭐ **PPU 已于 2026-11-03 实测（不再是"未实测"）**：宿主 ppu-smi 2 s 外部采样
+#       gmu 0.9 → 峰值 88,517 MB = **90.0%**；gmu 0.4 → **39,341 MB = 40.0%**；两臂 verdict 均
+#       `SERVE_STANDARD_PASS (ready=1 smoke=1)` ⇒ 「显存由 gmu 决定」在 PPU 上同样成立。
+# ✅ **910C 已于 2026-11-03 完成 A/B 背书**（宿主 npu-smi 外部采样，die4）：
+#      gmu 0.9 → 运行期峰值 59,811 MB = **91.3%**（余量仅 5.7 GB）；gmu 0.4 → **28,452 MB = 43.4%**；
+#      两臂吞吐 41.72 / 40.65 句/s（−2.6%，p50 同档）、区分度均 0.4123、消费方腿均 10/10，
+#      **同卡共存判据（服务占用同 die 时跑设备上下文 smoke）两臂均 52 通过 / 0 失败**。
+#    ⇒ ascend / kunlun / ppu / cambricon 四支现在**各自都有本方向实测依据**。
+#    ⚠️ 选卡注意：`--privileged` 容器内 `ASCEND_RT_VISIBLE_DEVICES` 指**物理 die 号**（手册坑 25）。
+if [ -z "$GPU_MEM_UTIL" ] && [ "$SKIP_EXTRA" = "0" ]; then
+  case "$BACKEND" in
+    ascend)    GPU_MEM_UTIL=0.4   # memory 方向 910C 实测（同卡同模型）：0.4 与 0.9 吞吐无差，HBM 91%→43%
+               ;;
+    kunlun)    GPU_MEM_UTIL=0.25  # 本方向 2026-09-20 P800 共享机实测建议值（97 GiB 卡；与他人共卡）
+               ;;
+    ppu)       GPU_MEM_UTIL=0.4   # 本方向 2026-11-03 PPU 实测：0.9→90.0% / 0.4→40.0%，两臂均 PASS
+               ;;
+    cambricon) GPU_MEM_UTIL=0.4   # 本方向 2026-11-03 MLU590 实测：0.9→89.4%(87,858 MiB) / 0.4→40.0%(39,274 MiB)，两臂均 PASS
+               ;;
+    *)         GPU_MEM_UTIL=0.4   # 其余后端：**未实测**，按 910C 实测值平移取保守值
+               echo "  [gmu][WARN] $BACKEND 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL"
+               ;;
+  esac
+  echo "  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ $BACKEND 默认 $GPU_MEM_UTIL（可 GPU_MEM_UTIL=<x> 覆盖）"
+fi
+# ⭐ **2026-11-03 改：embed 形态默认不再强行设 max_num_seqs**（对 memory 建议 #1 的「部分不采纳」）
+#    依据＝PPU 四臂单变量实测（同机同时段、v2 镜像、区分度与 verdict 全部相同 0.4118 / 10-of-10）：
+#      gmu 0.9 + seqs 256 → 115.51 句/s ｜ gmu 0.9 + 128 → 102.13 ｜ gmu 0.4 + 128 → 105.79 ｜ gmu 0.4 + 256 → 111.21
+#    ⇒ ① **显存由 gmu 决定的杠杆**（90.0% → 40.0%），与 seqs 无关；
+#      ② **吞吐主要由并发上限决定**：同为 gmu 0.4 时 128→256 是 +5.1%，gmu 0.9 时 +13.1%；
+#      ③ gmu 0.4 下 vLLM 自报 `Maximum concurrency for 4096 tokens: 84.45x` > 128 ⇒ 128 **确实在卡并发**。
+#    ⇒ 既然降显存的目的已由 gmu 达成，再压 seqs 只会掉吞吐 ⇒ 默认**不传**（= vLLM 默认 256），
+#       需要限流时显式 `MAX_NUM_SEQS=<n>`。
+if [ -z "$MAX_NUM_SEQS" ] && [ "$SKIP_EXTRA" = "0" ]; then
+  echo "  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>"
+fi
 [ -n "$GPU_MEM_UTIL" ] && ARGS+=( --gpu-memory-utilization "$GPU_MEM_UTIL" )
+[ -n "$MAX_NUM_SEQS" ] && ARGS+=( --max-num-seqs "$MAX_NUM_SEQS" )
+# ⚠️ enforce_eager 默认保留 1 —— 对 memory 建议 #1 的「部分采纳」：
+#   同意其「graph/alloc 不是显存问题」（910C 同池差 0.01 GiB）；但我们的服务验收场景
+#   「起停频繁 + 与设备上下文判据同卡共存」下启动时延是真成本（TP=2：eager 50s vs graph 95s，
+#   10-08 实测；P800 去 eager p50 反升 132ms，09-20）⇒ 默认 eager、EAGER=0 可切。
 [ "$EAGER" = "1" ] && ARGS+=( --enforce-eager )
 [ -n "${EXTRA_ARGS:-}" ] && ARGS+=( ${EXTRA_ARGS} )
 

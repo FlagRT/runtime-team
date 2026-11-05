@@ -188,7 +188,12 @@ class Event:
         self._native.synchronize()
 
     def elapsed_time(self, end_event: "Event") -> float:
-        """与另一事件之间的耗时（毫秒）；后端不支持时抛 NotImplementedError。"""
+        """**从 self 到 `end_event`** 的耗时（毫秒）；后端不支持时抛 NotImplementedError。
+
+        ⚠️ 方向是契约的一部分：`self` 是**起点**、`end_event` 是**终点** ⇒ 正常实现返回**非负**值。
+        反着调用（终点⤬起点）在 CUDA 系栈上会得到**负值**（PPU 实测 `-11.14 ms`），
+        而调用方若只校验"是数字"就会把它当通过 —— 2026-10-26 的 C13 判据正是这么错的。
+        """
         fn = getattr(self._native, "elapsed_time", None)
         if fn is None:
             raise NotImplementedError("该后端不支持 elapsed_time")

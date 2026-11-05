@@ -1,0 +1,37 @@
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+==========================================================================
+跨后端对称性自检（--all）：硬判据 + 差异清单
+参与后端：['ascend', 'cambricon', 'kunlun', 'ppu']
+==========================================================================
+
+[表] 各家可观测形态
+  后端         device_type 能力数    info 键   supports 键 known_issues 码样例    
+  ascend     npu         19     14       21         2            有      
+  cambricon  mlu         13     17       21         5            -      
+  kunlun     cuda        17     15       21         2            -      
+  ppu        cuda        18     16       21         3            -      
+
+[硬判据] 所有后端都必须成立
+  [PASS] 三家全部可加载（无异常） {}
+  [PASS] 对外必需方法齐备（info/supports/known_issues/device_state/recover/translate） {}
+  [PASS] info() 均提供 supports 映射 []
+  [PASS] 声明能力 ⊆ 能力全集（防键名拼错） {}
+  [PASS] 声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR []
+  [PASS] info() 含契约最小键集 name/device_type/capabilities（真实后端也守） {}
+  [PASS] info() 均含公共字段 capabilities/native_accesses/degradations {}
+
+[差异清单] 允许存在，但每处都应有理由（不计失败）
+  · 能力 context_lifecycle  仅 ['ascend', 'ppu'] 声明
+  · 能力 context_query      仅 ['ascend', 'kunlun', 'ppu'] 声明
+  · 能力 error_map          仅 ['ascend'] 声明
+  · 能力 memory_alloc       仅 ['ascend', 'kunlun', 'ppu'] 声明
+  · 能力 memory_alloc_stat  仅 ['ascend', 'kunlun', 'ppu'] 声明
+  · 能力 record_stream      仅 ['ascend', 'kunlun', 'ppu'] 声明
+  · 能力 recovery_real      仅 ['ascend'] 声明
+  · 能力 stream_priority_control 仅 ['cambricon', 'kunlun', 'ppu'] 声明
+  · device_type 不同：['cuda', 'mlu', 'npu'] —— **这是设计而非缺陷**（设备串按命名空间，不按厂商；见接口约定修订建议第 1 条）
+
+==========================================================================
+对称性自检结果: 7 通过 / 0 失败
+⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。
+==========================================================================

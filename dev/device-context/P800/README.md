@@ -4,6 +4,7 @@
 > 而不是「把 910C 的能力适配/移植过来」。
 > 迁移的是**规范与方法**；910C 的实现与结论**不迁移**（见 `../910C/README.md` §1 铁律）。
 > 状态：✅ **阶段 0–5 全部完成**（接入 → 训练腿 → 推理腿 → 错误闭环 → **官方 `-base` 镜像等价性验证** → **阶段 5 收敛三件套**）
+> 🆕 **服务器迁移（2026-11-03，已完成）**：老机 `43.180.254.67:26008` **2026-11-07 到期**；数据与模型已迁至新机 **`81.70.153.29:26008`（ssh 别名 `P800-new1`）**，**落在 `/data2/hliu553`（与老机同名同路径）**，容器挂载同步改为 `-v /data2/hliu553:/workspace`。归位后复验：离线 **43/0/1**、**推理腿 `INFER_LEG_PASS 13/13`·区分度 `0.6392`**（与老机归档逐字一致）。⚠️ 新机 **卡 1/卡 2 分配挂死**（0/3 正常）、建容器必须挂 `/dev/xpuctrl`。详见 `docs/KUNLUN_P800_MIGRATION_20261103.md`。
 > 上级看板：`../README.md` ｜ 通用规范与原型：`../prototype/` ｜ 910C 实例：`../910C/`
 
 ---
@@ -176,7 +177,7 @@ P800/
 
 | 用途 | 证据入口 |
 |---|---|
-| 当前结论 = 哪一份 | `probes/audit_20261008_out/`（自证审计）· `probes/d2_20261008_out/` · `probes/e1_regress_kunlun_20261008_out/` · `probes/r8_regress_kunlun_20260930*` |
+| 当前结论 = 哪一份 | `probes/audit_20261008_out/`（自证审计）· `probes/d2_20261008_out/` · `probes/e1_regress_kunlun_20261008_out/` · `probes/r8_regress_kunlun_20260930*` · `probes/rerun_20261026_out/`（共享层复跑）· `probes/legparity_20261027_out/`（两腿 `DC_MODEL` 口径，`LEGPARITY_PASS` 9/0） |
 | KL3 缺陷取证 | `probes/A_round1_battery_20260914.log` · `B_round2_repeat_*` · `C_round3_dose_*` · `D_verify_truthvalue_*` · `E_train_ab.log` |
 | 卡 1 故障判别 | `probes/DIAG_kunlun_card1_event_hang_20260929.log`（A/B/C 三组 + 卡身份硬核对） |
 | 两条腿 / 服务化 / 错误闭环 | `probes/E_train_leg_result_rank{0,1}.json` · `F_infer_leg_result_20260920.json` · `F2_serve_result_20260920.json` · `error_recovery_loop_kunlun_KL3{on,off}.json` |

@@ -80,7 +80,7 @@ bash prototype/scripts/serve_standard.sh
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `DC_BACKEND` | `ascend` | `ascend` \| `kunlun` \| `cambricon`（⚠️ 寒武纪分支 2026-09-22 新写，**尚未真机验证**） |
-| `MODEL` | 按后端给默认值 | 模型路径。⚠️ **必须给到 `snapshots/<hash>`**（给 HF 缓存根目录会报 `Unrecognized model ... Should have a model_type key`） |
+| `MODEL` | 按后端给默认值 | 模型路径。⚠️ **本脚本（服务化）要求目录下真有 `config.json`**，因此给 HF 缓存根会报 `Unrecognized model ... Should have a model_type key`；要用缓存请给到 `snapshots/<hash>` 或先自行解析。<br>💡 两条**腿**（`proto_train_leg` / `proto_infer_leg`）的 `DC_MODEL` 是另一套口径：2026-10-27 起普通目录 / `snapshots/<hash>` / 缓存根三者都行（`runtime/proto/model_path.py`），**别把两者的要求混写** |
 | `SERVED_NAME` | `qwen3-4b` / `qwen3-embedding-0.6b` | 服务暴露的模型名。⚠️ **与 `SERVE_FORM` 不联动**：用 `SERVE_FORM=embed` 跑 embedding 模型时，`ascend` 侧默认名仍是 `qwen3-4b`（09-29 实测服务端 `'served_model_name': ['qwen3-4b']`）⇒ 下游核对易误读。**已登记为待收尾项**（当时保持单变量未改） |
 | `PORT` | `8100` | 服务端口 |
 | `DEV` | 全部可见卡 | 选卡。**ascend→`ASCEND_RT_VISIBLE_DEVICES`、kunlun→`CUDA_VISIBLE_DEVICES`、cambricon→`MLU_VISIBLE_DEVICES`** ——由脚本按后端选择，不要自己 export |
@@ -146,7 +146,7 @@ vllm serve <MODEL> --served-model-name <NAME> --host <HOST> --port <PORT>
 | 1 | **`ascend` 必须禁用 `vllm-plugin-FL`；`kunlun` 必须启用它** | 同一插件在两芯片上**可用性相反**：昇腾侧设 `VLLM_PLUGINS=fl` 后 `current_platform.device_type` 变空 → `RuntimeError: Device string must not be empty`（该插件**无 ascend 后端**）；昆仑芯侧**没有它 vLLM 就认不出设备**（社区 vLLM 的 `vllm/platforms/` 无 kunlun）。脚本已按后端分别处理 |
 | 2 | **`kunlun` 必须 `PYTHONPATH=/env/FlagGems/src`** | site-packages 里那份 `flag_gems` 子模块不完整（`pip show` 看得见包，但 `runtime.backend.device` 导不进来）→ 缺它报 `Failed to infer device type`（**看着像设备问题，其实是 Python 包问题**） |
 | 3 | **停机必须连 `EngineCore` 子进程一起清理** | 只杀主进程后 `VLLM::EngineCore` 会残留并持续占卡：实测卡 6 仍被占 **73850 MiB / 96 GiB**，下一次启动报 `Free memory on device (23.85/96.0 GiB) ... less than desired GPU memory utilization`。脚本用 `kill -9` + 变量拼接（避免 `pkill` 命中自身） |
-| 4 | **`MODEL` 必须给到 `snapshots/<hash>`** | 传 HF 缓存根目录报 `Unrecognized model ... Should have a model_type key`（根目录只有 `blobs/`、`refs/`、`snapshots/`） |
+| 4 | **服务化的 `MODEL` 要有 `config.json`**（缓存请给到 `snapshots/<hash>`，或先自行解析） | 传 HF 缓存根目录报 `Unrecognized model ... Should have a model_type key`（根目录只有 `blobs/`、`refs/`、`snapshots/`）。⚠️ 这是**服务化**的要求；两条腿的 `DC_MODEL` 自 2026-10-27 起三种传法都行（`runtime/proto/model_path.py`） |
 | 5 | **服务入口要就绪：`vllm` 必须在 `PATH`** | P800 的 vLLM 装在 conda 环境 `python310_torch29_cuda` 内，**不激活就直接** `nohup: failed to run command 'vllm': No such file or directory`（启动即退出，日志里只有这一行，很容易被误判为"服务起不来"）。脚本已自动激活（`DC_CONDA_ENV` 可覆盖）；910C 镜像自带 `/usr/local/python3.11.15/bin/vllm`，不触发 |
 | 6 | **容器内没有 `npu-smi` / `xpu-smi`**（它们是宿主工具） | 910C 的 vllm-ascend 镜像实测 `npu-smi: command not found`。脚本降级为 torch 侧查询：`[torch.npu:0] free=60.91GiB / total=61.27GiB`。**要看整机 16 卡全貌请到宿主执行 `npu-smi info`** |
 

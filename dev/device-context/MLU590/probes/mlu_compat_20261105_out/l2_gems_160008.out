@@ -1,0 +1,43 @@
+=== L2 GEMS (device-bearing, import + enable) ===
+device_count 1
+triton 3.2.0
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+flag_gems_imported 5.4.0rc2.post3
+/flagos/lib/python3.10/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+/flagos/lib/python3.10/site-packages/torch/library.py:365: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: PrivateUse1
+  previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:7154
+       new kernel: registered at /dev/null:63 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:154.)
+  self.m.impl(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d_backward's behavior for PrivateUse1 dispatch key and aten namespace.
+ENABLE_OK
+  REG_BEFORE aten::mm           ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG_AFTER  aten::mm           ['PrivateUse1: registered at /dev/null:63 [kernel]']
+  REG_CHANGED aten::mm           True
+  REG_BEFORE aten::add.Tensor   ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG_AFTER  aten::add.Tensor   ['PrivateUse1: registered at /dev/null:63 [kernel]']
+  REG_CHANGED aten::add.Tensor   True
+  REG_BEFORE aten::silu         ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG_AFTER  aten::silu         ['PrivateUse1: registered at /dev/null:63 [kernel]']
+  REG_CHANGED aten::silu         True
+  REG_BEFORE aten::matmul       ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG_AFTER  aten::matmul       ['PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]']
+  REG_CHANGED aten::matmul       False
+GEMS_OPS_FAIL KeyError: 'Keyword argument task_type was specified but unrecognised'
+    return triton.testing.do_bench(
+  File "/opt/triton/triton/testing.py", line 143, in do_bench
+    fn()
+  File "/opt/triton/triton/runtime/autotuner.py", line 208, in kernel_call
+    self.fn.run(
+  File "/opt/triton/triton/runtime/jit.py", line 736, in run
+    raise KeyError("Keyword argument %s was specified but unrecognised" % k)
+KeyError: 'Keyword argument task_type was specified but unrecognised'
+GEMS_RC_FAIL

@@ -1,0 +1,62 @@
+{
+  "mode": "pair",
+  "prototype_revision": "c0571c3885fb6e04b6bcbb1efec471cdaba4e552",
+  "observations": [
+    {
+      "time": 1793787301.3142643,
+      "raw": "00000000:03:00.0 0 0 02K15K0261D00Q2F 44 0 0 0 144 1450 1450 1450 1450 1450 1450 0 96 3426 98304 100 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0261D00PC0 38 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0261D00NV8 37 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0261D00NTL 51 0 0 0 142 1450 1450 1450 1450 1450 1450 0 96 3680 98304 100 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0261D00P5P 47 0 0 0 144 1450 1450 1450 1450 1450 1450 0 96 3426 98304 100 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0261D00N1Y 52 0 0 0 180 1450 1450 1450 1450 1450 1450 0 96 14122 98304 100 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0261D00N5K 50 0 0 0 151 1450 1450 1450 1450 1450 1450 0 96 10314 98304 50 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0261D00PK8 51 0 0 0 132 1450 1450 1450 1450 1450 1450 0 96 954 98304 94 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+      "free_ids": [
+        1,
+        2
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "dev/communication/training/run_repeated.py",
+        "--backend",
+        "kunlun",
+        "--collective",
+        "flagcx",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype",
+        "--prototype-revision",
+        "c0571c3885fb6e04b6bcbb1efec471cdaba4e552",
+        "--model-root",
+        "/workspace/dev/model-defs/deepfm/v1",
+        "--output",
+        "/workspace/evidence/ddp-controlled-v4/training",
+        "--launch-timeout",
+        "240",
+        "--include-observed"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "verdict": "FAIL",
+  "selection_note": "New host VM-20-4-ubuntu; old-host card1 exclusion is not transferable; require fresh zero-memory zero-utilization and UUID verification",
+  "source_sha256": {
+    "training/deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+    "training/distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+    "training/run_repeated.py": "8437c96556d5d70ce0f2efc9ee264a38dc0cc1b0df85e78f205993e5d14dbcdf",
+    "training/summarize_repeated.py": "309b9f3152818f2776dddd0637042bbddc9c07b1221892e273c0dca3828c40c1",
+    "training/run_p800_selected.py": "f5e0855a57a45e01d3e33b005f23e91cc864291c7ad8101ac6eb2609a1cef3b0",
+    "probes/p800_identity.py": "bb1821838554b49c5b09054310053b96d787e11bd3cace3be482e7dae9d86d0b",
+    "env/p800-single/docker-compose.yml": "75cae32eb128b1583b8123fa0f4e92c775b3621ac64105a270af078f5229f27d",
+    "env/p800-pair/docker-compose.yml": "9f7620550ee0d55b384ded5856ba78d8ffc8dc1c0ab5a79fe3f6fd4c6005dae2"
+  },
+  "selected": [
+    {
+      "physical_card": 1,
+      "node": "/dev/xpu2",
+      "uuid": "GPU-0b3be828-97c6-58c8-ace5-18bc2c3666ac"
+    },
+    {
+      "physical_card": 2,
+      "node": "/dev/xpu3",
+      "uuid": "GPU-db450355-f007-54eb-a271-b3755376627a"
+    }
+  ]
+}

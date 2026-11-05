@@ -1,0 +1,32 @@
+# Self-contained like device-context/910C/env/train: extends cannot narrow devices.
+# Only the selected, prechecked pair is mapped. No host IPC or privileged mode.
+name: flagrt-communication-1021
+x-flagrt:
+  image_baseline: ../../../images/ascend-train-comm/v3/image.baseline.yaml
+  mounted_repos:
+    FlagCX: {activation: pip-editable}
+services:
+  runtime-dev:
+    container_name: flagrt-communication-1021-910c
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    shm_size: 1g
+    cpus: 4
+    devices:
+      - /dev/davinci${COMM_DIE_A:?set_unused_die}:/dev/davinci${COMM_DIE_A}
+      - /dev/davinci${COMM_DIE_B:?set_unused_die}:/dev/davinci${COMM_DIE_B}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      - ${COMM_MODEL_ROOT:?set_existing_checkpoint}:/workspace/models/OneRec-8B:ro
+      - ${WORKSPACE_ROOT}/dev/images/ascend-operator-runtime/v3/assets/shmem_stub.py:/opt/flagrt-stub/shmem.py:ro
+    environment:
+      HCCL_WHITELIST_DISABLE: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_OPTIONAL_LOCKS: '0'
+      MAX_JOBS: '4'
+    working_dir: /workspace
+    command: [bash, -c, 'USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX > /workspace/evidence/flagcx-build.log 2>&1 && exec sleep infinity']
+    restart: 'no'

@@ -41,7 +41,7 @@ def main():
         rows.append({'query_id':query['query_id'], 'cosine_similarity':cosine,
                      'dimensions':len(vector), 'passed':len(ref)==len(vector)==1024 and cosine>=0.999})
     now = datetime.now(timezone(timedelta(hours=8)))
-    output = project/'artifacts/checks/embeddings'/f'vllm-embedding-{now:%Y-%m-%d_%H%M%S}-{uuid4().hex[:6]}'
+    output = project/'experiment_outputs/checks/embeddings'/f'vllm-embedding-{now:%Y-%m-%d_%H%M%S}-{uuid4().hex[:6]}'
     output.mkdir(parents=True)
     summary = {'started_at':now.isoformat(), 'reference':str(args.reference),
                'cosine_threshold':0.999, 'checks':rows, 'passed':all(r['passed'] for r in rows),

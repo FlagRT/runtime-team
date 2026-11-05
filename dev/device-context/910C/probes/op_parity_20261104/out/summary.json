@@ -1,0 +1,130 @@
+{
+ "device": "npu:0",
+ "torch": "2.10.0+cpu",
+ "model": "/workspace/models/Qwen3-Embedding-0.6B",
+ "torch_npu": "2.10.0",
+ "flag_gems": "0.0.0+f7ae8e6b934a",
+ "flag_gems_file": "/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/__init__.py",
+ "ops_executed_unique": 27,
+ "records_replayed": 304,
+ "covered_by_flag_gems": 179,
+ "pass": 184,
+ "fail": 0,
+ "skip": 120,
+ "record_skipped_by_reason": {
+  "aten.mul.Tensor :: sig_cap": 1100,
+  "aten._to_copy.default :: arg_type_dtype": 696,
+  "aten.add.Tensor :: sig_cap": 675,
+  "aten.matmul.default :: sig_cap": 588,
+  "aten.t.default :: sig_cap": 584,
+  "aten.transpose.int :: sig_cap": 336,
+  "aten.cat.default :: sig_cap": 336,
+  "aten.pow.Tensor_Scalar :: sig_cap": 336,
+  "aten.mean.dim :: sig_cap": 336,
+  "aten.rsqrt.default :: sig_cap": 336,
+  "aten.view.default :: sig_cap": 332,
+  "aten.slice.Tensor :: budget": 245
+ },
+ "top_ops_by_count": [
+  [
+   "aten.mul.Tensor",
+   1104
+  ],
+  [
+   "aten._to_copy.default",
+   696
+  ],
+  [
+   "aten.add.Tensor",
+   678
+  ],
+  [
+   "aten.matmul.default",
+   591
+  ],
+  [
+   "aten.t.default",
+   588
+  ],
+  [
+   "aten.transpose.int",
+   339
+  ],
+  [
+   "aten.cat.default",
+   339
+  ],
+  [
+   "aten.pow.Tensor_Scalar",
+   339
+  ],
+  [
+   "aten.mean.dim",
+   339
+  ],
+  [
+   "aten.rsqrt.default",
+   339
+  ],
+  [
+   "aten.view.default",
+   336
+  ],
+  [
+   "aten.slice.Tensor",
+   336
+  ],
+  [
+   "aten.unsqueeze.default",
+   180
+  ],
+  [
+   "aten.lift_fresh.default",
+   174
+  ],
+  [
+   "aten.neg.default",
+   168
+  ],
+  [
+   "aten.ones.default",
+   84
+  ],
+  [
+   "aten.triu.default",
+   84
+  ],
+  [
+   "npu.npu_fusion_attention_v3.default",
+   84
+  ],
+  [
+   "aten.clone.default",
+   84
+  ],
+  [
+   "aten.silu.default",
+   84
+  ],
+  [
+   "aten.embedding.default",
+   3
+  ],
+  [
+   "aten.arange.default",
+   3
+  ],
+  [
+   "aten.all.default",
+   3
+  ],
+  [
+   "aten._local_scalar_dense.default",
+   3
+  ],
+  [
+   "aten.expand.default",
+   3
+  ]
+ ]
+}

@@ -1,0 +1,71 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py:126: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+[W1028 19:13:39.423082028 socket.cpp:209] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[W1028 19:13:41.264356691 socket.cpp:209] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[19:13:41][540a33719a96][146:146][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[19:13:41][540a33719a96][146:146][WARN][XCCL][net_socket.cpp:132] NET/Socket : no ipv4/ipv6 net card found, expected 1, error code=0
+[19:13:41][540a33719a96][146:146][WARN][XCCL][net_socket.cpp:561] NET/Socket : net_socket_init failed, expected 0, error code=2
+[19:13:41][540a33719a96][146:146][WARN][XCCL][init.cpp:251] get_net_socket failed, expected 2, error code=0
+[19:13:41][540a33719a96][146:146][WARN][XCCL][bkcl.cpp:49] get_unique_id: init_root failed, expected 0, error code=2
+[19:13:41][540a33719a96][146:146][WARN][XCCL][net_socket.cpp:132] NET/Socket : no ipv4/ipv6 net card found, expected 1, error code=0
+[19:13:41][540a33719a96][146:146][WARN][XCCL][net_socket.cpp:561] NET/Socket : net_socket_init failed, expected 0, error code=2
+[19:13:41][540a33719a96][146:146][WARN][XCCL][init.cpp:1171] get_net_socket failed, expected 0, error code=2
+{"rank": 0, "functional_verdict": "FAIL", "error": {"type": "DistBackendError", "message": "FLAGCX error in: /env/FlagCX/plugin/torch/flagcx/src/backend_flagcx.cpp:389, \nflagcxSystemError: System call (e.g. socket, malloc) or external library call failed or device error. \nLast error:\nUndefined: flagcxComm is not fully initialized.", "classification": {"category": "ErrorCategory.L3_EXECUTION", "disposition": "replay", "mapped": false, "graded_by": "default"}}, "teardown": "pending"}
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/dev/communication/training/deepfm_train.py", line 263, in <module>
+[rank0]:     run(parse_args())
+[rank0]:   File "/workspace/dev/communication/training/deepfm_train.py", line 142, in run
+[rank0]:     wrapped = wrap(model, group, device, args.comm_mode)
+[rank0]:   File "/workspace/dev/communication/training/deepfm_train.py", line 65, in wrap
+[rank0]:     return ManualDataParallel(model, group)
+[rank0]:   File "/workspace/dev/communication/training/distributed.py", line 198, in __init__
+[rank0]:     group.collective(dist.broadcast, tensor, src=0)
+[rank0]:   File "/workspace/dev/communication/training/distributed.py", line 56, in collective
+[rank0]:     function(tensor, **kwargs)
+[rank0]:   File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+[rank0]:     return func(*args, **kwargs)
+[rank0]:   File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 2835, in broadcast
+[rank0]:     work = group.broadcast([tensor], opts)
+[rank0]: torch.distributed.DistBackendError: FLAGCX error in: /env/FlagCX/plugin/torch/flagcx/src/backend_flagcx.cpp:389, 
+[rank0]: flagcxSystemError: System call (e.g. socket, malloc) or external library call failed or device error. 
+[rank0]: Last error:
+[rank0]: Undefined: flagcxComm is not fully initialized.
+E1028 19:13:41.742000 76 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 146) of binary: /root/miniconda/envs/python310_torch29_cuda/bin/python3
+Traceback (most recent call last):
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+dev/communication/training/deepfm_train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-10-28_19:13:41
+  host      : 540a33719a96
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 146)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

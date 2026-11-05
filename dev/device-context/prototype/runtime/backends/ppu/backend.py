@@ -499,8 +499,17 @@ class PpuBackend(RuntimeBackend):
         fn.argtypes = [ctypes.c_void_p]
         return int(fn(ctypes.c_void_p(int(handle)))) == 0
 
-    def create_event(self):
-        # 统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）
+    def create_event(self, enable_timing: bool = False):
+        """统一语义适配：未 record 不误报完成（E3）+ 主机侧有界等待（E2v2）。
+
+        `enable_timing=True` ⇒ 造 `torch.cuda.Event(enable_timing=True)`（**本机实测可用**：
+        `e1.elapsed_time(e2)` 返回 float，2026-10-26）；适配器构造是惰性的，
+        故此处**立即 `_ensure()`**，让不支持的栈当场暴露而不是拖到 `record()`。
+        """
+        if enable_timing:
+            ev = PpuEventAdapter(enable_timing=True)
+            ev._ensure()          # 提前实例化：不支持则当场抛，不延迟
+            return ev
         return PpuEventAdapter()
 
     def current_stream(self):

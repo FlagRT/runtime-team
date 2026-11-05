@@ -1,0 +1,19 @@
+{
+  "runner": "runtime/conformance",
+  "backend": "ppu",
+  "chip": "ppu",
+  "env": {
+    "runtime:ppu": "0.1.0",
+    "devices": 1
+  },
+  "cases": {
+    "only_i1": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "④ 入口存在性覆盖 15/17 项能力"
+    }
+  },
+  "verdict": "CI_I1_ONLY_PASS",
+  "passed": 1,
+  "total": 1
+}

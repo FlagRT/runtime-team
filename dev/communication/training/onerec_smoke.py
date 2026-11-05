@@ -30,10 +30,14 @@ def main():
     parser.add_argument('--collective', choices=['hccl', 'flagcx'], required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--steps', type=int, default=3)
-    parser.add_argument('--mode', choices=['manual', 'fused'], default='manual')
+    parser.add_argument('--mode', choices=['manual', 'fused', 'bucketed'], default='manual')
+    parser.add_argument('--bucket-mib', type=int, default=64)
+    parser.add_argument('--seq-len', type=int, default=16)
     args = parser.parse_args()
     if not 1 <= args.steps <= 50:
         parser.error('Bounded functional training requires 1..50 steps')
+    if not 1 <= args.bucket_mib <= 256 or not 2 <= args.seq_len <= 128:
+        parser.error('Require bucket 1..256 MiB and sequence length 2..128')
     rank, local, world = [int(os.environ[k]) for k in ['RANK', 'LOCAL_RANK', 'WORLD_SIZE']]
     if world != 2:
         parser.error('Exactly two ranks required')
@@ -44,9 +48,13 @@ def main():
     result = {'rank': rank, 'backend': args.collective, 'model': 'OpenOneRec/OneRec-8B',
               'revision': '29f95b3da63a4bbc00a1cd3aeee948efb2ff40ff',
               'scope': 'real checkpoint, full-parameter SGD smoke, synthetic tokens; not recommendation quality',
-              'dtype': 'bfloat16', 'local_batch': 1, 'global_batch': 2, 'seq_len': 16,
+              'dtype': 'bfloat16', 'local_batch': 1, 'global_batch': 2, 'seq_len': args.seq_len,
+              'bucket_bytes': args.bucket_mib * 1024**2 if args.mode == 'bucketed' else None,
               'comm_mode': args.mode,
               'lr': 0.01, 'optimizer': 'SGD without momentum', 'steps': [], 'teardown': 'pending'}
+    result['implementation_sha256'] = {
+        name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+        for name in ('onerec_smoke.py', 'distributed.py')}
     group = None
     try:
         sys.path.insert(0, args.runtime_root)
@@ -73,14 +81,15 @@ def main():
         group = TrainingGroup(args.collective, rank, world, sync, 120)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01, foreach=False)
         for step in range(args.steps):
-            tokens = torch.randint(0, model.config.vocab_size, (1, 16),
+            tokens = torch.randint(0, model.config.vocab_size, (1, args.seq_len),
                                  generator=torch.Generator().manual_seed(1014 + 2*step + rank)).to(device)
             optimizer.zero_grad(set_to_none=True)
             sync()
             start = time.perf_counter()
             loss = model(input_ids=tokens, labels=tokens).loss
             loss.backward()
-            manual_mean_gradients(model, group, fused=args.mode == 'fused')
+            manual_mean_gradients(model, group, fused=args.mode == 'fused',
+                                  bucket_bytes=result['bucket_bytes'])
             finite = all(bool(torch.isfinite(p.grad).all().item()) for p in model.parameters() if p.requires_grad)
             if not finite or not torch.isfinite(loss).item():
                 raise AssertionError('Non-finite loss/gradient')

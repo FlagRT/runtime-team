@@ -16,17 +16,19 @@
 环境变量（括号内为默认值）
   DC_BACKEND   运行时后端名（`ascend`；昆仑芯用 `kunlun`）
   DC_ROOT      device-context 根路径（默认 = 脚本上两级目录，即 prototype/）
-  DC_MODEL     模型路径（`/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B`）
+  DC_MODEL     模型路径（不传则按实例布局探测；三种传法都行 —— 见 runtime/proto/model_path.py）
   DC_OUT_DIR   结果输出目录（默认 = 脚本所在目录）
   DC_ROUNDS    计时轮数（5）
 
 用法（昆仑芯 P800）：
   # 用卡前先 `xpu-smi` 挑**空闲**的卡；共享机上被他人占用的卡会触发设备侧报错
-  # ⚠️ 同训练腿：`DC_MODEL` 必须给到 `snapshots/<hash>`（给缓存根目录会报 Unrecognized model）；
-  #    脚本路径是 `runtime/proto/proto_infer_leg.py`。
+  # `DC_MODEL` 自 2026-10-27 起**三种传法都接受**：普通模型目录 / snapshot 目录 /
+  #   HF 的 `models--<org>--<name>` 缓存根（后者自动解析到 snapshots/<hash>，优先 refs/main）。
+  #   ⚠️ 但别给 `/hf_cache/hub` 这种所有模型的父目录（无 config.json，也不会替你猜模型）。
+  #   脚本路径是 `runtime/proto/proto_infer_leg.py`。
   CUDA_VISIBLE_DEVICES=6 DC_BACKEND=kunlun \
   DC_ROOT=/workspace/prototype \
-  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3 \
+  DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B \
   DC_OUT_DIR=/workspace/out_infer \
   python3 runtime/proto/proto_infer_leg.py
 
@@ -50,31 +52,32 @@ sys.path.insert(0, ROOT)
 
 import runtime  # noqa: E402  —— 我们的统一运行时原型
 
-MODEL_RAW = os.environ.get("DC_MODEL", "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B")
+# ⚠️ **不内置任何单一实例的绝对路径**（2026-10-26 PPU 全量重跑抓到）：
+#    原默认值是 910C 专有的 `/mnt/raid/hliu553/models/…`，在 PPU / MLU590 上直接抛
+#      `HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': '/mnt/raid/…'`
+#    ⇒ 改为「显式 `DC_MODEL` 优先 → 否则按各实例已知布局依次探测，命中即用并打印」。
+#    这样既保住 910C 那些不传 DC_MODEL 的老脚本，又不会把某一家路径当成全局默认。
+#
+# ⚠️ **2026-10-27：这段逻辑搬进 `runtime/proto/model_path.py`，两条腿共用一份。**
+#    原先只有本文件有 `resolve_model()`，训练腿没有 ⇒ 同一份
+#    `DC_MODEL=/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B`：
+#     推理腿 ✅（自动解析到 snapshots/<hash>）、训练腿 ❌（`ValueError: Unrecognized model in …`）。
+#    不是复制一份过去（两份实现会漂移），而是抽成共用模块；
+#    `scripts/model_path_parity_check.py` 做静态守卫，任一条腿自己再定义 `resolve_model` 即 FAIL。
+sys.path.insert(0, _HERE)                       # 同目录共用模块 model_path.py
+from model_path import (                        # noqa: E402
+    INSTANCE_LAYOUTS, pick_model, require_model)
+
+MODEL_RAW, MODEL_SOURCE = pick_model()
 OUT_DIR = os.environ.get("DC_OUT_DIR", _HERE)
 ROUNDS = int(os.environ.get("DC_ROUNDS", "5"))
 BACKEND_DEFAULT = os.environ.get("DC_BACKEND", "ascend")
 
 
-def resolve_model(path: str) -> str:
-    """兼容三种 DC_MODEL 传法，返回 `from_pretrained` 可直接用的路径。
-
-    1. snapshot 路径（含 config.json）        → 原样使用
-    2. hub 的 models--xxx 目录（仅含 snapshots/…）→ 自动解析到 snapshots/<hash>
-       （P800 的共享缓存挂载在 /hf_cache，训练腿即用此形式）
-    3. 任意普通本地目录                        → 原样使用
-    """
-    if os.path.isdir(path):
-        snaps = os.path.join(path, "snapshots")
-        if os.path.isdir(snaps):
-            hashes = sorted(d for d in os.listdir(snaps)
-                            if os.path.isdir(os.path.join(snaps, d)))
-            if hashes:
-                return os.path.join(snaps, hashes[-1])
-    return path
-
-
-MODEL = resolve_model(MODEL_RAW)
+#: 解析 + **早失败**：取不到就打印「三种合法传法」并 exit 4
+#: （原实现在这里会抛 `HFValidationError: Repo id must be in the form …`，
+#:  长得像「模型 id 格式错误」，与真实原因「路径不存在」无关）
+MODEL = require_model(MODEL_RAW, MODEL_SOURCE)
 
 SENTS = [
     "如何申请退款",
@@ -97,7 +100,10 @@ def main():
     ap.add_argument("--out", default="proto_infer_leg_result.json")
     args = ap.parse_args()
 
-    res = {"model": MODEL, "model_raw": MODEL_RAW, "backend": args.backend, "env": {}, "checks": {}}
+    # 模型路径的「取不到」已在模块级由 `require_model()` 早失败（exit 4），此处不再重复判断
+    res = {"model": MODEL, "model_raw": MODEL_RAW, "model_source": MODEL_SOURCE,
+           "backend": args.backend, "env": {}, "checks": {}}
+    print(f"[model] DC_MODEL={MODEL_RAW or '<未设>'}（来源={MODEL_SOURCE}）→ 解析 {MODEL}")
 
     # ── 1. 统一运行时 API 自证（设备无关）──
     b = runtime.use(args.backend)

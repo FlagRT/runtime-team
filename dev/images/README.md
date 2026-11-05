@@ -35,12 +35,13 @@ dev/images/
       ARCHIVE.md             # 离线归档清单（tar 名 / 大小 / sha256 / 内容 / docker load 用法）— 机器无关，追踪
       BACKUP.local           # 本机归档实体的绝对路径 + 最近校验日期 — 机器相关，不追踪
       assets/                # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
-      demo/                  # demo 运行环境目录：docker-compose.yml + env.baseline.yaml（验收配置与推荐用法）
+      demo/                  # 第 0 版运行环境：该版本验收配置的冻结记录（发布后不再改动）
+      env/v1/                # 现行推荐运行环境：缺陷修复与用法变更只新增下一版（ADR-0008）
 ```
 
 版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准，`lock.yaml` 不再重复填写；
-机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。demo 可放在镜像血统的任一版本目录下（v3 完整镜像的 demo 位于
-`ascend-train-comm/v3/demo/`），由 `image.baseline.yaml` 的 `image.demo` 指向。
+机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。运行环境目录放在镜像血统的版本目录下：`demo/` 为该版本验收时的
+冻结记录，`env/v1/` 为现行推荐（如 `ascend-train-comm/v3/`），由 `image.baseline.yaml` 的 `image.env_current` 指向。
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
 

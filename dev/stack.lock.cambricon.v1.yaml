@@ -7,7 +7,8 @@
 # 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
 #
 # 本文件为寒武纪 MLU590 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 = cambricon-mlu-runtime v1
-# （FlagOS 官方运行时基座镜像，登记式基线 ADR-0007，repro_status 🟢）。
+# （FlagOS 官方运行时基座镜像，登记式基线 ADR-0007，repro_status 🟢）+ cambricon-infer-vllm v1
+# （FlagOS 官方推理应用镜像，2026-10-24 验收入锁，两腿各管一：训练/设备上下文=基座、推理服务化=infer）。
 # 与 PPU / 昆仑芯的类似点：无带卡容器独占（多容器可并存）。寒武纪独有的两条：
 #   ① 可用镜像档位由宿主驱动版本决定（见 device_registration.selection）——这是选型第一判据，
 #      不是「取最新线」；
@@ -16,7 +17,7 @@
 
 version: 1
 recorded_at: "2026-10-15"
-updated_at: "2026-10-15"
+updated_at: "2026-10-24"
 owner: 总组
 chip: "寒武纪 MLU590（MLU590-M9）"
 acceptance_model: "Qwen/Qwen3-Embedding-0.6B（与 P800 / PPU 同款基准模型）"
@@ -57,20 +58,17 @@ device_registration:
 lock:
   runtime:
     image: "harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0"
-    notes: "FlagOS 官方运行时基座镜像（登记式基线，ADR-0007）：设备上下文与训练路径同底座。本镜像不含 vLLM，推理服务化须用同线应用镜像（见 known_issues C-1）。版本事实以 dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml 为准"
+    notes: "FlagOS 官方运行时基座镜像（登记式基线，ADR-0007）：设备上下文与训练路径同底座。本镜像不含 vLLM，推理服务化用推理腿 cambricon-infer-vllm v1（见下方 lock.infer）。版本事实以 dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml 为准"
     container_name: "flagrt-mlu-v1-demo-mlu2（demo 运行环境容器：dev/images/cambricon-mlu-runtime/v1/demo/）"
     base_image_entry: "dev/images/cambricon-mlu-runtime/v1"
     registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagos-runtime），匿名可按 digest 拉取（2026-10-15 实测）。digest：sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2｜image id：sha256:e887e0ca4333a27185817fb8fef6ce95d5d9220c5a9725641187d602cabeea96（本机 docker inspect 实测）｜repro_status 🟢 FlagOS 官方镜像（镜像不可重建是设计边界，官方产物）"
 
-# ---------------------------------------------------------------
-# 候选血统（推理腿待定档，见 known_issues C-1）
-# ---------------------------------------------------------------
-candidates:
-  infer_app:
+  infer:
     image: "harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2"
-    digest: "sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94"
-    status: "候选，未入锁 —— 同线 vLLM 应用镜像，本组尚未在其上取得服务化验收证据；入锁前置见 known_issues C-1"
-
+    notes: "推理腿发布物（FlagOS 官方 vLLM 应用镜像，登记式基线 ADR-0007）：vllm 0.20.2+flagos / vllm-plugin-FL 0.2.2（寒武纪线必需组件，勿套用 910C 的 unset VLLM_PLUGINS）/ neuware4.4.3 栈。服务化走 serve_standard.sh（DC_BACKEND=cambricon，embed 形态）。版本事实与启动纪律以 dev/images/cambricon-infer-vllm/v1 为准"
+    container_name: "flagrt-mlu-infer-v1-demo-mlu2（demo 运行环境容器：dev/images/cambricon-infer-vllm/v1/demo/）"
+    base_image_entry: "dev/images/cambricon-infer-vllm/v1"
+    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagos-app），匿名可按 digest 拉取（2026-10-24 拉取实测 RepoDigest 逐字一致）。digest：sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94｜image id：sha256:4f298aa57807e13c02ee179385cfe07e97db4613470bc72d428d02d65e6273fe（HWJ_1 docker inspect 实测）｜repro_status 🟢 FlagOS 官方镜像。入锁依据 = serve_standard.sh 口径验收 PASS（2026-10-24 HWJ_1：SERVE_STANDARD_PASS ready=1 smoke=1；Qwen3-Embedding-0.6B、dev0、TP=1、eager、init engine 149.5s，验收后 8 卡释放 0 MiB）"
 # ---------------------------------------------------------------
 # 使用规则（按寒武纪实情；寒武纪特有纪律置于最前）
 # ---------------------------------------------------------------
@@ -98,17 +96,6 @@ rules:
 # 已知限制（各带删除条件）
 # ---------------------------------------------------------------
 known_issues:
-  - id: C-1
-    what: "运行时镜像不含 vLLM（容器内 import vllm 报 ModuleNotFoundError）⇒ 推理服务化不能在本镜像内进行，须用同线 vLLM 应用镜像；而该应用镜像当前无已验收的可拉版本"
-    detail: >-
-      device-context 方向的服务化验收（SERVE_LEG_PASS 10/10、TP×EAGER 四形态全 PASS）取得于
-      flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2rc2.post2
-      （sha256:f568f23cf29b2f64a5f9c9b250965d6f713bc964fb3256d4411783568f3b1da0）；
-      该 rc 标签已被 registry 回收（2026-10-15 实测 manifest 404），现行可拉版本为
-      2.2.0-0.2.2（sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94），
-      未经本组验证。
-    workaround: "本轮推理腿不作发布物；需要服务化时用候选镜像 candidates.infer_app 自行验证后使用"
-    removal_condition: "候选镜像 candidates.infer_app 通过本组服务化验收（serve_standard.sh 口径）⇒ 入锁为推理腿发布物，本条删除"
   - id: C-2
     what: "硬件能力 torch.mlu.get_device_capability() 返回 (5, 0)（MLU590-M9 实测）⇒ FP8 与 MX 量化不可用"
     detail: "厂商 vLLM 手册标注 FP8 需 >= (6, 0)、MX 类型需 >= (6, 1)；本卡型两者均不满足。可用量化路径限 SmoothQuant 等"
@@ -144,3 +131,12 @@ changelog:
       不照抄昇腾/昆仑芯/PPU；已知限制 C-1~C-5 各带删除条件。依据文件：
       dev/images/cambricon-mlu-runtime/v1/{lock.yaml,image.baseline.yaml,README.md}、
       dev/images/cambricon-mlu-runtime/v1/demo/。
+  - date: "2026-10-24"
+    who: "总组"
+    what: |
+      推理腿定档（T-041，解已知限制 C-1——其删除条件满足）：flagos-app 线 vLLM 应用镜像
+      2.2.0-0.2.2 通过本组服务化验收（serve_standard.sh 口径，HWJ_1 真机 SERVE_STANDARD_PASS
+      ready=1 smoke=1），入锁为推理腿发布物（lock.infer；dev/images/cambricon-infer-vllm/v1
+      四件套 + demo env.baseline.yaml 首登）。candidates 段随之撤销；C-1 删除；
+      训练/设备上下文腿不变（cambricon-mlu-runtime v1 基座）。READY_BUDGET 经验值登记：
+      本镜像 init engine 149.5s，就绪预算建议 >=300s。

@@ -4,7 +4,7 @@
 规范见 dev/ENV-SPEC.md（§3 文件形态、§4.2 Dockerfile 判定规则、§4.3 运行环境场景）。
 
 用法：
-  baseline.py export --image <image-dir> [--demo <path>] [--image-ref <ref>]
+  baseline.py export --image <image-dir> [--demo <path>] [--env-current <path>] [--image-ref <ref>]
   baseline.py check|show --image <image-dir>
   baseline.py export <env-dir> [--require-clean]
   baseline.py check|load|show <env-dir>
@@ -1025,8 +1025,30 @@ def _assert_inherited_commits(entries, img_labels, warnings):
                 f"核对基座后更新该标签，或改回在本层固化该资产", code=1)
 
 
-def export_image(image_dir, demo=None, image_ref=None) -> int:
+def _env_current_value(image_dir: Path, env_current) -> str:
+    """校验并归一化「现行推荐运行环境目录」（image.env_current，ENV-SPEC §3.1/§3.2）。
+
+    不从目录名猜：`env/v2` 存在不等于现行是 v2，「现行是哪一版」由镜像索引与锁定声明声明，
+    这里只记录调用方显式给出的那一个（ADR-0008 决定 3）。归一化为仓内相对路径 + 尾部 `/`，
+    与 image.demo 的写法一致，使基线值不随调用时的 cwd 变化。"""
+    p = Path(env_current).resolve()
+    if not p.is_dir():
+        raise BaselineError(f"--env-current 指向的目录不存在: {env_current}")
+    if not (p / "docker-compose.yml").is_file():
+        raise BaselineError(f"--env-current 不是运行环境目录（缺 docker-compose.yml）: {env_current}")
+    # dev/images/ 下的运行环境是发布物，路径与编号受约束：<image-dir>/env/v<整数>。修订号是
+    # 单调递增整数、不用语义版本号（运行环境叠加层兑现不了兼容性承诺）。各方向自建的运行环境
+    # 目录自由命名，但那种目录不是镜像的「现行推荐」，不进这个字段（ENV-SPEC §3.2）。
+    if p.parent != image_dir / "env" or not re.fullmatch(r"v[0-9]+", p.name):
+        raise BaselineError(
+            f"--env-current 必须是 {rel_to_repo(image_dir)}/env/v<整数>（修订号纯整数、"
+            f"不用语义版本号，ENV-SPEC §3.2），实际: {env_current}")
+    return rel_to_repo(p).rstrip("/") + "/"
+
+
+def export_image(image_dir, demo=None, env_current=None, image_ref=None) -> int:
     image_dir = Path(image_dir).resolve()
+    env_current_v = _env_current_value(image_dir, env_current) if env_current else None
     recipe = analyze_dockerfile(image_dir)
     ref = image_ref
     if not ref and (image_dir / "build.sh").is_file():
@@ -1045,6 +1067,10 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
     info = inspect_image(ref)
     img_labels = (info.get("Config") or {}).get("Labels") or {}
     warnings = list(recipe.warnings)
+    if not env_current_v and sorted((image_dir / "env").glob("v*")):
+        warnings.append("本目录下有 env/v* 运行环境目录，但未给 --env-current，基线不记 "
+                        "image.env_current：现行推荐运行环境是哪一版须显式声明，不按目录名推断"
+                        "（ENV-SPEC §3.2）")
 
     # Dockerfile LABEL（ARG 展开后）与镜像标签交叉核对。版本锚标签与 commit 标签同等对待：
     # 无 commit 的固化资产全靠 version 标签做核对项（§4.2）。
@@ -1210,7 +1236,9 @@ def export_image(image_dir, demo=None, image_ref=None) -> int:
          f"  id: {info.get('Id')}                 # check 项",
          f"  recipe: {y(recipe_files)}"]
     if demo:
-        L.append(f"  demo: {y(demo)}")
+        L.append(f"  demo: {y(demo)}                 # 验收记录（冻结，非推荐用法）")
+    if env_current_v:
+        L.append(f"  env_current: {y(env_current_v)}          # 现行推荐运行环境（check 项）")
     if base_block:
         L += ["", "base_image:                                    # L1",
               "  # 厂商基座：被动继承、按 digest 锁定、本组无法重建 —— 这是设计边界，不是缺陷（§3.1）。",
@@ -1371,11 +1399,32 @@ def _check_wheel_sha256(pkg, name, online, report):
         report.append(("PASS", name, f"wheel sha256 与索引页一致: {got['filename']} {want[:12]}…"))
 
 
+def _check_env_current(img, report):
+    """核对 image.env_current（现行推荐运行环境目录）是否仍在仓内且仍是运行环境目录。
+
+    **旧基线没有这个字段时只报 INFO，不 FAIL**：该字段是后加的，老的 image.baseline.yaml
+    一律缺它（向后兼容是硬要求，ENV-SPEC §3.1）。此时现行运行环境只由镜像索引与锁定声明
+    回答，工具无从核对，如实说出来即可。"""
+    value = img.get("env_current")
+    if not value:
+        report.append(("INFO", "env_current", "基线未记现行推荐运行环境目录（旧基线或尚未声明），"
+                                              "现行是哪一版以镜像索引与锁定声明为准"))
+        return
+    d = REPO_ROOT / value
+    if not d.is_dir():
+        report.append(("FAIL", "env_current", f"基线记的现行运行环境目录不存在: {value}"))
+    elif not (d / "docker-compose.yml").is_file():
+        report.append(("FAIL", "env_current", f"{value} 缺 docker-compose.yml，不是运行环境目录"))
+    else:
+        report.append(("PASS", "env_current", value))
+
+
 def check_image(image_dir, online=False) -> int:
     data = load_yaml(Path(image_dir).resolve() / "image.baseline.yaml")
     img = data.get("image") or {}
     line, labels = _check_image_id(img.get("ref"), img.get("id"))
     report = [line]
+    _check_env_current(img, report)
     baked = (data.get("baked_repos") or {}) if labels is not None else {}
     for name, item in baked.items():
         key = COMMIT_LABEL.get(name)
@@ -1448,6 +1497,16 @@ def _host_head(host: Path):
     return head, bool(run_git("status", "--porcelain", cwd=host)[0]), None
 
 
+def _host_remote(host: Path):
+    """宿主 repo 的 origin 远端地址；取不到返回 None（记为 unavailable）。
+
+    挂载覆盖形态下真正运行的代码不在镜像里，只记 host_path 与 commit 不足以让别人复现到
+    同一套栈 —— host_path 是本机约定，commit 只有配上「哪个仓」才是可寻址的版本事实
+    （ENV-SPEC §3.2）。固定取 origin：多远端时「哪个才是权威来源」不是工具能判的。"""
+    out, _ = run_git("remote", "get-url", "origin", cwd=host)
+    return out or None
+
+
 def _on_remote(host: Path, commit: str) -> bool:
     """commit 是否已在某个远端跟踪分支上（依据本地已 fetch 的远端信息）。"""
     out, _ = run_git("branch", "-r", "--contains", commit, cwd=host)
@@ -1459,7 +1518,7 @@ def export_env(env_dir, require_clean=False) -> int:
     image_baseline = load_yaml(env_dir / image_baseline_rel)
     baked = image_baseline.get("baked_repos") or {}
     binds = compose_binds(compose) if declared else []
-    mounted, dirty = {}, []
+    mounted, dirty, no_remote = {}, [], []
     baked_pkgs = image_baseline.get("baked_packages") or []
     for name, spec in declared.items():
         spec = spec or {}
@@ -1476,7 +1535,11 @@ def export_env(env_dir, require_clean=False) -> int:
         container = spec.get("container_path") or _translate(binds, host)
         if not container:
             raise BaselineError(f"{name}: docker-compose.yml 中没有覆盖宿主目录 {host} 的挂载")
-        entry = {"host_path": host_rel, "container_path": str(container),
+        remote = _host_remote(host)
+        if not remote:
+            no_remote.append(name)
+        entry = {"host_path": host_rel, "remote": remote,
+                 "container_path": str(container),
                  "activation": spec.get("activation", "unknown"),
                  "commit": head, "dirty": is_dirty}
         if name in baked:
@@ -1504,6 +1567,9 @@ def export_env(env_dir, require_clean=False) -> int:
         print(f"[WARN] {name}: 工作区不干净，已记录 dirty: true")
     for name in unpushed:
         print(f"[WARN] {name}: commit 不在任何远端分支上（未 push 或远端信息未 fetch），他人无法 load")
+    for name in no_remote:
+        print(f"[WARN] {name}: 宿主 repo 没有 origin 远端，remote 记 unavailable，"
+              f"他人无从得知这份代码该从哪个仓取（ENV-SPEC §3.2）")
 
     img = image_baseline.get("image") or {}
     L = [f"schema: {SCHEMA}", "kind: container",
@@ -1551,6 +1617,16 @@ def check_env(env_dir) -> int:
         if err:
             report.append(("FAIL", name, err))
             continue
+        # 远端地址：旧基线没有这个字段 -> INFO，不 FAIL（向后兼容是硬要求，ENV-SPEC §3.2）。
+        # 不一致只 WARN：commit 相等已保证代码内容相同，远端换了名/换了镜像仓不影响本次运行，
+        # 但会让别人按基线取代码时找错地方，须说出来。
+        want_remote, got_remote = item.get("remote"), _host_remote(host)
+        if not want_remote:
+            report.append(("INFO", name, "基线未记 remote（旧基线），无法核对代码来源仓，"
+                                         "重新 export 即可补上"))
+        elif got_remote != want_remote:
+            report.append(("WARN", name, f"origin 远端与基线不一致: 基线 {want_remote} "
+                                         f"实际 {got_remote or '无 origin'}（不阻断）"))
         if head != item.get("commit"):
             report.append(("FAIL", name, f"commit 不一致: 基线 {str(item.get('commit'))[:12]} "
                                          f"实际 {head[:12]}"))
@@ -1664,7 +1740,8 @@ def show(target, image: bool) -> int:
         print(f"镜像: {img.get('ref')}\nid:   {img.get('id')}")
         print(f"配方: {', '.join(img.get('recipe') or [])}")
         if img.get("demo"):
-            print(f"demo: {img['demo']}")
+            print(f"demo: {img['demo']}（验收记录，冻结）")
+        print(f"现行运行环境: {img.get('env_current') or '未声明（以镜像索引与锁定声明为准）'}")
         b = data.get("base_image") or {}
         if b:
             print(f"基座: {b.get('ref')}\n      digest={b.get('digest')} provides={b.get('provides')}")
@@ -1741,7 +1818,10 @@ def build_parser():
         sp.add_argument("--image", metavar="IMAGE_DIR", help="镜像场景：镜像配方目录")
         sp.add_argument("env_dir", nargs="?", help="运行环境场景：运行环境目录")
         if action == "export":
-            sp.add_argument("--demo", help="镜像场景：demo 运行环境目录（写入 image.demo）")
+            sp.add_argument("--demo", help="镜像场景：demo 运行环境目录（写入 image.demo，"
+                                           "验收记录、冻结）")
+            sp.add_argument("--env-current", help="镜像场景：现行推荐运行环境目录 env/v<N>"
+                                                  "（写入 image.env_current，check 项）")
             sp.add_argument("--image-ref", help="镜像场景：显式指定镜像 ref（默认取 build.sh 的 -t）")
             sp.add_argument("--require-clean", action="store_true",
                             help="运行环境场景：挂载 repo 不干净或 commit 未推送时拒绝导出")
@@ -1771,7 +1851,8 @@ def main(argv=None) -> int:
             print("用法错误: 必须且只能给一个场景（--image <image-dir> 或 <env-dir>）", file=sys.stderr)
             return 2
         if args.action == "export":
-            return (export_image(args.image, demo=args.demo, image_ref=args.image_ref) if args.image
+            return (export_image(args.image, demo=args.demo, env_current=args.env_current,
+                                 image_ref=args.image_ref) if args.image
                     else export_env(args.env_dir, require_clean=args.require_clean))
         if args.action == "check":
             if args.online and not args.image:
@@ -1787,3 +1868,19 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# changelog: 2026-10-22
+# 依据 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》决定 1/2/3/6（ENV-SPEC §3.1/§3.2）。
+# - 增 image.env_current（现行推荐运行环境目录）：export --image 新增 --env-current 写入，
+#   check --image 核对该目录仍存在且仍是运行环境目录（含 docker-compose.yml）。image.demo 的
+#   语义不变 —— 它指向的是冻结的验收记录，不再是推荐用法，故另立一个字段而非改写它。
+#   「现行是哪一版」只认显式声明：目录下有 env/v* 却未给 --env-current 时只告警、不写该字段，
+#   不按目录名推断最大修订号（决定 3）。
+# - mounted_repos 增记 remote（宿主 repo 的 origin 远端地址）：挂载覆盖形态下真正运行的代码不在
+#   镜像里，host_path + commit 不足以让别人复现到同一套栈，补齐决定 6 要求的「外部仓地址」。
+#   取不到记 unavailable 并告警（固定取 origin：多远端时哪个是权威来源不是工具能判的）。
+# - 两个新字段都向后兼容：旧 image.baseline.yaml / env.baseline.yaml 缺字段时 check 报 INFO、
+#   不 FAIL；remote 与宿主实际 origin 不一致报 WARN（commit 相等已保证代码内容相同，但别人会
+#   按基线找错仓）。单测见 dev/lib/tests/test_baseline.py 的 TestEnvCurrentField 与
+#   TestEnvScenario 的 mounted_repos.remote 段。

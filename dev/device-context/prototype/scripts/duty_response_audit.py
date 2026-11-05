@@ -273,24 +273,53 @@ def c12(env):
     return _ok("event.wait / event.synchronize 均返回")
 
 
-@item("C 流与事件", "C13", "event.elapsed_time(end) 可调用（若声明支持）")
+@item("C 流与事件", "C13", "event.elapsed_time(end) 可调用（须建**可计时**事件）")
 def c13(env):
     rt, bk = env["runtime"], env["backend"]
     st = rt.create_stream()
-    if not bk.supports("elapsed_time") and "elapsed_time" not in str(bk.info().get("supports")):
-        # 未声明 → 仍试调一次，记录实际行为（不判 FAIL，除非崩溃在无声明下）
-        pass
-    e1, e2 = rt.create_event(), rt.create_event()
+    # ⚠️ 2026-10-26 更正：原实现用默认 `create_event()`（无计时标志）⇒ CUDA 系栈必然抛
+    #    `ValueError: Both events must be created with argument 'enable_timing=True'`
+    #    ⇒ 该判据在四家**恒为 SKIP**，等于从未真正执行（假 SKIP，不是厂商不具备）。
+    #    PPU 真机实测：带标志可正常计时（e1.elapsed_time(e2) 返回 float）。
+    try:
+        e1, e2 = rt.create_event(enable_timing=True), rt.create_event(enable_timing=True)
+    except NotImplementedError as ex:
+        return _skip(f"该后端无可用计时事件（如实不具备）：{str(ex)[:100]}")
     e1.record(st)
     st.synchronize(timeout_ms=30000)
+    # 起终点之间**既有设备工作、又有主机等待**（10 ms）⇒ 后面用它做量纲/方向/可用性的强校验。
+    # 只用主机 sleep 也能测（PPU 实测 10.089 ms），但加上设备工作能同时排除"空闲流不推进时钟"的争辩。
+    import torch as _t
+    try:
+        _a = _t.ones(256, 256, device=f"{bk.device_type}:0")
+        _ = _a @ _a
+        del _a, _
+        st.synchronize(timeout_ms=30000)
+    except Exception:                                          # noqa: BLE001
+        pass                                                   # 设备工作失败不影响本判据（下面仍有 10 ms 睡眠）
     time.sleep(0.01)
     e2.record(st)
     st.synchronize(timeout_ms=30000)
     try:
-        dt = e2.elapsed_time(e1)
-        return _ok(f"elapsed_time={dt}" if isinstance(dt, (int, float)) else f"返回 {dt!r}")
+        # ⚠️ 方向：self=起点、end=终点。原实现写成 `e2.elapsed_time(e1)` ⇒ 必得负值，
+        #    而判据只查 isinstance(float) ⇒ **负值也判 OK**（2026-10-26 PPU 实测 -11.14 ms）。
+        dt = e1.elapsed_time(e2)
     except Exception as e:
         return _skip(f"未声明/不可用：{type(e).__name__}: {str(e)[:70]}")
+    if not isinstance(dt, (int, float)):
+        return _skip(f"返回非数值 {dt!r}")
+    # 三态（2026-10-26 细化）：
+    #   负值 ⇒ 方向/实现错误（契约违例）⇒ FAIL
+    #   恒 0 / 近 0 ⇒ **平台接受 enable_timing 但计时不可用** ⇒ 如实不具备(SKIP)，须在实例台账登记为已知缺口
+    #   （实测：P800 裸 torch 正反向都是 0.0；PPU 为 10.089 ms ⇒ 是平台差异，不是判据口径问题）
+    if dt < 0:
+        return _fail(f"elapsed_time={dt} 为负 ⇒ 参数方向/实现错误（契约要求非负）")
+    if dt < 5.0:
+        return _skip(f"elapsed_time={dt} 恒近 0（跨设备工作 + 10 ms 睡眠）"
+                     f"⇒ 平台接受 enable_timing 但**计时不可用**（如实不具备；须登记为已知缺口）")
+    if dt > 5000.0:
+        return _fail(f"elapsed_time={dt} 远超 10 ms 睡眠 ⇒ 量纲/实现可疑")
+    return _ok(f"elapsed_time={dt:.3f} ms（跨设备工作 + 10 ms 睡眠，落在合理带内）")
 
 
 @item("C 流与事件", "C14", "硬纪律 1：stream.record_stream(tensor) 可调用")

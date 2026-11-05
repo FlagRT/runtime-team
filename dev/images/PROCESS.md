@@ -184,3 +184,58 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
   （训练），不满足纯镜像复现标准；升 🟢 条件分别为算子编译组根治 shmem、
   FlagCX c10d 层 sync 修复。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是
   候选，非生效）。
+
+---
+
+## 平头哥 PPU
+
+### v1 → v2：从「官方基座 + 手工补 triton」到「派生层内固化」（2026-10-27）
+
+v1 是 BAAI·FlagTree 官方 PPU 基座（登记式基线，未改一字节）。它的一个硬缺口在 device-context
+方向做**服务化腿**时才暴露：vLLM 起服务前门控 `find_spec("flash_attn") and find_spec("triton")`，
+基座**不含 triton** ⇒ 服务化必然起不来。当时的补法是**从共享目录手工 `docker cp`** `triton/` +
+`flagtree/` + dist-info 三件——能跑，但违反两条纪律：容器重建即丢（不可复现）、属镜像外隐性依赖
+（ENV-SPEC「外部依赖须声明」）。
+
+v2 的目标很窄：**把这一个缺口在镜像内解决，别的都不动**（不改基座任何包、不装本组运行时）。
+
+#### 关键发现：一个 wheel 就够，不需要三件
+
+共享盘 `/bmcp_lvm_fs/A/data/flagtree-src/dist/` 里的 `flagtree-0.7.0+ppu.gite…whl`（375,145,745 字节、
+389 条目）**顶层恰为 `triton/` + `flagtree/` + `flagtree-…dist-info/`** —— 即此前手工复制的那三件
+本就同源，一个 `pip install` 全给。这比「COPY 目录」好：有 pip 元数据、sha256 可校验、进镜像方式
+可被基线工具识别（虽然最终仍需登记式，见下）。
+
+#### 配方为什么迭代了 6 轮（每轮都是一个会静默失败的点）
+
+| 轮 | 做法 | 结果 | 学到了什么 |
+|---|---|---|---|
+| 1 | `COPY triton/`…（三个目录） | 镜像建成 | 构建上下文要 1.1 GB 复制进 root 盘；且 `baseline.py` 判「COPY 源码路径不符 `src/<Repo>`」 |
+| 2 | 加构建期自验证 `RUN python3 - <<'PY'` heredoc | **失败** | `baseline.py` 解析 Dockerfile 时把 heredoc 里的 `import …` 当指令（报「不识别的指令 IMPORT」）⇒ 改单行 `python3 -c` |
+| 3 | 改 `COPY src/<dir>/` + **硬链接**组装上下文 | **失败** | 源 `whl/` 属他人，`fs.protected_hardlinks=1` 拒跨属主硬链接（`Operation not permitted`） |
+| 4 | 同上但 `cp -a`（复制） | 镜像建成 | 复制落**数据盘**即可（root 盘零额外开销）；但基线工具仍不接受「目录 + pip install <file>.whl」 |
+| 5 | 改 `pip install` 单 wheel 文件（`COPY src/x/<file>`） | **失败** | `baseline.py` 只认 **`src/<Repo>`（恰两段、目录）** |
+| 6 | `COPY src/flagtree/`（目录）+ `pip install <目录>/<file>.whl` | **建成，即交付镜像** | ⚠️ wheel **不能改名**：pip 按 PEP 427 解析，改成 `flagtree.whl` 报 `Invalid wheel filename (wrong number of parts)` |
+
+#### 两个"设备能用但工具不认"的收尾事实
+
+1. **基线只能登记式**（ADR-0007）：`dev/lib/baseline.py` 只支持「COPY 目录 + `pip install` 同一目录」，
+   本镜像是「单 wheel 文件」形态，三种写法全被拒 ⇒ 手工登记 `image.baseline.yaml`，实测 `check` PASS。
+   已提 `TODO.md` #24 请求扩展该工具的形态支持。
+2. **`pip show triton` 是空的**：`triton/` 是 flagtree wheel 内部的一段，没有独立 `dist-info` ⇒
+   「用 pip 判装没装」在这条链上必错；同理 `flagtree.__version__` 自报 **3.6.0**（跟随 triton 线号）
+   而非 pip 元数据的 **0.7.0+ppu.gite223f42c** ⇒ 版本锚只能用 pip 元数据 + wheel sha256。
+
+#### 与「不越权」的关系
+
+本方向自建派生层，与 `dev/stack.lock.thead-ppu.v1.yaml` `rules` 里
+「统一基座的确定/调整/发布由总组裁定；各方向只消费不自建」存在张力。处置：**入档 + 登记候选 +
+显式提请裁定**，未改 `lock:`；根治路径是把 triton 上提官方基座线（`TODO.md` #23），届时 v2 整体废弃、
+不再产生 v3。
+
+#### 归档的一个副产品结论
+
+`TODO.md` #21「巨型镜像 `docker save` 静默导出空 tar」在本机**不复现**：41.75 GB 镜像 → 17.15 GiB
+tar.gz、`pigz -t` rc=0、`docker load` 回读 id 与发布物逐字相同。该机是传统 `overlay2` 后端，
+而 #21 的失败现场是 **containerd snapshotter** 后端 ⇒ 该缺陷与存储后端相关，不能概括成「镜像大就失败」。
+已回写 #21。

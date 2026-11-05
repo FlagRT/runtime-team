@@ -1,0 +1,54 @@
+# thead-ppu-runtime v2 · 派生层：把服务化前置 triton（经 flagtree wheel）pip 固化进镜像
+#
+# 为什么需要这一层（证据链）：
+#   · 官方基座 `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`
+#     **不含 triton**（2026-10-27 实测：`import triton` ⇒ ModuleNotFoundError；vLLM 的门控
+#     `find_spec("flash_attn") and find_spec("triton")` 里 triton 为 False ⇒ 起服务必挂）。
+#   · 此前靠**手工 `docker cp`** 从共享目录补进运行容器 ⇒ 容器重建即丢、不可复现
+#     （违反 ENV-SPEC 四硬规则：单入口 / 外部依赖声明 / 自验证 / 日志不进仓）。
+#   ⇒ 按 ADR-0008 的双版本机制，把该资产**固化进新的镜像版本 v2**。
+#
+# 为什么用 flagtree wheel 而不是复制目录（2026-10-27 的决定与依据）：
+#   · 共享盘上的 `flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl`（358MB）
+#     **内部就同时包含 `triton/`、`flagtree/`、`flagtree-…dist-info/`**（实测 389 条目，
+#     顶层恰为这三项）—— 与此前手工复制的三件**同源同内容**。
+#   · 用 `pip install` 而非 `COPY 目录` 有三个好处：
+#       ① 有 pip 元数据（`pip show triton/flagtree` 可见；`COPY` 方式没有）；
+#       ② 可校验（wheel 有 sha256，记入 lock/ARCHIVE）；
+#       ③ `dev/lib/baseline.py` §4.2 只认受支持的固化方式（`pip install`），
+#          把源码直接 `COPY` 进 site-packages 会被判「无法判定固化方式」而 FAIL（实测）。
+#
+# 资产来源：`/bmcp_lvm_fs/A/data/flagtree-src/dist/`（共享盘既有产物，非网络下载）
+
+FROM flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base
+
+LABEL org.flagrt.image.purpose="PPU runtime derived layer: bake triton via flagtree wheel (for vLLM serving)"
+LABEL org.flagrt.base.ref="flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base"
+LABEL org.flagrt.delta="flagtree wheel only (provides triton+flagtree); base untouched"
+
+# 目标站点：基座解释器是 py3.12
+ARG SP=/usr/local/lib/python3.12/site-packages
+
+# ── 本组派生层：一个 wheel 同时提供 triton 与 flagtree ──
+#    `src/` 由 build.sh 在**数据盘**上组装（复制 358MB，不占 root 盘）；
+#    用 `src/<Repo>/` 形态是 baseline.py 的解析约定。
+#    ⚠️ `baseline.py` 只接受 **`src/<Repo>`（恰两段、目录）** 形态：
+#       `src/flagtree/x.whl` 或 `src/flagtree-src/dist/x.whl` 都会被判
+#       「COPY 源码路径不符合 src/<Repo>/ 模式」（实测，见 dev/lib/baseline.py `copy()`）。
+#    ⚠️ **wheel 保留原文件名**：pip 按 PEP 427 解析，改名会报
+#       `Invalid wheel filename (wrong number of parts)`（实测）。
+COPY src/flagtree/ /tmp/flagtree-src/
+
+# `--no-index --no-deps`：容器内 pip 索引不可达（实测 ConnectTimeout），依赖已由基座提供；
+# `--no-cache-dir`：不把 358MB 的 wheel 缓存留在镜像里。
+RUN pip install --no-index --no-deps --no-cache-dir /tmp/flagtree-src/flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl && rm -rf /tmp/flagtree-src
+
+# ── 自验证（构建期就断言，不等运行期才炸）──
+#    ⚠️ 不用 heredoc：`dev/lib/baseline.py` 解析 Dockerfile 时会把 heredoc 里的
+#    `import …` 当成指令（实测报「不识别的 Dockerfile 指令 IMPORT」）⇒ 用单行 `-c`。
+RUN python3 -c 'import importlib.util as u, sys; missing=[m for m in ("triton","flagtree") if u.find_spec(m) is None]; sys.exit("FATAL: 派生层缺失 " + ",".join(missing)) if missing else None; import triton; print("BAKED_OK triton", triton.__version__)'
+
+# 说明：本层**故意不做**三件事
+#   1) 不改基座的 NCCL_SOCKET_IFNAME / 不改 hosts —— 那是运行期参数，按 env 目录表达（见 env/v1/）；
+#   2) 不装本组运行时（runtime ppu 0.1.0）—— 按 v1 口径经 WORKSPACE_ROOT 挂载，不固化；
+#   3) 不升级/降级基座任何包 —— 派生层只做加法，保证与 v1 的差异**只有 triton+flagtree**。

@@ -37,6 +37,20 @@
   路径做回归测试。另 FlagGems 自带的 `test_accuracy_mm` 定义上方就带着注释
   `# TODO: failed at (1, 1, 2)` —— 上游已知小形状有问题。
 
+### 版本集合（分版表态）
+
+坐标 = **镜像血统 + 运行环境修订**（第 0 版 = 冻结的 `demo/`，第 1 版起 = `env/vN`）。状态取三态之一：
+在该版仍命中 / 在该版已修（写明形态）/ 未在该版测过。**「未在该版测过」必须显式写出**，沉默不等于不命中。
+
+| 坐标 | 状态 | 依据 |
+|---|---|---|
+| `kunlun-operator-runtime v2` · 第 0 版（[`demo/`](../../images/kunlun-operator-runtime/v2/demo/docker-compose.yml)） | **在该版仍命中** | 2026-10-12 本机卡 7：`overall: FAIL`（退出码 1），12 组全失败——2 组原生 abort、10 组被误标 `OutOfResources: uni_sram`、编译并算对 0 组 |
+| `kunlun-operator-runtime v2` · env/v1（[`env/v1/`](../../images/kunlun-operator-runtime/v2/env/v1/README.md)） | **编译维度在该版已修**（显式启用后）；数值维度另案（见下） | 2026-10-28 本机卡 0（发布形态 = 验收形态）：显式启用 GEMM compat（`enable-gemm-compat.sh` / `import gemm_compat`）后 minirepro **12/12 编译通过**（abort 0 / OOR 0）+ FlagGems pytest `test_accuracy_mm` **18/18 passed** (16.57s) + 扩展 mm/bmm/addmm **99/99 passed** (60.67s) + 装置自证 4 项 PASS + `up.sh --strict` PASS（image id + 挂载 FlagGems commit `4a00b845`）。修复载体 = 挂载补丁版 FlagGems（`FlagRT/FlagGems` 分支 `xliu969/kunlun-gemm-compat`，基点 = 镜像固化 `73c5aff1`）+ 编译组 compat 包（`Xproject-CHKU-SZ/FlagTree` @`edca42a`，进程内加载）；启用方式与适用前提见 env/v1 README（ADR-0010）。**数值维度未收口**：12 组中 7 组编译通过但数值超本 case 容差（64³ fp32/fp16/bf16 + 大形状 fp16/bf16），与修复前定量一致——已拆独立 case [`../kunlunxin-gemm-numeric-64cube/`](../kunlunxin-gemm-numeric-64cube/README.md)（K-5），本 case 的「编译并算对」整体判据在数值 case 关闭前仍为未达成 |
+| `kunlun-operator-runtime v1` · 第 0 版 | **未在该版测过**（指本 case 的 12 组判据） | 该血统无运行环境目录，本目录脚本未在其上跑过。v1 [`lock.yaml`](../../images/kunlun-operator-runtime/v1/lock.yaml) `known_issues: gemm-compile-sigabrt` 记有同 pin 组合下 GEMM 崩溃的实测，但判据与读数口径与本 case 不同，不折算为本 case 的表态 |
+
+该血统首个运行环境修订版 env/v1 已发布（2026-10-28，ADR-0010），表态见上表；后续修订版发布时
+本 case 继续逐版表态，三态之一，未测过就写「未在该版测过」。
+
 ## 复现
 
 ### 前置条件
@@ -124,3 +138,23 @@ overall: FAIL
    实测同一用例 `-s` 三次各 880 字节含断言、`-q` 三次 0 字节。用 FlagGems 自带 pytest 复跑时
    必须 `pytest -x -s`；另外设 `PYTHONFAULTHANDLER=1` 反而会压掉 faulthandler 的 Python 栈
    dump（只剩 LLVM 断言行）。本目录脚本不走 pytest，不受此影响。
+
+<!-- changelog:
+2026-10-22 —— 依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》新增「版本集合」节
+  （口径参照 Debian 的 Found/Fixed 为版本集合而非单值，坐标 = 血统 + 运行环境修订）：
+  kunlun-operator-runtime v2 第 0 版仍命中（2026-10-12 读数）；v1 第 0 版写「未在该版测过」——
+  v1 lock.yaml 的 gemm-compile-sigabrt 虽有同 pin 组合的崩溃实测，但不是本 case 的 12 组判据，
+  不折算为本 case 的表态；该血统尚无 env/vN，故无第 1 版可表态，并写明发版后须重新表态。
+  本批未跑任何 P800 验证（无 docker），表中读数全部沿用既有证据，未新增任何状态声明。
+  未改动：NOTES-step-by-step.md 与 assets/。
+-->
+
+
+<!-- changelog:
+2026-10-28 —— env/v1（首个运行环境修订，ADR-0010）分版表态补入版本集合表：
+  编译维度在该版已修（显式启用后 12/12 编译 + pytest 18/18 + 99/99，2026-10-28 本机卡 0，
+  发布形态 = 验收形态）；数值维度 7 组超差与修复前定量一致，拆独立 case
+  kunlunxin-gemm-numeric-64cube（K-5）跟踪，本 case「编译并算对」整体判据在其关闭前仍为未达成。
+  修复载体与启用方式记入表内（FlagRT/FlagGems xliu969/kunlun-gemm-compat @4a00b845 +
+  编译组 compat 包 @edca42a，ADR-0010）。
+-->
