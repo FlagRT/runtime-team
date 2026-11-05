@@ -1,0 +1,57 @@
+{
+  "mode": "pair",
+  "prototype_revision": "70218c9",
+  "observations": [
+    {
+      "time": 1793769044.2646801,
+      "raw": "00000000:03:00.0 0 0 02K15K0261D00Q2F 44 0 0 0 145 1450 1450 1450 1450 1450 1450 0 96 3426 98304 100 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0261D00PC0 38 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0261D00NV8 37 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0261D00NTL 42 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0261D00P5P 37 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0261D00N1Y 40 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0261D00N5K 40 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0261D00PK8 40 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+      "free_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "dev/communication/training/failure_restart.py",
+        "--backend",
+        "kunlun",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype",
+        "--output",
+        "/workspace/evidence/failure-restart-v1/failure"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "verdict": "PASS",
+  "source_sha256": {
+    "training/deepfm_train.py": "c44a5819e133da908d105bcb717ac10de5dc707d36dd00a1b641dd4377855278",
+    "training/distributed.py": "12ec74adab13a03f4158cd28a833f8ce2cf6a4bf28e1612efb7b591070867f63",
+    "training/run_repeated.py": "a6143044a019a1a5f5f8adf9ddf0ff6039534653bf8b5ab8a4cf2e388d4db35c",
+    "training/summarize_repeated.py": "1d0bcc0ac64b1908fbd93964c08ec423fd1b27d8d1aa8b048a97d7eecad11c63",
+    "training/run_p800_selected.py": "a32920d1d9fa005f89ce91be54dbfb152f431dc0980a861e6d2113506322224c",
+    "probes/p800_identity.py": "bb1821838554b49c5b09054310053b96d787e11bd3cace3be482e7dae9d86d0b",
+    "env/p800-single/docker-compose.yml": "75cae32eb128b1583b8123fa0f4e92c775b3621ac64105a270af078f5229f27d",
+    "env/p800-pair/docker-compose.yml": "9f7620550ee0d55b384ded5856ba78d8ffc8dc1c0ab5a79fe3f6fd4c6005dae2"
+  },
+  "selected": [
+    {
+      "physical_card": 4,
+      "node": "/dev/xpu4",
+      "uuid": "GPU-b93d4a63-9f44-59f1-b533-61fcbdfad1d2"
+    },
+    {
+      "physical_card": 5,
+      "node": "/dev/xpu7",
+      "uuid": "GPU-102e7eca-3bba-5137-8c7e-0859dc2f052d"
+    }
+  ]
+}

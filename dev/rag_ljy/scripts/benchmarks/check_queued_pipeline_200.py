@@ -92,7 +92,7 @@ def main():
     parser.add_argument('--parallel', type=int, default=2)
     parser.add_argument('--port', type=int, default=8090)
     parser.add_argument('--timeout', type=float, default=120)
-    parser.add_argument('--output-dir', type=Path, default=PROJECT_ROOT/'artifacts/benchmarks')
+    parser.add_argument('--output-dir', type=Path, default=PROJECT_ROOT/'experiment_outputs/benchmarks')
     args = parser.parse_args()
     if not 2 <= args.parallel <= 8 or not 1 <= args.port <= 65535 or args.timeout <= 0:
         parser.error('parallel must be 2..8; use a valid port and positive timeout')

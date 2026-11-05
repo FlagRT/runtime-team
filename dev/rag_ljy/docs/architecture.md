@@ -17,13 +17,14 @@
 | [documents.py](../src/rag_engine/documents.py) / [ingestion.py](../src/rag_engine/ingestion.py) | 固定chunk ID、分块、逐批双库写入 |
 | [device.py](../src/rag_engine/device.py) | device-context设备选择、可见性验证与dtype |
 | [memory_probe.py](../src/rag_engine/memory_probe.py) | device-context内存探测、独立线程采样与缓存状态 |
+| [admission.py](../src/rag_engine/admission.py) | 可选内存准入、高低水位、全链路预算及采样更新后的预算释放 |
 | [benchmark.py](../src/rag_engine/benchmark.py) / [timing.py](../src/rag_engine/timing.py) | 测量、CSV/JSON记录与耗时汇总 |
 
 ## 查询流程与调度
 
 ```mermaid
 flowchart LR
-    API[POST /query] --> Admit[请求ID与容量检查]
+    API[POST /query] --> Admit[请求ID、数量及可选内存准入]
     Admit --> Embed[vLLM查询向量化]
     Embed --> Search[BM25与dense检索]
     Search --> RRF[RRF融合]
@@ -50,6 +51,27 @@ flowchart LR
 重叠可证明提交并发；是否同一次引擎forward合批须另查vLLM调度证据。精排目前仍
 只对同一请求的候选文档合批，尚未实现跨请求精排batch dispatcher。
 
+## 内存准入原型
+
+`--memory-admission` 开启后，请求须同时满足数量上限和设备内存预算。
+`admission.py` 在API事件循环中完成检查与预算登记，中间无await，因此多个请求
+不能重复使用同一份可用内存。预算按请求显式配置，覆盖向量化到精排整个链路，
+包含排队时间；HTTP取消不会提前释放。已接收请求继续推进，以便完成并释放资源。
+
+设备实测占用加已有预留严格超过85%时进入暂停，回落至75%或以下解除暂停。
+未暂停时，仅按 `实测空闲 − 已有预留 − 新请求预算 ≥ 安全余量` 检查新请求是否
+放得下（默认余量1024MiB）；不再要求加入新请求预算后仍低于高水位。该算法可能重复计算已经
+体现在设备读数中的分配，取保守策略，不作为自动学习的内存预测器。
+
+请求结束后，预算转为待释放；只有一次开始于请求结束之后的有效采样才能清除。
+这避免短请求结束后立即重复使用尚未更新的读数，忽略框架保留的缓存。
+探测未就绪、失败、缺字段、过期或统计范围不满足配置时，新请求返回503；
+`/health.memory_admission` 和请求决策日志提供原因及预算状态。
+
+默认仍采用原来的数量准入。开启内存准入必须提供每请求预算；当前runtime的
+整卡统计范围未明确标注，因此默认拒绝该读数，验证适用环境后可显式允许使用。
+配置见[运行指南](operations.md)。预算为逻辑记账，不会实际占用或独占NPU内存。
+
 ## 模型与数据库约定
 
 - 文档和查询默认使用同一vLLM embedding模型，1024维；查询添加固定instruction，文档保留原文。
@@ -63,5 +85,6 @@ flowchart LR
 
 ## 当前限制
 
-接入容量按请求数量控制，尚无基于主机/NPU内存的动态准入策略。当前是单进程
-原型；最新状态、验证边界及后续工作见项目根目录 [status.md](../status.md)。
+当前为单进程原型。内存准入只覆盖被探测设备，尚无主机内存控制、请求峰值自动
+估计或OOM后模型恢复；配置预算仍须用实际负载校准。最新状态、验证边界及后续
+工作见项目根目录 [status.md](../status.md)。

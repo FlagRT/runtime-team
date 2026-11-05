@@ -3,3 +3,7 @@
 
 # 基准采样数据产物（CSV 等）
 benchmarks/out/
+
+# 实测证据目录（evidence/）是本目录的交付证据本体，须入仓：
+# 对仓根 `*.log` / `*logs/` 规则做定向解除，仅限 evidence/ 下
+!evidence/**/*.log

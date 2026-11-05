@@ -26,6 +26,8 @@ def main():
     p.add_argument('--launch-timeout', type=int, default=300)
     p.add_argument('--first-mode', choices=['manual', 'fused'], default='manual')
     p.add_argument('--save-final-parameters', action='store_true')
+    p.add_argument('--include-native', action='store_true')
+    p.add_argument('--include-observed', action='store_true',help='DDP with conservative synchronous hook, not native default')
     args = p.parse_args()
     if args.repeats < 3 or args.launch_timeout < 1: p.error('Require >=3 repeats and positive timeout')
     args.output.mkdir(parents=True, exist_ok=False)
@@ -35,6 +37,8 @@ def main():
     try:
         for repeat in range(args.repeats):
             modes = (args.first_mode, 'fused' if args.first_mode == 'manual' else 'manual')
+            if args.include_native: modes += ('native',)
+            if args.include_observed: modes += ('observed',)
             for mode in (modes if repeat % 2 == 0 else modes[::-1]):
                 name = f'{repeat+1:02d}-{mode}'
                 with socket.socket() as sock:

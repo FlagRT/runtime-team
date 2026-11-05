@@ -71,7 +71,7 @@ def main():
     old_vectors = json.loads((baseline / 'query_vectors.json').read_text())
     old_ids = json.loads((baseline / 'result_ids.json').read_text())
     stamp = datetime.now(timezone.utc)
-    out = PROJECT / 'artifacts/benchmarks' / f'vllm-baseline-200-{stamp:%Y-%m-%d_%H%M%SZ}-{uuid4().hex[:6]}'
+    out = PROJECT / 'experiment_outputs/benchmarks' / f'vllm-baseline-200-{stamp:%Y-%m-%d_%H%M%SZ}-{uuid4().hex[:6]}'
     out.mkdir()
     shutil.copyfile(baseline / 'queries.jsonl', out / 'queries.jsonl')
     summary = {

@@ -33,7 +33,7 @@ from datetime import datetime,timezone,timedelta
 from uuid import uuid4
 label=os.getenv('RAG_DIAG_LABEL','repeat')
 stamp=datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d_%H%M%S')
-out=Path(__file__).resolve().parents[2]/'artifacts/diagnostics/runs'/f'fixed-input-{stamp}-{label}-{uuid4().hex[:6]}.json'
+out=Path(__file__).resolve().parents[2]/'experiment_outputs/diagnostics/runs'/f'fixed-input-{stamp}-{label}-{uuid4().hex[:6]}.json'
 out.parent.mkdir(parents=True,exist_ok=True)
 out.write_text(json.dumps({'label':label,'tokens':tokens,'rows':rows},indent=2))
 print(out,flush=True)

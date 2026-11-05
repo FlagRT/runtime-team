@@ -1,0 +1,32 @@
+{
+ "leg": "S2",
+ "tag": "OFF",
+ "round": 1,
+ "target_tok": 256,
+ "words": 88,
+ "actual_prompt_tok": 257,
+ "dev": 0.004,
+ "record": {
+  "i": 0,
+  "t0": 1792941545.5949593,
+  "ttft": 0.10507941246032715,
+  "end": 1792941565.4816067,
+  "usage": {
+   "prompt_tokens": 257,
+   "total_tokens": 769,
+   "completion_tokens": 512
+  },
+  "finish": "length",
+  "text_sha1": "f6a4e91e55b24d071e5a49ae37451573c933bb39",
+  "text_head": " 2 9 16 23 30 37 44 51 58 65 72 79 86 93 10000 0 7 14 21 28 35 42 49 56 63 70 77",
+  "error": null
+ },
+ "peaks": {
+  "kv_cache_usage_perc": 0.0026905829596413078,
+  "num_requests_waiting": 0.0,
+  "num_requests_running": 1.0
+ },
+ "valid": true,
+ "decode_tok_s": 25.75,
+ "wall_s": 19.9
+}

@@ -1,52 +1,57 @@
-# framework-adapter · 当前状态
+# framework-adapter 当前状态
 
-更新：2026-11-03｜顾宬 / cgu135。本页是公共协调仓的状态与交付物指针；功能包在独立仓，详细测试材料在本人证据分支。硬件成绩截至10-29；11-03完成dev2源码候选审查/构建/发布、方案及数据保全，不计新增硬件实验。
+更新：2026-11-04 dev3源码候选发布。顾宬 / cgu135。当前功能、验证与交付状态统一维护于本页。
 
-## 本期交付
+## 本期完成
 
-已形成“三种接入方式”的方案与接口约定评审稿：算子注册、库替换、版本补丁，分别说明接入位置、接口、版本检查、撤销/重建和安全退出。实际dev2 API与拟议接口分开标注；尚未跨组确认，不等于三条路线都已实现。dev2源码候选已发布，新增厂商身份和模型审核；100项包CPU控制、34项case控制通过，依赖锁已更新。
+- 公共训练入口接齐模型身份及审核：实际权重、配置、源码、依赖版本与训练设置共同匹配，通过审核后才启用目标算子。
+- 910C官方镜像：Qwen0.6B双rank关闭、开启、缺模型审核三路各3步通过；开启每rank84次SiLU前向及84次反向，其余两路保留原生。
+- 独立资格：原生重复3726项逐值一致；候选3726项通过，最大差9.54e-7。
+- 新P800：DeepFM FP32 batch32三路各3步，294项对照一致；本轮P800使用dev2。
+- dev3固定提交构建及独立重建各110项包控制通过，集成脚本控制42项通过；11个运行时文件与实测wheel一致。
 
-- [三通道接入方案](https://github.com/FlagRT/framework-adapter/blob/6ee91294e7ab028f2e804225482f58d24c8ccd5a/docs/三通道接入方案.md)
-- [接入接口约定](https://github.com/FlagRT/framework-adapter/blob/6ee91294e7ab028f2e804225482f58d24c8ccd5a/docs/接入接口约定.md)
-- [文档入口](https://github.com/FlagRT/framework-adapter/tree/6ee91294e7ab028f2e804225482f58d24c8ccd5a/docs)
+## 功能与待办
 
-## 已完成、问题和边界
-
-| 功能点 | 当前完成情况 | 问题/未完成 |
+| 功能 | 当前实现 | 待完成 |
 |---|---|---|
-| 接入开关与原生保留 | PyTorch eager下SiLU、sigmoid、tanh已有前反向接入；关闭、不满足条件时保留合法原生；退出检查恢复 | 非所有ATen/自定义/融合入口；不能等同于三个框架均已接入 |
-| 910C训练接入 | 旧官方环境Qwen有限训推及固定双rank入口验证；正常各3步，前向/反向故障注入均双方0次优化器调用 | 训练v3目标编译仍有TLE/shmem问题；门控不含更新后回滚或跨芯片恢复 |
-| P800接入与审核 | 三种单算子通过；DeepFM FP32 batch16/32限定短训练通过；失败/无资格走原生，严格目标可阻断 | Qwen FP32 seq32、OneRec BF16 seq16候选梯度超差，未准入、不改算子；新env/v1资格需另验 |
-| OneRec拒绝验证 | 原生、原生重复、关闭、已知失败保留原生四条轨迹各3步；后三条7191项对照一致；候选失败0次更新 | 不是OneRec目标实现训练通过，也不是业务效果验收 |
-| 三路线交付 | 方案和接口约定已提交评审文本 | 通用注册所有权、独立库替换生命周期、版本补丁管理与验收尚待落地；完整三级回退未完成 |
+| 算子接入 | PyTorch eager SiLU、sigmoid、tanh前反向；开关、逐调用准入与退出恢复 | 自定义/融合及其他框架入口 |
+| 模型审核 | 固定公共双rank入口及P800 case采集真实身份，匹配模型与算子审核 | 公共入口严格负向硬件补证、稳定集成接口对齐 |
+| 安全处置 | 条件不满足保留合法原生；严格模式拒绝；执行异常停止 | 多候选实现选择、任务级恢复 |
+| 双rank联动 | 固定入口验证更新前共同阻断；正常完成与恢复有记录 | 更新后回滚、跨主机恢复由相关方向协同 |
+| 三种接入方式 | 算子注册、库替换、版本补丁的方案及接口约定已交评审稿 | 跨组确认与逐项实现 |
 
-本方向只负责调用、准入、选择、恢复边界与证据，不修改算子内核或放宽精度阈值。现有模型测试是有限配置的合成输入短训练。数值资格是离线验证，不是在线自动精度检测。
+## 平台证据
 
-## 证据与代码版本
+| 平台/场景 | 结果与问题 | 证据 |
+|---|---|---|
+| 910C官方镜像 / 公共719de8c入口 | Qwen0.6B FP32 batch1 seq32，双rank三路通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/公共训练入口模型审核接入-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-public-entry-20261104/summary.json) |
+| 新152 P800 / v2 / GEMM补丁关闭 | DeepFM FP32 batch32三路通过，sigmoid资格6组×3次通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800新机三路回归-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-p800-regression-20261104/summary.json) |
+| 910C历史模型 | Qwen有限训推、OneRec seq16通过；OneRec seq32梯度及DeepFM参数超差，保留原生 | [10-23报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
+| P800历史模型 | 三单算子通过；DeepFM通过；Qwen FP32 seq32与OneRec BF16 seq16梯度超差，审核拒绝 | [10-29报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800接入与安全回退验证-20261029.md) |
+| 910C双rank故障注入 | 前向/反向异常均双方0次优化器更新 | [10-28报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/双rank步骤门控验证-20261028.md) |
+| 910C训练v3 | 原生/拒绝路径已有证据；目标编译TLE/shmem缺失待解决 | [环境差异](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
 
-| 材料 | 固定版本/链接 |
+模型回归使用合成输入短训练；数值资格由独立探针验证，本方向不改内核或放宽阈值。
+
+## 发布与复现
+
+| 材料 | 固定版本或入口 |
 |---|---|
-| 功能仓及源码候选 | [dev2@6ee9129](https://github.com/FlagRT/framework-adapter/tree/6ee91294e7ab028f2e804225482f58d24c8ccd5a)、[依赖锁](https://github.com/FlagRT/runtime-team/blob/f550a874d857da5a5cfa25a58919b82b6ccbde73/dev/framework-adapter/package.lock.json)；从精确源码构建，不是PyPI稳定发布 |
-| 910C接入实测 | [10-18报告](https://github.com/FlagRT/runtime-team/blob/8963353653ff8610d44b1f6a89be43ea680b77cf/dev/framework-adapter/docs/910C公共适配器实测-20261018.md) |
-| 双rank更新前阻断 | [10-28报告](https://github.com/FlagRT/runtime-team/blob/8963353653ff8610d44b1f6a89be43ea680b77cf/dev/framework-adapter/docs/双rank步骤门控验证-20261028.md) |
-| P800三模型、通过与失败 | [10-29报告](https://github.com/FlagRT/runtime-team/blob/c9f32bf7edf80db2d74100cebd5c8acea0686ee6/dev/framework-adapter/docs/P800接入与安全回退验证-20261029.md)、[结构化证据](https://github.com/FlagRT/runtime-team/tree/c9f32bf7edf80db2d74100cebd5c8acea0686ee6/dev/framework-adapter/docs/evidence-p800-20261029) |
-| dev2发布审查 | [报告与复现](https://github.com/FlagRT/runtime-team/blob/f550a874d857da5a5cfa25a58919b82b6ccbde73/dev/framework-adapter/docs/dev2发布审查-20261103.md)、[机器摘要](https://github.com/FlagRT/runtime-team/blob/f550a874d857da5a5cfa25a58919b82b6ccbde73/dev/framework-adapter/docs/evidence-dev2-release-20261103/summary.json)：两次独立构建各100项包CPU控制、34项case控制、3条审核证据SHA通过；10个运行时文件与历史实测wheel一致，不是新硬件成绩 |
-| P800集成入口 | [case与baseline/demo](https://github.com/FlagRT/runtime-team/tree/f550a874d857da5a5cfa25a58919b82b6ccbde73/dev/framework-adapter/cases/kunlun-unary)：依赖锁已对齐dev2；另需基座/权重及重新核验环境，不保证一键重现所有历史实验 |
+| 功能源码 | [dev3@40864f9](https://github.com/FlagRT/framework-adapter/tree/40864f9ac266163a80e323ca1abe082bb6b8a2f9) |
+| 制品版本锁 | [package.lock.json](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/package.lock.json)，精确源码、实测wheel和两次重建SHA |
+| 发布审查 | [报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/dev3发布审查-20261104.md)、[核验摘要与脚本](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-dev3-release-20261104/) |
+| 三通道方案/接口 | [方案](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/三通道接入方案.md)、[接口约定](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/接入接口约定.md) |
+| 本方向材料 | 本人分支cgu135/framework-adapter；公共dev-1.0只同步STATUS及固定证据指针 |
+| 操作与索引 | [HANDOFF](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/HANDOFF.md)、[报告目录](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/README.md) |
 
-本次已发布dev2运行时源码及构建说明；未上传wheel附件、未发PyPI或改历史稳定标签。新构建wheel与历史实测wheel归档SHA不同，运行时负载相同；不要混为一次硬件验收。Python Environment的torch_npu关键字改为backend_version（旧昇腾JSON读取仍兼容）。个人分支证据通过固定提交链接引用，公共分支不复制交付物正文。
+源码候选按固定提交离线构建；未上传PyPI。新P800旧机迁移已完成，9395文件逐文件SHA核验通过。11-04实测结束后11机7个及27机1个本人容器均已停止。
 
-## 下一阶段
+本页仅同步本方向状态与交付物指针，详细材料在上述固定个人分支提交中。独立仓由公共 dev/repos.yaml 收录。
 
-1. 对照功能拆分表确认合同节点，评审三路线的接口、所有权、版本约束和安全状态；不将11-04状态更新期限误作全部功能完成期限。
-2. dev2源码候选已审查发布；接下来补公共训练入口的模型身份/审核采集，库替换和补丁按方案逐项验收。模型审核目前在P800 case接齐，不自动覆盖公共双rank CLI。
-3. 新P800环境按统一基座复建，先做一个已有通过模型的关闭/开启/不满足条件三路回归，再扩平台。本人实验资料9395文件、约120.5GiB已迁移并校验，公共模型另协调。
-4. 消费设备方向兼容表，数值问题交算子/编译方向；不重复建设全组设备矩阵或接管通信验收。
+## 下一步
 
-本页至少每两周更新一次，重要交付同步更新证据链接。11月排期以正式功能表为准，合同具体日期待核；尚无自动定期更新机制。
+1. 配置、模型或版本变化使旧审核失效：补公共入口硬件证据。
+2. 严格目标模式在不满足条件时训练前拒绝：检查零模型训练、零优化器更新与拒绝原因。
+3. 与device-context确认模型身份/审核的稳定传递接口，减少随公共入口更新的人工适配。
 
-## 交付物指针（总组约定保留）
-
-- 独立仓：FlagRT/framework-adapter（私有，main为唯一工作线；查看链接需相应权限）。
-- 历史v0.2.0验收锚93daa5e保留，不替代本页新版本和限定证据。
-- 布局收录于[dev/repos.yaml](../repos.yaml)，由dev/clone_all.sh收拢。
-- 公共dev-1.0本方向只维护状态与指针，不将交付物正文和个人分支全部历史材料并入。
+本页至少每两周更新，重要交付同步证据链接。详细后续计划维护于workspace执行计划；历史过程见[归档](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/archive/session-20261103/README.md)。

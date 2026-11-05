@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import Any
+import logging
 
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch, BadRequestError, helpers
 
 from ..config import Settings
 
@@ -93,18 +94,37 @@ class ElasticsearchStore:
         return success, errors
 
     def bm25_search(self, query: str, size: int = 50) -> list[dict[str, Any]]:
-        response = self.client.search(
-            index=self.resource_name,
-            size=size,
-            query={
-                "multi_match": {
-                    "query": query,
-                    "fields": ["title^2", "text"],
-                    "type": "best_fields",
-                }
-            },
-        )
+        try:
+            response = self.client.search(
+                index=self.resource_name, size=size,
+                query={"multi_match": {"query": query, "fields": ["title^2", "text"], "type": "best_fields"}},
+            )
+        except BadRequestError as error:
+            detail = str(error.body).lower()
+            if not any(marker in detail for marker in
+                       ('too_many_clauses', 'too_many_nested_clauses', 'too many nested clauses', 'maxclausecount')):
+                raise
+            # Bound only lexical retrieval. The caller's full query still goes
+            # to embedding and reranking. Do not raise the cluster-wide limit.
+            bounded = self._bounded_bm25_query(query)
+            response = self.client.search(index=self.resource_name, size=size, query=bounded)
         return _normalize_hits(response, "bm25")
+
+    def _bounded_bm25_query(self, query: str) -> dict[str, Any]:
+        fields = []
+        counts = {}
+        for field, boost in (("title", 2.0), ("text", 1.0)):
+            analysis = self.client.indices.analyze(index=self.resource_name, field=field, text=query)
+            terms = list(dict.fromkeys(item["token"] for item in analysis["tokens"]))
+            selected = terms[:256]
+            counts[field] = {"unique_terms": len(terms), "selected_terms": len(selected)}
+            if selected:
+                # Already analyzed terms are not analyzed/expanded again.
+                fields.append({"bool": {"should": [{"term": {field: term}} for term in selected],
+                                        "minimum_should_match": 1, "boost": boost}})
+        logging.getLogger(__name__).warning(
+            "event=bm25_clause_limit_fallback policy=first_256_unique_analyzed_terms_per_field counts=%s", counts)
+        return {"dis_max": {"queries": fields}} if fields else {"match_none": {}}
 
     def dense_search(
         self,

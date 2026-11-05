@@ -1,0 +1,91 @@
+{
+  "scope": "kunlun",
+  "runs": [
+    {
+      "name": "before",
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes=1",
+        "--nproc_per_node=2",
+        "--rdzv_backend=static",
+        "--master_addr=127.0.0.1",
+        "--master_port=37535",
+        "/workspace/dev/communication/training/failure_restart.py",
+        "--worker",
+        "--backend",
+        "kunlun",
+        "--scenario",
+        "healthy",
+        "--output",
+        "/workspace/evidence/failure-restart-v1/failure/before",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 4.350633168010972,
+      "remaining_worker_pids": [],
+      "pass_check": true
+    },
+    {
+      "name": "injected",
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes=1",
+        "--nproc_per_node=2",
+        "--rdzv_backend=static",
+        "--master_addr=127.0.0.1",
+        "--master_port=58399",
+        "/workspace/dev/communication/training/failure_restart.py",
+        "--worker",
+        "--backend",
+        "kunlun",
+        "--scenario",
+        "loss",
+        "--output",
+        "/workspace/evidence/failure-restart-v1/failure/injected",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype"
+      ],
+      "exit_code": 1,
+      "timed_out": false,
+      "seconds": 36.90299850597512,
+      "remaining_worker_pids": [],
+      "pass_check": true
+    },
+    {
+      "name": "restart",
+      "argv": [
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "-m",
+        "torch.distributed.run",
+        "--nnodes=1",
+        "--nproc_per_node=2",
+        "--rdzv_backend=static",
+        "--master_addr=127.0.0.1",
+        "--master_port=47461",
+        "/workspace/dev/communication/training/failure_restart.py",
+        "--worker",
+        "--backend",
+        "kunlun",
+        "--scenario",
+        "healthy",
+        "--output",
+        "/workspace/evidence/failure-restart-v1/failure/restart",
+        "--runtime-root",
+        "/workspace/dev/device-context/prototype"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 4.396524113952182,
+      "remaining_worker_pids": [],
+      "pass_check": true
+    }
+  ],
+  "verdict": "PASS",
+  "boundary": "Worker-process loss only; no driver reset, checkpoint resume or atomic update guarantee"
+}

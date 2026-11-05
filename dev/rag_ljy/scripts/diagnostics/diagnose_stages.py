@@ -33,7 +33,7 @@ async def main():
     source = project/'data/queries/nfcorpus-50.jsonl'
     queries = [json.loads(l) for l in source.read_text().splitlines()][:2]
     stamp = datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d_%H%M%S')
-    out = Path(__file__).resolve().parents[2]/'artifacts/diagnostics/runs'/f'diagnosis-{stamp}-{uuid4().hex[:6]}'
+    out = Path(__file__).resolve().parents[2]/'experiment_outputs/diagnostics/runs'/f'diagnosis-{stamp}-{uuid4().hex[:6]}'
     out.mkdir(parents=True)
     print(out, flush=True)
     records = []

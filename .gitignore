@@ -39,3 +39,6 @@ AGENTS.md
 # 仓根 evidence/ = 运行环境容器写的构建/验证日志（如 flagcx-build.log，root 属主），运行产物不入仓；
 # 注意与各镜像 assets/evidence/（验收证据截选，须入仓）区分：本规则锚定仓根，不递归匹配子目录同名。
 /evidence/
+
+# Local symlink to externally stored RAG experiment output
+/dev/rag_ljy/experiment_outputs

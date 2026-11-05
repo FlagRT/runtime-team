@@ -36,6 +36,6 @@ for mode in ['none','before','after','both']:
                    'max_abs_diff':max((x-refs[0]).abs().max().item() for x in refs),
                    'hashes':[hashlib.sha256(x.numpy().tobytes()).hexdigest() for x in refs]}
     print(mode,summary[mode]['unique_outputs'],summary[mode]['max_abs_diff'],flush=True)
-out=Path(__file__).resolve().parents[2]/'artifacts/diagnostics/runs'/f'rope-kernel-{datetime.now():%Y-%m-%d_%H%M%S}-{uuid4().hex[:6]}.json'
+out=Path(__file__).resolve().parents[2]/'experiment_outputs/diagnostics/runs'/f'rope-kernel-{datetime.now():%Y-%m-%d_%H%M%S}-{uuid4().hex[:6]}.json'
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(json.dumps(summary,indent=2)+'\n')

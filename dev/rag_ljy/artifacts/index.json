@@ -1,10 +1,14 @@
 {
-  "updated": "2026-10-14",
+  "updated": "2026-10-20",
   "path_base": "dev/rag_ljy",
   "entries": {
+    "current_memory_admission": {
+      "path": "artifacts/checks/memory_admission/2026-10-20/report.md",
+      "description": "可选内存准入：高低水位、全链路预算及延迟释放、并发/取消/异常测试；169项回归通过，受控读数，非真实NPU压力测试"
+    },
     "current_memory_probe": {
       "path": "artifacts/checks/memory_probe/2026-10-14_132823-f0ad80/report.md",
-      "description": "device-context内存探测：跨进程分配/释放可见，真实API173次采样及4查询通过，120项回归通过；尚未用于内存准入"
+      "description": "2026-10-14 device-context内存探测：跨进程分配/释放可见，173次health检查及4查询通过，120项回归通过；该轮仅探测"
     },
     "frozen_queries": {
       "path": "data/queries/nfcorpus-50.jsonl",
@@ -48,7 +52,7 @@
     },
     "current_queue_evidence": {
       "path": "artifacts/checks/queue_evidence/2026-10-09_140744-milvus-30d953/report.md",
-      "description": "主API同时/错峰各8请求、9请求超限与恢复通过；33个完整三阶段记录、22项调度测试通过；尚无内存水位准入"
+      "description": "2026-10-09 主API同时/错峰各8请求、9请求超限与恢复通过；33个完整三阶段记录、22项调度测试通过；该轮仅数量准入"
     },
     "current_queue_pipeline": {
       "path": "artifacts/benchmarks/queued-pipeline-2026-10-09_134251-78a48d/summary.json",

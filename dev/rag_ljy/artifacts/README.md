@@ -1,11 +1,14 @@
+> 2026-10-29：此目录保留历史证据。后续实验默认输出改为项目根目录 `experiment_outputs/`（本地符号链接），实际保存到 `/home/jliu171/jliu171_data/hetero_data/rag/experiments/`。详见 [当前状态](../status.md)。
+
 # 实验结果与证据
 
-更新：2026-10-09。所有结果按用途保存，原始记录保留；新运行写入具日期和唯一ID的目录。
+更新：2026-10-20。所有结果按用途保存，原始记录保留；新运行写入具日期的目录。
 
 ## 当前有效结果
 
 | 内容 | 文件 |
 |---|---|
+| 内存准入原型：高低水位、预算、并发/取消/异常；169项回归，受控读数非真机压力 | [单文件准入报告](checks/memory_admission/2026-10-20/report.md) |
 | device-context设备内存探测：跨进程分配/释放验证、120项回归通过 | [单文件内存探测报告](checks/memory_probe/2026-10-14_132823-f0ad80/report.md) |
 | 在线同时/错峰各8请求、超限拒绝与恢复、跨阶段重叠及22项调度测试 | [在线队列实测证据](checks/queue_evidence/2026-10-09_140744-milvus-30d953/report.md) |
 | 独立有界阶段队列：200次完整API调用，双库各50/50结果一致 | [队列测试报告](benchmarks/queued-pipeline-2026-10-09_134251-78a48d/report.md) |
@@ -31,6 +34,7 @@
 - `rebuilds/`：数据库重建、计数、重启与新基线。
 - `checks/embeddings/`：向量相似度冒烟检查。
 - `checks/memory_probe/`：设备内存读数与验证，每次运行仅保存一个小型报告。
+- `checks/memory_admission/`：准入与预算验证，每轮仅保存一份报告，明确受控测试与真机实测边界。
 - `checks/multi_request/`：HTTP检查的完整结果，包括历史失败。
 - `checks/queue_evidence/`：同时/错峰、超限与恢复验证；完整响应、服务端阶段时间线及health队列采样。
 - `diagnostics/`：差异定位、控制实验；`runs/`保存raw复现。

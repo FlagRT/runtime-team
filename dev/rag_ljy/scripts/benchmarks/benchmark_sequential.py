@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fine-top-k", type=int, choices=range(3, 6), default=5)
     parser.add_argument("--embedding-batch-size", type=int, default=8)
     parser.add_argument("--reranker-batch-size", type=int, default=4)
-    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parents[2] / "artifacts/benchmarks", help="parent for a new uniquely named run directory")
+    parser.add_argument("--output-dir", type=Path, default=Path(__file__).resolve().parents[2] / "experiment_outputs/benchmarks", help="parent for a new uniquely named run directory")
     args = parser.parse_args()
     if args.warmup < 0 or args.repeats < 1 or (args.limit is not None and args.limit < 1):
         parser.error("warmup must be >=0; repeats and limit must be positive")

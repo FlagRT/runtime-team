@@ -36,7 +36,7 @@ def main():
                         default=['sequential', 'concurrent'])
     parser.add_argument('--es-index', default='nfcorpus-chunks-v1')
     parser.add_argument('--milvus-collection', default='nfcorpus_chunks_v1')
-    parser.add_argument('--output-dir', type=Path, default=Path(__file__).resolve().parents[2] / 'artifacts/benchmarks')
+    parser.add_argument('--output-dir', type=Path, default=Path(__file__).resolve().parents[2] / 'experiment_outputs/benchmarks')
     args = parser.parse_args()
     if args.limit < 1 or args.warmup < 0 or args.repeats < 1:
         parser.error('limit/repeats must be positive; warmup must be nonnegative')
