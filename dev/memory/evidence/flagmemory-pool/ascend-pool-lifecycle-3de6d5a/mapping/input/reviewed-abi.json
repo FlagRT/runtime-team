@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "review_status": "accepted",
+  "reviewer": "Codex /root/ascend_execution_readiness independent ABI and source-contract review",
+  "reviewed_at": "2026-11-04T06:56:51.816665+00:00",
+  "preparation_status": "final-schema-checked-contract-only",
+  "review_scope": "ABI and exact-source contracts only; no device mapping or health result",
+  "runtime_query_observed": false,
+  "realcard_passed": false,
+  "review_report_path": "C:\\Users\\Tang\\Documents\\CODE\\flag_RT\\tasks\\memory-ascend-validation-20261104\\abi-and-event-review.md",
+  "review_report_sha256": "810c6cf24514ac1831b2109fbc1bc8cca15bcbcec67fb521d9f1936eb53350a1",
+  "review_evidence_sha256s": {
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\evidence2.txt": "c76e9195afa261e0d918a0154ce96ddeef4f606b4076c2221128f4e262611d03",
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\supplement.txt": "284790bbadd096c706a70fab4f567471259c69b2cbfd494d4082949243d21e2a",
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\identity.txt": "6151453cc6e37eaf4efea5da5ec38c310acb88c5c0d8f64208537c9f5febfdea"
+  },
+  "final_commit_schema_checked": true,
+  "library_realpath": "/usr/local/Ascend/cann-9.0.0/aarch64-linux/lib64/libascendcl.so",
+  "library_sha256": "94edd165d95210c2a46c52f77f0215cb64e78c42176a451f8e118daccfa912fe",
+  "header_sha256s": {
+    "/usr/local/Ascend/cann-9.0.0/aarch64-linux/include/acl/acl_rt.h": "4691b8532495a556dce03d63a3ff431ddefedc982d0db6a337efeb101ec5180c",
+    "/usr/local/Ascend/cann-9.0.0/aarch64-linux/include/acl/acl_base.h": "f7c6c5c7538585c7656aa1240a402035d967d49183dce2d294429e18dca4faae",
+    "/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/include/third_party/acl/inc/acl/acl_base.h": "14184eca0c6aabd5886a32a21d01b1d14daf91119f4443dee3b6c81874fed859"
+  },
+  "signatures": {
+    "aclInit": "int32(char*)",
+    "aclFinalize": "int32()",
+    "aclrtGetDeviceCount": "int32(uint32*)",
+    "aclrtGetLogicDevIdByUserDevId": "int32(int32,int32*)",
+    "aclrtGetPhyDevIdByLogicDevId": "int32(int32,int32*)"
+  },
+  "exports": [
+    "aclInit",
+    "aclFinalize",
+    "aclrtGetDeviceCount",
+    "aclrtGetLogicDevIdByUserDevId",
+    "aclrtGetPhyDevIdByLogicDevId"
+  ],
+  "init_required": true,
+  "init_argument": null,
+  "physical_argument_semantics": "identity-only-user-equals-logic",
+  "platform": "aarch64",
+  "elf_class": "ELF64",
+  "elf_byte_order": "little-endian",
+  "abi": "SystemV-AAPCS64",
+  "python_c_int_bytes": 4,
+  "python_pointer_bytes": 8,
+  "schema_checked_commit": "e4a1e7f5b4b29abe36d78f6ecd19d59cf7dff744",
+  "schema_checked_at": "2026-11-04T07:08:15.973761+00:00",
+  "schema_source_sha256": "54a8f1dc101d7fefdebb90fd44d99bd12f55c2378fedfb162b124b95e620a645",
+  "schema_source_path": "C:\\rt\\fm\\tools\\ascend_probe.py"
+}
