@@ -589,5 +589,100 @@
   "secret_flag": false,
   "sha256_private_original": "c9bb39cde4fede0fbd4e927adf642a2b167c7a2f73a928363eea90f119129d42",
   "sha256_published": "c9bb39cde4fede0fbd4e927adf642a2b167c7a2f73a928363eea90f119129d42"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-client-a.json",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "b7eeec65462e62f680c9bb65766bd9529ca572d415026a0bf84d1e72a3570adb"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-client-b.json",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "04e42d094307f3516474918f6f4c3d15f6f77958a1c8e6d9b58866f4db25269d"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-ppu-smi-after-a.txt",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "53d295f4d9ca30b8ffb477e5650f8916a349ebe70692355f7808d17aee180c5d"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-ppu-smi-after-b.txt",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "da7097f2b5e075890ddf13701b62c2e0b08a735c9c402f414f3f65e572f4886e"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-ppu-smi-before.txt",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "d1b63c5420fba9b84f61b2d0104a04a2edca99f12c490a22b199b578be2db4e9"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-recall-load2.out",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "d711024b2df56232e2fea3cadf3782688ac8012393b3fbedb5d1ca9da86b08df"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-recall-probe.out",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "263d30f9d5f62a67b785f13623cd38ffcca96fe56e56f3ba073f83147e0312e8"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-serve-a.log",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "4fbfe8bc6883e655eb21e3f8fb092a39c9c82a8c0b186dc814e40552d02a2f80"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-serve-a.stdout.log",
+  "redactions": {
+   "192.168.5.112-><host-ip>": 1
+  },
+  "secret_flag": false,
+  "sha256_published": "680f1abd669005b31c0834dbb33bb42a1089e5784d8c3593f9d9e12a82661868",
+  "note": "in-place sanitized on PTG_0 before publish; single hash (pre-sanitize bytes not retained separately)"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-serve-b.log",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "31ad0f6b44700bd1c5510c8f3c00f6a6d885acc630a77218bbf656530fb7306c"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-serve-b.stdout.log",
+  "redactions": {
+   "192.168.5.112-><host-ip>": 1
+  },
+  "secret_flag": false,
+  "sha256_published": "acd3965283a937635a4ab1ce5dffea6009ff92df666ab8caeddc74b53d200bd0",
+  "note": "in-place sanitized on PTG_0 before publish; single hash (pre-sanitize bytes not retained separately)"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab-summary.txt",
+  "redactions": {
+   "192.168.5.112-><host-ip>": 3,
+   "ai-server/PTG_0-><host>": 1,
+   "xliu969-><user>": 1
+  },
+  "secret_flag": false,
+  "sha256_published": "d96fe57d36af4fed1ac92ec046f41675503c804b4c40532416593e4924ac5173",
+  "note": "in-place sanitized on PTG_0 before publish; single hash (pre-sanitize bytes not retained separately)"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab_client.py",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "10e9caf01deed58fa028298a39062704e0a3c18aa704350bcd0b3420187fa401"
+ },
+ {
+  "path": "ppu-tier-closeout-536bf3b/ab_recall_probe.py",
+  "redactions": {},
+  "secret_flag": false,
+  "sha256_published": "b42c73589636afc55070059bc0ba5973db3db454e31079ab8f74b19b5c3f3dc9"
  }
 ]

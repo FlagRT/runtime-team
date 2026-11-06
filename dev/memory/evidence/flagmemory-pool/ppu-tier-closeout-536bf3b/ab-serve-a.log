@@ -1,0 +1,28 @@
+(EngineCore pid=571) /usr/local/lib/python3.12/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+(EngineCore pid=571)   warnings.warn(
+(EngineCore pid=571) /usr/local/lib/python3.12/site-packages/torch/library.py:363: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+(EngineCore pid=571)   Overriding a previously registered kernel for the same operator and the same dispatch key
+(EngineCore pid=571)   operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+(EngineCore pid=571)     registered at aten/src/ATen/RegisterSchema.cpp:6
+(EngineCore pid=571)   dispatch key: CUDA
+(EngineCore pid=571)   previous kernel: registered at aten/src/ATen/RegisterCPU_3.cpp:7150
+(EngineCore pid=571)        new kernel: registered at /usr/local/lib/python3.12/site-packages/flag_gems/__init__.py:63 (Triggered internally at ../aten/src/ATen/core/dispatch/OperatorEntry.cpp:208.)
+(EngineCore pid=571)   self.m.impl(
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for CUDA dispatch key and aten namespace.
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for CUDA dispatch key and aten namespace.
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding unbind_copy.int's behavior for CUDA dispatch key and aten namespace.
+[rank0]:[W1106 18:32:27.981255193 ProcessGroupGloo.cpp:524] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+(EngineCore pid=571) [2026-11-06 18:32:33] [INFO] [vllm_fl.dispatch.policy] Using custom config from '/opt/vllm-plugin-FL/vllm_fl/dispatch/config/thead.yaml'
+(EngineCore pid=571) [2026-11-06 18:32:33] [INFO] [vllm_fl.dispatch] Registering vendor backends for current platform: thead
+(EngineCore pid=571) [2026-11-06 18:32:33] [INFO] [vllm_fl.dispatch.manager] OpManager initialized: 11 ops with 20 implementations
+(EngineCore pid=571) [2026-11-06 18:32:33] [INFO] [vllm_fl.dispatch.manager] Op 'attention_backend' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(EngineCore pid=571) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  5.87it/s]
+(EngineCore pid=571) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  5.86it/s]
+(EngineCore pid=571) 
+(EngineCore pid=571) [2026-11-06 18:32:34] [INFO] [vllm_fl.dispatch.manager] Op 'rms_norm' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) [2026-11-06 18:32:34] [INFO] [vllm_fl.dispatch.manager] Op 'rotary_embedding' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) [2026-11-06 18:32:36] [INFO] [vllm_fl.dispatch.manager] Op 'silu_and_mul' using 'default.flagos' (kind=flagos, vendor=None)
+(APIServer pid=1) INFO:     Started server process [1]
+(APIServer pid=1) INFO:     Waiting for application startup.
+(APIServer pid=1) INFO:     Application startup complete.

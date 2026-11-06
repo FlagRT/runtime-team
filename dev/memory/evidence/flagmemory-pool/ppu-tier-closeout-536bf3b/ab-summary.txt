@@ -1,0 +1,40 @@
+# PPU connector 真模型 A/B 对照 —— 结果摘要（2026-11-06）
+
+环境：<host>（<host> / <host-ip>）；FlagMemory <user>/tier-impl@536bf3b（工作区干净）；
+镜像 flagrelease_ppu_vllm024_gems_540:1012（id 6cd05dcdcf30）；模型 Qwen2.5-0.5B-Instruct（本地 /bmcp_lvm_fs/<user>/models）；
+卡 PPU1（跑前 26MiB 空闲，见 ab-ppu-smi-before.txt）；两轮容器 fm-ab-a / fm-ab-b 用毕即删（docker ps 无 fm-ab-* 残留）。
+共同 serve 配置：--gpu-memory-utilization 0.3 --enforce-eager --max-model-len 512 --kv-cache-memory-bytes 33554432
++ 启动三件套（--entrypoint bash / source /usr/local/PPU_SDK/envsetup.sh / UMD_PLATFORM_TYPE=1 HGGC_DRIVER_CANDIDATE=UMD）。
+本镜像（1012）无需 reference_register_ops.py 补丁挂载即起引擎（与发版镜像不同）。
+B 轮增：--kv-transfer-config {PpuSimpleCPUOffloadConnector, module flagmemory.tiering.offload.ppu, kv_both,
+cpu_bytes_to_use=67108864}（host 池 = GPU 池 200%）。客户端：20 条固定中文短 prompt，greedy（temperature=0），
+max_tokens=64，并发 4（规避 15+ flaggems device-side assert 坑）。
+
+## 指标（main20，20 条同 prompt）
+
+| 指标 | A（无 connector） | B（开卸载） | 差 |
+|---|---|---|---|
+| wall | 41.821 s | 66.326 s | +58.6% |
+| completion tokens | 1137 | 1146 | - |
+| 吞吐 | 27.19 tok/s | 17.28 tok/s | -36.4% |
+| 时延 p50 / mean / max (s) | 4.804 / 8.256 / 25.137 | 4.180 / 12.523 / 45.344 | p50 持平，尾部劣化 |
+
+（B 轮 GPU KV 池被人为压到 32MiB，超池换出换入每请求真实发生，吞吐下降属预期代价，与 2026-10-26 冒烟「超池 200% +2.1%」方向一致但幅度更大——本轮为真模型 + 逐块搬运路径。）
+
+## 诊断标记计数（ab-serve-b.log）
+
+- [PpuOffload-DMA] store：123 批次，累计 398 块（24 层）
+- [PpuOffload-DMA] load：4 批次，累计 8 块（召回实锤，18:40:40-45）
+- [PpuOffload-SCHED] entry：多次；hit_len 非 0 命中 4 次（最高 hit_len=80）
+
+召回触发剧本（ab_recall_probe.py / ab-recall-load2.out）：4 条共享前缀 prompt 入池 → 8 并发长 filler
+覆写 GPU 池 → 重放原 prompt → SCHED 命中 + load DMA。注：短 prompt 直接送 filler 不足覆写时
+重放走 GPU cached-free 命中（hit_len=0、computed=96），须足量覆写才产生 load——与 offload/README
+「cached-free 块 hash 保留」坑记载一致。
+
+## 输出一致性
+
+- A vs B 逐 prompt 对比：20/20 主题一致、语义同向，但非逐字相同（greedy 下跨运行批形状不同 →
+  flaggems kernel 数值非确定，token 分叉）。语义一致性判定：通过（人工抽读全部同题同向，无乱码/崩坏）。
+- B 轮内部强证据：召回 probe stage1 与 stage3（经 CPU 池 store→覆写→load 召回）四条输出**逐字一致**，
+  说明卸载/召回 KV 往返不破坏生成一致性。
