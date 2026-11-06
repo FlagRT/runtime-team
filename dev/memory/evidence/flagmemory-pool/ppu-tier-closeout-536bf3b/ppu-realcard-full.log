@@ -1,0 +1,77 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.2.0, pluggy-1.3.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(PosixPath('/ws/.hypothesis/examples'))
+rootdir: /ws, configfile: pyproject.toml
+plugins: anyio-4.15.1, xdist-3.6.1, hypothesis-6.103.4
+collecting ... collected 15 items
+
+tests/tiering/test_ppu_backend_realcard.py::test_真connector懒加载与全链路搬运闭环 PASSED [  6%]
+tests/tiering/test_ppu_backend_realcard.py::test_未record事件误报拦截 PASSED [ 13%]
+tests/tiering/test_ppu_tier_manager_realcard.py::test_T8负例_级二容量不大于级一池容量报错不启 PASSED [ 20%]
+tests/tiering/test_ppu_tier_manager_realcard.py::test_真卡端到端编排_注册分类换出换入全链路 PASSED [ 26%]
+tests/pool/test_pool_realcard.py::TestNormal::test_判据一_按大小分级的块池 PASSED [ 33%]
+tests/pool/test_pool_realcard.py::TestNormal::test_判据二_按流顺序分配与归还 PASSED [ 40%]
+tests/pool/test_pool_realcard.py::TestNormal::test_自管路是这一款芯片上的必经路 PASSED [ 46%]
+tests/pool/test_pool_realcard.py::TestNormal::test_水位双指标在真卡上都有真数 PASSED [ 53%]
+tests/pool/test_pool_realcard.py::TestNormal::test_整理与压力回收把块交回底座 PASSED [ 60%]
+tests/pool/test_pool_realcard.py::TestNormal::test_完整生命周期走一遍并留下证据 PASSED [ 66%]
+tests/pool/test_pool_realcard.py::TestBoundary::test_实测得到的粒度是正数且档位按它切 PASSED [ 73%]
+tests/pool/test_pool_realcard.py::TestBoundary::test_屏障超时在真卡上也是可恢复态 PASSED [ 80%]
+tests/pool/test_pool_realcard.py::TestError::test_未record的事件在这一栈上原生误报已完成 PASSED [ 86%]
+tests/pool/test_pool_realcard.py::TestError::test_重复归还由池账本拦下 PASSED [ 93%]
+tests/pool/test_pool_realcard.py::TestError::test_容量不足时报错不静默缩小请求 PASSED [100%]
+
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    and isinstance(item.value, ast.Str)
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    doc = item.value.s
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: 103 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    inlocs = ast.Compare(ast.Str(name.id), [ast.In()], [locs])
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: 103 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expr = ast.IfExp(test, self.display(name), ast.Str(name.id))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: 68 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    syms.append(ast.Str(sym))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: 68 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expls.append(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: 353 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    keys = [ast.Str(key) for key in current.keys()]
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: 71 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    assertmsg = ast.Str("")
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: 73 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: 73 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    clear = ast.Assign(variables, ast.NameConstant(None))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+====================== 15 passed, 924 warnings in 11.88s =======================
