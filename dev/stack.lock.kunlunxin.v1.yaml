@@ -3,7 +3,7 @@
 # 文件：dev/stack.lock.kunlunxin.v1.yaml
 # 效力：本文件是全组（昆仑芯线）结论性验证的唯一环境依据；任何变更需更新本文件并知会全组
 # 起草：runtime-team ｜ 总组定稿 ｜ 结构参照 dev/stack.lock.910c.v3.yaml，内容按 P800 实情如实分叉
-# 记录：2026-10-14 ｜ 定稿：2026-10-14 ｜ 状态：生效
+# 记录：2026-10-14 ｜ 定稿：2026-10-14 ｜ 状态：生效（2026-11-09 起两腿分栈：训练腿 = operator-runtime v2，推理腿 = kunlun-infer-vllm v1）
 # 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
 #
 # 本文件为昆仑芯 P800 首份锁定声明：此前该芯片无 stack.lock 文件。发布物 =
@@ -15,7 +15,7 @@
 
 version: 1
 recorded_at: "2026-10-14"
-updated_at: "2026-10-14"
+updated_at: "2026-11-09"
 owner: 总组
 chip: "昆仑芯 P800"
 acceptance_model: "Qwen/Qwen3-Embedding-0.6B"
@@ -46,12 +46,12 @@ device_registration:
     为 0）；不需要 --privileged，不需要挂宿主驱动目录（XRE 在镜像内）。
 
 # ---------------------------------------------------------------
-# 锁定镜像（训练/推理推荐默认底座，同一镜像，无需按场景拆分）
+# 锁定镜像（2026-11-09 起两腿分栈：训练/设备上下文 = runtime 腿，推理与 KV connector = infer 腿）
 # ---------------------------------------------------------------
 lock:
-  runtime:                              # 训练（transformers + FlagCX）与推理（vLLM + vllm-plugin-fl）共用
+  runtime:                              # 训练腿（transformers + FlagCX + 设备上下文）；其内置 vLLM 0.13.0 缺 simple_cpu_offload_connector，KV connector 场景用 infer 腿
     image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
-    notes: "= 训练/推理推荐默认底座（超集，无需按场景选镜像）；带 5 条已知限制（K-1~K-5；K-1 按运行环境版本分述、K-5 为数值正确性），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。现行运行环境 = dev/images/kunlun-operator-runtime/v2/env/v1/（GEMM 编译修复接入，显式 opt-in，ADR-0010；demo/ 为冻结的第 0 版）。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
+    notes: "= 训练腿基座；带 5 条已知限制（K-1~K-5；K-1 按运行环境版本分述、K-5 为数值正确性），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。现行运行环境 = dev/images/kunlun-operator-runtime/v2/env/v1/（GEMM 编译修复接入，显式 opt-in，ADR-0010；demo/ 为冻结的第 0 版）。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
     container_name: "flagrt-kunlun-v2-env-v1-p800（现行运行环境容器：dev/images/kunlun-operator-runtime/v2/env/v1/；demo 容器 flagrt-kunlun-v2-demo-p800 对应冻结的第 0 版）"
     base_image_entry: "dev/images/kunlun-operator-runtime/v2"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
     registry_status: "组内镜像无 registry 要求。image id：sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a（P800 机 VM-0-2-ubuntu 本机 docker images）｜ repro_status 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 overall: PASS）。获取：首选 dev/images/kunlun-operator-runtime/v2/build.sh 从公开源头重建（约 15 分钟）；兜底离线包 kunlun-operator-runtime-2.0.0-rootfs.tar.gz（30.80 GiB，sha256 2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5，实体路径记该机同目录 BACKUP.local），还原方式是 docker import --change（该机 docker save 对巨型镜像失效），不是 docker load"
@@ -64,6 +64,13 @@ lock:
       可用、其运行时验证结论（771 passed、训练 6/6、推理 PASSED）仍成立；v2 与
       v1 组件集合与 pin 完全相同，仅改配方形态并走正规 docker build。
 
+  infer:                               # 推理腿（vLLM 服务化 + KV connector 宿主栈），ADR-0026 定档（选项 A）
+    image: "harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4"
+    notes: "= 推理腿运行环境（上游 xVLLM 发布线镜像，登记式基线）：vllm 0.20.2+empty（自带 simple_cpu_offload_connector，FlagMemory xpu KV connector 宿主栈）/ vllm-plugin-FL 0.2.0+g38e7dbc / torch 2.9.0+cu129 / xmlir 1.0.0.1 / flag_gems 5.0.0 / flagcx 0.13.0 / triton 3.5.0（通用版，treenone）。与训练腿 v2 两腿并存（同 910C ADR-0007、寒武纪 T-041 两腿分栈口径）：训练/设备上下文仍用 runtime 腿。定档依据 ADR-0026——训练腿镜像内置 vllm 0.13.0 缺 simple_cpu_offload_connector（import 链断，环境性），本镜像 2026-11-09 P800-A 真卡三件验证通过。版本事实与验收记录见 dev/images/kunlun-infer-vllm/v1"
+    container_name: "flagmem-train-p800a（本机在跑容器，取证与验证宿主；命名沿用历史，实际承担 FlagMemory connector 真卡验证）"
+    base_image_entry: "dev/images/kunlun-infer-vllm/v1"        # 登记式基线（digest 锚、版本清单、验证记录）
+    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagrelease-public），匿名可按 digest 拉取。digest：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1（registry manifest API 回读与 P800-A 本机 RepoDigest 双向核对逐字一致，2026-11-09）｜ image id：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1｜ 约 15.6 GB｜ repro_status 🟢 上游发布镜像（不可重建是设计边界，官方产物）"
+
 # ---------------------------------------------------------------
 # 候选血统（无；发布物即 v2，无在途候选）
 # ---------------------------------------------------------------
@@ -74,7 +81,7 @@ candidates: {}
 # ---------------------------------------------------------------
 rules:
   - "必不设 XPU_EVENT_KL3_ENABLE（K-3：设置后单卡单进程即挂死，SIGTERM 无法退出须 SIGKILL；demo 刻意不设，自建环境也不得加回）"
-  - "推理必设 VLLM_FL_PREFER=vendor（K-2：默认 dispatch 下 vLLM serve 起不来，EngineCore 初始化失败；demo 已内置）"
+  - "runtime 腿内推理必设 VLLM_FL_PREFER=vendor（K-2：默认 dispatch 下 vLLM serve 起不来，EngineCore 初始化失败；demo 已内置。2026-11-09 起推理场景优先用 infer 腿，本条适用于 runtime 腿）"
   - "flagtree 一律 --no-deps 安装（K-4：否则 pip 解析额外拉入 PyPI 通用 triton==3.5.0，物理覆盖 flagtree 的 triton/ 目录，xpu 编译后端丢失；v2 配方已固化）"
   - "结论性验证只在锁定镜像内做；日常调试容器结果不作为验收依据"
   - "任何镜像变更必须更新本文件并知会全组"
@@ -140,3 +147,16 @@ changelog:
       dev/issues/kunlunxin-gemm-numeric-64cube/）。镜像与 image id 不变、不新建锁定
       声明文件（运行环境修订与镜像锁定为两根轴，ADR-0008/0010；现行运行环境口径见
       dev/images/image_list.md）。
+  - date: "2026-11-09"
+    who: "总组（memory 方向执行）"
+    what: |
+      依据 ADR-0026：昆仑芯推理腿定档（选项 A）——上游 xVLLM 发布线镜像
+      kunlunxin001-…-vllm0.20.2-…:tele4 入锁为 lock.infer（登记式基线 + Harbor digest
+      锚，对齐寒武纪 T-041 先例），动机 = 训练腿 kunlun-operator-runtime v2 内置
+      vllm 0.13.0 缺 simple_cpu_offload_connector（FlagMemory xpu KV connector
+      import 链断，环境性）；本镜像 connector import 实测可用，2026-11-09 P800-A
+      真卡三件验证通过。自本条起两腿分栈：训练/设备上下文 = runtime 腿不变，
+      推理与 KV connector 场景 = infer 腿（同 910C ADR-0007 两腿分栈思路）。
+      登记件 dev/images/kunlun-infer-vllm/v1（lock.yaml + image.baseline.yaml +
+      README.md，manual-registration）。取证全程只读（docker inspect / 在跑容器
+      pip list / Harbor manifest API），未起容器。

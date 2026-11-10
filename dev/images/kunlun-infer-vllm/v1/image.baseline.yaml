@@ -1,0 +1,80 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: manual-registration（ADR-0007 登记式基线流程 + ADR-0026 定档；上游发布镜像无仓内配方；字段口径同 ENV-SPEC §3.1，先例 cambricon-infer-vllm/v1）
+generated_at: "2026-11-09T21:45:00+08:00"
+
+image:
+  ref: harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4
+  id: sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1            # check 项（P800-A docker inspect 实测，与本机 RepoDigest 同串）
+  digest: sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1        # registry 版本锚（harbor.baai.ac.cn/flagrelease-public，tag tele4；registry manifest API 回读 Docker-Content-Digest 逐字一致，2026-11-09）
+  recipe: []                # 上游发布镜像，无仓内 Dockerfile.repro，不可重建；上游 = xVLLM 发布线（Label: git-commit 09935a6b83b9d07025800ebf3d02f33d99714e71，description xVLLM 0.20.0 branch）
+  demo: []                  # 本期无 demo 目录（定档依据为 2026-11-09 真卡三件验证，非 serve_standard 服务化验收）
+
+# ── 与自建基线的差异（ADR-0007 / ADR-0026）──────────────────────────────
+# ① 整体 = 上游发布产物 ⇒ 全部条目 from: base_image。
+# ② 镜像内无 .git ⇒ 无自证 commit 锚；版本主锚 = Harbor digest，辅锚 = pip 版本号 + 镜像 Label。
+# ③ 版本取证方式：P800-A 对 fresh docker run/exec 已知 ENOEXEC（单机病），版本取自在跑容器
+#    flagmem-train-p800a（同一镜像，conda env python310_torch29_cuda）pip list 只读实测（2026-11-09）。
+# ④ KV connector：vllm.distributed.kv_transfer.kv_connector.v1.simple_cpu_offload_connector
+#    在本镜像 import 实测可用（2026-11-09）——这正是定档动机（operator-runtime v2 的 vllm 0.13.0 缺它）。
+
+baked_repos:
+  vllm:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 0.20.2+empty
+    install: pip (wheel)
+    info: 含 simple_cpu_offload_connector（import 实测可用，2026-11-09）
+  vllm-plugin-FL:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 0.2.0+g38e7dbc
+    install: pip (editable, /workspace/vllm-plugin-FL)
+    info: 启动时插件自动加载在 import flag_gems 阶段报错（flag_gems 5.0.0 × triton 3.5.0），不阻断进程；connector 路径不受影响
+  torch:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.9.0+cu129
+    install: pip (wheel)
+  xmlir:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 1.0.0.1
+    install: pip (wheel)
+    info: 昆仑芯 torch_xmlir 设备栈（XRE 在镜像内，PATH 含 torch_xmlir/xre/bin）
+  triton:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 3.5.0
+    install: pip (wheel)
+    info: 通用 PyPI 版（tag 明示 treenone，非 FlagTree 构建物）
+  flag_gems:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 5.0.0
+    install: pip (wheel)
+  flagcx:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 0.13.0
+    install: pip (editable, /workspace/FlagCX/plugin/torch)
+    info: tag 中 cx0.13.0 即此件
+  transformers:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 4.57.6
+    install: pip (wheel)
+
+mounted_repos: {}            # 推理腿无挂载覆盖依赖
+
+changelog:
+  - date: "2026-11-09"
+    what: 首次登记（manual-registration）。定档依据 = ADR-0026（昆仑芯 KV connector 运行环境，选项 A；2026-11-09 P800-A 真卡三件验证通过）。
