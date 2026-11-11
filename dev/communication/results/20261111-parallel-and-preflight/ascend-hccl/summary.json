@@ -1,0 +1,21 @@
+{
+  "verdict": "PASS",
+  "scope": "ascend integration",
+  "device_vendor": "ascend",
+  "collective": "hccl",
+  "cases": 4,
+  "launches": 12,
+  "rank_records": 24,
+  "steps_per_launch": 50,
+  "forward_max_abs": 3.5762786865234375e-07,
+  "tensor_check_max_abs": 3.5762786865234375e-07,
+  "parameter_max_abs": 1.4901161193847656e-08,
+  "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+  "source_sha256": {
+    "parallel_minimal.py": "035e5d3f97007506fbd1524b8a410efdd8aa961ed3e0caa0a2d7486ebaa2754d",
+    "distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+    "deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+    "run_parallel_matrix.py": "26133088902ebe3f13663cf2644932e649dc3f53ed00a110ca4cddf98c401d8b"
+  },
+  "limits": "Two-layer synthetic FP32 TP/serialized PP examples, not DeepFM/OneRec model partitioning, multi-node, pipeline overlap, performance gains or checkpoint recovery."
+}

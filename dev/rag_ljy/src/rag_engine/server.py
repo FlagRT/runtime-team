@@ -34,6 +34,8 @@ class QueryRequest(BaseModel):
     fine_top_k: int = Field(default=5, ge=3, le=5)
     embedding_batch_size: int = Field(default=8, ge=1, le=8)
     reranker_batch_size: int = Field(default=4, ge=1, le=50)
+    generate: bool = False
+    max_new_tokens: int = Field(default=256, ge=1, le=8192)
 
 
 def create_app(
@@ -88,6 +90,9 @@ def create_app(
         try:
             app.state.pipeline = await asyncio.get_running_loop().run_in_executor(
                 executor, factory, device)
+            generator = getattr(app.state.pipeline, 'generator', None)
+            if generator is not None and not (memory_admission.enabled and memory_admission.estimate_requests):
+                raise ValueError('Generation requires dynamic memory admission; fixed or disabled budgets are unsupported')
             app.state.memory_estimator = None
             app.state.estimator_fault = None
             app.state.memory_observations = {}
@@ -100,6 +105,10 @@ def create_app(
                 if reranker is not None:
                     await asyncio.get_running_loop().run_in_executor(executor, partial(
                         reranker.configure_memory_guard, app.state.memory_estimator,
+                        memory_admission.safety_margin_mib))
+                if generator is not None:
+                    await asyncio.get_running_loop().run_in_executor(executor, partial(
+                        generator.configure_memory_guard, app.state.memory_estimator,
                         memory_admission.safety_margin_mib))
             embedder = getattr(app.state.pipeline, "embedder", None)
             app.state.embedding_backend = getattr(embedder, "backend", "transformers")
@@ -116,6 +125,11 @@ def create_app(
                 "rerank": StageQueue("rerank", executor,
                     capacity=stage_queue_capacity, workers=1),
             }
+            if generator is not None:
+                # Both resident local models share their initialization thread.
+                # Their queues remain independent, without overlapping forwards.
+                app.state.stage_queues['generation'] = StageQueue(
+                    'generation', executor, capacity=stage_queue_capacity, workers=1)
             # The remote embedding adapter's 'remote-vllm' label is not a device.
             # Probe the local rerank device without occupying its model worker.
             probe_device = str(getattr(getattr(app.state.pipeline, "reranker", None), "device", device))
@@ -177,6 +191,7 @@ def create_app(
         active = len(app.state.tasks)
         memory = app.state.memory_monitor.snapshot()
         estimator_fault = app.state.estimator_fault or getattr(app.state.memory_estimator, 'fault', None)
+        generation = getattr(app.state.pipeline, 'generator', None)
         return {"status": "ready", "device": app.state.device, "busy": bool(active),
                 "inflight": active, "max_inflight": max_inflight,
                 "reranker_batch_limit": max_reranker_batch_size,
@@ -190,7 +205,9 @@ def create_app(
                 "device_memory": memory,
                 "memory_admission": app.state.memory_admission.snapshot(memory),
                 "stage_queues": {name: queue.snapshot()
-                                 for name, queue in app.state.stage_queues.items()}}
+                                 for name, queue in app.state.stage_queues.items()},
+                **({'generation': {'enabled': True, 'execution_profile': generation.execution_profile}}
+                   if generation is not None else {})}
 
     async def process(request, request_id):
         pipeline = app.state.pipeline
@@ -227,6 +244,10 @@ def create_app(
                 pipeline.rank, request.query, candidates, request.fine_top_k,
                 request.reranker_batch_size, timings))
             result = format_hits(hits)
+            if request.generate:
+                generated = await stage('generation', partial(
+                    pipeline.generate, request.query, hits, request.max_new_tokens, timings))
+                result = {**generated, 'hits': result, 'timings_ms': timings}
             status = "ok"
             return result
         finally:
@@ -245,6 +266,17 @@ def create_app(
             credit = min(cache.get('reclaimable_mib', 0), state.get('measured_used_mib', 0))
         return estimator.plan(request, state.get('available_after_reservations_mib', 0), cache_credit_mib=credit)
 
+    def validate_generation(request):
+        if not request.generate:
+            return
+        generator = getattr(app.state.pipeline, 'generator', None)
+        if generator is None:
+            raise HTTPException(status_code=422, detail='Generation is not enabled on this API')
+        try:
+            generator.validate_request(request.query, request.max_new_tokens)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
     @app.post('/memory/estimate')
     async def estimate_memory(request: QueryRequest):
         """Inspect an estimate without admitting, reserving, or executing a query."""
@@ -253,6 +285,7 @@ def create_app(
                                 headers={'Retry-After': '1'})
         if request.reranker_batch_size > max_reranker_batch_size:
             raise HTTPException(status_code=422, detail='reranker_batch_size exceeds configured limit')
+        validate_generation(request)
         try:
             sample = app.state.memory_monitor.snapshot()
             state = app.state.memory_admission.snapshot(sample)
@@ -272,6 +305,7 @@ def create_app(
             raise HTTPException(status_code=422, detail=f"reranker_batch_size exceeds configured limit {max_reranker_batch_size}", headers=headers)
         if not app.state.ready:
             raise HTTPException(status_code=503, detail="Service is not ready", headers=headers)
+        validate_generation(request)
         # No await between capacity check and task registration: atomic on this loop.
         if max_inflight > 0 and len(app.state.tasks) >= max_inflight:
             raise HTTPException(status_code=503, detail="Request capacity is full; retry later",

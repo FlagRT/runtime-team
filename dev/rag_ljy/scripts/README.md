@@ -13,11 +13,15 @@
 | benchmarks/ | prepare_benchmark_queries.py、check_baseline_200.py | 准备query集、重放历史与跨引擎对比 |
 | checks/ | check_device.py、check_vllm_embeddings.py、verify_rebuilt_stores.py | 设备、向量与数据库核对 |
 | checks/ | check_memory.py | 通过device-context采样设备内存，仅生成一个小型报告文件 |
+| checks/ | check_onerec_generation.py、check_generation_live.py | OneRec单请求及三种到达模式的真实生成检查，默认只读预检 |
+| checks/ | run_generation_50.sh、check_generation_50.py | 原50条查询的完整生成工作流，默认串行；仅全部50条完成才通过，需显式--run |
+| checks/ | run_measured_acceptance.sh --generate | 包含生成的真实85%/75%三模式专项，未达阈值不算通过 |
 | check_multi_request/ | check_requests.py | 串行/同时/错峰HTTP校验 |
 | check_multi_request/ | capture_queue_evidence.py | 在线阶段时间线、队列深度、超限503与恢复证据采集 |
 | diagnostics/ | diagnose_stages.py、diagnose_vllm_inputs.py、diagnose_rope.py | 故障复现与定位 |
 
-结果统一写入 `artifacts/`，固定测试查询在 `data/queries/nfcorpus-50.jsonl`。
+早期结果位于 `artifacts/`；当前显存专项与生成检查写入 `experiment_outputs/` 指向的外部实验盘。
+固定测试查询在 `data/queries/nfcorpus-50.jsonl`。生成配置及命令见[OneRec接入](../docs/generation.md)。
 `check_npu.py`、`setup_npu_env.sh`、`benchmark_search.py` 保留各自已有别名语义。
 
 详细参数运行入口的 `--help`；诊断脚本需按 [评测指南](../docs/evaluation.md)

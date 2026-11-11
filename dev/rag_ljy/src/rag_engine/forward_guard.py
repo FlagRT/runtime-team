@@ -10,10 +10,11 @@ request_context = ContextVar('memory_request_id', default=None)
 
 
 class ForwardMemoryGuard:
-    def __init__(self, estimator, stats, reclaim, *, safety_mib=5120, timeout_s=30, allocator=None):
+    def __init__(self, estimator, stats, reclaim, *, safety_mib=5120, timeout_s=30, allocator=None, stage='reranker'):
         self.estimator, self.stats, self.reclaim = estimator, stats, reclaim
         self.safety_mib, self.timeout_s = safety_mib, timeout_s
         self.allocator = allocator
+        self.stage = stage
 
     def cache_capacity(self):
         """Only wholly inactive segments are counted as reclaimable, never weights."""
@@ -61,12 +62,13 @@ class ForwardMemoryGuard:
                    'allocator_incremental_peak_mib': incremental,
                    'allocated_before_mib': allocated/(1024**2), 'reserved_before_mib': reserved/(1024**2),
                    'peak_allocated_mib': peak_allocated/(1024**2), 'peak_reserved_mib': peak_reserved/(1024**2),
-                   'scope': 'reranker process torch allocator; vendor/device-wide allocations require separate telemetry'}
+                   'stage': self.stage,
+                   'scope': 'local model process torch allocator; vendor/device-wide allocations require separate telemetry'}
             import json
             logger.info('event=forward_memory_observation observation=%s', json.dumps(row, sort_keys=True))
             self.estimator.cache_snapshot = self.cache_capacity()
             if incremental > estimate['estimated_mib']:
-                self.estimator.fault = 'Reranker allocator peak exceeded the forward estimate; stop new admission and recalibrate'
+                self.estimator.fault = self.stage + ' allocator peak exceeded the forward estimate; stop new admission and recalibrate'
 
     def choose_batch(self, lengths, requested):
         """Return a fitting prefix; never allocate an input tensor to test fit."""
