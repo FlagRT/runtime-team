@@ -14,14 +14,14 @@
 | 加速卡 | ✅ 在位 | **8 × Biren166M，单卡 65024 MiB（64 GB）**，PCIe 03/05/63/65/83/85/A3/A5 |
 | 驱动 / SUPA | ✅ | 内核模块 `biren 1.12.0`；BR-SMI 1.12.0 / Driver 1.12.0 / SUPA 1.12 |
 | SDK / 工具 | ✅ | `brsmi`（nvidia-smi 风格，`--query-gpu` 可脚本化）；`/usr/local/birensupa/`（driver / container-toolkit / sudcgm 1.11.0.0.rc2） |
-| **docker 权限** | ❌ **阻塞** | `hliu553` **不在 docker 组**（组员 12 人，无我方）；sock `root:docker 660` ⇒ 无 docker CLI。**可 sudo 临时用**（`sudo docker ps` 已验证） |
+| **docker 权限** | ✅ **已解决（11-11 10:16）** | `sudo usermod -aG docker hliu553` 已执行；新会话 `id` 含 `120(docker)`，`docker ps` 免 sudo 直读验证通过（组员现 13 人） |
 | **卡 0 / 卡 2** | ⚠️ 异常 | 见 §2 —— 卡 0 昨日 spc hang → 热复位后 brsmi 读数 N/A；卡 2 复位后 `can not register`。**协作文档说的"7 号卡工单"与实况不符——坏的是 0 号和 2 号** |
 | 磁盘 | ⚠️ 紧张 | `/share` 3.5T 用 96%（余 144G）；`/data` 3.5T 用 91%（余 321G）；`/` 879G 余 425G。**`/share` 与 `/data` 对普通用户只读** |
 | 网络 | ✅ | 可直连 GitHub（HTTP 200），有公网 ⇒ 拉镜像/装包无障碍 |
 | 镜像候选 | ✅ 已有 | 见 §4 —— 机器上已有 20+ 张 biren 系镜像（birensupa-smartinfer-vllm / sglang / biren-kernel-dev 等） |
 
 **接入三余项的实况核对**（对照协作文档）：
-1. **docker 组权限**：❌ 仍未解决（`hliu553` 不在组）。sudo 可临时绕过，但长期应有组权限（走提供方）。
+1. **docker 组权限**：✅ **已解决（2026-11-11 10:16）**——`sudo usermod -aG docker hliu553`（sudo 口令=登录密码，与 P800 先例同法）。**注意：已开着的旧 SSH 会话/旧 shell 不自动生效**（组身份在登录时注入），重开登录会话即可；ControlMaster 复用连接也需先断开旧复用。
 2. **7 号卡硬件工单**：⚠️ **编号对不上**——dmesg 显示异常的是 **卡 0（03:00.0）与卡 2（63:00.0）**；卡 7（A5:00.0）日志干净、brsmi 读数正常。工单要么编号写错，要么 11-10 之后又有新故障。**待与 memory 方向/提供方核对**。
 3. **镜像定档**：可推进——镜像候选已在机（§4），且本机有公网可拉。
 
@@ -106,7 +106,7 @@ lsmod              → biren 10477568 16（已加载，16 引用）
 
 | # | 事项 | 归属 | 动作 |
 |---|---|---|---|
-| 1 | **docker 组权限** | 提供方/管理员 | 申请把 `hliu553` 加 docker 组（组员已有 12 人，有先例）；到位前可用 `sudo docker` 临时验证 |
+| 1 | ~~docker 组权限~~ | ~~提供方/管理员~~ | ✅ **2026-11-11 10:16 已自解决**（sudo usermod -aG docker）；新会话验证通过 |
 | 2 | **卡 0/卡 2 异常** | 提供方（硬件/驱动复位） | 与 memory 方向核对「7 号卡工单」编号；按实况（0/2 号）报修或请求 `brsmi reset`；我方接入期用卡 1/3/4/5/6/7 |
 | 3 | 镜像定档 | 本方向 | 候选：运行时腿 `birensupa-pytorch:26.05.rc1` vs `biren-kernel-dev:torch-2.8.0-sdk-1.12.0.2`；服务腿 `birensupa-smartinfer-vllm:26.07.09`。按接入手册步 0（模型完整性）→ 离线自检 → conformance 走起 |
 | 4 | `/share` 96% 满 | 提供方 | 不阻塞我方（我们落家目录）；知会即可 |
