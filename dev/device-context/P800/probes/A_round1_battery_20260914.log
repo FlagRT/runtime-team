@@ -1,0 +1,1240 @@
+=========== 探针组开始 Mon Sep 14 15:37:00 CST 2026 ===========
+初始卡占用:
+| N/A   42C  N/A    113W / 400W |  31110MiB / 98304MiB |     13%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   60C  N/A    263W / 400W |  33420MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    166W / 400W |   4330MiB / 98304MiB |     46%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    114W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   44C  N/A    111W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+
+############ VARIANT V1_base | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=1] reps=120 budget=75s ############
+  >>> 结果: ❌ 未完成(疑似挂死/异常)
+  --- 日志关键行 ---
+[rank1] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=<unset> cards=6,7
+[rank0] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=<unset> cards=6,7
+  >>> 完成到: 
+  --- 挂死现场：CPU 时间与线程状态 ---
+    pid=1057 state=S utime=0 stime=0
+    pid=1057 线程数=1
+    pid=1060 state=S utime=777 stime=47
+    pid=1060 线程数=67
+    pid=1127 state=R utime=7044 stime=71
+    pid=1127 线程数=12
+    pid=1128 state=R utime=7043 stime=76
+    pid=1128 线程数=13
+  --- 挂死现场：gdb 原生栈（单次 attach，含所有线程）---
+    ================= gdb pid=1057 =================
+      0x00007970f73d37dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007970f73d37dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005ece1e905f5e in ?? ()
+      #2  0x00007970f73bad90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007970f73bae40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      #4  0x00005ece1e906195 in ?? ()
+      
+      Thread 1 (Thread 0x7970f738e740 (LWP 1057) "timeout"):
+      #0  0x00007970f73d37dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005ece1e905f5e in ?? ()
+      #2  0x00007970f73bad90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007970f73bae40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      [Inferior 1 (process 1057) detached]
+    ================= end pid=1057 =================
+    ================= gdb pid=1060 =================
+      0x00007e990f3686ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007e990f3686ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000063a1cc7a679f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+      #2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+      #3  0x000063a1cc6a653a in cfunction_vectorcall_O (func=0x7e990efffc40, args=0x7e969341cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+      #4  0x000063a1cc69ba65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7e969341cbf8, callable=0x7e990efffc40, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7e969341cbf8, callable=0x7e990efffc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffdb3f62100, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7e969341ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #8  0x000063a1cc6a70ec in _PyEval_EvalFrame (throwflag=0, f=0x7e969341ca40, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7e96936c3a40, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #10 _PyFunction_Vectorcall (func=0x7e96936c3a30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #11 0x000063a1cc6977b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7e969341c9d8, callable=0x7e96936c3a30, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7e969341c9d8, callable=0x7e96936c3a30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffdb3f622b0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #14 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7e969341c840, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #15 0x000063a1cc6a70ec in _PyEval_EvalFrame (throwflag=0, f=0x7e969341c840, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #16 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7e96936c3260, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #17 _PyFunction_Vectorcall (func=0x7e96936c3250, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #18 0x000063a1cc699c55 in do_call_core (kwdict=0x7e96935e2a80, callargs=0x7e973ae3ada0, func=0x7e96936c3250, trace_info=0x7ffdb3f62460, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5945
+      #19 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7e969341c640, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4277
+      #20 0x000063a1cc6a70ec in _PyEval_EvalFrame (throwflag=0, f=0x7e969341c640, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #21 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7e96936c3410, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #22 _PyFunction_Vectorcall (func=0x7e96936c3400, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #23 0x000063a1cc6977b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x63a1f7ba6568, callable=0x7e96936c3400, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #24 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x63a1f7ba6568, callable=0x7e96936c3400) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #25 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffdb3f62610, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #26 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x63a1f7ba63a0, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #27 0x000063a1cc6a70ec in _PyEval_EvalFrame (throwflag=0, f=0x63a1f7ba63a0, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #28 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7e9693702e70, tstate=0x63a1efb64350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #29 _PyFunction_Vectorcall (func=0x7e9693702e60, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      
+      Thread 67 (Thread 0x7e968bfff640 (LWP 1126) "pt_tcpstore_uv"):
+      #0  0x00007e990f372bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e98f9ac7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007e98f9ab9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007e98ee93a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 66 (Thread 0x7e96909fe640 (LWP 1125) "pt_elastic"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e9a53 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000063a1cc67fbc5 in PyThread_acquire_lock_timed (lock=0x7e9684000dc0, microseconds=5000000, intr_flag=1) at /usr/local/src/conda/python-3.10.18/Python/thread_pthread.h:479
+      #3  0x000063a1cc73e14f in acquire_timed (lock=0x7e9684000dc0, timeout=5000000000) at /usr/local/src/conda/python-3.10.18/Modules/_threadmodule.c:102
+      
+      Thread 65 (Thread 0x7e96911ff640 (LWP 1124) "pt_tcpstore_uv"):
+      #0  0x00007e990f372bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e98f9ac7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007e98f9ab9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007e98ee93a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 64 (Thread 0x7e973fbc1640 (LWP 1123) "python3"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e0a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007e97df986dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007e990f2e1ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 63 (Thread 0x7e97403c2640 (LWP 1122) "python3"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e0a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007e97df986dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007e990f2e1ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 62 (Thread 0x7e9740bc3640 (LWP 1121) "python3"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e0a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007e97df986dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007e990f2e1ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 61 (Thread 0x7e97413c4640 (LWP 1120) "python3"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e0a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007e97df986dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007e990f2e1ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 60 (Thread 0x7e9741bc5640 (LWP 1119) "python3"):
+      #0  0x00007e990f2de117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007e990f2e0a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007e97df986dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007e990f2e1ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+    ================= end pid=1060 =================
+    ================= gdb pid=1127 =================
+      0x0000785afaca50b0 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #0  0x0000785afaca50b0 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #1  0x0000785afac7017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x0000785afac70917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x0000785afac70b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x0000785afac42203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x0000785afac425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x0000785afac2a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x0000785afaceb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x0000785afa8169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #9  0x0000785afaaad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+      #10 0x0000785aeada9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #11 0x00005766615ef902 in cfunction_vectorcall_NOARGS (func=0x785afab1f830, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      #12 0x00005766615e6a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7859c559ed80, callable=0x785afab1f830, tstate=0x57667cf51600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #13 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7859c559ed80, callable=0x785afab1f830) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #14 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd31e7f550, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #15 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7859c559ec00, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #16 0x00005766615f20ec in _PyEval_EvalFrame (throwflag=0, f=0x7859c559ec00, tstate=0x57667cf51600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #17 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x785a093d5490, tstate=0x57667cf51600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #18 _PyFunction_Vectorcall (func=0x785a093d5480, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #19 0x00005766615e6a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x785afbfc5bb8, callable=0x785a093d5480, tstate=0x57667cf51600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #20 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x785afbfc5bb8, callable=0x785a093d5480) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #21 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd31e7f700, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #22 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x785afbfc5a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #23 0x00005766616823bc in _PyEval_EvalFrame (throwflag=0, f=0x785afbfc5a40, tstate=0x57667cf51600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #24 _PyEval_Vector (tstate=0x57667cf51600, con=0x7ffd31e7f800, locals=<optimized out>, args=<optimized out>, argcount=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #25 0x0000576661682307 in PyEval_EvalCode (co=co@entry=0x785afbedb1b0, globals=globals@entry=0x785afbedd340, locals=locals@entry=0x785afbedd340) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:1134
+      #26 0x00005766616b296a in run_eval_code_obj (tstate=0x57667cf51600, co=0x785afbedb1b0, globals=0x785afbedd340, locals=0x785afbedd340) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1291
+      #27 0x00005766616addf3 in run_mod (mod=<optimized out>, filename=<optimized out>, globals=0x785afbedd340, locals=0x785afbedd340, flags=<optimized out>, arena=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1312
+      #28 0x000057666154cf3d in pyrun_file (fp=0x57667cf34370, filename=0x785afbecb3c0, start=<optimized out>, globals=0x785afbedd340, locals=0x785afbedd340, closeit=1, flags=0x7ffd31e7f9f8) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1208
+      #29 0x00005766616a861d in _PyRun_SimpleFileObject (fp=0x57667cf34370, filename=0x785afbecb3c0, closeit=1, flags=0x7ffd31e7f9f8) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:456
+      
+      Thread 12 (Thread 0x7858e3fff640 (LWP 1155) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000785afbaf9e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x7858e89fc640 (LWP 1153) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000785afbaf9e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x7858e07ff640 (LWP 1151) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000785afbaf9e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x7858e91fd640 (LWP 1149) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000785afbaf9e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 8 (Thread 0x7858e99fe640 (LWP 1146) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007859c587ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007859c5869efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x7858ea1ff640 (LWP 1145) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007859c587b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007859c5869d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 6 (Thread 0x7858fbfff640 (LWP 1142) "cuda-EvtHandlr"):
+      #0  0x0000785afc20dc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afad2eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x0000785afac723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x0000785afad31208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 5 (Thread 0x7859123fd640 (LWP 1138) "python3"):
+      #0  0x0000785afc186117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000785afc188a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000785afbaf9e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+    ================= end pid=1127 =================
+    ================= gdb pid=1128 =================
+      0x000074d2a4294126 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #0  0x000074d2a4294126 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #1  0x000074d2a428b1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x000074d2a4276d6c in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x000074d2a42438a2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x000074d2a4243937 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x000074d2a4270a33 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x000074d2a4270b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x000074d2a4242203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x000074d2a42425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #9  0x000074d2a422a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #10 0x000074d2a42eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #11 0x000074d2a3e169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #12 0x000074d2a3cad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+      #13 0x000074d2943a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #14 0x000059b17e082902 in cfunction_vectorcall_NOARGS (func=0x74d2a3d13790, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      #15 0x000059b17e079a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x74d16ea9ad80, callable=0x74d2a3d13790, tstate=0x59b19be67600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #16 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x74d16ea9ad80, callable=0x74d2a3d13790) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #17 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd24674c10, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #18 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x74d16ea9ac00, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #19 0x000059b17e0850ec in _PyEval_EvalFrame (throwflag=0, f=0x74d16ea9ac00, tstate=0x59b19be67600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #20 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x74d1805c9490, tstate=0x59b19be67600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #21 _PyFunction_Vectorcall (func=0x74d1805c9480, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #22 0x000059b17e079a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x74d2a5441bb8, callable=0x74d1805c9480, tstate=0x59b19be67600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #23 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x74d2a5441bb8, callable=0x74d1805c9480) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #24 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd24674dc0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #25 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x74d2a5441a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #26 0x000059b17e1153bc in _PyEval_EvalFrame (throwflag=0, f=0x74d2a5441a40, tstate=0x59b19be67600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #27 _PyEval_Vector (tstate=0x59b19be67600, con=0x7ffd24674ec0, locals=<optimized out>, args=<optimized out>, argcount=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #28 0x000059b17e115307 in PyEval_EvalCode (co=co@entry=0x74d2a53531b0, globals=globals@entry=0x74d2a5355400, locals=locals@entry=0x74d2a5355400) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:1134
+      #29 0x000059b17e14596a in run_eval_code_obj (tstate=0x59b19be67600, co=0x74d2a53531b0, globals=0x74d2a5355400, locals=0x74d2a5355400) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1291
+      
+      Thread 13 (Thread 0x74d07ffff640 (LWP 1154) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d2a4f77e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 12 (Thread 0x74d08cffb640 (LWP 1152) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d2a4f77e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x74d08d7fc640 (LWP 1150) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d2a4f77e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x74d08dffd640 (LWP 1148) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d2a4f77e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x74d08e7fe640 (LWP 1147) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d16ec7ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x000074d16ec69efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 8 (Thread 0x74d08efff640 (LWP 1144) "python3"):
+      #0  0x000074d2a5604117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a5606a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000074d16ec7b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x000074d16ec69d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x74d0977ff640 (LWP 1143) "cuda-EvtHandlr"):
+      #0  0x000074d2a568bc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d2a432eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x000074d2a42723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x000074d2a4331208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 6 (Thread 0x74d0b99ef640 (LWP 1139) "python3"):
+      #0  0x000074d2a569a4cf in accept () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000074d17081e026 in socketTryAccept (sock=0x74d0b99eedf0) at flagcx/core/socket.cc:497
+      #2  0x000074d17081efa0 in socketProgressState (sock=0x74d0b99eedf0) at flagcx/core/socket.cc:665
+      #3  0x000074d17081f874 in flagcxSocketAccept (sock=0x74d0b99eedf0, listenSock=0x59b1a44e8bd0) at flagcx/core/socket.cc:780
+      
+    ================= end pid=1128 =================
+  --- 挂死现场：xpu-smi ---
+| N/A   42C  N/A    136W / 400W |  31110MiB / 98304MiB |     28%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   41C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   57C  N/A    229W / 400W |  33472MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    151W / 400W |   4330MiB / 98304MiB |     49%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   38C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   48C  N/A    114W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   48C  N/A    130W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+/workspace/probe_battery.sh: line 12:  1057 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V2_cards12 | cards=1,2 mode=ar env=[XPU_EVENT_KL3_ENABLE=1] reps=120 budget=75s ############
+  >>> 结果: ❌ 未完成(疑似挂死/异常)
+  --- 日志关键行 ---
+[rank0] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=<unset> cards=1,2
+[rank1] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=<unset> cards=1,2
+  >>> 完成到: 
+  --- 挂死现场：CPU 时间与线程状态 ---
+    pid=2783 state=S utime=0 stime=0
+    pid=2783 线程数=1
+    pid=2786 state=S utime=780 stime=45
+    pid=2786 线程数=67
+    pid=2853 state=R utime=7226 stime=60
+    pid=2853 线程数=6
+    pid=2854 state=S utime=118 stime=60
+    pid=2854 线程数=7
+  --- 挂死现场：gdb 原生栈（单次 attach，含所有线程）---
+    ================= gdb pid=2783 =================
+      0x00007728e96ca7dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007728e96ca7dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005ae3e408ff5e in ?? ()
+      #2  0x00007728e96b1d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007728e96b1e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      #4  0x00005ae3e4090195 in ?? ()
+      
+      Thread 1 (Thread 0x7728e9685740 (LWP 2783) "timeout"):
+      #0  0x00007728e96ca7dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005ae3e408ff5e in ?? ()
+      #2  0x00007728e96b1d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007728e96b1e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      [Inferior 1 (process 2783) detached]
+    ================= end pid=2783 =================
+    ================= gdb pid=2786 =================
+      0x00007f546ae856ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007f546ae856ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005a77b7c6179f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+      #2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+      #3  0x00005a77b7b6153a in cfunction_vectorcall_O (func=0x7f546ab1bc40, args=0x7f51ef210bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+      #4  0x00005a77b7b56a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7f51ef210bf8, callable=0x7f546ab1bc40, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7f51ef210bf8, callable=0x7f546ab1bc40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffe30c457a0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7f51ef210a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #8  0x00005a77b7b620ec in _PyEval_EvalFrame (throwflag=0, f=0x7f51ef210a40, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7f51ef2bfa40, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #10 _PyFunction_Vectorcall (func=0x7f51ef2bfa30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #11 0x00005a77b7b527b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7f51ef2109d8, callable=0x7f51ef2bfa30, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7f51ef2109d8, callable=0x7f51ef2bfa30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffe30c45950, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #14 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7f51ef210840, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #15 0x00005a77b7b620ec in _PyEval_EvalFrame (throwflag=0, f=0x7f51ef210840, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #16 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7f51ef2bf260, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #17 _PyFunction_Vectorcall (func=0x7f51ef2bf250, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #18 0x00005a77b7b54c55 in do_call_core (kwdict=0x7f51ef1de880, callargs=0x7f5296a3ada0, func=0x7f51ef2bf250, trace_info=0x7ffe30c45b00, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5945
+      #19 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7f51ef210640, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4277
+      #20 0x00005a77b7b620ec in _PyEval_EvalFrame (throwflag=0, f=0x7f51ef210640, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #21 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7f51ef2bf410, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #22 _PyFunction_Vectorcall (func=0x7f51ef2bf400, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #23 0x00005a77b7b527b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x5a77d461ace8, callable=0x7f51ef2bf400, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #24 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x5a77d461ace8, callable=0x7f51ef2bf400) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #25 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffe30c45cb0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #26 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x5a77d461ab20, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #27 0x00005a77b7b620ec in _PyEval_EvalFrame (throwflag=0, f=0x5a77d461ab20, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #28 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7f51ef2fae70, tstate=0x5a77cc5d9350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #29 _PyFunction_Vectorcall (func=0x7f51ef2fae60, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      
+      Thread 67 (Thread 0x7f51e77fe640 (LWP 2852) "pt_tcpstore_uv"):
+      #0  0x00007f546ae8fbd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f54556c7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007f54556b9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007f544a53a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 66 (Thread 0x7f51e7fff640 (LWP 2851) "pt_elastic"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546ae06a53 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00005a77b7b3abc5 in PyThread_acquire_lock_timed (lock=0x7f51e0000dc0, microseconds=5000000, intr_flag=1) at /usr/local/src/conda/python-3.10.18/Python/thread_pthread.h:479
+      #3  0x00005a77b7bf914f in acquire_timed (lock=0x7f51e0000dc0, timeout=5000000000) at /usr/local/src/conda/python-3.10.18/Modules/_threadmodule.c:102
+      
+      Thread 65 (Thread 0x7f51ecfff640 (LWP 2850) "pt_tcpstore_uv"):
+      #0  0x00007f546ae8fbd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f54556c7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007f54556b9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007f544a53a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 64 (Thread 0x7f529b7c1640 (LWP 2849) "python3"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546adfda41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007f533b586dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007f546adfeac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 63 (Thread 0x7f529bfc2640 (LWP 2848) "python3"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546adfda41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007f533b586dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007f546adfeac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 62 (Thread 0x7f529c7c3640 (LWP 2847) "python3"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546adfda41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007f533b586dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007f546adfeac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 61 (Thread 0x7f529cfc4640 (LWP 2846) "python3"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546adfda41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007f533b586dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007f546adfeac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 60 (Thread 0x7f529d7c5640 (LWP 2845) "python3"):
+      #0  0x00007f546adfb117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007f546adfda41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007f533b586dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007f546adfeac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+    ================= end pid=2786 =================
+    ================= gdb pid=2853 =================
+      0x00007c2ba444544d in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #0  0x00007c2ba444544d in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #1  0x00007c2ba44a50b5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007c2ba446fc23 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007c2ba447099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x00007c2ba4470b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x00007c2ba4442203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x00007c2ba442b180 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x00007c2ba44eeb30 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x00007c2ba3c0d165 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.2
+      #9  0x00007c2ba3c17379 in xpu_free () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpurt.so.2
+      #10 0x00007c2a6f115062 in baidu::xpu::bkcl::kl3::init_device_param(baidu::xpu::bkcl::BKCLContext*, baidu::xpu::bkcl::InitRankMessage const*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #11 0x00007c2a6f068cbf in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #12 0x00007c2a6f062d7c in baidu::xpu::bkcl::init_rank(baidu::xpu::bkcl::BKCLContext**, int, int, BKCLUniqueId const*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #13 0x00007c2a70a64f49 in xcclAdaptorCommInitRank (comm=0x6024de73a590, nranks=2, commId=0x6024d61a15c0, rank=0) at flagcx/adaptor/ccl/xccl_adaptor.cc:87
+      #14 0x00007c2a70b4f306 in flagcxHomoCommInit (commId=0x6024d61a15c0, uniqueIdData=0x6024de73bf80, state=0x6024d8ab4fc0, comm=0x6024de73a520, homoComm=0x6024de73a590) at flagcx/service/utils.cc:432
+      #15 0x00007c2a70a4e2d7 in flagcxCommInitRank (comm=0x6024de4cb0f8, nranks=2, commId=0x6024d61a15c0, rank=0) at flagcx/flagcx.cc:1370
+      #16 0x00007c2ba1ebdfaa in c10d::flagcxBackend::initComm(c10::Device) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #17 0x00007c2ba1ec1825 in c10d::flagcxBackend::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #18 0x00007c2b84ec4621 in c10d::ops::(anonymous namespace)::allreduce_CUDA(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #19 0x00007c2b84ed37e2 in c10::impl::make_boxed_from_unboxed_functor<c10::impl::detail::WrapFunctionIntoRuntimeFunctor_<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (*)(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > >, c10::guts::typelist::typelist<c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long> >, false>::call(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #20 0x00007c2b8440da05 in torch::autograd::basicAutogradNotImplementedFallbackImpl(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #21 0x00007c2b84ee1eb9 in c10::impl::BoxedKernelWrapper<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), void>::call(c10::BoxedKernel const&, c10::OperatorHandle const&, c10::DispatchKeySet, c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #22 0x00007c2b84ef09f9 in c10d::ProcessGroup::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #23 0x00007c2b9469c678 in pybind11::cpp_function::initialize<pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}&&, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (*)(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(pybind11::detail::function_call&)#1}::operator()(pybind11::detail::function_call&) const () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #24 0x00007c2b93c50223 in pybind11::cpp_function::dispatcher(_object*, _object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #25 0x00006024c2811c66 in cfunction_call (func=0x7c2a72a6a0c0, args=<optimized out>, kwargs=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:543
+      #26 0x00006024c280b023 in _PyObject_MakeTpCall (tstate=0x6024d60a7600, callable=0x7c2a72a6a0c0, args=0x7c29c74e41e8, nargs=<optimized out>, keywords=0x0) at /usr/local/src/conda/python-3.10.18/Objects/call.c:215
+      #27 0x00006024c281d796 in _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x7c29c74e41e8, callable=0x7c2a72a6a0c0, tstate=0x6024d60a7600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:112
+      #28 _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x7c29c74e41e8, callable=0x7c2a72a6a0c0, tstate=0x6024d60a7600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:99
+      #29 method_vectorcall (method=<optimized out>, args=0x7c29c74e41f0, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/classobject.c:53
+      
+      Thread 6 (Thread 0x7c29a5bef640 (LWP 2866) "cuda-EvtHandlr"):
+      #0  0x00007c2ba59f4c3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c2ba452eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007c2ba44723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007c2ba4531208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 5 (Thread 0x7c29b77fe640 (LWP 2861) "python3"):
+      #0  0x00007c2ba596d117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c2ba596fa41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c2ba52e0e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 4 (Thread 0x7c29b7fff640 (LWP 2859) "python3"):
+      #0  0x00007c2ba596d117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c2ba596fa41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c2ba52e0e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 3 (Thread 0x7c29bccff640 (LWP 2858) "python3"):
+      #0  0x00007c2ba5a01e9e in epoll_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c2b8744da4d in gloo::transport::tcp::Loop::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007c2ba52ff198 in std::execute_native_thread_routine (__p=<optimized out>) at ../../../../../libstdc++-v3/src/c++11/thread.cc:104
+      #3  0x00007c2ba5970ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 2 (Thread 0x7c29c53ff640 (LWP 2856) "cuda-EvtHandlr"):
+      #0  0x00007c2ba59f4c3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c2ba452eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007c2ba44723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007c2ba4531208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 1 (Thread 0x7c2ba58db480 (LWP 2853) "python3"):
+      #0  0x00007c2ba444544d in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #1  0x00007c2ba44a50b5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007c2ba446fc23 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007c2ba447099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      [Inferior 1 (process 2853) detached]
+    ================= end pid=2853 =================
+    ================= gdb pid=2854 =================
+      0x0000741f0e46e72e in recv () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x0000741f0e46e72e in recv () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741dd7a99137 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #2  0x0000741dd7a8095b in baidu::xpu::bkcl::net_socket_all_gather(void const*, void*, int, int, int, baidu::xpu::bkcl::BKCLContext*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x0000741dd7a69915 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #4  0x0000741dd7a62fb1 in baidu::xpu::bkcl::init_rank(baidu::xpu::bkcl::BKCLContext**, int, int, BKCLUniqueId const*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #5  0x0000741dd9564f49 in xcclAdaptorCommInitRank (comm=0x5760740911a0, nranks=2, commId=0x576073e22530, rank=1) at flagcx/adaptor/ccl/xccl_adaptor.cc:87
+      #6  0x0000741dd964f306 in flagcxHomoCommInit (commId=0x576073e22530, uniqueIdData=0x57607408f8a0, state=0x57606e471280, comm=0x576074091130, homoComm=0x5760740911a0) at flagcx/service/utils.cc:432
+      #7  0x0000741dd954e2d7 in flagcxCommInitRank (comm=0x576073e1fcb8, nranks=2, commId=0x576073e22530, rank=1) at flagcx/flagcx.cc:1370
+      #8  0x0000741f0aa70faa in c10d::flagcxBackend::initComm(c10::Device) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #9  0x0000741f0aa74825 in c10d::flagcxBackend::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #10 0x0000741eedac4621 in c10d::ops::(anonymous namespace)::allreduce_CUDA(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #11 0x0000741eedad37e2 in c10::impl::make_boxed_from_unboxed_functor<c10::impl::detail::WrapFunctionIntoRuntimeFunctor_<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (*)(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > >, c10::guts::typelist::typelist<c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long> >, false>::call(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #12 0x0000741eed00da05 in torch::autograd::basicAutogradNotImplementedFallbackImpl(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #13 0x0000741eedae1eb9 in c10::impl::BoxedKernelWrapper<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), void>::call(c10::BoxedKernel const&, c10::OperatorHandle const&, c10::DispatchKeySet, c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #14 0x0000741eedaf09f9 in c10d::ProcessGroup::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #15 0x0000741efd29c678 in pybind11::cpp_function::initialize<pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}&&, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (*)(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(pybind11::detail::function_call&)#1}::operator()(pybind11::detail::function_call&) const () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #16 0x0000741efc850223 in pybind11::cpp_function::dispatcher(_object*, _object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #17 0x0000576067eabc66 in cfunction_call (func=0x741ddb56a070, args=<optimized out>, kwargs=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:543
+      #18 0x0000576067ea5023 in _PyObject_MakeTpCall (tstate=0x57606b9fc600, callable=0x741ddb56a070, args=0x741d2ffe81e8, nargs=<optimized out>, keywords=0x0) at /usr/local/src/conda/python-3.10.18/Objects/call.c:215
+      #19 0x0000576067eb7796 in _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x741d2ffe81e8, callable=0x741ddb56a070, tstate=0x57606b9fc600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:112
+      #20 _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x741d2ffe81e8, callable=0x741ddb56a070, tstate=0x57606b9fc600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:99
+      #21 method_vectorcall (method=<optimized out>, args=0x741d2ffe81f0, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/classobject.c:53
+      #22 0x0000576067ea0a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x741d2ffe81f0, callable=0x741f0d9ddd40, tstate=0x57606b9fc600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #23 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x741d2ffe81f0, callable=0x741f0d9ddd40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #24 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd2d2e59a0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #25 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x741d2ffe8040, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #26 0x0000576067eac0ec in _PyEval_EvalFrame (throwflag=0, f=0x741d2ffe8040, tstate=0x57606b9fc600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #27 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x741ddb5e4050, tstate=0x57606b9fc600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #28 _PyFunction_Vectorcall (func=0x741ddb5e4040, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #29 0x0000576067eb7e4c in PyVectorcall_Call (kwargs=<optimized out>, tuple=<optimized out>, callable=0x741ddb5e4040) at /usr/local/src/conda/python-3.10.18/Objects/call.c:267
+      
+      Thread 7 (Thread 0x741d003ff640 (LWP 2867) "cuda-EvtHandlr"):
+      #0  0x0000741f0e45fc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741f0d12eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x0000741f0d0723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x0000741f0d131208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 6 (Thread 0x741d0e3ef640 (LWP 2864) "python3"):
+      #0  0x0000741f0e46e4cf in accept () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741dd961e026 in socketTryAccept (sock=0x741d0e3eedf0) at flagcx/core/socket.cc:497
+      #2  0x0000741dd961efa0 in socketProgressState (sock=0x741d0e3eedf0) at flagcx/core/socket.cc:665
+      #3  0x0000741dd961f874 in flagcxSocketAccept (sock=0x741d0e3eedf0, listenSock=0x57607407d450) at flagcx/core/socket.cc:780
+      
+      Thread 5 (Thread 0x741d1ffff640 (LWP 2862) "python3"):
+      #0  0x0000741f0e3d8117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741f0e3daa41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000741f0dd4be72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 4 (Thread 0x741d24ffe640 (LWP 2860) "python3"):
+      #0  0x0000741f0e3d8117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741f0e3daa41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x0000741f0dd4be72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 3 (Thread 0x741d257ff640 (LWP 2857) "python3"):
+      #0  0x0000741f0e46ce9e in epoll_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741ef004da4d in gloo::transport::tcp::Loop::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x0000741f0dd6a198 in std::execute_native_thread_routine (__p=<optimized out>) at ../../../../../libstdc++-v3/src/c++11/thread.cc:104
+      #3  0x0000741f0e3dbac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 2 (Thread 0x741d2ddff640 (LWP 2855) "cuda-EvtHandlr"):
+      #0  0x0000741f0e45fc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741f0d12eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x0000741f0d0723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x0000741f0d131208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 1 (Thread 0x741f0e346480 (LWP 2854) "python3"):
+      #0  0x0000741f0e46e72e in recv () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x0000741dd7a99137 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #2  0x0000741dd7a8095b in baidu::xpu::bkcl::net_socket_all_gather(void const*, void*, int, int, int, baidu::xpu::bkcl::BKCLContext*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x0000741dd7a69915 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      [Inferior 1 (process 2854) detached]
+    ================= end pid=2854 =================
+  --- 挂死现场：xpu-smi ---
+| N/A   42C  N/A    133W / 400W |  31110MiB / 98304MiB |     12%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A    130W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |    366MiB / 98304MiB |      0%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   58C  N/A    247W / 400W |  33528MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    159W / 400W |   4330MiB / 98304MiB |     58%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   45C  N/A     95W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+/workspace/probe_battery.sh: line 12:  2783 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V3_noevent | cards=6,7 mode=ar env=[] reps=120 budget=75s ############
+  >>> 结果: ✅ 完成(未挂死)
+  --- 日志关键行 ---
+[rank1] rep=100 elapsed=0.46s
+[rank0] rep=110 elapsed=0.46s
+[rank1] rep=110 elapsed=0.46s
+[rank0] rep=120 elapsed=0.46s
+[rank1] rep=120 elapsed=0.46s
+[rank0] ALLDONE mode=ar reps=120 elapsed=0.46s
+[rank1] ALLDONE mode=ar reps=120 elapsed=0.46s
+  >>> 完成到: rep=120
+/workspace/probe_battery.sh: line 12:  4572 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V4_gcmask | cards=6,7 mode=ar env=[XPU_EVENT_KL3_ENABLE=1 BKCL_GC_SIGNAL_MASK=1] reps=120 budget=75s ############
+  >>> 结果: ❌ 未完成(疑似挂死/异常)
+  --- 日志关键行 ---
+[rank0] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=1 cards=6,7
+[rank1] PG ready | MODE=ar N=120 SIZE=1024 KL3=1 GCMASK=1 cards=6,7
+[rank1] rep=10 elapsed=0.48s[rank0] rep=10 elapsed=0.48s
+[rank1] rep=20 elapsed=0.48s[rank0] rep=20 elapsed=0.48s
+[rank1] rep=30 elapsed=0.48s[rank0] rep=30 elapsed=0.48s
+  >>> 完成到: rep=30
+  --- 挂死现场：CPU 时间与线程状态 ---
+    pid=4681 state=S utime=0 stime=0
+    pid=4681 线程数=1
+    pid=4683 state=S utime=776 stime=44
+    pid=4683 线程数=67
+    pid=4751 state=R utime=7215 stime=76
+    pid=4751 线程数=12
+    pid=4752 state=R utime=7210 stime=83
+    pid=4752 线程数=13
+  --- 挂死现场：gdb 原生栈（单次 attach，含所有线程）---
+    ================= gdb pid=4681 =================
+      0x00007d29c30787dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007d29c30787dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00006192fba3df5e in ?? ()
+      #2  0x00007d29c305fd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007d29c305fe40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      #4  0x00006192fba3e195 in ?? ()
+      
+      Thread 1 (Thread 0x7d29c3033740 (LWP 4681) "timeout"):
+      #0  0x00007d29c30787dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00006192fba3df5e in ?? ()
+      #2  0x00007d29c305fd90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x00007d29c305fe40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      [Inferior 1 (process 4681) detached]
+    ================= end pid=4681 =================
+    ================= gdb pid=4683 =================
+      0x00007c970fbed6ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007c970fbed6ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000061721d75f79f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+      #2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+      #3  0x000061721d65f53a in cfunction_vectorcall_O (func=0x7c970f883c40, args=0x7c9493f0cbf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+      #4  0x000061721d654a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7c9493f0cbf8, callable=0x7c970f883c40, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7c9493f0cbf8, callable=0x7c970f883c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffca6cb0c50, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7c9493f0ca40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #8  0x000061721d6600ec in _PyEval_EvalFrame (throwflag=0, f=0x7c9493f0ca40, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7c9493fb7a40, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #10 _PyFunction_Vectorcall (func=0x7c9493fb7a30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #11 0x000061721d6507b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7c9493f0c9d8, callable=0x7c9493fb7a30, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7c9493f0c9d8, callable=0x7c9493fb7a30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffca6cb0e00, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #14 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7c9493f0c840, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #15 0x000061721d6600ec in _PyEval_EvalFrame (throwflag=0, f=0x7c9493f0c840, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #16 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7c9493fb7260, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #17 _PyFunction_Vectorcall (func=0x7c9493fb7250, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #18 0x000061721d652c55 in do_call_core (kwdict=0x7c9493ed6740, callargs=0x7c953b732da0, func=0x7c9493fb7250, trace_info=0x7ffca6cb0fb0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5945
+      #19 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7c9493f0c640, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4277
+      #20 0x000061721d6600ec in _PyEval_EvalFrame (throwflag=0, f=0x7c9493f0c640, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #21 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7c9493fb7410, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #22 _PyFunction_Vectorcall (func=0x7c9493fb7400, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #23 0x000061721d6507b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x617235cee7f8, callable=0x7c9493fb7400, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #24 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x617235cee7f8, callable=0x7c9493fb7400) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #25 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffca6cb1160, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #26 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x617235cee630, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #27 0x000061721d6600ec in _PyEval_EvalFrame (throwflag=0, f=0x617235cee630, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #28 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7c9493ffae70, tstate=0x61722dcad350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #29 _PyFunction_Vectorcall (func=0x7c9493ffae60, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      
+      Thread 67 (Thread 0x7c94909fd640 (LWP 4750) "pt_tcpstore_uv"):
+      #0  0x00007c970fbf7bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c96fa2c7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007c96fa2b9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007c96ef13a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 66 (Thread 0x7c94911fe640 (LWP 4749) "pt_elastic"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb6ea53 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000061721d638bc5 in PyThread_acquire_lock_timed (lock=0x7c9484000dc0, microseconds=5000000, intr_flag=1) at /usr/local/src/conda/python-3.10.18/Python/thread_pthread.h:479
+      #3  0x000061721d6f714f in acquire_timed (lock=0x7c9484000dc0, timeout=5000000000) at /usr/local/src/conda/python-3.10.18/Modules/_threadmodule.c:102
+      
+      Thread 65 (Thread 0x7c94919ff640 (LWP 4748) "pt_tcpstore_uv"):
+      #0  0x00007c970fbf7bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c96fa2c7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x00007c96fa2b9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x00007c96ef13a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 64 (Thread 0x7c95403c1640 (LWP 4747) "python3"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb65a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c95e0186dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007c970fb66ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 63 (Thread 0x7c9540bc2640 (LWP 4746) "python3"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb65a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c95e0186dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007c970fb66ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 62 (Thread 0x7c95413c3640 (LWP 4745) "python3"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb65a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c95e0186dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007c970fb66ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 61 (Thread 0x7c9541bc4640 (LWP 4744) "python3"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb65a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c95e0186dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007c970fb66ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 60 (Thread 0x7c95423c5640 (LWP 4743) "python3"):
+      #0  0x00007c970fb63117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007c970fb65a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007c95e0186dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x00007c970fb66ac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+    ================= end pid=4683 =================
+    ================= gdb pid=4751 =================
+      0x00007fc5239d6051 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007fc5239d6051 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5226a4dd2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007fc5226a4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007fc5226a509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x00007fc52266fc23 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x00007fc52267099a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x00007fc522670b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x00007fc522642203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x00007fc5226425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #9  0x00007fc52262a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #10 0x00007fc5226eb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #11 0x00007fc5222169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #12 0x00007fc5220ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+      #13 0x00007fc5127a9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #14 0x00005f1615381902 in cfunction_vectorcall_NOARGS (func=0x7fc52211f920, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      #15 0x00005f1615378a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7fc3ecea6d80, callable=0x7fc52211f920, tstate=0x5f1648028600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #16 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7fc3ecea6d80, callable=0x7fc52211f920) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #17 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc24388370, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #18 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7fc3ecea6c00, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #19 0x00005f16153840ec in _PyEval_EvalFrame (throwflag=0, f=0x7fc3ecea6c00, tstate=0x5f1648028600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #20 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7fc3fe9d5490, tstate=0x5f1648028600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #21 _PyFunction_Vectorcall (func=0x7fc3fe9d5480, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #22 0x00005f1615378a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7fc52380dbb8, callable=0x7fc3fe9d5480, tstate=0x5f1648028600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #23 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7fc52380dbb8, callable=0x7fc3fe9d5480) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #24 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc24388520, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #25 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7fc52380da40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #26 0x00005f16154143bc in _PyEval_EvalFrame (throwflag=0, f=0x7fc52380da40, tstate=0x5f1648028600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #27 _PyEval_Vector (tstate=0x5f1648028600, con=0x7ffc24388620, locals=<optimized out>, args=<optimized out>, argcount=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #28 0x00005f1615414307 in PyEval_EvalCode (co=co@entry=0x7fc5237231b0, globals=globals@entry=0x7fc523725340, locals=locals@entry=0x7fc523725340) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:1134
+      #29 0x00005f161544496a in run_eval_code_obj (tstate=0x5f1648028600, co=0x7fc5237231b0, globals=0x7fc523725340, locals=0x7fc523725340) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1291
+      
+      Thread 12 (Thread 0x7fc30b7fe640 (LWP 4777) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc523342e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x7fc30bfff640 (LWP 4776) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc523342e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x7fc310bfd640 (LWP 4774) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc523342e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x7fc3089ff640 (LWP 4771) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc523342e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 8 (Thread 0x7fc3113fe640 (LWP 4768) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc3ed07ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007fc3ed069efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x7fc311bff640 (LWP 4767) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc3ed07b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007fc3ed069d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 6 (Thread 0x7fc323bff640 (LWP 4764) "cuda-EvtHandlr"):
+      #0  0x00007fc523a56c3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc52272eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007fc5226723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007fc522731208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 5 (Thread 0x7fc339dfd640 (LWP 4759) "python3"):
+      #0  0x00007fc5239cf117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007fc5239d1a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007fc523342e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+    ================= end pid=4751 =================
+    ================= gdb pid=4752 =================
+      0x00007a29b6aa4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #0  0x00007a29b6aa4e45 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #1  0x00007a29b6aa509f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007a29b6a7017a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007a29b6a70917 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x00007a29b6a70b8f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x00007a29b6a42203 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x00007a29b6a425f5 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x00007a29b6a2a43a in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x00007a29b6aeb1c6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #9  0x00007a29b66169e2 in cudaDeviceSynchronize () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #10 0x00007a29b68ad0e7 in c10::cuda::device_synchronize() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10_cuda.so
+      #11 0x00007a29a6ba9b25 in THCPModule_cudaSynchronize(_object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #12 0x00005f24e40e0902 in cfunction_vectorcall_NOARGS (func=0x7a29b6917830, args=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:489
+      #13 0x00005f24e40d7a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7a288139ad80, callable=0x7a29b6917830, tstate=0x5f25228ae600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #14 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7a288139ad80, callable=0x7a29b6917830) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #15 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc5721e300, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #16 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7a288139ac00, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #17 0x00005f24e40e30ec in _PyEval_EvalFrame (throwflag=0, f=0x7a288139ac00, tstate=0x5f25228ae600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #18 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7a28c51cd490, tstate=0x5f25228ae600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #19 _PyFunction_Vectorcall (func=0x7a28c51cd480, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #20 0x00005f24e40d7a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7a29b7dd1bb8, callable=0x7a28c51cd480, tstate=0x5f25228ae600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #21 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7a29b7dd1bb8, callable=0x7a28c51cd480) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #22 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc5721e4b0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #23 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7a29b7dd1a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #24 0x00005f24e41733bc in _PyEval_EvalFrame (throwflag=0, f=0x7a29b7dd1a40, tstate=0x5f25228ae600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #25 _PyEval_Vector (tstate=0x5f25228ae600, con=0x7ffc5721e5b0, locals=<optimized out>, args=<optimized out>, argcount=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #26 0x00005f24e4173307 in PyEval_EvalCode (co=co@entry=0x7a29b7ce31b0, globals=globals@entry=0x7a29b7ce5400, locals=locals@entry=0x7a29b7ce5400) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:1134
+      #27 0x00005f24e41a396a in run_eval_code_obj (tstate=0x5f25228ae600, co=0x7a29b7ce31b0, globals=0x7a29b7ce5400, locals=0x7a29b7ce5400) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1291
+      #28 0x00005f24e419edf3 in run_mod (mod=<optimized out>, filename=<optimized out>, globals=0x7a29b7ce5400, locals=0x7a29b7ce5400, flags=<optimized out>, arena=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1312
+      #29 0x00005f24e403df3d in pyrun_file (fp=0x5f2522891370, filename=0x7a29b7cd33c0, start=<optimized out>, globals=0x7a29b7ce5400, locals=0x7a29b7ce5400, closeit=1, flags=0x7ffc5721e7a8) at /usr/local/src/conda/python-3.10.18/Python/pythonrun.c:1208
+      
+      Thread 13 (Thread 0x7a279f7fb640 (LWP 4775) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a29b7907e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 12 (Thread 0x7a279fffc640 (LWP 4773) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a29b7907e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x7a2797fff640 (LWP 4772) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a29b7907e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x7a27a07fd640 (LWP 4770) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a29b7907e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x7a27a0ffe640 (LWP 4769) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a288167ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007a2881669efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 8 (Thread 0x7a27a17ff640 (LWP 4766) "python3"):
+      #0  0x00007a29b7f94117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b7f96a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007a288167b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007a2881669d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x7a27a9bff640 (LWP 4765) "cuda-EvtHandlr"):
+      #0  0x00007a29b801bc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a29b6b2eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007a29b6a723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007a29b6b31208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 6 (Thread 0x7a27b7fff640 (LWP 4762) "python3"):
+      #0  0x00007a29b802a4cf in accept () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007a288311e026 in socketTryAccept (sock=0x7a27b7ffedf0) at flagcx/core/socket.cc:497
+      #2  0x00007a288311efa0 in socketProgressState (sock=0x7a27b7ffedf0) at flagcx/core/socket.cc:665
+      #3  0x00007a288311f874 in flagcxSocketAccept (sock=0x7a27b7ffedf0, listenSock=0x5f252af2f6a0) at flagcx/core/socket.cc:780
+      
+    ================= end pid=4752 =================
+  --- 挂死现场：xpu-smi ---
+| N/A   41C  N/A    117W / 400W |  31110MiB / 98304MiB |     12%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   57C  N/A    252W / 400W |  33594MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    169W / 400W |   4330MiB / 98304MiB |     43%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   38C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   46C  N/A     99W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   44C  N/A    111W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+/workspace/probe_battery.sh: line 12:  4681 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V5_nosync | cards=6,7 mode=ar_nosync env=[XPU_EVENT_KL3_ENABLE=1] reps=120 budget=75s ############
+  >>> 结果: ✅ 完成(未挂死)
+  --- 日志关键行 ---
+[rank1] rep=70 elapsed=0.43s
+[rank1] rep=80 elapsed=0.43s
+[rank1] rep=90 elapsed=0.44s
+[rank1] rep=100 elapsed=0.44s
+[rank1] rep=110 elapsed=0.44s
+[rank1] rep=120 elapsed=0.44s
+[rank1] ALLDONE mode=ar_nosync reps=120 elapsed=0.44s
+  >>> 完成到: rep=120
+/workspace/probe_battery.sh: line 12:  6407 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V6_max | cards=6,7 mode=ar_max env=[XPU_EVENT_KL3_ENABLE=1] reps=120 budget=75s ############
+  >>> 结果: ❌ 未完成(疑似挂死/异常)
+  --- 日志关键行 ---
+[rank1] rep=40 elapsed=0.42s
+[rank1] rep=50 elapsed=0.42s
+[rank1] rep=60 elapsed=0.42s
+[rank1] rep=70 elapsed=0.42s
+[rank1] rep=80 elapsed=0.42s
+[rank1] rep=90 elapsed=0.42s
+[rank1] rep=100 elapsed=0.42s
+  >>> 完成到: rep=100
+  --- 挂死现场：CPU 时间与线程状态 ---
+    pid=6516 state=S utime=0 stime=0
+    pid=6516 线程数=1
+    pid=6518 state=S utime=774 stime=45
+    pid=6518 线程数=67
+    pid=6586 state=R utime=1500 stime=5807
+    pid=6586 线程数=12
+    pid=6587 state=R utime=1675 stime=5634
+    pid=6587 线程数=13
+  --- 挂死现场：gdb 原生栈（单次 attach，含所有线程）---
+    ================= gdb pid=6516 =================
+      0x0000747ba3ec07dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x0000747ba3ec07dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000057b10b87af5e in ?? ()
+      #2  0x0000747ba3ea7d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x0000747ba3ea7e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      #4  0x000057b10b87b195 in ?? ()
+      
+      Thread 1 (Thread 0x747ba3e7b740 (LWP 6516) "timeout"):
+      #0  0x0000747ba3ec07dc in sigsuspend () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000057b10b87af5e in ?? ()
+      #2  0x0000747ba3ea7d90 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #3  0x0000747ba3ea7e40 in __libc_start_main () from /lib/x86_64-linux-gnu/libc.so.6
+      [Inferior 1 (process 6516) detached]
+    ================= end pid=6516 =================
+    ================= gdb pid=6518 =================
+      0x000077b90a6c66ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x000077b90a6c66ad in select () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00005616f8be979f in pysleep (secs=100000000) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:2076
+      #2  time_sleep (self=<optimized out>, obj=<optimized out>) at /usr/local/src/conda/python-3.10.18/Modules/timemodule.c:370
+      #3  0x00005616f8ae953a in cfunction_vectorcall_O (func=0x77b90a357c40, args=0x77b68ea10bf8, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:516
+      #4  0x00005616f8adea65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x77b68ea10bf8, callable=0x77b90a357c40, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #5  PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x77b68ea10bf8, callable=0x77b90a357c40) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #6  call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd78510450, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #7  _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x77b68ea10a40, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #8  0x00005616f8aea0ec in _PyEval_EvalFrame (throwflag=0, f=0x77b68ea10a40, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #9  _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x77b68eabba40, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #10 _PyFunction_Vectorcall (func=0x77b68eabba30, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #11 0x00005616f8ada7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x77b68ea109d8, callable=0x77b68eabba30, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #12 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x77b68ea109d8, callable=0x77b68eabba30) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #13 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd78510600, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #14 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x77b68ea10840, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #15 0x00005616f8aea0ec in _PyEval_EvalFrame (throwflag=0, f=0x77b68ea10840, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #16 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x77b68eabb260, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #17 _PyFunction_Vectorcall (func=0x77b68eabb250, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #18 0x00005616f8adcc55 in do_call_core (kwdict=0x77b68e9da800, callargs=0x77b736236da0, func=0x77b68eabb250, trace_info=0x7ffd785107b0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5945
+      #19 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x77b68ea10640, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4277
+      #20 0x00005616f8aea0ec in _PyEval_EvalFrame (throwflag=0, f=0x77b68ea10640, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #21 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x77b68eabb410, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #22 _PyFunction_Vectorcall (func=0x77b68eabb400, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      #23 0x00005616f8ada7b0 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x5617072aaa88, callable=0x77b68eabb400, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #24 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x5617072aaa88, callable=0x77b68eabb400) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #25 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffd78510960, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #26 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x5617072aa8c0, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4198
+      #27 0x00005616f8aea0ec in _PyEval_EvalFrame (throwflag=0, f=0x5617072aa8c0, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #28 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x77b68eafae70, tstate=0x5616ff26a350) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #29 _PyFunction_Vectorcall (func=0x77b68eafae60, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      
+      Thread 67 (Thread 0x77b68b5fd640 (LWP 6585) "pt_tcpstore_uv"):
+      #0  0x000077b90a6d0bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b8f4ec7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x000077b8f4eb9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x000077b8e9d3a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 66 (Thread 0x77b68bdfe640 (LWP 6584) "pt_elastic"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a647a53 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00005616f8ac2bc5 in PyThread_acquire_lock_timed (lock=0x77b67c000dc0, microseconds=5000000, intr_flag=1) at /usr/local/src/conda/python-3.10.18/Python/thread_pthread.h:479
+      #3  0x00005616f8b8114f in acquire_timed (lock=0x77b67c000dc0, timeout=5000000000) at /usr/local/src/conda/python-3.10.18/Modules/_threadmodule.c:102
+      
+      Thread 65 (Thread 0x77b68c5ff640 (LWP 6583) "pt_tcpstore_uv"):
+      #0  0x000077b90a6d0bd8 in epoll_pwait () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b8f4ec7d9a in uv.io_poll () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #2  0x000077b8f4eb9a4f in uv_run () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #3  0x000077b8e9d3a535 in c10d::detail::LibUVStoreDaemon::run() () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      
+      Thread 64 (Thread 0x77b73afc1640 (LWP 6582) "python3"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a63ea41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000077b7dad86dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x000077b90a63fac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 63 (Thread 0x77b73b7c2640 (LWP 6581) "python3"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a63ea41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000077b7dad86dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x000077b90a63fac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 62 (Thread 0x77b73bfc3640 (LWP 6580) "python3"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a63ea41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000077b7dad86dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x000077b90a63fac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 61 (Thread 0x77b73c7c4640 (LWP 6579) "python3"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a63ea41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000077b7dad86dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x000077b90a63fac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+      Thread 60 (Thread 0x77b73cfc5640 (LWP 6578) "python3"):
+      #0  0x000077b90a63c117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000077b90a63ea41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000077b7dad86dfb in blas_thread_server () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/numpy/_core/../../numpy.libs/libscipy_openblas64_-56d6093b.so
+      #3  0x000077b90a63fac3 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      
+    ================= end pid=6518 =================
+    ================= gdb pid=6586 =================
+      0x000071f2042f0d0b in sched_yield () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x000071f2042f0d0b in sched_yield () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f202e7835d in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x000071f202e78413 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x000071f202e51af1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x000071f202e51bd7 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x000071f202e6bed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x000071f202e36961 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x000071f202e36d07 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #8  0x000071f202e36d61 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #9  0x000071f202ea591b in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #10 0x000071f202e38b0f in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #11 0x000071f202f18d96 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #12 0x000071f202a15e30 in cudaEventRecordWithFlags () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #13 0x000071f2025bdbc5 in at::cuda::CUDAEvent::record(c10::cuda::CUDAStream const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #14 0x000071f2025abcac in c10d::flagcxBackend::syncStream(c10::Device, int) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #15 0x000071f2025ad841 in c10d::flagcxBackend::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #16 0x000071f1e38c4621 in c10d::ops::(anonymous namespace)::allreduce_CUDA(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #17 0x000071f1e38d37e2 in c10::impl::make_boxed_from_unboxed_functor<c10::impl::detail::WrapFunctionIntoRuntimeFunctor_<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (*)(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > >, c10::guts::typelist::typelist<c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long> >, false>::call(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #18 0x000071f1e2e0da05 in torch::autograd::basicAutogradNotImplementedFallbackImpl(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #19 0x000071f1e38e1eb9 in c10::impl::BoxedKernelWrapper<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), void>::call(c10::BoxedKernel const&, c10::OperatorHandle const&, c10::DispatchKeySet, c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #20 0x000071f1e38f09f9 in c10d::ProcessGroup::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #21 0x000071f1f309c678 in pybind11::cpp_function::initialize<pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}&&, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (*)(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(pybind11::detail::function_call&)#1}::operator()(pybind11::detail::function_call&) const () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #22 0x000071f1f2650223 in pybind11::cpp_function::dispatcher(_object*, _object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #23 0x0000640c00165c66 in cfunction_call (func=0x71f0d136a390, args=<optimized out>, kwargs=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:543
+      #24 0x0000640c0015f023 in _PyObject_MakeTpCall (tstate=0x640c0f90b600, callable=0x71f0d136a390, args=0x71f025de81e8, nargs=<optimized out>, keywords=0x0) at /usr/local/src/conda/python-3.10.18/Objects/call.c:215
+      #25 0x0000640c00171796 in _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x71f025de81e8, callable=0x71f0d136a390, tstate=0x640c0f90b600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:112
+      #26 _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x71f025de81e8, callable=0x71f0d136a390, tstate=0x640c0f90b600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:99
+      #27 method_vectorcall (method=<optimized out>, args=0x71f025de81f0, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/classobject.c:53
+      #28 0x0000640c0015aa65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x71f025de81f0, callable=0x71f0cf6df440, tstate=0x640c0f90b600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #29 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x71f025de81f0, callable=0x71f0cf6df440) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      
+      Thread 12 (Thread 0x71efebfff640 (LWP 6610) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f203bece72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x71eff0bfc640 (LWP 6609) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f203bece72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x71eff13fd640 (LWP 6607) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f203bece72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x71efe91ff640 (LWP 6606) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f203bece72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 8 (Thread 0x71eff1bfe640 (LWP 6604) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f0cd87ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x000071f0cd869efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x71eff23ff640 (LWP 6602) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f0cd87b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x000071f0cd869d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 6 (Thread 0x71f003fff640 (LWP 6599) "cuda-EvtHandlr"):
+      #0  0x000071f204300c3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f202f2eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x000071f202e723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x000071f202f31208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 5 (Thread 0x71f01a5fd640 (LWP 6595) "python3"):
+      #0  0x000071f204279117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x000071f20427ba41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x000071f203bece72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+    ================= end pid=6586 =================
+    ================= gdb pid=6587 =================
+      0x00007287dbd4bd0b in sched_yield () from /lib/x86_64-linux-gnu/libc.so.6
+      #0  0x00007287dbd4bd0b in sched_yield () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287da87835d in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007287da878413 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007287da851af1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #4  0x00007287da86ca14 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #5  0x00007287da838ac6 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #6  0x00007287da918d96 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #7  0x00007287da415e30 in cudaEventRecordWithFlags () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcudart.so.12
+      #8  0x00007287d9fd1bc5 in at::cuda::CUDAEvent::record(c10::cuda::CUDAStream const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #9  0x00007287d9fbfcac in c10d::flagcxBackend::syncStream(c10::Device, int) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #10 0x00007287d9fc1841 in c10d::flagcxBackend::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so
+      #11 0x00007287bb2c4621 in c10d::ops::(anonymous namespace)::allreduce_CUDA(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #12 0x00007287bb2d37e2 in c10::impl::make_boxed_from_unboxed_functor<c10::impl::detail::WrapFunctionIntoRuntimeFunctor_<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (*)(c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > >, c10::guts::typelist::typelist<c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long> >, false>::call(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #13 0x00007287ba80da05 in torch::autograd::basicAutogradNotImplementedFallbackImpl(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #14 0x00007287bb2e1eb9 in c10::impl::BoxedKernelWrapper<std::tuple<std::vector<at::Tensor, std::allocator<at::Tensor> >, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > > (c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long), void>::call(c10::BoxedKernel const&, c10::OperatorHandle const&, c10::DispatchKeySet, c10::ArrayRef<at::Tensor>, c10::intrusive_ptr<c10d::ProcessGroup, c10::detail::intrusive_target_default_null_type<c10d::ProcessGroup> > const&, c10::intrusive_ptr<c10d::ReduceOp, c10::detail::intrusive_target_default_null_type<c10d::ReduceOp> > const&, std::optional<at::Tensor> const&, bool, long) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #15 0x00007287bb2f09f9 in c10d::ProcessGroup::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so
+      #16 0x00007287caa9c678 in pybind11::cpp_function::initialize<pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(pybind11::cpp_function::initialize<c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> >, c10d::ProcessGroup, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&, pybind11::name, pybind11::is_method, pybind11::sibling, pybind11::arg, pybind11::arg_v, pybind11::call_guard<pybind11::gil_scoped_release>, char [149]>(c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (c10d::ProcessGroup::*)(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&)#1}&&, c10::intrusive_ptr<c10d::Work, c10::detail::intrusive_target_default_null_type<c10d::Work> > (*)(c10d::ProcessGroup*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, pybind11::arg const&, pybind11::arg_v const&, pybind11::call_guard<pybind11::gil_scoped_release> const&, char const (&) [149])::{lambda(pybind11::detail::function_call&)#1}::operator()(pybind11::detail::function_call&) const () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #17 0x00007287ca050223 in pybind11::cpp_function::dispatcher(_object*, _object*, _object*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so
+      #18 0x00005e07efc01c66 in cfunction_call (func=0x7286a8d62200, args=<optimized out>, kwargs=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/methodobject.c:543
+      #19 0x00005e07efbfb023 in _PyObject_MakeTpCall (tstate=0x5e081e2c4600, callable=0x7286a8d62200, args=0x7285fd7e41e8, nargs=<optimized out>, keywords=0x0) at /usr/local/src/conda/python-3.10.18/Objects/call.c:215
+      #20 0x00005e07efc0d796 in _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x7285fd7e41e8, callable=0x7286a8d62200, tstate=0x5e081e2c4600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:112
+      #21 _PyObject_VectorcallTstate (kwnames=<optimized out>, nargsf=3, args=0x7285fd7e41e8, callable=0x7286a8d62200, tstate=0x5e081e2c4600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:99
+      #22 method_vectorcall (method=<optimized out>, args=0x7285fd7e41f0, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/classobject.c:53
+      #23 0x00005e07efbf6a65 in _PyObject_VectorcallTstate (kwnames=0x0, nargsf=<optimized out>, args=0x7285fd7e41f0, callable=0x7286a501cfc0, tstate=0x5e081e2c4600) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:114
+      #24 PyObject_Vectorcall (kwnames=0x0, nargsf=<optimized out>, args=0x7285fd7e41f0, callable=0x7286a501cfc0) at /usr/local/src/conda/python-3.10.18/Include/cpython/abstract.h:123
+      #25 call_function (kwnames=0x0, oparg=<optimized out>, pp_stack=<synthetic pointer>, trace_info=0x7ffc6f8a1cf0, tstate=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5893
+      #26 _PyEval_EvalFrameDefault (tstate=<optimized out>, f=0x7285fd7e4040, throwflag=<optimized out>) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:4181
+      #27 0x00005e07efc020ec in _PyEval_EvalFrame (throwflag=0, f=0x7285fd7e4040, tstate=0x5e081e2c4600) at /usr/local/src/conda/python-3.10.18/Include/internal/pycore_ceval.h:46
+      #28 _PyEval_Vector (kwnames=<optimized out>, argcount=<optimized out>, args=<optimized out>, locals=0x0, con=0x7286a8de4050, tstate=0x5e081e2c4600) at /usr/local/src/conda/python-3.10.18/Python/ceval.c:5067
+      #29 _PyFunction_Vectorcall (func=0x7286a8de4040, stack=<optimized out>, nargsf=<optimized out>, kwnames=<optimized out>) at /usr/local/src/conda/python-3.10.18/Objects/call.c:342
+      
+      Thread 13 (Thread 0x7285c34fb640 (LWP 6612) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007287db647e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 12 (Thread 0x7285c3cfc640 (LWP 6611) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007287db647e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 11 (Thread 0x7285bbbff640 (LWP 6608) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007287db647e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 10 (Thread 0x7285c44fd640 (LWP 6605) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007287db647e72 in __gthread_cond_wait (__cond=<optimized out>, __mutex=<optimized out>) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/x86_64-conda-linux-gnu/bits/gthr-default.h:911
+      #3  std::__condvar::wait (this=<optimized out>, __m=...) at /home/conda/feedstock_root/build_artifacts/gcc_compilers_1750804933539/work/build/x86_64-conda-linux-gnu/libstdc++-v3/include/bits/std_mutex.h:173
+      
+      Thread 9 (Thread 0x7285c4cfe640 (LWP 6603) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007286a527ba68 in baidu::xpu::bkcl::util::BlockingQueue<std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> > >::pop(std::vector<baidu::xpu::bkcl::ProxyArgs, std::allocator<baidu::xpu::bkcl::ProxyArgs> >*) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007286a5269efb in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 8 (Thread 0x7285c54ff640 (LWP 6601) "python3"):
+      #0  0x00007287dbcd4117 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287dbcd6a41 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+      #2  0x00007286a527b998 in baidu::xpu::bkcl::util::BlockingQueue<baidu::xpu::bkcl::QueueItem*>::pop(baidu::xpu::bkcl::QueueItem**) () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      #3  0x00007286a5269d78 in ?? () from /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so
+      
+      Thread 7 (Thread 0x7285cdbff640 (LWP 6600) "cuda-EvtHandlr"):
+      #0  0x00007287dbd5bc3f in poll () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007287da92eed2 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #2  0x00007287da8723c1 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      #3  0x00007287da931208 in ?? () from /root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libcuda.so.1
+      
+      Thread 6 (Thread 0x7285dbdff640 (LWP 6596) "python3"):
+      #0  0x00007287dbd6a4cf in accept () from /lib/x86_64-linux-gnu/libc.so.6
+      #1  0x00007286a6e1e026 in socketTryAccept (sock=0x7285dbdfedf0) at flagcx/core/socket.cc:497
+      #2  0x00007286a6e1efa0 in socketProgressState (sock=0x7285dbdfedf0) at flagcx/core/socket.cc:665
+      #3  0x00007286a6e1f874 in flagcxSocketAccept (sock=0x7285dbdfedf0, listenSock=0x5e0826944b60) at flagcx/core/socket.cc:780
+      
+    ================= end pid=6587 =================
+  --- 挂死现场：xpu-smi ---
+| N/A   40C  N/A     91W / 400W |  31110MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     92W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   57C  N/A    247W / 400W |  33640MiB / 98304MiB |    100%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   47C  N/A    158W / 400W |   4330MiB / 98304MiB |     44%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   46C  N/A    114W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+| N/A   42C  N/A     96W / 400W |    366MiB / 98304MiB |    100%      Default |
+|                               |      2MiB /    96MiB |             Disabled |
+/workspace/probe_battery.sh: line 12:  6516 Killed                  env CUDA_VISIBLE_DEVICES=$cards MODE=$mode REPS=$REPS "$@" timeout $((BUDGET+40)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/var_${name}.log 2>&1
+
+############ VARIANT V7_barrier | cards=6,7 mode=barrier env=[XPU_EVENT_KL3_ENABLE=1] reps=120 budget=75s ############
+  >>> 结果: ✅ 完成(未挂死)
+  --- 日志关键行 ---
+[rank0] rep=90 elapsed=0.01s
+[rank1] rep=100 elapsed=0.01s
+[rank0] rep=100 elapsed=0.01s
+[rank1] rep=110 elapsed=0.02s
+[rank0] rep=110 elapsed=0.02s
+[rank0] rep=120 elapsed=0.02s[rank1] rep=120 elapsed=0.02s
+[rank0] ALLDONE mode=barrier reps=120 elapsed=0.02s[rank1] ALLDONE mode=barrier reps=120 elapsed=0.02s
+  >>> 完成到: rep=120
+
+############ VARIANT V8_devonly | 单进程纯设备计算 reps=2000 ############
+  >>> 结果: ✅ 完成
+devonly rep=1400 elapsed=0.02s val=1.0002
+devonly rep=1600 elapsed=0.02s val=1.0002
+devonly rep=1800 elapsed=0.02s val=1.0002
+devonly rep=2000 elapsed=0.02s val=1.0002
+ALLDONE devonly reps=2000 elapsed=0.02s
+
+=========== 探针组结束 Mon Sep 14 15:44:07 CST 2026 ===========

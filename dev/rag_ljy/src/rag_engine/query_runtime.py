@@ -3,21 +3,24 @@
 from __future__ import annotations
 
 
-def create_pipeline(device: str):
+def create_pipeline(device: str, *, settings=None, execution_mode: str = "concurrent", safety_mib=5120):
     from . import Settings, create_retrieval_store
-    from .embedding import Qwen3Embedder
+    from .vllm_embedding import create_embedder
     from .pipeline import RetrievalPipeline
     from .reranker import Qwen3Reranker
+    from .retrieval import validate_execution_mode
 
-    settings = Settings.from_env()
+    validate_execution_mode(execution_mode)
+    if settings is None:
+        settings = Settings.from_env()
     store = create_retrieval_store(settings)
     store.require_connection()
     if not store.has_index():
         raise RuntimeError(
             f"{store.backend_name} resource {store.resource_name} does not exist; "
-            "run scripts/create_index.py and ingest documents first"
+            "run scripts/data/create_index.py and ingest documents first"
         )
-    embedder = Qwen3Embedder(
+    embedder = create_embedder(
         settings.embedding_model_path,
         device=device,
         output_dims=settings.embedding_dims,
@@ -28,7 +31,13 @@ def create_pipeline(device: str):
         device=device,
         instruction=settings.retrieval_instruction,
     )
-    return RetrievalPipeline(store, embedder, reranker)
+    generator = None
+    if settings.generation_enabled:
+        from .generation import GenerationLimits, OneRecGenerator
+        generator = OneRecGenerator(settings.generation_model_path, device=device,
+            limits=GenerationLimits(settings.generation_max_input_tokens, settings.generation_max_new_tokens),
+            safety_mib=safety_mib)
+    return RetrievalPipeline(store, embedder, reranker, execution_mode=execution_mode, generator=generator)
 
 
 def format_hits(hits: list[dict]) -> list[dict]:

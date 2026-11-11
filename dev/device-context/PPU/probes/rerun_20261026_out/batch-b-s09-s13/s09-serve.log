@@ -1,0 +1,37 @@
+证据目录（本轮）: /bmcp_lvm_fs/hliu553/probes_ppu/dc_t3_20261014/20261026_110942-cont-t3
+===== [0] 容器与版本 =====
+[11:16:22]
+hliu553-dc-dev|Up 17 minutes
+vllm 0.19.0 torch 2.10.0 triton 3.6.0
+cuda_cnt 2
+MODEL ✓ config.json 在
+
+===== [A] serve_standard.sh（SERVE_FORM=embed · DEV=0 · EAGER=1 · STOP_AFTER=1）=====
+[11:16:26] start
+form rc=0
+[11:17:29] end
+-- verdict 与关键行（宿主路径 /bmcp_lvm_fs/hliu553/probes_ppu/dc_t3_20261014/20261026_110942-cont-t3/form/serve_standard.log）--
+---- vllm 实际启动参数 ----
+---- [A] 未通过，取 vllm 日志的异常尾 ----
+
+===== [B] proto_infer_serve.py（本层消费方）=====
+[11:17:29] start serve (detached)
+[i] 第 40 s 就绪（http 200）
+ready=1
+[11:18:09] run consumer
+[1] 设备上下文: 后端=ppu 设备数=2
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-embedding-0.6b
+[3] 向量: 维度=1024 有限=True 范数=1.000000
+[4] 语义: 同主题 0.7000 / 异主题 0.2883 / 区分度 0.4118
+[5] 吞吐: 105.74 句/s | p50 28.0ms | max 29.7ms
+[6] 错误注入: HTTP 400 | This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at l → L2_PARAM / raise
+[7] 业务继续: ✅
+
+=== SERVE_LEG_PASS | 10/10 ===
+结果已写入 /workspace/probes_ppu/dc_t3_20261014/consumer/proto_infer_serve_result.json
+consumer rc=0
+
+===== [C] 停服务（只停自己起的；判据由结果决定）=====
+残留进程数 = 0（0=已清）
+T3_DONE

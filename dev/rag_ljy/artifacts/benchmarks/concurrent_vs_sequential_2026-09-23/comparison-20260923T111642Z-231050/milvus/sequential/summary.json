@@ -1,0 +1,106 @@
+{
+  "status": "complete",
+  "metadata": {
+    "scope": "retrieval-only",
+    "query_source": "/tmp/nfcorpus_test_queries.jsonl",
+    "selection": "seeded sample from query IDs sorted lexicographically",
+    "query_vectors_sha256": "8da8bfac33eea62dd4aad47ffa1360b81eae1fb24275c9649e5da372b84c6ae9",
+    "resolved_device": "npu:0",
+    "dtype": "torch.bfloat16",
+    "embedding_model": "/mnt/raid/jliu171/models/Qwen/Qwen3-Embedding-0.6B",
+    "embedding_dims": 1024,
+    "retrieval_instruction": "Given a web search query, retrieve relevant passages that answer the query",
+    "retriever_top_k": 50,
+    "coarse_top_k": 30,
+    "num_candidates": 100,
+    "rrf_rank_constant": 60,
+    "packages": {
+      "torch": "2.10.0+cpu",
+      "torch-npu": "2.10.0",
+      "transformers": "5.5.3",
+      "elasticsearch": "9.5.0",
+      "pymilvus": "3.0.1"
+    },
+    "backend_order": [
+      "milvus",
+      "elasticsearch"
+    ],
+    "mode_order": [
+      "sequential",
+      "concurrent"
+    ],
+    "backend": "milvus",
+    "resource": "nfcorpus_chunks_v1",
+    "execution_mode": "sequential",
+    "search_order": [
+      "bm25",
+      "dense"
+    ],
+    "search_channels": [
+      "bm25",
+      "dense"
+    ],
+    "search_workers": 0,
+    "query_count": 50,
+    "queries_sha256": "9d37bfa48915a99667221e83257f2b17c5dcdd84c8c6b1d2e30a0d5cbe8e4240",
+    "warmup": 3,
+    "repeats": 1,
+    "seed": 42,
+    "percentile_method": "linear interpolation",
+    "timing_clock": "time.perf_counter_ns",
+    "search_ms_definition": "before BM25 starts until dense returns; excludes RRF",
+    "full_query_total_definition": "embedding through reranker return; excludes startup, HTTP and artifact I/O",
+    "retrieval_only_total_definition": "search + RRF; excludes precomputed embeddings"
+  },
+  "attempted": 50,
+  "successful": 50,
+  "failed": 0,
+  "error_rate": 0.0,
+  "latency_ms": {
+    "bm25_ms": {
+      "samples": 50,
+      "mean": 3.7497076,
+      "p50": 3.7609015,
+      "p95": 4.9051051,
+      "p99": 5.6374602499999975,
+      "min": 2.503548,
+      "max": 6.269989
+    },
+    "dense_ms": {
+      "samples": 50,
+      "mean": 4.17975296,
+      "p50": 4.011737,
+      "p95": 5.014796299999999,
+      "p99": 6.076722119999998,
+      "min": 3.696268,
+      "max": 6.676586
+    },
+    "search_ms": {
+      "samples": 50,
+      "mean": 7.939558,
+      "p50": 7.807684500000001,
+      "p95": 9.273221249999999,
+      "p99": 10.386111809999996,
+      "min": 6.285439,
+      "max": 11.081045
+    },
+    "rrf_ms": {
+      "samples": 50,
+      "mean": 0.09872242,
+      "p50": 0.1098195,
+      "p95": 0.15890259999999987,
+      "p99": 0.194486,
+      "min": 0.051212,
+      "max": 0.197328
+    },
+    "total_ms": {
+      "samples": 50,
+      "mean": 8.06981094,
+      "p50": 7.955541,
+      "p95": 9.36825715,
+      "p99": 10.520360529999998,
+      "min": 6.376713,
+      "max": 11.240662
+    }
+  }
+}

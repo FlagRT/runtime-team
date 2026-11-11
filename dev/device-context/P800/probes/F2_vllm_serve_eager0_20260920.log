@@ -1,0 +1,44 @@
+=========== P800 阶段 3 补 · vLLM 服务化 开始 Sun Sep 20 09:44:30 CST 2026 ===========
+用卡: 6 | 端口: 8100 | 模型: /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+单变量对照: EAGER=0（启用图捕获）| TAG=eager0
+--- 用卡前：各卡显存占用 ---
+| N/A   38C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+############ 启动 vllm serve ############
+  pid=20973  日志: /workspace/out_serve/vllm_serve.log
+  ✅ 服务就绪 t=30s
+
+############ 服务化验证（proto_infer_serve.py）############
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[1] 设备上下文: 后端=kunlun 设备数=1
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-embedding-0.6b
+[3] 向量: 维度=1024 有限=True 范数=1.000000
+[4] 语义: 同主题 0.7006 / 异主题 0.2900 / 区分度 0.4106
+[5] 吞吐: 22.83 句/s | p50 132.3ms | max 132.8ms
+[6] 错误注入: HTTP 400 | This model's maximum context length is 4096 tokens. However, your request has 6001 input tokens. Please reduce the lengt → L2_PARAM / raise
+[7] 业务继续: ✅
+
+=== SERVE_LEG_PASS | 10/10 ===
+结果已写入 /workspace/out_serve/proto_infer_serve_result_kunlun_eager0.json
+  >>> ✅ 服务化形态 PASS（TAG=eager0）
+
+############ 停机（释放卡）############
+/workspace/P800/probes/F2_vllm_serve.sh: line 38: 20973 Killed                  nohup vllm serve $MODEL --served-model-name qwen3-embedding-0.6b --runner pooling --convert embed --port $PORT --max-model-len 4096 --gpu-memory-utilization 0.25 $EAGER_FLAG > $OUT/vllm_serve.log 2>&1
+--- 用卡后复查 ---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+=========== 阶段 3 补 · vLLM 服务化 结束 Sun Sep 20 09:45:09 CST 2026 ===========

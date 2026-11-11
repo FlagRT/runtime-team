@@ -1,0 +1,232 @@
+{
+  "steps": {
+    "1_headers": {
+      "header": "/usr/local/neuware/include/cnrt.h",
+      "declarations": [
+        "cnrtRet_t cnrtDeviceGetQueuePriorityRange(int *pMinPriority, int *pMaxPriority);",
+        "cnrtRet_t cnrtQueueCreate(cnrtQueue_t *pQueue);",
+        "cnrtRet_t cnrtQueueCreateWithPriority(cnrtQueue_t *pQueue, unsigned int flags,",
+        "cnrtRet_t cnrtQueueGetPriority(cnrtQueue_t queue, int *priority);",
+        "cnrtRet_t cnrtQueueGetId(cnrtQueue_t queue, unsigned long long *queueId);",
+        "cnrtRet_t cnrtQueueDestroy(cnrtQueue_t queue);",
+        "cnrtRet_t cnrtQueueQuery(cnrtQueue_t queue);",
+        "cnrtRet_t cnrtQueueSync(cnrtQueue_t queue);",
+        "cnrtRet_t cnrtQueueWaitNotifier(cnrtNotifier_t notifier, cnrtQueue_t queue,",
+        "cnrtRet_t cnrtQueueSetAttribute(cnrtQueue_t queue, cnrtQueueAttrID_t attr_id,",
+        "cnrtRet_t cnrtQueueGetAttribute(cnrtQueue_t queue, cnrtQueueAttrID_t attr_id,",
+        "cnrtRet_t cnrtQueueCopyAttributes(cnrtQueue_t dst, cnrtQueue_t src);",
+        "cnrtRet_t cnrtQueueBeginCapture(cnrtQueue_t queue,",
+        "cnrtRet_t cnrtQueueEndCapture(cnrtQueue_t queue, cnrtTaskTopo_t *pTaskTopo);",
+        "cnrtRet_t cnrtQueueIsCapturing(cnrtQueue_t queue,",
+        "cnrtRet_t cnrtQueueGetCaptureInfo(cnrtQueue_t queue,",
+        "cnrtRet_t cnrtQueueUpdateCaptureDependencies(cnrtQueue_t queue,"
+      ]
+    },
+    "2_symbols": {
+      "lib": "/usr/local/neuware/lib64/libcnrt.so.7.4.0",
+      "symbols": [
+        "cnrtDeviceGetQueuePriorityRange",
+        "cnrtQueueBeginCapture",
+        "cnrtQueueCopyAttributes",
+        "cnrtQueueCreate",
+        "cnrtQueueCreateWithPriority",
+        "cnrtQueueDestroy",
+        "cnrtQueueEndCapture",
+        "cnrtQueueGetAttribute",
+        "cnrtQueueGetCaptureInfo",
+        "cnrtQueueGetId",
+        "cnrtQueueGetPriority",
+        "cnrtQueueIsCapturing",
+        "cnrtQueueQuery",
+        "cnrtQueueSetAttribute",
+        "cnrtQueueSync",
+        "cnrtQueueUpdateCaptureDependencies",
+        "cnrtQueueWaitNotifier"
+      ]
+    },
+    "3_range": {
+      "rc": 0,
+      "least": 7,
+      "greatest": 0
+    },
+    "3_trials": [
+      {
+        "request": 0,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 0,
+        "destroy_rc": 0
+      },
+      {
+        "request": 1,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 1,
+        "destroy_rc": 0
+      },
+      {
+        "request": 2,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 2,
+        "destroy_rc": 0
+      },
+      {
+        "request": 3,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 3,
+        "destroy_rc": 0
+      },
+      {
+        "request": 4,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 4,
+        "destroy_rc": 0
+      },
+      {
+        "request": 5,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 5,
+        "destroy_rc": 0
+      },
+      {
+        "request": 6,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 6,
+        "destroy_rc": 0
+      },
+      {
+        "request": 7,
+        "create_rc": 0,
+        "handle": "0x559c39c1c440",
+        "readback": 7,
+        "destroy_rc": 0
+      }
+    ],
+    "4_wrap": {
+      "probe": {
+        "torch.mlu.ExternalStream": true,
+        "torch.mlu.Stream.__init__ params": [
+          "self",
+          "args",
+          "kwargs"
+        ],
+        "torch.mlu.Stream signature": "(self, /, *args, **kwargs)"
+      },
+      "wrapped_by": "torch.mlu.ExternalStream"
+    },
+    "6_torch_stream_pool": {
+      "created": 200,
+      "distinct_handles": 32,
+      "sample": [
+        "0x559c39c1c6b0",
+        "0x559c39c1d070",
+        "0x559c39c1da30",
+        "0x559c39c1e3f0",
+        "0x559c39c1edb0"
+      ]
+    },
+    "6_capi_pool": {
+      "created": 200,
+      "distinct_handles": 200
+    },
+    "7_after_drop": {
+      "rc": 0,
+      "stdout_tail": "{\"handle\": \"0x5574effdaf90\", \"query_rc\": 0, \"readback\": 4}",
+      "stderr_tail": ""
+    },
+    "8_three_way": [
+      {
+        "request": 0,
+        "layer_readback": 0,
+        "device_capi": 0,
+        "torch_attr": 0
+      },
+      {
+        "request": 1,
+        "layer_readback": 1,
+        "device_capi": 1,
+        "torch_attr": -3
+      },
+      {
+        "request": 2,
+        "layer_readback": 2,
+        "device_capi": 2,
+        "torch_attr": -2
+      },
+      {
+        "request": 3,
+        "layer_readback": 3,
+        "device_capi": 3,
+        "torch_attr": -1
+      },
+      {
+        "request": 4,
+        "layer_readback": 4,
+        "device_capi": 4,
+        "torch_attr": 0
+      },
+      {
+        "request": 5,
+        "layer_readback": 5,
+        "device_capi": 5,
+        "torch_attr": 5
+      },
+      {
+        "request": 6,
+        "layer_readback": 6,
+        "device_capi": 6,
+        "torch_attr": 6
+      },
+      {
+        "request": 7,
+        "layer_readback": 7,
+        "device_capi": 7,
+        "torch_attr": 7
+      }
+    ]
+  },
+  "checks": {
+    "S1 头文件里有 queue 建/销/回读原语": {
+      "ok": true,
+      "detail": "17 条声明（/usr/local/neuware/include/cnrt.h）"
+    },
+    "S2 库导出符号里有 queue 建/销/回读": {
+      "ok": true,
+      "detail": "17 个同族符号"
+    },
+    "S3 C API 真建队列 + 回读一致 + 真销毁": {
+      "ok": true,
+      "detail": "8 个档位全部 create rc=0 / 回读==请求 / destroy rc=0"
+    },
+    "S4 存在把厂商队列包成 torch 流的入口": {
+      "ok": true,
+      "detail": "wrapped_by='torch.mlu.ExternalStream'"
+    },
+    "S5a 包装后的流**真的能承载算子**": {
+      "ok": true,
+      "detail": "sum=32.0（期望 32.0）"
+    },
+    "S5b 未经本层登记的流 ⇒ owns=False、release no-op（不得越权销毁）": {
+      "ok": true,
+      "detail": "owns=False release=False"
+    },
+    "S6 torch 侧流被**池化复用**（不泄漏设备队列）": {
+      "ok": true,
+      "detail": "建 200 条 ⇒ 不同句柄 32 个（池化）"
+    },
+    "S7 丢弃包装对象后底层队列**仍可用** ⇒ torch 不拥有该队列": {
+      "ok": true,
+      "detail": "query rc 解读：队列仍存活（torch 未销毁）（子进程 rc=0）"
+    },
+    "S8 本层回读 == 设备 C API 读数（回读是真回读，不是参数回显）": {
+      "ok": true,
+      "detail": "8 个档位全部一致（torch 属性一列**允许不等**，它就是被替换掉的旧口径）"
+    }
+  },
+  "verdict": "CAMB_STREAM_CAPI_PASS"
+}

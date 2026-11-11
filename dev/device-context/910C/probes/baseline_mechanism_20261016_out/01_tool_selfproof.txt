@@ -1,0 +1,11 @@
+# 证据截选 —— 工具自证：compose v2.29.7 + pyyaml 6.0.2，用户级安装、未用 sudo
+# 来源: npu1-27:/mnt/raid/hliu553/dc_env_20261016/mechanism/nohup.out
+# 采集时间: 2026-10-16 12:04:20 (npu1-27)
+
+===== [0] 工具自证（用户级安装，无 sudo、不改宿主包）=====
+  docker     : Docker version 20.10.8, build 3967b7d
+  compose    : Docker Compose version v2.29.7
+  plugin 位置: /home/hliu553/.docker/cli-plugins/docker-compose
+  pyyaml     : 6.0.2 -> /home/hliu553/.local/lib/python3.9/site-packages/yaml/__init__.py
+  python     : 3.9.9
+  sudo 未使用: sudo: a password is required

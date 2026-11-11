@@ -1,0 +1,64 @@
+# thead-ppu-runtime v2 · 固化层实况与配方指纹
+# 采集时间 2026-10-27（PTG_0 平头哥共享机）；采集方式见各行命令
+# 用途：入档时回答「这层到底装了什么、能不能被 pip 校验、配方是哪一版」
+
+## 1. 镜像身份
+image: flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64
+image_id: sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8
+size_bytes: 41745259535
+created: 2026-10-27T10:05:56+08:00
+repo_digests: []                 # 本机构建未 push —— 跨机 image id 不同属预期
+# 采集：docker inspect <tag> --format '{{.Id}} {{.Size}} {{.Created}} {{.RepoDigests}}'
+
+## 2. 容器内运行时版本（全新建容器 hliu553-v2-verify 实测）
+python: 3.12.3
+torch: 2.10.0 (cuda available: True, device_count: 2)
+triton: 3.6.0
+flagtree: 0.7.0+ppu.gite223f42c   # ← 见下方"版本标签不一致"
+vllm: 0.19.0
+device: PPU-ZW810E
+
+## 3. ⚠️ 两个"看起来通过"的坑（后人最容易踩）
+
+### 3.1 `pip show triton` 是**空的**
+   triton 目录是 **flagtree wheel 内部的一段**，不是独立安装的 distribution
+   ⇒ 镜像里没有 `triton-*.dist-info`，`pip show triton` 无输出。
+   后果：用「pip show triton 有没有输出」判"装没装"会判错（判成没装），
+        用「pip freeze 里有没有 triton」做版本比对同样不成立。
+   正确判据：`python3 -c "import triton; print(triton.__version__)"`（实测 3.6.0）
+            + 派生层 wheel 的 sha256（assets/provenance/flagtree-wheel.sha256）。
+
+### 3.2 `flagtree.__version__` 自报 **3.6.0**，而 pip 元数据是 **0.7.0+ppu.gite223f42c**
+   实测：`python3 -c "import flagtree; print(flagtree.__version__)"` → 3.6.0
+        `pip show flagtree` → Version: 0.7.0+ppu.gite223f42c
+   原因：该字段跟随 triton 版本线（3.6.0），不是包版本。
+   后果：拿 `flagtree.__version__` 当版本锚会误读。版本锚一律用 pip 元数据 + wheel sha256。
+
+## 4. pip 元数据原文（flagtree；triton 无此项）
+Name: flagtree
+Version: 0.7.0+ppu.gite223f42c
+Summary: A unified compiler supporting multiple AI chip backends for custom Deep Learning operations,
+         which is forked from triton-lang/triton.
+Home-page: https://github.com/flagos-ai/FlagTree/
+Author: FlagOS
+Author-email: contact@flagos.io
+Location: /usr/local/lib/python3.12/site-packages
+dist-info: /usr/local/lib/python3.12/site-packages/flagtree-0.7.0+ppu.gite223f42c.dist-info
+# 采集：docker exec <fresh-container> bash -lc 'pip show flagtree; pip show triton'
+
+## 5. 派生层的两条构建指令（docker history --no-trunc 前两行）
+RUN |1 SP=/usr/local/lib/python3.12/site-packages /bin/sh -c pip install --no-index --no-deps \
+    --no-cache-dir /tmp/flagtree-0.7.0+ppu.gite223f42c-cp312-cp312-linux_x86_64.whl && rm -rf /tmp/flagtree-...
+RUN |1 SP=/usr/local/lib/python3.12/site-packages /bin/sh -c python3 -c 'import importlib.util as u, sys; \
+    missing=[m for m in ("triton","flagtree") if u.find_spec(m) is None]; \
+    sys.exit("FATAL: 派生层缺失 " + ",".join(missing)) if missing else ...'
+
+读法：**第 2 条是构建期自验证**（find_spec 缺失就让 build 失败），所以"镜像能建出来"
+本身就等于"triton+flagtree 都在"。它不能替代运行期判据（能 import ≠ 能编 kernel），
+运行期判据见 assets/evidence/。
+
+## 6. 配方指纹（本文件对应的配方版本）
+b1fd1966ab81942257049936918eab81ae050df7d102aba079bdfd656c1246ce  Dockerfile.repro
+f47c424ce3c5fb98ee34c946dd7cab91b95aa78975378c84a5db551cb7915fed  build.sh
+# 采集：sha256sum Dockerfile.repro build.sh
+# 复核：重建前先比这两个值 —— 若与仓内 HEAD 不一致，说明有人改了配方但没重建/没更新本文件。

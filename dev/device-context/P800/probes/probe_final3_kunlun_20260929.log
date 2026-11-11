@@ -1,0 +1,12 @@
+
+########## 段1 多卡上下文（CUDA_VISIBLE_DEVICES=4,6）##########
+   RESULT {"sum_cuda0": 512.0, "on_cuda0": {"ctx": "0x57ae98180df0", "rc": 0, "device": 0, "dev_rc": 0, "flags": 8}, "primary_dev0": {"rc": 0, "flags": 0, "active": 1}, "primary_dev1": {"rc": 0, "flags": 0, "active": 0}, "sum_cuda1": 512.0, "on_cuda1": {"ctx": "0x57ae98187fa0", "rc": 0, "device": 1, "dev_rc": 0, "flags": 8}, "create_on_dev1_rc": 2, "sum_back": 16.0, "on_cuda0_again": {"ctx": "0x57ae98180df0", "rc": 0, "device": 0, "dev_rc": 0, "flags": 8}, "dev0_ctx_stable": true, "dev0_vs_dev1_ctx_differ": true}
+
+########## 段2 cuCtxSetLimit 写入语义（CUDA_VISIBLE_DEVICES=4）##########
+   RESULT {"stack_before": [0, 0, false], "setlimit_stack_rc": 0, "stack_after_set": [0, 4096, false], "setlimit_sync_depth_rc": 215, "sync_depth_after_set": [215, 3735928559, true], "setlimit_restore_rc": 0, "stack_restored": [0, 0, false], "sum_after": 512.0}
+
+########## 段3 IPC 真调（跨进程，CUDA_VISIBLE_DEVICES=4）##########
+   RESULT_B {"saw_A": true, "A_alloc_rc": 0, "A_ipcget_rc": 0, "A_pid": 44267, "cuIpcOpenMemHandle_rc": 1, "p2": "0x0"}
+   RESULT_A {"getcurrent_rc": 0, "ctx": "0x621fe1673f40", "alloc_sym": "cuMemAlloc_v2", "cuMemAlloc_rc": 0, "dptr": "0x4014279000", "memcpyHtoD_rc": 0, "cuIpcGetMemHandle_rc": 0, "pid": 44267}
+
+===== ALL DONE =====

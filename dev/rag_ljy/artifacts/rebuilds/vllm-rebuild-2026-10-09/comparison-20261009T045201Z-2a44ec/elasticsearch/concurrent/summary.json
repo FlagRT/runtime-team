@@ -1,0 +1,105 @@
+{
+  "status": "complete",
+  "metadata": {
+    "started_utc": "2026-10-09T04:52:01.020087+00:00",
+    "scope": "retrieval-only",
+    "query_source": "benchmarks/concurrent_vs_sequential_2026-09-23/comparison-20260923T111642Z-231050/queries.jsonl",
+    "selection": "seeded sample from query IDs sorted lexicographically",
+    "query_vectors_sha256": "a066c069c484899bb1ef0d17bf1aea6c1c4ab93668ecb9390c797e32dfa45d17",
+    "resolved_device": "remote-vllm",
+    "dtype": "server-configured",
+    "embedding_backend": "vllm",
+    "embedding_model": "/mnt/raid/jliu171/models/Qwen/Qwen3-Embedding-0.6B",
+    "embedding_dims": 1024,
+    "retrieval_instruction": "Given a web search query, retrieve relevant passages that answer the query",
+    "retriever_top_k": 50,
+    "coarse_top_k": 30,
+    "num_candidates": 100,
+    "rrf_rank_constant": 60,
+    "packages": {
+      "torch": "2.10.0+cpu",
+      "torch-npu": "2.10.0",
+      "transformers": "5.5.3",
+      "elasticsearch": "9.5.0",
+      "pymilvus": "3.0.1"
+    },
+    "backend_order": [
+      "milvus",
+      "elasticsearch"
+    ],
+    "mode_order": [
+      "sequential",
+      "concurrent"
+    ],
+    "backend": "elasticsearch",
+    "resource": "nfcorpus-chunks-v1",
+    "execution_mode": "concurrent",
+    "search_order": null,
+    "search_channels": [
+      "bm25",
+      "dense"
+    ],
+    "search_workers": 2,
+    "query_count": 50,
+    "queries_sha256": "9d37bfa48915a99667221e83257f2b17c5dcdd84c8c6b1d2e30a0d5cbe8e4240",
+    "warmup": 3,
+    "repeats": 1,
+    "seed": 42,
+    "percentile_method": "linear interpolation",
+    "timing_clock": "time.perf_counter_ns",
+    "search_ms_definition": "before submitting both searches until both complete; excludes RRF",
+    "full_query_total_definition": "embedding through reranker return; excludes startup, HTTP and artifact I/O",
+    "retrieval_only_total_definition": "search + RRF; excludes precomputed embeddings"
+  },
+  "attempted": 50,
+  "successful": 50,
+  "failed": 0,
+  "error_rate": 0.0,
+  "latency_ms": {
+    "bm25_ms": {
+      "samples": 50,
+      "mean": 6.81258876,
+      "p50": 6.499945,
+      "p95": 9.294629200000001,
+      "p99": 13.56125970999999,
+      "min": 3.916439,
+      "max": 16.067963
+    },
+    "dense_ms": {
+      "samples": 50,
+      "mean": 11.100365759999999,
+      "p50": 10.711761,
+      "p95": 13.6690062,
+      "p99": 16.52674411,
+      "min": 9.216547,
+      "max": 16.534712
+    },
+    "search_ms": {
+      "samples": 50,
+      "mean": 11.5352324,
+      "p50": 11.2441745,
+      "p95": 14.13938495,
+      "p99": 17.02517633,
+      "min": 9.679007,
+      "max": 17.18236
+    },
+    "rrf_ms": {
+      "samples": 50,
+      "mean": 0.12696844000000002,
+      "p50": 0.11069999999999999,
+      "p95": 0.2290225,
+      "p99": 0.24656449,
+      "min": 0.051312,
+      "max": 0.24872
+    },
+    "total_ms": {
+      "samples": 50,
+      "mean": 11.71493968,
+      "p50": 11.3951605,
+      "p95": 14.414743199999998,
+      "p99": 17.274800889999998,
+      "min": 9.816943,
+      "max": 17.491694
+    }
+  }
+}

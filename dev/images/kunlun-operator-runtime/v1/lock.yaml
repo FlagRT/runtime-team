@@ -1,0 +1,406 @@
+# kunlun-operator-runtime / v1
+# 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
+
+superseded_by: v2   # 本目录配方与归档镜像的对应关系不成立，见 known_issues: v1-image-is-docker-commit-not-build
+# 归档镜像本身仍可用、其运行时验证结论仍成立；**从零重建请用 v2**（同组件集合与 pin，
+# 走正规 docker build）。本目录整体保留为历史记录，配方文件不再改动。
+
+image_tag: "flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+image_id: "sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f"
+flagtree_line: >-
+  BAAI·FlagTree 官方 xpu 用户手册
+  （https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu），线号 xpu3.6
+  （CANN 概念不适用于昆仑芯；对应 XPU-RT 5.0.21 / driver 5.0.21.47，本机实测）。
+  手册当前展示的最新 flagtree 版本是 0.7.0rc3+xpu3.6；本条目 pin 在
+  0.6.1+xpu3.6——memory、device-context 两个子方向已各自验证过该具体组合
+  可用，不跟随手册最新版本。手册给出的安装方式是预编译 wheel：
+  `pip install flagtree===<ver>+xpu3.6 --index-url=...flagos-pypi-hosted...`，
+  无需源码编译。
+built_at: "2026-09-22"
+builder: "Docker 20.10.8 (BuildKit 未启用, DOCKER_BUILDKIT=0) / x86_64"
+# 注（2026-10-11）：本字段不可信——归档镜像并非 docker build 产物而是 docker commit
+# 产物（见 known_issues: v1-image-is-docker-commit-not-build）；此处记的版本号也与同
+# 文件 known_issues: docker-save-broken-on-this-host 记的本机 Docker Engine 29.1.3 不符。
+# 按历史记录原样保留，不臆测修正。v2 的 builder 字段以其自身实机构建记录为准。
+repro_status: "🟡 配方在手，未实机验证"   # 2026-10-11 由 🟢 降级，见 known_issues: v1-image-is-docker-commit-not-build
+# 原记述为「🟢 functional-repro — 2026-09-22 实机构建 + pytest 真机验证，见 REBUILD.md」。
+# pytest 真机验证本身成立（那是对归档镜像的实测，见 repro_result）；不成立的是"本目录
+# Dockerfile.repro 构建出了该镜像"这一条——归档镜像已查实为 docker commit 产物。按
+# README §5，🟢 = 「Dockerfile.repro + assets 已实机重建，且与原镜像比对通过」，本条目
+# 不满足；🟡 = 「配方在手，未实机验证」。
+
+recommended_default: >-
+  本层同时包含训练（transformers+FlagCX）与推理（vLLM+vllm-plugin-fl）所需
+  组件（见 parent_image.note），是训练/推理场景的**推荐默认底座**，无需按
+  场景再拆两个镜像。两条路径均已真机验证可用（见 `repro_result.e2e_smoke_training`
+  / `e2e_smoke_inference`），各有一条使用前提：
+  - **推理（单卡 vLLM）**：须显式设置 `VLLM_FL_PREFER=vendor`（默认 dispatch
+    在 EngineCore 初始化阶段崩溃，见 known_issues:
+    flagos-index-select-invalid-device-function）。
+  - **训练（多卡 flagcx 集合通信）**：须遵守共享机用卡纪律——`xpu-smi` 挑
+    连续且空闲的同 NUMA 组卡（本机 NUMA0=卡0-3、NUMA1=卡4-7），卡 1 历史上
+    反复被其他租户占用，应优先避开（见 REBUILD.md「GPU/机器纪律」）。
+  消费前需知晓上述两条 + GEMM 编译崩溃 + `XPU_EVENT_KL3_ENABLE` 挂死共四条
+  已知限制（见 known_issues）。
+  回退路径：本层相对 `parent_image`（官方基座）只多一层（flagtree 安装 +
+  FlagGems 非 editable 重装）；但**归档镜像的实际产出方式是 `docker commit`，
+  不是按本目录 `Dockerfile.repro` 构建**（见 known_issues:
+  v1-image-is-docker-commit-not-build）。若本层不满足需求，基于 `parent_image`
+  按 `../v2/Dockerfile.repro`（已修正、已走正规 `docker build`）的模式重建、
+  更改 pin 后验证即可，不依赖本层。
+
+dockerfile: |
+  Dockerfile.repro = 本目录唯一配方（从官方基座直接 pip/git 安装构建，无需从
+  既有镜像 docker history 还原）。build.sh 驱动。
+  **注（2026-10-11）**：该配方从未被实机验证能重建出本条目的归档镜像——归档镜像
+  是 docker commit 产物，且配方文本与当时的实际操作已漂移（FlagGems 源目录、
+  静态自检在无设备容器下不可通过）。证据与影响见 known_issues:
+  v1-image-is-docker-commit-not-build。配方文件按历史记录原样保留，可重建的配方
+  在 ../v2/Dockerfile.repro。
+
+parent_image:
+  name: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base"
+  digest: "sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+  note: >-
+    BAAI·FlagTree 官方发布的预构建基座镜像（公开 harbor 仓库，本机已存在，
+    非本组产物）。基座已内置 Python 3.10.18 / torch 2.9.0+cu129（CUDA 兼容层，
+    昆仑芯 xpytorch）/ torchvision 0.24.0+cu129 / torchaudio 2.9.0+cu129，
+    并已预装 FlagGems（editable，`/env/FlagGems`）与 FlagCX（editable，
+    `/env/FlagCX`），commit 分别为 73c5aff1e304c293ab525ecb03e9449644496fbb 与
+    3b43bdb237fc93736eddf3e118edf32f664b7861，与本条目的 FlagGems pin 一致。
+    基座**同时已内置 `vllm==0.13.0`、`transformers==4.57.1`、
+    `vllm-plugin-fl`（editable，`/env/xvllm-plugin-FL`，version 0.1.0）**——
+    训练（transformers+FlagCX）与推理（vLLM+vllm-plugin-fl）两条路径所需组件
+    均已在基座内，非本条目新增。基座不含 flagtree/triton（pip freeze 无相关
+    条目），是本条目唯一新增的层。
+
+# --- official / custom 边界（见 README §4.0/§4.1）。origin: official 此处
+#     严格等于"BAAI·FlagTree 官方发布/托管的公开产物"，与基座内置的 FlagGems/
+#     FlagCX 源码（FlagOS 组织公开仓库主干提交，非本组自建分支）都算 official——
+#     P800 侧目前没有任何 FlagRT/FlagOS 私有 fork 层，layers 里没有 custom 项。---
+layers:
+  - name: "FlagTree xpu3.6 预构建基座镜像"
+    origin: official
+    pin: "harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base@sha256:ea6d797a7d44ef97d7c0c0ed492f69c8ed2e024c927b2bfb5eef53e498e4eb34"
+    note: "BAAI·FlagTree 官方发布，公开 harbor，无需 BAAI 内部账号，本机已存在"
+  - name: "flagtree（提供 triton 编译器/运行时，import 名为 triton）"
+    origin: official
+    pin: "flagtree===0.6.1+xpu3.6（BAAI·FlagTree 官方 PyPI 索引 resource.flagos.net/repository/flagos-pypi-hosted，预编译 wheel，非源码构建）"
+    note: >-
+      pip dist 名为 flagtree，但安装内容落在 triton/ 顶层命名空间下（"forked
+      from triton-lang/triton"）。import 后 triton.__version__ == 3.6.0。
+      必须 --no-deps 安装，否则 pip 解析 torch 的可选依赖会额外装 PyPI 通用
+      triton==3.5.0，覆盖掉 flagtree 提供的 triton/ 目录，冲掉 xpu 编译后端
+      （见 known_issues: flaggems-kunlunxin-extras-missing）。
+  - name: "FlagGems（flag_gems 4.2.1.rc.0，即 v4.2.1.rc.0-177）"
+    origin: official
+    pin: "git commit 73c5aff1e304c293ab525ecb03e9449644496fbb（flagos-ai/FlagGems 公开上游主干，非 FlagRT/FlagOS fork）"
+    note: >-
+      基座本已内置该 commit（/env/FlagGems，editable）。本层做的是一次干净的
+      非 editable 重装（--no-deps，同 pypi.tuna.tsinghua.edu.cn 索引，源同
+      /env/FlagGems 本地 checkout），目的是让镜像不依赖一个可能被后续操作改动
+      的可变源码目录，产出结果与基座自带版本完全一致（同 commit）。该 commit
+      的 pyproject.toml **没有 kunlunxin extras 组**（仅 test/example 两组），
+      `pip install .[kunlunxin]` 会静默退化为裸装且不报错终止（仅一行
+      WARNING），这是本条目独立发现的事实性坑，见 known_issues。
+
+# 无 gaps 段：基座 = 公开 harbor 直接可拉；flagtree = 公开索引直接可装；
+# FlagGems = 公开上游仓库直接可 clone/checkout——每一层都是从公开可达源头
+# 现场安装，无 owner 私有资产依赖。
+
+# 重建验证（2026-09-22，见 REBUILD.md）
+repro_result:
+  image: "flagrt/kunlun-operator-runtime:1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+  python_version: "3.10.18"
+  torch_version: "2.9.0+cu129"
+  flagtree_version: "0.6.1+xpu3.6"
+  triton_version: "3.6.0"
+  flag_gems_version: "4.2.1.rc.0"
+  pip_freeze_diff_vs_base: >-
+    与基座 pip freeze 相比仅 2 处变化：flag_gems 的安装形态从
+    `-e git+...@73c5aff1...#egg=flag_gems` 变为 `flag_gems @ file:///root/FlagGems`
+    （同 commit，非 editable 重装，见上）；新增一行 `flagtree==0.6.1+xpu3.6`。
+    其余 269 个包完全一致（含 torch/torchvision/torchaudio/pybind11 版本）。
+    **注（2026-10-11）**：该比对是"归档镜像 vs 官方基座"的差异记录，**不是**
+    "配方重建产物 vs 原镜像"的比对；原据此得出的 🟢 判定已撤销（见
+    known_issues: v1-image-is-docker-commit-not-build，其中 `flag_gems @
+    file:///root/FlagGems` 这一行本身就是该镜像非本配方产物的证据之一）。
+    关键包（torch/flagtree/flag_gems/triton）版本一致这一事实本身成立。
+    基线文件见 assets/provenance/GOLDEN-pipfreeze-base-official.txt
+    与 assets/provenance/repro-pipfreeze.txt。
+  device_verify: >-
+    真机验证（P800，8× XPU，单卡 CUDA_VISIBLE_DEVICES=4，容器
+    xliu969-images-p800-repro，--net=host --privileged 等参数按
+    xpu 用户手册）：import 三件套（torch/flag_gems/triton）+
+    torch.cuda.is_available()==True + device_count==1 全部通过。
+    FlagGems pytest --mode quick 子集：test_accuracy_rmsnorm(1) /
+    test_accuracy_softmax(2) / test_apply_rotary_pos_emb(768) ——
+    **771 passed, 0 failed, 487s**（assets/provenance/verify-rmsnorm-softmax-rotary-771passed.txt）。
+    test_accuracy_mm / bmm / addmm ——**SIGABRT 崩溃复现**（见 known_issues:
+    gemm-compile-sigabrt，assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt）。
+  build_time: "约 12 分钟（flagtree wheel ~3.3GB 直连下载 ~8min + FlagGems 源码构建 ~1min + 静态自检）"
+  coexistence_check: >-
+    训练（transformers/flagcx）与推理（vllm/vllm-plugin-fl）依赖共存检查：
+    `torch`（2.9.0+cu129，`cuda_avail=True`，`device_count=8`）、
+    `triton`（flagtree 0.6.1+xpu3.6，3.6.0）、`flag_gems`（4.2.1.rc.0）、
+    `vllm`（0.13.0）、`vllm_fl`、`flagcx` 六者在同一 Python 进程内全部
+    import 成功，无命名空间覆盖或版本冲突。静态依赖检查，真机功能验证见
+    下方 `e2e_smoke_training` / `e2e_smoke_inference`。
+  e2e_smoke_training: >-
+    真机 2 卡训练 smoke（卡 5,7，同属 NUMA1 组），复用 device-context 已验证
+    的后端无关训练腿脚本
+    `dev/device-context/prototype/runtime/proto/proto_train_leg.py`
+    （`DC_BACKEND=kunlun`、`FLAGCX_ADAPTOR=klx`、
+    `dist_backend=cpu:gloo,cuda:flagcx`），模型 Qwen3-Embedding-0.6B
+    （device-context 训练腿证据 JSON 同款路径），`MAX_STEPS=20`，未设置
+    `XPU_EVENT_KL3_ENABLE`，从本条目归档镜像
+    `flagrt/kunlun-operator-runtime:1.0.0-...` 新起容器验证。
+    **结果：`TRAIN_LEG_PASS 6/6`**（device_context/model_load/comm_all_reduce/
+    comm_all_gather/comm_p2p/loss_decrease 全部 ok），loss 15.4488→11.2841
+    （20 步），1713.1 tok/s（两卡合计），两 rank 结果完全一致。证据：
+    assets/provenance/train-smoke-cards57-PASS.txt、
+    assets/provenance/train-smoke-cards57-rank{0,1}-result.json。
+    **用卡前提**：卡 1 历史上反复被共享机其他租户占用，训练场景须先
+    `xpu-smi` 确认空闲同 NUMA 组连续卡，避开卡 1；反面证据（卡 1,2 组合下
+    集合通信初始化挂死）见
+    assets/provenance/train-smoke-flagcx-initcomm-hang.txt，详见 REBUILD.md
+    「GPU/机器纪律」。
+  e2e_smoke_inference: >-
+    真机单卡推理 smoke（卡 7），模型 Qwen3-Embedding-0.6B（sentence-transformers
+    池化式 embedding 模型，vLLM 用 `--runner pooling --convert embed` 走
+    `/v1/embeddings` 端点），从本条目归档镜像新起容器验证。**结果：设置
+    `VLLM_FL_PREFER=vendor`（vllm-plugin-fl 自带的标准 dispatch 优先级配置
+    项）后 PASSED**：服务正常启动（`Application startup complete`），日志
+    确认 `Op 'attention_backend' using 'vendor.kunlunxin'`；两次
+    `/v1/embeddings` 请求均成功返回 1024 维向量（首次 0.16s，预热后第二次
+    0.091s）；`/v1/models` 正常。**前提**：须显式设置
+    `VLLM_FL_PREFER=vendor`——默认 dispatch（flagos 优先）下 rotary embedding
+    的 `index_select` 经 FlagGems OOT 路径触发
+    `torch.AcceleratorError: CUDA error: invalid device function`，EngineCore
+    初始化失败，详见 known_issues: flagos-index-select-invalid-device-function。
+    证据：assets/provenance/infer-smoke-vllm-serve-vendor-prefer.txt、
+    assets/provenance/infer-smoke-embed-requests.txt。
+
+known_issues:
+  - id: "v1-image-is-docker-commit-not-build"
+    description: >-
+      **本目录的归档镜像（`image_id` 为 `sha256:466ee5c617931f…`）不是由
+      `Dockerfile.repro` 构建的，而是一个 `docker commit` 产物**——2026-10-11
+      查实，五条独立证据：
+      ① `docker history` 显示该镜像只比 `parent_image` 多 1 层（27 层 vs 26 层），
+      且该层的 CREATED BY 是裸 `bash`。对照实验：本机真跑一次
+      `DOCKER_BUILDKIT=0 docker build`，history 渲染出的是 `/bin/sh -c true` 与
+      `/bin/sh -c #(nop) LABEL …`——证明"裸 bash"不是 history 的渲染差异，而是
+      `docker commit` 的特征。
+      ② 镜像内 `flag_gems` 的 pip `direct_url.json` 是
+      `{"dir_info": {}, "url": "file:///root/FlagGems"}`（本轮复核再次确认），
+      而 `Dockerfile.repro:39-42` 写的是从 `/env/FlagGems` 安装；`/root/FlagGems`
+      在 `parent_image` 里并不存在，该路径不可能由本配方产生。
+      ③ `Dockerfile.repro:45-52` 的静态自检 `import flag_gems` 在无设备容器里
+      必然失败（`RuntimeError: No device were detected on your machine !`），而
+      `DOCKER_BUILDKIT=0 docker build` 无法传 `--device`——该 RUN 层在普通构建
+      流程中不可能通过。
+      ④ 漂移痕迹本就留在本目录自身的文本里：`lock.yaml:115-117` 的
+      `repro_result.pip_freeze_diff_vs_base` 已记 `flag_gems @ file:///root/FlagGems`，
+      `REBUILD.md:70,96,119` 也多处写 `/root/FlagGems`（含 `/root/FlagGems/tests`）
+      ——说明这是配方文本与实际操作之间的漂移，不是一次观测错误。
+      ⑤ **已撤回（2026-10-11 当天下午推翻）**：原写"`docker save` 对本镜像零 layer blob
+      是 `docker commit` 的下游后果"。复测发现未改动的官方基座镜像与正规 `docker build`
+      产出的 v2 **同样零 layer blob**，该现象与产出方式无关，不能作为本结论的证据，
+      见 known_issues: docker-save-broken-on-this-host。**结论不变**：下面 ①②③④ 四条
+      彼此独立，任一条都不依赖 `docker save` 的行为。
+      按 `dev/images/README.md` §5 对 🟢 的定义（`Dockerfile.repro` + `assets`
+      已实机重建且与原镜像比对通过），本条目的 🟢 判定不成立，`repro_status`
+      2026-10-11 降为 🟡。
+    impact: >-
+      归档镜像可用，且其运行时行为的全部验证结论仍然成立——FlagGems pytest
+      **771 passed**、训练 smoke **`TRAIN_LEG_PASS 6/6`**、推理 smoke **PASSED**，
+      以及其余四条 known_issues 记录的现象，都是对**这个镜像**的实测，与它由何种
+      方式产出无关。不成立的只有一条："该配方能重建出这个镜像"。**从零重建请用
+      v2**（`../v2/`，组件集合与 pin 与本条目完全相同——flagtree `0.6.1+xpu3.6`
+      + FlagGems `73c5aff1e304c293ab525ecb03e9449644496fbb`——配方已修正为
+      `COPY src/FlagGems/` 自备构建上下文、静态自检改为无设备可跑，并走正规
+      `docker build`）。本目录的 `Dockerfile.repro` / `build.sh` / `REBUILD.md` /
+      `ARCHIVE.md` / `assets/**` 一律不改，作为历史记录保留；配方漂移的事实只记
+      在本条目。
+  - id: "gemm-compile-sigabrt"
+    description: >-
+      FlagGems 的 GEMM 类算子（mm/bmm/addmm）在本 pin 组合
+      （flagtree 0.6.1+xpu3.6 / triton 3.6.0 / FlagGems @73c5aff1）下
+      **实测复现** SIGABRT 崩溃，栈顶为
+      `triton/backends/xpu/compiler.py:486 make_llir`（编译期 LLIR
+      生成阶段原生崩溃），经 autotuner → libentry →
+      `flag_gems/runtime/backend/_kunlunxin/ops/mm.py:168` 触发。
+      与 memory 子方向此前在旧 dev 容器（同 triton 3.6.0 线）的独立实测
+      记录（dev/memory/docs/goals/bringup-p800/profile_P800可用性实测_p800.md:96-99,134）
+      栈完全一致——**不是环境偏差导致的偶发问题，是该 flagtree/triton
+      版本线本身对 GEMM kernel 编译路径的确定性缺陷，与 FlagGems 具体
+      pin 到哪个 commit 无关**（FlagGems 主分支当前 HEAD 的 pyproject.toml
+      锁 `flagtree==0.6.1+xpu3.6`，见 known_issues:
+      flaggems-kunlunxin-extras-missing，本条目即是该声明版本组合下的
+      直接产物）。device-context 独立发现
+      FlagGems 仓库 `backends.yaml` 仍声明 `triton==3.0.0+a48aedef`
+      （xpu3.0 时代遗留，与 xpu3.6 线不符），佐证这是上游版本声明滞后、
+      未跟随 xpu3.6 线回归测试 GEMM 路径的结果
+      （dev/device-context/P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md:170）。
+      当前无可用 workaround（官方发布栈用 triton 3.0.0 线可绕开，
+      但那是另一条不同的版本线，不在本条目复现范围内）。
+    impact: >-
+      本条**不是** repro_status 降为 🟡 的原因（降级原因见 known_issues:
+      v1-image-is-docker-commit-not-build）——GEMM 崩溃是**镜像内容本身的真实
+      运行时行为**且已被证据完整记录，该结论在降级后依然成立。消费方（阶段3
+      推理链路，需要 GEMM 重的模型/算子路径）在引用本镜像前必须知晓此
+      限制；是否需要等上游修复、切换 triton 版本线或寻找 workaround，
+      由消费方文档/总组裁定，不在本目录职责内。
+  - id: "flaggems-kunlunxin-extras-missing"
+    description: >-
+      FlagGems commit 73c5aff1（v4.2.1.rc.0-177）的 pyproject.toml
+      `[project.optional-dependencies]` 只有 `test`/`example` 两组，
+      **没有 `kunlunxin` extras 组**。`pip install .[kunlunxin]`
+      不会报错中止，只打一行 `WARNING: flag-gems 4.2.1rc0 does not
+      provide the extra 'kunlunxin'` 并静默退化为裸装 `pip install .`——
+      此时 pip 会正常解析 `torch>=2.2.0` 的完整依赖图，包括 torch
+      在 x86_64+cuda 平台的可选依赖 `triton==3.5.0`（PyPI 通用 triton
+      包，与 flagtree 是两个不同的 pip 发行名，但共享 `triton/` 顶层
+      导入命名空间），把它装进同一 site-packages，**物理覆盖 flagtree
+      提供的 triton/ 目录**（flagtree 540 个记录文件 vs 通用 triton
+      480 个，两者路径大量重叠）。覆盖后 `triton._C.libtriton.so`
+      变成不含 xpu 扩展的通用版本，`triton/backends/xpu/compiler.py`
+      导入即 `ImportError: cannot import name 'xpu' from
+      'triton._C.libtriton'`——flagtree 整体不可用。**必须
+      `pip install --no-deps .` 安装 FlagGems**，不能用 `[kunlunxin]`
+      写法（当前 commit 下该写法无效且有副作用）。FlagGems 主分支当前
+      HEAD 的 pyproject.toml 含 `kunlunxin` extras 组（锁定
+      `torch==2.9.0+cu129`、`flagtree==0.6.1+xpu3.6`），但该 extras 组在
+      commit 73c5aff1 尚不存在——本条目按 commit 73c5aff1 的实际文件内容
+      记录。
+    impact: "已在 Dockerfile.repro 用 --no-deps 规避，repro_result 确认 triton 命名空间未被污染（triton.__version__==3.6.0，非 3.5.0）。"
+  - id: "xpu-event-kl3-enable-hang"
+    description: >-
+      单卡单进程场景下，设置 `XPU_EVENT_KL3_ENABLE=1`（xpu 用户手册要求的
+      环境变量）后运行 FlagGems pytest（即便是最简单的 rmsnorm 单测），
+      **实测挂死**：进程长时间处于 `S`（sleeping, futex_wait_queue）状态，
+      CPU 时间不再增长，GPU 利用率归零，`timeout`/`SIGTERM` 均无法使其
+      退出，须 `SIGKILL`。去掉该环境变量后同一用例 2.82s 内 PASSED。
+      复现条件是单卡单进程、无任何集合通信，比 device-context 已定位
+      的触发条件（`XPU_EVENT_KL3_ENABLE=1` + 设备侧集合通信 flagcx，
+      libxpucuda.so 内自旋，
+      dev/device-context/P800/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md）
+      更宽。是否同一缺陷的更广泛触发面，还是共享机上与其他用户进程的设备
+      争用导致的另一种表现，尚未定位。
+      本条目的验证与最终镜像均在**不设置** `XPU_EVENT_KL3_ENABLE` 的
+      情况下完成；build.sh/REBUILD.md 的验证命令已注明不要设置该变量。
+    impact: >-
+      xpu 用户手册要求设该变量，但本条目验证发现在单卡场景下设置会挂死。
+      是否所有场景都不需要该变量、还是仅特定路径（如多卡集合通信）才
+      需要，尚未定论，记录为已知问题供消费方与总组决策参考。
+  - id: "flagos-index-select-invalid-device-function"
+    description: >-
+      vLLM serve 默认 dispatch 策略下（`vllm-plugin-fl` 的
+      `kunlunxin.yaml prefer=flagos, strict=false`，未显式设置
+      `VLLM_FL_PREFER`），rotary embedding 计算里的 `index_select` 算子经由
+      FlagGems（flagos）OOT 路径调用，触发
+      `torch.AcceleratorError: CUDA error: invalid device function`（栈：
+      `flag_gems/runtime/backend/_kunlunxin/ops/index_select.py` →
+      `dim_compress` → `.../ops/copy.py:copy_`），vLLM EngineCore
+      初始化直接失败，服务起不来。与 known_issues: gemm-compile-sigabrt
+      同根因家族——本 pin 组合（flagtree 0.6.1+xpu3.6）下 triton 编译产物
+      在该 P800 硬件上不止 GEMM 一类算子不可靠，`index_select` 是本条目
+      新发现的第二类受影响算子。**workaround**：设置
+      `VLLM_FL_PREFER=vendor`（`vllm-plugin-fl` 自带的标准 dispatch
+      优先级配置项，非本条目临时发明的变通），令 `attention_backend` 等
+      算子走厂商原生实现而非 FlagGems，实测服务可正常启动且请求成功返回
+      （见 `repro_result.e2e_smoke_inference`）。
+    impact: >-
+      消费方用本镜像跑 vLLM 推理时，**若使用默认 dispatch（flagos 优先）
+      会直接崩溃**；必须显式设置 `VLLM_FL_PREFER=vendor` 才能起服务。是否
+      修复 flagtree/FlagGems 使 flagos 路径在该 pin 组合下可用，不在本目录
+      职责范围内。
+  - id: "docker-save-broken-on-this-host"
+    # 2026-10-11 上午曾把本条原诊断判为"已证伪"，**当天下午的实测推翻了那个判断**：
+    # 原诊断（归因于宿主环境、且"对未改动的基座官方镜像均如此"）成立。详见 description。
+    description: >-
+      **现象与原诊断均成立**（2026-10-11 复测确认）。现象：`docker save` 对本镜像只导出
+      manifest/config blob，不导出任何 layer blob，产出的 tar 仅 ~14KB，`docker load`
+      该 tar 会因 blob 缺失而无法正确重建镜像。
+      **2026-10-11 复测数据**（同一宿主 VM-0-2-ubuntu，`docker save <ref> | head -c 20M | wc -c`）：
+      本镜像 14336 字节 / 1 blob；**未改动的 BAAI·FlagTree 官方基座镜像
+      （`…202608-base`，94GB，从 harbor 拉取、本组从未写入）同样 14336 字节 / 1 blob**；
+      按同一配方正规 `docker build` 产出的 v2（105GB）**同样 14336 字节 / 1 blob**；
+      而本机 `DOCKER_BUILDKIT=0 docker build` 产出的 50MB 合成镜像
+      （`FROM scratch` + 一个 50MB 文件）`docker save` **完整产出 52453376 字节 / 3 blob（含 layer）**。
+      结论：失败与"镜像是否 `docker commit` 产物"**无关**（v2 是正规 build 产物、同样失败），
+      与"拉取还是本机构建"**无关**（基座是拉取的、合成镜像是构建的，一失败一成功），
+      只与这几个巨型厂商派生镜像相关 —— 原记述"对未改动的基座官方镜像均如此"一句**已验证为真**。
+      最可能的机制是这些镜像的 layer blob 不在本机 containerd content store 内
+      （例如基座按惰性/远端快照拉取，快照可用但 blob 未落地，`docker save` 取不到），
+      **但该机制本轮未深究、属推测**；原记述"换一台不用 containerd snapshotter 后端的
+      机器上预期正常"同样未验证。
+      ---- 2026-10-12 两处修正与进展（详见 dev/images/TODO.md #21）----
+      ① 措辞修正：上面写"只导出 manifest/config blob"**不准确**。实测解开那个 14336 字节的
+      tar，`blobs/` 下只有**一个**文件，就是 **OCI manifest 本身**（containerd image store 下
+      `docker images` 显示的 image id 即 manifest digest，不是 config digest）；
+      它引用的 config blob（v2 上为 15646 字节）**同样不在** tar 里，layer blob 0/28。
+      ② 上面"最可能的机制是 layer blob 不在 content store"**作为解释已被证伪**：
+      在 v2 之上新建一个 137 字节的层后 `docker save`，那个几秒前由本机构建器生成的层、
+      以及新建的 15870 字节 config blob **也都不在**导出里 —— 不可能是远端惰性 blob。
+      真相是 `docker save` **整体放弃 child walk**，所以"某个 blob 不在 tar 里"不能当作
+      "该 blob 不在 store 里"的证据。失败与成功的分界已用 6 个数据点的判别矩阵定位到
+      **基座血统 / 体量**（≥94GB 的全失败，≤182MB 的全成功），而非产出方式；
+      且全程报告成功（CLI rc=0、`--log-level debug` 无输出、Engine API `/images/get`
+      HTTP 200 + tar 结构完好、流尾无错误）——静默数据丢失。
+      content store 的直接确认仍未做（`ctr` 已装但 containerd socket root 独占、sudo 需密码）。
+      ---- 2026-10-11 上午的"已证伪"判断为何是错的（留作教训）----
+      当时的对照组只用了小镜像（`python:3.10-slim` 47MB/12 blob、本机构建 66MB/8 blob），
+      据此推断"小镜像能 save ⇒ 本机 save 没坏 ⇒ 失败只能是 docker commit 导致"。
+      漏掉的一步是**没有对未改动的基座镜像本身做同样测试**（当时已如实标注"待复核"）。
+      补上那一步后，`docker commit` 这个因果立刻被排除。
+    impact: >-
+      `ARCHIVE.md` 的离线归档用 `docker export` + `docker import --change` 重放元数据，
+      这套用法**不受影响、仍然有效**，且 **v2 也必须沿用同一套**（v2 的 `docker save`
+      同样不可用，见 ../v2/ARCHIVE.md）。
+      本条**不影响** v1 的 `repro_status` 降级判定：那个判定由
+      known_issues: v1-image-is-docker-commit-not-build 的证据 ①②③④ 独立支撑
+      （`docker history` 单层裸 bash、`direct_url` 指向 `/root/FlagGems`、无设备容器
+      跑不过的静态自检、本目录自身文档已记 `/root/FlagGems`），其中第 ⑤ 条
+      （`docker save` 异常）**已撤回**，结论不变。
+
+changelog:
+  - date: "2026-09-22"
+    what: "首次登记：pip 装 flagtree 0.6.1+xpu3.6 + FlagGems @73c5aff1，实机构建验证，repro_status → 🟢。"
+  - date: "2026-09-22"
+    what: >-
+      补记 parent_image 已内置 vllm/transformers/vllm-plugin-fl 版本；新增
+      训练推理依赖共存检查（六包同进程 import 通过）；新增 recommended_default
+      字段（推荐默认底座 + 回退路径说明）。
+  - date: "2026-09-22"
+    what: >-
+      补充端到端真机验证：2 卡训练 smoke（卡 5,7，复用 device-context 已验证的
+      proto_train_leg.py）`TRAIN_LEG_PASS 6/6`；单卡推理 smoke（vLLM serve +
+      /v1/embeddings，设 `VLLM_FL_PREFER=vendor`）PASSED。新增 known_issues:
+      flagos-index-select-invalid-device-function（推理默认 dispatch 崩溃，
+      须设 `VLLM_FL_PREFER=vendor` 规避）。`recommended_default` 按验证结果
+      定稿：训练/推理均可用，各自一条使用前提（推理需
+      `VLLM_FL_PREFER=vendor`；训练需按共享机纪律选卡、避开历史占用记录较多
+      的卡 1，见 REBUILD.md「GPU/机器纪律」）。
+  - date: "2026-10-11"
+    what: >-
+      **事实更正：`repro_status` 🟢 → 🟡**，顶部加 `superseded_by: v2`。依据：查实
+      本目录归档镜像（`sha256:466ee5c617931f…`）是 `docker commit` 产物，而非
+      `Dockerfile.repro` 的构建结果，五条独立证据见新增的 known_issues:
+      v1-image-is-docker-commit-not-build；按 `dev/images/README.md` §5，🟢 要求
+      "`Dockerfile.repro` + `assets` 已实机重建且与原镜像比对通过"，该条不成立，
+      改按 §5 的 🟡 口径"配方在手，未实机验证"记录。
+      镜像运行时行为的既有验证结论（771 passed、训练 6/6、推理 PASSED）不受影响，
+      仍然成立。未改本目录 `Dockerfile.repro` / `build.sh` / `REBUILD.md` /
+      `ARCHIVE.md` / `BACKUP.local` / `assets/**`（历史记录）。从零重建用 `../v2/`。
+  - date: "2026-10-11"
+    what: >-
+      **撤回当天上午的一处更正**：上午把 known_issues: docker-save-broken-on-this-host
+      的原诊断判为"已证伪"（当时对照组只用了小镜像），下午补测未改动的官方基座镜像
+      （94GB，从 harbor 拉取）与正规 `docker build` 产出的 v2（105GB），两者
+      `docker save` **同样只有 14336 字节 / 1 blob**，而本机构建的 50MB 合成镜像
+      完整产出 52453376 字节 / 3 blob。故原诊断（归因于宿主环境、"对未改动的基座
+      官方镜像均如此"）成立，上午的"证伪"是错的，已改回并记下教训。
+      连带把 known_issues: v1-image-is-docker-commit-not-build 的证据 ⑤ 标为**已撤回**；
+      ①②③④ 四条彼此独立，`repro_status` 🟡 的判定不变。

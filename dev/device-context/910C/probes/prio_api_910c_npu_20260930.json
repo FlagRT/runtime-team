@@ -1,0 +1,69 @@
+{
+  "verdict": "STREAM_PRIORITY_API_PASS",
+  "backend": "ascend",
+  "device": "npu:0",
+  "torch": "2.11.0+cu130",
+  "timestamp": "2026-09-30 02:59:51",
+  "capabilities": {
+    "stream_priority": true,
+    "stream_priority_control": false,
+    "stream_priority_readback": true
+  },
+  "notes": {
+    "range": [
+      7,
+      0
+    ],
+    "bounds": [
+      0,
+      7
+    ],
+    "vendor_path": {
+      "requested": 7,
+      "readback": 0,
+      "retained": false
+    },
+    "d6": {
+      "acl_handle": 187651694612240,
+      "acl_readback": 7,
+      "torch_wrapped_handle": 187651610486608,
+      "torch_wrapped_readback": 0,
+      "same_stream": false
+    }
+  },
+  "checks": {
+    "D1_create_stream_默认路径不回归": {
+      "ok": true,
+      "detail": "type=Stream 流上计算=16.0（期望 16.0）"
+    },
+    "D2_range_形状为2元组或None": {
+      "ok": true,
+      "detail": "得到 (7, 0)（type=tuple）"
+    },
+    "D2b_readback_对默认流返回int": {
+      "ok": true,
+      "detail": "回读=0"
+    },
+    "D2c_未声明control时readback不参与设置": {
+      "ok": true,
+      "detail": "（本家只读：回读值仅供观测，不作为'设置成功'的依据）"
+    },
+    "D4_未声明control时priority=0_必须显式拒绝": {
+      "ok": true,
+      "detail": "NotImplementedError（含能力键名=True）"
+    },
+    "D4_未声明control时priority=1_必须显式拒绝": {
+      "ok": true,
+      "detail": "NotImplementedError（含能力键名=True）"
+    },
+    "D5_厂商路径的参数保留性（不一致即'静默丢弃'）": {
+      "ok": true,
+      "detail": "直接 npu 建流 priority=7 ⇒ 回读=0 ⇒ **厂商静默丢弃**：本层若不校验就会产出假象"
+    },
+    "D6_受阻点在包装而非ACL（ACL保留/包装丢失）": {
+      "ok": true,
+      "detail": "pyACL 建流(priority=7) 回读=7（ACL **保留**）；`Stream(stream_ptr=handle)` 拿到的却是 handle=187651610486608 ⇒ 回读=0 ⇒ **句柄被静默忽略**（同一条流？False）"
+    }
+  },
+  "boundary": "本探针只在**该实例**该栈上成立；结论不得跨实例外推。D5/D6 是**观测项**（不是失败项）：它们说明厂商路径的参数保留性。"
+}

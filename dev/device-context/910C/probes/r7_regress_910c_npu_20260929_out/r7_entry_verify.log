@@ -1,0 +1,134 @@
+[W929 09:42:03.807322021 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+{
+  "backend": "ascend",
+  "device_type": "npu",
+  "ordinal": 0,
+  "declared_recovery_real": true,
+  "declared_error_map": true,
+  "public_api_only": true,
+  "d1": {
+    "pre": "available",
+    "post": "available",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "available",
+      "detail": "rebuild_mode=real：设备状态=available，无需重建，探活可用",
+      "context_supported": true,
+      "context_count": 0,
+      "context_recreated": false
+    }
+  },
+  "d2": {
+    "set_returned": "isolated",
+    "post": "available",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+      "context_supported": true,
+      "context_count": 0,
+      "context_recreated": true
+    }
+  },
+  "d3": {
+    "post": "available",
+    "return": {
+      "ordinal": 0,
+      "mode": "probe",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "rebuild_mode=probe：探针重试成功（**未**执行销毁/重建；设备本就可用或探针已恢复）",
+      "context_supported": true,
+      "context_count": 0,
+      "context_recreated": false
+    }
+  },
+  "d4": {
+    "category": "L4_FATAL",
+    "graded_by": "code_map",
+    "recovery_decision": {
+      "captured": true,
+      "steps": [
+        "captured",
+        "evaluated: isolated",
+        "recovered: True",
+        "replay_ready"
+      ],
+      "replay_ready": true,
+      "replay_tasks": []
+    },
+    "post": "available"
+  },
+  "checks": {
+    "d1_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d1_state_in_domain": {
+      "ok": true,
+      "detail": "state='available'"
+    },
+    "d2_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d2_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "d3_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d3_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "D1_健康设备real_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='rebuild_mode=real：设备状态=available，无需重建，探活可用'"
+    },
+    "D2_公开入口置隔离后real_必须声明真重建": {
+      "ok": true,
+      "detail": "set 返回='isolated' recovered=True context_recreated=True detail='rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）'"
+    },
+    "D2_重建后回到 available（R4）": {
+      "ok": true,
+      "detail": "post='available'"
+    },
+    "D3_隔离后probe_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='rebuild_mode=probe：探针重试成功（**未**执行销毁/重建；设备本就可用或探针已恢复）'"
+    },
+    "D4_handle_error 端到端走到 real 重建并重放就绪": {
+      "ok": true,
+      "detail": "steps=['captured', 'evaluated: isolated', 'recovered: True', 'replay_ready']"
+    },
+    "D4_端到端后设备回 available": {
+      "ok": true,
+      "detail": "post='available'"
+    }
+  },
+  "verdict": "ENTRY_VERIFY_PASS"
+}
+
+  PASS  d1_keys_5+3  8 键齐全
+  PASS  d1_state_in_domain  state='available'
+  PASS  d2_keys_5+3  8 键齐全
+  PASS  d2_state_in_domain  state='isolated'
+  PASS  d3_keys_5+3  8 键齐全
+  PASS  d3_state_in_domain  state='isolated'
+  PASS  D1_健康设备real_不得声称已重建  context_recreated=False detail='rebuild_mode=real：设备状态=available，无需重建，探活可用'
+  PASS  D2_公开入口置隔离后real_必须声明真重建  set 返回='isolated' recovered=True context_recreated=True detail='rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）'
+  PASS  D2_重建后回到 available（R4）  post='available'
+  PASS  D3_隔离后probe_不得声称已重建  context_recreated=False detail='rebuild_mode=probe：探针重试成功（**未**执行销毁/重建；设备本就可用或探针已恢复）'
+  PASS  D4_handle_error 端到端走到 real 重建并重放就绪  steps=['captured', 'evaluated: isolated', 'recovered: True', 'replay_ready']
+  PASS  D4_端到端后设备回 available  post='available'
+
+ENTRY_VERIFY_PASS
+结果 -> /mnt/raid/hliu553/dc_legs_20260929/out_r7/r7_entry_verify_ascend.json
+ENTRY_BOUNDARY: 全程公开 API；ISOLATED 为构造而非真实硬件故障；结论只在本档位/环境成立，不外推到其他实例或多机。

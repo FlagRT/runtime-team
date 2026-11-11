@@ -1,17 +1,17 @@
-"""Qwen3 embedding inference with explicit Ascend NPU placement."""
+"""Qwen3 embedding inference with device-context placement."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from .npu import inference_dtype, prepare_torch_device
+from .device import inference_dtype, prepare_torch_device
 
 
 class Qwen3Embedder:
     def __init__(
         self,
         model_path: Path,
-        device: str = "npu:0",
+        device: str = "auto",
         max_length: int = 8192,
         output_dims: int = 1024,
         instruction: str = (
@@ -21,7 +21,7 @@ class Qwen3Embedder:
         if not model_path.exists():
             raise FileNotFoundError(
                 f"Embedding model is missing: {model_path}. "
-                "Run scripts/download_models.py first."
+                "Run scripts/data/download_models.py first."
             )
         if output_dims < 32 or output_dims > 1024:
             raise ValueError("Qwen3-Embedding-0.6B output_dims must be 32..1024")
@@ -40,7 +40,7 @@ class Qwen3Embedder:
         )
         self.model = AutoModel.from_pretrained(
             str(model_path),
-            torch_dtype=inference_dtype(torch, device),
+            torch_dtype=inference_dtype(torch, torch_device),
             local_files_only=True,
         ).to(torch_device)
         self.model.eval()

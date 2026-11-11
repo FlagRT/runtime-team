@@ -1,0 +1,20 @@
+can not use command: npu-smi info
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py", line 25, in <module>
+    from flag_gems.fused import *  # noqa: F403
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/fused/__init__.py", line 16, in <module>
+    from flag_gems.fused.add_rms_norm import add_rms_norm
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/fused/add_rms_norm.py", line 25, in <module>
+    from flag_gems.utils import libentry
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/__init__.py", line 15, in <module>
+    from flag_gems.utils.libentry import libentry, libtuner
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/libentry.py", line 73, in <module>
+    from flag_gems.utils.models import PersistantModel, SQLPersistantModel
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/models/__init__.py", line 16, in <module>
+    from .sql import SQLPersistantModel
+  File "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/utils/models/sql.py", line 31, in <module>
+    import sqlalchemy
+ModuleNotFoundError: No module named 'sqlalchemy'
+[ERROR] 2026-09-22-09:47:00 (PID:195, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception

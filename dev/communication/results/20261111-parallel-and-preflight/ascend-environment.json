@@ -1,0 +1,110 @@
+{
+  "container": "npu-eval",
+  "image": "flagrt/ascend-operator-runtime:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-arm64",
+  "image_id": "sha256:62bcaae3f8399b9444628aa24085e0da6871871eb5299ca29e3b2712dc91e106",
+  "mounts": [
+    {
+      "Source": "/mnt/raid/huyongquan/algorithm-library-evaluation",
+      "Destination": "/workspace/eval",
+      "RW": true
+    },
+    {
+      "Source": "/mnt/raid/huyongquan/data",
+      "Destination": "/workspace/data",
+      "RW": true
+    },
+    {
+      "Source": "/usr/local/Ascend/driver",
+      "Destination": "/usr/local/Ascend/driver",
+      "RW": false
+    }
+  ],
+  "devices": [
+    {
+      "PathOnHost": "/dev/davinci2",
+      "PathInContainer": "/dev/davinci2",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci3",
+      "PathInContainer": "/dev/davinci3",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci4",
+      "PathInContainer": "/dev/davinci4",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci5",
+      "PathInContainer": "/dev/davinci5",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci6",
+      "PathInContainer": "/dev/davinci6",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci7",
+      "PathInContainer": "/dev/davinci7",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci8",
+      "PathInContainer": "/dev/davinci8",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci9",
+      "PathInContainer": "/dev/davinci9",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci10",
+      "PathInContainer": "/dev/davinci10",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci11",
+      "PathInContainer": "/dev/davinci11",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci12",
+      "PathInContainer": "/dev/davinci12",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci13",
+      "PathInContainer": "/dev/davinci13",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci14",
+      "PathInContainer": "/dev/davinci14",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci15",
+      "PathInContainer": "/dev/davinci15",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci_manager",
+      "PathInContainer": "/dev/davinci_manager",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/devmm_svm",
+      "PathInContainer": "/dev/devmm_svm",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/hisi_hdc",
+      "PathInContainer": "/dev/hisi_hdc",
+      "CgroupPermissions": "rwm"
+    }
+  ],
+  "status": "running"
+}

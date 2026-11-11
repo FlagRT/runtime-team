@@ -1,0 +1,10 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+flags = 8 ⇒ CU_CTX_MAP_HOST
+  CU_LIMIT_STACK_SIZE                    rc=0 value=0
+  CU_LIMIT_PRINTF_FIFO_SIZE              rc=0 value=0
+  CU_LIMIT_MALLOC_HEAP_SIZE              rc=0 value=8388608
+  CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH        rc=215 value=3735928559
+  CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT rc=215 value=3735928559
+只读后 torch 计算 = 512.0
+RESULT_JSON {"touch_ok": true, "visible_devices": 8, "getcurrent_rc": 0, "ctx_nonzero": true, "getflags_rc": 0, "flags": 8, "flags_decoded": ["CU_CTX_MAP_HOST"], "ctx_limits": {"CU_LIMIT_STACK_SIZE": {"rc": 0, "value": 0}, "CU_LIMIT_PRINTF_FIFO_SIZE": {"rc": 0, "value": 0}, "CU_LIMIT_MALLOC_HEAP_SIZE": {"rc": 0, "value": 8388608}, "CU_LIMIT_DEV_RUNTIME_SYNC_DEPTH": {"rc": 215, "value": 3735928559}, "CU_LIMIT_DEV_RUNTIME_PENDING_LAUNCH_COUNT": {"rc": 215, "value": 3735928559}}, "sum_after_readonly": 512.0}

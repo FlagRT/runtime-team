@@ -1,0 +1,13 @@
+/flagos/lib/python3.10/site-packages/torch_mlu/mlu/graphs.py:79: UserWarning: The MLU Graph is empty. This usually means that the graph was attempted to be captured on wrong device or stream. (Triggered internally at /torch_mlu/torch_mlu/csrc/framework/graphs/MLUGraph.cpp:204.)
+  super().capture_end()
+=== probe_graph_capture_stream_v2.py: graph capture 流语义（后端无关 V2）===
+[env] backend=cambricon dev_api=mlu devices=1 torch=2.7.1+cpu
+[env] 图对象类: MLUGraph
+[G1] capture vs eager: val=21011.664062 ref=21011.664062 rel_err=0.00e+00 ✅
+[G2] replay 确定性: val1=21011.664062 val2=21011.664062 差=0.00e+00 ✅
+[G3] 输入更新后 replay: val3=49234.023438 eager3=49234.023438 rel_err=0.00e+00 ✅
+[G5] capture 显式 stream 参数: rel_err=0.00e+00 ✅
+[G4*] capture 内切流（**契约外用法**，观察项）: val=8338.562500 ref=8338.562500 rel_err=0.00e+00 容  忍
+
+GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+结果已写入 /work/prototype/probes/graph_capture_stream_result.json

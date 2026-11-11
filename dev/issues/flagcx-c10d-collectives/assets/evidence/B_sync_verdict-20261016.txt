@@ -1,0 +1,14 @@
+# 证据截选 —— B 臂（本环境：/workspace/FlagCX editable）· 同一命令判定段
+# 来源: npu1-27:/mnt/raid/hliu553/dc-ws/acc/B/sync_test.out
+# 采集时间: 2026-10-16 11:19:28 (npu1-27)
+
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 PASS
+  broadcast+sync                   PASS
+  all_reduce+nosync                PASS
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           PASS
+  all_gather_list+sync             PASS
+  all_gather_into_tensor+nosync    PASS
+  all_gather_into_tensor+sync      PASS
+overall: PASS

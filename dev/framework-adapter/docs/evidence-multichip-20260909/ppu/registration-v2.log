@@ -1,0 +1,18 @@
+{"stage": "environment", "versions": {"torch": "2.9.0", "torch-br": null, "flag-gems": "5.0.1rc0", "triton": "3.5.0+ppu2.0.0.oe"}, "device": "cuda:0", "count": 1, "name": "PPU-ZW810E"}
+/usr/local/lib/python3.12/site-packages/torch/library.py:364: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::silu(Tensor self) -> Tensor
+    registered at aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: CUDA
+  previous kernel: registered at ../aten/src/ATen/functorch/BatchRulesUnaryOps.cpp:64
+       new kernel: registered at /usr/local/lib/python3.12/site-packages/flag_gems/__init__.py:568 (Triggered internally at ../aten/src/ATen/core/dispatch/OperatorEntry.cpp:218.)
+  self.m.impl(
+{"stage": "case", "mode": "registration", "op": "silu", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "silu", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "silu", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "silu", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "registration", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "summary", "mode": "registration", "passed": 8, "vllm_imported": true, "vllm_modules": ["vllm", "vllm._C", "vllm._moe_C", "vllm._version", "vllm.env_override", "vllm.envs", "vllm.logger", "vllm.logging_utils", "vllm.logging_utils.formatter", "vllm.logging_utils.lazy", "vllm.logging_utils.log_time", "vllm.utils", "vllm.utils.torch_utils", "vllm.version", "vllm.vllm_flash_attn", "vllm.vllm_flash_attn._vllm_fa2_C", "vllm.vllm_flash_attn._vllm_fa3_C", "vllm.vllm_flash_attn.flash_attn_interface"]}

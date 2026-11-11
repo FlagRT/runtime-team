@@ -1,0 +1,61 @@
+# minirepro_gemm 带卡复现证据（缺陷复现，overall: FAIL / 退出码 1）
+# 来源：VM-0-2-ubuntu（P800，8× XPU，x86_64），2026-10-12，容器 flagrt-kunlun-v2-demo-p800，卡 7
+#   完整日志：/data2/xliu969/tmp-gemm-recheck/minirepro.log（执行机器，不入仓）
+# 截取范围：单入口命令的全量输出 + 一组 abort 形态的 Python 栈顶 + 一组 OutOfResources 的包装点
+# 镜像：flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+#   image id sha256:cac5ddae5f62…（由 dev/lib/up.sh --strict 按镜像基线核对，rc=0）
+
+## 1) 单入口命令的全量输出
+   === minirepro_gemm: FlagGems GEMM 编译失败（昆仑芯 P800 / flagtree 0.6.1+xpu3.6）===
+   CUDA_VISIBLE_DEVICES=7
+   preflight: PRE 1 cuda
+   
+   --- 逐组形态 ---
+   M-N-K           dtype     rc  form
+   1-1-32          float16   1   native-abort@make_llir
+   1-1-32          float32   1   native-abort@make_llir
+   1-1-32          bfloat16  0   OutOfResources:uni_sram@make_ttxir
+   15-160-1024     float16   0   OutOfResources:uni_sram@make_ttxir
+   15-160-1024     float32   0   OutOfResources:uni_sram@make_ttxir
+   15-160-1024     bfloat16  0   OutOfResources:uni_sram@make_ttxir
+   495-5333-71     float16   0   OutOfResources:uni_sram@make_ttxir
+   495-5333-71     float32   0   OutOfResources:uni_sram@make_ttxir
+   495-5333-71     bfloat16  0   OutOfResources:uni_sram@make_ttxir
+   64-64-64        float16   0   OutOfResources:uni_sram@make_ttxir
+   64-64-64        float32   0   OutOfResources:uni_sram@make_ttxir
+   64-64-64        bfloat16  0   OutOfResources:uni_sram@make_ttxir
+   
+   === VERDICT (minirepro_gemm) ===
+     组数: 12  原生 abort: 2  OutOfResources: 10  编译并算对: 0
+     repro: CONFIRMED - 2 组在 make_llir 阶段原生 abort（LLVM 断言 "Calling a function with bad signature!"）
+     repro: CONFIRMED - 10 组在 ttxir 阶段失败，被 compiler.py:367 误标为 OutOfResources: uni_sram（Required/Hardware limit 是硬编码零，并非资源不足）
+   overall: FAIL
+
+## 2) 原生 abort 形态的底层断言与 Python 栈顶（(1,1,32) float32，子进程内）
+   截自 dev/images/kunlun-operator-runtime/v2/assets/evidence/gemm-failure-signature-recheck-20261012.txt
+   —— 该文件记录了与 v1 证据逐帧比对的完整 48 帧栈，此处只留两行特征：
+   python3: /peixin/projects/upgrade_llvm_22/fix-llvm-22/llvm/llvm/lib/IR/Instructions.cpp:758:
+     ... Assertion `... && "Calling a function with bad signature!"' failed.
+   Fatal Python error: Aborted
+     File ".../site-packages/triton/backends/xpu/compiler.py", line 486 in make_llir
+
+## 3) OutOfResources 形态的包装点（triton/backends/xpu/compiler.py:362-367，镜像内实读）
+   
+           try:
+               pm.run(mod, 'make_ttxir')
+           except Exception as e:
+               from triton import OutOfResources
+               raise OutOfResources(0, 0, f"uni_sram {e}")
+   
+
+   -> 该 except 把 pm.run('make_ttxir') 抛出的**任何**异常一律包成 OutOfResources，
+      消息里的 Required: 0, Hardware limit: 0 是构造函数里写死的零，并非真的资源不足；
+      e 的原文是 "PassManager::run failed"。误标会把排查引向「调小 block size / num_stages」。
+
+## 4) stage 注册顺序（同一文件 581-585，镜像内实读）：两种形态是同一路径的两个阶段
+           stages["ttir"] = lambda src, metadata: self.make_ttir(src, metadata, options)
+           stages["ttxir"] = lambda src, metadata: self.make_ttxir(src, metadata, options)
+           stages["llir"] = lambda src, metadata: self.make_llir(src, metadata, options)
+           stages["elf"] = lambda src, metadata: self.make_elf(src, metadata, options)
+           stages["xpubin"] = lambda src, metadata: self.make_xpubin(src, metadata, options)
+   -> ttxir 有 try/except（上面 3），llir 的 pm.run 没有 -> LLVM 原生断言不可捕获 -> abort()

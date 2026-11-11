@@ -1,0 +1,11 @@
+[L1] FAIL :: release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+[REG ] register 调用（caller, 类型, id）:
+        ('_create_stream_raw', 'ExternalStream', 140322179458320)
+        ('_create_stream_raw', 'ExternalStream', 140322179820560)
+[NOTE] note_stream_created 调用数 = 19 类型集合 = ['ExternalStream', 'Stream']
+[表 ] _owned_streams 现存条目：
+       key=140322179820560 handle=94358942332192 holder=ReferenceType held_type=None
+[表 ] 两表是否同一 dict： False
+[表 ] _stream_ctx 条目数 = 4
+[表 ] _released_streams 条目数 = 1
+timeout: the monitored command dumped core

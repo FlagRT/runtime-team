@@ -1,0 +1,85 @@
+# device-context 方向 · 910C 训练腿运行环境（规范见 dev/ENV-SPEC.md §3.2）
+#
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，
+# 由 dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【镜像】现行训练腿发布物 ascend-train-comm v3（= 基座镜像 ascend-operator-runtime v3
+# 全部组件 + FlagCX）。镜像基线 ../../../../images/ascend-train-comm/v3/image.baseline.yaml。
+#
+# 【为什么挂载 FlagCX】镜像里固化的 FlagCX 是公开主干 4e0e0cb，不含本组的 c10d 完成语义
+# 与跨厂商（cross-vendor）修复（见 dev/issues/flagcx-c10d-collectives/）。本方向在镜像内需要那份修复，
+# 故按 ENV-SPEC §2.2（同一 repo 既固化又挂载）以 pip-editable 覆盖固化版本：
+# env.baseline.yaml 会记 overrides_baked / baked_commit，check 会提示挂载副本不含镜像内
+# 固化版本携带的构建期补丁（FlagCX 在镜像中无补丁，这条不触发）。
+# FlagCX 含 C++ ⇒ 挂载后必须重新编译安装，由下面 command 在容器启动时执行。
+#
+# 【为什么不用 extends 复用 demo】demo（../../../../images/ascend-train-comm/v3/demo/）
+# 的 devices 映射全部 16 张 davinci。compose 的 extends 对 devices 这类序列只能并集、
+# 不能收缩，而本方向在共享机（npu1-27）上**必须只挂自己真正要用的 die**：
+# 映射全 16 张会与他人活跃容器相交，容器内直接 `dcmi model initialized failed, because
+# the device is used`、device_count=0（实测，见 ../README.md 与
+# ../../docs/ASCEND_HOST_NAMESLOT_RULE_20260929.md §6）。
+# 因此本文件自包含（属性取自 demo 的实测配置），只把 devices 收窄为参数化的一对 die。
+# 设备模型是芯片属性、不可跨芯片照抄：910C 对带卡容器独占，一台机器同时只应有一个带卡容器。
+#
+# 【用法】（仓根执行；⚠️ 需要 docker compose v2 插件与 pyyaml，见 ../README.md「机制前置」）
+#   cp dev/device-context/910C/env/.env.example dev/device-context/910C/env/.env   # 填本机空闲 die
+#   python3 dev/lib/baseline.py export dev/device-context/910C/env/train
+#   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
+#   FLAGRT_MODELS_DIR=<实体模型目录> dev/lib/up.sh dev/device-context/910C/env/train --strict
+#   docker exec -it flagos-dc-train-910c-dev bash
+#   # 收尾：docker compose -f dev/device-context/910C/env/train/docker-compose.yml down
+# 绕开 up.sh 直接 docker compose 时须自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagos-dc-train
+
+x-flagrt:
+  image_baseline: ../../../../images/ascend-train-comm/v3/image.baseline.yaml
+  # 以可编辑方式挂载并生效的 repo（ENV-SPEC §5，pip-editable）。
+  # 宿主目录按 ENV-SPEC §3.2 的默认表取：<WORKSPACE_ROOT>/FlagCX。
+  mounted_repos:
+    FlagCX: {activation: pip-editable}
+
+services:
+  runtime-dev:
+    container_name: flagos-dc-train-910c-dev
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # ⚠️ 只挂本次要用的 die + 三个管理设备。die 号在 dev/device-context/910C/env/.env 里给，
+    #    值必须来自「逐 die 建容器试 INIT」的实测结果（910C/probes/probe_all_dies_910c_20261016.sh），
+    #    不能凭 npu-smi 的进程表推断（已 init 但空闲的容器在进程表里是隐形的）。
+    devices:
+      - /dev/davinci${DC_DIE_A:?DC_DIE_A_unset}:/dev/davinci${DC_DIE_A}
+      - /dev/davinci${DC_DIE_B:?DC_DIE_B_unset}:/dev/davinci${DC_DIE_B}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录
+      # （仓根 models/ 在多机是软链，容器内无法解析，跑训练腿时须显式给值）。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    environment:
+      - HCCL_WHITELIST_DISABLE=1
+      # pip-editable 挂载的两个必需项（ENV-SPEC §5）：
+      # 前者否则宿主 checkout 里出现 root 属主的 __pycache__；后者否则宿主 .git/index 变 root 属主。
+      - PYTHONDONTWRITEBYTECODE=1
+      - GIT_OPTIONAL_LOCKS=0
+    # 挂载生效：本镜像的 PATH 上 python3/pip 即目标解释器 /usr/local/python3.11.15（非 conda 多环境，
+    # ENV-SPEC §5 的 conda 例外不适用），故用 `python3 -m pip` 免歧义。
+    # USE_ASCEND=1 是 FlagCX 选平台的构建开关；本分支的 DAG 构建项默认关闭
+    # （makefiles/ascend.mk 的 FLAGCX_ASCEND_DAG=0），因此不依赖镜像里不存在的 custom_opp 包。
+    command:
+      - bash
+      - -c
+      - USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX && exec sleep infinity
+    restart: "no"

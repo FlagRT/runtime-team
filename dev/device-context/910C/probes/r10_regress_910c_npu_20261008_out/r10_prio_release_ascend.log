@@ -1,0 +1,21 @@
+[W1008 01:58:45.219098009 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+[env] backend=ascend device_type=npu range=(7, 0) control=False
+
+[R1] 默认路径的所有权
+  [PASS] R1a 默认路径造出的流**不得**被登记为本层拥有  owns=False
+  [PASS] R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False  release=False
+
+[R2] 单点区间：等价放行（仅当区间单点）
+  [SKIP] R2 单点区间的等价放行  本机区间 = (0, 7)（非单点）⇒ 该分支不适用
+
+[R3] 实现链路：私有 `_create_stream_raw(域内值)` 直调取证
+  [SKIP] R3 实现链路可用性  本后端**未声明** `stream_priority_control` ⇒ 私有原语如实拒绝（SKIP，非失败）
+
+[R4] 取值域校验
+  [PASS] R4 越界 priority=-1 ⇒ ValueError  ValueError
+  [PASS] R4 越界 priority=8 ⇒ ValueError  ValueError
+
+=== 汇总 ===
+  通过 6 / 失败 0 / 跳过 2
+verdict = STREAM_RELEASE_CONTROL_PASS
+[out] /mnt/raid/hliu553/dc_r10_20261008/out_r10/r10_prio_release_ascend.json

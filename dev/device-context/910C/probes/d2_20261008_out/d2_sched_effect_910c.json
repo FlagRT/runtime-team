@@ -1,0 +1,412 @@
+{
+  "verdict": "STREAM_PRIORITY_SCHED_EFFECT_NOT_APPLICABLE",
+  "backend": "ascend",
+  "device_type": "npu",
+  "device_name": "Ascend910_9382",
+  "torch": "2.11.0+cu130",
+  "dev": 0,
+  "range_raw": [
+    7,
+    0
+  ],
+  "hi_priority": 0,
+  "lo_priority": 7,
+  "supports_control": false,
+  "supports_readback": true,
+  "applicable": false,
+  "not_applicable_reason": [
+    "未声明 `stream_priority_control`（如实不具备「能设置」）"
+  ],
+  "instrument_valid": true,
+  "effect_observed": null,
+  "effect_observed_gated": null,
+  "effect_observed_ungated": null,
+  "wait_path": "Event.wait(Stream)",
+  "rounds": 8,
+  "pass_n": 6,
+  "work": 2048,
+  "iters": 60,
+  "slow_iters": 264,
+  "quantum_ms": 13.651,
+  "slow_ms": 56.478,
+  "backread_hi": null,
+  "backread_lo": null,
+  "direction_finding": {},
+  "queue_jump_finding": {
+    "g4_gap_ms": null,
+    "g7_equal_prio_gap_ms": null,
+    "g8_reversed_gap_ms": null,
+    "interpretation": "G4（取值 lo 先提交）与 G8（取值 hi 先提交）两向都让取值 hi 大胜 ⇒ 未 gated 场景下优先级有**实质**效果；G7 用同顺序+同取值作对照，排除「恒为后提交者获胜」"
+  },
+  "gated_tilt_finding": {
+    "g1_gap_ms": null,
+    "g5_gap_ms": null,
+    "g6_gap_ms": null,
+    "g9_gap_ms": null,
+    "interpretation": "gated（同时就绪）场景下只有**一个测量步长**量级的偏斜；其方向与未 gated 场景的大效应相反 ⇒ 两个场景分开报，**不就『方向』下统一结论**"
+  },
+  "effect_criteria": {
+    "min_win_frac": 0.75,
+    "min_gap_frac": 0.25,
+    "min_res_frac": 0.05,
+    "min_slow_ms": 30.0
+  },
+  "groups": {
+    "G2": {
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 80.2416,
+      "median_lo_ms": 92.8799,
+      "median_gap_ms": 12.7489,
+      "records": [
+        {
+          "hi_ms": 80.6868,
+          "lo_ms": 93.471,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28510,
+          "sweep_us_median": 2.83
+        },
+        {
+          "hi_ms": 80.5333,
+          "lo_ms": 92.9463,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28554,
+          "sweep_us_median": 2.85
+        },
+        {
+          "hi_ms": 80.0645,
+          "lo_ms": 92.8225,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 28966,
+          "sweep_us_median": 2.81
+        },
+        {
+          "hi_ms": 80.2839,
+          "lo_ms": 92.8519,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 28896,
+          "sweep_us_median": 2.82
+        },
+        {
+          "hi_ms": 80.201,
+          "lo_ms": 93.0411,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28972,
+          "sweep_us_median": 2.83
+        },
+        {
+          "hi_ms": 80.1421,
+          "lo_ms": 92.906,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28954,
+          "sweep_us_median": 2.83
+        },
+        {
+          "hi_ms": 80.0705,
+          "lo_ms": 92.8103,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28909,
+          "sweep_us_median": 2.83
+        },
+        {
+          "hi_ms": 80.2822,
+          "lo_ms": 92.8538,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 28909,
+          "sweep_us_median": 2.83
+        }
+      ]
+    },
+    "G3": {
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 2,
+      "hi_win_rate_decided": 0.25,
+      "median_hi_ms": 80.3561,
+      "median_lo_ms": 80.2146,
+      "median_gap_ms": -0.1971,
+      "records": [
+        {
+          "hi_ms": 80.732,
+          "lo_ms": 80.5314,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 22734,
+          "sweep_us_median": 2.84
+        },
+        {
+          "hi_ms": 80.4653,
+          "lo_ms": 80.2475,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 22762,
+          "sweep_us_median": 2.85
+        },
+        {
+          "hi_ms": 80.0423,
+          "lo_ms": 80.2524,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 22949,
+          "sweep_us_median": 2.84
+        },
+        {
+          "hi_ms": 80.178,
+          "lo_ms": 80.3994,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 22966,
+          "sweep_us_median": 2.84
+        },
+        {
+          "hi_ms": 80.315,
+          "lo_ms": 80.1213,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 22800,
+          "sweep_us_median": 2.85
+        },
+        {
+          "hi_ms": 80.3693,
+          "lo_ms": 80.1816,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 22800,
+          "sweep_us_median": 2.85
+        },
+        {
+          "hi_ms": 80.3429,
+          "lo_ms": 79.9712,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 22894,
+          "sweep_us_median": 2.85
+        },
+        {
+          "hi_ms": 80.3708,
+          "lo_ms": 80.1598,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 22934,
+          "sweep_us_median": 2.85
+        }
+      ]
+    }
+  },
+  "checks": {
+    "E1_range_and_applicability": {
+      "ok": true,
+      "detail": "raw=(7, 0); hi=0; lo=7; supports[control]=False; supports[readback]=True; applicable=False；不适用原因：未声明 `stream_priority_control`（如实不具备「能设置」）",
+      "range_raw": [
+        7,
+        0
+      ],
+      "hi_priority": 0,
+      "lo_priority": 7,
+      "supports_control": false,
+      "supports_readback": true,
+      "applicable": false,
+      "not_applicable_reason": [
+        "未声明 `stream_priority_control`（如实不具备「能设置」）"
+      ]
+    },
+    "E2_setup_readback_equals_request": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 不经优先级路径建流（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "E3_work_quantum_calibrated": {
+      "ok": true,
+      "detail": "每流 60 次链式 2048² matmul 墙钟中位数 = 13.651 ms（单次 ≈ 0.2275 ms）；gate 慢活 264 次实测 56.478 ms（下限 30.0 ms）",
+      "quantum_ms": 13.651,
+      "per_iter_ms": 0.22751,
+      "slow_iters": 264,
+      "slow_ms": 56.478,
+      "slow_tries": [
+        {
+          "iters": 132,
+          "slow_ms": 28.519
+        },
+        {
+          "iters": 264,
+          "slow_ms": 56.478
+        }
+      ],
+      "min_slow_ms": 30.0,
+      "calib_samples": [
+        14.577,
+        13.651,
+        13.567
+      ]
+    },
+    "D1_measurement_resolution": {
+      "ok": true,
+      "detail": "一趟扫描 2.83 µs = 工作量级（13.651 ms）的 0.021%（阈值 ≤ 5.0%）⇒ 分辨力足够",
+      "sweep_us": 2.83,
+      "resolution_frac": 0.000207
+    },
+    "G2_positive_control_unequal_work": {
+      "ok": true,
+      "detail": "同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 12.7489 ms ⇒ 测量**能**判出差异（仪器有效）",
+      "instrument_valid": true,
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 80.2416,
+      "median_lo_ms": 92.8799,
+      "median_gap_ms": 12.7489
+    },
+    "G3_equal_priority_baseline": {
+      "ok": true,
+      "detail": "同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 2/8 有效轮（平局 0）；中位差 -0.1971 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）",
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 2,
+      "hi_win_rate_decided": 0.25,
+      "median_hi_ms": 80.3561,
+      "median_lo_ms": 80.2146,
+      "median_gap_ms": -0.1971
+    },
+    "V1_gate_actually_gated": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G1_gate_high_priority_wins": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G4_naive_submit_order_control": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G5_direction_crosscheck_swapped": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G6_nonzero_vs_zero_crosscheck": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G7_ungated_equal_priority_control": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G8_ungated_reversed_order": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    },
+    "G9_gated_large_vs_mid_crosscheck": {
+      "ok": true,
+      "skipped": true,
+      "detail": "applicable=False ⇒ 如实跳过（未声明 `stream_priority_control`（如实不具备「能设置」））"
+    }
+  },
+  "notes": [],
+  "boundary": "单卡 · 同进程两条流 · 人为构造争用；不等于生产负载收益。「未观测到效果」≠「优先级无效」。本探针不引用厂商调度文档作机制依据。"
+}

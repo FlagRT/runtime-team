@@ -1,0 +1,37 @@
+{
+  "started_at": "2026-10-09T10:27:08.578710+08:00",
+  "backend_label": "milvus",
+  "url": "http://127.0.0.1:8088",
+  "count_per_scenario": 2,
+  "stagger_ms": 20,
+  "status": "passed",
+  "note": "Client HTTP overlap does not prove internal stage overlap; inspect server stage logs using X-Request-ID.",
+  "health_before": {
+    "status": "ready",
+    "device": "npu:0",
+    "busy": false,
+    "inflight": 0,
+    "max_inflight": 8
+  },
+  "checks": {
+    "serial": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 0,
+      "failures": []
+    },
+    "simultaneous": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 1,
+      "failures": []
+    },
+    "staggered": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 1,
+      "failures": []
+    }
+  },
+  "finished_at": "2026-10-09T10:27:10.572362+08:00"
+}

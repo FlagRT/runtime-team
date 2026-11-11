@@ -1,0 +1,15 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+=== probe_graph_capture_stream_v2.py: graph capture 流语义（后端无关 V2）===
+[env] backend=kunlun dev_api=cuda devices=1 torch=2.9.0+cu129
+[env] 图对象类: CUDAGraph
+[G1] capture vs eager: val=-42233.000000 ref=-42233.000000 rel_err=0.00e+00 ✅
+[G2] replay 确定性: val1=-42233.000000 val2=-42233.000000 差=0.00e+00 ✅
+[G3] 输入更新后 replay: val3=-28415.787109 eager3=-28415.787109 rel_err=0.00e+00 ✅
+[G5] capture 显式 stream 参数: rel_err=0.00e+00 ✅
+[G4*] capture 内切流（**契约外用法**，观察项）: 不容忍 —— AcceleratorError: CUDA error: unrecognized error code
+Search for `unrecognized error code' in https://docs.nvidia.com/cuda/cuda-runtime-ap
+
+GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+结果已写入 /workspace/prototype/probes/graph_capture_stream_result.json

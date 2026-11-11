@@ -1,0 +1,34 @@
+{
+  "runner": "runtime/conformance",
+  "backend": "kunlun",
+  "chip": "kunlun",
+  "env": {
+    "runtime:kunlun": "0.1.0",
+    "devices": 8
+  },
+  "cases": {
+    "i1_honest_declaration": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "④ 入口存在性覆盖 11/14 项能力"
+    },
+    "i2_no_fabrication": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）"
+    },
+    "i3_invalidated_governed": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "A 二次释放 → ValueError ✓"
+    },
+    "i4_degradation_observable": {
+      "ok": true,
+      "status": "PASS",
+      "detail": "② .native 计数 0→1、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓"
+    }
+  },
+  "verdict": "CONTRACT_INVARIANTS_PASS",
+  "passed": 4,
+  "total": 4
+}

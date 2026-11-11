@@ -1,0 +1,206 @@
+=========== 新芯片接入 · 环境普查 2026-10-13 09:00:05 ===========
+host=npu1-27  user=hliu553  vendor_arg=ascend
+输出：/mnt/raid/hliu553/dc_t1_20261013/preflight/preflight_env_20261013.log
+
+------------------------------------------------------------------------
+## 1. 基础环境（OS / 内核 / python / 容器）
+------------------------------------------------------------------------
+-- uname:
+Linux npu1-27 5.10.0-216.0.0.115.oe2203sp4.aarch64 #1 SMP Thu Jun 27 15:22:10 CST 2024 aarch64 aarch64 aarch64 GNU/Linux
+-- os-release:
+NAME="openEuler"
+VERSION="22.03 (LTS-SP4)"
+-- CPU / 内存:
+   核数: 640
+   内存: 2013.4 GiB
+-- python（多解释器并列）：
+   python3      Python 3.9.9  (/usr/bin/python3)
+   python       Python 3.9.9  (/usr/bin/python)
+   python3.9    Python 3.9.9  (/usr/bin/python3.9)
+-- conda / venv 环境:
+   未安装 conda
+   venv: /tmp/flagperf-inference-host-20260922/pyvenv.cfg
+   venv: /tmp/deepfm_venv/pyvenv.cfg
+-- 容器可见性:
+   docker: Docker version 20.10.8, build 3967b7d
+running: dc-t1-910c-20261013 | flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64
+running: runtime-code-mcp-tunnel | local/runtime-workspace-mcp:1.0.0
+running: runtime-code-mcp | local/runtime-workspace-mcp:1.0.0
+running: temp-cp-arbitrary | temp-cp-resume:verified-nvme
+running: fl-profile-910c | flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+running: mem-profile-910c | quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+running: rag-ljy-milvus | milvusdb/milvus:v3.0.0
+running: kelvin-w4-lzy | harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2
+   Up 容器数: 14
+   本用户是否在 docker 组: 是
+-- sudo: 需密码 / 不可用
+
+------------------------------------------------------------------------
+## 2. 芯片与驱动（厂商工具 + torch 侧双路取证）
+------------------------------------------------------------------------
+-- 厂商工具（容器内通常没有，属正常）：
+   ✅ npu-smi -> /usr/local/bin/npu-smi
+       Usage: npu-smi <Command|-h|-v> [Options...]
+       
+       npu-smi Command:
+       	-h            This command's help information
+       	--help        This command's help information
+       	-v            Show npu-smi version information
+       	info          Show hardware details
+       	set           Modify device configuration properties
+       	clear         Clear device information
+       	upgrade       Upgrade MCU firmware
+-- 设备节点 / 驱动模块:
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   0 Sep 16 12:54 /dev/davinci0
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   1 Sep 16 12:54 /dev/davinci1
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  10 Sep 16 12:54 /dev/davinci10
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  11 Sep 16 12:54 /dev/davinci11
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  12 Sep 16 12:54 /dev/davinci12
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  13 Sep 16 12:54 /dev/davinci13
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  14 Sep 16 12:54 /dev/davinci14
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,  15 Sep 16 12:54 /dev/davinci15
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   2 Sep 16 12:54 /dev/davinci2
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   3 Sep 16 12:54 /dev/davinci3
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   4 Sep 16 12:54 /dev/davinci4
+crw-rw-rw- 1 HwHiAiUser HwHiAiUser 235,   5 Sep 16 12:54 /dev/davinci5
+sed: -e expression #1, char 9: unknown option to `s'
+drv_pcie_vnic_host     69632  0
+drv_dvpp_cmdlist      307200  0
+drv_soft_fault        880640  0
+ts_agent             2416640  1 drv_dvpp_cmdlist
+drv_dp_proc_mng_host    65536  1 ascend_trs_pm_adapt
+drv_pcie_hdc_host     368640  53 ascend_queue
+drv_devmm_host       1155072  6 ascend_queue,ts_agent,ts_debug,drv_dvpp_cmdlist
+drv_devmng_host      1163264  25 drv_soft_fault,ascend_trs_core,ts_agent,drv_devmm_host,ascend_trs_shrid,ascend_event_sched_host
+-- 驱动 / SDK 版本（按厂商候选路径）:
+   ✔ /usr/local/Ascend
+       Ascend-Docker-Runtime
+       add-ons
+       ascend-toolkit
+       cann
+       cann-8.5.0
+       driver
+       firmware
+       host_servers_remove.sh
+-- torch 侧（同一段代码依次尝试各命名空间，如实报告哪个可用）:
+   torch: 导入失败: ModuleNotFoundError No module named 'torch'
+
+------------------------------------------------------------------------
+## 3. 集合通信可用性（训练腿前置）
+------------------------------------------------------------------------
+   flagcx: 不可导入（ModuleNotFoundError）
+   torch.distributed: 不可导入（ModuleNotFoundError）
+   torch_mlu: 不可导入（ModuleNotFoundError）
+   torch_npu: 不可导入（ModuleNotFoundError）
+-- 通信库文件（按厂商候选）:
+
+------------------------------------------------------------------------
+## 4. 磁盘与 docker 数据目录（★ P800 曾误判根分区，必须看真实挂载点）
+------------------------------------------------------------------------
+-- 文件系统总览:
+   Filesystem      Size  Used Avail Use% Mounted on
+   devtmpfs        4.0M     0  4.0M   0% /dev
+   tmpfs          1007G  253M 1007G   1% /dev/shm
+   tmpfs           403G  4.1G  399G   2% /run
+   tmpfs           4.0M     0  4.0M   0% /sys/fs/cgroup
+   /dev/sda3       196G  132G   55G  71% /
+   tmpfs          1007G  730G  277G  73% /tmp
+   /dev/sda2       272M  149M  104M  59% /boot
+   /dev/sda1       100M  6.5M   94M   7% /boot/efi
+   /dev/nvme3n1p1  3.5T  2.5T  1.1T  70% /data_lib
+   /dev/sda5       239G  216G   11G  96% /home
+   /dev/md127       11T  3.4T  7.2T  32% /mnt/raid
+-- docker 数据目录的真实挂载点:
+   DockerRootDir = /mnt/raid/docker
+   readlink -f /var/lib/docker = /var/lib/docker
+   findmnt -T /mnt/raid/docker:
+     TARGET    SOURCE     FSTYPE OPTIONS
+     /mnt/raid /dev/md127 xfs    rw,relatime,attr2,inode64,logbufs=8,logbsize=32k,sunit=1024,swidth=3072,noquota
+-- 逐目录可用空间（P800 教训：du -x 跨文件系统即停，不可用于判断容量）:
+   /                  55G 可用 / 196G 总 (71% 已用)
+   /var/lib/docker    55G 可用 / 196G 总 (71% 已用)
+   /srv               55G 可用 / 196G 总 (71% 已用)
+   /data              55G 可用 / 196G 总 (71% 已用)
+   /mnt               55G 可用 / 196G 总 (71% 已用)
+   /home              11G 可用 / 239G 总 (96% 已用)
+-- 现有镜像（体积口径：docker images 显示磁盘占用，inspect Size 是镜像层）:
+local/runtime-workspace-mcp:1.0.0 | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+temp-cp-resume:verified-nvme | images=19.8GB
+temp-cp-arbitrary:snap-before-npu012 | images=19.6GB
+flagperf/spike-cann-correlation:runtime2-shmem-flagcx | images=31.1GB
+flagperf/spike-cann-correlation:runtime2-shmem | images=31GB
+flagperf/spike-cann-correlation:runtime2-gems-source | images=31GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+<none>:<none> | images=14.5GB
+-- 共享目录判定（本机是否有 NFS/共享挂载）:
+
+------------------------------------------------------------------------
+## 5. 网络可达性（镜像 / whl 源；决定能否在线补依赖）
+------------------------------------------------------------------------
+   https://resource.flagos.net/repository/flagos-pypi-hosted/simple         HTTP 000
+   https://pypi.org/simple                                                  HTTP 000
+   https://mirrors.aliyun.com/pypi/simple                                   HTTP 000
+-- 代理环境变量: env | grep -i proxy
+   https_proxy=http://127.0.0.1:7890
+   HTTPS_PROXY=http://127.0.0.1:7890
+   HTTP_PROXY=http://127.0.0.1:7890
+   http_proxy=http://127.0.0.1:7890
+   ALL_PROXY=socks5h://127.0.0.1:7890
+-- 网卡与 RoCE/IB 设备（训练腿拓扑参考）:
+   lo 127.0.0.1/8
+   enp162s0f0.2173 10.120.73.79/24
+   enp162s0f1.2173 10.120.73.80/24
+   br-326480c18856 172.20.0.1/16
+   bond4 10.120.72.27/24
+   docker0 172.17.0.1/16
+   br-03c7b546b8ae 172.18.0.1/16
+   br-dc03bbd4e351 172.21.0.1/16
+sed: -e expression #1, char 11: unknown option to `s'
+   （无 /sys/class/infiniband）
+
+------------------------------------------------------------------------
+## 6. 拓扑（多卡实验的用卡选择依据）
+------------------------------------------------------------------------
+-- NUMA 与设备亲和（有 lspci 时按 PCI 归属推断；无则如实标注）:
+   03:00.0 Signal processing controller [1180]: Huawei Technologies Co., Ltd. iBMA Virtual Network Adapter [19e5:1710] (rev 01)
+   31:00.0 Processing accelerators [1200]: Huawei Technologies Co., Ltd. HiSilicon ZIP Engine [19e5:a250] (rev 30)
+   33:00.0 Processing accelerators [1200]: Huawei Technologies Co., Ltd. HiSilicon ZIP Engine [19e5:a250] (rev 30)
+   39:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon SEC Engine [19e5:a255] (rev 30)
+   3a:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon HPRE Engine [19e5:a258] (rev 30)
+   3d:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon SEC Engine [19e5:a255] (rev 30)
+   3e:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon HPRE Engine [19e5:a258] (rev 30)
+   71:00.0 Processing accelerators [1200]: Huawei Technologies Co., Ltd. HiSilicon ZIP Engine [19e5:a250] (rev 30)
+   73:00.0 Processing accelerators [1200]: Huawei Technologies Co., Ltd. HiSilicon ZIP Engine [19e5:a250] (rev 30)
+   79:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon SEC Engine [19e5:a255] (rev 30)
+   7a:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon HPRE Engine [19e5:a258] (rev 30)
+   7d:00.0 Network and computing encryption device [1000]: Huawei Technologies Co., Ltd. HiSilicon SEC Engine [19e5:a255] (rev 30)
+-- NUMA 节点:
+   available: 8 nodes (0-7)
+   node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79
+   node 1 cpus: 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159
+   node 2 cpus: 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239
+   node 3 cpus: 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319
+   node 4 cpus: 320 321 322 323 324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 344 345 346 347 348 349 350 351 352 353 354 355 356 357 358 359 360 361 362 363 364 365 366 367 368 369 370 371 372 373 374 375 376 377 378 379 380 381 382 383 384 385 386 387 388 389 390 391 392 393 394 395 396 397 398 399
+-- 共享机提醒：用卡前务必确认目标卡空闲（厂商工具或 torch 查询），并记录用卡号
+
+------------------------------------------------------------------------
+## 7. 结论与待补（如实标注，不猜测）
+------------------------------------------------------------------------
+   请逐项核对并填入「已取得 / 待确认」：
+     [ ] 1 连接：SSH 端口、认证方式（密钥/密码）、是否需跳板
+     [ ] 2 权限：docker 组、（如需改 docker data-root 则需）sudo
+     [ ] 3 镜像：目标镜像是否已在位；不在位则 pull 来源与体积
+     [ ] 4 共享用户：是否共享机、并发上限（P800/910C 均实测有上限）
+     [ ] 5 磁盘：数据目录与 docker 数据目录各自的可用空间
+     [ ] 6 网络：whl / 镜像源可达性（决定能否在线补依赖）
+     [ ] 7 拓扑：NUMA 归属与组内/跨组链路，2 卡实验的取卡建议
+   缺失项照实写「未取得」——不猜、不补零（本方向证据规范）。
+
+=========== 普查结束 2026-10-13 09:00:16  报告：/mnt/raid/hliu553/dc_t1_20261013/preflight/preflight_env_20261013.log ===========

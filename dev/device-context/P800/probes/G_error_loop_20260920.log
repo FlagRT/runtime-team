@@ -1,0 +1,41 @@
+=========== P800 阶段 4 错误闭环（两设置对照）开始 Sun Sep 20 08:59:52 CST 2026 ===========
+用卡: 6 | 超时: 240s | 唯一变量: XPU_EVENT_KL3_ENABLE
+--- 用卡前：各卡显存占用 ---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   44C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+############ 错误闭环 · KL3 0 · noKL3 ############
+  >>> ✅ 完成：闭环 5 / 跳过 0 / 失败 0
+     [基线] 业务正常: 786432.0
+     [shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+     [oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+     [stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError（真实 507046），进程存活；已等待设备归零
+     [l4_by_code(device_recovery 路径)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True
+
+############ 错误闭环 · KL3 1 · KL3on ############
+  >>> ✅ 完成：闭环 5 / 跳过 0 / 失败 0
+     [基线] 业务正常: 786432.0
+     [shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+     [oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+     [stream_timeout(L3_EXECUTION 期望)] L3_EXECUTION / replay / 业务继续=True / 进程内捕获 TimeoutError（真实 507046），进程存活；已等待设备归零
+     [l4_by_code(device_recovery 路径)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True
+
+--- 对照组差异（原始结果）---
+  /workspace/out_err/error_recovery_loop_kunlun_KL3off.json: closed 5 skipped 0 failed 0 | ERROR_RECOVERY_LOOP_PASS
+  /workspace/out_err/error_recovery_loop_kunlun_KL3on.json: closed 5 skipped 0 failed 0 | ERROR_RECOVERY_LOOP_PASS
+--- 用卡后复查 ---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+=========== 阶段 4 错误闭环 结束 Sun Sep 20 09:00:14 CST 2026 ===========

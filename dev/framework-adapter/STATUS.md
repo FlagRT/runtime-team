@@ -1,0 +1,57 @@
+# framework-adapter 当前状态
+
+更新：2026-11-04 dev3源码候选发布。顾宬 / cgu135。当前功能、验证与交付状态统一维护于本页。
+
+## 本期完成
+
+- 公共训练入口接齐模型身份及审核：实际权重、配置、源码、依赖版本与训练设置共同匹配，通过审核后才启用目标算子。
+- 910C官方镜像：Qwen0.6B双rank关闭、开启、缺模型审核三路各3步通过；开启每rank84次SiLU前向及84次反向，其余两路保留原生。
+- 独立资格：原生重复3726项逐值一致；候选3726项通过，最大差9.54e-7。
+- 新P800：DeepFM FP32 batch32三路各3步，294项对照一致；本轮P800使用dev2。
+- dev3固定提交构建及独立重建各110项包控制通过，集成脚本控制42项通过；11个运行时文件与实测wheel一致。
+
+## 功能与待办
+
+| 功能 | 当前实现 | 待完成 |
+|---|---|---|
+| 算子接入 | PyTorch eager SiLU、sigmoid、tanh前反向；开关、逐调用准入与退出恢复 | 自定义/融合及其他框架入口 |
+| 模型审核 | 固定公共双rank入口及P800 case采集真实身份，匹配模型与算子审核 | 公共入口严格负向硬件补证、稳定集成接口对齐 |
+| 安全处置 | 条件不满足保留合法原生；严格模式拒绝；执行异常停止 | 多候选实现选择、任务级恢复 |
+| 双rank联动 | 固定入口验证更新前共同阻断；正常完成与恢复有记录 | 更新后回滚、跨主机恢复由相关方向协同 |
+| 三种接入方式 | 算子注册、库替换、版本补丁的方案及接口约定已交评审稿 | 跨组确认与逐项实现 |
+
+## 平台证据
+
+| 平台/场景 | 结果与问题 | 证据 |
+|---|---|---|
+| 910C官方镜像 / 公共719de8c入口 | Qwen0.6B FP32 batch1 seq32，双rank三路通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/公共训练入口模型审核接入-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-public-entry-20261104/summary.json) |
+| 新152 P800 / v2 / GEMM补丁关闭 | DeepFM FP32 batch32三路通过，sigmoid资格6组×3次通过 | [11-04报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800新机三路回归-20261104.md)、[摘要](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-p800-regression-20261104/summary.json) |
+| 910C历史模型 | Qwen有限训推、OneRec seq16通过；OneRec seq32梯度及DeepFM参数超差，保留原生 | [10-23报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
+| P800历史模型 | 三单算子通过；DeepFM通过；Qwen FP32 seq32与OneRec BF16 seq16梯度超差，审核拒绝 | [10-29报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/P800接入与安全回退验证-20261029.md) |
+| 910C双rank故障注入 | 前向/反向异常均双方0次优化器更新 | [10-28报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/双rank步骤门控验证-20261028.md) |
+| 910C训练v3 | 原生/拒绝路径已有证据；目标编译TLE/shmem缺失待解决 | [环境差异](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/环境准入与算子扩展验证-20261023.md) |
+
+模型回归使用合成输入短训练；数值资格由独立探针验证，本方向不改内核或放宽阈值。
+
+## 发布与复现
+
+| 材料 | 固定版本或入口 |
+|---|---|
+| 功能源码 | [dev3@40864f9](https://github.com/FlagRT/framework-adapter/tree/40864f9ac266163a80e323ca1abe082bb6b8a2f9) |
+| 制品版本锁 | [package.lock.json](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/package.lock.json)，精确源码、实测wheel和两次重建SHA |
+| 发布审查 | [报告](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/dev3发布审查-20261104.md)、[核验摘要与脚本](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/evidence-dev3-release-20261104/) |
+| 三通道方案/接口 | [方案](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/三通道接入方案.md)、[接口约定](https://github.com/FlagRT/framework-adapter/blob/40864f9ac266163a80e323ca1abe082bb6b8a2f9/docs/接入接口约定.md) |
+| 本方向材料 | 本人分支cgu135/framework-adapter；公共dev-1.0只同步STATUS及固定证据指针 |
+| 操作与索引 | [HANDOFF](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/HANDOFF.md)、[报告目录](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/README.md) |
+
+源码候选按固定提交离线构建；未上传PyPI。新P800旧机迁移已完成，9395文件逐文件SHA核验通过。11-04实测结束后11机7个及27机1个本人容器均已停止。
+
+本页仅同步本方向状态与交付物指针，详细材料在上述固定个人分支提交中。独立仓由公共 dev/repos.yaml 收录。
+
+## 下一步
+
+1. 配置、模型或版本变化使旧审核失效：补公共入口硬件证据。
+2. 严格目标模式在不满足条件时训练前拒绝：检查零模型训练、零优化器更新与拒绝原因。
+3. 与device-context确认模型身份/审核的稳定传递接口，减少随公共入口更新的人工适配。
+
+本页至少每两周更新，重要交付同步证据链接。详细后续计划维护于workspace执行计划；历史过程见[归档](https://github.com/FlagRT/runtime-team/blob/695cc3231446ffd73439ae0b279e0539b228430f/dev/framework-adapter/docs/archive/session-20261103/README.md)。

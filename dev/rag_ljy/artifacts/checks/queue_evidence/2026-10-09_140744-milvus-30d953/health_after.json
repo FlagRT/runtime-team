@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "device": "remote-vllm",
+  "busy": false,
+  "inflight": 0,
+  "max_inflight": 8,
+  "embedding_backend": "vllm",
+  "retrieval_backend": "milvus",
+  "execution_mode": "concurrent",
+  "stage_queues": {
+    "embedding": {
+      "capacity": 8,
+      "queued": 0,
+      "running": 0,
+      "workers": 2
+    },
+    "retrieval": {
+      "capacity": 8,
+      "queued": 0,
+      "running": 0,
+      "workers": 4
+    },
+    "rerank": {
+      "capacity": 8,
+      "queued": 0,
+      "running": 0,
+      "workers": 1
+    }
+  }
+}

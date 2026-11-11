@@ -1,0 +1,48 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+========================================================
+统一运行时 API 演示 · 设备上下文与多流 Stream
+========================================================
+
+────────────────────────────────────────────────────────
+[0] 选择后端：runtime.use("kunlun")
+────────────────────────────────────────────────────────
+  ✓ 已加载：{'name': 'kunlun', 'capabilities': ['bounded_sync', 'context_query', 'device', 'device_state', 'device_state_control', 'event', 'graph_capture', 'memory', 'memory_alloc', 'memory_alloc_stat', 'multidevice', 'record_stream', 'recovery_probe', 'stream', 'stream_priority', 'stream_priority_control', 'stream_priority_readback'], 'native_accesses': {'total': 0, 'by_kind': {}}, 'degradations': {'total': 0, 'by_kind': {}}, 'device_type': 'cuda', 'framework': 'XPytorch (torch.cuda 兼容层) + torch_xray 符号重写', 'torch': '2.9.0+cu129', 'torch_build': {'USE_CUDA': True, 'USE_XPU': False}, 'device_count': 2, 'supports': {'device': True, 'memory': True, 'stream': True, 'event': True, 'bounded_sync': True, 'sync_timeout': True, 'error_map': False, 'recovery_probe': True, 'recovery_real': False, 'device_state': True, 'graph_capture': True, 'stream_priority': True, 'multidevice': True, 'memory_alloc': True, 'memory_alloc_stat': True, 'record_stream': True, 'context_lifecycle': False, 'context_query': True, 'device_state_control': True, 'stream_priority_control': True, 'stream_priority_readback': True}, 'error_grading': {'code_map': False, 'message_hint': True}, 'bounded_sync_scope': '主机侧等待（event.wait_host）真有界；流同步为超时上报语义', 'vendor_discriminator': ['torch_xray / torch_xmlir 模块存在', '/proc/kunlun 存在', 'xpu-smi 存在', '通信库 libbkcl.so（XCCL/BKCL）'], 'known_upstream_defects': ['Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)', '厂商错误码不透出到 Python 异常（仅退出钩子偶见 error code=101）', 'XPU_EVENT_KL3_ENABLE=1 且存在设备侧集合通信时，设备事件同步概率性永久挂死（≈89%，自旋于厂商 libcuda.so）—— 详见 known_issues[0] 与 prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md'], 'known_issues': [{'id': 'KUNLUN-KL3-EVENT-SYNC-HANG', 'severity': 'high', 'scope': '多进程设备侧集合通信（flagcx / BKCL）', 'condition': '环境变量 XPU_EVENT_KL3_ENABLE=1 **且**存在设备侧集合通信', 'symptom': '概率性永久挂死。自旋点三处：① dist.all_reduce 内部 c10d::flagcxBackend::syncStream → CUDAEvent::record → cudaEventRecordWithFlags；② 上层 torch.cuda.synchronize → cudaDeviceSynchronize；③ 通信域首次初始化（bkcl::init_rank / net_socket_all_gather）。前两处自旋于厂商 libcuda.so（实为 libxpucuda.so）内，用户态 100% CPU', 'repro_rate': '≈89%（18 次运行 16 次挂死；本轮基线 4/4 = 100%）；挂死步数游走，与数据量/张量形状/reduce op/用卡对/同步间隔均无关', 'root_cause_layer': '厂商 CUDA 兼容运行时 —— libxpucuda.so / XRE 的 KL3 事件机制与设备事件同步原语的交互', 'ruled_out': '算子层（FlagGems 未参与，探针全程裸 torch.distributed）、编译层（无 triton 编译，BKCL 为预编译内核）均已排除', 'workaround': '在**不依赖 FlagGems** 的验证路径中不设置 XPU_EVENT_KL3_ENABLE（实测 8 次运行 0 次挂死，且 all_reduce 结果真值 2^120 精确匹配）。本方向训练腿（transformers 纯 torch）与推理腿（vLLM）均不依赖 FlagGems，故适用', 'workaround_risk': '该变量是 FlagGems kunlunxin 官方推荐值（tools/env.sh、src/flag_gems/backends.yaml、CI P800.yml 三处均设 1）；关闭可能影响厂商设备事件上报。**走 FlagGems 路径时不适用本规避**。注意 flagcx 侧无法规避：syncStream 是流序正确性所必需（backend_flagcx.cpp:424，14 处集合通信各调一次）', 'report_to': '昆仑芯（XPytorch / XRE）—— 我方已上报，对应本方向对外提交项 C3', 'evidence': 'prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md'}, {'id': 'KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL', 'severity': 'low', 'scope': '流优先级（`stream_priority_control` / `stream_priority_range`）', 'condition': '任何调用 `stream_priority_range()` 或 `create_stream(priority=…)` 的场景', 'symptom': '`cuCtxGetStreamPriorityRange` 返回 **least=0, greatest=0** ⇒ **优先级区间退化为单点**：接口可用、可设置、可回读，但**设置不产生任何调度区分**（设备只暴露一个档位）', 'repro_rate': '100%（2026-09-30 三次独立运行一致）', 'root_cause_layer': '厂商 CUDA 兼容运行时（libxpucuda.so.515.58.kunlun）上报的设备属性 —— 设备只暴露一个优先级档位', 'ruled_out': '**不是**接口没实现：三个入口（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`）都在且可用；**不是**包装不了：`torch.cuda.ExternalStream(handle)` 回取句柄**逐位相同**且能在其上跑对算子', 'workaround': '需要**按优先级编排**的上层：本平台做不到，**请勿据此做调度决策**；需要**跨芯片可移植的调用面**：正常调用 `create_stream(priority=0)`（唯一合法值），越界值本层会 `ValueError` 拒绝', 'workaround_risk': '无（区间由设备自报，本层只是如实转达）', 'report_to': '昆仑芯（XPytorch / XRE）—— 若要支持多档优先级，需厂商侧暴露', 'evidence': 'P800/probes/prio_settable_kunlun_20260930.log'}]}
+
+────────────────────────────────────────────────────────
+[1] 设备上下文（设备句柄 + 内存）
+────────────────────────────────────────────────────────
+  设备数量：2
+  已绑定设备：0
+  显存：total=98304MB  used=32MB  free=98272MB
+
+────────────────────────────────────────────────────────
+[2] 多流 Stream（创建 / 跨流依赖 / 上下文切换）
+────────────────────────────────────────────────────────
+  <Stream backend=kunlun native=Stream>
+  <Stream backend=kunlun native=Stream>
+  <Event backend=kunlun native=KunlunEventAdapter>
+  跨流可见性：流 s1 计算 → 流 s2 读取 = 5.0000（期望 5.0）
+  有界同步（5s）：✓ 完成
+  主机侧事件等待：True
+
+────────────────────────────────────────────────────────
+[3] 错误码翻译（厂商错误码 → 统一分级 + 处置）
+────────────────────────────────────────────────────────
+  流同步超时        → L3_EXECUTION   处置=replay         mapped=False by=message_hint
+  设备级致命        → L4_FATAL       处置=device_recovery mapped=False by=message_hint
+  框架参数校验       → L2_PARAM       处置=raise          mapped=False by=message_hint
+
+────────────────────────────────────────────────────────
+[4] 状态恢复（探活 + 重建接口）
+────────────────────────────────────────────────────────
+  设备探活：True
+  设备状态：DeviceState.AVAILABLE
+  重建接口：recover_device(mode='probe'/'real'/'hybrid')
+  注意：real 模式会重置当前进程默认上下文，演示中不实际调用
+
+────────────────────────────────────────────────────────
+演示结束
+────────────────────────────────────────────────────────
+  同一份代码切换芯片只需改：runtime.use("<backend>")

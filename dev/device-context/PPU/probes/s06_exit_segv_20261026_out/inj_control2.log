@@ -1,0 +1,37 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[inject] mode=control
+=== 统一运行时 conformance: backend=ppu, chip=ppu, 用例数=1 ===
+[env] runtime:ppu=0.1.0 devices=1
+  [PASS   ] only_i3                      A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → R
+
+=== 汇总: 1/1 通过 ===
+结论: CI_I3_ONLY_PASS
+结果已写入 /tmp/inj_control.json
+[inject] main returned 0
+
+===== T11_CRASH_CAPTURED (native) =====
+signal=11 si_code=1 si_addr=0xab
+RIP=0x7fb566656ad5 RSP=0x7ffd6beb7550
+RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0
+RIP_BASE=0x7fb566400000
+RIP_OFFSET=0x256ad5
+RIP_SYMBOL=(no symbol)
+BACKTRACE_FRAMES=18
+  FRAME#0 module=/workspace/probes_ppu/dc_s06_20261026/t11_segv_handler.so offset=0x150f symbol=?
+  FRAME#1 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x45330 symbol=?
+  FRAME#2 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x256ad5 symbol=?
+  FRAME#3 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x2d2529 symbol=_PyWeakref_ClearRef
+  FRAME#4 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30e480 symbol=?
+  FRAME#5 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30ec74 symbol=?
+  FRAME#6 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302d43 symbol=?
+  FRAME#7 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302080 symbol=Py_FinalizeEx
+  FRAME#8 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302fec symbol=Py_Exit
+  FRAME#9 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x3050bb symbol=?
+  FRAME#10 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x305027 symbol=?
+  FRAME#11 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x1b358e symbol=?
+  FRAME#12 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x304c28 symbol=_PyRun_AnyFileObject
+  FRAME#13 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30da37 symbol=Py_RunMain
+  FRAME#14 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30d5cb symbol=Py_BytesMain
+  FRAME#15 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a1ca symbol=?
+  FRAME#16 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a28b symbol=__libc_start_main
+  FRAME#17 module=python3 offset=0x1095 symbol=_start

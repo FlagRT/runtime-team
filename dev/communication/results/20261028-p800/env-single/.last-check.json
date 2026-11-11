@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-10-28T19:15:53+08:00",
+  "env_dir": "dev/communication/env/p800-single",
+  "baseline": "env.baseline.yaml",
+  "report": [
+    {
+      "status": "PASS",
+      "item": "image",
+      "detail": "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64 -> sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a"
+    },
+    {
+      "status": "INFO",
+      "item": "baked",
+      "detail": "固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）"
+    }
+  ],
+  "result": "PASS"
+}

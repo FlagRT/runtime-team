@@ -1,0 +1,48 @@
+{
+  "verdict": "PASS",
+  "scope": "Ascend integration",
+  "identity": {
+    "backend": "flagcx",
+    "evidence_scope": "NPU integration",
+    "model_sha256": {
+      "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+      "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+      "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+    },
+    "prototype_revision": "3995d56d75b20fc9924f0a1d9c3b42bbfe6ea7a3",
+    "torch": "2.10.0+cpu",
+    "seed": 923,
+    "dtype": "float32"
+  },
+  "runs": 6,
+  "gradient_checks_per_rank": 17,
+  "gradient_reference_max_abs": 4.190951585769653e-09,
+  "update_reference_max_abs": 3.725290298461914e-09,
+  "manual_fused_loss_max_abs": 7.152557373046875e-07,
+  "final_rank_parameter_max_abs": 0,
+  "gradient_calls_per_rank_per_50_steps": {
+    "manual": 850,
+    "fused": 50
+  },
+  "timing": {
+    "manual": {
+      "run_mean_step_ms": [
+        16.505359932780266,
+        16.072197053581476,
+        15.708244312554596
+      ],
+      "mean_ms": 16.09526709963878,
+      "sample_stddev_ms": 0.3990582642556762
+    },
+    "fused": {
+      "run_mean_step_ms": [
+        9.848495544865727,
+        9.597211545333266,
+        10.049866465851665
+      ],
+      "mean_ms": 9.831857852016887,
+      "sample_stddev_ms": 0.2267856452354925
+    }
+  },
+  "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+}

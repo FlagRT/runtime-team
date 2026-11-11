@@ -1,0 +1,11 @@
+# 2026-10-11 复验记录（npu1-11，用户 xliu969，demo 运行环境 dev/images/ascend-train-comm/v3/demo）
+# 命令: docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-v3-demo-910c \
+#   torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py --iters 20
+# 退出码: 1（torchrun 随子进程判定退出）
+# 完整日志留在执行机器:
+#   npu1-11:~/tmp-reproV3-r4/issues-run/flagcx-iters20.log
+#
+# 判定段与 2026-10-10 的 3 次运行逐行一致，不在仓内重复抄录；判定段原文与各失败组样例见
+#   ../../../../images/ascend-train-comm/v3/assets/evidence/flagcx-collectives-20261010.txt
+# 结论: 八组判定、两类缺陷的分布（① broadcast / all_reduce / all_gather_into_tensor 同步后 PASS；
+#       ② 列表形式 all_gather 同步后仍 FAIL）在 2026-10-11 第 4 次运行中复现，overall: FAIL。

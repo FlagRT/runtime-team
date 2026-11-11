@@ -1,0 +1,48 @@
+# cambricon-infer-vllm v1 —— FlagOS 官方寒武纪推理应用镜像（登记式基线）
+# （结构对齐 cambricon-mlu-runtime/v1 与 ascend-infer-vllm/v1 先例；内容按实测登记）
+
+image_tag: "harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2"
+digest: "sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94"
+flagtree_line: >-
+  无 FlagTree 线（同基座）。本镜像是 FlagOS 官方「运行时基座 + vLLM 应用」线的应用镜像：
+  vllm 0.20.2+flagos / vllm-plugin-FL 0.2.2（dispatch 层，镜像 Label flagos.plugin）/ torch 2.7.1+cpu /
+  torch_mlu 1.29.2+torch2.7.1 / triton 3.2.0+mlu1.7.2 / flag_gems 5.4.0rc2.post3 / transformers 5.17.0。
+  运行时底座 = flagos-base-cambricon-neuware4.4.3:2.2.0（镜像 Label flagos.base），与训练/设备上下文
+  所用 flagos-runtime 基座同 neuware 档（宿主驱动 6.2.x 线）。
+pull: "docker pull harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3@sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94"
+built_at: "2026-09-28T14:46:07+08:00"
+repro_status: "🟢 FlagOS 官方镜像"       # 公开 harbor registry，匿名可按 digest 拉取（2026-10-24 拉取实测，RepoDigest 与本 digest 逐字一致）
+dockerfile: "upstream —— FlagOS flagos-app 线（无仓内配方）"
+
+# --- official / custom 边界（official = FlagOS 官方原样产物） ---
+layers:
+  - name: "vllm0.20.2-cambricon-neuware4.4.3 2.2.0-0.2.2"
+    origin: official   # FlagOS flagos-app 线
+    pin: "digest sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94"
+    note: "vllm 0.20.2+flagos + vllm-plugin-FL 0.2.2 + NEUWARE 4.4.3 栈 + torch_mlu 1.29.2 + triton-mlu 3.2.0 + flag_gems 5.4.0rc2.post3"
+custom_layers: none
+
+gaps:
+  - "镜像内无 .git —— 无自证 commit 锚，版本锚 = Harbor digest + pip 版本号 + 镜像 Label（flagos.plugin / flagos.base）"
+  - "本组 cambricon 后端不在镜像内，经仓内挂载使用（不固化），同基座口径"
+  - "本镜像承担推理服务化（vLLM）；不带训练栈，训练/设备上下文仍用 cambricon-mlu-runtime 基座"
+  - "CNCL 侧限制同基座（C-4：RDMA 未启用，集合通信结论只覆盖单机多卡）"
+
+notes: |
+  启动纪律同 cambricon-mlu-runtime/v1（18 设备节点 + cnmon 挂载 + seccomp/SYS_PTRACE + MLU_VISIBLE_DEVICES
+  选卡 + 宿主无 neuware 一切在容器内）。差异两条：
+  ① 服务化启动走 dev/device-context/prototype/scripts/serve_standard.sh（DC_BACKEND=cambricon，
+    embed 形态，MODEL 指向本地模型目录）；demo 容器只管生命周期（sleep infinity），服务由脚本起停。
+  ② 就绪预算：本镜像 init engine（profile + KV cache + warmup）实测 149.5s（2026-10-24 HWJ_1，
+    Qwen3-Embedding-0.6B / dev0 / TP=1 / eager），READY_BUDGET 建议 ≥300s；首次 embedding 请求
+    另含编译开销（组内既有实测口径 ~60s+，SMOKE_TIMEOUT 默认 180s 够用）。
+  验收记录（入锁依据）：2026-10-24 HWJ_1（tza-0a06-ai02-em9）SERVE_STANDARD_PASS (ready=1 smoke=1)，
+  判据 = serve_standard.sh 口径（embedding POST /v1/embeddings 维度与范数校验），卡释放干净（8 卡 0 MiB）。
+
+changelog:
+  - date: "2026-10-24"
+    what: |
+      首次登记（登记式基线，ADR-0007 同款流程）：FlagOS 官方寒武纪推理应用镜像入锁为推理腿发布物，
+      digest 锁定（harbor.baai.ac.cn/flagos-app，匿名可拉，拉取实测 RepoDigest 逐字一致）。
+      入锁前置 = 通过本组服务化验收（serve_standard.sh 口径，2026-10-24 HWJ_1 真机 PASS），
+      解除 stack.lock.cambricon.v1 已知限制 C-1。

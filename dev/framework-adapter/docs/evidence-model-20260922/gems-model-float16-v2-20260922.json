@@ -1,0 +1,1676 @@
+{
+  "status": "fail",
+  "dtype": "float16",
+  "device": "npu:0",
+  "operator_cases": [
+    {
+      "op": "rms_norm",
+      "shape": [
+        1,
+        4,
+        1024
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "rms_norm",
+      "shape": [
+        1,
+        4,
+        16,
+        128
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "rms_norm",
+      "shape": [
+        1,
+        4,
+        8,
+        128
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "silu",
+      "shape": [
+        1,
+        4,
+        3072
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "rms_norm",
+      "shape": [
+        3,
+        6,
+        1024
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "rms_norm",
+      "shape": [
+        3,
+        6,
+        16,
+        128
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "rms_norm",
+      "shape": [
+        3,
+        6,
+        8,
+        128
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "op": "silu",
+      "shape": [
+        3,
+        6,
+        3072
+      ],
+      "status": "pass",
+      "max_abs_error": 0.0,
+      "input_weight_unchanged": true,
+      "restored": true,
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 1
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    }
+  ],
+  "fallback_cases": [
+    {
+      "reason": "disabled",
+      "status": "pass",
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              2,
+              8
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "reason": "operator_not_enabled",
+      "status": "pass",
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              2,
+              8
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "reason": "dtype",
+      "status": "pass",
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "dtype",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "native",
+            "reason": "dtype",
+            "stage": "selected",
+            "shape": [
+              2,
+              8
+            ],
+            "dtype": "torch.float32",
+            "device": "npu:0"
+          }
+        ]
+      }
+    },
+    {
+      "reason": "layout",
+      "status": "pass",
+      "routes": {
+        "counts": [
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "layout",
+            "stage": "selected",
+            "count": 1
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "",
+            "op": "silu",
+            "backend": "native",
+            "reason": "layout",
+            "stage": "selected",
+            "shape": [
+              8,
+              2
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      }
+    }
+  ],
+  "model_cases": [
+    {
+      "batch": 1,
+      "mode": "disabled",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "pass",
+      "hidden_max_abs_error": 0.0,
+      "embedding_max_abs_error": 0.0,
+      "checks": {
+        "hidden": {
+          "status": "pass"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 1,
+      "mode": "enabled",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 113
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 28
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "fail",
+      "hidden_max_abs_error": 0.03125,
+      "embedding_max_abs_error": 0.0002801269292831421,
+      "checks": {
+        "hidden": {
+          "status": "fail",
+          "error": "Tensor-likes are not close!\n\nMismatched elements: 23 / 4096 (0.6%)\nGreatest absolute difference: 0.01416015625 at index (0, 2, 18) (up to 0.005 allowed)\nGreatest relative difference: 0.490478515625 at index (0, 3, 496) (up to 0.005 allowed)"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 1,
+      "mode": "silu_only",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 28
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "pass",
+      "hidden_max_abs_error": 0.0,
+      "embedding_max_abs_error": 0.0,
+      "checks": {
+        "hidden": {
+          "status": "pass"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 1,
+      "mode": "rms_only",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 113
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              1,
+              4,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              1,
+              4,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "fail",
+      "hidden_max_abs_error": 0.03125,
+      "embedding_max_abs_error": 0.0002801269292831421,
+      "checks": {
+        "hidden": {
+          "status": "fail",
+          "error": "Tensor-likes are not close!\n\nMismatched elements: 23 / 4096 (0.6%)\nGreatest absolute difference: 0.01416015625 at index (0, 2, 18) (up to 0.005 allowed)\nGreatest relative difference: 0.490478515625 at index (0, 3, 496) (up to 0.005 allowed)"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 3,
+      "mode": "disabled",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "native",
+            "reason": "disabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "pass",
+      "hidden_max_abs_error": 0.0,
+      "embedding_max_abs_error": 0.0,
+      "checks": {
+        "hidden": {
+          "status": "pass"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 3,
+      "mode": "enabled",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 113
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 28
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "fail",
+      "hidden_max_abs_error": 0.0625,
+      "embedding_max_abs_error": 0.0003467723145149648,
+      "checks": {
+        "hidden": {
+          "status": "fail",
+          "error": "Tensor-likes are not close!\n\nMismatched elements: 1366 / 18432 (7.4%)\nGreatest absolute difference: 0.0625 at index (1, 3, 27) (up to 0.005 allowed)\nGreatest relative difference: 21.484375 at index (1, 5, 900) (up to 0.005 allowed)"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 3,
+      "mode": "silu_only",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 28
+          },
+          {
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "pass",
+      "hidden_max_abs_error": 0.0,
+      "embedding_max_abs_error": 0.0,
+      "checks": {
+        "hidden": {
+          "status": "pass"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "batch": 3,
+      "mode": "rms_only",
+      "routes": {
+        "counts": [
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "count": 113
+          },
+          {
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "count": 113
+          },
+          {
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "count": 28
+          }
+        ],
+        "representative_routes": [
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.input_layernorm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              1024
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.q_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              16,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.self_attn.k_norm",
+            "op": "rms_norm",
+            "backend": "flaggems",
+            "reason": "supported",
+            "stage": "completed",
+            "shape": [
+              3,
+              6,
+              8,
+              128
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          },
+          {
+            "module": "layers.0.mlp.act_fn",
+            "op": "silu",
+            "backend": "native",
+            "reason": "operator_not_enabled",
+            "stage": "selected",
+            "shape": [
+              3,
+              6,
+              3072
+            ],
+            "dtype": "torch.float16",
+            "device": "npu:0"
+          }
+        ]
+      },
+      "status": "fail",
+      "hidden_max_abs_error": 0.0625,
+      "embedding_max_abs_error": 0.0003467723145149648,
+      "checks": {
+        "hidden": {
+          "status": "fail",
+          "error": "Tensor-likes are not close!\n\nMismatched elements: 1366 / 18432 (7.4%)\nGreatest absolute difference: 0.0625 at index (1, 3, 27) (up to 0.005 allowed)\nGreatest relative difference: 21.484375 at index (1, 5, 900) (up to 0.005 allowed)"
+        },
+        "embedding": {
+          "status": "pass"
+        }
+      }
+    }
+  ],
+  "mode": "diagnostic-eager-synchronized",
+  "scope": "single-thread inference; no vLLM, training, cross-chip replay or performance claim",
+  "runtime": {
+    "version": "0.1.0",
+    "file": "/work/dev/device-context/prototype/runtime/__init__.py"
+  },
+  "stage": "model_routes",
+  "visible_devices": 1,
+  "packages": {
+    "torch": "2.10.0+cpu",
+    "torch-npu": "2.10.0",
+    "triton": "3.5.0",
+    "triton-ascend": "3.2.1",
+    "transformers": "5.5.3"
+  },
+  "gems_source": "/work/FlagGems-f7ae8e6-20260922/src/flag_gems/__init__.py",
+  "config_sha256": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9"
+}

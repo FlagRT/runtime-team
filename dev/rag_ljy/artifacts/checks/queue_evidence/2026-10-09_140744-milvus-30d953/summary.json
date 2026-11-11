@@ -1,0 +1,160 @@
+{
+  "started_at": "2026-10-09T14:07:44.874692+08:00",
+  "status": "passed",
+  "backend": "milvus",
+  "queries_sha256": "9b0a898ba4e50ccf0081591ba4a2a1ddccc960c112582692a52e90aca09e7429",
+  "admission_limit": 8,
+  "health_before": {
+    "status": "ready",
+    "device": "remote-vllm",
+    "busy": false,
+    "inflight": 0,
+    "max_inflight": 8,
+    "embedding_backend": "vllm",
+    "retrieval_backend": "milvus",
+    "execution_mode": "concurrent",
+    "stage_queues": {
+      "embedding": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 2
+      },
+      "retrieval": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 4
+      },
+      "rerank": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 1
+      }
+    }
+  },
+  "scope": "Live API correctness, stage progression, queue depths and count-based overload handling; no memory-aware admission test.",
+  "checks": {
+    "serial": {
+      "requests": 8,
+      "http_successes": 8,
+      "correct_results": 8
+    },
+    "simultaneous": {
+      "requests": 8,
+      "http_successes": 8,
+      "correct_results": 8
+    },
+    "staggered": {
+      "requests": 8,
+      "http_successes": 8,
+      "correct_results": 8
+    },
+    "recovery": {
+      "requests": 1,
+      "http_successes": 1,
+      "correct_results": 1
+    },
+    "overload": {
+      "requests": 9,
+      "accepted": 8,
+      "rejected_503": 1,
+      "retry_after_present": true,
+      "accepted_correct_results": 8
+    },
+    "unique_request_ids": true,
+    "queue_bounds": {
+      "health_samples": 525,
+      "peak_inflight": 8,
+      "limits_respected": true,
+      "peak_queued": {
+        "embedding": 6,
+        "retrieval": 1,
+        "rerank": 7
+      }
+    },
+    "stage_progression": {
+      "completed_requests": 33,
+      "own_dependencies_respected": true,
+      "cross_stage_overlap_pairs": 60,
+      "example_overlaps": [
+        {
+          "request_id": "e86842a0320b4c5c8d5cfcd34c1ce01a",
+          "stage": "retrieval",
+          "other_request_id": "c77907630f024f05a53d9855730810de",
+          "other_stage": "embedding",
+          "overlap_ms": 7.855888
+        },
+        {
+          "request_id": "e86842a0320b4c5c8d5cfcd34c1ce01a",
+          "stage": "rerank",
+          "other_request_id": "c77907630f024f05a53d9855730810de",
+          "other_stage": "embedding",
+          "overlap_ms": 35.211578
+        },
+        {
+          "request_id": "e86842a0320b4c5c8d5cfcd34c1ce01a",
+          "stage": "retrieval",
+          "other_request_id": "bd986119095b4c07972fdf9554549d2e",
+          "other_stage": "embedding",
+          "overlap_ms": 7.855888
+        },
+        {
+          "request_id": "e86842a0320b4c5c8d5cfcd34c1ce01a",
+          "stage": "rerank",
+          "other_request_id": "bd986119095b4c07972fdf9554549d2e",
+          "other_stage": "embedding",
+          "overlap_ms": 83.853024
+        },
+        {
+          "request_id": "e86842a0320b4c5c8d5cfcd34c1ce01a",
+          "stage": "rerank",
+          "other_request_id": "e24bf5b2e0da4d7ba174e8daed08cd6b",
+          "other_stage": "embedding",
+          "overlap_ms": 92.219593
+        }
+      ]
+    }
+  },
+  "health_after": {
+    "status": "ready",
+    "device": "remote-vllm",
+    "busy": false,
+    "inflight": 0,
+    "max_inflight": 8,
+    "embedding_backend": "vllm",
+    "retrieval_backend": "milvus",
+    "execution_mode": "concurrent",
+    "stage_queues": {
+      "embedding": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 2
+      },
+      "retrieval": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 4
+      },
+      "rerank": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 1
+      }
+    }
+  },
+  "request_count": 34,
+  "finished_at": "2026-10-09T14:07:56.057509+08:00",
+  "supplemental_tests": {
+    "status": "passed",
+    "tests": 22,
+    "duration_seconds": 0.5,
+    "log": "scheduler-tests.log",
+    "junit": "scheduler-tests.xml",
+    "command": "python -m pytest tests/test_scheduler.py tests/test_server.py -q --junitxml=<evidence-dir>/scheduler-tests.xml"
+  }
+}

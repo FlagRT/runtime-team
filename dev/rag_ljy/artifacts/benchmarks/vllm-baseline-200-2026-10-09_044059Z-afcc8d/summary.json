@@ -1,0 +1,168 @@
+{
+  "started_utc": "2026-10-09T04:40:59.792790+00:00",
+  "baseline": "/workspace/dev/rag_ljy/benchmarks/concurrent_vs_sequential_2026-09-23/comparison-20260923T111642Z-231050",
+  "queries_sha256": "9b0a898ba4e50ccf0081591ba4a2a1ddccc960c112582692a52e90aca09e7429",
+  "scope": "50 identical queries x 2 databases x 2 retrieval modes; no reranking",
+  "note": "Original baseline saves ordered IDs only, not scores. Fresh vLLM embedding per case. Requests serial; concurrent mode overlaps dense/BM25 within a request.",
+  "status": "passed",
+  "checks": {
+    "baseline_replay_vs_historical_ids": {
+      "matched": 200,
+      "total": 200
+    },
+    "vllm_vs_historical_ids": {
+      "matched": 30,
+      "total": 200
+    },
+    "milvus": {
+      "queries": 50,
+      "exact_vectors_between_modes": 50,
+      "exact_vllm_order_between_modes": 50,
+      "exact_vllm_results_including_scores_between_modes": 50,
+      "vllm_vs_replayed_pytorch_order": 8,
+      "vllm_vs_replayed_pytorch_top1": 47,
+      "cross_engine_different_query_ids": [
+        "PLAIN-1028",
+        "PLAIN-1130",
+        "PLAIN-1161",
+        "PLAIN-1172",
+        "PLAIN-1225",
+        "PLAIN-1441",
+        "PLAIN-1473",
+        "PLAIN-1496",
+        "PLAIN-1568",
+        "PLAIN-1635",
+        "PLAIN-1710",
+        "PLAIN-1784",
+        "PLAIN-1805",
+        "PLAIN-1995",
+        "PLAIN-2071",
+        "PLAIN-2081",
+        "PLAIN-2092",
+        "PLAIN-2167",
+        "PLAIN-2220",
+        "PLAIN-2301",
+        "PLAIN-2354",
+        "PLAIN-2375",
+        "PLAIN-2460",
+        "PLAIN-270",
+        "PLAIN-2760",
+        "PLAIN-2780",
+        "PLAIN-2850",
+        "PLAIN-2860",
+        "PLAIN-3063",
+        "PLAIN-3074",
+        "PLAIN-3211",
+        "PLAIN-3271",
+        "PLAIN-3472",
+        "PLAIN-520",
+        "PLAIN-561",
+        "PLAIN-593",
+        "PLAIN-645",
+        "PLAIN-78",
+        "PLAIN-850",
+        "PLAIN-872",
+        "PLAIN-934",
+        "PLAIN-987"
+      ]
+    },
+    "elasticsearch": {
+      "queries": 50,
+      "exact_vectors_between_modes": 50,
+      "exact_vllm_order_between_modes": 50,
+      "exact_vllm_results_including_scores_between_modes": 50,
+      "vllm_vs_replayed_pytorch_order": 7,
+      "vllm_vs_replayed_pytorch_top1": 49,
+      "cross_engine_different_query_ids": [
+        "PLAIN-1028",
+        "PLAIN-1130",
+        "PLAIN-1141",
+        "PLAIN-1161",
+        "PLAIN-1172",
+        "PLAIN-1409",
+        "PLAIN-1441",
+        "PLAIN-1473",
+        "PLAIN-1496",
+        "PLAIN-1527",
+        "PLAIN-1568",
+        "PLAIN-1635",
+        "PLAIN-1784",
+        "PLAIN-1995",
+        "PLAIN-2071",
+        "PLAIN-2081",
+        "PLAIN-2092",
+        "PLAIN-2113",
+        "PLAIN-2167",
+        "PLAIN-2220",
+        "PLAIN-2301",
+        "PLAIN-2354",
+        "PLAIN-2375",
+        "PLAIN-2460",
+        "PLAIN-2680",
+        "PLAIN-270",
+        "PLAIN-2760",
+        "PLAIN-2850",
+        "PLAIN-2860",
+        "PLAIN-3063",
+        "PLAIN-3074",
+        "PLAIN-3211",
+        "PLAIN-3271",
+        "PLAIN-3472",
+        "PLAIN-520",
+        "PLAIN-561",
+        "PLAIN-593",
+        "PLAIN-645",
+        "PLAIN-78",
+        "PLAIN-850",
+        "PLAIN-872",
+        "PLAIN-934",
+        "PLAIN-987"
+      ]
+    },
+    "identical_vectors_all_four_passes": 50
+  },
+  "status_definition": "Exact vLLM repeatability; historical/cross-engine comparisons reported separately.",
+  "finished_utc": "2026-10-09T04:41:22.764079+00:00",
+  "cross_engine_detail": {
+    "milvus": {
+      "vector_cosine_min": 0.9985829054957162,
+      "vector_cosine_mean": 0.9996749754872459,
+      "top30_overlap_min": 21,
+      "top30_overlap_mean": 29.28,
+      "same_top30_set": 31,
+      "same_top5_order": 41,
+      "top1_changes": [
+        {
+          "query_id": "PLAIN-1496",
+          "old": "380cf484214b63754d7d95d204cea3a4510405c839c84f5c32f167e263563eb1",
+          "new": "be0acfe4ee5b690c3258fd33414627b53ff771385d745db04f2e3b4a18b6215b"
+        },
+        {
+          "query_id": "PLAIN-2375",
+          "old": "ed5e296f671b84edb430baaddf01ff91394a156a472fb972a9fabf1e0a6287f9",
+          "new": "93e8701c4897e7cc3f7cc2731799a5b9e313dfec0b1f9bc4bbdf7adddf104096"
+        },
+        {
+          "query_id": "PLAIN-78",
+          "old": "b3d8b34d709f3ffd5522c66e7e5f4082eb71659dd0e53a37b4c1b15e9aae2249",
+          "new": "4b8d778f4d9f0c125b3adb0cbd193550352c9dd19a13aacee4bd24273a5ff788"
+        }
+      ]
+    },
+    "elasticsearch": {
+      "vector_cosine_min": 0.9985829054957162,
+      "vector_cosine_mean": 0.9996749754872459,
+      "top30_overlap_min": 27,
+      "top30_overlap_mean": 29.62,
+      "same_top30_set": 37,
+      "same_top5_order": 41,
+      "top1_changes": [
+        {
+          "query_id": "PLAIN-3211",
+          "old": "751c5e7db8e6fbdc9fedce6243c1a50ab863e7eae569d54e1bb0dcc9de3773b9",
+          "new": "6575a039835161f8ceca87f73a9464addf3e6a9a83c225fe23dfd91fc8f26cc0"
+        }
+      ]
+    }
+  }
+}

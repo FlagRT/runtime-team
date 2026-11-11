@@ -1,0 +1,42 @@
+{
+  "verdict": "STREAM_SEMANTICS_PASS",
+  "passed": 8,
+  "total": 8,
+  "backend": "cambricon",
+  "dev_api": "mlu",
+  "torch": "2.7.1+cpu",
+  "checks": {
+    "S1_stream_order": {
+      "ok": true,
+      "detail": "流内 4 个 op 按序执行 → 5.000000（期望 5.0）"
+    },
+    "S2_no_implicit_sync": {
+      "ok": true,
+      "detail": "流A均值=7.0000(期望7) 流B均值=11.0000(期望11)"
+    },
+    "S8_default_vs_named_stream": {
+      "ok": true,
+      "detail": "默认流=2.0000(期望2) 命名流=4.0000(期望4)；跨流内存安全：record_stream 后复用结果=10.0000(期望10)。注：PyTorch 缓存分配器跨流复用须 record_stream，否则存在提前回收风险"
+    },
+    "S9_stream_error_isolation": {
+      "ok": true,
+      "detail": "【API 调用级隔离·已实测】流A 注入参数类异常（RuntimeError，shape 不匹配）（替代方式：本后端无 ACL 107015 等价错误码）后流B 仍正常执行 → 6.0000(期望6)。⚠️【设备级错误·语义推断未实测】芯片级错误（如昇腾 507014 AICORE_TIMEOUT / 507015 AICORE_EXCEPTION）语义上影响该设备全部流，需设备级恢复而非流级重试；真实触发风险高未做，依据错误码定义与恢复分级推断。注入方式记录：参数类异常注入（shape 不匹配）"
+    },
+    "S10_stream_event_lifecycle": {
+      "ok": true,
+      "detail": "1000 次创建销毁（0.29s）后仍可正常创建使用新流（新流结果=9.0000，期望9）"
+    },
+    "S11_cross_stream_memory": {
+      "ok": true,
+      "detail": "流A分配内存在流B使用（依赖后）→ 6.0000（期望6）"
+    },
+    "S12_stream_priority": {
+      "ok": true,
+      "detail": "优先级：支持 —— 统一 API 返回=(0, -3)；多流并发结果正确 hi=5.0000(期望5) lo=8.0000(期望8)。注：调度效果需压力测试验证（非本层验收项）。获取途径：统一 API runtime.current().stream_priority_range()"
+    },
+    "S13_multidevice_stream_bind": {
+      "ok": true,
+      "detail": "可见设备数=1 < 2，多设备流绑定不适用（单设备环境跳过）——注意：这是**可见设备数**，多卡验证需放开可见卡（如 CUDA_VISIBLE_DEVICES=6,7）"
+    }
+  }
+}

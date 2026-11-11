@@ -1,0 +1,30 @@
+{
+  "root": "/work/dc_mlu_regen_20261008/prototype",
+  "ok": 44,
+  "bad": 0,
+  "verdict": "ROOT_RESOLUTION_PASS",
+  "bad_detail": [],
+  "dc_root_only": [],
+  "unparsed": [
+    {
+      "file": "probes/exp_divergence_cost.py",
+      "var": "_HERE",
+      "err": "NameError: name 'pathlib' is not defined"
+    },
+    {
+      "file": "probes/exp_divergence_cost.py",
+      "var": "_ROOT",
+      "err": "NameError: name '_HERE' is not defined"
+    },
+    {
+      "file": "probes/probe_bc_contract.py",
+      "var": "HERE",
+      "err": "NameError: name 'pathlib' is not defined"
+    },
+    {
+      "file": "runtime/proto/proto_train_leg.py",
+      "var": "ROOT",
+      "err": "含白名单外字符：\"os.environ.get('DC_ROOT', '/mnt/raid/hliu553/runtime-team/dev/device-c\""
+    }
+  ]
+}

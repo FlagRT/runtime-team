@@ -1,0 +1,9 @@
+# 两套插件指纹（2026-10-16, npu1-27）
+# A = 镜像原版（从镜像内解出）; B = 我们分支源码编译安装
+
+[A 镜像原版]
+a6a4a8e0eb58e73b781d3e8b6d6f84829fd945afd9dfaa87e374d30c379312f4  /workspace/p9/orig/flagcx/_C.cpython-311-aarch64-linux-gnu.so
+8196a720e48e65fc3fec3b4aa27e8d6f79689155d07abb3d8aa73bed29cead86  /workspace/p9/orig/flagcx/libflagcx.so
+[B 我们编译版]
+72256b2317cf3474cd40593522b782fbeb63ba828920b4621a6d3e7100366c8c  /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/_C.cpython-311-aarch64-linux-gnu.so
+8fe6bd4ab427b749f86cf00bdfc35c3203ff4ab8f0ecdfa12ac1c7d466fa4f1f  /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/libflagcx.so

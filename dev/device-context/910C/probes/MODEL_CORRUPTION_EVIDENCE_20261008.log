@@ -1,0 +1,115 @@
+########## 910C 共享模型资产损坏取证（2026-10-08）##########
+@ 机器 npu1-27 / Thu Oct  8 10:41:47 CST 2026
+
+===== [1] 受影响文件与哈希 =====
+-rw-r--r-- 1 root root 1191586416 Sep  8 17:18 /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B/model.safetensors
+90e10c920bf57824ce8f340a872be2843d77e6b63d2a504b4455ac7f1e1fed30  /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B/model.safetensors
+0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd  /mnt/raid/hliu553/dc_r10_20261008/models/Qwen3-Embedding-0.6B/model.safetensors
+（P800 原件 sha256 = 0437e45c… = HF blob 名 ⇒ 内容寻址自证）
+
+===== [2] 权重非有限值扫描（safetensors 读取）=====
+Error response from daemon: Container 21bb6534fc81cb9189d87375be0a9655b6e72f7eee0868bd5fa39ea9febc4123 is not running
+
+===== [3] 裸字节核验（绕开框架）=====
+header 长度 = 33384
+张量数 = 310
+
+=== layers.1.self_attn.v_proj.weight ===
+  dtype = BF16  shape = [1024, 1024]  offsets = [371444736, 373541888]
+  逐 2 字节位型统计：NaN = 6781  Inf = 0  元素数 = 1048576
+  首个 NaN 的**裸文件字节**（含 2 字节上下文） = b8 af 70 90 ff ff 00 00
+  → 该位置字节 = ff ff（bf16 NaN 位型应为 7f c0，Inf 为 7f 80）
+  文件内绝对偏移 = 372453404
+
+=== embed_tokens.weight ===
+  dtype = BF16  shape = [151669, 1024]  offsets = [0, 310618112]
+  逐 2 字节位型统计：NaN = 27615  Inf = 18  元素数 = 155309056
+  首个 NaN 的**裸文件字节**（含 2 字节上下文） = 88 2b df 9a ff ff 00 00
+  → 该位置字节 = ff ff（bf16 NaN 位型应为 7f c0，Inf 为 7f 80）
+  文件内绝对偏移 = 57552940
+
+===== [4] NaN 空间分布 =====
+=== layers.1.self_attn.v_proj.weight ===
+  NaN 元素数 = 6781 / 1048576
+  连续段数 = 2063  最长段 = 4500
+  前 8 段（元素索引区间）: [(487638, 487638), (487642, 487642), (487658, 487658), (487662, 487662), (487678, 487678), (487682, 487682), (487698, 487698), (487702, 487702)]
+  后 4 段: [(541840, 541841), (542632, 542633), (543424, 543425), (544216, 544217)]
+  首段邻域字节（前 32B + 段内 + 后 32B）:
+    ab bd a5 bc 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 b8 af 70 90
+    ff ff
+    00 00 88 a5 5b 90 ff ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  段起始文件绝对偏移 = 372453404  (mod 4096 = 28 )
+=== embed_tokens.weight ===
+  NaN 元素数 = 27615 / 155309056
+  连续段数 = 20840  最长段 = 32
+  前 8 段（元素索引区间）: [(28759774, 28759774), (28759786, 28759786), (28759790, 28759790), (28759794, 28759794), (28759798, 28759798), (28759802, 28759802), (28759806, 28759806), (28759822, 28759822)]
+  后 4 段: [(136111640, 136111641), (136111712, 136111713), (136112112, 136112113), (136112184, 136112185)]
+  首段邻域字节（前 32B + 段内 + 后 32B）:
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 88 2b df 9a
+    ff ff
+    00 00 07 00 00 00 00 00 00 00 20 5b 42 c8 aa aa 00 00 d0 91 31 9a ff ff 00 00 80 9c 22 9a ff ff
+  段起始文件绝对偏移 = 57552940  (mod 4096 = 44 )
+
+===== [5] 机上全部模型对照 =====
+Error response from daemon: Container 21bb6534fc81cb9189d87375be0a9655b6e72f7eee0868bd5fa39ea9febc4123 is not running
+
+===== [6] 存储层：mdstat =====
+Personalities : [raid6] [raid5] [raid4] 
+md127 : active raid5 nvme0n1[0] nvme2n1[2] nvme1n1[1]
+      11251817472 blocks super 1.2 level 5, 512k chunk, algorithm 2 [4/3] [UUU_]
+      bitmap: 28/28 pages [112KB], 65536KB chunk
+
+unused devices: <none>
+
+===== [7] 修复搬运量 =====
+第一轮（含 NaN 的 4KB 页）: 35 段 / 1712752 B
+第二轮（值有限但被改写的页）: 32 段 / 729088 B
+合计 2441840 B（≈2.33 MiB），对比全量 1191586416 B
+
+===== [8] 1MB 分块比对：差异块 =====
+块索引 54 55 56 72 73 259 260 355（共 8 个 1MB 块）
+
+===== [9] 结论 =====
+· 同一路径 09-30（r9 轮）尚可用：训练腿 loss 15.4498→11.1479、推理腿区分度 0.6391 ⇒ 文件当时完好
+· 本日 mtime/ctime 均为 2026-09-08 ⇒ 非正常写入路径改的 ⇒ 指向存储层静默损坏
+· md127 RAID5 现为 [4/3] [UUU_]（缺 1 块盘，降级运行）
+· 与本层无关：CPU 前向同样 NaN；3 张卡全部 NaN；坏值与卡无关
+
+===== [2-补] 权重非有限值扫描（上面那次因回归容器已停而失败，此处用服务化容器重跑）=====
+can not use command: npu-smi info
+bash: line 1: /mnt/raid/hliu553/venvs/venv-infer-a/bin/python: No such file or directory
+
+===== [5-补] 机上全部模型对照（同上）=====
+can not use command: npu-smi info
+bash: line 1: /mnt/raid/hliu553/venvs/venv-infer-a/bin/python: No such file or directory
+
+===== [2-补2] 权重非有限值扫描（用服务化容器自带 python3）=====
+can not use command: npu-smi info
+realpath      = /mnt/raid/hliu553/models/Qwen3-Embedding-0.6B
+is symlink    = False
+parent listing:
+    Qwen2.5-1.5B
+    Qwen3-4B
+    Qwen3-Embedding-0.6B
+
+--- safetensors 元数据 ---
+tensor 数 = 310
+总参数量 = 595776512
+含非有限值的张量数 = 2
+    ('embed_tokens.weight', (151669, 1024), 27615, 18, 155309056)
+    ('layers.1.self_attn.v_proj.weight', (1024, 1024), 6781, 0, 1048576)
+
+===== [5-补2] 机上全部模型对照 =====
+======================================================================
+Qwen2.5-1.5B
+  OK   model.safetensors                               3.09 GB  元素 1543714304  坏张量 0  坏元素 0
+======================================================================
+Qwen3-4B
+  OK   model-00001-of-00003.safetensors                3.96 GB  元素 1978940416  坏张量 0  坏元素 0
+  OK   model-00002-of-00003.safetensors                3.99 GB  元素 1993712640  坏张量 0  坏元素 0
+  OK   model-00003-of-00003.safetensors                0.10 GB  元素 49815040  坏张量 0  坏元素 0
+======================================================================
+Qwen3-Embedding-0.6B
+  BAD  model.safetensors                               1.19 GB  元素 595776512  坏张量 2  坏元素 34396
+        - embed_tokens.weight                        BF16  27615/155309056 (0.018%)
+        - layers.1.self_attn.v_proj.weight           BF16  6781/1048576 (0.647%)

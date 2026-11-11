@@ -1,0 +1,60 @@
+{
+  "backend": "flagos",
+  "closed_loops": 3,
+  "skipped": 1,
+  "failed": 1,
+  "results": [
+    {
+      "inject": "baseline",
+      "ok": true,
+      "value": 786432.0
+    },
+    {
+      "inject": "shape_mismatch(L2_PARAM 期望)",
+      "raw": "aclnnMatmulGetWorkspaceSize failed, ret=161002",
+      "category": "L2_PARAM",
+      "disposition": "raise",
+      "mapped": true,
+      "graded_by": "code_map",
+      "error_code": 161002,
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "raise_to_caller（参数类，重试无意义）",
+      "ok": true
+    },
+    {
+      "inject": "oom(L1_RESOURCE 期望)",
+      "ok": false,
+      "detail": "未触发异常（如实标注）"
+    },
+    {
+      "inject": "stream_timeout(L3_EXECUTION 期望)",
+      "ok": null,
+      "skipped": "该后端未声明有界同步能力，跳过（如实标注，不伪造）"
+    },
+    {
+      "inject": "l4_by_code(本厂商码表触发)",
+      "raw": "device reset failed, error code is 507015",
+      "category": "L4_FATAL",
+      "disposition": "device_recovery",
+      "mapped": true,
+      "graded_by": "code_map",
+      "error_code": 507015,
+      "recover": {
+        "ordinal": 0,
+        "mode": "probe",
+        "recovered": true,
+        "detail": "flagos 后端：probe 级探活恢复（real/hybrid 暂未支持）"
+      },
+      "business_continues": true,
+      "business_value": 786432.0,
+      "action": "recover_probe=ok",
+      "ok": true,
+      "expectation": "期望：本厂商码表命中（mapped=True / graded_by=code_map）",
+      "expect_matched": true
+    }
+  ],
+  "verdict": "ERROR_RECOVERY_LOOP_PARTIAL",
+  "note": "设备侧职责：识别(translate_error) + 恢复执行(recover_device/重放/重试) + 业务继续验证。监控方向负责注入编排与恢复策略编排。",
+  "timestamp": "2026-09-22 08:09:58"
+}

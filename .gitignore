@@ -1,13 +1,16 @@
-# 公共仓卫生规则（嵌套布局）：6 个子库独立 git 仓库，不进本仓；公共仓根 = 开发总目录
+# 公共仓卫生规则（嵌套布局）：收拢于仓根的独立 git 仓库（登记见 dev/repos.yaml）不进本仓；公共仓根 = 开发总目录
 # 布局约定详见 README.md「目录布局约定」
 
-# --- 6 个子库（独立 git 仓库，各归 FlagRT 组织仓管理） ---
-FlagCX/
-FlagGems/
-PyTorch-Plugin-FL/
-vllm-plugin-FL/
-FlagTree
-FlagPerf/
+# --- 独立 git 仓库：组织子库 + 方向交付仓（随 dev/repos.yaml 收录逐个登记） ---
+# 锚定仓库根：非锚定的 `vllm-plugin-FL/` 会连带忽略 assets/patches/vllm-plugin-FL/
+# 等任意层级的同名目录（2026-10-08 实际踩坑）。
+/FlagCX/
+/FlagGems/
+/PyTorch-Plugin-FL/
+/vllm-plugin-FL/
+/FlagTree
+/FlagPerf/
+/framework-adapter/
 
 # --- 大文件 / 运行时产物 ---
 models/
@@ -18,6 +21,8 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+# 每个运行环境目录各自的 check 结果（baseline.py check / up.sh 写入，不追踪）
+.last-check.json
 
 # --- 部署本地配置（每人自己的宿主路径等，.env 不入仓） ---
 .env
@@ -25,3 +30,15 @@ __pycache__/
 # --- 个人区（收拢的个人调试记录/未审查内容，严格审查放行后才移出并跟踪） ---
 personal/
 AGENTS.md
+
+# macOS
+.DS_Store
+# 容器内以 /workspace(仓根)为工作目录运行推理验证后出现的 64 位哈希名空文件锁
+/[0-9a-f][0-9a-f][0-9a-f][0-9a-f]*[0-9a-f].lock
+
+# 仓根 evidence/ = 运行环境容器写的构建/验证日志（如 flagcx-build.log，root 属主），运行产物不入仓；
+# 注意与各镜像 assets/evidence/（验收证据截选，须入仓）区分：本规则锚定仓根，不递归匹配子目录同名。
+/evidence/
+
+# Local symlink to externally stored RAG experiment output
+/dev/rag_ljy/experiment_outputs

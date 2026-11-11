@@ -1,0 +1,60 @@
+########## MLU590 验收模型完整性取证（2026-10-08）##########
+@ 宿主 tza-0a06-ai01-em9
+2026年 10月 08日 星期四 13:02:06 CST
+
+===== [1] 机器 / 驱动 / 容器 =====
+Thu Oct  8 13:02:06 2026
++------------------------------------------------------------------------------+
+| CNMON v6.2.29                                                 Driver v6.2.29 |
+容器=/dc-mlu590-hliu553 镜像=harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0 状态=running
+
+===== [2] 文件与哈希（内容寻址自证）=====
+snapshot 目录 = /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+  /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors/srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors    size=1191586416/srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors    mtime=2026-09-10 09:45:49.967369836 +0800/srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors    ctime=2026-09-10 09:45:49.967369836 +0800
+  期望 sha256（= HF blob 名）= 0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd
+  -- snapshot/model.safetensors 实测 --
+0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd  /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3//model.safetensors
+  -- blobs/0437e45c… 实测（blob 名应等于其自身内容哈希）--
+0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd  /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/blobs/0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd
+  （snapshot 与 blob 是不同 inode 的两份拷贝 ⇒ 两者哈希都等于 blob 名 = 双向自证）
+
+===== [3] 权重非有限值扫描（safetensors 逐张量）=====
+模型目录       = /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+realpath       = /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+is symlink     = False
+目录内容:
+Traceback (most recent call last):
+  File "/work/dc_mlu_regen_20261008/mlu_model_integrity.py", line 19, in <module>
+    for f in sorted(os.listdir(P)):
+FileNotFoundError: [Errno 2] No such file or directory: '/srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/'
+
+===== [4] 与 910C 的同名同源对照（为什么这一步不能省）=====
+  · 910C 上同名同源文件（同为 HF 缓存、同为「模型名快照」布局、大小同为 1191586416 B）
+    **2026-10-08 实测已被存储层静默损坏**：2 个张量含 34396 个非有限值
+    （embed_tokens.weight 27615 NaN + 18 Inf、layers.1.self_attn.v_proj.weight 6781 NaN），
+    且 mtime/ctime 停在 2026-09-08 未变；所在 md127 RAID5 降级 [4/3] [UUU_]。
+    取证原始日志：dev/device-context/910C/probes/MODEL_CORRUPTION_EVIDENCE_20261008.log
+  · 若本机同样损坏，两条腿会以**数值判据**失败（loss=nan / 区分度 nan）而不是崩溃，
+    极易被读成「本层回归」⇒ 故在开工前先做本步。
+
+===== [5] 结论 =====
+  · sha256 与 HF blob 名**逐字一致**（双向）⇒ 位级原件；
+  · 310 个张量 / 595,776,512 参数，**含非有限值的张量数 = 0**；
+  · mtime = ctime = 2026-09-10 09:45:49（宿主机文件系统时间）—— 未发现异常改写迹象。
+  ⇒ VERDICT = MODEL_INTEGRITY_PASS（本机模型资产完好，可支撑两条腿的数值判据）
+@ SNAP_H(宿主) = /srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/ ; SNAP_C(容器) = /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+
+===== [3-补] 权重非有限值扫描（修正：给容器程序的路径必须用**容器视角**）=====
+  ⚠️ 首版本段误把宿主路径 `/srv/data/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/` 传给了容器内解释器 ⇒
+     容器里没有 /srv/data/hf_cache 这个路径 ⇒ FileNotFoundError。
+     映射：宿主 /srv/data/hf_cache = 容器 /hf_cache（运行手册 §3.5 同族坑，本日第 3 次踩到）。
+  修正后（容器路径 /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/）：
+           9706  tokenizer_config.json
+        2776833  vocab.json
+
+--- safetensors 逐张量非有限值扫描 ---
+tensor 数 = 310
+总参数量 = 595776512
+含非有限值的张量数 = 0
+
+VERDICT = MODEL_INTEGRITY_PASS

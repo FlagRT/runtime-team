@@ -1,0 +1,41 @@
+{
+  "verdict": "STREAM_QUOTA_TOUCH_PASS",
+  "passed": 6,
+  "total": 6,
+  "backend": "ascend",
+  "n_requested": 1000000,
+  "n_created": 1000000,
+  "rss_delta_mb": 30.8,
+  "hbm_delta_mib": 10.0,
+  "torch": "2.11.0+cu130",
+  "checks": {
+    "T1_create": {
+      "ok": true,
+      "detail": "1000000/1000000，13.93s"
+    },
+    "T3_resource_cost": {
+      "ok": true,
+      "rss_delta_mb": 30.8,
+      "hbm_delta_mib": 10.0,
+      "bytes_per_stream_host": 0.03,
+      "bytes_per_stream_dev": 0.01,
+      "detail": "宿主 +30.8 MB / 设备 +10.0 MiB（1000000 流）"
+    },
+    "T1_touch_all_usable": {
+      "ok": true,
+      "detail": "500/500 数值正确，0.11s"
+    },
+    "T2_values_correct": {
+      "ok": true,
+      "detail": "期望 32.0，正确 500/500"
+    },
+    "T4_release_usable": {
+      "ok": true,
+      "detail": "释放后新流结果=32.0"
+    },
+    "T5_limit_bracket": {
+      "ok": true,
+      "detail": "本档 N=1000000 未出现失败；创建耗时 13.93s，RSS Δ+30.8 MB"
+    }
+  }
+}

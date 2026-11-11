@@ -1,0 +1,26 @@
+=========== 统一推理服务启动 开始 Tue Sep 29 08:39:57 UTC 2026 ===========
+backend=ascend dev=0,1 port=8100 tp=2 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /usr/local/python3.11.15/bin/vllm ｜ python3 = /usr/local/python3.11.15/bin/python3（Python 3.11.15）
+--- 用卡前 ---
+  [torch.npu:0] free=61.12GiB / total=61.28GiB
+  [torch.npu:1] free=60.90GiB / total=61.27GiB
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+
+############ 启动 vllm serve ############
+  pid=9748  日志: /mnt/raid/hliu553/dc_legs_20260929/out/tp2_eager1_wait5_r1/vllm_serve.log
+  ✅ 服务就绪 t=45s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  维度=1024 范数=1.000000
+  （冒烟耗时 0s；超时上限 SMOKE_TIMEOUT=180s）
+
+############ 验证模式：停机 ############
+scripts/serve_standard.sh: line 201:  9748 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+  [torch.npu:0] free=61.12GiB / total=61.28GiB
+  [torch.npu:1] free=60.90GiB / total=61.27GiB
+  （释放复查：等待 5s 后取值；上限 RELEASE_WAIT=5s）
+  ⚠️ 释放复查：5s 内空闲显存仍在增长 —— 可能仍在回落，或确有残留
+     交叉核对（宿主侧）：npu-smi info -t proc-mem / xpu-smi / cnmon 的进程视图
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=========== 结束 Tue Sep 29 08:41:36 UTC 2026 ===========

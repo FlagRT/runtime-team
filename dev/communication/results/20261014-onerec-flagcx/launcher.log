@@ -1,0 +1,57 @@
+can not use command: npu-smi info
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[W1014 08:56:59.063412037 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+can not use command: npu-smi info
+can not use command: npu-smi info
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 7305.27it/s]
+Loading weights: 100%|██████████| 399/399 [00:00<00:00, 7427.24it/s]
+[W1014 08:57:42.296070860 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1014 08:57:43.528972349 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+free(): invalid pointer
+free(): invalid pointer
+W1014 08:58:06.016000 343 site-packages/torch/distributed/elastic/multiprocessing/api.py:1010] Sending process 350 closing signal SIGTERM
+E1014 08:58:06.430000 343 site-packages/torch/distributed/elastic/multiprocessing/api.py:984] failed (exitcode: -6) local_rank: 0 (pid: 349) of binary: /usr/local/python3.11.15/bin/python3
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 995, in <module>
+    main()
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 362, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 991, in main
+    run(args)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 982, in run
+    elastic_launch(
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 170, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 317, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+====================================================
+dev/communication/training/onerec_smoke.py FAILED
+----------------------------------------------------
+Failures:
+[1]:
+  time      : 2026-10-14_08:58:06
+  host      : 09295ff162c7
+  rank      : 1 (local_rank: 1)
+  exitcode  : -6 (pid: 350)
+  error_file: <N/A>
+  traceback : Signal 6 (SIGABRT) received by PID 350
+----------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-10-14_08:58:06
+  host      : 09295ff162c7
+  rank      : 0 (local_rank: 0)
+  exitcode  : -6 (pid: 349)
+  error_file: <N/A>
+  traceback : Signal 6 (SIGABRT) received by PID 349
+====================================================
+[ERROR] 2026-10-14-08:58:06 (PID:343, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception

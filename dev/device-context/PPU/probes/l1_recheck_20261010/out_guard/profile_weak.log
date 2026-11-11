@@ -1,0 +1,41 @@
+[probe] 开始（弱引用版；setprofile 观察，不替换函数）
+[L1] FAIL :: release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+
+[观察] register/note 调用共 21 次：
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461638213136 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461638216048 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+  - register id=140461637835632 type=ExternalStream
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/__init__.py", line 116, in create_stream
+        native = b.create_stream(priority)
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/base.py", line 586, in create_stream
+        native = self._create_stream_raw(int(priority))
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/ppu/backend.py", line 487, in _create_stream_raw
+        self._register_owned_stream(native, handle.value)
+  - note     id=140461637835632 type=ExternalStream
+  - register id=140461636882224 type=ExternalStream
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/__init__.py", line 116, in create_stream
+        native = b.create_stream(priority)
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/base.py", line 586, in create_stream
+        native = self._create_stream_raw(int(priority))
+        File "/workspace/runtime-team/dev/device-context/prototype/runtime/backends/ppu/backend.py", line 487, in _create_stream_raw
+        self._register_owned_stream(native, handle.value)
+  - note     id=140461636882224 type=ExternalStream
+  - note     id=140461637835632 type=Stream
+  - note     id=140461637835632 type=Stream
+
+[表] _owned_streams 条目 1 条：
+    key=140461636882224 handle=93887418743104 holder=ReferenceType held=None held_id=None
+timeout: the monitored command dumped core

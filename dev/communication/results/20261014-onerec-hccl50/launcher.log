@@ -1,0 +1,14 @@
+can not use command: npu-smi info
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[W1014 09:04:05.713143254 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+can not use command: npu-smi info
+can not use command: npu-smi info
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 7379.49it/s]
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 7718.15it/s]
+[W1014 09:04:48.581121145 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1014 09:04:48.844084467 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1014 09:04:48.845177318 ProcessGroupHCCL.cpp:1152] Warning: The watchdog timeout 120000ms(which is set by init_process_group) is less than or equal to HCCL execution timeout 1836000ms! The plog may not be recorded. (function ProcessGroupHCCL)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)

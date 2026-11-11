@@ -1,0 +1,76 @@
+{
+  "started_at": "2026-10-09T13:42:51.740706+08:00",
+  "status": "passed",
+  "cases": 200,
+  "scope": "full pipeline; serial/sequential vs bounded simultaneous/concurrent",
+  "queries_sha256": "9b0a898ba4e50ccf0081591ba4a2a1ddccc960c112582692a52e90aca09e7429",
+  "parallel_requests": 2,
+  "embedding_backend": "vllm",
+  "checks": {
+    "milvus/sequential": {
+      "http_successes": 50,
+      "requests": 50,
+      "latency_ms": {
+        "mean": 447.7065291535109,
+        "p50": 426.1760135414079,
+        "p95": 597.385735902935
+      },
+      "embedding_overlap_pairs": 0,
+      "completed_stage_records": 50,
+      "measured_wall_ms": 22386.59174204804,
+      "observed_requests_per_second": 2.2334797800455957
+    },
+    "milvus/concurrent": {
+      "http_successes": 50,
+      "requests": 50,
+      "latency_ms": {
+        "mean": 688.0754349287599,
+        "p50": 746.5557624818757,
+        "p95": 1024.0471214870922
+      },
+      "embedding_overlap_pairs": 25,
+      "completed_stage_records": 50,
+      "measured_wall_ms": 22244.82295103371,
+      "observed_requests_per_second": 2.2477140011436463
+    },
+    "milvus/consistency": {
+      "matched": 50,
+      "total": 50,
+      "mismatched_query_ids": []
+    },
+    "elasticsearch/sequential": {
+      "http_successes": 50,
+      "requests": 50,
+      "latency_ms": {
+        "mean": 437.1833159029484,
+        "p50": 382.4124400271103,
+        "p95": 606.8216760992073
+      },
+      "embedding_overlap_pairs": 0,
+      "completed_stage_records": 50,
+      "measured_wall_ms": 21860.373962903395,
+      "observed_requests_per_second": 2.2872435798604807
+    },
+    "elasticsearch/concurrent": {
+      "http_successes": 50,
+      "requests": 50,
+      "latency_ms": {
+        "mean": 685.0589589122683,
+        "p50": 698.2797420350835,
+        "p95": 1128.5966191673651
+      },
+      "embedding_overlap_pairs": 25,
+      "completed_stage_records": 50,
+      "measured_wall_ms": 22122.092711972073,
+      "observed_requests_per_second": 2.2601840002659834
+    },
+    "elasticsearch/consistency": {
+      "matched": 50,
+      "total": 50,
+      "mismatched_query_ids": []
+    }
+  },
+  "note": "Within-engine result comparison, not qrels relevance. HTTP embedding overlap does not prove batching within one vLLM forward pass.",
+  "unique_request_ids": true,
+  "finished_at": "2026-10-09T13:45:07.428956+08:00"
+}

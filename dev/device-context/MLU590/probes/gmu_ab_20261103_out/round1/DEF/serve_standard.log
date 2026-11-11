@@ -1,0 +1,57 @@
+=========== 统一推理服务启动 开始 Tue Nov  3 12:04:09 CST 2026 ===========
+backend=cambricon dev=2 port=8105 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /flagos/bin/vllm ｜ python3 = /flagos/bin/python3（Python 3.10.20）
+--- 用卡前 ---
+| 1         35C    103 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 0         34C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 2         36C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         35C    127 W/ 550 W | 10776 MiB/ 98304 MiB | FULL          Default |
+| 5         35C    104 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 4         32C    101 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         32C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+  [SERVE_FORM] 强制 embedding 形态（--runner pooling --convert embed）
+  [gmu][WARN] cambricon 未实测过 gmu 取值 ⇒ 暂按 0.4（910C 实测值平移）；若并发不足请显式给 GPU_MEM_UTIL
+  [gmu] embed 形态未显式给 GPU_MEM_UTIL ⇒ cambricon 默认 0.4（可 GPU_MEM_UTIL=<x> 覆盖）
+  [max_num_seqs] embed 形态未显式给 ⇒ **不传**（vLLM 默认 256）；限显存请用 GPU_MEM_UTIL，限并发用 MAX_NUM_SEQS=<n>
+
+############ 启动 vllm serve ############
+  pid=4888  日志: /work/dc_rerun_20261027/gmu_ab_20261103_out/DEF/vllm_serve.log
+  ❌ 进程已退出（t=180s）
+  ❌ 服务未在 900s 内就绪
+(APIServer pid=4888) INFO 11-03 12:07:02 [launcher.py:46] Route: /docs/oauth2-redirect, Methods: GET, HEAD
+(APIServer pid=4888) INFO 11-03 12:07:02 [launcher.py:46] Route: /redoc, Methods: GET, HEAD
+(APIServer pid=4888) INFO 11-03 12:07:02 [launcher.py:46] Route: /metrics, Methods: GET
+(APIServer pid=4888) INFO:     Started server process [4888]
+(APIServer pid=4888) INFO:     Waiting for application startup.
+(APIServer pid=4888) INFO:     Application startup complete.
+(APIServer pid=4888) INFO:     127.0.0.1:41944 - "GET /v1/models HTTP/1.1" 200 OK
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704] AsyncLLM output_handler failed.
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704] Traceback (most recent call last):
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704]   File "/flagos/lib/python3.10/site-packages/vllm/v1/engine/async_llm.py", line 660, in output_handler
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704]     outputs = await engine_core.get_output_async()
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704]   File "/flagos/lib/python3.10/site-packages/vllm/v1/engine/core_client.py", line 998, in get_output_async
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704]     raise self._format_exception(outputs) from None
+(APIServer pid=4888) ERROR 11-03 12:07:05 [async_llm.py:704] vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.
+(APIServer pid=4888) INFO:     Shutting down
+(APIServer pid=4888) INFO:     Waiting for application shutdown.
+(APIServer pid=4888) INFO:     Application shutdown complete.
+(APIServer pid=4888) INFO:     Finished server process [4888]
+/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 14 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+--- 冒烟跳过（服务未就绪）---
+
+############ 验证模式：停机 ############
+--- 用卡后复查（确认已释放）---
+| 1         35C    103 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 0         34C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 2         36C    108 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 3         35C    127 W/ 550 W | 10776 MiB/ 98304 MiB | FULL          Default |
+| 5         35C    104 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 4         32C    101 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 6         35C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+| 7         32C    102 W/ 550 W |     0 MiB/ 98304 MiB | FULL          Default |
+  （释放复查：等待 0s 后取值；上限 RELEASE_WAIT=30s）
+[verdict] SERVE_STANDARD_FAIL (ready=0 smoke=0)
+=========== 结束 Tue Nov  3 12:07:15 CST 2026 ===========

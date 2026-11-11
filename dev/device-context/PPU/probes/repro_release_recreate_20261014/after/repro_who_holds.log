@@ -1,0 +1,25 @@
+=== 1) 释放后对象是否仍被持有（gc.get_referrers）===
+  native id=140667995767872 handle=0x55d62aadab80
+  release + del + gc 后：w() is None = True
+
+=== 2) 循环：id 序列与两表状态（不释放，观察 id 是否复用）===
+  round 1: id=140664512473008 handle=0x55d62aadab80 ｜无条目
+            使用点：✅ 可用
+  round 2: id=140664512473008 handle=0x55d62aadab80 （该 id 第 2 次出现）｜无条目
+            使用点：✅ 可用
+  round 3: id=140664512473008 handle=0x55d62aadab80 （该 id 第 3 次出现）｜无条目
+            使用点：✅ 可用
+  round 4: id=140664512473008 handle=0x55d62aadab80 （该 id 第 4 次出现）｜无条目
+            使用点：✅ 可用
+  round 5: id=140664512473008 handle=0x55d62aadab80 （该 id 第 5 次出现）｜无条目
+            使用点：✅ 可用
+  round 6: id=140664512473008 handle=0x55d62aadab80 （该 id 第 6 次出现）｜无条目
+            使用点：✅ 可用
+  round 7: id=140664512473008 handle=0x55d62aadab80 （该 id 第 7 次出现）｜无条目
+            使用点：✅ 可用
+  round 8: id=140664512473008 handle=0x55d62aadab80 （该 id 第 8 次出现）｜无条目
+            使用点：✅ 可用
+
+=== 3) 两表大小与持有器类型直方图 ===
+  _released_streams: 2 → Counter({'ReferenceType': 2})
+  _owned_streams  : 0 → Counter()

@@ -1,0 +1,11 @@
+[W930 03:03:33.795046937 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== 统一运行时 conformance: backend=ascend, chip=ascend, 用例数=4 ===
+[env] runtime:ascend=0.1.0 devices=2
+  [PASS   ] i1_honest_declaration        ④ 入口存在性覆盖 16/17 项能力
+  [PASS   ] i2_no_fabrication            陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+  [PASS   ] i3_invalidated_governed      A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → R
+  [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 
+
+=== 汇总: 4/4 通过 ===
+结论: CONTRACT_INVARIANTS_PASS
+结果已写入 /mnt/raid/hliu553/dc_legs_20260929/out_r9/r9_coninvariants_ascend.json

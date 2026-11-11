@@ -1,0 +1,19 @@
+=========== 统一推理服务启动 开始 Sun Sep 20 07:01:00 UTC 2026 ===========
+backend=ascend dev=0 port=8100 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+  vllm = /usr/local/python3.11.15/bin/vllm ｜ python3 = /usr/local/python3.11.15/bin/python3（Python 3.11.15）
+--- 用卡前 ---
+  [torch.npu:0] free=60.91GiB / total=61.27GiB
+
+############ 启动 vllm serve ############
+  pid=3315  日志: /mnt/raid/hliu553/out_serve_std_final/vllm_serve.log
+  ✅ 服务就绪 t=30s
+--- 冒烟（生成形态）：/v1/completions ---
+  生成 8 tokens，首段='2 is a basic arithmetic fact, but'
+
+############ 验证模式：停机 ############
+prototype/scripts/serve_standard.sh: line 166:  3315 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+  [torch.npu:0] free=60.91GiB / total=61.27GiB
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=========== 结束 Sun Sep 20 07:01:54 UTC 2026 ===========

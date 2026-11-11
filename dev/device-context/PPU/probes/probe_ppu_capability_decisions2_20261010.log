@@ -1,0 +1,41 @@
+==============================================================================
+PPU 能力探测 · 第三轮（先触碰设备，再调 C API）
+==============================================================================
+P2.priority_range_and_set_readback = touch_device: 4.0
+range_rc: 0 least: 0 greatest: -3
+SET prio=-3 create_rc=1 readback_rc=None readback=-999
+SET prio=-2 create_rc=1 readback_rc=None readback=-999
+SET prio=-1 create_rc=1 readback_rc=None readback=-999
+SET prio=0 create_rc=1 readback_rc=None readback=-999
+external_stream_wrap: FAIL( TypeError argument 5 must be int, not None )
+torch_stream_capi_readback: rc=0 value=0 attr=0
+
+Q2.context_multi_and_set = touch_device: 4.0
+origin_ctx_nonnull: True
+create_A_rc: 0 cur_is_A: True
+create_B_rc: 0 B_ne_A: True cur_is_B: True
+set_current_A_rc: 0 cur_is_A: True
+destroy_A_rc: 0
+set_current_B_rc: 0
+torch_under_B: 4.0
+destroy_B_rc: 0
+torch_after_restore: 4.0
+
+R2.primary_ctx_reset_viability = touch_device: 4.0
+before_reset_torch_ok: 4.0
+cuDevicePrimaryCtxReset_v2_rc: 0
+sync_after_reset: OK
+reset_then_plain_FAIL: AcceleratorError CUDA error: invalid argument
+Search for `hggcErrorInvalidValue' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html f
+reset_then_setdevice_FAIL: AcceleratorError CUDA error: invalid argument
+Search for `hggcErrorInvalidValue' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html f
+
+T2.device_side_error_codes = touch_device: 4.0
+OOM: OutOfMemoryError | vendor_code_candidates=[] | CUDA out of memory. Tried to allocate 200.00 GiB. GPU 0 has a total capacity of 96.00 GiB of which 95.82 GiB is free. Process 910760 has 188.00 MiB memory in use. Includi
+bad_ordinal: AcceleratorError | vendor_code_candidates=[] | CUDA error: invalid device ordinal
+GPU device may be out of range, do you have enough GPUs?
+CUDA kernel errors might be asynchronously reported at some other API call, so
+
+==============================================================================
+第三轮完成：4 项，取不到 0 项 
+==============================================================================

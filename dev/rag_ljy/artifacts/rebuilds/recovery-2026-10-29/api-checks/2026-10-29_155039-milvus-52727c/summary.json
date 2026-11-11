@@ -1,0 +1,111 @@
+{
+  "started_at": "2026-10-29T15:50:39.379042+08:00",
+  "backend_label": "milvus",
+  "url": "http://127.0.0.1:8088",
+  "count_per_scenario": 2,
+  "stagger_ms": 2000.0,
+  "status": "failed",
+  "note": "Client HTTP overlap does not prove internal stage overlap; inspect server stage logs using X-Request-ID.",
+  "health_before": {
+    "status": "ready",
+    "device": "remote-vllm",
+    "busy": false,
+    "inflight": 0,
+    "max_inflight": 8,
+    "embedding_backend": "vllm",
+    "retrieval_backend": "milvus",
+    "execution_mode": "concurrent",
+    "device_memory": {
+      "enabled": true,
+      "source": "device-context.runtime.memory_stats",
+      "backend": "ascend",
+      "device": "npu:0",
+      "ordinal": 0,
+      "unit": "MiB",
+      "scope": "backend_reported_unverified",
+      "stats": {
+        "total_mb": 62748,
+        "used_mb": 10955,
+        "free_mb": 51792,
+        "memory_used_percent": 17.46
+      },
+      "status": "ok",
+      "sampled_at": "2026-10-29T07:50:38.656944+00:00",
+      "sample_duration_ms": 1.141,
+      "sample_started_monotonic": 410979.217178537,
+      "age_seconds": 0.725,
+      "stale": false
+    },
+    "memory_admission": {
+      "enabled": true,
+      "status": "ready",
+      "reason": "memory_available",
+      "active_reserved_mib": 0,
+      "pending_release_mib": 0,
+      "reserved_mib": 0,
+      "reserved_requests": 0,
+      "pending_release_requests": 0,
+      "sample_age_seconds": 0.727,
+      "scope": "backend_reported_unverified",
+      "free_mib": 51792,
+      "total_mib": 62748,
+      "available_after_reservations_mib": 50768,
+      "effective_used_percent": 17.46,
+      "config": {
+        "enabled": true,
+        "request_budget_mib": 2048.0,
+        "safety_margin_mib": 1024,
+        "high_watermark": 0.85,
+        "low_watermark": 0.75,
+        "max_sample_age_s": 3,
+        "allow_unverified_scope": true
+      },
+      "accepted": 0,
+      "rejected": 0,
+      "last_decision": null
+    },
+    "stage_queues": {
+      "embedding": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 2
+      },
+      "retrieval": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 4
+      },
+      "rerank": {
+        "capacity": 8,
+        "queued": 0,
+        "running": 0,
+        "workers": 1
+      }
+    }
+  },
+  "checks": {
+    "serial": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 0,
+      "failures": []
+    },
+    "simultaneous": {
+      "passed": true,
+      "requests": 2,
+      "overlapping_http_pairs": 1,
+      "failures": []
+    },
+    "staggered": {
+      "passed": false,
+      "requests": 2,
+      "overlapping_http_pairs": 0,
+      "failures": [
+        "No overlapping HTTP requests observed; reduce --stagger-ms and rerun"
+      ]
+    }
+  },
+  "finished_at": "2026-10-29T15:50:43.574184+08:00"
+}

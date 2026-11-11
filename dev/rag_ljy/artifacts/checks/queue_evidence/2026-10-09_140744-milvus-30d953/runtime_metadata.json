@@ -1,0 +1,35 @@
+{
+  "recorded_date": "2026-10-09",
+  "timezone": "Asia/Shanghai",
+  "container": "rag-ljy-vllm-910c",
+  "image": "quay.io/ascend/vllm-ascend:v0.20.2rc1-a3",
+  "device_mappings": [
+    {
+      "PathOnHost": "/dev/davinci7",
+      "PathInContainer": "/dev/davinci7",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/davinci_manager",
+      "PathInContainer": "/dev/davinci_manager",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/devmm_svm",
+      "PathInContainer": "/dev/devmm_svm",
+      "CgroupPermissions": "rwm"
+    },
+    {
+      "PathOnHost": "/dev/hisi_hdc",
+      "PathInContainer": "/dev/hisi_hdc",
+      "CgroupPermissions": "rwm"
+    }
+  ],
+  "physical_npu": 7,
+  "logical_torch_device": "npu:0",
+  "api_url": "http://127.0.0.1:8088",
+  "embedding_url": "http://127.0.0.1:8089",
+  "test_command": "python scripts/check_multi_request/capture_queue_evidence.py",
+  "sampling_interval_ms": 20,
+  "note": "The source snapshots contain the versions captured at live-test start; later reporting-only edits to the reusable script are not substituted."
+}

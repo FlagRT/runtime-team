@@ -1,0 +1,10 @@
+{"stage": "environment", "versions": {"torch": "2.9.0", "torch-br": null, "flag-gems": "5.0.1rc0", "triton": "3.5.0+ppu2.0.0.oe"}, "device": "cuda:0", "count": 1, "name": "PPU-ZW810E"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.float16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "rms_norm", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "rms_norm", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "summary", "mode": "native", "passed": 8, "vllm_imported": false}

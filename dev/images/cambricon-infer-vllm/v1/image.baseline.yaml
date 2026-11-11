@@ -1,0 +1,72 @@
+schema: flagrt.baseline/v1
+kind: image
+generated_by: manual-registration（ADR-0007 登记式基线：上游官方镜像无仓内配方，export 模式不适用；字段口径同 ENV-SPEC §3.1，先例 cambricon-mlu-runtime/v1）
+generated_at: "2026-10-24T21:30:00+08:00"
+
+image:
+  ref: harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2
+  id: sha256:4f298aa57807e13c02ee179385cfe07e97db4613470bc72d428d02d65e6273fe            # check 项（HWJ_1 docker inspect 实测）
+  digest: sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94        # registry 版本锚（harbor.baai.ac.cn/flagos-app，tag 2.2.0-0.2.2；拉取实测 RepoDigest 逐字一致）
+  recipe: []                # FlagOS 官方镜像，无仓内 Dockerfile.repro，不可重建；上游 = flagos-app 线（Label: flagos.base=flagos-base-cambricon-neuware4.4.3:2.2.0）
+  demo: dev/images/cambricon-infer-vllm/v1/demo/
+
+# ── 与自建基线的差异（ADR-0007）──────────────────────────────────────────
+# ① 整体 = 被动继承的 FlagOS 官方产物 ⇒ 全部条目 from: base_image。
+# ② 镜像内无 .git ⇒ 无自证 commit 锚；版本主锚 = Harbor digest，辅锚 = pip 版本号 + 镜像 Label。
+# ③ 本组 cambricon 后端不在镜像内（仓内 device-context，demo 经 WORKSPACE_ROOT 挂载使用）。
+# ④ vllm-plugin-FL 0.2.2（flagos.plugin）是本镜像服务化路径的组成部分（dispatch 层，
+#    config/cambricon.yaml），在寒武纪线上为必需 —— 与 910C 推理腿「unset VLLM_PLUGINS」
+#    的纪律相反，勿照抄昇腾口径。
+
+baked_repos:
+  vllm:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 0.20.2+flagos
+    install: pip (wheel)
+  vllm-plugin-FL:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 0.2.2            # 镜像 Label flagos.plugin
+    install: pip (wheel)
+    info: 推理插件（dispatch 层）；寒武纪线必需（910C 挂起口径不适用于本芯片）
+  torch:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 2.7.1+cpu
+    install: pip (wheel)
+  torch_mlu:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 1.29.2+torch2.7.1
+    install: pip (wheel)
+    info: 寒武纪官方设备插件（Route A）；PrivateUse1，device_type=mlu，dist=cncl
+  triton:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 3.2.0+mlu1.7.2
+    install: pip (wheel)
+    info: 厂商 triton-mlu 变体（非 FlagTree 构建物）
+  flag_gems:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 5.4.0rc2.post3
+    install: pip (wheel)
+  transformers:
+    layer: L2
+    from: base_image
+    commit: unavailable
+    version: 5.17.0
+    install: pip (wheel)
+
+mounted_repos: {}            # 推理腿无挂载覆盖依赖；仓内后端代码经 demo 的 WORKSPACE_ROOT 挂载使用（不改变镜像内版本事实）
+
+changelog:
+  - date: "2026-10-24"
+    what: 首次登记（manual-registration）。入锁依据 = serve_standard.sh 口径验收 PASS（HWJ_1，2026-10-24）；解除 stack.lock.cambricon.v1 的 C-1。

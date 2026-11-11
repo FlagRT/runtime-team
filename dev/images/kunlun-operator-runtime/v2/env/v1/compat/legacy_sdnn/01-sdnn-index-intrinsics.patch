@@ -1,0 +1,44 @@
+--- a/third_party/xpu/backend/compiler.py
++++ b/third_party/xpu/backend/compiler.py
+@@ -182,6 +182,32 @@
+         hash_dict["extern_libs"] = tuple((k, file_hash(v)) for k, v in sorted(hash_dict["extern_libs"]))
+         key = "_".join([f"{name}-{val}" for name, val in sorted(hash_dict.items())])
+         return hashlib.sha256(key.encode("utf-8")).hexdigest()
++
++
++
++def _explicit_sdnn_index_intrinsics(mod):
++    # Keep the i32 values and operands; bypass only the broken vendor-op
++    # translation callbacks. Explicit names use the working LLVM signatures.
++    text = str(mod)
++    text, core_count = re.subn(
++        r'(\s*%[\w.]+ = )llvm.core_id : i32',
++        r'\1llvm.call_intrinsic "llvm.xpu.core_id"() : () -> i32', text)
++    text, param_count = re.subn(
++        r'(\s*%[\w.]+ = )llvm.load_param (%[\w.]+) : i32',
++        r'\1llvm.call_intrinsic "llvm.xpu.load_param"(\2) : (i32) -> i32', text)
++    if not (core_count or param_count):
++        return mod
++    dump_dir = os.environ.get("XPU_FIX_IR_DIR")
++    if dump_dir:
++        dump = Path(dump_dir)
++        dump.mkdir(parents=True, exist_ok=True)
++        (dump / "vendor_ops.mlir").write_text(str(mod))
++        (dump / "explicit_intrinsics.mlir").write_text(text)
++    print(f"SDNN_EXPLICIT_INTRINSICS core_id={core_count} load_param={param_count}", flush=True)
++    with tempfile.NamedTemporaryFile(mode="w", suffix=".mlir") as handle:
++        handle.write(text)
++        handle.flush()
++        return ir.parse_mlir_module(handle.name, mod.context)
+ 
+ 
+ class XPUBackend(BaseBackend):
+@@ -483,6 +509,8 @@
+         # LLVM-IR (MLIR) -> LLVM-IR (LLVM)
+         llvm.init_targets()
+         context = llvm.context()
++        if metadata["is_sdnn"]:
++            mod = _explicit_sdnn_index_intrinsics(mod)
+         llvm_mod = llvm.to_module(mod, context)
+ 
+         if opt.extern_libs:

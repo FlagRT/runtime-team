@@ -1,0 +1,67 @@
+==========================================================================
+后端离线契约自检：backend=ascend（device_type 期望=npu）
+⚠️ 无真实设备：只验实现逻辑与契约形态，不验厂商 API 真实行为
+ℹ️ 本家 stub 的能力边界（以下判据会被显式 SKIP）：stub_bounded_sync=False, stub_real_ops=False
+==========================================================================
+
+[0] 离线性保障（真实厂商运行时必须被阻断）
+  [PASS] 未以真实文件形式加载任何厂商运行时 []
+  [INFO] 本机 sys.path 上**存在**真实厂商绑定：['acl', 'torch_npu'] —— 已挡在门外（见下行），故本自检确实是离线的
+
+[1] 发现 / 实例化 / 抽象方法完整性
+  [PASS] registry.discover 能发现该后端 ['ascend']
+  [PASS] build() 可实例化（ABC 已强制 13 个抽象方法全部实现） 
+  [PASS] device_type == 'npu' npu
+
+[2] 设备域：count / set_device / memory_stats / probe_device
+  [PASS] device_count > 0 8
+  [PASS] set_device 生效 
+  [PASS] memory_stats 结构 = {total_mb,used_mb,free_mb} {'total_mb': 98304, 'used_mb': 16384, 'free_mb': 81920}
+  [PASS] memory_stats 值有效（>0 且 total=used+free 近似） {'total_mb': 98304, 'used_mb': 16384, 'free_mb': 81920}
+  [PASS] memory_stats 用完还原当前设备（不产生隐式副作用） 
+  [SKIP] probe_device 真值路径 —— 该后端的探活走 conformance/recovery 的真实设备计算，stub 无真实算子可跑；真机 conformance / smoke 已覆盖（r_recovery 用例）
+
+[3] 流 / 事件域 + 有界同步（接口约定 §1.3）
+  [PASS] create_stream / create_event / current_stream 可用 
+  [PASS] stream_context 可作上下文管理器 
+  [PASS] synchronize(timeout_ms=None) 原生阻塞路径不抛错 
+  [PASS] 已完成任务 + timeout_ms=0 → 正常返回（不误判超时） 
+  [PASS] 真超时码(507046) ⇒ TimeoutError（有界语义成立） 
+  [PASS] 非超时码(107000) ⇒ 按错误码表分级为 L2_PARAM（不冒充超时） FlagosError: category=L2_PARAM disposition=raise
+  [PASS] rc=0 ⇒ 正常返回（不误判） 
+  [PASS] set_device rc≠0 ⇒ 按错误码表分级（L2_PARAM） FlagosError: category=L2_PARAM
+
+[4] 事件语义契约（conformance E3 / E2-v2）
+  [PASS] E3：未 record 的 query() 为 False（原生坏行为已被适配层修正） False
+  [PASS] E2-v2：未 record wait_host(200) 返回 False 且 <1s（不永久阻塞） False, 201ms
+  [PASS] record 后 query() 为 True 
+  [PASS] record 后 wait_event_host 返回 True 
+
+[5] 错误翻译（conformance F1）
+  [PASS] 返回统一 FlagosError FlagosError
+  [PASS] 后端名已回填（后端侧回填，不依赖 api 层） ascend
+  [PASS] disposition 可用（枚举已归一，无 KeyError） replay
+  [PASS] 根因原样保留（F4） 
+  [PASS] F1：形状不匹配（真实 PyTorch 文案）→ L2_PARAM L2_PARAM
+  [PASS] 声明 error_map ⇒ 无码消息不得伪称 code_map default
+  [PASS] 声明 error_map ⇒ 含码样例必走 code_map code_map
+
+[6] 恢复与设备状态（conformance R1-R5）
+  [PASS] recover_device 返回 dict 且含 recovered（统一契约） {'ordinal': 0, 'mode': 'probe', 'recovered': False, 'state': 'DeviceSt
+  [PASS] device_state 返回四态之一 DeviceState.AVAILABLE
+
+[7] 能力声明自洽 / 已知问题（stub-skip 报告基础）
+  [PASS] info.capabilities 与 supports() 自洽 []
+  [PASS] info()['supports'] 键集合 == 能力全集（防键名漂移） 13 键
+  [PASS] info.supports 与 supports() 一致 []
+  [PASS] known_issues 结构完整（若为空则跳过 —— 无缺陷也要如实说没有） 1 条: ['ASCEND-ACL-INIT-CONCURRENCY']
+
+[8] 缺厂商扩展时的行为（应报错并给出下一步，不得静默降级）
+  [PASS] 缺厂商扩展时抛错且文案可操作 ImportError: [offline-check] 已阻断真实厂商运行时 `torch_npu` 的导入（本自检必须离线运行）
+
+==========================================================================
+离线自检结果: 35 通过 / 0 失败 / 1 跳过（stub 能力边界，非失败）
+⚠️ 结论边界：本结果只证明实现逻辑与契约形态。
+   厂商 API 真实形态 / 错误码 / 集合通信后端名 / conformance 通过与否，
+   一律必须在真机容器内实测（见《新芯片接入手册》第 5 步）。
+==========================================================================

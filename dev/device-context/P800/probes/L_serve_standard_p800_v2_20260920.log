@@ -1,0 +1,35 @@
+=========== 统一推理服务启动 开始 Sun Sep 20 15:00:57 CST 2026 ===========
+backend=kunlun dev=6 port=8200 tp=1 max_model_len=4096 eager=1
+stop_after=1（1=验证后停机；0=保持运行）
+--- vllm 不在 PATH，尝试激活厂商 python 环境（python310_torch29_cuda）---
+  已激活：python310_torch29_cuda
+  vllm = /root/miniconda/envs/python310_torch29_cuda/bin/vllm ｜ python3 = /root/miniconda/envs/python310_torch29_cuda/bin/python3（Python 3.10.18）
+--- 用卡前 ---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+############ 启动 vllm serve ############
+  pid=28004  日志: /workspace/out_serve_std_final/vllm_serve.log
+  ✅ 服务就绪 t=25s
+--- 冒烟（embedding 形态）：/v1/embeddings ---
+  维度=1024 范数=1.000000
+
+############ 验证模式：停机 ############
+prototype/scripts/serve_standard.sh: line 166: 28004 Killed                  nohup vllm serve "${ARGS[@]}" > "$SRV_LOG" 2>&1
+--- 用卡后复查（确认已释放）---
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+[verdict] SERVE_STANDARD_PASS (ready=1 smoke=1)
+=========== 结束 Sun Sep 20 15:01:29 CST 2026 ===========

@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-09",
+  "physical_device": 7,
+  "logical_device": "npu:0",
+  "finding": "Inherited TRITON_ENABLE_TASKQUEUE=false bypasses torch_npu task ordering for Triton RoPE; setting it true with original vendor kernels eliminates observed mismatches without global blocking.",
+  "qualification": "Verified on physical NPU 7 with the two saved reproduction queries; not a full retrieval-quality or throughput benchmark.",
+  "database_control": {
+    "searches": 60,
+    "per_query_serial": 10,
+    "per_query_concurrent": 20,
+    "unique_id_score_sequences_per_query": 1
+  },
+  "stage_runs": {
+    "asynchronous": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/diagnosis-2026-10-09_111553-395f5f",
+      "checks": {
+        "PLAIN-1028": {
+          "requests": 9,
+          "unique_vectors": 3,
+          "unique_candidates": 3,
+          "unique_complete_results": 3,
+          "unique_final_orders": 2
+        },
+        "PLAIN-1130": {
+          "requests": 9,
+          "unique_vectors": 1,
+          "unique_candidates": 1,
+          "unique_complete_results": 1,
+          "unique_final_orders": 1
+        }
+      }
+    },
+    "synchronous": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/diagnosis-2026-10-09_112154-afceb5",
+      "checks": {
+        "PLAIN-1028": {
+          "requests": 9,
+          "unique_vectors": 1,
+          "unique_candidates": 1,
+          "unique_complete_results": 1,
+          "unique_final_orders": 1
+        },
+        "PLAIN-1130": {
+          "requests": 9,
+          "unique_vectors": 1,
+          "unique_candidates": 1,
+          "unique_complete_results": 1,
+          "unique_final_orders": 1
+        }
+      }
+    },
+    "taskqueue_enabled": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/diagnosis-2026-10-09_113725-bfd164",
+      "checks": {
+        "PLAIN-1028": {
+          "requests": 9,
+          "unique_vectors": 1,
+          "unique_candidates": 1,
+          "unique_complete_results": 1
+        },
+        "PLAIN-1130": {
+          "requests": 9,
+          "unique_vectors": 1,
+          "unique_candidates": 1,
+          "unique_complete_results": 1
+        }
+      }
+    }
+  },
+  "direct_input_runs": {
+    "asynchronous": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/fixed-input-vllm-2026-10-09.json",
+      "checks": {
+        "PLAIN-1028": {
+          "requests": 15,
+          "unique_inputs": 1,
+          "unique_vectors": 1
+        },
+        "PLAIN-1130": {
+          "requests": 15,
+          "unique_inputs": 1,
+          "unique_vectors": 3
+        }
+      }
+    },
+    "synchronous": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/fixed-input-2026-10-09_112147-blocking-0b556a.json",
+      "checks": {
+        "PLAIN-1028": {
+          "requests": 15,
+          "unique_inputs": 1,
+          "unique_vectors": 1
+        },
+        "PLAIN-1130": {
+          "requests": 15,
+          "unique_inputs": 1,
+          "unique_vectors": 1
+        }
+      }
+    },
+    "taskqueue_enabled": {
+      "path": "dev/rag_ljy/scripts/check_multi_request/results/fixed-input-2026-10-09_113719-taskqueue-enabled-60f0e3.json",
+      "requests": 30,
+      "unique_vectors_per_query": 1
+    }
+  },
+  "first_divergence": {
+    "module": "model.layers.0.self_attn.rotary_emb",
+    "stable_inputs": [
+      "token IDs",
+      "positions",
+      "token embeddings",
+      "input RMSNorm",
+      "QKV projection",
+      "Q normalization",
+      "K normalization"
+    ],
+    "changed_outputs": [
+      "rotated Q",
+      "rotated K"
+    ],
+    "trace": "layer-trace.jsonl",
+    "note": "Shared rotary module invocations compared by ordinal, not aggregated across layers."
+  },
+  "mechanism": {
+    "inherited_setting": "dev/compose.base.yml: TRITON_ENABLE_TASKQUEUE=false",
+    "stream_getter": "triton/backends/ascend/backend_register.py:get_current_stream -> _npu_getCurrentRawStreamNoWait",
+    "queue_enabled": "launch dispatched using torch_npu OpCommand.SetCustomHandler(...).Run()",
+    "queue_disabled": "kernel launched directly, followed by device stream synchronization; this does not enforce ordering against host-queued producer operations",
+    "failed_scope_controls": [
+      "sync before model forward",
+      "sync before pooling"
+    ],
+    "successful_controls": [
+      "native RoPE fallback with asynchronous execution",
+      "original Triton RoPE with TRITON_ENABLE_TASKQUEUE=true",
+      "global ASCEND_LAUNCH_BLOCKING=1"
+    ],
+    "fix": "scripts/serve_embeddings.py overrides TRITON_ENABLE_TASKQUEUE=true for embedding-engine process only"
+  },
+  "controls": {
+    "input_barrier": "fixed-input-2026-10-09_112951-input-barrier-2fef0b.json",
+    "pool_barrier": "fixed-input-2026-10-09_113056-pool-barrier-a25309.json",
+    "native_rope": "fixed-input-2026-10-09_113603-native-rope-987548.json"
+  }
+}

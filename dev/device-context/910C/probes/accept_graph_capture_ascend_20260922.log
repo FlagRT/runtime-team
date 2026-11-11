@@ -1,0 +1,12 @@
+[W922 09:24:57.253643886 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+=== probe_graph_capture_stream_v2.py: graph capture 流语义（后端无关 V2）===
+[env] backend=ascend dev_api=npu devices=16 torch=2.11.0+cu130
+[env] 图对象类: NPUGraph
+[G1] capture vs eager: val=-36219.468750 ref=-36219.468750 rel_err=0.00e+00 ✅
+[G2] replay 确定性: val1=-36219.468750 val2=-36219.468750 差=0.00e+00 ✅
+[G3] 输入更新后 replay: val3=-84428.343750 eager3=-84428.343750 rel_err=0.00e+00 ✅
+[G5] capture 显式 stream 参数: rel_err=0.00e+00 ✅
+[G4*] capture 内切流（**契约外用法**，观察项）: val=-4348.813477 ref=-4348.813477 rel_err=0.00e+00 容  忍
+
+GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/prototype/probes/graph_capture_stream_result.json

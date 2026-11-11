@@ -1,0 +1,10 @@
+=== 统一运行时 conformance: backend=cambricon, chip=cambricon, 用例数=4 ===
+[env] runtime:cambricon=0.1.0 devices=1
+  [PASS   ] i1_honest_declaration        ④ 入口存在性覆盖 11/17 项能力
+  [PASS   ] i2_no_fabrication            陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+  [PASS   ] i3_invalidated_governed      不适用：本后端未声明 `memory_alloc` 与 `context_lifecycle`（如实不具备；**未验证 ≠ 已确认不具备**）
+  [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 无原生 record_stream ⇒ 保守路径 + 退化 +1 ✓
+
+=== 汇总: 4/4 通过 ===
+结论: CONTRACT_INVARIANTS_PASS
+结果已写入 /work/dc_mlu_regen_20261008/out_d2/d2_coninvariants.json

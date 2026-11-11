@@ -1,0 +1,146 @@
+{
+  "backend": "cambricon",
+  "device_type": "mlu",
+  "ordinal": 0,
+  "declared_recovery_real": false,
+  "declared_error_map": false,
+  "public_api_only": true,
+  "d1": {
+    "pre": "available",
+    "post": "available",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "available",
+      "detail": "寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d2": {
+    "set_returned": "isolated",
+    "post": "isolated",
+    "return": {
+      "ordinal": 0,
+      "mode": "real",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d3": {
+    "post": "isolated",
+    "return": {
+      "ordinal": 0,
+      "mode": "probe",
+      "recovered": true,
+      "state": "isolated",
+      "detail": "probe 级探活：设备当前可用",
+      "context_supported": false,
+      "context_count": null,
+      "context_recreated": false
+    }
+  },
+  "d4": {
+    "category": "L3_EXECUTION",
+    "graded_by": "message_hint",
+    "recovery_decision": {
+      "captured": true,
+      "steps": [
+        "captured",
+        "evaluated: L3_EXECUTION, no device recovery"
+      ],
+      "replayable": true
+    },
+    "post": "isolated"
+  },
+  "d2_restore": {
+    "set_returned": "available",
+    "post": "available"
+  },
+  "checks": {
+    "d1_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全",
+      "skipped": false
+    },
+    "d1_state_in_domain": {
+      "ok": true,
+      "detail": "state='available'",
+      "skipped": false
+    },
+    "d2_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全",
+      "skipped": false
+    },
+    "d2_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'",
+      "skipped": false
+    },
+    "d3_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全",
+      "skipped": false
+    },
+    "d3_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'",
+      "skipped": false
+    },
+    "D1_健康设备real_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语'",
+      "skipped": false
+    },
+    "D2_公开入口置隔离后real_必须声明真重建": {
+      "ok": true,
+      "detail": "本后端未声明 recovery_real ⇒ real 模式不适用，如实跳过（与 A2 压测 SKIP_UNSUPPORTED 同口径）",
+      "skipped": true
+    },
+    "D2_未声明 real ⇒ 必须显式拒绝且不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False recovered=True detail='寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语'",
+      "skipped": false
+    },
+    "D2_账本可显式复原到 available（未声明 real 时的唯一退路）": {
+      "ok": true,
+      "detail": "set_device_state 返回='available' 读回='available'",
+      "skipped": false
+    },
+    "D3_隔离后probe_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='probe 级探活：设备当前可用'",
+      "skipped": false
+    },
+    "D4_端到端（本后端未声明 error_map ⇒ 按码表归属**不应**判 L4，如实跳过）": {
+      "ok": true,
+      "detail": "category=L3_EXECUTION（若为 L4 说明分级用了外厂码表）",
+      "skipped": false
+    }
+  },
+  "verdict": "ENTRY_VERIFY_PASS"
+}
+
+  PASS  d1_keys_5+3  8 键齐全
+  PASS  d1_state_in_domain  state='available'
+  PASS  d2_keys_5+3  8 键齐全
+  PASS  d2_state_in_domain  state='isolated'
+  PASS  d3_keys_5+3  8 键齐全
+  PASS  d3_state_in_domain  state='isolated'
+  PASS  D1_健康设备real_不得声称已重建  context_recreated=False detail='寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语'
+  PASS  D2_公开入口置隔离后real_必须声明真重建  本后端未声明 recovery_real ⇒ real 模式不适用，如实跳过（与 A2 压测 SKIP_UNSUPPORTED 同口径）
+  PASS  D2_未声明 real ⇒ 必须显式拒绝且不得声称已重建  context_recreated=False recovered=True detail='寒武纪的设备级重置/重建原语未验证 ⇒ real 模式不支持；已按探活结果判定。如需 real 需先在容器内确认可用原语'
+  PASS  D2_账本可显式复原到 available（未声明 real 时的唯一退路）  set_device_state 返回='available' 读回='available'
+  PASS  D3_隔离后probe_不得声称已重建  context_recreated=False detail='probe 级探活：设备当前可用'
+  PASS  D4_端到端（本后端未声明 error_map ⇒ 按码表归属**不应**判 L4，如实跳过）  category=L3_EXECUTION（若为 L4 说明分级用了外厂码表）
+
+ENTRY_VERIFY_PASS
+结果 -> /work/dc_mlu_regen_20261008/out_m1/m1_entry_verify.json
+ENTRY_BOUNDARY: 全程公开 API；ISOLATED 为构造而非真实硬件故障；结论只在本档位/环境成立，不外推到其他实例或多机。

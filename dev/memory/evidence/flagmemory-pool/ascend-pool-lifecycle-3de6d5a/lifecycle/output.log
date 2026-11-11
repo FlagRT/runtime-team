@@ -1,0 +1,14 @@
+...                                                                      [100%]
+=============================== warnings summary ===============================
+tests/pool/test_pool_ascend_realcard.py::test_actual_tensor_and_cross_stream_dependency
+  /usr/local/python3.11.15/lib/python3.11/site-packages/triton/backends/ascend/driver.py:371: DeprecationWarning: invalid escape sequence '\['
+    for m in re.finditer('\[aicore\]', code):
+
+tests/pool/test_pool_ascend_realcard.py: 14 warnings
+  /usr/local/python3.11.15/lib/python3.11/site-packages/torch/jit/_script.py:362: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+------ generated xml file: /tmp/flagmemory-lifecycle-2hq167l7/report.xml -------
+3 passed, 15 warnings in 5.31s
+{"cleanup": {}, "elapsed_s": 11.080104999942705, "errors": 0, "executed": 3, "exit_code": 0, "failures": 0, "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15", "run_id": "8e95fda5c6a842e58854b1f4a0f811ec", "schema": 1, "skipped": 0, "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7", "stage": "lifecycle", "started_at": "2026-11-04T07:39:45.995572+00:00", "status": "passed"}

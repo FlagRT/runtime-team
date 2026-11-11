@@ -1,0 +1,75 @@
+# 华为昇腾官方 vllm-ascend v1 的 demo 运行环境（规范见 dev/ENV-SPEC.md §3.2；登记式基线见 ADR-0007）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【定位】demo 只管容器生命周期（起容器 / 停容器 / 环境核对），服务启动统一走组内启动标准
+# serve_standard.sh（dev/device-context/prototype/scripts/serve_standard.sh，唯一入口）——
+# 两者是两层，不冲突、不重复：demo 起「毛坯房」，serve 在里面「点火」。
+# rag_ljy 方向当前在 910c-27 上的现役容器 rag-ljy-vllm-910c 即为本镜像 + 单卡 + host 网络
+# + 仓根挂载形态（2026-10-14 实测，设备 davinci7）。
+#
+# 【与训练腿 demo 的差异】本镜像自带整套昇腾运行时（CANN/ATB 全在镜像内），无需挂宿主
+# /usr/local/Ascend/driver（与 P800 同理、与训练腿相反）；推理腿无已知限制、无规避配置，
+# 唯一硬纪律 = 起服务前 unset VLLM_PLUGINS（由 serve_standard.sh ascend 分支执行）。
+#
+# 用法（仓根执行）：
+#   docker ps                       # 昇腾驱动对带卡容器独占：确认本机无其他带卡容器
+#   FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-infer-vllm/v1/demo --strict
+#   docker exec -it flagrt-infer-v1-demo-910c bash   # 进入后：
+#   DC_BACKEND=ascend MODEL=<模型路径> DEV=0 STOP_AFTER=1 \
+#     bash /workspace/dev/device-context/prototype/scripts/serve_standard.sh
+#   # 用完收尾：
+#   docker compose -f dev/images/ascend-infer-vllm/v1/demo/docker-compose.yml down
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-infer-v1-demo
+
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  # 官方镜像全部资产为固化（厂商自带，无本组配方层），本环境不挂载任何 repo：
+  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-infer:
+    container_name: flagrt-infer-v1-demo-910c
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    devices:
+      - /dev/davinci0:/dev/davinci0
+      - /dev/davinci1:/dev/davinci1
+      - /dev/davinci2:/dev/davinci2
+      - /dev/davinci3:/dev/davinci3
+      - /dev/davinci4:/dev/davinci4
+      - /dev/davinci5:/dev/davinci5
+      - /dev/davinci6:/dev/davinci6
+      - /dev/davinci7:/dev/davinci7
+      - /dev/davinci8:/dev/davinci8
+      - /dev/davinci9:/dev/davinci9
+      - /dev/davinci10:/dev/davinci10
+      - /dev/davinci11:/dev/davinci11
+      - /dev/davinci12:/dev/davinci12
+      - /dev/davinci13:/dev/davinci13
+      - /dev/davinci14:/dev/davinci14
+      - /dev/davinci15:/dev/davinci15
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 在多机是软链，容器内无法解析，启动时须显式给值。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    # 推理腿无规避配置：硬纪律（unset VLLM_PLUGINS）由 serve_standard.sh 执行，不在容器层设。
+    environment:
+      - DO_NOT_TRACK=1
+    restart: "no"

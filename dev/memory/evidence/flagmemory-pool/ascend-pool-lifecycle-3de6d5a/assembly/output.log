@@ -1,0 +1,33 @@
+identity 0 0 []
+CapPrm:	0000000000000000
+CapEff:	0000000000000000
+NoNewPrivs:	1
+uid_map 0          0 4294967295
+gid_map 0          0 4294967295
+mount 1030 1010 8:5 /<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/source /work ro,relatime - ext4 /dev/sda5 rw,stripe=16
+mount 1031 1010 8:5 /<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/assembly/input /input ro,relatime - ext4 /dev/sda5 rw,stripe=16
+read /work/tools/ascend_probe.py 24527
+read /work/tools/run_ascend_bounded.py 29328
+read /work/tests/pool/test_pool_ascend_realcard.py 7262
+read /input/reviewed-abi.json 2960
+read /input/runtime.json 3173
+read /input/mapping.json 23
+read /input/health.json 23
+sha256 /usr/local/Ascend/cann-9.0.0/aarch64-linux/lib64/libascendcl.so 94edd165d95210c2a46c52f77f0215cb64e78c42176a451f8e118daccfa912fe
+sha256 /usr/local/Ascend/cann-9.0.0/aarch64-linux/include/acl/acl_rt.h 4691b8532495a556dce03d63a3ff431ddefedc982d0db6a337efeb101ec5180c
+sha256 /usr/local/Ascend/cann-9.0.0/aarch64-linux/include/acl/acl_base.h f7c6c5c7538585c7656aa1240a402035d967d49183dce2d294429e18dca4faae
+sha256 /usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/include/third_party/acl/inc/acl/acl_base.h 14184eca0c6aabd5886a32a21d01b1d14daf91119f4443dee3b6c81874fed859
+sha256 /usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/version.py 06c95269c202624b11ed850c42db6c13cb47af7be105c23881474222e1a538b2
+readonly_rejected /work 30
+readonly_rejected /input 30
+tmp_read_write_delete_ok
+help /work/tools/ascend_probe.py 0
+help /work/tools/run_ascend_bounded.py 0
+collection 0 tests/pool/test_pool_ascend_realcard.py::test_actual_tensor_and_cross_stream_dependency
+tests/pool/test_pool_ascend_realcard.py::test_completed_reuse_rejects_old_lease
+tests/pool/test_pool_ascend_realcard.py::test_pending_borrower_protection_when_observed
+
+3 tests collected in 0.03s
+FORBIDDEN_IMPORTED []
+
+ASSEMBLY_OK

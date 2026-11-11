@@ -1,0 +1,71 @@
+########## [env] 训练腿前提 ##########
+MLU_VISIBLE_DEVICES = 0,2
+device_count        = 2
+DC_DIST_BT          = cncl
+DC_MODEL            = /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+config.json model_type = qwen3
+
+########## A7：2 卡训练腿（50 步）##########
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+[W922 14:52:55.522950998 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:53:13.541389317 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:53:36.845503641 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:53:37.006684632 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:53:54.859609777 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W922 14:54:12.872460220 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+The module name  (originally ) is not a valid Python identifier. Please rename the original module to avoid import issues.
+The module name  (originally ) is not a valid Python identifier. Please rename the original module to avoid import issues.
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516112][CNCL][WARNING][3683][Card:0]: Failed to open libmlx5.so[.1]. If you want to use mlx5 api, you need add libmlx5.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516169][CNCL][WARNING][3683][Card:0]: /usr/local/neuware/lib64/libcncl.so.1: undefined symbol: mlx5dv_modify_qp_udp_sport
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516209][CNCL][WARNING][3683][Card:0]: Fail to load libmlx5.so, cannot use mlx5dv_modify_qp_udp_sport to set udp port!
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516371][CNCL][WARNING][3683][Card:0]: Failed to open libibverbs.so[.1]. If you want to use RDMA transport, you need add libibverbs.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516418][CNCL][WARNING][3683][Card:0]: Fail to load libibverbs.so!
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.516518][CNCL][INFO][3683][Card:0]: CNCL Version 1.29.4
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.549323][CNCL][WARNING][3684][Card:1]: Failed to open libmlx5.so[.1]. If you want to use mlx5 api, you need add libmlx5.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.549372][CNCL][WARNING][3684][Card:1]: /usr/local/neuware/lib64/libcncl.so.1: undefined symbol: mlx5dv_modify_qp_udp_sport
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.549409][CNCL][WARNING][3684][Card:1]: Fail to load libmlx5.so, cannot use mlx5dv_modify_qp_udp_sport to set udp port!
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.549557][CNCL][WARNING][3684][Card:1]: Failed to open libibverbs.so[.1]. If you want to use RDMA transport, you need add libibverbs.so path to LD_LIBRARY_PATH.
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.549587][CNCL][WARNING][3684][Card:1]: Fail to load libibverbs.so!
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.638009][CNCL][INFO][3683][Card:0]: Enable shmlog!
+[tza-0a06-ai01-em9][2026-09-22 14:54:18.638052][CNCL][INFO][3683][Card:0]: Disable alltoall shmlog!
+[tza-0a06-ai01-em9][2026-09-22 14:54:20.297891][CNCL][INFO][3683][Card:0]: Clique(13582804171930821512) build homogeneous all-connected MLU_LINK topo: success
+[tza-0a06-ai01-em9][2026-09-22 14:54:20.750331][CNCL][INFO][3683][Card:0]: Clique(13582804171930821512) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 0[4f000]): 1--[MLU_LINK]->0--[MLU_LINK]->1
+[tza-0a06-ai01-em9][2026-09-22 14:54:20.750386][CNCL][INFO][3683][Card:0]: Clique(13582804171930821512) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 1[6f000]): 0--[MLU_LINK]->1--[MLU_LINK]->0
+[rank1]:[W922 14:54:21.987968324 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[rank0]:[W922 14:54:21.993991648 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.025576][CNCL][INFO][3683][Card:0]: CNCL Version 1.29.4
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.025899][CNCL][INFO][3683][Card:0]: Enable shmlog!
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.025930][CNCL][INFO][3683][Card:0]: Disable alltoall shmlog!
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.032833][CNCL][INFO][3683][Card:0]: Clique(6636446972348180960) build homogeneous all-connected MLU_LINK topo: success
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.491766][CNCL][INFO][3683][Card:0]: Clique(6636446972348180960) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 0[4f000]): 1--[MLU_LINK]->0--[MLU_LINK]->1
+[tza-0a06-ai01-em9][2026-09-22 14:54:21.491821][CNCL][INFO][3683][Card:0]: Clique(6636446972348180960) build 1 rings. Ring 0 (host tza-0a06-ai01-em9, MLU 1[6f000]): 0--[MLU_LINK]->1--[MLU_LINK]->0
+[rank0]:[W922 14:54:21.702163914 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[rank1]:[W922 14:54:21.712394302 process_group_cncl.cpp:4427] Warning: 0CNCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+/flagos/lib/python3.10/site-packages/torch/nn/functional.py:3494: UserWarning: The getTensorDesc function with on_chip_type parameter will be deprecated in CNNL v2.0  (Triggered internally at /torch_mlu/torch_mlu/csrc/aten/cnnl/cnnlTensorDesc.cpp:167.)
+  return torch._C._nn.cross_entropy_loss(
+/flagos/lib/python3.10/site-packages/torch/nn/functional.py:3494: UserWarning: The getTensorDesc function with on_chip_type parameter will be deprecated in CNNL v2.0  (Triggered internally at /torch_mlu/torch_mlu/csrc/aten/cnnl/cnnlTensorDesc.cpp:167.)
+  return torch._C._nn.cross_entropy_loss(
+[2026-09-22 14:54:22.7953][CNNL][WARNING][3683][Card:0]: [cnnlStridedSliceBackward] is deprecated and will be removed in the future release. Use [cnnlStridedSliceBackward_v2] instead.
+[2026-09-22 14:54:22.8002][CNNL][WARNING][3684][Card:1]: [cnnlStridedSliceBackward] is deprecated and will be removed in the future release. Use [cnnlStridedSliceBackward_v2] instead.
+/flagos/lib/python3.10/site-packages/torch_mlu/optimizers/optimizer.py:8: UserWarning: `torch._utils.is_compiling` is deprecated. Use `torch.compiler.is_compiling` instead.
+  if not torch._utils.is_compiling() and torch.mlu.is_available():
+/flagos/lib/python3.10/site-packages/torch_mlu/optimizers/optimizer.py:8: UserWarning: `torch._utils.is_compiling` is deprecated. Use `torch.compiler.is_compiling` instead.
+  if not torch._utils.is_compiling() and torch.mlu.is_available():
+[step   0] loss=15.4498
+[step   5] loss=12.2795
+[step  10] loss=11.5895
+[step  15] loss=11.3756
+[step  20] loss=11.3222
+[step  25] loss=11.2737
+[step  30] loss=11.1642
+[step  35] loss=11.1173
+[step  40] loss=11.1932
+[step  45] loss=11.1804
+[step  49] loss=11.1479
+[rank0] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 2957.8 tok/s(两卡合计) -> /work/probes/train/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=cambricon dist=cncl | loss 15.4498→11.1479 | 2959.3 tok/s(两卡合计) -> /work/probes/train/train_leg_result_rank1.json
+train exit=0
+########## A7 完成 ##########

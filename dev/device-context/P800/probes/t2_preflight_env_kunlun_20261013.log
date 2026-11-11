@@ -1,0 +1,173 @@
+=========== 新芯片接入 · 环境普查 2026-10-13 09:00:06 ===========
+host=VM-0-2-ubuntu  user=hliu553  vendor_arg=kunlun
+输出：/data2/hliu553/dc_t1_20261013/preflight/preflight_env_20261013.log
+
+------------------------------------------------------------------------
+## 1. 基础环境（OS / 内核 / python / 容器）
+------------------------------------------------------------------------
+-- uname:
+Linux VM-0-2-ubuntu 6.8.0-87-generic #88-Ubuntu SMP PREEMPT_DYNAMIC Sat Oct 11 09:28:41 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+-- os-release:
+NAME="Ubuntu"
+VERSION="24.04.2 LTS (Noble Numbat)"
+-- CPU / 内存:
+   核数: 384
+   内存: 1509.1 GiB
+-- python（多解释器并列）：
+   python3      Python 3.12.3  (/usr/bin/python3)
+   python3.12   Python 3.12.3  (/usr/bin/python3.12)
+-- conda / venv 环境:
+   未安装 conda
+   venv: /data2/jiangxuhui/prep-venv/pyvenv.cfg
+-- 容器可见性:
+   docker: Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+running: mwy-dev-xpu6 | harbor.kunlunxin.com/public/sglang-p800-pd-disagg-c-0510-pt29:20261009_178
+running: xray-client | ghcr.io/xtls/xray-core:latest
+running: mwy-dev-xpu4 | harbor.kunlunxin.com/public/sglang-p800-pd-disagg-c-0510-pt29:20260928_178
+running: liyanz-flaggems-p800 | flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+running: mwy-dev-xpu3 | flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202606-base
+running: bahejiang-desktop | 6c05883f3806
+running: evalx-p800 | chenyunlong/vllm-kunlun-runtime:0.11.0-xpytorch20260226
+running: mwy-dev-xpu | flagtree-xpu3.6-py310-torch2.9.0-flaggems-main-dev:202608
+   Up 容器数: 11
+   本用户是否在 docker 组: 是
+-- sudo: 需密码 / 不可用
+
+------------------------------------------------------------------------
+## 2. 芯片与驱动（厂商工具 + torch 侧双路取证）
+------------------------------------------------------------------------
+-- 厂商工具（容器内通常没有，属正常）：
+   ✅ xpu-smi -> /usr/local/bin/xpu-smi
+       Tue Oct 13 09:00:08 2026       
+       +-----------------------------------------------------------------------------+
+       | XPU-SMI               Driver Version: 5.0.21.47    XPU-RT Version: 5.0.21   |
+       |-------------------------------+----------------------+----------------------+
+       | XPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+       | Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | XPU-Util  Compute M. |
+       |                               |             L3-Usage |            SR-IOV M. |
+       |===============================+======================+======================|
+       |   0  P800 OAM           N/A   | 00000000:03:00.0 N/A |                    0 |
+       | N/A   37C  N/A     91W / 400W |      0MiB / 98304MiB |      0%      Default |
+       |                               |      0MiB /    96MiB |             Disabled |
+       +-------------------------------+----------------------+----------------------+
+-- 设备节点 / 驱动模块:
+crw------- 1 root root  10, 223 Oct  6 13:15 /dev/uinput
+crw-rw-rw- 1 root root 195,   0 Oct  6 13:16 /dev/xpu0
+crw-rw-rw- 1 root root 195,   1 Oct  6 13:16 /dev/xpu1
+crw-rw-rw- 1 root root 195,   2 Oct  6 13:16 /dev/xpu2
+crw-rw-rw- 1 root root 195,   3 Oct  6 13:16 /dev/xpu3
+crw-rw-rw- 1 root root 195,   4 Oct  6 13:16 /dev/xpu4
+crw-rw-rw- 1 root root 195,   5 Oct  6 13:16 /dev/xpu5
+crw-rw-rw- 1 root root 195,   6 Oct  6 13:16 /dev/xpu6
+crw-rw-rw- 1 root root 195,   7 Oct  6 13:16 /dev/xpu7
+crw-rw-rw- 1 root root 195, 255 Oct  6 13:15 /dev/xpuctrl
+
+/dev/input:
+sed: -e expression #1, char 9: unknown option to `s'
+-- 驱动 / SDK 版本（按厂商候选路径）:
+-- torch 侧（同一段代码依次尝试各命名空间，如实报告哪个可用）:
+   torch: 导入失败: ModuleNotFoundError No module named 'torch'
+
+------------------------------------------------------------------------
+## 3. 集合通信可用性（训练腿前置）
+------------------------------------------------------------------------
+   flagcx: 不可导入（ModuleNotFoundError）
+   torch.distributed: 不可导入（ModuleNotFoundError）
+   torch_mlu: 不可导入（ModuleNotFoundError）
+   torch_npu: 不可导入（ModuleNotFoundError）
+-- 通信库文件（按厂商候选）:
+
+------------------------------------------------------------------------
+## 4. 磁盘与 docker 数据目录（★ P800 曾误判根分区，必须看真实挂载点）
+------------------------------------------------------------------------
+-- 文件系统总览:
+   Filesystem      Size  Used Avail Use% Mounted on
+   tmpfs           151G  103M  151G   1% /run
+   efivarfs        128K   15K  109K  12% /sys/firmware/efi/efivars
+   /dev/vda3        98G   94G     0 100% /
+   tmpfs           755G   17M  755G   1% /dev/shm
+   tmpfs           5.0M     0  5.0M   0% /run/lock
+   /dev/vda1       537M  6.2M  531M   2% /boot/efi
+   /dev/nvme0n1p1  5.9T  5.8T   98G  99% /data1
+   /dev/nvme1n1p1  5.9T  456G  5.4T   8% /data2
+   tmpfs           151G   16K  151G   1% /run/user/1012
+   tmpfs           151G   24K  151G   1% /run/user/1006
+   tmpfs           151G   16K  151G   1% /run/user/1024
+-- docker 数据目录的真实挂载点:
+   DockerRootDir = /var/lib/docker
+   readlink -f /var/lib/docker = /var/lib/docker
+   findmnt -T /var/lib/docker:
+     TARGET          SOURCE                                         FSTYPE OPTIONS
+     /var/lib/docker /dev/nvme0n1p1[/xianghuang/docker-data/docker] xfs    rw,noatime,attr2,inode64,logbufs=8,logbsize=32k,noquota
+-- 逐目录可用空间（P800 教训：du -x 跨文件系统即停，不可用于判断容量）:
+   /                  0 可用 / 98G 总 (100% 已用)
+   /var/lib/docker    98G 可用 / 5.9T 总 (99% 已用)
+   /srv               0 可用 / 98G 总 (100% 已用)
+   /data              0 可用 / 98G 总 (100% 已用)
+   /data1             98G 可用 / 5.9T 总 (99% 已用)
+   /data2             5.4T 可用 / 5.9T 总 (8% 已用)
+   /mnt               0 可用 / 98G 总 (100% 已用)
+   /home              0 可用 / 98G 总 (100% 已用)
+-- 现有镜像（体积口径：docker images 显示磁盘占用，inspect Size 是镜像层）:
+flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64 | images=105GB
+harbor.kunlunxin.com/public/sglang-p800-pd-disagg-c-0510-pt29:20261009_178 | images=64.2GB
+harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base-ssh-D-new-1 | images=109GB
+harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base-ssh-D-new | images=124GB
+harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base-ssh-B-new | images=125GB
+flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:20260928-sdk | images=95.9GB
+harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base-ssh-A-new | images=124GB
+flagos-xpu-base:20260928-with-sdk | images=21GB
+chenyunlong/qwen3-reranker-8b-flagos-transformers:20260928-gridcachefix-r2 | images=107GB
+chenyunlong/multilingual-e5-large-transformers-flagos:torch2.5.1-flaggems4.2.1rc0-20260928 | images=91.7GB
+chenyunlong/multilingual-e5-large-transformers-flagos-cond3-smoke:20260928 | images=91.7GB
+chenyunlong/qwen3-reranker-8b-flagos-transformers:20260928-gridcachefix-smoke | images=107GB
+chenyunlong/qwen3-vl-reranker-8b-flagos-transformers:20260928-r4-xblas-fixed | images=60.4GB
+harbor.kunlunxin.com/public/sglang-p800-pd-disagg-c-0510-pt29:20260928_178 | images=63.3GB
+chenyunlong/qwen3-vl-reranker-8b-flagos-transformers:20260924-r3-validated | images=107GB
+-- 共享目录判定（本机是否有 NFS/共享挂载）:
+
+------------------------------------------------------------------------
+## 5. 网络可达性（镜像 / whl 源；决定能否在线补依赖）
+------------------------------------------------------------------------
+   https://resource.flagos.net/repository/flagos-pypi-hosted/simple         HTTP 404
+   https://pypi.org/simple                                                  HTTP 301
+   https://mirrors.aliyun.com/pypi/simple                                   HTTP 301
+-- 代理环境变量: env | grep -i proxy
+   GOPROXY=https://mirrors.tencent.com/go,direct
+-- 网卡与 RoCE/IB 设备（训练腿拓扑参考）:
+   lo 127.0.0.1/8
+   eth0 10.235.0.2/20
+   br-f4f9555b6733 172.21.0.1/16
+   docker0 172.17.0.1/16
+   br-35bcca726581 172.18.0.1/16
+   br-513564e8da98 192.10.0.1/16
+   br-b8d4bd1e4e09 172.31.254.1/24
+   br-c4c5b80b3604 172.13.0.1/16
+sed: -e expression #1, char 11: unknown option to `s'
+   （无 /sys/class/infiniband）
+
+------------------------------------------------------------------------
+## 6. 拓扑（多卡实验的用卡选择依据）
+------------------------------------------------------------------------
+-- NUMA 与设备亲和（有 lspci 时按 PCI 归属推断；无则如实标注）:
+   49:00.0 Ethernet controller [0200]: Red Hat, Inc. Virtio network device [1af4:1000]
+-- NUMA 节点:
+   available: 2 nodes (0-1)
+   node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287
+   node 1 cpus: 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319 320 321 322 323 324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 344 345 346 347 348 349 350 351 352 353 354 355 356 357 358 359 360 361 362 363 364 365 366 367 368 369 370 371 372 373 374 375 376 377 378 379 380 381 382 383
+-- 共享机提醒：用卡前务必确认目标卡空闲（厂商工具或 torch 查询），并记录用卡号
+
+------------------------------------------------------------------------
+## 7. 结论与待补（如实标注，不猜测）
+------------------------------------------------------------------------
+   请逐项核对并填入「已取得 / 待确认」：
+     [ ] 1 连接：SSH 端口、认证方式（密钥/密码）、是否需跳板
+     [ ] 2 权限：docker 组、（如需改 docker data-root 则需）sudo
+     [ ] 3 镜像：目标镜像是否已在位；不在位则 pull 来源与体积
+     [ ] 4 共享用户：是否共享机、并发上限（P800/910C 均实测有上限）
+     [ ] 5 磁盘：数据目录与 docker 数据目录各自的可用空间
+     [ ] 6 网络：whl / 镜像源可达性（决定能否在线补依赖）
+     [ ] 7 拓扑：NUMA 归属与组内/跨组链路，2 卡实验的取卡建议
+   缺失项照实写「未取得」——不猜、不补零（本方向证据规范）。
+
+=========== 普查结束 2026-10-13 09:00:20  报告：/data2/hliu553/dc_t1_20261013/preflight/preflight_env_20261013.log ===========

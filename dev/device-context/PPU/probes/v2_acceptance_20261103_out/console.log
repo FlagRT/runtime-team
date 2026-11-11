@@ -1,0 +1,96 @@
+run-id: v2-20261103
+证据目录（宿主侧）: /bmcp_lvm_fs/hliu553/probes_ppu/acceptance_ppu/v2-20261103
+
+===== [s01] 11:18:20 =====
+  rc=0  verdict=PASS  （日志 s01-offline.log）
+    离线自检结果: 118 通过 / 0 失败 / 1 跳过（stub 能力边界，非失败）
+    ⚠️ 结论边界：本结果只证明实现逻辑与契约形态。
+       厂商 API 真实形态 / 错误码 / 集合通信后端名 / conformance 通过与否，
+
+===== [s02] 11:18:21 =====
+  rc=0  verdict=PASS  （日志 s02-symmetry.log）
+    [差异清单] 允许存在，但每处都应有理由（不计失败）
+    对称性自检结果: 7 通过 / 0 失败
+    ⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。
+
+===== [s03] 11:18:22 =====
+  rc=0  verdict=PASS  （日志 s03-smoke.log）
+      [PASS] info.capabilities 与 supports() 自洽 []
+      [PASS] info.supports 与 supports() 一致 []
+    === 结果: 46 通过 / 0 失败 ===
+
+===== [s04] 11:18:25 =====
+  rc=0  verdict=CONFORMANCE_PASS  （日志 s04-conf13.log）
+      [PASS   ] t3_topology_path             单设备：跳过跨设备传输（拓扑路径不适用）
+    === 汇总: 13/13 通过 ===
+    结论: CONFORMANCE_PASS
+
+===== [s05] 11:18:31 =====
+  rc=0  verdict=CONFORMANCE_PASS  （日志 s05-confinfer6.log）
+      [PASS   ] i6_pipeline_overlap          流水线依赖链: 末轮数据正确(rel_err=6.59e-06)=True | 观测: pipe=0.005s serial=0.001s 重叠率=-471.0
+    === 汇总: 6/6 通过 ===
+    结论: CONFORMANCE_PASS
+
+===== [s06] 11:18:37 =====
+  rc=0  verdict=CONTRACT_INVARIANTS_PASS  （日志 s06-invariants.log）
+      [PASS   ] i4_degradation_observable    ② .native 计数 0→1、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 
+    === 汇总: 4/4 通过 ===
+    结论: CONTRACT_INVARIANTS_PASS
+
+===== [s07] 11:18:39 =====
+  rc=0  verdict=TRAIN_LEG_PASS 6/6
+    [step  45] loss=11.1766
+    [step  49] loss=11.1530
+    [rank0] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.1530 | 5237.1 tok/s(两卡合计) -> /workspace/probes_ppu/acceptance_ppu/v2-20261103/train_leg_result_rank0.json
+    [rank1] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.1530 | 5218.9 tok/s(两卡合计) -> /workspace/probes_ppu/acceptance_ppu/v2-20261103/train_leg_result_rank1.json
+
+===== [s08] 11:19:04 =====
+  rc=0  verdict=INFER_LEG_PASS  （日志 s08-inferleg.log）
+    [rank0] INFER_LEG_PASS 13/13 | backend=ppu dev=cuda:0 | dim 1024 | 140.95 句/s p50 21.12ms | 区分度 0.6391 -> /workspace/probes_ppu/acceptance_ppu/v2-20261103/s08_infer_leg.json
+
+===== [s09] 11:19:16 =====
+  rc=0  verdict=SERVE_LEG_PASS | 10/10 
+    ===== [A] serve_standard.sh（SERVE_FORM=embed · DEV=0 · EAGER=1 · STOP_AFTER=1）=====
+    ready=1
+    [4] 语义: 同主题 0.7000 / 异主题 0.2883 / 区分度 0.4118
+    [5] 吞吐: 91.65 句/s | p50 34.3ms | max 36.9ms
+    === SERVE_LEG_PASS | 10/10 ===
+
+===== [s10] 11:21:22 =====
+  rc=0  verdict=SCHED_EFFECT_PASS（applicable=True · i ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 === STREAM_SEMANTICS_PASS: 8/8 子项通过 STREAM_PRIORITY_SCHED_EFFECT_PASS（applicable=True · i 
+    STREAM_SEMANTICS_PASS: 8/8 子项通过
+    STREAM_PRIORITY_SCHED_EFFECT_PASS（applicable=True · instrument_valid=True · effect_observed=False）
+      [PASS] D1_measurement_resolution: 一趟扫描 1.1349999999999998 µs = 工作量级（34.886 ms）的 0.003%（阈值 ≤ 5.0%）⇒ 分辨力足够
+      [PASS] G10_ungated_effect_summary: 未 gated 场景汇总：G4（取值 0 先提交）= -1.0508 ms / 0/8；G8（取值 -3 先提交）= 1.0266 ms / 8/8；同序同取值对照 G7 = -1.0265 ms ⇒ 未达到「两向一致 ∧ 幅度阈值 ∧ 与对照可区分」⇒ 如实标 False
+    -rw-rw-r-- 1 hliu553 hliu553 3901 Nov  3 11:21 t6_sched_effect_ppu.log
+
+===== [s11] 11:21:47 =====
+  rc=0  verdict=GRAPH_CAPTURE_PASS  （日志 s11-graphcapture.log）
+    GRAPH_CAPTURE_PASS: graph capture 流语义（契约内）4/4 通过（capture / replay 确定性 / 输入更新 / 显式 stream）；另附宽容度观察项 1 项（契约外用法，不计入判定）
+
+===== [s12] 11:21:52 =====
+  rc=0  verdict=STREAM_QUOTA_PASS  （日志 s12-quota.log）
+    STREAM_QUOTA_PASS: 3/3 子项通过
+
+===== [s13] 11:21:55 =====
+  rc=0  verdict=DUTY_RESPONSE_PASS  （日志 s13-duty.log）
+    DUTY_RESPONSE_AUDIT ppu: OK 73 / FAIL 0 / SKIP 5（共 78 项）
+    verdict: DUTY_RESPONSE_PASS
+
+=========== 汇总（/bmcp_lvm_fs/hliu553/probes_ppu/acceptance_ppu/v2-20261103/summary.tsv）===========
+step  rc  verdict
+s01   0   PASS
+s02   0   PASS
+s03   0   PASS
+s04   0   CONFORMANCE_PASS
+s05   0   CONFORMANCE_PASS
+s06   0   CONTRACT_INVARIANTS_PASS
+s07   0   TRAIN_LEG_PASS 6/6
+s08   0   INFER_LEG_PASS
+s09   0   SERVE_LEG_PASS | 10/10 
+s10   0   SCHED_EFFECT_PASS（applicable=True · i ERROR_RECOVERY_LOOP_PASS | 闭环 5 / 跳过 0 / 失败 0 === STREAM_SEMANTICS_PASS: 8/8 子项通过 STREAM_PRIORITY_SCHED_EFFECT_PASS（applicable=True · i 
+s11   0   GRAPH_CAPTURE_PASS
+s12   0   STREAM_QUOTA_PASS
+s13   0   DUTY_RESPONSE_PASS
+
+overall: PASS（13 段全部 rc=0）

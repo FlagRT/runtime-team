@@ -1,0 +1,23 @@
+# 构建期三个必需前置（实测定位）—— npu1-27，2026-10-16
+# 来源: build2.log / build3.log / build4.log + 镜像内符号检查
+
+## ① 镜像无 custom_opp → -lcust_opapi 不可用（但 -lopapi/-lnnopbase 必须保留）
+  现象(砍掉三个库时):
+    ImportError: /usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/libflagcx.so: undefined symbol: aclnnInplaceAddGetWorkspaceSize
+  库级定位: aclnnInplaceAddGetWorkspaceSize 定义在 libopapi.so（标准 CANN），aclnnFlagcxCollective 不在标准库（自建算子）
+  正确做法: DEVICE_LINK = -lascendcl -L<...>/aarch64-linux/lib64 -lopapi -lnnopbase （仅去掉 -lcust_opapi）
+
+## ② 我们分支的 CUDA 头无条件包含 → ascend-only 镜像编译失败
+          In file included from /usr/local/python3.11.15/lib/python3.11/site-packages/torch/include/ATen/cuda/CUDAContext.h:4,
+          /usr/local/python3.11.15/lib/python3.11/site-packages/torch/include/ATen/cuda/CUDAContextLight.h:9:10: fatal error: cuda_runtime_api.h: No such file or directory
+  使用点只在 #ifdef USE_NVIDIA_ADAPTOR 块内（at::cuda::getCurrentCUDAStream）⇒ 加同宏守卫即可
+
+## ③ pip 增量缓存导致「看着重编、实际复用旧产物」
+  build3.log 里编译命令行数 = 0（=0 即未编译）
+  build4.log 里编译命令行数 = 0
+  判据: 只看 pip 退出码不够 —— 必须看产物 DT_NEEDED 与新时间戳
+  链接事实(libflagcx.so DT_NEEDED, 修正后):
+     0x0000000000000001 (NEEDED)             Shared library: [libhccl.so]
+     0x0000000000000001 (NEEDED)             Shared library: [libascendcl.so]
+     0x0000000000000001 (NEEDED)             Shared library: [libopapi.so]
+     0x0000000000000001 (NEEDED)             Shared library: [libnnopbase.so]

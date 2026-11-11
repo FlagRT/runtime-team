@@ -1,0 +1,7 @@
+[W909 14:51:33.447810608 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+{"stage": "environment", "versions": {"torch": "2.8.0+cpu", "torch-br": "1.8.7.20800+br1xx", "flag-gems": null, "triton": "3.6.0"}, "device": "supa:0", "count": 1, "name": "Biren166M"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [1, 128], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "case", "mode": "native", "op": "silu", "shape": [7, 512], "dtype": "torch.bfloat16", "result": "pass"}
+{"stage": "summary", "mode": "native", "passed": 2, "vllm_imported": false, "vllm_modules": []}

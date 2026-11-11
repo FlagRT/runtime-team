@@ -1,0 +1,107 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py:126: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[Gloo] Rank 0 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+[Gloo] Rank 1 is connected to 1 peer ranks. Expected number of connected peer ranks is : 1
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[rank1]:[W922 18:25:46.603959494 socket.cpp:472] [c10d] waitForInput: poll for socket SocketImpl(fd=29, addr=[::ffff:172.17.0.10]:50462, remote=[::ffff:172.17.0.10]:40691) returned 0, likely a timeout
+[rank1]:[W922 18:25:46.604609941 socket.cpp:497] [c10d] waitForInput: socket SocketImpl(fd=29, addr=[::ffff:172.17.0.10]:50462, remote=[::ffff:172.17.0.10]:40691) timed out after 180000ms
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/workspace/dev/device-context/prototype/runtime/proto/proto_train_leg.py", line 232, in <module>
+[rank1]:     main()
+[rank1]:   File "/workspace/dev/device-context/prototype/runtime/proto/proto_train_leg.py", line 139, in main
+[rank1]:     dist.all_reduce(t, op=dist.ReduceOp.SUM)
+[rank1]:   File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+[rank1]:     return func(*args, **kwargs)
+[rank1]:   File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 2935, in all_reduce
+[rank1]:     work = group.allreduce([tensor], opts)
+[rank1]: RuntimeError: Failed to retrieve the unique id from the store: wait timeout after 180000ms, keys: /default_pg/0//flagcx_dev//flagcx/unique_id
+[rank1]: Exception raised from doWait at /pytorch/torch/csrc/distributed/c10d/TCPStore.cpp:603 (most recent call first):
+[rank1]: frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7622cdf7cb80 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libc10.so)
+[rank1]: frame #1: <unknown function> + 0x5f600e1 (0x7622aee8d0e1 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #2: <unknown function> + 0x1499942 (0x7622aa3c6942 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #3: c10d::TCPStore::doGet(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x33 (0x7622aef29063 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #4: c10d::TCPStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x114 (0x7622aef2a174 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #5: c10d::PrefixStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x30 (0x7622aeed4770 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #6: c10d::PrefixStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x30 (0x7622aeed4770 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #7: c10d::PrefixStore::get(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) + 0x30 (0x7622aeed4770 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #8: c10d::flagcxBackend::initComm(c10::Device) + 0x31f (0x762235a5303f in /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so)
+[rank1]: frame #9: c10d::flagcxBackend::allreduce(std::vector<at::Tensor, std::allocator<at::Tensor> >&, c10d::AllreduceOptions const&) + 0xd5 (0x762235a56825 in /env/FlagCX/plugin/torch/flagcx/_C.cpython-310-x86_64-linux-gnu.so)
+[rank1]: frame #10: <unknown function> + 0x5f97621 (0x7622aeec4621 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #11: <unknown function> + 0x5fa67e2 (0x7622aeed37e2 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #12: <unknown function> + 0x54e0a05 (0x7622ae40da05 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #13: <unknown function> + 0x5fb4eb9 (0x7622aeee1eb9 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #14: <unknown function> + 0x5fc39f9 (0x7622aeef09f9 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
+[rank1]: frame #15: <unknown function> + 0xe18678 (0x7622be69c678 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
+[rank1]: frame #16: <unknown function> + 0x3cc223 (0x7622bdc50223 in /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
+[rank1]: frame #17: <unknown function> + 0x13bc66 (0x55fac3041c66 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #18: _PyObject_MakeTpCall + 0x2d3 (0x55fac303b023 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #19: <unknown function> + 0x147796 (0x55fac304d796 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #20: _PyEval_EvalFrameDefault + 0x49b5 (0x55fac3036a65 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #21: _PyFunction_Vectorcall + 0x6c (0x55fac30420ec in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #22: PyObject_Call + 0xbc (0x55fac304de4c in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #23: _PyEval_EvalFrameDefault + 0x2ba5 (0x55fac3034c55 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #24: _PyFunction_Vectorcall + 0x6c (0x55fac30420ec in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #25: _PyEval_EvalFrameDefault + 0x1340 (0x55fac30333f0 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #26: _PyFunction_Vectorcall + 0x6c (0x55fac30420ec in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #27: _PyEval_EvalFrameDefault + 0x30c (0x55fac30323bc in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #28: <unknown function> + 0x1cc3bc (0x55fac30d23bc in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #29: PyEval_EvalCode + 0x87 (0x55fac30d2307 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #30: <unknown function> + 0x1fc96a (0x55fac310296a in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #31: <unknown function> + 0x1f7df3 (0x55fac30fddf3 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #32: <unknown function> + 0x96f3d (0x55fac2f9cf3d in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #33: _PyRun_SimpleFileObject + 0x1bd (0x55fac30f861d in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #34: _PyRun_AnyFileObject + 0x44 (0x55fac30f81b4 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #35: Py_RunMain + 0x31b (0x55fac30f551b in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #36: Py_BytesMain + 0x37 (0x55fac30c5ef7 in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+[rank1]: frame #37: <unknown function> + 0x29d90 (0x7622cf91cd90 in /lib/x86_64-linux-gnu/libc.so.6)
+[rank1]: frame #38: __libc_start_main + 0x80 (0x7622cf91ce40 in /lib/x86_64-linux-gnu/libc.so.6)
+[rank1]: frame #39: <unknown function> + 0x1bfe0e (0x55fac30c5e0e in /root/miniconda/envs/python310_torch29_cuda/bin/python3)
+
+W0922 18:25:47.394000 149 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 216 closing signal SIGTERM
+W0922 18:26:17.395000 149 site-packages/torch/distributed/elastic/multiprocessing/api.py:927] Unable to shutdown process 216 via Signals.SIGTERM, forcefully exiting via Signals.SIGKILL
+E0922 18:26:18.703000 149 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 1 (pid: 217) of binary: /root/miniconda/envs/python310_torch29_cuda/bin/python3
+Traceback (most recent call last):
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+proto_train_leg.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-22_18:25:47
+  host      : f114d17982d6
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 217)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+EXIT=1

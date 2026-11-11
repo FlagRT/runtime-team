@@ -1,0 +1,14 @@
+# 证据截选 —— A 臂（镜像固化 FlagCX 4e0e0cb）· flagcx_sync_test.py --iters 20 判定段
+# 来源: npu1-27:/mnt/raid/hliu553/dc-ws/acc/A/sync_test.out
+# 采集时间: 2026-10-16 11:19:28 (npu1-27)
+
+=== VERDICT (all ranks, iters=20) ===
+  broadcast+nosync                 FAIL
+  broadcast+sync                   PASS
+  all_reduce+nosync                FAIL
+  all_reduce+sync                  PASS
+  all_gather_list+nosync           FAIL
+  all_gather_list+sync             FAIL
+  all_gather_into_tensor+nosync    FAIL
+  all_gather_into_tensor+sync      PASS
+overall: FAIL

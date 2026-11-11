@@ -1,0 +1,57 @@
+[W929 09:23:57.771028422 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+{
+  "backend": "ascend",
+  "device_type": "npu",
+  "ordinal": 0,
+  "state_before": "available",
+  "context_before": {
+    "queryable": true,
+    "present": true,
+    "ordinal": 0,
+    "flags": null,
+    "managed_by": "external",
+    "reason": ""
+  },
+  "probe_before": true,
+  "recover_real_on_healthy": {
+    "ordinal": 0,
+    "mode": "real",
+    "recovered": true,
+    "state": "available",
+    "detail": "rebuild_mode=real：设备状态=available，无需重建，探活可用",
+    "context_supported": true,
+    "context_count": 0,
+    "context_recreated": false
+  },
+  "keys5_present": {
+    "ordinal": true,
+    "mode": true,
+    "recovered": true,
+    "state": true,
+    "detail": true
+  },
+  "keys_ctx_present": {
+    "context_supported": true,
+    "context_count": true,
+    "context_recreated": true
+  },
+  "keys5_all_present": true,
+  "keys_ctx_all_present": true,
+  "probe_after": true,
+  "state_after": "available",
+  "context_after": {
+    "queryable": true,
+    "present": true,
+    "ordinal": 0,
+    "flags": null,
+    "managed_by": "external",
+    "reason": ""
+  },
+  "public_has_set_device_state": [],
+  "public_handle_error": [],
+  "public_device_state": [
+    "device_state"
+  ]
+}
+
+[A2-P0] 边界声明：本探针只回答「健康设备上调 real 的返回语义」与「公开面可达性」，不对 recovery 内部实现质量作结论；结论只在本档位/环境成立。

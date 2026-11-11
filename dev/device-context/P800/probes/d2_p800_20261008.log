@@ -1,0 +1,100 @@
+===== [0] 跑的是当前版本吗 =====
+-- 本轮新增的探针（期望存在且非空）
+   size=46657  probes/probe_stream_priority_sched_effect.py
+-- 共享层关键点（本轮**未改**，确认跑的是第十二轮修复后的版本）
+1
+1
+-- 职责审计项数（期望 78）
+78
+-- 设备可见性与故障卡规避
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+visible cards = 1  dev0 = GPU
+@ e61057e3a4d5 2026-10-08 15:11:40  可见设备 = 0
+
+########## 主项：D2 流优先级「调度效果」对照实验 ##########
+[15:11:40] start
+rc=0
+[15:11:44] end
+   STREAM_PRIORITY_SCHED_EFFECT_NOT_APPLICABLE（applicable=False · instrument_valid=True · effect_observed=None）
+     [PASS] E1_range_and_applicability: raw=(0, 0); hi=0; lo=0; supports[control]=True; supports[readback]=True; applicable=False；不适用原因：优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照
+     [SKIP] E2_setup_readback_equals_request: applicable=False ⇒ 不经优先级路径建流（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [PASS] E3_work_quantum_calibrated: 每流 60 次链式 2048² matmul 墙钟中位数 = 10.592 ms（单次 ≈ 0.1765 ms）；gate 慢活 340 次实测 55.728 ms（下限 30.0 ms）
+     [PASS] D1_measurement_resolution: 一趟扫描 1.685 µs = 工作量级（10.592 ms）的 0.016%（阈值 ≤ 5.0%）⇒ 分辨力足够
+     [PASS] G2_positive_control_unequal_work: 同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 9.8661 ms ⇒ 测量**能**判出差异（仪器有效）
+     [PASS] G3_equal_priority_baseline: 同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 3/8 有效轮（平局 0）；中位差 -0.1526 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）
+     [SKIP] V1_gate_actually_gated: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G1_gate_high_priority_wins: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G4_naive_submit_order_control: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G5_direction_crosscheck_swapped: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G6_nonzero_vs_zero_crosscheck: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G7_ungated_equal_priority_control: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G8_ungated_reversed_order: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+     [SKIP] G9_gated_large_vs_mid_crosscheck: applicable=False ⇒ 如实跳过（优先级空间**退化为单点**（raw=(0, 0) ⇒ hi=lo=0）⇒ 无从构造对照）
+
+########## 确认性回归（本轮**未改**共享层；按纪律复核一遍）##########
+===== d2_offline_kunlun =====
+[15:11:44] start
+rc=0
+[15:11:44] end
+===== d2_symmetry_all =====
+[15:11:44] start
+rc=0
+[15:11:44] end
+===== d2_smoke_kunlun =====
+[15:11:44] start
+rc=0
+[15:11:46] end
+===== d2_conf13_kunlun =====
+[15:11:46] start
+rc=0
+[15:11:49] end
+===== d2_confinfer6_kunlun =====
+[15:11:49] start
+rc=0
+[15:11:51] end
+===== d2_coninvariants =====
+[15:11:51] start
+rc=0
+[15:11:53] end
+===== d2_duty_kunlun =====
+[15:11:53] start
+rc=0
+[15:12:06] end
+===== d2_selfcheck_duty_ext =====
+[15:12:06] start
+rc=0
+[15:12:23] end
+===== d2_prio_api_kunlun =====
+[15:12:23] start
+rc=0
+[15:12:25] end
+===== d2_prio_release_kunlun =====
+[15:12:25] start
+rc=0
+[15:12:27] end
+===== d2_entry_verify =====
+[15:12:27] start
+rc=0
+[15:12:29] end
+===== d2_root_resolution =====
+[15:12:29] start
+rc=0
+[15:12:29] end
+
+===== 各步结论 =====
+d2_offline_kunlun            离线自检结果: 108 通过 / 0 失败 / 1 跳过 
+d2_symmetry_all              对称性自检结果: 7 通过 / 0 失败 
+d2_smoke_kunlun              结果: 46 通过 / 0 失败 
+d2_conf13_kunlun             CONFORMANCE_PASS 
+d2_confinfer6_kunlun         CONFORMANCE_PASS 
+d2_coninvariants             CONTRACT_INVARIANTS_PASS 
+d2_duty_kunlun               DUTY_RESPONSE_AUDIT OK 68 / FAIL 0 / SKIP 10 DUTY_RESPONSE_PASS 
+d2_selfcheck_duty_ext        共 39 项：抓到 32 · 本机不适用 7 · **未抓到 0** SELFCHECK_DUTY_EXT_PASS 
+d2_prio_api_kunlun           STREAM_PRIORITY_API_PASS 
+d2_prio_release_kunlun       STREAM_RELEASE_CONTROL_PASS 
+d2_entry_verify              ENTRY_VERIFY_PASS ENTRY_VERIFY_PASS 
+d2_root_resolution           ROOT_RESOLUTION_PASS 
+
+===== ALL DONE =====
+[15:12:29]

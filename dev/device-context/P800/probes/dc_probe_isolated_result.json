@@ -1,0 +1,38 @@
+{
+ "1_priority_range": {
+  "rc": 1,
+  "stdout": "",
+  "exc": "RuntimeError: greatest_priority <= -1 INTERNAL ASSERT FAILED at \"/pytorch/c10/cuda/CUDAStream.h\":188, please report a bug to PyTorch. Unexpected CUDA stream priority range",
+  "kunlun_err_code": null
+ },
+ "2_event_timing": {
+  "rc": 0,
+  "stdout": "elapsed_ms=15.457 sum=-438888.3",
+  "exc": "",
+  "kunlun_err_code": null
+ },
+ "3_oom_large_alloc": {
+  "rc": 1,
+  "stdout": "",
+  "exc": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 14901.16 GiB. GPU 0 has a total capacity of 96.00 GiB of which 95.97 GiB is free. Of the allocated memory 0 bytes is allocated by PyTorch,",
+  "kunlun_err_code": null
+ },
+ "4_bad_device_ordinal": {
+  "rc": 1,
+  "stdout": "",
+  "exc": "torch.AcceleratorError: CUDA error: invalid device ordinal",
+  "kunlun_err_code": null
+ },
+ "5_reset_via_empty_cache": {
+  "rc": 0,
+  "stdout": "empty_cache OK",
+  "exc": "",
+  "kunlun_err_code": null
+ },
+ "6_device_mem_stats": {
+  "rc": 0,
+  "stdout": "(103045660672, 103079215104)",
+  "exc": "",
+  "kunlun_err_code": null
+ }
+}

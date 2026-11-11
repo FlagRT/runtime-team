@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-torch_fl 设备状态机（flagos/device_state.py）
+设备状态机（**芯片无关的共享资产**）
+
+本文件由设备上下文方向自研维护，三个芯片实例（ascend / kunlun / cambricon）共用同一份：
+后端只做适配，四态语义与事件订阅契约不随芯片变化。
 
 对应设备执行上下文职责（细项21·设备状态恢复）与统一行为契约 R1-R5：
   - R3 隔离保证：损坏上下文从调度池摘除（状态机 ISOLATED）
@@ -13,7 +16,8 @@ DESTROYED（已销毁）。转换全部产生可观测事件（记录 + 订阅�
 收到 AVAILABLE 恢复派发。
 
 用法：
-    from torch_fl.flagos.device_state import (
+    import sys; sys.path.insert(0, "<prototype>/runtime/conformance")
+    from device_state import (
         DeviceState, query_device_state, set_device_state,
         subscribe_device_state, device_states,
     )
@@ -22,6 +26,7 @@ DESTROYED（已销毁）。转换全部产生可观测事件（记录 + 订阅�
 """
 
 import enum
+import sys
 import threading
 import time
 from typing import Callable, Dict, List, Optional
@@ -121,3 +126,25 @@ def device_states() -> Dict[int, Dict]:
     with _REGISTRY_LOCK:
         ordinals = list(_STATES.keys())
     return {o: _STATES[o].snapshot() for o in ordinals}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ⚠️ 本模块带**进程内共享状态**，必须全局只有一份（2026-09-29 实测缺陷，第 23 条）
+#   同一个文件既能以 `<conformance>/device_state.py` 导入（**扁平名** —— 后端与本文档《用法》所用），
+#   也能以 `runtime.conformance.device_state`（**包路径**）导入；Python 会让两条路径**各执行一次文件**，
+#   得到**两个互不相干的实例**（实测：`flat is pkg == False`、`_STATES` 不是同一个 dict）。
+#   一侧 `set_device_state()`（或登记在途任务），另一侧**毫无感知**，而且**不报错**
+#   ⇒ 任何"先置状态、再判定"的判据都会**静默空转**（判的是另一个世界）。
+#   ⇒ 把两条路径都指向**先加载的那一份**（`setdefault` 不覆盖已存在项：谁先加载，谁就是唯一那份）。
+# ══════════════════════════════════════════════════════════════════════════════
+for _alias in ("device_state", "runtime.conformance.device_state"):
+    sys.modules.setdefault(_alias, sys.modules[__name__])
+# 另：`import runtime.conformance.device_state as X` 这种**语句形式**还要求父包已导入、
+# 且 `runtime` 上挂好 `conformance` 属性（否则会抛 ImportError）。父包是 PEP 420
+# 命名空间包，导入它不执行任何代码、无副作用。
+try:
+    import importlib as _importlib
+    setattr(_importlib.import_module("runtime.conformance"),
+            "device_state", sys.modules[__name__])
+except Exception:
+    pass
+# ALIASED

@@ -1,0 +1,53 @@
+# kunlun-operator-runtime / v1
+# 昆仑芯 P800（XPU）flagtree + FlagGems 运行时底座。
+# 基座为 BAAI·FlagTree 官方发布的预构建镜像（公开 harbor，非本组产物）。
+# 本层只做两件事：① pip 装 pin 版 flagtree（取代基座缺失的 triton/编译器后端）
+# ② 用基座已内置的 /env/FlagGems（同一 pin commit）重新执行一次干净安装，
+#    去掉对可变 editable 路径的依赖，产出不可变、自包含的 site-packages 安装。
+# 不含 vLLM/vllm-plugin-FL/FlagCX 等消费方组件——那些属于消费方栈定义，不在本归档职责内。
+
+ARG BASE_IMAGE=harbor.baai.ac.cn/flagtree/flagtree-xpu3.6-py310-torch2.9.0-ubuntu22.04:202608-base
+FROM ${BASE_IMAGE}
+
+ARG FLAGTREE_VERSION=0.6.1+xpu3.6
+ARG FLAG_GEMS_COMMIT=73c5aff1e304c293ab525ecb03e9449644496fbb
+ARG CONDA_ENV=python310_torch29_cuda
+
+LABEL org.opencontainers.image.title="FlagRT Kunlun operator runtime" \
+      org.opencontainers.image.version="1.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64" \
+      io.flagrt.xpu3.6.version="3.6" \
+      io.flagrt.python.version="3.10.18" \
+      io.flagrt.torch.version="2.9.0+cu129" \
+      io.flagrt.flagtree.version="${FLAGTREE_VERSION}" \
+      io.flagrt.flag_gems.commit="${FLAG_GEMS_COMMIT}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# --- flagtree（唯一新增层：基座本身不含 triton/flagtree，无法编译/运行 FlagGems 的 triton 后端） ---
+# 注：官方索引历史版本文件较大（~3.3GB wheel），经代理下载易 IncompleteRead 中断；
+# 构建期建议直连（不经 HTTP(S)_PROXY）或用稳定出口重试。
+RUN source /root/miniconda/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} \
+    && python3 -m pip install --no-deps "flagtree===${FLAGTREE_VERSION}" \
+       --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+
+# --- FlagGems：基座 /env/FlagGems 已是 pin commit（editable）。此处改为从同一 commit
+#     做一次干净、非 editable 的重装，去掉对 /env/FlagGems 源码目录留存的依赖。
+#     commit 73c5aff1 的 pyproject.toml 没有 kunlunxin extras 组（仅 test/example），
+#     --no-deps 是必须的：不加会让 pip 解析 torch 的可选依赖，拉起 PyPI 通用
+#     triton==3.5.0 覆盖 flagtree 提供的 triton/ 命名空间，冲掉 xpu 编译后端
+#     （libtriton.so 缺 xpu 扩展，见 lock.yaml known_issues pip-triton-shadowing）。
+RUN source /root/miniconda/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} \
+    && cd /env/FlagGems \
+    && git rev-parse HEAD | grep -q "^${FLAG_GEMS_COMMIT}$" \
+    && python3 -m pip install --no-deps -i https://pypi.tuna.tsinghua.edu.cn/simple .
+
+# --- 静态自检：版本三件套 + triton 命名空间未被覆盖 ---
+RUN source /root/miniconda/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} \
+    && python3 -c "\
+import torch, flag_gems, triton, importlib.metadata as m; \
+assert m.version('flagtree') == '${FLAGTREE_VERSION}'; \
+assert flag_gems.__version__ == '4.2.1.rc.0'; \
+assert triton.__version__ == '3.6.0'; \
+print('static check OK:', torch.__version__, m.version('flagtree'), flag_gems.__version__, triton.__version__)"
+
+WORKDIR /root

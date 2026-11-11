@@ -1,0 +1,37 @@
+{
+  "serial": {
+    "retrieval_model_overlaps": []
+  },
+  "simultaneous": {
+    "retrieval_model_overlaps": [
+      {
+        "retrieval_request": "4f5f2cbeaec74102820c39f87734a9ba",
+        "model_request": "9f3125488d4847c2b10106a7204ea8da",
+        "model_stage": "rerank",
+        "overlap_ms": 5.403715
+      },
+      {
+        "retrieval_request": "9f3125488d4847c2b10106a7204ea8da",
+        "model_request": "4f5f2cbeaec74102820c39f87734a9ba",
+        "model_stage": "embedding",
+        "overlap_ms": 6.266403
+      }
+    ]
+  },
+  "staggered": {
+    "retrieval_model_overlaps": [
+      {
+        "retrieval_request": "2173d62810d94a719a02e34fe1d7b4a7",
+        "model_request": "11e87706d73247a68ceb621c0affb282",
+        "model_stage": "embedding",
+        "overlap_ms": 6.068944
+      },
+      {
+        "retrieval_request": "11e87706d73247a68ceb621c0affb282",
+        "model_request": "2173d62810d94a719a02e34fe1d7b4a7",
+        "model_stage": "rerank",
+        "overlap_ms": 4.636602
+      }
+    ]
+  }
+}

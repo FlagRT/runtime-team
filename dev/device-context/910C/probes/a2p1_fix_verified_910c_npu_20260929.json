@@ -1,0 +1,138 @@
+{
+  "backend": "ascend",
+  "device_type": "npu",
+  "ordinal": 0,
+  "declared_recovery_real": true,
+  "d1_state_before": {
+    "state": "available",
+    "context_query": {
+      "queryable": true,
+      "present": true,
+      "ordinal": 0,
+      "flags": null,
+      "managed_by": "external",
+      "reason": ""
+    }
+  },
+  "d1_return": {
+    "ordinal": 0,
+    "mode": "real",
+    "recovered": true,
+    "state": "available",
+    "detail": "rebuild_mode=real：设备状态=available，无需重建，探活可用",
+    "context_supported": true,
+    "context_count": 0,
+    "context_recreated": false
+  },
+  "d1_state_after": {
+    "state": "available",
+    "context_query": {
+      "queryable": true,
+      "present": true,
+      "ordinal": 0,
+      "flags": null,
+      "managed_by": "external",
+      "reason": ""
+    }
+  },
+  "d2_state_isolated": {
+    "state": "isolated",
+    "context_query": {
+      "queryable": true,
+      "present": true,
+      "ordinal": 0,
+      "flags": null,
+      "managed_by": "external",
+      "reason": ""
+    }
+  },
+  "d2_return": {
+    "ordinal": 0,
+    "mode": "real",
+    "recovered": true,
+    "state": "isolated",
+    "detail": "rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）",
+    "context_supported": true,
+    "context_count": 0,
+    "context_recreated": true
+  },
+  "d2_state_after": {
+    "state": "available",
+    "context_query": {
+      "queryable": true,
+      "present": true,
+      "ordinal": 0,
+      "flags": null,
+      "managed_by": "external",
+      "reason": ""
+    }
+  },
+  "d3_return": {
+    "ordinal": 0,
+    "mode": "probe",
+    "recovered": true,
+    "state": "isolated",
+    "detail": "rebuild_mode=probe：探针重试成功（**未**执行销毁/重建；设备本就可用或探针已恢复）",
+    "context_supported": true,
+    "context_count": 0,
+    "context_recreated": false
+  },
+  "d3_state_after": {
+    "state": "available",
+    "context_query": {
+      "queryable": true,
+      "present": true,
+      "ordinal": 0,
+      "flags": null,
+      "managed_by": "external",
+      "reason": ""
+    }
+  },
+  "checks": {
+    "d1_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d1_state_in_domain": {
+      "ok": true,
+      "detail": "state='available'"
+    },
+    "d2_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d2_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "d3_keys_5+3": {
+      "ok": true,
+      "detail": "8 键齐全"
+    },
+    "d3_state_in_domain": {
+      "ok": true,
+      "detail": "state='isolated'"
+    },
+    "D1_健康设备real_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='rebuild_mode=real：设备状态=available，无需重建，探活可用'"
+    },
+    "D1_设备未被重建（context_query 前后一致）": {
+      "ok": true,
+      "detail": "快照相同（进一步证明未重建）"
+    },
+    "D2_隔离后real_必须声明真重建": {
+      "ok": true,
+      "detail": "recovered=True context_recreated=True detail='rebuild_mode=real：真实重建成功（aclrtResetDevice 序列已执行）'"
+    },
+    "D2_重建后回到 available（R4）": {
+      "ok": true,
+      "detail": "state='available'"
+    },
+    "D3_隔离后probe_不得声称已重建": {
+      "ok": true,
+      "detail": "context_recreated=False detail='rebuild_mode=probe：探针重试成功（**未**执行销毁/重建；设备本就可用或探针已恢复）'"
+    }
+  },
+  "verdict": "A2P1_FIX_VERIFIED"
+}

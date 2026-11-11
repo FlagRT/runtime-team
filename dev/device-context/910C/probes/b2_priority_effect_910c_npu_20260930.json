@@ -1,0 +1,136 @@
+{
+  "verdict": "STREAM_PRIORITY_EFFECT_PASS",
+  "passed": 4,
+  "total": 4,
+  "backend": "ascend",
+  "range": [
+    0,
+    7
+  ],
+  "supports": true,
+  "effect_observed": false,
+  "checks": {
+    "P1_range_readable": {
+      "ok": true,
+      "detail": "raw=(7, 0, 0)；解析为 (lo,hi)=[0, 7]；supports=True",
+      "unsupported": false
+    },
+    "P1_create_hi": {
+      "ok": true,
+      "detail": "prio=7 v=89440.0"
+    },
+    "P1_create_lo": {
+      "ok": true,
+      "detail": "prio=0 v=89440.0"
+    },
+    "P2_effect": {
+      "ok": true,
+      "effect_observed": false,
+      "hi_wins_lo_first": 0,
+      "rounds": 8,
+      "pass_n": 6,
+      "hi_wins_hi_first": 8,
+      "submit_order_dominates": true,
+      "detail": "lo_first 方向高优先级先完成 0/8（阈值 6）⇒ 未观测到优先级效果（如实记录）；对照 hi_first 方向 8/8；两种顺序下均『谁先提交谁先完成』⇒ 提交顺序主导",
+      "timings": [
+        {
+          "round": 0,
+          "order": "lo_first",
+          "hi_s": 0.0269,
+          "lo_s": 0.0253
+        },
+        {
+          "round": 0,
+          "order": "hi_first",
+          "hi_s": 0.0244,
+          "lo_s": 0.026
+        },
+        {
+          "round": 1,
+          "order": "lo_first",
+          "hi_s": 0.026,
+          "lo_s": 0.0243
+        },
+        {
+          "round": 1,
+          "order": "hi_first",
+          "hi_s": 0.0243,
+          "lo_s": 0.0259
+        },
+        {
+          "round": 2,
+          "order": "lo_first",
+          "hi_s": 0.0259,
+          "lo_s": 0.0242
+        },
+        {
+          "round": 2,
+          "order": "hi_first",
+          "hi_s": 0.0247,
+          "lo_s": 0.0258
+        },
+        {
+          "round": 3,
+          "order": "lo_first",
+          "hi_s": 0.0257,
+          "lo_s": 0.0246
+        },
+        {
+          "round": 3,
+          "order": "hi_first",
+          "hi_s": 0.0246,
+          "lo_s": 0.0257
+        },
+        {
+          "round": 4,
+          "order": "lo_first",
+          "hi_s": 0.0257,
+          "lo_s": 0.0246
+        },
+        {
+          "round": 4,
+          "order": "hi_first",
+          "hi_s": 0.0276,
+          "lo_s": 0.0287
+        },
+        {
+          "round": 5,
+          "order": "lo_first",
+          "hi_s": 0.0257,
+          "lo_s": 0.024
+        },
+        {
+          "round": 5,
+          "order": "hi_first",
+          "hi_s": 0.0247,
+          "lo_s": 0.0258
+        },
+        {
+          "round": 6,
+          "order": "lo_first",
+          "hi_s": 0.0258,
+          "lo_s": 0.0247
+        },
+        {
+          "round": 6,
+          "order": "hi_first",
+          "hi_s": 0.0241,
+          "lo_s": 0.0258
+        },
+        {
+          "round": 7,
+          "order": "lo_first",
+          "hi_s": 0.0258,
+          "lo_s": 0.0247
+        },
+        {
+          "round": 7,
+          "order": "hi_first",
+          "hi_s": 0.0242,
+          "lo_s": 0.0259
+        }
+      ]
+    }
+  },
+  "torch": "2.11.0+cu130"
+}

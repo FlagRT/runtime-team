@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.3.2, pluggy-1.6.0
+rootdir: /workspace/vllm-plugin-FL
+configfile: pyproject.toml
+plugins: xdist-3.6.1, anyio-4.13.0
+collected 275 items
+
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_builtin_ops.py . [  0%]
+...                                                                      [  1%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_call_op.py .. [  2%]
+..............                                                           [  7%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_discovery.py . [  7%]
+...........                                                              [ 11%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_io_dumper.py . [ 12%]
+........................................................................ [ 38%]
+...................................................................      [ 62%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_manager.py .. [ 63%]
+.......................................                                  [ 77%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_policy.py ... [ 78%]
+........................                                                 [ 87%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_registry.py . [ 87%]
+...........                                                              [ 91%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_safe_cached_op.py . [ 92%]
+...                                                                      [ 93%]
+../workspace/vllm-plugin-FL/tests/unit_tests/dispatch/test_types.py .... [ 94%]
+...............                                                          [100%]
+
+=============================== warnings summary ===============================
+../usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411
+  /usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+    resolved_benchmark = resolve_benchmarker(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+------- generated xml file: /workspace/results/20260907-223919/unit.xml --------
+======================== 275 passed, 1 warning in 7.22s ========================

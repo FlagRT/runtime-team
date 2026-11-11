@@ -1,0 +1,11 @@
+# 对照：副本：去掉 init_process_group 的 timeout
+# 源日志：/bmcp_lvm_fs/hliu553/probes_ppu/segv_isolate/e12_ptl_notimeout/run.log （下列为滤掉 NCCL INFO 后的判定/崩溃行）
+# 结论：**复现段错误**（判据行若存在则说明判据仍通过）
+
+[default1]:[rank1] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.2841 | 4152.8 tok/s(两卡合计) -> /workspace/probes_ppu/segv_isolate/e12_ptl_notimeout/train_leg_result_rank1.json
+[default0]:[rank0] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.2841 | 4184.3 tok/s(两卡合计) -> /workspace/probes_ppu/segv_isolate/e12_ptl_notimeout/train_leg_result_rank0.json
+[default1]:Fatal Python error: Segmentation fault
+[default0]:Fatal Python error: Segmentation fault
+E1010 11:12:28.002000 3052 site-packages/torch/distributed/elastic/multiprocessing/api.py:984] failed (exitcode: -11) local_rank: 0 (pid: 3120) of binary: /usr/local/bin/python3
+  exitcode  : -11 (pid: 3121)
+  exitcode  : -11 (pid: 3120)

@@ -1,0 +1,283 @@
+{
+ "backend": "kunlun",
+ "ok": 36,
+ "fail": 0,
+ "skip": 3,
+ "total": 39,
+ "verdict": "DUTY_RESPONSE_PASS",
+ "rows": [
+  {
+   "domain": "A 后端选择",
+   "sid": "A1",
+   "title": "discover() 能发现本后端",
+   "status": "OK",
+   "detail": "discover → ['ascend', 'cambricon', 'kunlun']"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A2",
+   "title": "available() 含本后端",
+   "status": "OK",
+   "detail": "available → ['ascend', 'cambricon', 'kunlun']"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A3",
+   "title": "use() 返回实例 / current() 一致 / 单例",
+   "status": "OK",
+   "detail": "current().name=kunlun, 单例=True"
+  },
+  {
+   "domain": "A 后端选择",
+   "sid": "A4",
+   "title": "use(未注册名) 如实抛 BackendNotFound（负向）",
+   "status": "OK",
+   "detail": "抛 BackendNotFound"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B1",
+   "title": "device_count() > 0",
+   "status": "OK",
+   "detail": "n=1"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B2",
+   "title": "set_device(0) 生效且无异常",
+   "status": "OK",
+   "detail": "已绑定设备 0"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B3",
+   "title": "memory_stats(0) 结构含 total/used/free",
+   "status": "OK",
+   "detail": "keys=['free_mb', 'total_mb', 'used_mb']"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B4",
+   "title": "memory_stats 值自洽（total≈used+free 且 total>0）",
+   "status": "OK",
+   "detail": "total=98304 used=166 free=98138 gap=0.00%"
+  },
+  {
+   "domain": "B 设备域",
+   "sid": "B5",
+   "title": "probe_device(0) 返回 True（健康设备）",
+   "status": "OK",
+   "detail": "probe_device → True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C1",
+   "title": "create_stream() 返回统一 Stream 且绑定本后端",
+   "status": "OK",
+   "detail": "Stream backend=kunlun"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C2",
+   "title": "create_event() 返回统一 Event 且绑定本后端",
+   "status": "OK",
+   "detail": "Event backend=kunlun"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C3",
+   "title": "current_stream() 可调用",
+   "status": "OK",
+   "detail": "current_stream 返回空"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C4",
+   "title": "stream.synchronize() 无界路径正常返回",
+   "status": "OK",
+   "detail": "无界同步返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C5",
+   "title": "stream.synchronize(timeout_ms) 有界成功路径",
+   "status": "OK",
+   "detail": "有界同步（流上已有工作）返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C6",
+   "title": "stream.context() 可作 with 上下文管理器",
+   "status": "OK",
+   "detail": "with 语法可用"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C7",
+   "title": "跨流依赖：A record → B wait → B 可见 A 结果（真实语义）",
+   "status": "OK",
+   "detail": "跨流可见性结果=196609.0"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C8",
+   "title": "stream.wait_stream(other) 可调用",
+   "status": "OK",
+   "detail": "wait_stream 后同步完成"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C9",
+   "title": "event.record() 后 query() 为 True",
+   "status": "OK",
+   "detail": "query()=True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C10",
+   "title": "未 record 的 event：query()=False 且 wait_host 不永久阻塞",
+   "status": "OK",
+   "detail": "query=False wait_host=False 耗时=0.50s"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C11",
+   "title": "record 后 event.wait_host(timeout_ms) 返回 True",
+   "status": "OK",
+   "detail": "wait_host → True"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C12",
+   "title": "event.wait(stream) / event.synchronize() 可调用",
+   "status": "OK",
+   "detail": "event.wait / event.synchronize 均返回"
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C13",
+   "title": "event.elapsed_time(end) 可调用（若声明支持）",
+   "status": "SKIP",
+   "detail": "未声明/不可用：ValueError: Both events must be created with argument 'enable_timing=True'."
+  },
+  {
+   "domain": "C 流与事件",
+   "sid": "C14",
+   "title": "硬纪律 1：stream.record_stream(tensor) 可调用",
+   "status": "OK",
+   "detail": "record_stream 已登记（跨流缓冲保护）"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D1",
+   "title": "translate_error 返回统一 FlagosError",
+   "status": "OK",
+   "detail": "FlagosError"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D2",
+   "title": "category 属于 L1–L4 四类",
+   "status": "OK",
+   "detail": "category=ErrorCategory.L1_RESOURCE"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D3",
+   "title": "disposition 属于四动作之一",
+   "status": "OK",
+   "detail": "disposition='retry'"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D4",
+   "title": "mapped / graded_by 可观测且自洽",
+   "status": "OK",
+   "detail": "mapped=False graded_by=default"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D5",
+   "title": "L1–L4 处置映射符合处置约定表",
+   "status": "SKIP",
+   "detail": "本后端未声明 error_map（无厂商码样例）⇒ 交由 conformance F1 覆盖"
+  },
+  {
+   "domain": "D 错误翻译",
+   "sid": "D6",
+   "title": "完整消息不被截断（截断会退化为保守误判）",
+   "status": "OK",
+   "detail": "category=ErrorCategory.L2_PARAM disposition=raise"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E1",
+   "title": "device_state(0) 返回四态之一",
+   "status": "OK",
+   "detail": "state=available"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E2",
+   "title": "recover_device(0,'probe') 返回 dict",
+   "status": "OK",
+   "detail": "type=dict"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E3",
+   "title": "返回契约字段齐全 {ordinal,mode,recovered,state,detail}",
+   "status": "OK",
+   "detail": "缺字段 [] / 实际 ['detail', 'mode', 'ordinal', 'recovered', 'state']"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E4",
+   "title": "recovered 语义 = 设备当前可用（与 probe_device 一致）",
+   "status": "OK",
+   "detail": "recovered=True probe_device=True"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E5",
+   "title": "recover_device(0,'hybrid') 返回 dict",
+   "status": "OK",
+   "detail": "mode=hybrid"
+  },
+  {
+   "domain": "E 状态恢复",
+   "sid": "E6",
+   "title": "recover_device(0,'real') 如实响应（执行或明确拒绝，不静默）",
+   "status": "OK",
+   "detail": "mode=real recovered=True"
+  },
+  {
+   "domain": "F 硬纪律",
+   "sid": "F1",
+   "title": "错误隔离分层：芯片级 → device_recovery；API 级 → 非 device_recovery",
+   "status": "SKIP",
+   "detail": "本后端无数字错误码（未声明 error_map）⇒ 交由错误闭环与 conformance F1 覆盖"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G1",
+   "title": "supports() 与 info()['supports'] 一致",
+   "status": "OK",
+   "detail": "13 项一致"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G2",
+   "title": "info()['supports'] 键集合 == _CAPABILITY_KEYS（防键漂移）",
+   "status": "OK",
+   "detail": "KEYS-INFO 差 []"
+  },
+  {
+   "domain": "G 元信息",
+   "sid": "G3",
+   "title": "known_issues() 结构完整（无则如实为空）",
+   "status": "OK",
+   "detail": "1 条结构完整"
+  }
+ ]
+}

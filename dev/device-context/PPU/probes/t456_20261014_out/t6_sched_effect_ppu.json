@@ -1,0 +1,397 @@
+{
+  "verdict": "STREAM_PRIORITY_SCHED_EFFECT_FAIL",
+  "backend": "ppu",
+  "device_type": "cuda",
+  "device_name": "PPU-ZW810E",
+  "torch": "2.10.0",
+  "dev": 0,
+  "range_raw": [
+    0,
+    -3
+  ],
+  "hi_priority": -3,
+  "lo_priority": 0,
+  "supports_control": true,
+  "supports_readback": true,
+  "applicable": true,
+  "not_applicable_reason": [],
+  "instrument_valid": true,
+  "effect_observed": false,
+  "effect_observed_gated": null,
+  "effect_observed_ungated": null,
+  "wait_path": "Event.wait(Stream)",
+  "rounds": 8,
+  "pass_n": 6,
+  "work": 2048,
+  "iters": 60,
+  "slow_iters": 121,
+  "quantum_ms": 34.536,
+  "slow_ms": 71.223,
+  "backread_hi": -3,
+  "backread_lo": 0,
+  "direction_finding": {},
+  "queue_jump_finding": {
+    "g4_gap_ms": null,
+    "g7_equal_prio_gap_ms": null,
+    "g8_reversed_gap_ms": null,
+    "interpretation": "G4（取值 lo 先提交）与 G8（取值 hi 先提交）两向都让取值 hi 大胜 ⇒ 未 gated 场景下优先级有**实质**效果；G7 用同顺序+同取值作对照，排除「恒为后提交者获胜」"
+  },
+  "gated_tilt_finding": {
+    "g1_gap_ms": null,
+    "g5_gap_ms": null,
+    "g6_gap_ms": null,
+    "g9_gap_ms": null,
+    "interpretation": "gated（同时就绪）场景下只有**一个测量步长**量级的偏斜；其方向与未 gated 场景的大效应相反 ⇒ 两个场景分开报，**不就『方向』下统一结论**"
+  },
+  "effect_criteria": {
+    "min_win_frac": 0.75,
+    "min_gap_frac": 0.25,
+    "min_res_frac": 0.05,
+    "min_slow_ms": 30.0
+  },
+  "groups": {
+    "G2": {
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 128.8272,
+      "median_lo_ms": 163.0961,
+      "median_gap_ms": 34.0886,
+      "records": [
+        {
+          "hi_ms": 130.2365,
+          "lo_ms": 164.1016,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 119928,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.9264,
+          "lo_ms": 162.5719,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 124372,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.3172,
+          "lo_ms": 162.2479,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 124304,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.9304,
+          "lo_ms": 163.8531,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 124087,
+          "sweep_us_median": 1.13
+        },
+        {
+          "hi_ms": 128.279,
+          "lo_ms": 162.3913,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 124842,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.8102,
+          "lo_ms": 163.2832,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 125631,
+          "sweep_us_median": 1.13
+        },
+        {
+          "hi_ms": 128.8442,
+          "lo_ms": 162.9091,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 123007,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.7216,
+          "lo_ms": 163.3647,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 125622,
+          "sweep_us_median": 1.13
+        }
+      ]
+    },
+    "G3": {
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 3,
+      "hi_win_rate_decided": 0.375,
+      "median_hi_ms": 128.9618,
+      "median_lo_ms": 128.5963,
+      "median_gap_ms": -0.4702,
+      "records": [
+        {
+          "hi_ms": 130.1042,
+          "lo_ms": 129.621,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 88550,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.9006,
+          "lo_ms": 129.4072,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 90354,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 130.1477,
+          "lo_ms": 129.681,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 88792,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 128.5187,
+          "lo_ms": 128.015,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 89443,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 129.0911,
+          "lo_ms": 128.6137,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 90217,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 129.023,
+          "lo_ms": 128.5492,
+          "hi_first": false,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "lo",
+            "hi"
+          ],
+          "sweeps": 90165,
+          "sweep_us_median": 1.14
+        },
+        {
+          "hi_ms": 127.6584,
+          "lo_ms": 128.1455,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "lo",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 88082,
+          "sweep_us_median": 1.15
+        },
+        {
+          "hi_ms": 128.0615,
+          "lo_ms": 128.5789,
+          "hi_first": true,
+          "indeterminate": false,
+          "enqueue_first": "hi",
+          "poll_order": [
+            "hi",
+            "lo"
+          ],
+          "sweeps": 89408,
+          "sweep_us_median": 1.15
+        }
+      ]
+    }
+  },
+  "checks": {
+    "E1_range_and_applicability": {
+      "ok": true,
+      "detail": "raw=(0, -3); hi=-3; lo=0; supports[control]=True; supports[readback]=True; applicable=True",
+      "range_raw": [
+        0,
+        -3
+      ],
+      "hi_priority": -3,
+      "lo_priority": 0,
+      "supports_control": true,
+      "supports_readback": true,
+      "applicable": true,
+      "not_applicable_reason": []
+    },
+    "E2_setup_readback_equals_request": {
+      "ok": true,
+      "detail": "请求 hi=-3 ⇒ 回读 -3；请求 lo=0 ⇒ 回读 0"
+    },
+    "E3_work_quantum_calibrated": {
+      "ok": true,
+      "detail": "每流 60 次链式 2048² matmul 墙钟中位数 = 34.536 ms（单次 ≈ 0.5756 ms）；gate 慢活 121 次实测 71.223 ms（下限 30.0 ms）",
+      "quantum_ms": 34.536,
+      "per_iter_ms": 0.5756,
+      "slow_iters": 121,
+      "slow_ms": 71.223,
+      "slow_tries": [
+        {
+          "iters": 121,
+          "slow_ms": 71.223
+        }
+      ],
+      "min_slow_ms": 30.0,
+      "calib_samples": [
+        33.762,
+        34.693,
+        34.536
+      ]
+    },
+    "D1_measurement_resolution": {
+      "ok": true,
+      "detail": "一趟扫描 1.14 µs = 工作量级（34.536 ms）的 0.003%（阈值 ≤ 5.0%）⇒ 分辨力足够",
+      "sweep_us": 1.14,
+      "resolution_frac": 3.3e-05
+    },
+    "G2_positive_control_unequal_work": {
+      "ok": true,
+      "detail": "同优先级、同一 gate、hi 工作量 = lo 的一半 ⇒ hi 先完成 8/8 有效轮（平局 0；阈值 6）；中位差 34.0886 ms ⇒ 测量**能**判出差异（仪器有效）",
+      "instrument_valid": true,
+      "group": "G2_positive_control",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 8,
+      "hi_win_rate_decided": 1.0,
+      "median_hi_ms": 128.8272,
+      "median_lo_ms": 163.0961,
+      "median_gap_ms": 34.0886
+    },
+    "G3_equal_priority_baseline": {
+      "ok": true,
+      "detail": "同优先级、等量工作、同一 gate、入队顺序随机化：hi 先完成 3/8 有效轮（平局 0）；中位差 -0.4702 ms ⇒ 这是**噪声基线**（G1 的读数只应与它比）",
+      "group": "G3_equal_priority_baseline",
+      "rounds": 8,
+      "decided": 8,
+      "indeterminate": 0,
+      "hi_wins": 3,
+      "hi_win_rate_decided": 0.375,
+      "median_hi_ms": 128.9618,
+      "median_lo_ms": 128.5963,
+      "median_gap_ms": -0.4702
+    },
+    "V1_gate_actually_gated": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G1_gate_high_priority_wins": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G4_naive_submit_order_control": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330562f50）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G7_ungated_equal_priority_control": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G8_ungated_reversed_order": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330562f50）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G5_direction_crosscheck_swapped": {
+      "ok": false,
+      "detail": "RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x564330547310）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥有**（实测：torch 不拥有它 —— 丢弃包装对象后句柄仍可用）⇒ 用完后须显式 `runtime.release_stream(str"
+    },
+    "G6_nonzero_vs_zero_crosscheck": {
+      "ok": true,
+      "skipped": true,
+      "detail": "取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过"
+    },
+    "G9_gated_large_vs_mid_crosscheck": {
+      "ok": true,
+      "skipped": true,
+      "detail": "取值 1 不在区间 [-3, 0] 内 ⇒ 如实跳过"
+    }
+  },
+  "notes": [],
+  "boundary": "单卡 · 同进程两条流 · 人为构造争用；不等于生产负载收益。「未观测到效果」≠「优先级无效」。本探针不引用厂商调度文档作机制依据。"
+}

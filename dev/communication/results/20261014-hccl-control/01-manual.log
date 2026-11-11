@@ -1,0 +1,18 @@
+can not use command: npu-smi info
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[W1014 08:01:50.186018673 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+can not use command: npu-smi info
+can not use command: npu-smi info
+[W1014 08:02:15.404471514 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1014 08:02:15.406809871 ProcessGroupHCCL.cpp:1152] Warning: The watchdog timeout 60000ms(which is set by init_process_group) is less than or equal to HCCL execution timeout 1836000ms! The plog may not be recorded. (function ProcessGroupHCCL)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/utils/storage.py:56: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()
+  if self.device.type != 'cpu':
+[W1014 08:02:16.651470695 socket.cpp:207] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py:230: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  torch.ones_like(out, memory_format=torch.preserve_format)
+{"rank": 0, "functional_verdict": "PASS", "error": null, "teardown": "pending"}
+{"rank": 1, "functional_verdict": "PASS", "error": null, "teardown": "pending"}
+{"rank": 0, "verdict": "PASS", "output": "/workspace/results-hccl-control/01-manual/rank0.json"}
+{"rank": 1, "verdict": "PASS", "output": "/workspace/results-hccl-control/01-manual/rank1.json"}

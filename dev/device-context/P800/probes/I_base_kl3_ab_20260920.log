@@ -1,0 +1,77 @@
+=========== P800 官方 -base 镜像 · KL3 等价性对照 开始 Sun Sep 20 10:15:53 CST 2026 ===========
+host=1f027361de3e
+用卡前各卡显存:
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   40C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     93W / 400W |  36760MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   45C  N/A     95W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+
+##### A 组：KL3=1 + 设备侧集合通信 ×3（现用镜像上 ≈89% 挂死）#####
+
+############ A1_KL3on | cards=6,7 MODE=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: 
+      现场 pid=2759 utime=0 stime=0
+      现场 pid=2762 utime=215 stime=615
+      现场 pid=2829 utime=9711 stime=86
+      现场 pid=2830 utime=9716 stime=84
+      卡状态: 366MiB / 98304MiB 100% 366MiB / 98304MiB 100% 
+/workspace/P800/probes/H_kl3_equivalence.sh: line 28:  2759 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=sync10 REPS=$REPS "$@" timeout $((BUDGET+60)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/out_base/kl3_${tag}.log 2>&1
+
+############ A2_KL3on | cards=6,7 MODE=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: 
+      现场 pid=2918 utime=0 stime=0
+      现场 pid=2921 utime=215 stime=613
+      现场 pid=2988 utime=9734 stime=82
+      现场 pid=2989 utime=9734 stime=77
+      卡状态: 366MiB / 98304MiB 100% 366MiB / 98304MiB 100% 
+/workspace/P800/probes/H_kl3_equivalence.sh: line 28:  2918 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=sync10 REPS=$REPS "$@" timeout $((BUDGET+60)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/out_base/kl3_${tag}.log 2>&1
+
+############ A3_KL3on | cards=6,7 MODE=sync10 env=[XPU_EVENT_KL3_ENABLE=1] ############
+  >>> ❌ 挂死  完成到: rep=40
+      现场 pid=3071 utime=0 stime=0
+      现场 pid=3073 utime=210 stime=617
+      现场 pid=3141 utime=9729 stime=85
+      现场 pid=3142 utime=9731 stime=82
+      卡状态: 366MiB / 98304MiB 100% 366MiB / 98304MiB 100% 
+/workspace/P800/probes/H_kl3_equivalence.sh: line 28:  3071 Killed                  env CUDA_VISIBLE_DEVICES=6,7 MODE=sync10 REPS=$REPS "$@" timeout $((BUDGET+60)) python3 -m torch.distributed.run --standalone --nproc_per_node=2 --master_port=$PORT $PROBE > /workspace/out_base/kl3_${tag}.log 2>&1
+
+##### B 组：不设 KL3 ×2（现用镜像上通过且真值精确）#####
+
+############ B1_KL3unset | cards=6,7 MODE=sync10 env=[] ############
+  >>> ✅ 完成(未挂死)
+  >>> 真值校验: VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True[rank1] VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True
+
+############ B2_KL3unset | cards=6,7 MODE=sync10 env=[] ############
+  >>> ✅ 完成(未挂死)
+  >>> 真值校验: VERIFY value=1.329228e+36 expected=2^120=1.329228e+36 rel_err=0.000e+00 exact=True
+
+=========== 对照结束 Sun Sep 20 10:21:34 CST 2026 ===========
+用卡后各卡显存:
+| N/A   39C  N/A     91W / 400W |  31948MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   37C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   43C  N/A     94W / 400W |   1844MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   40C  N/A     94W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   39C  N/A     93W / 400W |  36760MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   44C  N/A     95W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |
+| N/A   44C  N/A     93W / 400W |      0MiB / 98304MiB |      0%      Default |
+|                               |      0MiB /    96MiB |             Disabled |

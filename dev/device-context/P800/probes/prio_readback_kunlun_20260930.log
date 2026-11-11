@@ -1,0 +1,23 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+=== 前置 ===
+  torch 2.9.0+cu129 | cuda avail True | visible 1
+  matmul 校验值 = 89440.0 （期望 89440）
+  已加载: ['/root/miniconda/envs/python310_torch29_cuda/xcudart/lib/libxpucuda.so.515.58.kunlun']
+
+=== K1 入口存在性 ===
+   {'cuCtxGetStreamPriorityRange': True, 'cuStreamCreateWithPriority': True, 'cuStreamGetPriority': True}
+
+=== K1b 范围查询 ===
+  cuCtxGetStreamPriorityRange rc=0 least=0 greatest=0
+
+=== K2 cuStreamCreateWithPriority 建流 + 回读 ===
+  传入 0: create rc=0 handle=104265635050704 | 回读 rc=0 priority=0
+  传入 -1: create rc=0 handle=104265622574528 | 回读 rc=0 priority=0
+  传入 1: create rc=0 handle=104265635089168 | 回读 rc=0 priority=0
+
+=== K3 torch.cuda.Stream(priority=…) 回读 ===
+  torch Stream(priority=0): handle=104265635413104 回读 rc=0 priority=0
+  torch Stream(priority=-1): handle=104265635396912 回读 rc=0 priority=0
+
+BOUNDARY: 只读 + 稀疏建流；结论只在 P800 / XPU-RT 5.0.21 / torch 2.9.0+cu129 成立。

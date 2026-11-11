@@ -1,0 +1,260 @@
+INFO 10-08 12:52:33 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 10-08 12:52:33 [__init__.py:46] - fl -> vllm_fl:register
+INFO 10-08 12:52:33 [__init__.py:58] Loading plugin fl
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+INFO 10-08 12:52:49 [__init__.py:238] Platform plugin fl is activated
+/flagos/lib/python3.10/site-packages/tvm_ffi/_optional_torch_c_dlpack.py:192: UserWarning: Failed to JIT torch c dlpack extension, EnvTensorAllocator will not be enabled.
+We recommend installing via `pip install torch-c-dlpack-ext`
+  warnings.warn(
+WARNING 10-08 12:52:59 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+INFO 10-08 12:53:00 [nixl_utils.py:20] Setting UCX_RCACHE_MAX_UNRELEASED to '1024' to avoid a rare memory leak in UCX when using NIXL.
+WARNING 10-08 12:53:00 [nixl_utils.py:34] NIXL is not available
+WARNING 10-08 12:53:00 [nixl_utils.py:44] NIXL agent config is not available
+WARNING 10-08 12:53:01 [registry.py:945] Model architecture DeepseekV4ForCausalLM is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4:DeepseekV4ForCausalLM.
+WARNING 10-08 12:53:01 [registry.py:945] Model architecture DeepSeekV4MTPModel is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4_mtp:DeepSeekV4MTP.
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299] 
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299]        █     █     █▄   ▄█
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.20.2
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299]   █▄█▀ █     █     █     █  model   /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:299] 
+(APIServer pid=4851) INFO 10-08 12:53:01 [utils.py:233] non-default args: {'model_tag': '/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', 'host': '127.0.0.1', 'port': 8100, 'model': '/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', 'runner': 'pooling', 'convert': 'embed', 'max_model_len': 4096, 'enforce_eager': True, 'served_model_name': ['qwen3-embedding-0.6b']}
+(APIServer pid=4851) INFO 10-08 12:53:01 [model.py:555] Resolved architecture: Qwen3ForCausalLM
+(APIServer pid=4851) INFO 10-08 12:53:01 [config.py:848] Found sentence-transformers modules configuration.
+(APIServer pid=4851) INFO 10-08 12:53:01 [config.py:875] Found pooling configuration.
+(APIServer pid=4851) INFO 10-08 12:53:01 [model.py:1680] Using max model len 4096
+(APIServer pid=4851) INFO 10-08 12:53:01 [scheduler.py:239] Chunked prefill is enabled with max_num_batched_tokens=8192.
+(APIServer pid=4851) INFO 10-08 12:53:01 [vllm.py:840] Asynchronous scheduling is disabled.
+(APIServer pid=4851) WARNING 10-08 12:53:01 [vllm.py:896] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(APIServer pid=4851) WARNING 10-08 12:53:01 [vllm.py:914] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(APIServer pid=4851) INFO 10-08 12:53:01 [kernel.py:205] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'])
+(APIServer pid=4851) INFO 10-08 12:53:01 [compilation.py:303] Enabled custom fusions: norm_quant, act_quant
+INFO 10-08 12:53:10 [__init__.py:44] Available plugins for group vllm.platform_plugins:
+INFO 10-08 12:53:10 [__init__.py:46] - fl -> vllm_fl:register
+INFO 10-08 12:53:10 [__init__.py:58] Loading plugin fl
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+INFO 10-08 12:53:24 [__init__.py:238] Platform plugin fl is activated
+/flagos/lib/python3.10/site-packages/tvm_ffi/_optional_torch_c_dlpack.py:192: UserWarning: Failed to JIT torch c dlpack extension, EnvTensorAllocator will not be enabled.
+We recommend installing via `pip install torch-c-dlpack-ext`
+  warnings.warn(
+(EngineCore pid=5222) WARNING 10-08 12:53:32 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [nixl_utils.py:34] NIXL is not available
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [nixl_utils.py:44] NIXL agent config is not available
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [registry.py:945] Model architecture DeepseekV4ForCausalLM is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4:DeepseekV4ForCausalLM.
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [registry.py:945] Model architecture DeepSeekV4MTPModel is already registered, and will be overwritten by the new model class vllm_fl.models.deepseek_v4_mtp:DeepSeekV4MTP.
+(EngineCore pid=5222) INFO 10-08 12:53:34 [core.py:109] Initializing a V1 LLM engine (v0.20.2) with config: model='/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', speculative_config=None, tokenizer='/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=4096, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=True, quantization=None, quantization_config=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=mlu, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False), seed=0, served_model_name=qwen3-embedding-0.6b, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=PoolerConfig(task=None, pooling_type=None, seq_pooling_type='LAST', tok_pooling_type='ALL', use_activation=True, dimensions=None, enable_chunked_processing=False, max_embed_len=None, logit_mean=None, logit_sigma=None, logit_bias=None, logit_scale=None, step_tag_id=None, returned_token_ids=None), compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [8192], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'size_asserts': False, 'alignment_asserts': False, 'scalar_asserts': False}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': None, 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': None, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': True, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native']), enable_flashinfer_autotune=True, moe_backend='auto')
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5222) WARNING 10-08 12:53:34 [interface.py:240] Failed to import from vllm._C: ModuleNotFoundError("No module named 'vllm._C'")
+(EngineCore pid=5222) /flagos/lib/python3.10/site-packages/torch/library.py:365: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+(EngineCore pid=5222)   Overriding a previously registered kernel for the same operator and the same dispatch key
+(EngineCore pid=5222)   operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+(EngineCore pid=5222)     registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+(EngineCore pid=5222)   dispatch key: PrivateUse1
+(EngineCore pid=5222)   previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:7154
+(EngineCore pid=5222)        new kernel: registered at /dev/null:63 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:154.)
+(EngineCore pid=5222)   self.m.impl(
+(EngineCore pid=5222) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5222) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5222) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5222) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d_backward's behavior for PrivateUse1 dispatch key and aten namespace.
+(EngineCore pid=5222) INFO 10-08 12:53:34 [parallel_state.py:1402] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://10.1.1.21:39309 backend=cncl
+[W1008 12:53:40.942639040 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+[W1008 12:53:47.984643222 socket.cpp:200] [c10d] The hostname of the client socket cannot be retrieved. err=-3
+(EngineCore pid=5222) INFO 10-08 12:53:47 [parallel_state.py:1715] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=5222) [2026-10-08 12:54:06] [WARNING] [vllm_fl.dispatch] Unable to detect current vendor backend; skipping vendor backend registration
+(EngineCore pid=5222) [2026-10-08 12:54:06] [INFO] [vllm_fl.dispatch.manager] OpManager initialized: 37 ops with 63 implementations
+(EngineCore pid=5222) [2026-10-08 12:54:06] [INFO] [vllm_fl.dispatch.policy] Using custom config from '/flagos/lib/python3.10/site-packages/vllm_fl/dispatch/config/cambricon.yaml'
+(EngineCore pid=5222) [2026-10-08 12:54:06] [INFO] [vllm_fl.dispatch.manager] Op 'attention_backend' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) INFO 10-08 12:54:07 [weight_utils.py:904] Filesystem type for checkpoints: EXT4. Checkpoint size: 1.11 GiB. Available RAM: 1950.91 GiB.
+(EngineCore pid=5222) INFO 10-08 12:54:07 [weight_utils.py:927] Auto-prefetch is disabled because the filesystem (EXT4) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=5222) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(EngineCore pid=5222) INFO 10-08 12:54:07 [adapters.py:206] Mapping weights to Qwen3Model as they are relative to this model instead of Qwen3ForEmbedding.
+(EngineCore pid=5222) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.59it/s]
+(EngineCore pid=5222) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.59it/s]
+(EngineCore pid=5222) 
+(EngineCore pid=5222) INFO 10-08 12:54:08 [default_loader.py:384] Loading weights took 0.78 seconds
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'topk_softmax' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'grouped_topk' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_topk_bias' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'silu_and_mul' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'gelu_and_mul' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'moe_align_block_size' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'invoke_fused_moe_triton_kernel' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'moe_sum' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_marlin_moe' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'router_gemm_bf16_fp32' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'silu_and_mul_with_clamp' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'indexer_k_quant_and_cache' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'cp_gather_indexer_k_quant_cache' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'top_k_per_row_prefill' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'pack_seq_triton' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'top_k_per_row_decode' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'unpack_seq_triton' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_inv_rope_fp8_quant' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'deepseek_v4_fp8_einsum' using 'reference.torch' (kind=reference, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_q_kv_rmsnorm' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_deepseek_v4_qnorm_rope_kv_rope_quant_insert' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'compute_global_topk_indices_and_lens' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'flash_mla_with_kvcache' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'dequantize_and_gather_k_cache' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'combine_topk_swa_indices' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'flash_mla_sparse_fwd' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'fused_indexer_q_rope_quant' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'cutlass_scaled_mm' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'rms_norm' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) [2026-10-08 12:54:09] [INFO] [vllm_fl.dispatch.manager] Op 'rotary_embedding' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=5222) /opt/triton/triton/backends/mlu/compiler.py:165: UserWarning: num_warps is currently set to 8; values greater than 4 are not supported, falling back to 4
+(EngineCore pid=5222)   warnings.warn(
+(EngineCore pid=5222) INFO 10-08 12:54:32 [kv_cache_utils.py:1708] GPU KV cache size: 800,352 tokens
+(EngineCore pid=5222) INFO 10-08 12:54:32 [kv_cache_utils.py:1709] Maximum concurrency for 4,096 tokens per request: 195.40x
+(EngineCore pid=5222) /opt/triton/triton/backends/mlu/compiler.py:165: UserWarning: num_warps is currently set to 16; values greater than 4 are not supported, falling back to 4
+(EngineCore pid=5222)   warnings.warn(
+(EngineCore pid=5222) INFO 10-08 12:54:52 [core.py:306] init engine (profile, create kv cache, warmup model) took 43.07 s
+(EngineCore pid=5222) INFO 10-08 12:54:54 [vllm.py:840] Asynchronous scheduling is disabled.
+(EngineCore pid=5222) WARNING 10-08 12:54:54 [vllm.py:896] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+(EngineCore pid=5222) WARNING 10-08 12:54:54 [vllm.py:914] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+(EngineCore pid=5222) INFO 10-08 12:54:54 [kernel.py:205] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'])
+(EngineCore pid=5222) INFO 10-08 12:54:54 [compilation.py:303] Enabled custom fusions: norm_quant, act_quant
+(EngineCore pid=5222) /root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/contextlib.py:142: ResourceWarning: Unclosed context <zmq.Context() at 0x7fe84161d620>
+(EngineCore pid=5222)   next(self.gen)
+(EngineCore pid=5222) ResourceWarning: Enable tracemalloc to get the object allocation traceback
+(APIServer pid=4851) INFO 10-08 12:54:54 [api_server.py:598] Supported tasks: ['embed', 'token_embed']
+(APIServer pid=4851) INFO 10-08 12:54:54 [io_processor.py:61] Loaded prompt prefixes for input_type: ['query', 'document']
+(APIServer pid=4851) WARNING 10-08 12:54:54 [utils.py:134] To make v1/embeddings API fast, please install orjson by `pip install orjson`
+(APIServer pid=4851) INFO 10-08 12:54:54 [io_processor.py:61] Loaded prompt prefixes for input_type: ['query', 'document']
+(APIServer pid=4851) INFO 10-08 12:54:54 [api_server.py:602] Starting vLLM server on http://127.0.0.1:8100
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:37] Available routes are:
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:46] Route: /openapi.json, Methods: HEAD, GET
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:46] Route: /docs, Methods: HEAD, GET
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:46] Route: /docs/oauth2-redirect, Methods: HEAD, GET
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:46] Route: /redoc, Methods: HEAD, GET
+(APIServer pid=4851) INFO 10-08 12:54:54 [launcher.py:46] Route: /metrics, Methods: GET
+(APIServer pid=4851) INFO:     Started server process [4851]
+(APIServer pid=4851) INFO:     Waiting for application startup.
+(APIServer pid=4851) INFO:     Application startup complete.
+(APIServer pid=4851) INFO:     127.0.0.1:53178 - "GET /v1/models HTTP/1.1" 200 OK
+(EngineCore pid=5222) /opt/triton/triton/backends/mlu/compiler.py:165: UserWarning: num_warps is currently set to 8; values greater than 4 are not supported, falling back to 4
+(EngineCore pid=5222)   warnings.warn(
+(APIServer pid=4851) INFO:     127.0.0.1:53186 - "GET /v1/models HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:41514 - "GET /v1/models HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:53180 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO 10-08 12:55:44 [loggers.py:271] Engine 000: Avg prompt throughput: 0.6 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(EngineCore pid=5222) /opt/triton/triton/backends/mlu/compiler.py:160: UserWarning: num_warps should in 1/4/8/16/32 for mlu backend
+(EngineCore pid=5222)   warnings.warn("num_warps should in 1/4/8/16/32 for mlu backend")
+(EngineCore pid=5222) /opt/triton/triton/backends/mlu/compiler.py:172: UserWarning: num_warps equals to 2 is not supported currently, fallback to 1 if encountered.
+(EngineCore pid=5222)   warnings.warn(
+(APIServer pid=4851) INFO 10-08 12:55:54 [loggers.py:271] Engine 000: Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO:     127.0.0.1:41528 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO 10-08 12:57:04 [loggers.py:271] Engine 000: Avg prompt throughput: 2.6 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO 10-08 12:57:14 [loggers.py:271] Engine 000: Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO 10-08 12:57:54 [loggers.py:271] Engine 000: Avg prompt throughput: 0.4 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO 10-08 12:58:04 [loggers.py:271] Engine 000: Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO:     127.0.0.1:58184 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:48098 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:48110 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO 10-08 12:58:44 [loggers.py:271] Engine 000: Avg prompt throughput: 3.2 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO 10-08 12:58:54 [loggers.py:271] Engine 000: Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(APIServer pid=4851) INFO:     127.0.0.1:48114 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:35534 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO:     127.0.0.1:35546 - "POST /v1/embeddings HTTP/1.1" 400 Bad Request
+(APIServer pid=4851) ERROR:    Exception in ASGI application
+(APIServer pid=4851) Traceback (most recent call last):
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+(APIServer pid=4851)     result = await app(  # type: ignore[func-returns-value]
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+(APIServer pid=4851)     return await self.app(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/applications.py", line 1163, in __call__
+(APIServer pid=4851)     await super().__call__(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/applications.py", line 96, in __call__
+(APIServer pid=4851)     await self.middleware_stack(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/middleware/errors.py", line 186, in __call__
+(APIServer pid=4851)     raise exc
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/middleware/errors.py", line 164, in __call__
+(APIServer pid=4851)     await self.app(scope, receive, _send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/middleware/cors.py", line 88, in __call__
+(APIServer pid=4851)     await self.app(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 180, in __call__
+(APIServer pid=4851)     raise exc
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 178, in __call__
+(APIServer pid=4851)     await self.app(scope, receive, send_wrapper)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+(APIServer pid=4851)     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+(APIServer pid=4851)     raise exc
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+(APIServer pid=4851)     await app(scope, receive, sender)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+(APIServer pid=4851)     await self.app(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/routing.py", line 670, in __call__
+(APIServer pid=4851)     await self.middleware_stack(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 2734, in app
+(APIServer pid=4851)     await route.handle(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 1780, in handle
+(APIServer pid=4851)     await self.original_router.handle(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 2789, in handle
+(APIServer pid=4851)     await included_router._handle_selected(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 1800, in _handle_selected
+(APIServer pid=4851)     await original_route.handle(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 1279, in handle
+(APIServer pid=4851)     await app(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 158, in app
+(APIServer pid=4851)     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+(APIServer pid=4851)     raise exc
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+(APIServer pid=4851)     await app(scope, receive, sender)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 144, in app
+(APIServer pid=4851)     response = await f(request)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 706, in app
+(APIServer pid=4851)     raw_response = await run_endpoint_function(
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/fastapi/routing.py", line 352, in run_endpoint_function
+(APIServer pid=4851)     return await dependant.call(**values)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/utils.py", line 95, in wrapper
+(APIServer pid=4851)     return handler_task.result()
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/utils.py", line 116, in wrapper
+(APIServer pid=4851)     return await func(*args, **kwargs)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/embed/api_router.py", line 40, in create_embedding
+(APIServer pid=4851)     return await handler(request, raw_request)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/base/serving.py", line 88, in __call__
+(APIServer pid=4851)     await self._preprocessing_async(io_processor, ctx)
+(APIServer pid=4851)   File "/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+(APIServer pid=4851)     result = self.fn(*self.args, **self.kwargs)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+(APIServer pid=4851)     return func(*args, **kwargs)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/base/serving.py", line 101, in _preprocessing
+(APIServer pid=4851)     return io_processor.pre_process_online(ctx)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/embed/io_processor.py", line 70, in pre_process_online
+(APIServer pid=4851)     super().pre_process_online(ctx)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/base/io_processor.py", line 82, in pre_process_online
+(APIServer pid=4851)     engine_inputs = self._preprocess_cmpl_online(
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/entrypoints/pooling/base/io_processor.py", line 146, in _preprocess_cmpl_online
+(APIServer pid=4851)     return renderer.render_cmpl(
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/base.py", line 933, in render_cmpl
+(APIServer pid=4851)     tok_prompts = self.tokenize_prompts(dict_prompts, tok_params)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/base.py", line 575, in tokenize_prompts
+(APIServer pid=4851)     return [self.tokenize_prompt(prompt, params) for prompt in prompts]
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/base.py", line 575, in <listcomp>
+(APIServer pid=4851)     return [self.tokenize_prompt(prompt, params) for prompt in prompts]
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/base.py", line 568, in tokenize_prompt
+(APIServer pid=4851)     return self._tokenize_singleton_prompt(prompt, params)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/base.py", line 482, in _tokenize_singleton_prompt
+(APIServer pid=4851)     return params.apply_post_tokenization(self.tokenizer, prompt)  # type: ignore[arg-type]
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/params.py", line 455, in apply_post_tokenization
+(APIServer pid=4851)     prompt["prompt_token_ids"] = self._validate_tokens(  # type: ignore[typeddict-unknown-key]
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/params.py", line 439, in _validate_tokens
+(APIServer pid=4851)     tokens = validator(tokenizer, tokens)
+(APIServer pid=4851)   File "/flagos/lib/python3.10/site-packages/vllm/renderers/params.py", line 418, in _token_len_check
+(APIServer pid=4851)     raise VLLMValidationError(
+(APIServer pid=4851) vllm.exceptions.VLLMValidationError: This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at least 4097 input tokens, for a total of at least 4097 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=4097)
+(APIServer pid=4851) INFO:     127.0.0.1:35556 - "POST /v1/embeddings HTTP/1.1" 200 OK
+(APIServer pid=4851) INFO 10-08 12:59:44 [loggers.py:271] Engine 000: Avg prompt throughput: 2.8 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Waiting: 0 reqs, GPU KV cache usage: 0.0%, Prefix cache hit rate: 0.0%
+(EngineCore pid=5222) INFO 10-08 12:59:45 [core.py:1238] Shutdown initiated (timeout=0)
+(EngineCore pid=5222) INFO 10-08 12:59:45 [core.py:1261] Shutdown complete
+(APIServer pid=4851) INFO:     Shutting down
+(APIServer pid=4851) INFO:     Waiting for application shutdown.
+(APIServer pid=4851) INFO:     Application shutdown complete.
+(APIServer pid=4851) INFO:     Finished server process [4851]
+[rank0]:[W1008 12:59:47.202881001 process_group_cncl.cpp:1294] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

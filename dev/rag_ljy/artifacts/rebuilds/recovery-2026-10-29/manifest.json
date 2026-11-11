@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-29",
+  "git_commit": "ca76d64befc04d3a8050f7a33d22cb177c20c8fd",
+  "working_tree_has_local_changes": true,
+  "files_sha256": {
+    "/home/jliu171/jliu171_data/hetero_data/datasets/nfcorpus/documents.jsonl": "a61f2a3bef1b56fc8ee2b841b21b05d934754733be65978959a268d1bb6c5c6c",
+    "dev/rag_ljy/data/queries/nfcorpus-50.jsonl": "9b0a898ba4e50ccf0081591ba4a2a1ddccc960c112582692a52e90aca09e7429",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/generation_config.json": "28396d421a2108acce96383f6a7de78008f7f1b17f807958f3c14c51dbfb65fb",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/config.json": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/config_sentence_transformers.json": "10667c72ddb772627bf1780cb7f86af8e2ae0032b8c243c731172064105c6961",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/modules.json": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/tokenizer_config.json": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Embedding-0.6B/tokenizer.json": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/generation_config.json": "81051cd3f6e77013827148d0b8a6ead93f8ac390d5ab805f849199f0af6a08db",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/config.json": "d479c427a9ca5295218063d4f9aca4f297ab4ac27487cca7af42c84643d51ef0",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/config_sentence_transformers.json": "6a153d6696f78fd588c1c728967f0b773ea869d3c6028f151ce71ebe49140762",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/modules.json": "6f13b6b4a89e577b591b2077bca40c67c26541a6740a8809267cb474f90806a9",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/sentence_bert_config.json": "3234ebd224d492cbe8d55d5ec80a3f408451c4db3005bafb64fe1c51c763e01e",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/tokenizer_config.json": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "/home/jliu171/jliu171_data/hetero_data/models/Qwen/Qwen3-Reranker-0.6B/tokenizer.json": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4"
+  },
+  "documents": 3633,
+  "chunks_per_database": 6543,
+  "embedding_backend": "vllm",
+  "reranker_backend": "transformers",
+  "device_host": "/dev/davinci1",
+  "device_container": "npu:0",
+  "models_host": "/home/jliu171/jliu171_data/hetero_data/models",
+  "database_data_host": {
+    "milvus": "/mnt/raid/jliu171/milvus-data-vllm-20261009",
+    "elasticsearch": "/mnt/raid/jliu171/elasticsearch-data-vllm-20261009"
+  },
+  "scope": "Restore and online smoke verification; not a sustained memory-pressure experiment."
+}

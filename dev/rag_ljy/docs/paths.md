@@ -1,0 +1,67 @@
+# 路径变更（2026-10-09）
+
+当前入口和输出默认路径均已更新。外部调用方请使用新路径。
+
+2026-10-20补充：根目录 [status.md](../status.md) 是必须保留并持续更新的当前状态入口。
+
+| 原路径 | 当前路径 |
+|---|---|
+| `scripts/serve_embeddings.py` | [scripts/runtime/serve_embeddings.py](../scripts/runtime/serve_embeddings.py) |
+| `scripts/serve_queries.py` | [scripts/runtime/serve_queries.py](../scripts/runtime/serve_queries.py) |
+| `scripts/query.py` | [scripts/runtime/query.py](../scripts/runtime/query.py) |
+| `scripts/setup_device_env.sh` | [scripts/runtime/setup_device_env.sh](../scripts/runtime/setup_device_env.sh) |
+| `scripts/setup_npu_env.sh` | [scripts/runtime/setup_npu_env.sh](../scripts/runtime/setup_npu_env.sh) |
+| `scripts/ingest_corpus_both.py` | [scripts/data/ingest_corpus_both.py](../scripts/data/ingest_corpus_both.py) |
+| `scripts/ingest_test_data.py` | [scripts/data/ingest_test_data.py](../scripts/data/ingest_test_data.py) |
+| `scripts/create_index.py` | [scripts/data/create_index.py](../scripts/data/create_index.py) |
+| `scripts/convert_beir_corpus.py` | [scripts/data/convert_beir_corpus.py](../scripts/data/convert_beir_corpus.py) |
+| `scripts/download_models.py` | [scripts/data/download_models.py](../scripts/data/download_models.py) |
+| `scripts/benchmark_sequential.py` | [scripts/benchmarks/benchmark_sequential.py](../scripts/benchmarks/benchmark_sequential.py) |
+| `scripts/benchmark_search.py` | [scripts/benchmarks/benchmark_search.py](../scripts/benchmarks/benchmark_search.py) |
+| `scripts/benchmark_retrieval_comparison.py` | [scripts/benchmarks/benchmark_retrieval_comparison.py](../scripts/benchmarks/benchmark_retrieval_comparison.py) |
+| `scripts/prepare_benchmark_queries.py` | [scripts/benchmarks/prepare_benchmark_queries.py](../scripts/benchmarks/prepare_benchmark_queries.py) |
+| `scripts/check_device.py` | [scripts/checks/check_device.py](../scripts/checks/check_device.py) |
+| `scripts/check_npu.py` | [scripts/checks/check_npu.py](../scripts/checks/check_npu.py) |
+| `scripts/check_vllm_embeddings.py` | [scripts/checks/check_vllm_embeddings.py](../scripts/checks/check_vllm_embeddings.py) |
+| `scripts/test_bm25.py` | [scripts/checks/test_bm25.py](../scripts/checks/test_bm25.py) |
+| `scripts/verify_rebuilt_stores.py` | [scripts/checks/verify_rebuilt_stores.py](../scripts/checks/verify_rebuilt_stores.py) |
+| `scripts/check_multi_request/diagnose_stages.py` | [scripts/diagnostics/diagnose_stages.py](../scripts/diagnostics/diagnose_stages.py) |
+| `scripts/check_multi_request/diagnose_vllm_inputs.py` | [scripts/diagnostics/diagnose_vllm_inputs.py](../scripts/diagnostics/diagnose_vllm_inputs.py) |
+| `scripts/check_multi_request/diagnose_rope.py` | [scripts/diagnostics/diagnose_rope.py](../scripts/diagnostics/diagnose_rope.py) |
+| `scripts/check_multi_request/check_baseline_200.py` | [scripts/benchmarks/check_baseline_200.py](../scripts/benchmarks/check_baseline_200.py) |
+| `README.md` | [docs/history/README-before-organization-2026-10-09.md](../docs/history/README-before-organization-2026-10-09.md) |
+| `status.md` | [status.md](../status.md)（固定当前状态入口） |
+| `summary.md` | [docs/history/summary-2026-09-16.md](../docs/history/summary-2026-09-16.md) |
+| `DEVICE_CONTEXT_INTEGRATION.md` | [docs/device-context.md](../docs/device-context.md) |
+| `benchmarks/README.md` | [docs/history/benchmark-index-before-organization.md](../docs/history/benchmark-index-before-organization.md) |
+| `benchmarks/vllm-baseline-200-2026-10-09_044059Z-afcc8d` | [artifacts/benchmarks/vllm-baseline-200-2026-10-09_044059Z-afcc8d](../artifacts/benchmarks/vllm-baseline-200-2026-10-09_044059Z-afcc8d) |
+| `benchmarks/vllm-embedding-2026-10-09_103814-9beb2a` | [artifacts/checks/embeddings/vllm-embedding-2026-10-09_103814-9beb2a](../artifacts/checks/embeddings/vllm-embedding-2026-10-09_103814-9beb2a) |
+| `benchmarks/vllm-embedding-2026-10-09_104301-10b80b` | [artifacts/checks/embeddings/vllm-embedding-2026-10-09_104301-10b80b](../artifacts/checks/embeddings/vllm-embedding-2026-10-09_104301-10b80b) |
+| `benchmarks/vllm-integration-2026-10-09` | [artifacts/diagnostics/vllm-integration-2026-10-09](../artifacts/diagnostics/vllm-integration-2026-10-09) |
+| `benchmarks/vllm-mismatch-diagnosis-2026-10-09` | [artifacts/diagnostics/vllm-mismatch-diagnosis-2026-10-09](../artifacts/diagnostics/vllm-mismatch-diagnosis-2026-10-09) |
+| `benchmarks/vllm-rebuild-2026-10-09` | [artifacts/rebuilds/vllm-rebuild-2026-10-09](../artifacts/rebuilds/vllm-rebuild-2026-10-09) |
+| `scripts/check_multi_request/results/2026-10-09_101847-milvus-c66584` | [artifacts/checks/multi_request/2026-10-09_101847-milvus-c66584](../artifacts/checks/multi_request/2026-10-09_101847-milvus-c66584) |
+| `scripts/check_multi_request/results/2026-10-09_102015-milvus-aa6f9b` | [artifacts/checks/multi_request/2026-10-09_102015-milvus-aa6f9b](../artifacts/checks/multi_request/2026-10-09_102015-milvus-aa6f9b) |
+| `scripts/check_multi_request/results/2026-10-09_102708-milvus-104703` | [artifacts/checks/multi_request/2026-10-09_102708-milvus-104703](../artifacts/checks/multi_request/2026-10-09_102708-milvus-104703) |
+| `scripts/check_multi_request/results/2026-10-09_103905-milvus-1d5352` | [artifacts/checks/multi_request/2026-10-09_103905-milvus-1d5352](../artifacts/checks/multi_request/2026-10-09_103905-milvus-1d5352) |
+| `scripts/check_multi_request/results/2026-10-09_104143-milvus-deaf34` | [artifacts/checks/multi_request/2026-10-09_104143-milvus-deaf34](../artifacts/checks/multi_request/2026-10-09_104143-milvus-deaf34) |
+| `scripts/check_multi_request/results/2026-10-09_104232-milvus-95c93d` | [artifacts/checks/multi_request/2026-10-09_104232-milvus-95c93d](../artifacts/checks/multi_request/2026-10-09_104232-milvus-95c93d) |
+| `scripts/check_multi_request/results/2026-10-09_104334-milvus-ba40db` | [artifacts/checks/multi_request/2026-10-09_104334-milvus-ba40db](../artifacts/checks/multi_request/2026-10-09_104334-milvus-ba40db) |
+| `scripts/check_multi_request/results/2026-10-09_125221-milvus-9ce46a` | [artifacts/checks/multi_request/2026-10-09_125221-milvus-9ce46a](../artifacts/checks/multi_request/2026-10-09_125221-milvus-9ce46a) |
+| `scripts/check_multi_request/results/diagnosis-2026-10-09_111553-395f5f` | [artifacts/diagnostics/runs/diagnosis-2026-10-09_111553-395f5f](../artifacts/diagnostics/runs/diagnosis-2026-10-09_111553-395f5f) |
+| `scripts/check_multi_request/results/diagnosis-2026-10-09_112154-afceb5` | [artifacts/diagnostics/runs/diagnosis-2026-10-09_112154-afceb5](../artifacts/diagnostics/runs/diagnosis-2026-10-09_112154-afceb5) |
+| `scripts/check_multi_request/results/diagnosis-2026-10-09_113725-bfd164` | [artifacts/diagnostics/runs/diagnosis-2026-10-09_113725-bfd164](../artifacts/diagnostics/runs/diagnosis-2026-10-09_113725-bfd164) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_112147-blocking-0b556a.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_112147-blocking-0b556a.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_112147-blocking-0b556a.json) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_112951-input-barrier-2fef0b.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_112951-input-barrier-2fef0b.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_112951-input-barrier-2fef0b.json) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_113056-pool-barrier-a25309.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_113056-pool-barrier-a25309.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_113056-pool-barrier-a25309.json) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_113241-layer-trace-6cb37f.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_113241-layer-trace-6cb37f.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_113241-layer-trace-6cb37f.json) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_113603-native-rope-987548.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_113603-native-rope-987548.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_113603-native-rope-987548.json) |
+| `scripts/check_multi_request/results/fixed-input-2026-10-09_113719-taskqueue-enabled-60f0e3.json` | [artifacts/diagnostics/runs/fixed-input-2026-10-09_113719-taskqueue-enabled-60f0e3.json](../artifacts/diagnostics/runs/fixed-input-2026-10-09_113719-taskqueue-enabled-60f0e3.json) |
+| `scripts/check_multi_request/results/fixed-input-vllm-2026-10-09.json` | [artifacts/diagnostics/runs/fixed-input-vllm-2026-10-09.json](../artifacts/diagnostics/runs/fixed-input-vllm-2026-10-09.json) |
+| `scripts/check_multi_request/results/rope-after-rmsnorm-2026-10-09.json` | [artifacts/diagnostics/runs/rope-after-rmsnorm-2026-10-09.json](../artifacts/diagnostics/runs/rope-after-rmsnorm-2026-10-09.json) |
+| `scripts/check_multi_request/results/rope-kernel-2026-10-09.json` | [artifacts/diagnostics/runs/rope-kernel-2026-10-09.json](../artifacts/diagnostics/runs/rope-kernel-2026-10-09.json) |
+| `benchmarks/concurrent_vs_sequential_2026-09-23` | [artifacts/benchmarks/concurrent_vs_sequential_2026-09-23](../artifacts/benchmarks/concurrent_vs_sequential_2026-09-23) |
+
+固定查询输入： [data/queries/nfcorpus-50.jsonl](../data/queries/nfcorpus-50.jsonl)。
+
+机器可读映射见 [relocations.json](../artifacts/relocations.json)。历史raw内容保持原样。

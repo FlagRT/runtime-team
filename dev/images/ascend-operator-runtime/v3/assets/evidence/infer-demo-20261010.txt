@@ -1,0 +1,21 @@
+# 截选自 npu1-11 运行日志(用户 xliu969),2026-10-10,demo 运行环境 dev/images/ascend-train-comm/v3/demo
+## 带规避配置: python3 dev/images/ascend-operator-runtime/v3/assets/v3_step5_validate.py(ASCEND_RT_VISIBLE_DEVICES=0),退出码 0
+[STEP] import_torch_npu_route_a: OK {'privateuse1_backend': 'npu'}
+[STEP] import_flagcx: OK {'module_file': '/usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/__init__.py'}
+[STEP] privateuse1_stable_after_flagcx: OK {'privateuse1_backend': 'npu'}
+[STEP] triton_driver_check: OK {'triton_version': '3.5.1', 'active_driver': 'NPUDriver'}
+[STEP] import_vllm_and_vllm_fl: OK {'vllm_version': '0.20.2', 'vllm_fl_version': '0.0.0+g8b059122e.d20261008', 'current_platform': '<vllm_fl.platform.PlatformFL object at 0xffff144412d0>', 'current_platform_type': 'PlatformFL'}
+[STEP] llm_construct: OK {'model_path': '/workspace/models/Qwen3-Embedding-0.6B'}
+[STEP] vllm_encode_real_output: OK {'embeddings': [{'prompt': 'Hello, my name is', 'embedding_dim': 1024, 'embedding_l2_norm': 1.0000000348210405, 'first_5_values': [0.021273337304592133, -0.04588962718844414, -0.010180811397731304, -0.08083868026733398, -0.034189291298389435], 'has_nan': False, 'al
+[STEP] npu_memory_allocated_after_inference: OK {'bytes': 16835140096, 'reserved_bytes': 17395875840, 'source': 'torch.npu.memory_allocated (in-process engine)', 'nonzero': True}
+[STEP] privateuse1_stable_after_inference: OK {'privateuse1_backend': 'npu'}
+
+## 撤除规避配置(VLLM_FL_FLAGOS_BLACKLIST= 且 PYTHONPATH 去掉 stub 目录),退出码 1
+[STEP] import_torch_npu_route_a: OK {'privateuse1_backend': 'npu'}
+[STEP] import_flagcx: OK {'module_file': '/usr/local/python3.11.15/lib/python3.11/site-packages/flagcx/__init__.py'}
+[STEP] privateuse1_stable_after_flagcx: OK {'privateuse1_backend': 'npu'}
+[STEP] triton_driver_check: OK {'triton_version': '3.5.1', 'active_driver': 'NPUDriver'}
+[STEP] import_vllm_and_vllm_fl: OK {'vllm_version': '0.20.2', 'vllm_fl_version': '0.0.0+g8b059122e.d20261008', 'current_platform': '<vllm_fl.platform.PlatformFL
+[STEP] vllm_encode_real_output: FAIL {'error': 'CompilationError(\'def cos_func_kernel_rank_1(\\n    in0_ptr: tl.tensor, # of tl.pointer_type\\n    out0_ptr: tl
+[STEP] privateuse1_stable_after_inference: OK {'privateuse1_backend': 'npu'}
+ModuleNotFoundError(\"No module named 'shmem'\")

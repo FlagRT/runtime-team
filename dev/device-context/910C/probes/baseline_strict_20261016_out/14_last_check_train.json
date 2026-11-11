@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-10-16T14:34:18+08:00",
+  "env_dir": "dev/device-context/910C/env/train",
+  "baseline": "env.baseline.yaml",
+  "report": [
+    {
+      "status": "PASS",
+      "item": "image",
+      "detail": "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64 -> sha256:7028028bb62ce06322f2b53379891c062caf8ac6b3f2b1a469be6dafe9af7913"
+    },
+    {
+      "status": "PASS",
+      "item": "FlagCX",
+      "detail": "commit=b576fa6ad977"
+    },
+    {
+      "status": "INFO",
+      "item": "FlagCX",
+      "detail": "覆盖镜像内固化版本 4e0e0cbcbf72，生效方式 pip-editable"
+    },
+    {
+      "status": "INFO",
+      "item": "baked",
+      "detail": "固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）"
+    }
+  ],
+  "result": "PASS"
+}

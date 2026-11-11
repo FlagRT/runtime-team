@@ -1,0 +1,13 @@
+can not use command: npu-smi info
+can not use command: npu-smi info
+[1] 设备上下文: 后端=ascend 设备数=2
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-4b
+[3] 向量: 维度=1024 有限=True 范数=1.000000
+[4] 语义: 同主题 0.6980 / 异主题 0.2857 / 区分度 0.4123
+[5] 吞吐: 40.25 句/s | p50 74.7ms | max 75.1ms
+[6] 错误注入: HTTP 400 | This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at l → L2_PARAM / raise
+[7] 业务继续: ✅
+
+=== SERVE_LEG_PASS | 10/10 ===
+结果已写入 proto_infer_serve_result.json

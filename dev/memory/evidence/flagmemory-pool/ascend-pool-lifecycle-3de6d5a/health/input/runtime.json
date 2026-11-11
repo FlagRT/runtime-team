@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "review_status": "accepted",
+  "reviewer": "Codex /root/ascend_execution_readiness independent ABI and source-contract review",
+  "reviewed_at": "2026-11-04T06:56:51.816665+00:00",
+  "preparation_status": "final-schema-checked-contract-only",
+  "review_scope": "ABI and exact-source contracts only; no device mapping or health result",
+  "runtime_query_observed": false,
+  "realcard_passed": false,
+  "review_report_path": "C:\\Users\\Tang\\Documents\\CODE\\flag_RT\\tasks\\memory-ascend-validation-20261104\\abi-and-event-review.md",
+  "review_report_sha256": "810c6cf24514ac1831b2109fbc1bc8cca15bcbcec67fb521d9f1936eb53350a1",
+  "review_evidence_sha256s": {
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\evidence2.txt": "c76e9195afa261e0d918a0154ce96ddeef4f606b4076c2221128f4e262611d03",
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\supplement.txt": "284790bbadd096c706a70fab4f567471259c69b2cbfd494d4082949243d21e2a",
+    "C:\\Users\\Tang\\AppData\\Local\\Temp\\ascend-static-20261104\\identity.txt": "6151453cc6e37eaf4efea5da5ec38c310acb88c5c0d8f64208537c9f5febfdea"
+  },
+  "final_commit_schema_checked": true,
+  "torch_npu_version": "2.10.0",
+  "torch_npu_git_version": "94f8a8e6b523d7ba553e1b80d5b5248478391526",
+  "event_query_contract": "polls-status-without-waiting-for-device-completion",
+  "stream_contract": "explicit-device-and-restoring-stream-context",
+  "contract_source": [
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/csrc/npu/Event.cpp#L150",
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/csrc/core/npu/NPUEvent.cpp#L77",
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/csrc/core/npu/NPUEventManager.cpp#L132",
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/csrc/core/npu/interface/AclInterface.cpp#L315",
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/csrc/npu/Stream.cpp#L76",
+    "https://github.com/Ascend/pytorch/blob/94f8a8e6b523d7ba553e1b80d5b5248478391526/torch_npu/npu/utils.py#L90"
+  ],
+  "source_sha256s": {
+    "/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/version.py": "06c95269c202624b11ed850c42db6c13cb47af7be105c23881474222e1a538b2",
+    "/usr/local/python3.11.15/lib/python3.11/site-packages/torch_npu/include/third_party/acl/inc/acl/acl_base.h": "14184eca0c6aabd5886a32a21d01b1d14daf91119f4443dee3b6c81874fed859"
+  },
+  "api_contract_source": "https://www.hiascend.com/doc_center/source/zh/canncommercial/900/programug/acldevg/runtime_doc_dev_0024.html",
+  "hard_realtime_bound_claimed": false,
+  "schema_checked_commit": "e4a1e7f5b4b29abe36d78f6ecd19d59cf7dff744",
+  "schema_checked_at": "2026-11-04T07:08:15.973761+00:00",
+  "schema_source_sha256": "54a8f1dc101d7fefdebb90fd44d99bd12f55c2378fedfb162b124b95e620a645",
+  "schema_source_path": "C:\\rt\\fm\\tools\\ascend_probe.py"
+}

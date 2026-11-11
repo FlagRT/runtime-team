@@ -1,0 +1,491 @@
+# 新芯片接入手册（New Chip Onboarding Manual）
+
+> 版本：v1.0 ｜ 日期：2026-09-20 ｜ 维护：device-context 子方向（Kistich）
+> **读者**：接入第 3 家及以后芯片的工程师；以及需要判断"某芯片接进来要多久"的评审方。
+> **适用前提**：统一运行时原型 `dev/device-context/prototype/` 已就位（自包含，可整体拷出）。
+> **本手册的目标**：把一次新芯片接入，从"摸索"变成"照单执行"。
+> **写法约定**：每条要求与坑都给出**实测依据**（现象 / 数字 / 报错原文），可独立阅读，不写成"请看某文件某章"。
+> 凡本方向未取得证据的，明确标注「未验证」，不臆造。
+
+---
+
+## 0. 一句话主张与实测锚点
+
+**新增一家芯片 = 实现一个 backend（13 个抽象方法）+ 跑通 conformance（13 例 + 6 例）。**
+
+已有两家实例的实际成本：
+
+| 实例 | 芯片 | 结果 | 接入耗时 |
+|---|---|---|---|
+| 第 1 家 | 华为昇腾 910C | conformance 13/13 + 6/6；两条腿全闭环 | 基线实例（自建原型期） |
+| 第 2 家 | 昆仑芯 P800 | conformance 13/13 + 6/6；smoke 42/0；训练腿 6/6；推理腿前向 13/13、服务化 10/10；错误闭环两设置各 5/0/0 | **单日完成**（月度目标：单个 ≤5 人天） |
+| 第 3 家 | 寒武纪 MLU590 | conformance 13/13 + 6/6；smoke 46/0；两条腿 6/6 与 13/13；服务化**四形态**（TP∈{1,2}×EAGER∈{1,0}）全 PASS；错误闭环 5/0/0；职责审计 62/0/16 | 09-28 收口（跨两机分期；09-22 因 SSH 超时缺的 2 项已补） |
+| 第 4 家 | 平头哥 PPU | conformance 13/13 + 6/6；smoke 46/0；两条腿 6/6（5167 tok/s）与 13/13（135.77 句/s）；服务化 10/10；错误闭环 5/0/0；契约不变式 4/4；职责审计 73/0/5 | **10-10 上机 → 10-14 收官（约 5 天）**，含一处**平台侧缺陷**的原生定位与转厂商；10-26 **13 段全量重跑零回归** |
+
+⇒ 第 2 家的"单日完成"是**接入动作本身**（写 backend + 跑 conformance），
+不含**环境打通**（机器/驱动/镜像/网络）与**厂商缺陷排障**。后两项才是真正的工期风险，见 §1 与 §7。
+
+**四家横向看，工期结构一致**：接入动作 1–2 天；真正吃掉时间的是 ① 环境打通（PPU 的 `--network host` 主机名、
+`NCCL_SOCKET_IFNAME`、镜像缺 `triton` 三条见 §9-14/15/16）② 厂商/平台缺陷的**归属判定**（PPU 的退出期段错误用了
+4 天定位到「平台侧弱引用书签失效」，并给出本层不依赖其语义的修法）⇒ **排期按「1–2 天接入 + 3–5 天环境与缺陷」估**。
+
+---
+
+## 1. 第 0 步：把环境风险前置（比写代码更耗时）
+
+**P800 的实测教训：接入动作只花一天，环境打通卡了好几天。** 因此接入前先把下面 7 项列表问清楚：
+
+| # | 要确认的事 | P800 的实际情况（作为对照） |
+|---|---|---|
+| 1 | **连得上吗** | SSH 走**非标准端口 26008**；`~/.ssh/config` 里 `Host` 段缺 `Port` 行时，表现为 `Connection refused`，**极易误判为网络/VPN 问题** |
+| 2 | **有权限吗** | 需加入 `docker` 组（否则每次 sudo）；需自有可写数据目录（`/data2/hliu553`） |
+| 3 | **镜像怎么来** | 官方手册要求 `docker pull`（59.9 GB）+ `docker load`（32 GB 产出包）；本机镜像库**已有**该镜像 ⇒ 两步全跳过 |
+| 4 | **谁是共享用户** | 该机为共享机（25 人在线 / 22 个容器）；**用卡前必须挑空闲卡**，见 §7 坑 2 |
+| 5 | **磁盘够吗** | 先 `findmnt -T /var/lib/docker` 看 docker 数据目录的真实挂载点（P800 是 bind mount 到 `/data1`，5.8 T） |
+| 6 | **网络通不通** | 镜像/whl 源是否可达：P800 上 `resource.flagos.net` 可达（HTTP 200），`flagos-pypi-hosted` 源可装 3.3 GB 的 `flagtree` wheel |
+| 7 | **拓扑清楚吗** | P800：XPU0-3 属 NUMA0、XPU4-7 属 NUMA1；组内走 XL 私有链路、跨组走 SYS；**2 卡实验优先取同组相邻卡**（如 6,7） |
+
+**用卡纪律（共享机）**：`xpu-smi` 挑**连续且空闲**的卡并记录用卡。
+P800 实测曾因误用被他人占用的卡（观察到他人卡 1 占用 166→502 MiB / 100%），
+把现象误判为"通信库适配缺陷"——换成空闲的卡 6/7 后三类通信全通过，该结论已撤销。
+
+**一键执行上面 7 项**（拿到机器就先跑这一条，产出报告可直接作为环境报告证据）：
+
+```bash
+bash prototype/scripts/preflight_env.sh              # 自动探测；输出到 /tmp/dc_preflight/
+OUT=/srv/<user>/preflight bash prototype/scripts/preflight_env.sh   # 指定输出目录
+```
+
+脚本只读、不装任何东西；缺项**如实打印「未取得 / 不可用」，不猜测、不补零**。
+其中两处是踩过的坑：第 4 项必须看 **docker 数据目录的真实挂载点**（`findmnt -T $(docker info --format '{{.DockerRootDir}}')`，
+P800 曾因 `du -x` 跨文件系统即停而误判根分区容量）；第 2 项的芯片信息在**容器内通常拿不到厂商工具**
+（`npu-smi` / `xpu-smi` / `cnmon` 都是宿主工具）⇒ 脚本自动降级为 torch 侧查询。
+
+---
+
+## 2. 第 1 步：判别厂商 PyTorch 栈（决定走哪条路）
+
+这是**接入手册的第一项**，因为它决定后面所有动作的形态。
+
+**判别命令（拿到机器就跑）**：
+
+```bash
+python -c "import torch; print(torch.__version__); print('cuda:', torch.cuda.is_available(), torch.cuda.device_count())"
+python -c "import torch.npu; print('npu:', torch.npu.device_count())"          # 昇腾系
+python -c "import torch.mlu; print('mlu:', torch.mlu.device_count())"          # 寒武纪系
+python -c "import torch.xpu; print('xpu:', torch.xpu.device_count())"          # 通用 XPU 命名空间
+python -c "from vllm.platforms import current_platform; print(current_platform)"  # 推理腿服务化可行性
+```
+
+**四条路径与判据**：
+
+| 路径 | 特征 | 处理方式 | 已知实例 |
+|---|---|---|---|
+| **A. 厂商官方 PyTorch 扩展**（首选） | 能 `import torch_<vendor>` 且 `device_count() > 0` | 直接按其命名空间实现 backend | 昇腾 `torch_npu`（`npu`） |
+| **B. 复用 `torch.cuda` 命名空间** | `torch.cuda.device_count() > 0`，但设备实际是国产芯片 | 按 `device_type="cuda"` 实现；**必须靠 `vendor` 字段区分厂商**（见 §5 修订建议 1） | 昆仑芯 P800（XPytorch + `torch_xray` 符号重写，编译标志 `USE_XPU=OFF`） |
+| **C. 私有命名空间（PrivateUse1）** | `import torch_xxx` 后设备串是自有前缀 | 可用；但**同一进程只能激活一家**（PrivateUse1 是单例），接口约定须写明"进程级切换" | `torch_npu`→`npu`、`torch_mlu`→`mlu`、`torch.cuda` 兼容层（XPytorch）→`cuda` |
+| **D. 无 PyTorch 集成，只有底层 C API** | 上述全部失败 | 需自研薄桥接层，或先确认该厂商是否已有官方 PyTorch 插件未纳入考虑 —— **成本最高，须先评估再动手** | 未遇到 |
+
+**⚠️ 关于路线 B（torch_fl）的定位（常见误解；且本方向已不采用该路线）**：
+`torch_fl` **不是**"没有标准命名空间时的兜底"，且自 2026-09-22 起**本方向已整体退出该路线**
+（原型里的对应后端已删除）。以下两点保留为**调研结论**，供判别"为什么不能走"时引用。
+它是**编译期绑定单一加速器**的（编译时传 `ACCELERATOR=<vendor>`，换厂商要重编译），
+平台矩阵只覆盖特定几家（`cuda / metax / ascend / ppu / dcu / gcu / musa / bpu / tsingmicro`，
+**没有 cambricon、没有 biren**）。它的定位是"设备接入层的**参照实现**"与全组预研 B 线，
+主线是 **Route A：各芯片厂商官方插件**。
+对昇腾实测（**路线 B 时期，现已不适用**）：必须 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先导入该插件再 `import torch`，
+**禁止与 `torch_npu` 共存**（镜像自带校验脚本直接报错）。
+
+**推理腿的服务化判据（决定要不要额外补环境）**：
+
+```bash
+python -c "from vllm.platforms import current_platform; print(current_platform)"
+```
+
+- 打印出**具体平台**（如 `<vllm_fl.platform.PlatformFL>`）→ 可以起服务
+- 打印出 **`UnspecifiedPlatform`** → 社区 vLLM 认不出设备，**必须另有平台插件或厂商移植版 vLLM**，否则推理腿的服务化形态无法验证
+
+P800 正是第二种：容器里是**社区 upstream vLLM 0.13.0**（`vllm/platforms/` 只有 cpu/cuda/rocm/tpu/xpu，
+**没有 kunlun**），靠 `vllm-plugin-FL` 提供 platform 才可用。
+而 910C 相反：用的是华为官方移植版 `vllm-ascend`（自带 ascend 平台），
+同一份 `vllm-plugin-FL` 在昇腾上**没有后端、必须禁用**（设 `VLLM_PLUGINS=fl` 后
+`current_platform.device_type` 变空，抛 `RuntimeError: Device string must not be empty`）。
+
+⇒ **同一插件跨芯片可用性可以完全相反**，这是选型时必须逐个确认、不能类推的一点。
+
+---
+
+## 3. 第 2 步：镜像就绪判据
+
+镜像不需要"算子多、模型多"，标准是**能被本原型接管**。五条判据：
+
+| # | 判据 | 命令 | 不满足的后果 |
+|---|---|---|---|
+| 1 | 设备可见 | `torch.cuda.device_count()` / `torch.npu.device_count()` > 0 | smoke 直接跑不了 |
+| 2 | 厂商 torch 栈可导入 | 见 §2 判别命令 | 没有接入点 |
+| 3 | 训练腿有可用集合通信 | 探测 `nccl / xccl / kccl / flagcx` 哪条可用 | 训练腿无法验证 |
+| 4 | 推理腿有 vLLM 平台路径 | 见 §2 `current_platform` | 服务化形态无法验证 |
+| 5 | **依赖链完整可导入** | 见下 | 表现为"设备问题"，实为包问题 |
+
+**第 5 条是本手册最容易踩、也最难自查的一条**。P800 上它有两层，且**都表现为同一句报错**
+`RuntimeError: Failed to infer device type`：
+
+**第一层：镜像里没有 `triton`。** 官方 `-base`（及 `-base-ssh` 变体）开箱不含 `triton`——
+site-packages 里既无目录、pip 也无记录。完整断链（需 `VLLM_LOGGING_LEVEL=DEBUG` 才看得到）：
+
+```
+vllm_fl/__init__.py:6             → from vllm_fl.utils import get_op_config
+vllm_fl/utils.py:8                → import flag_gems
+flag_gems/testing/__init__.py:3   → from flag_gems import runtime
+flag_gems/runtime/configloader.py:4 → import triton
+→ ModuleNotFoundError: No module named 'triton'
+```
+
+补齐（官方手册 1.2 节原文；实测源可达、wheel 3.3 GB、约 2 分 24 秒）：
+
+```bash
+python3 -m pip uninstall -y triton          # 反复执行至彻底卸载
+python3.10 -m pip install flagtree===0.7.0rc3+xpu3.6 \
+  --index-url=https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+```
+
+**第二层：`flag_gems` 的子模块不完整。** 即使 `triton` 就位，`vllm_fl` 仍依赖
+`flag_gems.runtime.backend.device.DeviceDetector`，而 site-packages 里那份 `flag_gems`
+（`pip show` 看得见包）该子模块**导不进来** ⇒ 必须：
+
+```bash
+export PYTHONPATH=/env/FlagGems/src
+```
+
+**判据化的自检命令**（接入时先跑，别等起服务）：
+
+```bash
+python -c "import triton; print('triton', triton.__version__)"
+PYTHONPATH=/env/FlagGems/src python -c "import flag_gems, vllm_fl; print('FL stack OK')"
+```
+
+> 镜像选型与入档/入锁流程见另一份《镜像选择与确定指南》；P800 的镜像选型与官方 `-base`
+> 获取补齐三步见两实例配置手册。本手册只强调：**"官方镜像开箱即用"这句话要亲自验证**。
+
+---
+
+## 4. 第 3 步：实现 backend（13 个抽象方法）
+
+**新建 `runtime/backends/<vendor>/`，不要复制任何既有芯片的实现。**
+
+### 4.1 必须实现的 13 个抽象方法（`backends/base.py`）
+
+| 域 | # | 方法 | 签名摘要 |
+|---|---|---|---|
+| **设备** | 1 | `device_count` | `() -> int` |
+| | 2 | `set_device` | `(ordinal) -> None` |
+| | 3 | `memory_stats` | `(ordinal) -> dict` |
+| | 4 | `probe_device` | `(ordinal) -> bool` |
+| **流 / 事件** | 5 | `create_stream` | `()` |
+| | 6 | `create_event` | `()` |
+| | 7 | `current_stream` | `()` |
+| | 8 | `stream_context` | `(native_stream)` |
+| | 9 | `synchronize` | `(ordinal, timeout_ms=None) -> None` |
+| | 10 | `synchronize_stream` | `(native_stream, timeout_ms) -> None`（**有界**） |
+| | 11 | `wait_event_host` | `(native_event, timeout_ms) -> bool`（**有界**） |
+| **错误** | 12 | `translate_error` | `(exc, location="") -> FlagosError` |
+| **恢复** | 13 | `recover_device` | `(ordinal, mode="probe", reason="") -> dict` |
+
+**四个可选/带默认实现的方法**（按需覆盖）：
+
+| 方法 | 用途 |
+|---|---|
+| `supports(capability) -> bool` | 能力如实声明；conformance 据此生成 stub-skip 报告 |
+| `known_issues() -> list` | 结构化已知缺陷（见 §7 坑 5），让下游"读到后端即知坑" |
+| `stream_priority_range()` | 流优先级范围；不支持则返回 `None` |
+| `info() -> dict` | 汇总后端信息（含 `known_issues`） |
+
+**两个必须声明的类属性**：`name`（后端名）、`device_type`（设备串前缀）。
+
+> ⚠️ 当前 `device_type` 同时承担了"设备串前缀"与"厂商标识"两个语义，
+> 而 P800 用的取值是 `"cuda"`（复用 cuda 命名空间）——**将来接 NVIDIA 也是 `cuda`，会撞名**。
+> 建议同时声明 `vendor` 字段，见 §5 修订建议 1。
+
+### 4.2 三条实现纪律
+
+1. **如实声明，不伪造能力**：不支持就用 `supports()` 声明为 False，conformance 会生成 stub-skip 报告。
+   P800 实测：厂商错误码不透出到 Python 层 ⇒ `error_map` 能力**如实跳过** `vendor_code_map` 用例，
+   **不伪造、不补零**——这是接入规范的要求。
+2. **有界同步必须真的是有界的**：`synchronize_stream` / `wait_event_host` 的 `timeout_ms` 要真正生效。
+   910C 实测：未 record 的 event `wait_host(200ms)` 返回 `False`、耗时 201 ms（不永久阻塞）。
+3. **错误翻译返回统一类型**：必须是 `api/errors.py` 的 `FlagosError` 实例，
+   且 `category` 必须是 api 层的 `ErrorCategory` 枚举（跨模块枚举混用会踩 §5 修订建议 4 的坑）。
+
+### 4.3 登记与自动发现
+
+提供 `build()` 工厂函数并在 `registry` 登记名字；`registry.discover()` 扫描已安装插件。
+注册表已预留常见后端名，新增一家通常**不需要改框架代码**。
+
+### 4.4 无设备时的离线契约自检（2026-09-22 新增，来自第 3 家接入实践）
+
+**动机（实测痛点）**：第 4 步（写 backend）与第 5 步（跑 conformance）之间有一段空档 ——
+代码写完但机器/容器还没到位（权限未开、镜像未取到）。这段时间最容易犯的是**实现层面的错**：
+抽象方法没实现全、有界同步其实没上界、事件语义没修（未 record 的 `query()` 误报"已完成"）、
+错误翻译冒充码表命中、能力声明与实现不一致。**这些问题不需要真实芯片就能查出来。**
+
+```bash
+python3 prototype/scripts/backend_offline_check.py --backend <vendor>
+```
+
+用 stub 厂商命名空间把后端"空跑"一遍，覆盖 8 组检查：
+① 发现/实例化（**ABC 会在实例化时强制 13 个抽象方法齐全**）；② 设备域 4 项；
+③ 流/事件域 + **有界同步是否真有界**；④ 事件语义 E3/E2-v2；⑤ 错误翻译 F1 与诚实性
+（**含"他厂码串入"负向测试**，见下）；⑥ 恢复与设备状态；⑦ 能力声明自洽 + `known_issues` 结构；
+⑧ **缺厂商扩展时不得静默降级**。
+
+**判据来源**：逐条对应《接口约定》或 conformance 用例的同口径判据（代码内注明 F1 / E2-v2 / E3 / R1-R5）。
+
+#### 4.4.1 四家已内置 stub（2026-09-22 起）
+
+stub 已通用化为 `_vendor_stub(ns_name, vendor_modules, mem_mode)`，**新增一家 = 在 `_STUBS` 里加一行**：
+
+| 后端 | 设备命名空间 | 需一并对造的顶层模块 | 当前结果（本机、无设备） |
+|---|---|---|---|
+| `cambricon` | `torch.mlu` | `torch_mlu` | **38 通过 / 0 失败 / 0 跳过** |
+| `kunlun` | `torch.cuda`（XPytorch） | — | 38 / 0 / **1 跳过** |
+| `ascend` | `torch.npu` | `torch_npu` | 28 / 0 / **2 跳过** |
+
+> ⚠️ **沉痛教训（第 3 家接入的收口产出）**：本工具**原先只为 `cambricon` 一家内置 stub**，
+> 于是 `--backend kunlun\|ascend\|flagos` **直接被拒** ⇒ 那三家**从未被自检过**，
+> 结果在 910C 第一实例上长期存在两处缺陷（声明了 `device_state` 却无实现；
+> `info()["supports"]` 手写了第二份键名清单、与 `_capabilities` 对不上）
+> 直到把工具扩到四家才暴露。**"只有一家能跑的自检"= 其余各家的盲区。**
+> 明细见 `BACKEND_SYMMETRY_AUDIT_20260922.md`。
+
+#### 4.4.2 显式 SKIP 机制（stub 是语义空间的，别让它越界）
+
+stub 无法模拟真实算子与厂商运行时（例如昇腾的有界同步走 `acl` 原语、探活走真实设备计算）。
+凡 stub 覆盖不到的判据，一律**显式 SKIP 并写明原因**，汇总行区分
+`X 通过 / Y 失败 / Z 跳过（stub 能力边界，非失败）` ——
+**既不误报 FAIL，也不把"跳过"混进"通过"**。
+
+#### 4.4.3 两条新增判据（都可防住"声明与实现不符"）
+
+| 判据 | 防的是 |
+|---|---|
+| `device_state 可调用`（缺方法判 FAIL，**不让整轮崩掉**） | 可选能力"声明了却不实现"（ABC 拦不住；原先该调用会让整轮自检崩掉、连汇总都打不出） |
+| `info()['supports'] 键集合 == 能力全集` | `info()` 手写第二份键名清单导致**键名漂移**（smoke 既有的"取值一致"判据覆盖不到：两边都取 `False`） |
+
+#### 4.4.4 证据卫生（同样适用于所有验证脚本）
+
+- **不得硬编码单一厂商的错误码或厂商专有文案**：需要错误码时从**实际异常**中提取，拿不到就如实写"无厂商码"。
+  （曾把昇腾码 `507046` 写进错误闭环文案，在无厂商码的后端上直接产出**假证据**。）
+- **注入用例必须自描述且期望参与判定**：把"这条注入期望什么"写进结果记录
+  （如 `expectation` / `expect_matched`），不符即判该条失败 —— 不能只看"业务还在跑"就放过。
+
+> ⚠️ **结论边界（必须写清，勿外推）**：本自查**只证明实现逻辑与契约形态**，
+> **不能替代 conformance**，也**不能证明后端在真机上能用**。
+> 厂商 API 真实形态（某函数是否存在/是否收参数）、厂商错误码是否透出、
+> 集合通信后端名、以及 conformance 是否通过 —— **一律必须真机实测**。
+> 脚本末行会重复这句边界，避免被脱离语境引用。
+
+---
+
+## 5. 第 4 步：跑通 conformance（13 例 + 6 例）
+
+```bash
+python3 runtime/conformance/runner.py --backend <vendor>                    # 设备上下文与多流 13 例
+python3 runtime/conformance/runner.py --backend <vendor> --cases infer_cases # 推理 6 例
+python3 runtime/smoke_runtime.py --backend <vendor>                          # 接入自检
+```
+
+**通过判据**：13/13 与 6/6 全绿，或未支持项有**如实 stub-skip 说明**。
+13 例覆盖：事件 record/wait（含超时边界、未 record 查询）、错误翻译、恢复评估、
+流内顺序、跨流显式依赖、结果可见性、显式传输、页锁定异步拷贝、在途保护、拓扑路径。
+
+**这一步是接入完成的判定线**：两家实例分别是 13+6 与 13+6，且**逐用例状态完全一致**。
+
+---
+
+## 6. 第 5 步：两条腿验证（设备层的能力实证）
+
+**刻意用最小形态**（`transformers` + `AdamW` + `torch.distributed`；推理用原生 vLLM），
+目的是把设备因素单独暴露出来——框架越厚，设备问题越容易被框架行为掩盖。
+反例很实在：P800 的 KL3 挂死只有在纯 torch 形态下才定位到函数级。
+
+### 6.1 训练腿（2 卡，50 步 / batch 4 / seq 128）
+
+```bash
+CUDA_VISIBLE_DEVICES=6,7 DC_BACKEND=<vendor> DC_ROOT=<prototype> \
+DC_MODEL=<模型目录 | snapshot 目录 | HF 的 models--<org>--<name> 缓存根> \
+DC_OUT_DIR=<out> MAX_STEPS=50 BATCH=4 SEQ=128 \
+python3 -m torch.distributed.run --standalone --nproc_per_node=2 runtime/proto/proto_train_leg.py
+```
+
+**`DC_MODEL` 的三种传法两条腿必须一致**（`runtime/proto/model_path.py` 是唯一实现，2026-10-27 起）：
+普通模型目录 / `snapshots/<hash>` 目录 / HF 缓存根 `models--<org>--<name>`（后者自动解析到
+`snapshots/<hash>`，优先听 `refs/main`）。⛔ 不要给 `/hf_cache/hub` 这种**所有模型的父目录**。
+⚠️ 这条曾经只在推理腿落地：同一份缓存根，推理腿过、训练腿报
+`ValueError: Unrecognized model in …`（10-27 第 3 家实例复跑实测暴露）——
+正是"同一个环境变量、两条腿理解不一致"的老毛病，故抽成共用模块 + 静态同源守卫
+（`scripts/model_path_parity_check.py`，任一条腿自建 `resolve_model` 即 FAIL）。
+
+**判据**：两 rank 均 `TRAIN_LEG_PASS 6/6`（设备绑定 / 模型加载 / 反向 / 集合通信同步 /
+三类通信对照 / 无死锁），且 loss 正常下降。
+参考锚点：910C `15.4497 → 11.15`、2117 tok/s；P800 `15.4488 → 11.1481`、3482 tok/s。
+
+**50 步不是随便定的**：挂死类缺陷往往在第 n 次通信才出现。
+P800 实测挂死点游走在第 3–4、41–50、101–120 次通信之间——50 步是能稳定覆盖该区间的档位。
+
+### 6.2 推理腿（单卡前向 + vLLM 服务化）
+
+**前向**判据：向量维度、首条范数、语义区分度、吞吐与 p50/p90 时延、真实异常注入的分级与处置。
+参考锚点：910C 维度 1024 / 区分度 0.638；P800 维度 **1024** / 区分度 **0.6392**（两实例 `detail` 逐字相同）。
+
+**服务化**判据（`--runner pooling --convert embed`，与两实例同口径）：
+服务就绪、维度/范数、语义区分度、吞吐与 p50、**超长输入 → HTTP 400 → 统一分级 L2_PARAM/raise 且业务继续**、
+**服务与设备上下文同卡共存**（同卡跨流计算正确）。
+参考锚点：910C 区分度 0.4123 / 108 句/s；P800 0.4102 / 30.70 句/s。
+
+> ⚠️ 该版本 vLLM **没有 `--task` 参数**，embedding 服务必须用 `--runner pooling --convert embed`
+> （按 `--task embed` 起会报 `vllm: error: unrecognized arguments: --task embed`）。
+> ⚠️ `vllm serve` 被杀主进程后 **EngineCore 子进程会残留并持续占卡**（P800 实测卡 6 仍被占 73850 MiB / 96 GiB），
+> 下次启动报 `Free memory ... less than desired GPU memory utilization` ⇒ 停机逻辑必须连子进程一起 `kill -9`。
+
+### 6.3 多流 Stream 基线（16 项）
+
+多流是本方向的另一半职责。接入新后端时，应按接口约定给出的**多流验收基线 16 项**逐项比对
+（P800 目前只验了"跨流 Event 依赖"等少数项，16 项逐项比对列入 10 月计划）。
+
+---
+
+## 7. 第 6 步：错误闭环（设备侧的最后一块）
+
+```bash
+python3 runtime/proto/proto_error_recovery_loop.py --backend <vendor>
+```
+
+**判据**：四类注入（参数类 / 资源类 / 执行类 / 致命类）各自得到正确的分级与处置，
+且**业务能继续**。参考锚点：910C 推理腿 5 闭环 / 0 失败；P800 两设置各 5 闭环 / 0 失败。
+
+> **调用纪律（实测结论）**：调 `translate_error` 时必须传**完整的原始异常或服务错误消息，不得截断**。
+> 实测：vLLM 超长输入返回的完整错误体 → 正确分级 L2_PARAM/raise；
+> 只传 "HTTP 400" 或被截断 → 退化为 L3_EXECUTION/replay（对参数错误做无意义重放）。
+
+---
+
+## 8. 验收清单（接入完成的判定）
+
+复制这张表逐项打勾，全绿即接入完成。
+
+| # | 项 | 判据 | 910C | P800 | MLU590 | PPU |
+|---|---|---|---|---|---|---|
+| 1 | 环境打通 | 连得上 / 有权限 / 有可写目录 / 会挑空闲卡 | ✅ | ✅ | ✅ | ✅（`ppu-smi` 挑卡） |
+| 2 | 厂商栈判别 | 明确落在 A/B/C/D 哪条路径，并记录证据 | ✅ A（`npu`） | ✅ B（`cuda`） | ✅ A（`mlu`） | ✅ **B（`cuda` 复用）** |
+| 3 | 镜像就绪 | 5 条判据全过（含**依赖链完整**自检） | ✅ | ✅ | ✅ | ✅ **v2 派生镜像已固化 `triton`**（基座本身仍缺，见 §9-16；`thead-ppu-runtime/v2`） |
+| 4 | backend 落地 | 13 抽象 + `build()` + `supports()` 如实声明 | ✅ | ✅ | ✅ | ✅ |
+| 5 | conformance 13 例 | 全绿或如实 stub-skip | ✅ 13/13 | ✅ 13/13 | ✅ 13/13 | ✅ 13/13 |
+| 6 | conformance 推理 6 例 | 全绿 | ✅ 6/6 | ✅ 6/6 | ✅ 6/6 | ✅ 6/6 |
+| 7 | smoke 自检 | 全通过 / 0 失败 | ✅ 37/0 | ✅ 42/0 | ✅ 46/0 | ✅ 46/0 |
+| 8 | 训练腿 | 两 rank `TRAIN_LEG_PASS 6/6`（50 步） | ✅ | ✅ | ✅ | ✅（5167 tok/s） |
+| 9 | 推理腿（前向） | 维度 / 范数 / 区分度 / 时延 / 异常分级 | ✅ 10/10 | ✅ 13/13 | ✅ 13/13 | ✅ 13/13（区分度 0.6391） |
+| 10 | 推理腿（服务化） | 含超长输入防御与同卡共存 | ✅ 10/10 | ✅ 10/10 | ✅ 四形态全 PASS | ✅ 10/10（区分度 0.4118） |
+| 11 | 错误闭环 | 四类注入分级处置正确、业务继续 | ✅ 5 闭环 | ✅ 两设置各 5 闭环 | ✅ 5/0/0 | ✅ 5/0/0 |
+| 12 | 已知问题如实声明 | `known_issues()` 结构化 + 前后端告警 | ✅ | ✅ | ✅ | ✅（含**平台侧**缺陷转厂商声明） |
+| 13 | 证据归档 | 原始日志/JSON 入版本库（**注意 `*.log` 例外规则**），不是"声称已归档" | ✅ | ✅ | ✅ | ✅ |
+| 14 | **契约不变式 I1–I4**（2026-10 增补） | 真机 `CONTRACT_INVARIANTS_PASS 4/4` | ✅ | ✅ | ✅ | ✅ 4/4 **且 `rc=0`**（2026-10-26 第五载体收口：`_stream_ctx` 改强持有；原为「判据过、退出期 `rc=139`」，见 `PPU/docs/PPU_EXIT_SEGV_CARRIER5_20261026.md`）。⚠️ **读法**：退出码是**独立判据**，不得当判据结果读；复现时**不得在退出前手动 `gc.collect()`**（会掩盖缺陷） |
+| 15 | **职责响应审计 78 项**（2026-10 增补） | `DUTY_RESPONSE_PASS`；SKIP 须为如实不具备 | ✅ 73/0/5（10-27） | ✅ **68/0/10**（10-26） | ✅ **63/0/15**（10-27） | ✅ 73/0/5（10-26） |
+| 16 | **单入口复跑**（2026-10 增补） | 一条命令跑完判据，逐段留 rc 与 verdict | ✅ `910C/probes/run_910c_p9_acceptance.sh` 等 | ✅ 分项脚本 | ✅ 分项脚本 | ✅ `PPU/probes/run_acceptance_ppu.sh`（13 段） |
+
+> ⚠️ **数字要对得上归档**：第 15 行 910C 的 `73/0/5` 在 2026-10-27 之前**没有 78 项版的归档支撑**（仓库里 910C 的审计归档只有 `duty_audit_ascend_20260928.json` 等 **39 项版旧清单**，且当时 C13 是「OK 但 `elapsed_time=0.0`」——正是后来在 P800 上被判为「如实不具备/假通过」的形态）。该机首次以 78 项版实测并归档即为 `73/0/5`（C13 = 10.474 ms），见 `910C/probes/rerun_20261027_out/`。⇒ **引用本表前先确认对应版本的归档存在**。
+> ⭐ 四家 C13 的共同更正（2026-10-26/27 实测）：`event.elapsed_time` 的 SKIP **不是任何一家的平台限制** —— 统一 API 原先**没有「建可计时事件」入口**，判据因此在四家恒跳过。补入口后四家全部计时正常：910C `10.474 ms` · P800 **仍恒 0（如实不具备，裸 torch 复核）** · MLU590 `11.381 ms` · PPU `10.089 ms`。⇒ 只有 **P800 是真正的平台缺口**，其余三家是「我们没测到」。
+
+> ⚠️ **第 15 条的历史读数需重述（2026-10-26 发现）**：四家的 `C13 event.elapsed_time(end)`
+> 一直是**假 SKIP** —— 统一 API 原本没有「建可计时事件」的入口（`create_event()` 无参数），
+> 于是该判据在四家**恒跳过、从未真正执行**；且修掉入口后暴露出方向写反（`e2.elapsed_time(e1)` 得负值仍判 OK）。
+> 两处已在 `PPU` 上修并验证（`73/0/5`）；**其余三家需各自复跑后按 +1 OK / −1 SKIP 更新上表**。
+
+**第 13 条的教训**：仓库根 `.gitignore` 有 `*.log` 通用规则，P800 曾因此导致 8 份证据日志
+**历次提交都写"已归档"实则从未入库**。修法是在 `probes/.gitignore` 写 `!*.log`；
+**写"已入库"前必须用 `git ls-files <path>` 实测确认**，不能凭 `git add` 没报错就认定。
+
+---
+
+## 9. 跨芯片坑清单（接入时按此逐条排查）
+
+| # | 坑 | 现象 / 触发条件 | 应对 |
+|---|---|---|---|
+| 1 | **依赖链不完整伪装成设备问题** | `Failed to infer device type`（看着像设备问题） | 先跑 §3 的自检命令；缺 `triton` 就补 `flagtree`，缺子模块就设 `PYTHONPATH` |
+| 2 | **共享机上误用被占用的卡** | 设备侧报错，看起来像通信库缺陷 | 用卡前 `xpu-smi` 挑空闲卡；出现异常先换卡复测再下结论（P800 曾因此撤销一个"缺陷"结论） |
+| 3 | **同一集合通信库在不同芯片注册的后端名不同** | 910C 是 `hccl`；P800 是 `flagcx`（且需显式 `import flagcx`）；MLU590 是 `cncl` | 不要照搬；探测可用后端再写进配置 |
+| 4 | **`timeout` 杀不掉挂死进程** | 挂死点持 GIL 自旋，SIGTERM 被推迟（实测存活 73 分钟） | 必须 `kill -9` 按 PID 强杀，再 `xpu-smi` 复查卡释放 |
+| 5 | **同一插件跨芯片可用性相反** | `vllm-plugin-FL` 在昆仑芯**必需**、在昇腾**必须禁用** | 逐个实测，不类推 |
+| 6 | **HF 缓存路径层级** | 传"所有模型的父目录"（如 `/hf_cache/hub`）报 `Unrecognized model ... Should have a model_type key` | ✅ 2026-10-27 起**三种传法都合法**（普通模型目录 / `snapshots/<hash>` / HF 缓存根 `models--<org>--<name>`），由共用模块 `runtime/proto/model_path.py` 统一解析（优先听 `refs/main`）；⛔ 仍不给"所有模型的父目录"。判定方式：`scripts/model_path_parity_check.py`（离线，含两腿同源守卫） |
+| 7 | **镜像大小有两套口径** | `docker images`（磁盘占用，含共享层）vs `image inspect Size`（镜像层之和），差近 3 倍 | 引用时必须注明口径，否则被误读成版本差异 |
+| 8 | **多环境对照不能只看总数** | 只看"N/N 通过"会漏掉语义差异 | 按**逐用例状态**与**逐条 `detail` 字符串**比对；共享机上的**单次吞吐不可直接对比**，须交替复测 |
+| 9 | **vLLM 停机残留占卡** | EngineCore 子进程残留（实测 73850 MiB / 96 GiB） | 停机连子进程一起 `kill -9` |
+| 10 | ⭐ **拼厂商专有字符串前没先加载厂商扩展** | 两种表象，**都像"框架/环境不支持"，实则是我方调用顺序问题**：① 拼设备串 `"npu:0"` → `RuntimeError: Expected one of cpu, cuda, … : npu`（**conformance 整轮 ABORT**，不是某条用例失败）；② 拼集合通信后端名 `init_process_group("hccl")` → `AssertionError: Unknown backend type hccl` | **凡构造厂商专有字符串的调用点，之前必须先经后端触碰一次设备**（如 `backend.device_count()`）。统一 API 的 `use()` **不保证**厂商命名空间已注册（后端是懒加载；容器常设 `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 关掉自动注册）。⚠️ 只在**部分**后端暴露（`cuda` 属 torch 内置命名空间故不踩），**别因为别家没报错就以为自己的路径没问题** |
+| 11 | **非零 rc / 非零返回值一律当失败** | 把"重复初始化"当成错误：ACL `acl.init()` 返回 **`100002 = ACL_ERROR_REPEAT_INITIALIZE`**（厂商扩展已初始化过），被误判为不可用 ⇒ 能力静默降级、`memory_stats` 退化成 `total_mb=0` | **非零码必须逐码确认语义**（查厂商头文件，如 CANN `acl/acl_base.h`）。同类：把"参数错误码"当超时上报（见第 12 条） |
+| 12 | **验证脚本在参数退化时静默跳过** | OOM 注入按 `memory_stats["total_mb"]` 算"3 倍显存"，该值为 **0** 时变成 `torch.empty(0)`：**不报错、不占显存，却仍记"已注入"** ⇒ **假证据**（记录显示"未触发异常"，看着像后端缺陷） | 测试工具在关键参数退化时**必须回退默认值并打印提示**，不得静默；`expectation` 必须参与判定 |
+| 13 | **厂商缺陷不可"改判据变绿"** | 真实厂商缺陷（如某 `query()` 语义不成立）若把判据放宽/改判 SKIP，下游会误以为能力可用 | 正确做法：登记 `known_issues`（复现率 + 矩阵证据 + 规避路径 + 上报对象）+ **如实保留红灯**。**该降的要整组降，该红的要留着红** |
+| 14 | ⭐ **`--network host` 下容器不代管 `/etc/hosts`** | 宿主主机名不在 DNS ⇒ torchrun 的 c10d rendezvous 拿主机名自连，**静默挂 300 s** 后报 `The client socket has timed out after 300000ms while trying to connect to (<hostname>, <port>)`（其前身是一串 `IPv6 network addresses … cannot be retrieved`）。⚠️ **同一容器内 `mp.spawn` + `tcp://127.0.0.1` 不受影响** ⇒ 只在 torchrun / `--rdzv-endpoint=<主机名>` 路径暴露 | 容器启动加 `--add-host=<hostname>:127.0.0.1`（PPU 实测：加之前 `timeout 90` ⇒ RC=124 且无子进程输出；加之后 RC=0） |
+| 15 | ⭐ **镜像写死 `NCCL_SOCKET_IFNAME=eth0`，而机器没有 eth0** | `init_process_group('nccl')` 能建组，**真实 all_reduce 才失败**：`NCCL ERROR Bootstrap : no socket interface found`（看着像集合通信库缺陷） | 容器启动 `-e NCCL_SOCKET_IFNAME=<真网卡>`（PPU 是 `bond0`，先 `ip route` 确认）；**建组成功 ≠ 通信可用**，必须跑一次真实 collective |
+| 16 | ⭐ **服务化前置 `triton` 不在镜像内，且容器内 pip 索引不可达** | 起 vLLM 报 `ModuleNotFoundError: No module named 'triton'`（由 vLLM 的 `if find_spec("flash_attn")` 门控触发：装了 `flash_attn` 却没装 `triton` 必踩）；`pip index versions triton` 全部 `ConnectTimeout`、"No matching distribution" | 从共享 wheel 目录 `docker cp` 复制 `triton/` + `flagtree/` + dist-info 到 site-packages（PPU 实测源：`/bmcp_lvm_fs/A/data/whl/`）；⚠️ **容器重建即丢**，须写进实例手册并做**非空转验证**（`probes/triton_smoke.py`：真编 kernel，PPU 实测 `TRITON_PPU_SMOKE_PASS`、误差 0）。✅ **根治路径（PPU 已落地，2026-10-27）**：不要长期靠手工复制——把该 wheel 用 `pip install --no-index --no-deps` **固化进派生镜像**（先例 `dev/images/thead-ppu-runtime/v2/`），此后「拉起镜像即可服务化」、容器重建不丢；新芯片接入时优先走这条。见 `dev/images/TODO.md` #23（把 triton 上提官方基座线） |
+| 17 | ⭐ **容器内以 root 跑 ⇒ bind-mount 目录出现 root 拥有的文件，宿主用户接手时"静默失败"** | 两种表象：① 复跑时 `mkdir`/`cp` 建不了子目录、日志重定向失败 ⇒ **测据空目录、屏幕上只有 rc=0**（PPU 服务化段曾因此"卡在等一个没起来的服务"）；② 宿主侧无法覆盖这些文件 | 交叉使用前 `chown -R <宿主 uid>`（**容器内 uid ≠ 宿主 uid**：PPU 上容器 `ubuntu`=1000、宿主 `hliu553`=**1020**，按名义用户 chown 会 chown 错人）；⚠️ 只改归属不动内容。同族见 `910C/docs/STORAGE_MIGRATION_20261021.md` §4 |
+
+| 18 | ⭐ **`event.elapsed_time` 依赖 `enable_timing=True`，且部分栈"接受该 flag 但计时恒 0"** | 判据若只查"可调用/返回是数字"⇒ 会拿 `0.0`（甚至负值）判通过：**假通过**。实测：P800 裸 torch 正反向都 `0.0`（平台不提供计时）；PPU 正常（10.089 / 16.395 ms）；未建计时事件时 CUDA 系栈直接抛 `ValueError: Both events must be created with argument 'enable_timing=True'` | ① 判据必须建**可计时**事件；② 校验**数值**而不只是可调用性：跨"设备工作 + 10 ms 睡眠"应落在 `[5, 5000] ms`；③ 三态口径 —— 负值 ⇒ **FAIL**（方向/实现错误）；恒近 0 ⇒ **如实不具备(SKIP)** 并登记为平台缺口；落带内 ⇒ OK。④ 方向是契约：`start.elapsed_time(end)`，反了必得负值 |
+| 19 | ⭐ **复现「退出期段错误」时，不得在退出前手动 `gc.collect()`** | 加上它对象被提前回收，最终化阶段已无弱引用可清 ⇒ `rc=139` 变 `rc=0`，**缺陷整个隐身**（本轮纯净复现曾因此 4/4 "复现失败"，去掉才翻案） | ① 观察点必须是**进程退出码**而非日志末尾（`main()` 返回 0，崩溃在其后）；② 用 `python3 -X faulthandler` 看是否落在 `Garbage-collecting` / `<no Python frame>`；③ 容器无 gdb 时用 `LD_PRELOAD` + `dladdr` 采集器（`PPU/probes/t11_segv_handler.c`，用时现编） |
+| 20 | ⭐⭐ **同一个环境变量，两条腿理解不一致**（"只在一条腿里实现"） | 同一份 `DC_MODEL=/hf_cache/hub/models--<org>--<name>`：推理腿过（它自带 `resolve_model()`）、训练腿报 `ValueError: Unrecognized model in …`（它没有）。2026-10-27 第 3 家实例复跑实测暴露；当时只能"在容器内先手工把 DC_MODEL 解析成 snapshot"绕过 | ① **判据不是"两腿各自能跑"**，而是**同一输入⇒同一解析结果**：两腿必须 import 同一份实现（`runtime/proto/model_path.py`），**禁止各写一份**（复制即漂移）；② 加**静态同源守卫**（`scripts/model_path_parity_check.py`：AST 检查两条腿不得定义 `resolve_model`、不得直接读该环境变量）；③ 上机复验用 `prototype/scripts/run_legparity_dcmodel.sh`：合成一个缓存根（`refs/main` 指真 hash + 放一个字典序更大的**诱饵**目录），若实现退化回"排序取最后"必选中诱饵而失败 |
+| 21 | ⭐⭐ **宿主重建设备节点后，非 `--privileged` 容器"拿不到设备"，报错却酷似"卡坏了/被占了"** | 910C 实测（2026-11-03）：宿主 `/dev/davinci*` 于 10-24 重建后，原非 privileged 容器出现 `Failed to obtain the number of devices` / `chipType=0 does not support get device msg feature` / `set default device id failed, ret:507899`；`localhost` 侧 `acl.init` 返回 **500000**、`torch.npu.device_count()==0`。⚠️ 而 `npu-smi` 显示该卡**空闲、无进程** ⇒ 极易误判为硬件或名额问题。同镜像加 `--privileged` 后 `device_count=16` 正常 | ① 新起容器**优先带 `--privileged`**（本环境已实际需要）；② 仍然**只挂自己那几张 die**（`--privileged` 不等于挂全 16 卡，名额口径不变）；③ 诊断顺序：先 `docker inspect` 看 `Privileged`，再与"同机能用的容器"对比 `HostConfig.Devices`，最后才怀疑卡；④ 已有容器出现该症状 ⇒ `docker rm -f` 按新参数重建（`restart` 无效，实测） |
+
+| 22 | ⭐⭐ **「判据读错目录」⇒ 假 FAIL（写与读不是同一个路径）** | PPU 实测（2026-11-03）：`run_t3_ppu_serve` 只把**宿主视角**变量 `HO` 拼了 `$RUNID`、**容器视角** `O` 没拼 ⇒ `DC_OUT_DIR="$O/form"` 写到扁平旧目录，而 verdict 的 `grep` 读 `$HO/<runid>/form/`。结果：服务臂**实际 `SERVE_STANDARD_PASS (ready=1 smoke=1)`、就绪 45 s**，汇总却印 **`[A] 未通过`**；且每轮证据都被下一轮覆盖（10-26 那一轮同位置也是空的 ⇒ 该假 FAIL 一直存在） | ① 凡「脚本里同时有宿主路径与容器路径」，**两个变量都要按 run-id 分目录**，并在开头各打印一行做自证；② **判据的输入路径必须与被写路径逐字相同**（别一个用 `$HO`、一个用 `$O`）；③ 看到「rc=0 但 verdict 缺失」先别改被测对象，**先去磁盘上找那份日志到底落在哪**；④ 反证要留：把「被判未通过、实则 PASS」的原始日志一起归档 |
+| 23 | ⭐ **共享存储写满会让「服务起不来/日志空/吞吐掉」伪装成产品缺陷** | PPU 实测（2026-11-03 11:29）：`/bmcp_lvm_fs` 11T **用满、可用 0**（`dd` 实测 0 字节可写），而根盘 `/` 还有 66G。此时 `serve_standard.sh` 的 `exec > "$LOG"` 直接失败、日志为空洞，消费方腿 rc=1 | ① 服务化前后各查一次 `df -h <数据盘>`，**把「可用 0」写进结论**；② 产物可临时落**容器 `/tmp`**（落根盘）绕开，但要在证据里注明「非归档路径」；③ 别替别人清理共享盘；自己那份离线包搬走要**连同 `SHA256SUMS.txt`** 并更新 `BACKUP.local` |
+
+| 24 | ⭐⭐ **驱动侧的两种「假 FAIL」：把被测脚本提前杀掉 / 代码路径拼错** | MLU590 实测（2026-11-03）同一轮各踩一次：① `serve_standard.sh` 在 `STOP_AFTER=1` 下会**自己**做 ready+smoke 再打 verdict，我的外层驱动在它自查完成前就 `pkill` ⇒ 拿到 `SERVE_STANDARD_FAIL (ready=0 smoke=0)`，而**同一服务在我自己的就绪轮询里是 HTTP 200**；② 单入口脚本把 `P`（代码副本）拼在了 run-id 目录下（`$WC/dev/...` 而 `WC` 已含 `acceptance_2026XXXX`）⇒ `cd` 失败 ⇒ **9 段全部 rc=1 且日志文件为空** | ① **自证型脚本必须等它自己出 verdict 再停**：驱动侧 `hard_stop` 只能在日志里 `grep` 到 verdict 之后调；② **基目录 / run-id 目录 / 代码副本**三者分开声明，开头各打印一行自证；③ 见到「整轮所有段同时 rc=1 且日志 0 字节」⇒ **先查 `cd` 的目标是否存在**，不要怀疑被测对象；④ **假 FAIL 与假 PASS 一样危险**：它会让你去改一个本来没坏的东西 |
+
+| 25 | ⭐⭐ **`--privileged` 下挂载白名单不生效 ⇒ 容器内设备索引是「物理索引」，不是「挂载后 0 基」；且 `npu-smi` 的 HBM 读数有 10~20 s 滞后** | 910C 实测（2026-11-03）：只挂 `--device /dev/davinci6` 的 privileged 容器内可见 **16 个** `/dev/davinci*`；设 `ASCEND_RT_VISIBLE_DEVICES=0` 分配 2 GiB ⇒ **物理 die0** 的 HBM 上涨 2,113 MB（不是 die6）。另一处：分配后立刻读 `npu-smi` 仍是基线、进程已退出后 HBM 仍高位停留十几秒 | ① privileged 容器**按物理 die 号选卡**，别用「0 基」心算；② 选卡后必须用「分配前后 HBM 差值」**实证**落在哪张 die（尤其共享机上，落错会占别人的卡）；③ 采运行期峰值要在服务稳定 **≥25 s** 后再采，释放判据要等 **≥22 s** 再读；④ 把 `npu-smi`/`cnmon` 输出重定向进 JSON 时，注意镜像可能每次打印一行提示（如 `can not use command: npu-smi info`）⇒ 解析端要「找第一个 `{`」容错 |
+
+### 已知厂商缺陷的结构化声明（模板）
+
+接入过程中遇到厂商缺陷时，按这个结构写进 `known_issues()`，让下游"读到后端即知坑"：
+
+```python
+{
+  "id": "KL3_EVENT_SPIN",
+  "summary": "KL3 事件同步在集合通信场景下概率性永久自旋",
+  "trigger": "环境变量 <X>=1 且存在设备侧集合通信（两要素，缺一不挂）",
+  "repro_rate": "18 次运行 16 次（≈89%）；挂死步数游走第 3–120 次通信",
+  "irrelevant": "数据量 / 张量形状 / reduce op / 用卡对 / 同步间隔 均无关（逐一单变量排除）",
+  "layer": "厂商运行时/驱动层（算子层与编译层已硬证据排除）",
+  "evidence": "3 处自旋帧均在厂商 libxpucuda.so，偏移 +0x94080",
+  "workaround": "不设置该环境变量；我方验证路径源码中 flag_gems 0 处引用 ⇒ 不依赖它",
+  "workaround_cost": "该变量是 FlagGems 对应后端的官方推荐变量 ⇒ 关闭是否损失设备异常上报须上游确认；本方向不擅自改锁定口径",
+  "report_to": "芯片厂商（主）+ 相关中间件（抄送）",
+  "affects": "多卡集合通信场景；单进程设备上下文路径不受影响（错误闭环两设置逐字节一致即证据）"
+}
+```
+
+**厂商问题上报模板（可直接套用）**：
+
+```
+1. 现象：<一句话>；复现率 <n/m>
+2. 最小复现：<脚本 + 命令 + 约 <n> 秒出结果>
+3. 判别条件：<需要哪些条件，哪些因素已排除>
+4. 函数级定位：<栈帧 + 库名 + 偏移>
+5. 影响面：<哪些场景受影响，哪些不受影响>
+6. 已做的排除：<算子层 / 编译层 / 镜像变体 / 容器参数>
+7. 我方规避方式与代价：<...>
+```
+
+> 第 6 项很关键：P800 的 KL3 缺陷最终在**两个不同镜像上一致重现**
+> （现用变体 16/18、官方 `-base` 3/3），挂死现场特征一致（进程 `Rsl` 自旋、`utime` 累积至约 9700、
+> 卡 100% 利用率而显存仅 366 MiB）。**这条排除了"是不是你们镜像的问题"**，是上报时最有力的一句。
+
+---
+
+## 10. 接入之后：本方向交付什么、不交付什么
+
+| 做 | 不做 |
+|---|---|
+| 原型接入（backend + conformance + 两条腿 + 错误闭环） | 生产级性能调优（归精度/调优方向） |
+| 暴露问题 → **五域内的先简单修复** | 算子实现、通信库优化、显存池调优、调度策略 |
+| 已知问题如实声明（`known_issues`）+ 厂商上报 | 擅自改锁定镜像口径或公共资产 |
+| 把原型 release 给运行时层其他子方向做验证与迭代 | 规模化验收（Megatron-LM-FL / vllm-plugin-FL 归框架适配方向） |
+
+**问题路由**：接入过程中暴露的问题按"设备因素归设备"分流——
+属本层五域的先修；算子/通信/显存/调度/性能一律对外提交。

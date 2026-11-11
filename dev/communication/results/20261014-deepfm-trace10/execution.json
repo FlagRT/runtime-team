@@ -1,0 +1,5 @@
+{
+  "command": "docker exec -w /workspace flagrt-communication-1014-910c timeout -k 15 240 python3 -m torch.distributed.run --nproc_per_node=2 --master_port=29675 dev/communication/training/trace_deepfm.py --runtime-root /workspace/dev/device-context/prototype --model-root /workspace/dev/model-defs/deepfm/v1 --collective flagcx --mode fused --steps 10 --output /workspace/trace-flagcx-fused10",
+  "exit_code": 1,
+  "wall_seconds": 60.206031799316406
+}

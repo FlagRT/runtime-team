@@ -1,0 +1,94 @@
+{
+  "model": "/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "model_raw": "/hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B",
+  "backend": "kunlun",
+  "env": {
+    "python": "python 3.10.18",
+    "backend": "kunlun",
+    "device_type": "cuda",
+    "device_count": 1,
+    "capabilities": [
+      "bounded_sync",
+      "device",
+      "device_state",
+      "event",
+      "memory",
+      "multidevice",
+      "recovery_probe",
+      "stream"
+    ]
+  },
+  "checks": {
+    "device_count": {
+      "ok": true,
+      "detail": "可见设备 1"
+    },
+    "stream": {
+      "ok": true,
+      "detail": "<Stream backend=kunlun native=Stream>"
+    },
+    "memory_stats": {
+      "ok": true,
+      "detail": "{'total_mb': 98304, 'used_mb': 32, 'free_mb': 98272}"
+    },
+    "probe": {
+      "ok": true,
+      "detail": "设备探活"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "transformers 加载到 cuda:0"
+    },
+    "vector_dim": {
+      "ok": true,
+      "detail": "维度 1024（910C 参照 1024）"
+    },
+    "vector_normalized": {
+      "ok": true,
+      "detail": "范数 [1.0, 1.0, 1.0]"
+    },
+    "vector_no_nan": {
+      "ok": true,
+      "detail": "无 NaN"
+    },
+    "semantic_order": {
+      "ok": true,
+      "detail": "同主题相似度 0.7822 > 异主题 0.1429"
+    },
+    "semantic_gap": {
+      "ok": true,
+      "detail": "区分度 0.6392（判据：≥0.10 视为语义可区分；采用 last-token 池化 + query 指令前缀，符合模型自带 1_Pooling 配置）"
+    },
+    "inject_ok": {
+      "ok": true,
+      "detail": "RuntimeError: mat1 and mat2 shapes cannot be multiplied (4x4 and 3x3)"
+    },
+    "translate": {
+      "ok": true,
+      "detail": "L2_PARAM → raise（graded_by=message_hint, confident=True）"
+    },
+    "business_continue": {
+      "ok": true,
+      "detail": "错误后业务继续，校验值 128.0"
+    },
+    "vendor_code_map": {
+      "ok": true,
+      "skipped": true,
+      "detail": "该后端不支持 error_map（无厂商错误码透出）——如实跳过，不计入失败"
+    }
+  },
+  "perf": {
+    "batch": 3,
+    "rounds": 5,
+    "avg_latency_ms": 58.92,
+    "p50_latency_ms": 56.93,
+    "p90_latency_ms": 65.39,
+    "throughput_sent_per_s": 50.92
+  },
+  "verdict": "INFER_LEG_PASS",
+  "passed": 13,
+  "total": 13,
+  "skipped": [
+    "vendor_code_map"
+  ]
+}

@@ -1,0 +1,138 @@
+########## [0] 环境 ##########
+Python 3.11.15
+ascend leg: torch 2.11.0+cu130 torch_npu 2.11.0 dev 16
+
+########## [1] ascend · 离线契约自检 ##########
+[0] 离线性保障（真实厂商运行时必须被阻断）
+  [SKIP] probe_device 真值路径 —— 该后端的探活走 conformance/recovery 的真实设备计算，stub 无真实算子可跑；真机 conformance / smoke 已覆盖（r_recovery 用例）
+离线自检结果: 35 通过 / 0 失败 / 1 跳过（stub 能力边界，非失败）
+
+########## [2] ascend · smoke ##########
+  [PASS] translate_error 返回统一类型 
+  [PASS] translate_error 回填后端名 ascend
+  [PASS] 声明 error_map → 无码消息不伪称 code_map（诚实） graded_by=message_hint
+  [PASS] 声明 error_map → 含厂商码样例必走 code_map graded_by=code_map
+  [PASS] info.capabilities 与 supports() 自洽 []
+  [PASS] info.supports 与 supports() 一致 []
+
+=== 结果: 52 通过 / 0 失败 ===
+
+########## [3] ascend · conformance 13 ##########
+  [PASS   ] s4_explicit_transfer         显式 wait_stream 传递: b 全 10 = True
+  [PASS   ] t1_pinned_async_copy         pinned->device non_blocking 拷贝数据一致
+  [PASS   ] t2_inflight_protection       拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）
+  [PASS   ] t3_topology_path             跨设备直接传输数据一致=True；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）
+
+=== 汇总: 13/13 通过 ===
+结论: CONFORMANCE_PASS
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/recheck2_conformance_13_ascend.json
+
+########## [4] ascend · conformance 推理 6 ##########
+  [PASS   ] i3_kv_buffer_visibility      KV 跨流可见性: 写入流→事件→计算流, 读回全 8 = True
+  [PASS   ] i4_d2h_sample_transfer       D2H 采样回传: logits.cpu()→topk, shape=(4, 3)
+  [PASS   ] i5_longrun_device_state      长驻 20 轮: 累计 logits=4.02e+00, 无 NaN/Inf = True
+  [PASS   ] i6_pipeline_overlap          流水线依赖链: 末轮数据正确(rel_err=3.09e-07)=True | 观测: pipe=0.002s serial=0.002s 重叠率=-17.4%
+
+=== 汇总: 6/6 通过 ===
+结论: CONFORMANCE_PASS
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/recheck2_conformance_infer6_ascend.json
+
+########## [5] ascend · 错误闭环（四类注入）##########
+[W922 08:07:21.147953669 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+E0922 08:07:21.664124 9618 ../torch_npu/csrc/core/npu/NPUCachingAllocator.cpp:1331] NPU out of memory. Tried to allocate 183.81 GiB (NPU 0; 61.27 GiB total capacity; 0 bytes already allocated; 0 bytes current active; 60.87 GiB free; 0 bytes reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+后端: ascend | 设备数: 16
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] L1_RESOURCE / retry / action=retry_ok / 业务继续=True
+[stream_timeout(L3_EXECUTION 期望)] 跳过：未触发超时（任务在 1ms 内完成）
+[l4_by_code(本厂商码表触发)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PASS | 闭环 4 / 跳过 1 / 失败 0 ===
+结果: /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/recheck2_error_loop_ascend.json
+
+########## [6] ascend · 超时码分类实测（F3 的直接判据）##########
+  acl_available        = True
+  acl_unavailable_reason = 
+  supports(bounded_sync    ) = True
+  supports(error_map       ) = True
+  supports(device_state    ) = True
+  supports(graph_capture   ) = True
+  supports(stream_priority ) = True
+  supports(sync_timeout    ) = True
+  info.supports 键数    = 13
+  known_issues         = ['ASCEND-ACL-INIT-CONCURRENCY']
+
+########## [7] flagos · 离线契约自检 ##########
+[0] 离线性保障（真实厂商运行时必须被阻断）
+  [SKIP] memory_stats 结构/取值 —— 该后端从厂商命名空间原样透传原始字段；stub 造的原始返回形状与真实厂商栈不一致，据此判定等于用假数据判真实现 —— 须真机跑 smoke 判定（smoke 已含同口径判据）
+  [SKIP] 有界同步三项（未完成抛 Timeout / 按时返回） —— 该后端的有界同步不支持可控 rc 的假原语，stub 无法产生'任务未完成'状态；真机经 conformance e2/e2-b 与错误闭环已覆盖
+离线自检结果: 32 通过 / 0 失败 / 2 跳过（stub 能力边界，非失败）
+
+########## [8] flagos · device_state 修复验证（F7 的直接判据）##########
+[W922 08:07:42.577073130 OperatorEntry.cpp:208] Warning: Warning only once for all operators,  other operators may also be overridden.
+can not use command: npu-smi info
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/libentry.py:411: RuntimeWarning: active Triton backend does not provide a replay benchmarker; falling back to event timing
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:65: UserWarning: [device_info] Failed to get device capability for device_id=0 using torch_device_fn, fallback to (0, 0).
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+
+########## [9] flagos · smoke ##########
+  [PASS] translate_error 返回统一类型 
+  [PASS] translate_error 回填后端名 flagos
+  [PASS] 声明 error_map → 无码消息不伪称 code_map（诚实） graded_by=message_hint
+  [PASS] 声明 error_map → 含厂商码样例必走 code_map graded_by=code_map
+  [PASS] info.capabilities 与 supports() 自洽 []
+  [PASS] info.supports 与 supports() 一致 []
+
+=== 结果: 42 通过 / 1 失败 ===
+
+########## [10] flagos · conformance 13 ##########
+  [PASS   ] s4_explicit_transfer         显式 wait_stream 传递: b 全 10 = True
+  [PASS   ] t1_pinned_async_copy         pinned->device non_blocking 拷贝数据一致
+  [PASS   ] t2_inflight_protection       拷贝完成后释放源缓冲无异常（框架层无法观测引用计数，标注依赖运行时登记表）
+  [PASS   ] t3_topology_path             跨设备直接传输数据一致=True；拓扑接口: torch_npu 未暴露统一拓扑查询（如实标注，拓扑事实经 npu-smi/外部通道）
+
+=== 汇总: 13/13 通过 ===
+结论: CONFORMANCE_PASS
+结果已写入 /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/recheck2_conformance_13_flagos.json
+
+########## [11] flagos · 错误闭环 ##########
+  resolved_benchmark = resolve_benchmarker(
+/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/utils/device_info.py:65: UserWarning: [device_info] Failed to get device capability for device_id=0 using torch_device_fn, fallback to (0, 0).
+  warnings.warn(
+[flagos] loading backend config from /usr/local/python3.11.15/lib/python3.11/site-packages/torch_fl/configs/backends_ascend.conf
+[Note] No specialized common operators were found for the ascend, generic common operators will be used by default.
+后端: flagos | 设备数: 16
+[基线] 业务正常: 786432.0
+[shape_mismatch(L2_PARAM 期望)] L2_PARAM / raise / action=raise_to_caller（参数类，重试无意义） / 业务继续=True
+[oom(L1_RESOURCE 期望)] 未触发异常
+[stream_timeout(L3_EXECUTION 期望)] 跳过：该后端未声明有界同步能力，跳过（如实标注，不伪造）
+[l4_by_code(本厂商码表触发)] L4_FATAL / device_recovery / action=recover_probe=ok / 业务继续=True / 期望核对=✅
+
+=== ERROR_RECOVERY_LOOP_PARTIAL | 闭环 3 / 跳过 1 / 失败 1 ===
+结果: /mnt/raid/hliu553/runtime-team/dev/device-context/910C/probes/recheck2_error_loop_flagos.json
+
+########## [12] 跨后端对称性（--all，容器内）##########
+
+[硬判据] 所有后端都必须成立
+  [PASS] 四家全部可加载（无异常） {}
+  [PASS] 对外必需方法齐备（info/supports/known_issues/device_state/recover/translate） {}
+  [PASS] info() 均提供 supports 映射 []
+  [PASS] 声明能力 ⊆ 能力全集（防键名拼错） {}
+  [PASS] 声明 error_map ⇒ 必须提供 SAMPLE_CODED_ERROR []
+
+[差异清单] 允许存在，但每处都应有理由（不计失败）
+  · 能力 bounded_sync       仅 ['ascend', 'cambricon', 'kunlun'] 声明
+  · 能力 error_map          仅 ['ascend', 'flagos'] 声明
+  · 能力 graph_capture      仅 ['ascend', 'cambricon', 'kunlun'] 声明
+  · 能力 recovery_real      仅 ['ascend'] 声明
+  · 能力 stream_priority    仅 ['ascend', 'cambricon'] 声明
+  · 能力 sync_timeout       仅 ['ascend'] 声明
+  · device_type 不同：['cuda', 'flagos', 'mlu', 'npu'] —— **这是设计而非缺陷**（设备串按命名空间，不按厂商；见接口约定修订建议第 1 条）
+  · supports 键集合不一致（各家的「已知能力全集」略有差异，如 ascend 保留历史键名 sync_timeout）
+
+==========================================================================
+对称性自检结果: 5 通过 / 0 失败
+⚠️ 结论边界：同上 —— 仅证明可观测形态的一致性，不证明真机可用。
+==========================================================================
+
+########## 完成 ##########

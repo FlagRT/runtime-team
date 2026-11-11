@@ -1,0 +1,46 @@
+[W1008 01:59:05.504861932 NPUCachingAllocator.cpp:201] Warning: The current CANN and Soc versions require processing for 32 padding size, with memory allocation. (function operator())
+========================================================
+统一运行时 API 演示 · 设备上下文与多流 Stream
+========================================================
+
+────────────────────────────────────────────────────────
+[0] 选择后端：runtime.use("ascend")
+────────────────────────────────────────────────────────
+  ✓ 已加载：{'name': 'ascend', 'device_type': 'npu', 'capabilities': ['bounded_sync', 'context_lifecycle', 'context_query', 'device', 'device_state', 'device_state_control', 'error_map', 'event', 'graph_capture', 'memory', 'memory_alloc', 'memory_alloc_stat', 'multidevice', 'record_stream', 'recovery_probe', 'recovery_real', 'stream', 'stream_priority', 'stream_priority_readback'], 'native_accesses': {'total': 0, 'by_kind': {}}, 'degradations': {'total': 0, 'by_kind': {}}, 'framework': 'torch_npu', 'torch': '2.11.0+cu130', 'device_count': 3, 'supports': {'device': True, 'memory': True, 'stream': True, 'event': True, 'bounded_sync': True, 'sync_timeout': True, 'error_map': True, 'recovery_probe': True, 'recovery_real': True, 'device_state': True, 'graph_capture': True, 'stream_priority': True, 'multidevice': True, 'stream_priority_control': False, 'stream_priority_readback': True, 'memory_alloc': True, 'memory_alloc_stat': True, 'record_stream': True, 'context_lifecycle': True, 'context_query': True, 'device_state_control': True}, 'bounded_sync_scope': 'pyACL synchronize_*_with_timeout（真中断）；pyACL 不可用时降级为普通同步', 'acl_available': True, 'acl_unavailable_reason': '', 'known_issues': ['ASCEND-ACL-INIT-CONCURRENCY', 'ASCEND-STREAM-PRIORITY-SET-BLOCKED'], 'evidence_level': '已在 910C 真机长期验证（conformance 13+6、两条腿、错误闭环）；2026-09-22 补齐 info()/known_issues 并修「非超时码冒充超时」'}
+
+────────────────────────────────────────────────────────
+[1] 设备上下文（设备句柄 + 内存）
+────────────────────────────────────────────────────────
+  设备数量：3
+  已绑定设备：0
+  显存：total=62740MB  used=386MB  free=62353MB
+
+────────────────────────────────────────────────────────
+[2] 多流 Stream（创建 / 跨流依赖 / 上下文切换）
+────────────────────────────────────────────────────────
+  <Stream backend=ascend native=Stream>
+  <Stream backend=ascend native=Stream>
+  <Event backend=ascend native=NpuEventAdapter>
+  跨流可见性：流 s1 计算 → 流 s2 读取 = 5.0000（期望 5.0）
+  有界同步（5s）：✓ 完成
+  主机侧事件等待：True
+
+────────────────────────────────────────────────────────
+[3] 错误码翻译（厂商错误码 → 统一分级 + 处置）
+────────────────────────────────────────────────────────
+  流同步超时        → L3_EXECUTION   处置=replay         mapped=True by=code_map
+  设备级致命        → L4_FATAL       处置=device_recovery mapped=True by=code_map
+  框架参数校验       → L2_PARAM       处置=raise          mapped=False by=message_hint
+
+────────────────────────────────────────────────────────
+[4] 状态恢复（探活 + 重建接口）
+────────────────────────────────────────────────────────
+  设备探活：True
+  设备状态：DeviceState.AVAILABLE
+  重建接口：recover_device(mode='probe'/'real'/'hybrid')
+  注意：real 模式会重置当前进程默认上下文，演示中不实际调用
+
+────────────────────────────────────────────────────────
+演示结束
+────────────────────────────────────────────────────────
+  同一份代码切换芯片只需改：runtime.use("<backend>")

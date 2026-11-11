@@ -1,0 +1,11 @@
+[1] 设备上下文: 后端=cambricon 设备数=8
+[1b] 同卡跨流计算: 3.0 ✅
+[2] 服务就绪: /v1/models 200, model=qwen3-embedding-0.6b
+[3] 向量: 维度=1024 有限=True 范数=1.000001
+[4] 语义: 同主题 0.7004 / 异主题 0.2842 / 区分度 0.4162
+[5] 吞吐: 0.09 句/s | p50 5109.3ms | max 87467.3ms
+[6] 错误注入: HTTP 400 | This model's maximum context length is 4096 tokens. However, you requested 0 output tokens and your prompt contains at l → L2_PARAM / raise
+[7] 业务继续: ✅
+
+=== SERVE_LEG_PASS | 10/10 ===
+结果已写入 /work/dc_t7_20261014/consumer_tp2_eager0_retry/proto_infer_serve_result.json

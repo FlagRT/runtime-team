@@ -1,0 +1,12 @@
+===== 替代模型完整性复核 =====
+0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd  /mnt/raid/hliu553/dc_r10_20261008/models/Qwen3-Embedding-0.6B/model.safetensors
+===== r10_train_leg（DC_ROOT 显式给出）=====
+train rc=0
+[step  49] loss=11.1479
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4196.6 tok/s(两卡合计) -> /mnt/raid/hliu553/dc_r10_20261008/out_r10/train_npu/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ascend dist=hccl | loss 15.4498→11.1479 | 4196.2 tok/s(两卡合计) -> /mnt/raid/hliu553/dc_r10_20261008/out_r10/train_npu/train_leg_result_rank1.json
+===== r10_infer_leg =====
+infer rc=0
+[3] 向量: dim=1024 同主题 0.7821 / 异主题 0.1430 / 范数 1.0
+[rank0] INFER_LEG_PASS 14/14 | backend=ascend dev=npu:0 | dim 1024 | 68.82 句/s p50 42.01ms | 区分度 0.6391 -> /mnt/raid/hliu553/dc_r10_20261008/out_r10/proto_infer_leg_result.json
+===== ALL DONE =====

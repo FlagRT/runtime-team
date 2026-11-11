@@ -1,0 +1,12 @@
+[env] backend=ppu device_type=cuda
+[OK] J2 [委托 contract_invariants] 陌生消息 → L3_EXECUTION/replay（mapped=False, graded_by='default'）
+[OK] J3 [委托 contract_invariants] A 二次释放 → ValueError ✓；A 跨种类误用 → ValueError ✓；B 二次销毁 → ValueError ✓；B 销毁后使用其流 → Runtim
+[OK] K5 声明了 control 但**没声明** readback ⇒ 设置无法校验（离线 `[8b]` 段同源判据）
+[OK] K6 端点 -3/0 请求与回读一致
+[OK] K7 回读 = 0（类型合规）
+[FAIL] L1 release_stream(默认路径的流) 返回 True —— 契约：厂商拥有的流**必须 no-op 返回 False**（越权销毁别人的流会让厂商栈内部状态崩坏，比泄漏更糟）
+[hits] [{"id": 139647499806528, "type": "Stream", "handle": 94680864785392, "holder_kind": "ReferenceType", "held_type": "Stream", "held_is_native": true}]
+[reg] [[139647500185152, "ReferenceType", null]]
+[holder] 优先级流类型=ExternalStream _id_holder 返回=ReferenceType 弱引用=否
+[holder] 默认流类型=Stream _id_holder 返回=ReferenceType
+timeout: the monitored command dumped core

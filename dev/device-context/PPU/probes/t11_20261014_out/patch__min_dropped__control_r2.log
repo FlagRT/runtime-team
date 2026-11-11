@@ -1,0 +1,34 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11-patch] T11_PATCH_LOADED patch=control
+BRANCH=ours_default_dropped
+backend=ppu
+sum=-550.3 n=30
+EXIT_REACHED
+
+===== T11_CRASH_CAPTURED (native) =====
+signal=11 si_code=1 si_addr=0xab
+RIP=0x7f553fc569de RSP=0x7ffc0100fbb0
+RIP_MODULE=/usr/local/lib/libpython3.12.so.1.0
+RIP_BASE=0x7f553fa00000
+RIP_OFFSET=0x2569de
+RIP_SYMBOL=(no symbol)
+BACKTRACE_FRAMES=17
+  FRAME#0 module=/workspace/probes_ppu/dc_t11_20261014/t11_segv_handler.so offset=0x150f symbol=?
+  FRAME#1 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x45330 symbol=?
+  FRAME#2 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x2569de symbol=?
+  FRAME#3 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x23b07a symbol=?
+  FRAME#4 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d46b symbol=?
+  FRAME#5 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d4c5 symbol=?
+  FRAME#6 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x23f1fa symbol=?
+  FRAME#7 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22d3f7 symbol=?
+  FRAME#8 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x22b266 symbol=?
+  FRAME#9 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x231e4a symbol=_PyModule_ClearDict
+  FRAME#10 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302dc6 symbol=?
+  FRAME#11 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x302080 symbol=Py_FinalizeEx
+  FRAME#12 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30dabe symbol=Py_RunMain
+  FRAME#13 module=/usr/local/lib/libpython3.12.so.1.0 offset=0x30d5cb symbol=Py_BytesMain
+  FRAME#14 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a1ca symbol=?
+  FRAME#15 module=/lib/x86_64-linux-gnu/libc.so.6 offset=0x2a28b symbol=__libc_start_main
+  FRAME#16 module=/usr/local/bin/python3 offset=0x1095 symbol=_start

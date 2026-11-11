@@ -1,0 +1,39 @@
+==============================================================================
+PPU 能力探测 · 第二轮（声明决策项）
+==============================================================================
+P1.priority_range_and_set_readback = {"range_rc": 3, "least": 0, "greatest": 0, "per_value": {"0": {"create_rc": 1, "readback_rc": null, "readback": -999}}, "external_stream_wrap": "FAIL(TypeError)", "torch_ctor_attr_echo": 0}
+Q1.context_lifecycle_probe = ctx_before_torch: 3 False
+torch_ok: 4.0
+ctx_after_torch: True
+cuCtxCreate_v2_rc: 0 handle: True
+cuCtxDestroy_v2_rc: 0
+torch_after_ctx_ops: 4.0
+
+R1.device_reset_primitives = cuDevicePrimaryCtxReset_v2 has= True
+cuCtxResetPersistingL2Cache has= True
+cuDeviceReset has= False
+cuDevicePrimaryCtxRelease_v2 has= True
+cuCtxResetPersistingL2Cache has= True
+torch_cuda_reset_like: ['reset_accumulated_host_memory_stats', 'reset_accumulated_memory_stats', 'reset_max_memory_allocated', 'reset_max_memory_cached', 'reset_peak_host_memory_stats', 'reset_peak_memory_stats']
+
+S1.graph_capture_real_run = GRAPH_CAPTURE: PASS
+
+T1.vendor_error_code_surfacing = set_device(9999): AcceleratorError | 数字码=[] | CUDA error: invalid device ordinal
+GPU device may be out of range, do you have enough GPUs?
+CUDA kernel errors might be asynchronously reported at som
+zeros(cuda:9999): AcceleratorError | 数字码=[] | CUDA error: invalid device ordinal
+GPU device may be out of range, do you have enough GPUs?
+CUDA kernel errors might be asynchronously reported at som
+mem_get_info(9999): TypeError | 数字码=['9999'] | cudaMemGetInfo(): incompatible function arguments. The following argument types are supported:
+    1. (arg0: typing.SupportsInt) -> tuple[int, int]
+
+I
+
+U1.CUDA_VISIBLE_DEVICES_effect = CUDA_VISIBLE_DEVICES='0' -> count= 1
+CUDA_VISIBLE_DEVICES='1' -> count= 1
+CUDA_VISIBLE_DEVICES='' -> count= 0
+
+V1.torch_xpu_device_count = 0
+==============================================================================
+第二轮完成：7 项，取不到 0 项 
+==============================================================================

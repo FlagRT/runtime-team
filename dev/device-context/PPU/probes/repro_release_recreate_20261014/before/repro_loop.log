@@ -1,0 +1,25 @@
+
+[命中] round 3: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x55dc3b2d7180）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥
+  native: id=140635136639504 type=ExternalStream handle=0x55dc3b2d7180
+  _released_streams[id]: 句柄=0x55dc3b2d7180 持有器类型=ReferenceType
+     holder() is native = True；holder() repr=<torch.cuda.Stream device=cuda:0 cuda_stream=0x55dc3b2d7180>
+  _owned_streams: 有条目（本层认为拥有）
+  _released_streams 表大小=2  _owned_streams 表大小=1
+
+[命中] round 4: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x55dc3b2d7180）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥
+  native: id=140635136641968 type=ExternalStream handle=0x55dc3b2d7180
+  _released_streams[id]: 句柄=0x55dc3b2d7180 持有器类型=ReferenceType
+     holder() is native = True；holder() repr=<torch.cuda.Stream device=cuda:0 cuda_stream=0x55dc3b2d7180>
+  _owned_streams: 有条目（本层认为拥有）
+  _released_streams 表大小=2  _owned_streams 表大小=1
+
+[命中] round 5: RuntimeError: 该流已被 `release_stream()` 释放（厂商句柄 0x55dc3b2d7180）⇒ 不可继续使用。本层在『厂商 C API 建流 + 包装』路径上创建的流由**本层拥
+  native: id=140635136639504 type=ExternalStream handle=0x55dc3b2d7180
+  _released_streams[id]: 句柄=0x55dc3b2d7180 持有器类型=ReferenceType
+     holder() is native = True；holder() repr=<torch.cuda.Stream device=cuda:0 cuda_stream=0x55dc3b2d7180>
+  _owned_streams: 有条目（本层认为拥有）
+  _released_streams 表大小=2  _owned_streams 表大小=1
+
+=== 复现结果：3 次命中 / 5 轮 ===
+VERDICT: REPRODUCED
+timeout: the monitored command dumped core

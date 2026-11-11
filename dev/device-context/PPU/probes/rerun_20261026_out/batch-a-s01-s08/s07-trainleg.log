@@ -1,0 +1,160 @@
+
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+WARNING:torchao.kernel.intmm:Warning: Detected no triton, on systems without Triton certain kernels will not work
+WARNING:torchao.kernel.intmm:Warning: Detected no triton, on systems without Triton certain kernels will not work
+[ai-server][3512:3512][0][bootstrap.cc:101] NCCL INFO Bootstrap : Using bond0:192.168.5.112<0>
+[ai-server][3512:3512][0][net.cc:226] NCCL INFO NET/Plugin: Loaded net plugin accl-lite (v6)
+[ai-server][3512:3512][0][net.cc:232] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+[ai-server][3512:3512][0][net.cc:237] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+[ai-server][3512:3512][0][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_PF_DISABLE = (null)
+[ai-server][3512:3512][0][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_PF_C4_DISABLE = (null)
+ai-server accl-lite version: v1.1.161.g2ce54ae
+[ai-server][3512:3512][0][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_SOCKET_FAMILY = (null)
+[ai-server][3512:3512][0][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_SOCKET_IFNAME = bond0
+[ai-server][3512:3512][0][pfInit:1114] NCCL INFO NET/accl-lite unicm bind ipv4 192.168.5.112
+
+[ai-server][3512:3512][0][pfInit:1141] NCCL WARN NET/accl-lite Fail to get_device_list
+
+[ai-server][3512:3512][0][pfInit:1440] NCCL WARN NET/accl-lite Alibaba PredFabric initialization failed.
+[ai-server][3512:3512][0][net_socket.cc:64] NCCL INFO NET/Socket : Using [0]bond0:192.168.5.112<0>
+[ai-server][3512:3512][0][init.cc:387] NCCL INFO Using network Socket
+[ai-server][3512:3523][0][bootstrap.cc:275] NCCL INFO bootstrapRoot Listening on socket 192.168.5.112<40755>
+PCCL version 2.1.0-11-accl-p, COMMIT_ID bc333f0, BUILD_TIME 2026-04-28 11:09:52, HGGC Runtime version 13.0, HGGC Driver version 13.0 
+[ai-server][3512:3512][0][init.cc:1892] NCCL INFO ncclCommInitRank comm 0x559eb9ef69f0 rank 0 nranks 2 hggcDev 0 hgmlDev 0 busId 1c9000 commHash 4d7f2644441b34a maxConnType 0 - Init START
+[ai-server][3513:3513][1][bootstrap.cc:101] NCCL INFO Bootstrap : Using bond0:192.168.5.112<0>
+[ai-server][3513:3513][1][net.cc:226] NCCL INFO NET/Plugin: Loaded net plugin accl-lite (v6)
+[ai-server][3513:3513][1][net.cc:232] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+[ai-server][3513:3513][1][net.cc:237] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+[ai-server][3513:3513][1][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_PF_DISABLE = (null)
+[ai-server][3513:3513][1][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_PF_C4_DISABLE = (null)
+ai-server accl-lite version: v1.1.161.g2ce54ae
+[ai-server][3513:3513][1][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_SOCKET_FAMILY = (null)
+[ai-server][3513:3513][1][pf_getenv:35] NCCL INFO NET/accl-lite ENV NCCL_SOCKET_IFNAME = bond0
+[ai-server][3513:3513][1][pfInit:1114] NCCL INFO NET/accl-lite unicm bind ipv4 192.168.5.112
+
+[ai-server][3513:3513][1][pfInit:1141] NCCL WARN NET/accl-lite Fail to get_device_list
+
+[ai-server][3513:3513][1][pfInit:1440] NCCL WARN NET/accl-lite Alibaba PredFabric initialization failed.
+[ai-server][3513:3513][1][net_socket.cc:64] NCCL INFO NET/Socket : Using [0]bond0:192.168.5.112<0>
+[ai-server][3513:3513][1][init.cc:387] NCCL INFO Using network Socket
+[ai-server][3513:3513][1][init.cc:1892] NCCL INFO ncclCommInitRank comm 0x55e5be89de00 rank 1 nranks 2 hggcDev 1 hgmlDev 1 busId 1c8000 commHash 4d7f2644441b34a maxConnType 0 - Init START
+[ai-server][3513:3513][1][client_support.cc:180] NCCL INFO RAS client listening socket at ::1<28028>
+[ai-server][3512:3512][0][client_support.cc:180] NCCL INFO RAS client listening socket at ::1<28028>
+[ai-server][3513:3513][1][init.cc:190] NCCL INFO gTaskid = 4d7f2644441b34a.
+[ai-server][3512:3512][0][init.cc:190] NCCL INFO gTaskid = 4d7f2644441b34a.
+[ai-server][3513:3513][1][topo.cc:1044] NCCL INFO ppuHgmlCount: 2, ppuFilledCount: 2, ppuCount: 2, netCount: 1, nnodes: 1
+[ai-server][3512:3512][0][topo.cc:1044] NCCL INFO ppuHgmlCount: 2, ppuFilledCount: 2, ppuCount: 2, netCount: 1, nnodes: 1
+
+[ai-server][3512:3512][0][check_items.cc:408] NCCL WARN Abnormal device count: 2 in PPU-ZW810E, skip to check topo
+
+[ai-server][3513:3513][1][check_items.cc:408] NCCL WARN Abnormal device count: 2 in PPU-ZW810E, skip to check topo
+[ai-server][3512:3512][0][init.cc:1029] NCCL INFO Ring & Tree are both enabled, not necessary to adjust channels
+[ai-server][3513:3513][1][init.cc:1029] NCCL INFO Ring & Tree are both enabled, not necessary to adjust channels
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 00/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 01/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 02/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 03/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 04/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 05/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 06/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 07/08 :    0   1
+[ai-server][3513:3513][1][init.cc:1519] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] -1/-1/-1->1->0 [2] 0/-1/-1->1->-1 [3] 0/-1/-1->1->-1 [4] -1/-1/-1->1->0 [5] -1/-1/-1->1->0 [6] 0/-1/-1->1->-1 [7] 0/-1/-1->1->-1
+[ai-server][3513:3513][1][topo.cc:1333] NCCL INFO Setting affinity for GPU 1 to ffffff00,00000000,00000000,ffffff00,00000000,00000000
+[ai-server][3512:3512][0][init.cc:1519] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1 [2] -1/-1/-1->0->1 [3] -1/-1/-1->0->1 [4] 1/-1/-1->0->-1 [5] 1/-1/-1->0->-1 [6] -1/-1/-1->0->1 [7] -1/-1/-1->0->1
+[ai-server][3512:3512][0][topo.cc:1333] NCCL INFO Setting affinity for GPU 0 to ffffff00,00000000,00000000,ffffff00,00000000,00000000
+[ai-server][3513:3513][1][paths.cc:910] NCCL INFO 8 coll channels, 0 fc channels, 8 p2p channels, 4 p2p channels per peer
+[ai-server][3512:3512][0][transport.cc:144] NCCL INFO Check P2P Type localP2pSupport 1 directMode 0 globalP2pSupport 1
+[ai-server][3512:3512][0][paths.cc:910] NCCL INFO 8 coll channels, 0 fc channels, 8 p2p channels, 4 p2p channels per peer
+[ai-server][3513:3513][1][plugin_open.cc:107] NCCL INFO PROFILER/Plugin: Could not find: libpccl-profiler.so
+[ai-server][3512:3512][0][plugin_open.cc:107] NCCL INFO PROFILER/Plugin: Could not find: libpccl-profiler.so
+[ai-server][3512:3512][0][init.cc:1582] NCCL INFO Begin connect topo graphs
+[ai-server][3513:3513][1][init.cc:1582] NCCL INFO Begin connect topo graphs
+[ai-server][3512:3529][0][proxy.cc:1776] NCCL INFO [Proxy Service UDS] Device 0 CPU core 170
+[ai-server][3513:3530][1][proxy.cc:1776] NCCL INFO [Proxy Service UDS] Device 1 CPU core 74
+[ai-server][3513:3513][1][tuning.cc:597] NCCL INFO threadThresholds 8/8/64/64/64/64/64 | 16/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64
+[ai-server][3512:3512][0][tuning.cc:597] NCCL INFO threadThresholds 8/8/64/64/64/64/64 | 16/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64
+[ai-server][3512:3512][0][init.cc:1927] NCCL INFO ncclCommInitRank comm 0x559eb9ef69f0 rank 0 nranks 2 hggcDev 0 hgmlDev 0 busId 1c9000 commHash 4d7f2644441b34a - Init COMPLETE
+[ai-server][3513:3513][1][init.cc:1927] NCCL INFO ncclCommInitRank comm 0x55e5be89de00 rank 1 nranks 2 hggcDev 1 hgmlDev 1 busId 1c8000 commHash 4d7f2644441b34a - Init COMPLETE
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 00/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 01/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 02/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 00/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 03/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 01/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 04/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 05/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 02/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 06/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 03/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 07/0 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 04/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 05/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 06/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 07/0 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][generic.cc:27] NCCL INFO Connected all rings
+[ai-server][3513:3513][1][generic.cc:27] NCCL INFO Connected all rings
+[rank1]:[W1026 11:10:19.480114396 ProcessGroupNCCL.cpp:4068] Warning: An unbatched P2P op (send/recv) was called on this ProcessGroup with size 2.  In lazy initialization mode, this will result in a new 2-rank NCCL communicator to be created. (function operator())
+[rank0]:[W1026 11:10:19.482730834 ProcessGroupNCCL.cpp:4068] Warning: An unbatched P2P op (send/recv) was called on this ProcessGroup with size 2.  In lazy initialization mode, this will result in a new 2-rank NCCL communicator to be created. (function operator())
+[ai-server][3512:3531][0][bootstrap.cc:275] NCCL INFO bootstrapRoot Listening on socket 192.168.5.112<41217>
+[ai-server][3513:3513][1][init.cc:1892] NCCL INFO ncclCommInitRank comm 0x55e5c2475230 rank 1 nranks 2 hggcDev 1 hgmlDev 1 busId 1c8000 commHash 813dba91c384c22d maxConnType 0 - Init START
+[ai-server][3512:3512][0][init.cc:1892] NCCL INFO ncclCommInitRank comm 0x559ebb382170 rank 0 nranks 2 hggcDev 0 hgmlDev 0 busId 1c9000 commHash 813dba91c384c22d maxConnType 0 - Init START
+[ai-server][3512:3512][0][topo.cc:1044] NCCL INFO ppuHgmlCount: 2, ppuFilledCount: 2, ppuCount: 2, netCount: 1, nnodes: 1
+[ai-server][3513:3513][1][topo.cc:1044] NCCL INFO ppuHgmlCount: 2, ppuFilledCount: 2, ppuCount: 2, netCount: 1, nnodes: 1
+
+[ai-server][3512:3512][0][check_items.cc:408] NCCL WARN Abnormal device count: 2 in PPU-ZW810E, skip to check topo
+[ai-server][3512:3512][0][init.cc:1029] NCCL INFO Ring & Tree are both enabled, not necessary to adjust channels
+
+[ai-server][3513:3513][1][check_items.cc:408] NCCL WARN Abnormal device count: 2 in PPU-ZW810E, skip to check topo
+[ai-server][3513:3513][1][init.cc:1029] NCCL INFO Ring & Tree are both enabled, not necessary to adjust channels
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 00/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 01/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 02/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 03/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 04/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 05/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 06/08 :    0   1
+[ai-server][3512:3512][0][rings.cc:19] NCCL INFO Channel 07/08 :    0   1
+[ai-server][3512:3512][0][init.cc:1519] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1 [2] -1/-1/-1->0->1 [3] -1/-1/-1->0->1 [4] 1/-1/-1->0->-1 [5] 1/-1/-1->0->-1 [6] -1/-1/-1->0->1 [7] -1/-1/-1->0->1
+[ai-server][3512:3512][0][topo.cc:1333] NCCL INFO Setting affinity for GPU 0 to ffffff00,00000000,00000000,ffffff00,00000000,00000000
+[ai-server][3513:3513][1][init.cc:1519] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] -1/-1/-1->1->0 [2] 0/-1/-1->1->-1 [3] 0/-1/-1->1->-1 [4] -1/-1/-1->1->0 [5] -1/-1/-1->1->0 [6] 0/-1/-1->1->-1 [7] 0/-1/-1->1->-1
+[ai-server][3513:3513][1][topo.cc:1333] NCCL INFO Setting affinity for GPU 1 to ffffff00,00000000,00000000,ffffff00,00000000,00000000
+[ai-server][3512:3512][0][transport.cc:144] NCCL INFO Check P2P Type localP2pSupport 1 directMode 0 globalP2pSupport 1
+[ai-server][3512:3512][0][paths.cc:910] NCCL INFO 8 coll channels, 0 fc channels, 8 p2p channels, 4 p2p channels per peer
+[ai-server][3513:3513][1][paths.cc:910] NCCL INFO 8 coll channels, 0 fc channels, 8 p2p channels, 4 p2p channels per peer
+[ai-server][3512:3512][0][init.cc:1582] NCCL INFO Begin connect topo graphs
+[ai-server][3512:3533][0][proxy.cc:1776] NCCL INFO [Proxy Service UDS] Device 0 CPU core 176
+[ai-server][3513:3513][1][init.cc:1582] NCCL INFO Begin connect topo graphs
+[ai-server][3513:3535][1][proxy.cc:1776] NCCL INFO [Proxy Service UDS] Device 1 CPU core 95
+[ai-server][3513:3513][1][tuning.cc:597] NCCL INFO threadThresholds 8/8/64/64/64/64/64 | 16/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64
+[ai-server][3512:3512][0][tuning.cc:597] NCCL INFO threadThresholds 8/8/64/64/64/64/64 | 16/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64 | 8/8/64/64/64/64/64
+[ai-server][3513:3513][1][init.cc:1927] NCCL INFO ncclCommInitRank comm 0x55e5c2475230 rank 1 nranks 2 hggcDev 1 hgmlDev 1 busId 1c8000 commHash 813dba91c384c22d - Init COMPLETE
+[ai-server][3512:3512][0][init.cc:1927] NCCL INFO ncclCommInitRank comm 0x559ebb382170 rank 0 nranks 2 hggcDev 0 hgmlDev 0 busId 1c9000 commHash 813dba91c384c22d - Init COMPLETE
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 01/1 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 03/1 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 05/1 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[ai-server][3512:3512][0][p2p.cc:387] NCCL INFO Channel 07/1 : 0[1c9000] -> 1[1c8000] via P2P/IPC pointer intra-node
+[rank0]:[W1026 11:10:19.523661042 ProcessGroupNCCL.cpp:4068] Warning: An unbatched P2P op (send/recv) was called on this ProcessGroup with size 2.  In lazy initialization mode, this will result in a new 2-rank NCCL communicator to be created. (function operator())
+[rank1]:[W1026 11:10:20.556702051 ProcessGroupNCCL.cpp:4068] Warning: An unbatched P2P op (send/recv) was called on this ProcessGroup with size 2.  In lazy initialization mode, this will result in a new 2-rank NCCL communicator to be created. (function operator())
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 01/1 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 03/1 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 05/1 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[ai-server][3513:3513][1][p2p.cc:387] NCCL INFO Channel 07/1 : 1[1c8000] -> 0[1c9000] via P2P/IPC pointer intra-node
+[step   0] loss=15.4498
+[step   5] loss=12.2796
+[step  10] loss=11.5892
+[step  15] loss=11.3754
+[step  20] loss=11.3221
+[step  25] loss=11.2727
+[step  30] loss=11.1634
+[step  35] loss=11.1170
+[step  40] loss=11.1937
+[step  45] loss=11.1766
+[step  49] loss=11.1530
+[rank0] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.1530 | 5090.4 tok/s(两卡合计) -> /workspace/probes_ppu/acceptance_ppu/20261026_110942/train_leg_result_rank0.json
+[rank1] TRAIN_LEG_PASS 6/6 | backend=ppu dist=nccl | loss 15.4498→11.1530 | 5078.6 tok/s(两卡合计) -> /workspace/probes_ppu/acceptance_ppu/20261026_110942/train_leg_result_rank1.json
+[ai-server][3512:3512][0][init.cc:2615] NCCL INFO comm 0x559ebb382170 rank 0 nranks 2 hggcDev 0 busId 1c9000 - Destroy COMPLETE
+[ai-server][3513:3513][1][init.cc:2615] NCCL INFO comm 0x55e5c2475230 rank 1 nranks 2 hggcDev 1 busId 1c8000 - Destroy COMPLETE
+[ai-server][3512:3512][0][init.cc:2615] NCCL INFO comm 0x559eb9ef69f0 rank 0 nranks 2 hggcDev 0 busId 1c9000 - Destroy COMPLETE
+[ai-server][3513:3513][1][init.cc:2615] NCCL INFO comm 0x55e5be89de00 rank 1 nranks 2 hggcDev 1 busId 1c8000 - Destroy COMPLETE

@@ -1,0 +1,10 @@
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+[t11] native SIGSEGV handler installed (readback ok)
+=== 统一运行时 conformance: backend=ppu, chip=ppu, 用例数=1 ===
+[env] runtime:ppu=0.1.0 devices=1
+  [PASS   ] only_i4                      ② .native 计数 0→1、退化保持 0 ✓；④ 声明 record_stream ⇒ 原生路径、零退化 ✓；④ 无原生 record_stream ⇒ 
+
+=== 汇总: 1/1 通过 ===
+结论: CI_I4_ONLY_PASS
+结果已写入 /workspace/probes_ppu/dc_s06_20261026/only_i4.r1.json

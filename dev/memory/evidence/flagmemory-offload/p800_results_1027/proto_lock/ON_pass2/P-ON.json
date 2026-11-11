@@ -1,0 +1,32 @@
+{
+ "leg": "P",
+ "tag": "ON",
+ "pool_log_line": "GPU KV cache size: 466,032 tokens",
+ "pool_tok": 466032,
+ "bytes_per_tok": 147457,
+ "concurrency_log_line": "Maximum concurrency for 4,096 tokens per request: 113.78x",
+ "steady_hbm_samples": [
+  {
+   "t_off_s": 0,
+   "meminfo": {
+    "free_GiB": 9.88,
+    "total_GiB": 96.0
+   }
+  },
+  {
+   "t_off_s": 150,
+   "meminfo": {
+    "free_GiB": 9.88,
+    "total_GiB": 96.0
+   }
+  },
+  {
+   "t_off_s": 300,
+   "meminfo": {
+    "free_GiB": 9.88,
+    "total_GiB": 96.0
+   }
+  }
+ ],
+ "note": "xpu-smi 仅参考不作判据"
+}

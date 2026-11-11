@@ -1,0 +1,55 @@
+{
+  "backend": "cambricon",
+  "device_type": "mlu",
+  "range": [
+    -3,
+    0
+  ],
+  "supports_control": true,
+  "verdict": "STREAM_RELEASE_CONTROL_PASS",
+  "passed": 8,
+  "failed": 0,
+  "skipped": 2,
+  "checks": {
+    "R1a 默认路径造出的流**不得**被登记为本层拥有": {
+      "ok": true,
+      "detail": "owns=False",
+      "skipped": false
+    },
+    "R1b 厂商拥有的流 ⇒ release_stream 必须 no-op 返回 False": {
+      "ok": true,
+      "detail": "release=False",
+      "skipped": false
+    },
+    "R2 单点区间的等价放行": {
+      "ok": true,
+      "detail": "本机区间 = (-3, 0)（非单点）⇒ 该分支不适用",
+      "skipped": true
+    },
+    "R3a 私有原语造出的流**可回读且等于请求值**（参数真的进了设备）": {
+      "ok": true,
+      "detail": "回读=-3（请求 -3）",
+      "skipped": false
+    },
+    "R3b 该流**真的能承载算子**（不是『看起来设了』的假流）": {
+      "ok": true,
+      "detail": "sum=32.0（期望 32.0）",
+      "skipped": false
+    },
+    "R3c/R3d 释放语义": {
+      "ok": true,
+      "detail": "该路径的流由**厂商/torch 拥有**（未登记）⇒ release 为 no-op，无需销毁",
+      "skipped": true
+    },
+    "R4 越界 priority=-4 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    },
+    "R4 越界 priority=1 ⇒ ValueError": {
+      "ok": true,
+      "detail": "ValueError",
+      "skipped": false
+    }
+  }
+}
