@@ -1,7 +1,10 @@
 # 运行指南
 
-更新：2026-10-29。默认选择 vLLM embedding，启动顺序是数据库 → embedding
+更新：2026-11-11。默认选择 vLLM embedding，启动顺序是数据库 → embedding
 引擎 → 查询 API。以下命令均从指定目录执行。
+
+当前新增OneRec生成模式与物理卡0/die0部署，见[OneRec接入](generation.md)。
+下面基础启动示例保留检索模式；生成模式的完整配置及当前已验证范围以该文档和根目录[status.md](../status.md)为准。
 
 ## 宿主机：三个容器
 
@@ -13,9 +16,9 @@ docker start rag-ljy-vllm-910c
 docker exec -it rag-ljy-vllm-910c bash
 ```
 
-2026-10-29：两个NPU Compose入口均已改为仅映射 `/dev/davinci1`（die 1，物理卡0/chip 1）
-及必要控制设备，容器内仍用 `npu:0`。已有容器仍映射 `/dev/davinci7`，须重建才能
-切换；上述 `docker start` 只启动旧容器，不会应用新映射。本次仅修改配置，尚未重建。
+基础NPU Compose映射`/dev/davinci1`；2026-11-11实际主容器使用OneRec overlay，
+选择`/dev/davinci0`（物理卡0/chip0），容器内仍为`npu:0`。
+上述`docker start`只启动已有容器，不会应用新的Compose映射。
 仓库挂载为 `/workspace`。启动容器不会自动启动两个 Python 服务。
 已有同端口服务时先查看 `/health`，避免重复启动。
 
@@ -124,7 +127,7 @@ python scripts/runtime/serve_queries.py --device npu:0 --port 8088 \
 
 当前解析估算仍标为`analytical_uncalibrated`，不等于已验证的通用上界。精排forward前读取最新显存并按实际padding形状复核，必要时缩小实际batch；分配器峰值观测超过估算时停止新准入并报告fault。当前部署文档token保护上限640，实时核对6,543块最长578，均在此范围内。未知远程embedding配置、dtype/图模式未明确等情况会要求验证，不套用默认2GiB。
 
-旧`--memory-request-mib`仅能配合显式`--memory-budget-mode fixed`用于历史兼容，不是当前生产/实验配置。最终验收目标见[要求清单](memory-admission-requirements.md)，真实85%三模式验收尚未通过。
+旧`--memory-request-mib`仅能配合显式`--memory-budget-mode fixed`用于历史兼容，不是当前实验配置。最终验收目标见[要求清单](memory-admission-requirements.md)；两库未含生成的85%三模式验收已通过，新增生成后的专项未执行，见根目录[status.md](../status.md)。
 
 `--memory-allow-unverified-scope` 是明确允许使用当前runtime未标明统计范围的
 读数：2026-10-14在物理NPU7观察到跨进程占用，但这不保证所有后端或回退路径

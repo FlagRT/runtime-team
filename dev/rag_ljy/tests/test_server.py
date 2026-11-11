@@ -107,6 +107,13 @@ def test_invalid_requests_do_not_run_inference(body):
         assert pipeline.calls == []
 
 
+def test_generation_request_on_retrieval_only_api_is_rejected_before_inference():
+    pipeline = FakePipeline()
+    with TestClient(create_app(pipeline_factory=lambda _: pipeline)) as client:
+        assert client.post('/query', json={'query': 'q', 'generate': True}).status_code == 422
+        assert not pipeline.calls
+
+
 def test_failed_request_does_not_reload_models_or_stop_server():
     pipeline = FakePipeline()
     with TestClient(create_app(pipeline_factory=lambda _: pipeline)) as client:

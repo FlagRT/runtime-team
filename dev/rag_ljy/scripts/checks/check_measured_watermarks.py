@@ -30,6 +30,8 @@ def main():
     parser.add_argument('--count', type=int, default=12)
     parser.add_argument('--spacing', type=float, default=.2)
     parser.add_argument('--continuous-seconds', type=float, default=5)
+    parser.add_argument('--generate', action='store_true', help='Include the real generation stage; saves a separate acceptance trial')
+    parser.add_argument('--max-new-tokens', type=int, default=64)
     args = parser.parse_args()
     if not 2 <= args.count <= 32 or args.spacing <= 0 or not 1 <= args.continuous_seconds <= 30:
         parser.error('count 2..32, positive spacing, continuous duration 1..30s required')
@@ -53,9 +55,13 @@ def main():
     assert before['memory_admission']['watermark_basis'] == 'device_measured_usage'
     assert before['device_memory']['source'] == 'device-context.runtime.memory_stats'
     assert before['memory_estimation']['fault'] is None
+    if args.generate:
+        assert before.get('generation',{}).get('enabled'), 'Generation is not enabled on the API'
+        assert 1 <= args.max_new_tokens <= before['generation']['execution_profile']['max_new_tokens']
     print('Measured-only policy preflight passed', flush=True)
     if not args.run: return 0
-    out = ROOT/'experiment_outputs/checks/measured_watermarks'/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    namespace = 'measured_watermarks_generation' if args.generate else 'measured_watermarks'
+    out = ROOT/'experiment_outputs/checks'/namespace/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     out.mkdir(parents=True)
     print('OUTPUT='+str(out), flush=True)
     source = ROOT/'experiment_outputs/inputs/request_pressure/queries.jsonl'
@@ -83,6 +89,10 @@ def main():
     for model in ('Qwen3-Embedding-0.6B','Qwen3-Reranker-0.6B'):
         root = __import__('pathlib').Path('/mnt/raid/jliu171/models/Qwen')/model
         hashes[model] = {str(p.relative_to(root)):sha256(p) for p in root.rglob('*') if p.is_file() and '.cache' not in p.parts}
+    if args.generate:
+        sys.path.insert(0,str(ROOT/'src'))
+        from rag_engine.generation import checkpoint_manifest
+        hashes['generation'] = checkpoint_manifest(before['generation']['execution_profile']['model_path'])
     (out/'manifest.json').write_text(json.dumps({'retrieval_backend':args.backend,'command':sys.argv,'options':vars(args),'initial_health':before,'models':hashes,
         'input_sha256':sha256(source),'pressure_source':'real RAG requests only',
         'protocol':'measured-only-v1; replaces unsafe linear escalation, preserves old safety_hold evidence',
@@ -93,7 +103,9 @@ def main():
     probing = threading.Event()
     samples, rows, pending = [], [], []
     pool = ThreadPoolExecutor(max_workers=32)
-    summary = {'retrieval_backend':args.backend,'status':'incomplete','modes':{},'errors':[]}
+    summary = {'retrieval_backend':args.backend,'status':'incomplete','modes':{},'errors':[], 'generation_requested':args.generate}
+    def generation_body(body):
+        return {**body, 'generate':True, 'max_new_tokens':args.max_new_tokens} if args.generate else body
     def emit(kind, **data):
         with mutex:
             events.write(json.dumps({'kind':kind,'utc':datetime.now(timezone.utc).isoformat(),**data})+'\n');events.flush()
@@ -129,6 +141,7 @@ def main():
         if unsafe.is_set(): raise RuntimeError('Read/fault/5GiB guard stopped further submissions')
     def send(body, gate=None, role="load"):
         if gate is not None: gate.wait()
+        body = generation_body(body)
         row={'mode':state['mode'],'profile':state['profile'],'role':role,'payload':body,'sent':time.monotonic()}
         try:
             row['before']=health()
@@ -138,6 +151,9 @@ def main():
             row['after']=health()
             detail=row['body'].get('detail') if isinstance(row['body'],dict) else None
             row['reason']=detail.get('reason') if isinstance(detail,dict) else detail
+            if row['status']==200 and args.generate and not (isinstance(row['body'],dict)
+                    and row['body'].get('answer') and row['body'].get('usage',{}).get('output_tokens',0)>0):
+                unsafe.set(); emit('invalid_generation_response', response=row['body'])
             if row['status']!=200 and not (row['status']==503 and row['reason'] in ('memory_pressure','request_budget') and row['headers'].get('retry-after')):
                 unsafe.set()
                 emit('unexpected_http',mode=row['mode'],role=role,status=row['status'],reason=row['reason'],body=row['body'])
@@ -180,7 +196,7 @@ def main():
                 emit('mode_baseline',mode=mode,health=sample())
             for tier,batch in profiles:
                 check();state['profile']={'tier':tier,'batch':batch}
-                def payload(i):return {'query':groups[tier][i%len(groups[tier])]['query'],'reranker_batch_size':batch,'coarse_top_k':50,'retriever_top_k':100,'fine_top_k':5}
+                def payload(i):return generation_body({'query':groups[tier][i%len(groups[tier])]['query'],'reranker_batch_size':batch,'coarse_top_k':50,'retriever_top_k':100,'fine_top_k':5})
                 code,_,estimate=http(url+'/memory/estimate',payload(0))
                 if code!=200:raise RuntimeError('Estimate preview failed')
                 emit('profile',mode=mode,profile=state['profile'],estimate=estimate)
@@ -214,6 +230,11 @@ def main():
             result=assess(ss,rr)
             result['sent']=len(rr)
             result['successful']=sum(r.get('status')==200 for r in rr)
+            if args.generate:
+                completed = [r for r in rr if r.get('role')=='load' and r.get('status')==200]
+                result['successful_generation_loads']=len(completed)
+                if not completed and result['status']=='passed':
+                    result['status']='incomplete'
             summary['modes'][mode]=result
             print(json.dumps({'mode':mode,'result':result['status'],'peak_actual_percent':result['peak_actual_percent']}),flush=True)
         summary['status']='passed' if all(v['status']=='passed' for v in summary['modes'].values()) else 'incomplete'

@@ -12,3 +12,11 @@
 cd data/queries
 sha256sum -c nfcorpus-50.sha256
 ```
+
+新增OneRec完整工作流也使用这份原始文件。宿主机从`dev/rag_ljy`执行：
+
+```bash
+bash scripts/checks/run_generation_50.sh --backend elasticsearch --run
+```
+
+默认串行执行全部50条，每条只发送一次并开启生成；脚本不会切换当前API的数据库。

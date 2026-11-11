@@ -10,6 +10,9 @@ _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
 import argparse
 import logging
 import math
+from dataclasses import replace
+from functools import partial
+from pathlib import Path
 
 from _bootstrap import load_project_env
 
@@ -45,6 +48,11 @@ def main() -> None:
     parser.add_argument("--memory-max-sample-age", type=float, default=3)
     parser.add_argument("--memory-allow-unverified-scope", action="store_true",
                         help="explicitly accept runtime statistics whose device-wide scope was verified outside the API")
+    parser.add_argument('--generation', action=argparse.BooleanOptionalAction, default=None,
+                        help='load optional OneRec generation; requires dynamic memory admission')
+    parser.add_argument('--generation-model', type=Path)
+    parser.add_argument('--generation-max-input-tokens', type=int)
+    parser.add_argument('--generation-max-new-tokens', type=int)
     args = parser.parse_args()
     if not 1 <= args.max_reranker_batch_size <= 50:
         parser.error("max-reranker-batch-size must be in 1..50")
@@ -73,12 +81,30 @@ def main() -> None:
         parser.error(str(error))
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     load_project_env()
+    from rag_engine.config import Settings
+    from rag_engine.generation import GenerationLimits
+    from rag_engine.query_runtime import create_pipeline
+    settings = Settings.from_env()
+    changes = {name: value for name, value in {
+        'generation_enabled': args.generation,
+        'generation_model_path': args.generation_model,
+        'generation_max_input_tokens': args.generation_max_input_tokens,
+        'generation_max_new_tokens': args.generation_max_new_tokens}.items() if value is not None}
+    settings = replace(settings, **changes)
+    try:
+        GenerationLimits(settings.generation_max_input_tokens, settings.generation_max_new_tokens)
+        if settings.generation_enabled and not (admission.enabled and admission.estimate_requests):
+            raise ValueError('--generation requires --memory-admission --memory-budget-mode dynamic')
+    except ValueError as error:
+        parser.error(str(error))
 
     import uvicorn
     from rag_engine.server import create_app
 
     # One process owns one pair of models. No reload or worker recycling.
-    uvicorn.run(create_app(args.device, execution_mode=args.execution_mode,
+    factory = partial(create_pipeline, settings=settings, execution_mode=args.execution_mode,
+                      safety_mib=admission.safety_margin_mib)
+    uvicorn.run(create_app(args.device, pipeline_factory=factory, execution_mode=args.execution_mode,
                            max_inflight=args.max_inflight, retrieval_workers=args.retrieval_workers,
                            embedding_workers=args.embedding_workers, stage_queue_capacity=args.stage_queue_capacity,
                            memory_probe_enabled=args.memory_probe, memory_probe_interval_s=args.memory_probe_interval,
