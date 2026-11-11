@@ -42,12 +42,27 @@ def validate_single(root, mode):
         raise ValueError('Single-card samples or gradient accounting failed')
 
 
+def validate_health(path, expected_uuid):
+    record=json.loads(path.read_text())
+    if (record.get('verdict')!='PASS'
+            or record.get('uuid','').removeprefix('GPU-')!=expected_uuid.removeprefix('GPU-')
+            or record.get('checks')!={'identity':True,'fill_readback':True,
+                                     'matmul':True,'event_completed':True}):
+        raise ValueError('Native device probe incomplete; no training permitted')
+
+
 def snapshot():
     raw=subprocess.check_output(['xpu-smi','-m'],text=True)
     rows=[shlex.split(line) for line in raw.splitlines() if re.match(r'^[0-9a-fA-F]{8}:',line)]
     # xpu-smi --help defines zero-based fields 17=memory used, 19=utilization.
     free={int(r[2]):r for r in rows if len(r)>=20 and int(r[17])==0 and int(r[19])==0}
     return raw,free
+
+
+def choose_idle_devices(free, mode, excluded=()):
+    candidates=[(4,5),(6,7),(2,3)] if mode=='pair' else [(5,),(7,),(4,),(6,),(0,),(2,),(3,)]
+    return next((pair for pair in candidates
+                 if all(card in free and card not in excluded for card in pair)),None)
 
 
 def main():
@@ -61,7 +76,14 @@ def main():
     p.add_argument('--include-native',action='store_true')
     p.add_argument('--include-observed',action='store_true')
     p.add_argument('--failure-restart',action='store_true')
+    p.add_argument('--parallel-minimal',action='store_true')
+    p.add_argument('--exclude-card',type=int,action='append',default=[],
+                   help='Exclude a physical device after a failed diagnostic; never broadens candidate topology')
     a=p.parse_args()
+    if any(card not in range(8) for card in a.exclude_card):
+        p.error('Excluded physical card must be in [0,7]')
+    if a.parallel_minimal and (a.mode!='pair' or a.include_native or a.include_observed or a.failure_restart):
+        p.error('Parallel examples require pair mode without other experiments')
     if (a.failure_restart and (a.include_native or a.include_observed)) or (a.mode!='pair' and (a.include_native or a.include_observed or a.failure_restart)):
         p.error('Choose one pair-only experiment: native matrix or failure/restart')
     if a.wait_seconds<1 or not 1<=a.poll_seconds<=60 or not re.fullmatch(r'[a-zA-Z0-9_-]+',a.output_name):
@@ -74,9 +96,11 @@ def main():
     output.mkdir(parents=True,exist_ok=False)
     sources=['training/deepfm_train.py','training/distributed.py','training/run_repeated.py',
              'training/summarize_repeated.py','training/run_p800_selected.py',
-             'probes/p800_identity.py','env/p800-single/docker-compose.yml']
+             'probes/p800_identity.py','probes/p800_health.py','env/p800-single/docker-compose.yml']
     if a.mode=='pair':sources.append('env/p800-pair/docker-compose.yml')
+    if a.parallel_minimal:sources+=['training/parallel_minimal.py','training/run_parallel_matrix.py']
     record=dict(mode=a.mode,prototype_revision=a.prototype_revision,observations=[],runs=[],verdict='WAITING',
+                excluded_physical_cards=sorted(set(a.exclude_card)),
                 source_sha256={name:hashlib.sha256((root/'dev/communication'/name).read_bytes()).hexdigest()
                                for name in sources})
     def save():
@@ -88,8 +112,7 @@ def main():
     while time.monotonic()<deadline:
         raw,free=snapshot()
         record['observations'].append(dict(time=time.time(),raw=raw,free_ids=sorted(free)))
-        candidates=[(4,5),(6,7),(2,3)] if a.mode=='pair' else [(5,),(7,),(4,),(6,),(0,),(2,),(3,)]
-        selected=next((pair for pair in candidates if all(card in free for card in pair)),None)
+        selected=choose_idle_devices(free,a.mode,a.exclude_card)
         save()
         if selected: break
         print(f'waiting for {a.mode} idle healthy devices; free={sorted(free)}',flush=True)
@@ -130,6 +153,22 @@ def main():
         with (output/'identity.log').open('x') as log:
             subprocess.run(['docker','exec',container,*cmd],stdout=log,
                            stderr=subprocess.STDOUT,timeout=30,check=True)
+        # Identity/idle counters do not establish that a device can execute.
+        # Probe each visible UUID natively before entering any collective. Use
+        # the actual container order, not host indices or /dev/xpu suffixes.
+        visible=json.loads((output/'identity.json').read_text())['visible_uuid_order']
+        record['native_preflight']=[]
+        for index,uuid in enumerate(visible):
+            target=f'health-local{index}'
+            cmd=['docker','exec','-e',f'CUDA_VISIBLE_DEVICES={index}',container,
+                 'timeout','-k','5','35',py,'dev/communication/probes/p800_health.py',
+                 '--expected-uuid',uuid,'--output',f'/workspace/evidence/{a.output_name}/{target}.json']
+            with (output/(target+'.log')).open('x') as log:
+                code=subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,timeout=55).returncode
+            record['native_preflight'].append(dict(local_index=index,uuid=uuid,exit_code=code))
+            save()
+            if code!=0:raise ValueError('Native probe failed/timed out before communication; see '+target)
+            validate_health(output/(target+'.json'),uuid)
         if a.mode=='pair':
             cmd=[py,'dev/communication/training/run_repeated.py','--backend','kunlun',
                  '--collective','flagcx','--runtime-root','/workspace/dev/device-context/prototype',
@@ -141,11 +180,17 @@ def main():
                 cmd=[py,'dev/communication/training/failure_restart.py','--backend','kunlun',
                      '--runtime-root','/workspace/dev/device-context/prototype',
                      '--output','/workspace/evidence/'+a.output_name+'/failure']
+            if a.parallel_minimal:
+                cmd=[py,'dev/communication/training/run_parallel_matrix.py','--backend','kunlun',
+                     '--collective','flagcx','--runtime-root','/workspace/dev/device-context/prototype',
+                     '--prototype-revision',a.prototype_revision,
+                     '--output','/workspace/evidence/'+a.output_name+'/parallel']
             with (output/'training-driver.log').open('x') as log:
                 code=subprocess.run(['docker','exec',container,*cmd],stdout=log,stderr=subprocess.STDOUT,timeout=1800).returncode
             record['runs'].append(dict(argv=cmd,exit_code=code));save()
             if code==0:
-                summary=(json.loads((output/'failure/execution.json').read_text()) if a.failure_restart
+                summary=(json.loads((output/'parallel/summary.json').read_text()) if a.parallel_minimal else
+                         json.loads((output/'failure/execution.json').read_text()) if a.failure_restart
                          else summarize(output/'training',a.include_native,a.include_observed))
                 if summary['verdict']!='PASS':raise ValueError('Incomplete acceptance')
                 # Container-created training/ is root-owned; publish to the

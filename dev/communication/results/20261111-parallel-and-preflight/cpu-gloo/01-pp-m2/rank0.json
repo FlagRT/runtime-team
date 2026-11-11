@@ -1,0 +1,390 @@
+{
+  "schema": "communication.minimal_parallel/v1",
+  "rank": 0,
+  "world_size": 2,
+  "device_vendor": "cpu",
+  "backend": "gloo",
+  "torch": "2.4.1",
+  "plan": {
+    "mode": "pp",
+    "input_dim": 16,
+    "hidden_dim": 32,
+    "output_dim": 8,
+    "batch_size": 16,
+    "microbatches": 2
+  },
+  "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+  "steps": 50,
+  "seed": 1111,
+  "scope": "host-only",
+  "source_sha256": "035e5d3f97007506fbd1524b8a410efdd8aa961ed3e0caa0a2d7486ebaa2754d",
+  "tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "verdict": "PASS",
+  "checks": [
+    {
+      "step": 0,
+      "reference_loss": 0.12136776745319366,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.190951585769653e-09,
+      "parameter_max_abs": 3.725290298461914e-09
+    },
+    {
+      "step": 1,
+      "reference_loss": 0.10916783660650253,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 3.725290298461914e-09
+    },
+    {
+      "step": 2,
+      "reference_loss": 0.12472910434007645,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 3.725290298461914e-09
+    },
+    {
+      "step": 3,
+      "reference_loss": 0.10571929067373276,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 3.725290298461914e-09
+    },
+    {
+      "step": 4,
+      "reference_loss": 0.1110602617263794,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 3.725290298461914e-09
+    },
+    {
+      "step": 5,
+      "reference_loss": 0.11304938793182373,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.3178366720676422e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 6,
+      "reference_loss": 0.09611374139785767,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 7,
+      "reference_loss": 0.11087708920240402,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 8,
+      "reference_loss": 0.12419331818819046,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 9,
+      "reference_loss": 0.10473302751779556,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 10,
+      "reference_loss": 0.11287097632884979,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 11,
+      "reference_loss": 0.10172417759895325,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 12,
+      "reference_loss": 0.10505782812833786,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 13,
+      "reference_loss": 0.12241008877754211,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 14,
+      "reference_loss": 0.09605959802865982,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 2.7939677238464355e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 15,
+      "reference_loss": 0.09261190891265869,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 16,
+      "reference_loss": 0.11394679546356201,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 17,
+      "reference_loss": 0.0868893563747406,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 18,
+      "reference_loss": 0.10465974360704422,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 19,
+      "reference_loss": 0.11863140761852264,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 20,
+      "reference_loss": 0.1367955207824707,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 21,
+      "reference_loss": 0.08270370960235596,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 22,
+      "reference_loss": 0.1062769964337349,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 23,
+      "reference_loss": 0.15541017055511475,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 9.313225746154785e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 24,
+      "reference_loss": 0.11850906163454056,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 25,
+      "reference_loss": 0.10917919874191284,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 26,
+      "reference_loss": 0.08931327611207962,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 27,
+      "reference_loss": 0.09376239031553268,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 28,
+      "reference_loss": 0.12239529937505722,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 29,
+      "reference_loss": 0.13007433712482452,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 30,
+      "reference_loss": 0.10406386852264404,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 31,
+      "reference_loss": 0.09239976108074188,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.540197551250458e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 32,
+      "reference_loss": 0.08838719874620438,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 33,
+      "reference_loss": 0.0854300931096077,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 34,
+      "reference_loss": 0.08918645232915878,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 2.7939677238464355e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 35,
+      "reference_loss": 0.0964389517903328,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 36,
+      "reference_loss": 0.09277708828449249,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.190951585769653e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 37,
+      "reference_loss": 0.10311945527791977,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 2.7939677238464355e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 38,
+      "reference_loss": 0.09925132989883423,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 39,
+      "reference_loss": 0.09659772366285324,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 2.7939677238464355e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 40,
+      "reference_loss": 0.10366760939359665,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 41,
+      "reference_loss": 0.0798616036772728,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 42,
+      "reference_loss": 0.1298893392086029,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 43,
+      "reference_loss": 0.10302127152681351,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 2.561137080192566e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 44,
+      "reference_loss": 0.11149194091558456,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 45,
+      "reference_loss": 0.09137286245822906,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.190951585769653e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 46,
+      "reference_loss": 0.12327632308006287,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 47,
+      "reference_loss": 0.13454122841358185,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 5.587935447692871e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 48,
+      "reference_loss": 0.11808418482542038,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 4.6566128730773926e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "step": 49,
+      "reference_loss": 0.09948644787073135,
+      "forward_max_abs": 0.0,
+      "tensor_check_max_abs": 3.725290298461914e-09,
+      "parameter_max_abs": 1.4901161193847656e-08
+    }
+  ],
+  "limitations": "Synthetic two-layer FP32 example. PP microbatches serialized; no overlap, model-scale throughput, multi-node, checkpoint or pool integration claim.",
+  "transport_calls": {
+    "all_reduce": 1,
+    "send": 100,
+    "recv": 100
+  },
+  "transport_input_bytes": {
+    "all_reduce": 4,
+    "send": 102400,
+    "recv": 102400
+  },
+  "group_state": "CLOSED"
+}
