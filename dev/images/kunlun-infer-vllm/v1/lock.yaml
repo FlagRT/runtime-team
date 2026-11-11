@@ -1,0 +1,48 @@
+# kunlun-infer-vllm v1 —— 昆仑芯 P800 推理腿发布镜像（登记式基线）
+# （结构对齐 cambricon-infer-vllm/v1 先例；内容按 2026-11-09 实测登记）
+
+image_tag: "harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4"
+digest: "sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1"
+flagtree_line: >-
+  无 FlagTree 线（tag 明示 treenone；镜像内 triton 3.5.0 为通用 PyPI 版，非 FlagTree 构建物）。
+  本镜像是上游 xVLLM 发布线镜像（harbor.baai.ac.cn/flagrelease-public，镜像 Label：
+  xVLLM 0.20.0 branch / git-commit 09935a6b83b9d07025800ebf3d02f33d99714e71，
+  base ubuntu22.04）。核心栈（2026-11-09 在跑容器 python310_torch29_cuda 环境实测）：
+  vllm 0.20.2+empty / vllm-plugin-fl 0.2.0+g38e7dbc（/workspace/vllm-plugin-FL 源码装）/
+  torch 2.9.0+cu129 / xmlir 1.0.0.1 / triton 3.5.0 / flag_gems 5.0.0 / flagcx 0.13.0
+  （/workspace/FlagCX/plugin/torch 源码装）/ transformers 4.57.6 / python 3.10。
+pull: "docker pull harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43@sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1"
+built_at: "2026-08-20T03:00:41Z（镜像 Created 字段）"
+image_id: "sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1（P800-A docker inspect 实测）"
+size: "约 15.6 GB（docker inspect .Size = 15569314964 字节）"
+repro_status: "🟢 上游发布镜像"       # 公开 Harbor（harbor.baai.ac.cn/flagrelease-public），匿名可按 digest 拉取；digest 经 registry manifest API 回读与 P800-A 本机 RepoDigest 双向核对逐字一致（2026-11-09）
+dockerfile: "upstream —— xVLLM 发布线（无仓内配方）"
+
+# --- official / custom 边界（official = 上游发布原样产物） ---
+layers:
+  - name: "kunlunxin001-…-vllm0.20.2-…-v5.0.21.43:tele4"
+    origin: official   # 上游 xVLLM 发布线
+    pin: "digest sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1"
+    note: "vllm 0.20.2+empty + vllm-plugin-fl 0.2.0 + torch 2.9.0+cu129 + xmlir 1.0.0.1 + flag_gems 5.0.0 + flagcx 0.13.0，conda env python310_torch29_cuda"
+custom_layers: none
+
+gaps:
+  - "镜像内无 .git 自证锚（vllm / vllm-plugin-FL / FlagCX 为 /workspace 源码装但基线登记仅版本号）——版本锚 = Harbor digest + pip 版本号 + 镜像 Label（git-commit 09935a6…）"
+  - "本镜像承担推理服务化与 KV connector（simple_cpu_offload_connector）宿主栈；不带本组训练栈，训练/设备上下文仍用 kunlun-operator-runtime v2 基座（两腿并存，ADR-0026）"
+  - "启动 vLLM 时插件 fl 自动加载会在 import flag_gems 阶段报 triton.language.math 无 pow（flag_gems 5.0.0 × triton 3.5.0 组合问题，2026-11-09 实测 ERROR 日志但不阻断进程）；connector 路径（simple_cpu_offload_connector import）实测可用，不受影响"
+
+notes: |
+  定档依据（ADR-0026）：FlagMemory xpu KV connector（vllm simple_cpu_offload_connector）在
+  现行训练腿镜像 kunlun-operator-runtime v2（vllm 0.13.0）内 import 链断（缺该 connector 模块，
+  环境性不可用）；本镜像 vllm 0.20.2 系自带该 connector，2026-11-09 P800-A 真卡三件验证通过，
+  定档为昆仑芯推理腿运行环境。取证与核验均只读（docker inspect / 在跑容器 pip list / Harbor
+  manifest API），未起容器（该机 fresh docker run/exec 已知 ENOEXEC，单机病）。
+  设备注册与选卡纪律同 kunlun-operator-runtime v2（xpu-smi 选卡 + CUDA_VISIBLE_DEVICES
+  自律 + devices 授卡与 /dev/xpuctrl）。
+
+changelog:
+  - date: "2026-11-09"
+    what: |
+      首次登记（manual-registration，对齐 cambricon-infer-vllm/v1 先例）：上游 xVLLM 发布线镜像
+      入锁为昆仑芯推理腿运行环境，digest 锚定。入锁依据 = ADR-0026（选项 A：机器上已就位镜像，
+      2026-11-09 真卡三件验证通过；训练腿 kunlun-operator-runtime v2 不变，两腿并存）。

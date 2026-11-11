@@ -1,0 +1,46 @@
+{
+  "review_status": "accepted",
+  "reviewer": "??????? shared-execution-clearance.md",
+  "observed_at": "2026-11-04T07:38:54.829061+00:00",
+  "docker": {
+    "ServerVersion": "20.10.8",
+    "CgroupVersion": "1",
+    "CgroupDriver": "cgroupfs",
+    "SecurityOptions": [
+      "name=seccomp,profile=default"
+    ]
+  },
+  "containers": [
+    {
+      "id": "1593062b4c1770f8da936dda01b61d36c79f6b65f3dbbf302d823160c59e6363",
+      "devices": [
+        {
+          "PathOnHost": "/dev/davinci0",
+          "PathInContainer": "/dev/davinci0",
+          "CgroupPermissions": "rwm"
+        },
+        {
+          "PathOnHost": "/dev/davinci1",
+          "PathInContainer": "/dev/davinci1",
+          "CgroupPermissions": "rwm"
+        },
+        {
+          "PathOnHost": "/dev/davinci_manager",
+          "PathInContainer": "/dev/davinci_manager",
+          "CgroupPermissions": "rwm"
+        },
+        {
+          "PathOnHost": "/dev/devmm_svm",
+          "PathInContainer": "/dev/devmm_svm",
+          "CgroupPermissions": "rwm"
+        },
+        {
+          "PathOnHost": "/dev/hisi_hdc",
+          "PathInContainer": "/dev/hisi_hdc",
+          "CgroupPermissions": "rwm"
+        }
+      ],
+      "rules": "b *:* m\nc *:* m\nc 1:3 rwm\nc 1:5 rwm\nc 1:7 rwm\nc 1:8 rwm\nc 1:9 rwm\nc 5:0 rwm\nc 5:1 rwm\nc 5:2 rwm\nc 10:200 rwm\nc 136:* rwm\nc 234:0 rwm\nc 235:0 rwm\nc 235:1 rwm\nc 236:0 rwm\nc 511:0 rwm\n"
+    }
+  ]
+}

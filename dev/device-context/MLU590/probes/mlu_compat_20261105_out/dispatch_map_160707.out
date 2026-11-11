@@ -1,0 +1,28 @@
+flag_gems_in_modules_before: False
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+/flagos/lib/python3.10/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+/flagos/lib/python3.10/site-packages/torch/library.py:365: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: PrivateUse1
+  previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:7154
+       new kernel: registered at /dev/null:63 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:154.)
+  self.m.impl(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d_backward's behavior for PrivateUse1 dispatch key and aten namespace.
+ENABLE_OK
+DISPATCH_ROW: gemm64 -> aten::mm                 changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: matmul -> aten::matmul             changed=False after=torch_mlu(RegisterMLU) | PrivateUse1: registered at /torch_mlu/torch_mlu/csrc/aten/generated/RegisterMLU.cpp:43487 [kernel]
+DISPATCH_ROW: add -> aten::add.Tensor            changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: mul -> aten::mul.Tensor            changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: silu -> aten::silu                 changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: relu -> aten::relu                 changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: softmax -> aten::_softmax          changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: layernorm -> native_layer_norm     changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_ROW: triu -> aten::triu                 changed=True  after=FlagGems(/dev/null)    | PrivateUse1: registered at /dev/null:63 [kernel]
+DISPATCH_MAP_DONE

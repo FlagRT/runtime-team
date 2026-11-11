@@ -2,7 +2,8 @@
 # ============================================================
 # clone_all.sh —— 对齐 dev/repos.yaml 登记的全部仓（组织子库 + 方向交付仓；新成员一键初始化 / 日常同步）
 # 用法：./clone_all.sh [目标目录]；缺省目标 = 公共仓根（嵌套布局，各仓收拢其内）
-# 前置：SSH key 已上传且已是 FlagRT 组织成员（脚本自检，不过即退出）；python3 + yaml（解析登记文件）
+# 前置：SSH key 已上传且已是 FlagRT 组织成员（脚本自检，不过即退出）；python3 + yaml（解析登记文件）；
+#       系统 ssh 配置异常的机器自动回退 ssh -F ~/.ssh/config（认证与 git 调用同走该配置）
 #
 # 登记处：dev/repos.yaml（SSOT，报备-收录制）；新增/改名/换协作线只改 yaml，不改本脚本。
 #   无权限的 private 仓降级跳过并提示向总组申请权限，不使整体失败。
@@ -80,11 +81,27 @@ echo "[conf] 已从 dev/repos.yaml 读入 ${#REPO_CONF[@]} 仓"
 echo "[auth] 检查 GitHub SSH 认证 ..."
 # SSH 主机取自登记文件首仓 url 的 user@host 部分（脚本不硬编码地址）
 AUTH_HOST=${REPO_CONF[0]%%:*}
-AUTH_OUT=$(ssh -T "$AUTH_HOST" 2>&1 || true)
+# 先按现状探测（GIT_SSH_COMMAND 已设则尊重之，否则裸 ssh）；失败时回退显式用户配置
+# ssh -F ~/.ssh/config（-F 使系统级配置不参与，规避个别机器 /etc/crypto-policies 坏选项
+# 致裸 ssh 解析即退出的坑，如 910c 系 OpenSSH 10.3）。回退命中才导出 GIT_SSH_COMMAND，
+# 让本脚本内所有 git clone/fetch/pull 走同一配置；正常机器一次通过、不导出任何覆盖
+# （GIT_SSH_COMMAND 优先级高于各仓 local core.sshCommand，故仅在回退命中时设置）。
+AUTH_PROBE=${GIT_SSH_COMMAND:-ssh}
+AUTH_OUT=$($AUTH_PROBE -T "$AUTH_HOST" 2>&1 || true)
+if ! echo "$AUTH_OUT" | grep -q "successfully authenticated"; then
+  FB_SSH="ssh -F $HOME/.ssh/config"
+  FB_OUT=$($FB_SSH -T "$AUTH_HOST" 2>&1 || true)
+  if echo "$FB_OUT" | grep -q "successfully authenticated"; then
+    AUTH_OUT=$FB_OUT
+    export GIT_SSH_COMMAND="$FB_SSH"
+    echo "[auth] 默认 ssh 认证探测失败，已回退 ~/.ssh/config 并对本脚本导出 GIT_SSH_COMMAND"
+  fi
+fi
 if ! echo "$AUTH_OUT" | grep -q "successfully authenticated"; then
   echo "❌ SSH 认证失败。请先："
   echo "   1. 生成并上传 key：ssh-keygen -t ed25519 -C \"你的邮箱\" → GitHub Settings → SSH and GPG keys"
   echo "   2. 确认已是 FlagRT 组织成员（write 权限）"
+  echo "   （系统 ssh 配置异常的机器：确认 ~/.ssh/config 存在，脚本会自动以 -F 显式回退它）"
   exit 1
 fi
 USER_NAME=$(echo "$AUTH_OUT" | sed -n 's/^Hi \([^!]*\)!.*/\1/p')

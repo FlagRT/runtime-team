@@ -1,0 +1,21 @@
+=== FORWARD PARITY mode=gems ===
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+/flagos/lib/python3.10/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+/flagos/lib/python3.10/site-packages/torch/library.py:365: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: PrivateUse1
+  previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:7154
+       new kernel: registered at /dev/null:63 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:154.)
+  self.m.impl(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d_backward's behavior for PrivateUse1 dispatch key and aten namespace.
+ENABLE_OK
+model_path /hf_cache/hub/models--Qwen--Qwen3-Embedding-0.6B/snapshots/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3/
+FORWARD_RESULT:{"ok": false, "err": "KeyError: 'Keyword argument task_type was specified but unrecognised'", "last_frame": "raise KeyError(\"Keyword argument %s was specified but unrecognised\" % k)"}
+FORWARD_DONE

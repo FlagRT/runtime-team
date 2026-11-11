@@ -1,0 +1,348 @@
+{
+  "Id": "ca7b562830138b246f28f1d429422a732858af81266dda426605dd8d8ac0fe5c",
+  "Created": "2026-11-04T07:39:44.935253045Z",
+  "Path": "python3",
+  "Args": [
+    "-B",
+    "/work/tools/ascend_probe.py",
+    "lifecycle",
+    "--mapping",
+    "/input/mapping.json",
+    "--runtime-evidence",
+    "/input/runtime.json",
+    "--health",
+    "/input/health.json"
+  ],
+  "State": {
+    "Status": "created",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "0001-01-01T00:00:00Z",
+    "FinishedAt": "0001-01-01T00:00:00Z"
+  },
+  "Image": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "ResolvConfPath": "",
+  "HostnamePath": "",
+  "HostsPath": "",
+  "LogPath": "",
+  "Name": "/flagmemory-lifecycle-8e95fda5c6a842e58854b1f4a0f811ec",
+  "RestartCount": 0,
+  "Driver": "overlay2",
+  "Platform": "linux",
+  "MountLabel": "",
+  "ProcessLabel": "",
+  "AppArmorProfile": "",
+  "ExecIDs": null,
+  "HostConfig": {
+    "Binds": null,
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "none",
+      "Config": {}
+    },
+    "NetworkMode": "none",
+    "PortBindings": {},
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "CapAdd": null,
+    "CapDrop": [
+      "ALL"
+    ],
+    "CgroupnsMode": "host",
+    "Dns": [],
+    "DnsOptions": [],
+    "DnsSearch": [],
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "private",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": false,
+    "SecurityOpt": [
+      "no-new-privileges"
+    ],
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runc",
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 4294967296,
+    "NanoCpus": 2000000000,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": [],
+    "BlkioDeviceReadBps": null,
+    "BlkioDeviceWriteBps": null,
+    "BlkioDeviceReadIOps": null,
+    "BlkioDeviceWriteIOps": null,
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [
+      {
+        "PathOnHost": "/dev/davinci15",
+        "PathInContainer": "/dev/davinci15",
+        "CgroupPermissions": "rw"
+      },
+      {
+        "PathOnHost": "/dev/davinci_manager",
+        "PathInContainer": "/dev/davinci_manager",
+        "CgroupPermissions": "rw"
+      },
+      {
+        "PathOnHost": "/dev/devmm_svm",
+        "PathInContainer": "/dev/devmm_svm",
+        "CgroupPermissions": "rw"
+      },
+      {
+        "PathOnHost": "/dev/hisi_hdc",
+        "PathInContainer": "/dev/hisi_hdc",
+        "CgroupPermissions": "rw"
+      }
+    ],
+    "DeviceCgroupRules": null,
+    "DeviceRequests": null,
+    "KernelMemory": 0,
+    "KernelMemoryTCP": 0,
+    "MemoryReservation": 0,
+    "MemorySwap": 8589934592,
+    "MemorySwappiness": null,
+    "OomKillDisable": false,
+    "PidsLimit": null,
+    "Ulimits": null,
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/source",
+        "Target": "/work",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/usr/local/Ascend/driver",
+        "Target": "/usr/local/Ascend/driver",
+        "ReadOnly": true
+      },
+      {
+        "Type": "bind",
+        "Source": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/lifecycle/input",
+        "Target": "/input",
+        "ReadOnly": true
+      }
+    ],
+    "MaskedPaths": [
+      "/proc/asound",
+      "/proc/acpi",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/sys/firmware"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ]
+  },
+  "GraphDriver": {
+    "Data": {
+      "LowerDir": "/mnt/raid/docker/overlay2/c74df103b1ef61b0c6f2986a834f5865101a46dab8540b0beeb745ebbacdce85-init/diff:/mnt/raid/docker/overlay2/c7c7031f5645167a2a66b19c6d09f17290ab7e7e7b4f9db5bfe5669ea64cea2f/diff:/mnt/raid/docker/overlay2/65163d9ef535efe2d79c940844ad5286ba03607fc86b8432e12ed64656a99dd9/diff:/mnt/raid/docker/overlay2/a4b2871de948fcf7c940a74edd31627ef40ad12a372e88c617626bc70adaaf99/diff:/mnt/raid/docker/overlay2/c039650aec20244c02009823f7ebd8f347fc82fc34d3cbf7ee8867f6bd78ced3/diff:/mnt/raid/docker/overlay2/dfdac14db3cf593b0cd35dc6dafd6d856c012e8be4e6722b4918105128c987a3/diff:/mnt/raid/docker/overlay2/44be567a69138bb7bdae267b7bc07c7e7f16345aa31d90722e9899cf4b544645/diff:/mnt/raid/docker/overlay2/4ca637c530a6535f11073dcb8c59deef49533c4da16c90e919ddfd7ba85395ac/diff:/mnt/raid/docker/overlay2/562bbc97d4150c477867df376c75b54cabacc3032ac3e97bbddf4abfa1e7ce86/diff:/mnt/raid/docker/overlay2/65c2776f1d3fdf3532dbbe98854096e757c3c61e174f69c7bfef965e51779f85/diff:/mnt/raid/docker/overlay2/6d35e83adabd95f732bfd41f4726be8774fa478dbb33af9b7a7716b65d9e575a/diff:/mnt/raid/docker/overlay2/f4a6e56ae46086323b64ccfbf4763e2e3df072e90730c6142f89b434bd88ce94/diff:/mnt/raid/docker/overlay2/a802ff5c12ca9e24a3fcfd0311f5fb7d8417910ad632aa87e98bdad25a9c6cda/diff:/mnt/raid/docker/overlay2/7842e08080898fc11f6277cea2d94aea9feb66aa83be591824dfec674782f696/diff:/mnt/raid/docker/overlay2/a5433c1b5ac786a6757c7cc8b9634833ea41a9a19c5cb66900ea85576c766227/diff:/mnt/raid/docker/overlay2/950f12759f1a13e855e13407fd0e6c61148688e3814b917949c6d6349b2331cb/diff:/mnt/raid/docker/overlay2/4a4187084cbb1d2d716ff40504edad0c8f1e163aa01644dc060d53e56c884244/diff:/mnt/raid/docker/overlay2/c85665b7303c420192bfbfd1f42bfd44bd1cc4507498802c2510e619dd703fa0/diff:/mnt/raid/docker/overlay2/9ddc0ecd5ff8487ec48a9f5793ab77e289efb4fd527ca01c36906f5458e51e0f/diff:/mnt/raid/docker/overlay2/6c932972858855d7b819d49c2b387de4f2031150f46610c47a1caf1cf336557a/diff:/mnt/raid/docker/overlay2/2248d9e6fb1a3b1059c825a0e86764bbf4a66d1cb9c1a0e4ff0f4be19d40026c/diff:/mnt/raid/docker/overlay2/0f44cf15e2fba7690919d2da87154d90459dbc67edab6a18bca4cc6341910488/diff:/mnt/raid/docker/overlay2/63c0cb055558f24f235bd8382719588afe0ae453d005cd2ab54b6f76f09dbba0/diff:/mnt/raid/docker/overlay2/0d807f0ad43587a2a9b015fc5dc5d51c64d00bc56d48fff7ef40068786d3ca24/diff:/mnt/raid/docker/overlay2/8e77c9372af1735b9b187ed28ef227ec83be24e9e860e228362ee0c614097e06/diff:/mnt/raid/docker/overlay2/436ba71ac3371ab5ecf4030ea216843b71473a09095ad76c56bb9c40404fb918/diff:/mnt/raid/docker/overlay2/914a755a2ab3fc87122cd385e238d15c85e63d3160942e3b5378a0919ebd8f17/diff:/mnt/raid/docker/overlay2/04e57fe0c257dc7af31a0eb316cf7a066574580127dc34462a3702facf6b48ab/diff:/mnt/raid/docker/overlay2/f77de1c9e5e2caa8c8adebae7b78e2cc9ca8d38f4410b53c72092ef874756891/diff:/mnt/raid/docker/overlay2/f8b9f319651fc4c3e729eb2a00ef1dd4171b91d5c3e482e836f04e32d44f0137/diff:/mnt/raid/docker/overlay2/f5187a0b5b83b5a728bce763ff95bf1c0e4bb0c9393d8772f1da3e8148a86ee3/diff:/mnt/raid/docker/overlay2/2bb3a30bcd166ab5bb2f361f0c3d2a0a8baf684bb256ab579c7a848324ee451b/diff:/mnt/raid/docker/overlay2/51cd50b79deea1323b5f8ac8cf8732d41d0714a272a3ca0da60dd38be0790ed9/diff:/mnt/raid/docker/overlay2/b856bbb359eece5cf73794f979b7807fe2f85e92b70440fa14edb25efd1e4ce7/diff:/mnt/raid/docker/overlay2/da2eebf90b3bfe47694da33ba83801c61c667edf99051938dbf87c326e25beb4/diff:/mnt/raid/docker/overlay2/65b4adcacd8297b7c80541659a6ab3250b54b1f91b8497499e0e2edcca2bf675/diff:/mnt/raid/docker/overlay2/bbb042c1c0b014493f943267447fab865c96d62977f211f229c04e1686ab5033/diff:/mnt/raid/docker/overlay2/d7321537f9c53a196a2b9196b5ad810c69cd2c363300caa2c629b64ea75eff3b/diff:/mnt/raid/docker/overlay2/8e8b2b975245f2f703ff0e3fb68e2bede29348d3a223b61e5724aa48e275b6a4/diff",
+      "MergedDir": "/mnt/raid/docker/overlay2/c74df103b1ef61b0c6f2986a834f5865101a46dab8540b0beeb745ebbacdce85/merged",
+      "UpperDir": "/mnt/raid/docker/overlay2/c74df103b1ef61b0c6f2986a834f5865101a46dab8540b0beeb745ebbacdce85/diff",
+      "WorkDir": "/mnt/raid/docker/overlay2/c74df103b1ef61b0c6f2986a834f5865101a46dab8540b0beeb745ebbacdce85/work"
+    },
+    "Name": "overlay2"
+  },
+  "Mounts": [
+    {
+      "Type": "bind",
+      "Source": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/source",
+      "Destination": "/work",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/usr/local/Ascend/driver",
+      "Destination": "/usr/local/Ascend/driver",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/lifecycle/input",
+      "Destination": "/input",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    }
+  ],
+  "Config": {
+    "Hostname": "ca7b56283013",
+    "Domainname": "",
+    "User": "0:0",
+    "AttachStdin": false,
+    "AttachStdout": true,
+    "AttachStderr": true,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "FLAGMEMORY_RUN_ID=8e95fda5c6a842e58854b1f4a0f811ec",
+      "FLAGMEMORY_SOURCE_SHA256=5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+      "PATH=/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bin:/usr/local/Ascend/ascend-toolkit/latest/bin:/usr/local/Ascend/ascend-toolkit/latest/compiler/ccec_compiler/bin:/usr/local/Ascend/ascend-toolkit/latest/tools/ccec_compiler/bin:/usr/local/Ascend/cann-9.0.0/tools/show_kernel_debug_data:/usr/local/Ascend/cann-9.0.0/tools/msobjdump:/usr/local/Ascend/cann-9.0.0/bin:/usr/local/Ascend/cann-9.0.0/tools/ccec_compiler/bin:/usr/local/Ascend/cann-9.0.0/tools/profiler/bin:/usr/local/Ascend/cann-9.0.0/tools/ascend_system_advisor/asys:/usr/local/python3.11.15/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "LD_LIBRARY_PATH=/usr/local/python3.11.15/lib/python3.11/site-packages/torch/lib:/usr/local/Ascend/cann-9.0.0/lib64:/usr/local/Ascend/cann-9.0.0/lib64/plugin/opskernel:/usr/local/Ascend/cann-9.0.0/lib64/plugin/nnengine:/usr/local/Ascend/cann-9.0.0/opp/built-in/op_impl/ai_core/tbe/op_tiling:/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/lib:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/examples:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/tests/atbopstest:/usr/local/Ascend/ascend-toolkit/latest/tools/aml/lib64:/usr/local/Ascend/ascend-toolkit/latest/tools/aml/lib64/plugin:/usr/local/Ascend/ascend-toolkit/latest/lib64:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/opskernel:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/nnengine:/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe/op_tiling:/usr/local/python3.11.15/lib:",
+      "ASCEND_TOOLKIT_HOME=/usr/local/Ascend/cann-9.0.0",
+      "ASCEND_TOOLKIT_LATEST_HOME=/usr/local/Ascend/ascend-toolkit/latest",
+      "PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/python/site-packages:/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe:/usr/local/Ascend/cann-9.0.0/python/site-packages:/usr/local/Ascend/cann-9.0.0/opp/built-in/op_impl/ai_core/tbe:",
+      "ASCEND_AICPU_PATH=/usr/local/Ascend/cann-9.0.0",
+      "ASCEND_OPP_PATH=/usr/local/Ascend/cann-9.0.0/opp",
+      "TOOLCHAIN_HOME=/usr/local/Ascend/cann-9.0.0/toolkit",
+      "ASCEND_HOME_PATH=/usr/local/Ascend/cann-9.0.0",
+      "CMAKE_PREFIX_PATH=/usr/local/Ascend/cann-9.0.0/toolkit/tools/tikicpulib/lib/cmake:/usr/local/Ascend/cann-9.0.0/lib64/cmake",
+      "ATB_HOME_PATH=/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1",
+      "ATB_STREAM_SYNC_EVERY_KERNEL_ENABLE=0",
+      "ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE=0",
+      "ATB_STREAM_SYNC_EVERY_OPERATION_ENABLE=0",
+      "ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT=1",
+      "ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT=5",
+      "ATB_WORKSPACE_MEM_ALLOC_ALG_TYPE=1",
+      "ATB_COMPARE_TILING_EVERY_KERNEL=0",
+      "ATB_SHARE_MEMORY_NAME_SUFFIX=",
+      "ATB_MATMUL_SHUFFLE_K_ENABLE=1",
+      "LCCL_DETERMINISTIC=0",
+      "LCCL_PARALLEL=0",
+      "DEBIAN_FRONTEND=noninteractive",
+      "SOC_VERSION=ascend910_9391",
+      "TASK_QUEUE_ENABLE=1",
+      "OMP_NUM_THREADS=1",
+      "GEMS_VENDOR=ascend",
+      "TRITON_ENABLE_TASKQUEUE=false",
+      "DO_NOT_TRACK=1",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "PIP_DISABLE_PIP_VERSION_CHECK=1",
+      "TRITON_ALL_BLOCKS_PARALLEL=1",
+      "HCCL_WHITELIST_DISABLE=1"
+    ],
+    "Cmd": [
+      "-B",
+      "/work/tools/ascend_probe.py",
+      "lifecycle",
+      "--mapping",
+      "/input/mapping.json",
+      "--runtime-evidence",
+      "/input/runtime.json",
+      "--health",
+      "/input/health.json"
+    ],
+    "Image": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+    "Volumes": null,
+    "WorkingDir": "/work",
+    "Entrypoint": [
+      "python3"
+    ],
+    "OnBuild": null,
+    "Labels": {
+      "flagmemory.run_id": "8e95fda5c6a842e58854b1f4a0f811ec",
+      "io.flagrt.cann.version": "9.0.0",
+      "io.flagrt.device_backend.default": "torch_npu (PrivateUse1='npu'), official autoload, Route A -- see verify_runtime.py",
+      "io.flagrt.flag_gems.activation": "installed, inert unless caller explicitly enters flag_gems.use_gems(); GEMS_VENDOR=ascend below is a dormant config value read only on explicit use",
+      "io.flagrt.flag_gems.commit": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+      "io.flagrt.flagcx.commit": "4e0e0cbcbf721169ca82348080f8353aebfe2c31",
+      "io.flagrt.flagcx.hw_adaptor": "ascend (USE_ASCEND=1 at build time -- unchanged from v2; this selects the CANN/HCCL hardware target, NOT the torch consumption path)",
+      "io.flagrt.flagcx.origin": "public (FlagRT/FlagCX org fork public trunk, synced from flagos-ai/FlagCX upstream) -- UNCHANGED from v2",
+      "io.flagrt.flagcx.torch_consumption_path": "torch_npu (PrivateUse1='npu', official autoload) + dist.init_process_group(backend=\"flagcx\") -- FlagCX's own native c10d backend registration, matching dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py. NOT Torch-FL's \"flagos\" ProcessGroup wrapper.",
+      "io.flagrt.flagcx.torch_consumption_path_confidence": "best-effort reading of Dockerfile/docs; NOT independently re-verified against FlagCX source in this phase -- see REBUILD.md open questions",
+      "io.flagrt.flagcx.version": "0.13.0",
+      "io.flagrt.flagtree.branch": "triton_v3.5.x",
+      "io.flagrt.flagtree.commit": "15ec1a6cbc8d51f597f46459a500e96f3812c58f",
+      "io.flagrt.flagtree.version": "0.6.0+ascend.git15ec1a6c",
+      "io.flagrt.lineage": "flagtree-official-ascend3.5-routeA",
+      "io.flagrt.python.version": "3.11.15",
+      "io.flagrt.release.stage": "candidate",
+      "io.flagrt.torch.version": "2.10.0+cpu",
+      "io.flagrt.torch_fl.activation": "installed, NOT imported by any default path in this image; opt-in only (caller must set TORCH_DEVICE_BACKEND_AUTOLOAD=0 before importing torch_fl, and before torch_npu has claimed PrivateUse1)",
+      "io.flagrt.torch_fl.commit": "162582d678e40f133924a4d3b5b6df1cb8154dc7",
+      "io.flagrt.torch_npu.version": "2.10.0 (base image, not built by this layer)",
+      "io.flagrt.triton.version": "3.5.1",
+      "io.flagrt.vllm_plugin_fl.origin": "BAAI-FlagTree-official (github.com/flagos-ai org, public; NOT the FlagRT/vllm-plugin-FL org fork which carries un-upstreamed ascend patches -- see REBUILD.md)",
+      "io.flagrt.vllm_plugin_fl.ref": "8b059122e32b9ac47b9820a9c7b1bb95077481a4",
+      "io.flagrt.vllm_plugin_fl.ref_confidence": "phase-2 round-2 verified: exact commit read from 'git ls-remote https://github.com/flagos-ai/vllm-plugin-FL.git release/0.2' (see REBUILD.md 'vllm-ascend -> vllm-plugin-FL pivot')",
+      "io.flagrt.vllm_plugin_fl.repo": "https://github.com/flagos-ai/vllm-plugin-FL.git",
+      "io.flagrt.vllm_plugin_fl.supersedes": "vllm-ascend (vllm-project/vllm-ascend@367b8e62d) -- build failed, triton-ascend==3.2.1 not on public PyPI, see REBUILD.md STOP CONDITION history",
+      "org.opencontainers.image.title": "FlagRT Ascend communication runtime (v3, Route A / HCCL-adaptor lineage)",
+      "org.opencontainers.image.version": "2.0.0"
+    }
+  },
+  "NetworkSettings": {
+    "Bridge": "",
+    "SandboxID": "",
+    "HairpinMode": false,
+    "LinkLocalIPv6Address": "",
+    "LinkLocalIPv6PrefixLen": 0,
+    "Ports": {},
+    "SandboxKey": "",
+    "SecondaryIPAddresses": null,
+    "SecondaryIPv6Addresses": null,
+    "EndpointID": "",
+    "Gateway": "",
+    "GlobalIPv6Address": "",
+    "GlobalIPv6PrefixLen": 0,
+    "IPAddress": "",
+    "IPPrefixLen": 0,
+    "IPv6Gateway": "",
+    "MacAddress": "",
+    "Networks": {
+      "none": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "NetworkID": "",
+        "EndpointID": "",
+        "Gateway": "",
+        "IPAddress": "",
+        "IPPrefixLen": 0,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "MacAddress": "",
+        "DriverOpts": null
+      }
+    }
+  }
+}

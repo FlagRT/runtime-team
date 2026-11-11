@@ -18,7 +18,8 @@ image:
 # ③ 本组 cambricon 后端（prototype/runtime/backends/cambricon）不在镜像内 —— 它在仓内
 #    device-context 方向，demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
 # ④ flag_gems 由基座自带。按 ENV-SPEC §3.1「首选不产生第二份」，不再固化第二份；
-#    本组尚未在本芯片上对其做结论性验证，见 lock.yaml gaps。
+#    2026-11-05 已做结论性验证（11-05 批次）：enable() 生效但 4/9 算子与真实前向失败 ⇒ 当前不可替换；
+#    证据 MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md §4，另见 lock.yaml gaps。
 
 baked_repos:
   # ──────────────── FlagOS 官方基座自带（被动继承，不可重建） ────────────────
@@ -55,7 +56,7 @@ baked_repos:
     commit: unavailable
     version: 5.4.0rc2.post3
     install: pip (wheel)
-    info: 基座自带（镜像 Label flagos.flaggems=5.4.0-rc2.post3 与容器内 pip 实测一致）；本组尚未在本芯片上做结论性验证
+    info: 基座自带（镜像 Label flagos.flaggems=5.4.0-rc2.post3 与容器内 pip 实测一致）；2026-11-05 已做结论性验证：enable() 使 8/9 算子 dispatch 被接管，但 4/9 算子与真实前向因 triton-mlu autotuner 参数（task_type / BLOCK_ROW_SIZE）失败 ⇒ 当前不可替换（MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md §4）
   cambricon_dali:
     layer: L3
     from: base_image

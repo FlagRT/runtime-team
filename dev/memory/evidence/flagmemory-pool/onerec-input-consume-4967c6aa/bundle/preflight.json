@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "source_sha256": "1fbcb9a43c4ea8674e3a718a1ca251f99992727f56810f953544e8b82c2094a3",
+  "collected_at": "2026-11-04T08:36:06.700678+00:00",
+  "window_confirmed": true,
+  "window_mode": "shared_candidate",
+  "target": {
+    "physical": 15,
+    "major": 235,
+    "minor": 15,
+    "healthy": true,
+    "process_count": 0
+  },
+  "target_snapshot": {
+    "physical": 15,
+    "npu": 7,
+    "chip": 1,
+    "bus": "0000:83:00.0",
+    "health": "OK",
+    "hbm_used_mb": 2880,
+    "hbm_total_mb": 65536,
+    "aicore": 0,
+    "pids": []
+  },
+  "hbm_tolerance_mb": 64,
+  "filter": {
+    "version": "v1",
+    "review_status": "accepted",
+    "reviewer": "??????? shared-execution-clearance.md",
+    "evidence_path": "/home/<user>/flagmemory-onerec-run-496-20261104-43ee5653b210466f81718dbcb106c34b/bundle/filter-evidence.json",
+    "sha256": "a6b518e7f77552535a9084d231c3122a576d97507983577c90b70eaea780bfb4",
+    "allowed_compute": [
+      15
+    ],
+    "controls": [
+      "davinci_manager",
+      "devmm_svm",
+      "hisi_hdc"
+    ]
+  },
+  "inputs": {}
+}

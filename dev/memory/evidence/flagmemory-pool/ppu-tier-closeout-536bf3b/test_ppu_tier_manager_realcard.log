@@ -1,0 +1,62 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.2.0, pluggy-1.3.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'default' -> database=DirectoryBasedExampleDatabase(PosixPath('/ws/.hypothesis/examples'))
+rootdir: /ws, configfile: pyproject.toml
+plugins: anyio-4.15.1, xdist-3.6.1, hypothesis-6.103.4
+collecting ... collected 2 items
+
+tests/tiering/test_ppu_tier_manager_realcard.py::test_T8负例_级二容量不大于级一池容量报错不启 PASSED [ 50%]
+tests/tiering/test_ppu_tier_manager_realcard.py::test_真卡端到端编排_注册分类换出换入全链路 PASSED [100%]
+
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    and isinstance(item.value, ast.Str)
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    doc = item.value.s
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: 37 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    inlocs = ast.Compare(ast.Str(name.id), [ast.In()], [locs])
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: 37 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expr = ast.IfExp(test, self.display(name), ast.Str(name.id))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: 25 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    syms.append(ast.Str(sym))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: 25 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expls.append(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: 128 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    keys = [ast.Str(key) for key in current.keys()]
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: 25 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    assertmsg = ast.Str("")
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: 27 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: 27 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    clear = ast.Assign(variables, ast.NameConstant(None))
+
+tests/tiering/test_ppu_tier_manager_realcard.py::test_T8负例_级二容量不大于级一池容量报错不启
+  /usr/local/lib/python3.12/site-packages/dateutil/tz/tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 2 passed, 338 warnings in 11.62s =======================

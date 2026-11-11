@@ -1,0 +1,246 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.2.0, pluggy-1.3.0
+rootdir: /ws, configfile: pyproject.toml, testpaths: tests
+plugins: anyio-4.15.1, xdist-3.6.1, hypothesis-6.103.4
+collected 863 items / 15 deselected / 2 skipped / 848 selected
+
+tests/test_ascend_bounded_host.py ...................................... [  4%]
+......................                                                   [  7%]
+tests/test_ascend_probe_host.py ........................................ [ 11%]
+.......                                                                  [ 12%]
+tests/caps/test_backend.py .........................                     [ 15%]
+tests/caps/test_capabilities.py ...............                          [ 17%]
+tests/caps/test_degradation.py ..................                        [ 19%]
+tests/caps/test_query.py ...............                                 [ 21%]
+tests/interfaces/test_ascend_profile.py ..........FF...FFF..FFFFF        [ 24%]
+tests/interfaces/test_device_context_bridge.py ......................... [ 27%]
+........................................................................ [ 35%]
+                                                                         [ 35%]
+tests/interfaces/test_stub_matches_impl.py ............................. [ 39%]
+................                                                         [ 40%]
+tests/interfaces/test_tier_stub_matches_impl.py ........................ [ 43%]
+.......                                                                  [ 44%]
+tests/pool/test_alloc_free.py ..........................                 [ 47%]
+tests/pool/test_ascend_acceptance_host.py ........                       [ 48%]
+tests/pool/test_ascend_test_adapter.py .....                             [ 49%]
+tests/pool/test_device_context_ascend_case_host.py ..................... [ 51%]
+.......................                                                  [ 54%]
+tests/pool/test_device_context_onerec_sequence_host.py ................. [ 56%]
+.......                                                                  [ 57%]
+tests/pool/test_drain_barrier.py ................                        [ 59%]
+tests/pool/test_invariants.py .......................................    [ 63%]
+tests/pool/test_offload_callback.py ...........                          [ 64%]
+tests/pool/test_onerec_sequence_input_layout_host.py ..                  [ 65%]
+tests/pool/test_pooled_model_inputs_host.py ............................ [ 68%]
+......                                                                   [ 69%]
+tests/pool/test_queries.py ..............................                [ 72%]
+tests/pool/test_safety_contract.py ..................................... [ 77%]
+............                                                             [ 78%]
+tests/pool/test_stream_ordered.py .............                          [ 80%]
+tests/pool/test_tiers.py ...................                             [ 82%]
+tests/tiering/test_alias_package.py ..................                   [ 84%]
+tests/tiering/test_manager.py .......................................... [ 89%]
+..............                                                           [ 91%]
+tests/tiering/test_npu_backend_host.py ...........                       [ 92%]
+tests/tiering/test_ppu_backend_host.py ............                      [ 93%]
+tests/tiering/test_xpu_backend_host.py ...........                       [ 95%]
+tests/tools/test_check_distribution.py ................                  [ 96%]
+tests/tools/test_check_layering.py ..........................            [100%]
+
+=================================== FAILURES ===================================
+____________ test_consumer_writes_and_incomplete_report_is_visible _____________
+
+    def test_consumer_writes_and_incomplete_report_is_visible():
+>       from examples.device_context_tensor_pool import consume_once
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:89: ModuleNotFoundError
+____________ test_consumer_error_keeps_original_and_cleanup_report _____________
+
+    def test_consumer_error_keeps_original_and_cleanup_report():
+>       from examples.device_context_tensor_pool import consume_once
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:99: ModuleNotFoundError
+_____________ test_successful_consumer_close_after_completed_event _____________
+
+    def test_successful_consumer_close_after_completed_event():
+>       from examples.device_context_tensor_pool import consume_once
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:131: ModuleNotFoundError
+_______ test_consumer_failure_still_attempts_destroy_after_free_failure ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f38b6a20d10>
+
+    def test_consumer_failure_still_attempts_destroy_after_free_failure(monkeypatch):
+>       import examples.device_context_tensor_pool as example
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:143: ModuleNotFoundError
+______________ test_consumer_nonzero_device_and_binding_mismatch _______________
+
+    def test_consumer_nonzero_device_and_binding_mismatch():
+>       from examples.device_context_tensor_pool import consume_once
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:161: ModuleNotFoundError
+_____________ test_consumer_runs_inside_registered_stream_context ______________
+
+    def test_consumer_runs_inside_registered_stream_context():
+>       from examples.device_context_tensor_pool import consume_once
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:192: ModuleNotFoundError
+__________ test_consumer_and_both_cleanup_failures_remain_observable ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f38b6a233b0>
+
+    def test_consumer_and_both_cleanup_failures_remain_observable(monkeypatch):
+>       import examples.device_context_tensor_pool as example
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:204: ModuleNotFoundError
+________ test_cleanup_failure_keeps_report_and_all_error_objects[True] _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f38b6a22960>
+consumer_fails = True
+
+    @pytest.mark.parametrize('consumer_fails', [True, False])
+    def test_cleanup_failure_keeps_report_and_all_error_objects(monkeypatch, consumer_fails):
+>       import examples.device_context_tensor_pool as example
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:229: ModuleNotFoundError
+________ test_cleanup_failure_keeps_report_and_all_error_objects[False] ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f38b6a44620>
+consumer_fails = False
+
+    @pytest.mark.parametrize('consumer_fails', [True, False])
+    def test_cleanup_failure_keeps_report_and_all_error_objects(monkeypatch, consumer_fails):
+>       import examples.device_context_tensor_pool as example
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:229: ModuleNotFoundError
+_______ test_consumer_explicit_cause_is_preserved_with_cleanup_failures ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f38b6a441d0>
+
+    def test_consumer_explicit_cause_is_preserved_with_cleanup_failures(monkeypatch):
+>       import examples.device_context_tensor_pool as example
+E       ModuleNotFoundError: No module named 'examples.device_context_tensor_pool'
+
+tests/interfaces/test_ascend_profile.py:256: ModuleNotFoundError
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: 40 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    and isinstance(item.value, ast.Str)
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: 40 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    doc = item.value.s
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: 1754 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    inlocs = ast.Compare(ast.Str(name.id), [ast.In()], [locs])
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: 1754 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expr = ast.IfExp(test, self.display(name), ast.Str(name.id))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: 1169 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    syms.append(ast.Str(sym))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: 1169 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expls.append(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: 6305 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    keys = [ast.Str(key) for key in current.keys()]
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: 1174 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: 1171 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    clear = ast.Assign(variables, ast.NameConstant(None))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: 1135 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    assertmsg = ast.Str("")
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:965: 384 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:965: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expl_format = self.pop_format_context(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:977: 181 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:977: DeprecationWarning: ast.Num is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expl_template = self.helper("_format_boolop", expl_list, ast.Num(is_or))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_writes_and_incomplete_report_is_visible
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_error_keeps_original_and_cleanup_report
+FAILED tests/interfaces/test_ascend_profile.py::test_successful_consumer_close_after_completed_event
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_failure_still_attempts_destroy_after_free_failure
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_nonzero_device_and_binding_mismatch
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_runs_inside_registered_stream_context
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_and_both_cleanup_failures_remain_observable
+FAILED tests/interfaces/test_ascend_profile.py::test_cleanup_failure_keeps_report_and_all_error_objects[True]
+FAILED tests/interfaces/test_ascend_profile.py::test_cleanup_failure_keeps_report_and_all_error_objects[False]
+FAILED tests/interfaces/test_ascend_profile.py::test_consumer_explicit_cause_is_preserved_with_cleanup_failures
+=========================== warnings summary (final) ===========================
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: 12 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:670: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    and isinstance(item.value, ast.Str)
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: 12 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:672: DeprecationWarning: Attribute s is deprecated and will be removed in Python 3.14; use value instead
+    doc = item.value.s
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: 761 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:940: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    inlocs = ast.Compare(ast.Str(name.id), [ast.In()], [locs])
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: 761 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:943: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expr = ast.IfExp(test, self.display(name), ast.Str(name.id))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: 288 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1053: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    syms.append(ast.Str(sym))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: 288 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:1055: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expls.append(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: 1627 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:804: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    keys = [ast.Str(key) for key in current.keys()]
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: 319 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:914: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    assertmsg = ast.Str("")
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: 352 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:916: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    template = ast.BinOp(assertmsg, ast.Add(), ast.Str(explanation))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: 350 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:928: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    clear = ast.Assign(variables, ast.NameConstant(None))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:965: 63 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:965: DeprecationWarning: ast.Str is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expl_format = self.pop_format_context(ast.Str(expl))
+
+../usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:977: 30 warnings
+  /usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:977: DeprecationWarning: ast.Num is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    expl_template = self.helper("_format_boolop", expl_list, ast.Num(is_or))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+== 10 failed, 838 passed, 2 skipped, 15 deselected, 21139 warnings in 26.05s ===

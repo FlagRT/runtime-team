@@ -1,0 +1,22 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/399 [00:00<?, ?it/s]Loading weights: 100%|██████████| 399/399 [00:00<00:00, 7070.37it/s]
+ONEREC_INPUT_EVIDENCE {"allocator": {"allocate_calls": 1, "allocated_bytes": 8388608, "live_bytes": 0, "release_calls": 1, "status": "released"}, "cleanup_errors": {}, "comparison": {"argmax": 151667, "max_abs_diff": 0.0, "status": "passed"}, "consumer": {"block_id": 1, "data_ptr": 20638706171904, "nbytes": 152, "offset_bytes": 0, "status": "observed", "storage_id": 1, "storage_ptr": 20638706171904}, "destroy": {"closing": false, "completed": true, "custody_id": null, "drain_timed_out": false, "leaked": [], "pending": [], "quarantined": [], "returned_blocks": 1, "returned_bytes": 8388608}, "inputs": {"equal": true, "nbytes": 152, "ordinary_sha256": "b54e3b35cd2bfebf6219ceb4e58d8867bb15342e02f0018137720f0b5be19dc8", "pooled_sha256": "b54e3b35cd2bfebf6219ceb4e58d8867bb15342e02f0018137720f0b5be19dc8", "purpose": "activation", "shape": [1, 19], "status": "compared"}, "observations": {"after_destroy": {"hbm_total_bytes": 65796046848, "hbm_used_bytes": 17530228736, "rss_bytes": 2103599104, "rss_peak_bytes": 7981375488}, "after_forward": {"hbm_total_bytes": 65796046848, "hbm_used_bytes": 17530228736, "rss_bytes": 2103513088, "rss_peak_bytes": 7981375488}, "before_model": {"hbm_total_bytes": 65796046848, "hbm_used_bytes": 160821248, "rss_bytes": 1731297280, "rss_peak_bytes": 1848655872}}, "primary_error": null, "returns": [{"after_return_observation": {"hbm_total_bytes": 65796046848, "hbm_used_bytes": 17530228736, "rss_bytes": 2103578624, "rss_peak_bytes": 7981375488}, "block_id": 1, "completion": {"status": "confirmed"}, "drain": {"promoted_blocks": 1, "promoted_bytes": 8388608, "quarantined_blocks": [], "recoverable_timeout": false, "status": "completed", "still_pending": 0}, "free": {"block_id": 1, "state": "BlockState.PENDING_RECYCLE", "status": "completed"}, "pre_release_completion": {"status": "confirmed"}}, {"after_return_observation": {"hbm_total_bytes": 65796046848, "hbm_used_bytes": 17530228736, "rss_bytes": 2103578624, "rss_peak_bytes": 7981375488}, "block_id": 2, "completion": {"status": "confirmed"}, "drain": {"promoted_blocks": 1, "promoted_bytes": 8388608, "quarantined_blocks": [], "recoverable_timeout": false, "status": "completed", "still_pending": 0}, "free": {"block_id": 2, "state": "BlockState.PENDING_RECYCLE", "status": "completed"}, "pre_release_completion": {"status": "confirmed"}}], "reuse": {"block_id": 2, "status": "completed", "storage_id": 1}}
+.
+=============================== warnings summary ===============================
+tests/pool/test_onerec_inputs_ascend.py::test_onerec_forward_consumes_pool_input_ids
+  /usr/local/python3.11.15/lib/python3.11/site-packages/triton/backends/ascend/driver.py:371: DeprecationWarning: invalid escape sequence '\['
+    for m in re.finditer('\[aicore\]', code):
+
+tests/pool/test_onerec_inputs_ascend.py: 14 warnings
+  /usr/local/python3.11.15/lib/python3.11/site-packages/torch/jit/_script.py:362: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/pool/test_onerec_inputs_ascend.py::test_onerec_forward_consumes_pool_input_ids
+  <frozen importlib._bootstrap>:241: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+
+tests/pool/test_onerec_inputs_ascend.py::test_onerec_forward_consumes_pool_input_ids
+  <frozen importlib._bootstrap>:241: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 17 warnings in 24.92s
+sys:1: DeprecationWarning: builtin type swigvarlink has no __module__ attribute
