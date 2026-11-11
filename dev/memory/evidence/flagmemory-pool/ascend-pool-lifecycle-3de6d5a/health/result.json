@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "stage": "health",
+  "status": "passed",
+  "run_id": "767ea748060d4117be0ccc2b40c8ce7f",
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "started_at": "2026-11-04T07:38:54.868667+00:00",
+  "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+  "captured_bytes": 649,
+  "cleanup": {
+    "ownership_verified": true,
+    "removed": true,
+    "errors": [],
+    "docker_queryable": true,
+    "post_snapshot_sha256": "adff2cc15a0b90ac204cb552894f048ecc220650b6def8507101c8072f01d2cc",
+    "target_facts": {
+      "physical": 15,
+      "npu": 7,
+      "chip": 1,
+      "bus": "0000:83:00.0",
+      "health": "OK",
+      "hbm_used_mb": 2882,
+      "hbm_total_mb": 65536,
+      "aicore": 0,
+      "pids": []
+    },
+    "target_facts_match": true,
+    "postcheck_review_required": false
+  },
+  "target_postcheck_required": true,
+  "container_id": "e0e2738ef09366c4de26a829c9085f88b668590b198e3749abd0239833960bc8",
+  "probe": {
+    "allocated_bytes": 4096,
+    "cleanup": {
+      "completion_confirmed": true,
+      "released": true
+    },
+    "context_restored": true,
+    "elapsed_s": 13.286095812916756,
+    "exit_code": 0,
+    "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+    "query_samples_s": [
+      7.041194476187229e-05,
+      5.241017788648605e-06
+    ],
+    "readback_matches": true,
+    "release_calls": 1,
+    "run_id": "767ea748060d4117be0ccc2b40c8ce7f",
+    "schema": 1,
+    "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+    "stage": "health",
+    "started_at": "2026-11-04T07:38:56.762397+00:00",
+    "status": "passed",
+    "stream_device": 0
+  },
+  "reason": "stage completed",
+  "elapsed_s": 20.173886053962633,
+  "exit_code": 0
+}

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "stage": "mapping",
+  "status": "passed",
+  "run_id": "feb1bb3b630d4f9b842101a6cc316565",
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "started_at": "2026-11-04T07:38:21.915792+00:00",
+  "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+  "captured_bytes": 554,
+  "cleanup": {
+    "ownership_verified": true,
+    "removed": true,
+    "errors": [],
+    "docker_queryable": true,
+    "post_snapshot_sha256": "2984e25b9eccd72d5cc28c0b718eaf7c5bac5e6fdc77f679e31c49d0f93921e0",
+    "target_facts": {
+      "physical": 15,
+      "npu": 7,
+      "chip": 1,
+      "bus": "0000:83:00.0",
+      "health": "OK",
+      "hbm_used_mb": 2880,
+      "hbm_total_mb": 65536,
+      "aicore": 0,
+      "pids": []
+    },
+    "target_facts_match": true,
+    "postcheck_review_required": false
+  },
+  "target_postcheck_required": true,
+  "container_id": "bcfaed08ba8866e5ea21a1f7884ffc6e6ba5ea41ad4c54dbaefa9aa3ffde692e",
+  "probe": {
+    "cleanup": {
+      "finalized": true
+    },
+    "elapsed_s": 0.021236177999526262,
+    "exit_code": 0,
+    "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+    "logical_device": 0,
+    "physical_device": 15,
+    "raw_return_codes": {
+      "count": 0,
+      "finalize": 0,
+      "init": 0,
+      "logic": 0,
+      "physical": 0
+    },
+    "run_id": "feb1bb3b630d4f9b842101a6cc316565",
+    "schema": 1,
+    "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+    "stage": "mapping",
+    "started_at": "2026-11-04T07:38:24.194932+00:00",
+    "status": "passed",
+    "user_device": 0
+  },
+  "reason": "stage completed",
+  "elapsed_s": 3.9360558460466564,
+  "exit_code": 0
+}

@@ -1,0 +1,52 @@
+{
+  "model_id": "OpenOneRec/OneRec-8B",
+  "revision": "29f95b3da63a4bbc00a1cd3aeee948efb2ff40ff",
+  "model_path": "/model",
+  "weights_confirmed": true,
+  "files": {
+    "config.json": "7cfca63823e48a9a61cb457bf40bf30263704f7e0dfa4472a626008a38728a30",
+    "generation_config.json": "427565fe9c01ac08f4a0baaeb536322779193d8d28ba723831b49ed5ae778587",
+    "model.safetensors.index.json": "c463df452d9333ec9f5c954bd6b315ff9ebd46f817c610d09bdb458afe6b531f",
+    "tokenizer.json": "0ccf4231869d9f8755b55133c211b48521a298a86cddf8b59ba9fe0481ecd9ba",
+    "tokenizer_config.json": "b858a4bb4ba3d65d9b9f07599f2ca45fc9de7bbc73b2d5569f8f35bed0f57fd7",
+    "added_tokens.json": "51de9772f8d6502507e487b2a9d20b2a74174ec1cec4eab49c29d235e7f11f9e",
+    "special_tokens_map.json": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+    "merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+    "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+    "LICENSE": "cf94bb5059bdac53836ff64ebc410d578e7c83cd915110a5507adf9278d90a20",
+    "model-00000-of-00003.safetensors": "54144c8a0fccb57ace38e288dd507401d6e6c89fabcc616748cb09db059964ca",
+    "model-00001-of-00003.safetensors": "9c6bcb75cc225008d937c3ce875f4b5c90db45b0cdf0db9b2ef2bf80a301ed6c",
+    "model-00002-of-00003.safetensors": "dec154ac50baceb71093e6cb1e60cfcb3218d91e4eafc5d7fe371fac4564af0b"
+  },
+  "mapping": {
+    "path": "/input/mapping.json",
+    "sha256": "38022c431126089a4353db9f287e12850fbd60343e123e4a71a3807f7b05c13a"
+  },
+  "health": {
+    "path": "/input/health.json",
+    "sha256": "ccadb66522ce4b3bdd5d7dad2af4b0f0388e59495195322873fe0851fd915900"
+  },
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "probe_source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+  "source_commit": "4967c6aa07df419eae54ea0e66f0863b8ac14c17",
+  "device": 0,
+  "physical_device": 15,
+  "resource_scope": "onerec-single-forward",
+  "resource_approved": true,
+  "host_memory_bytes": 34359738368,
+  "device_observation_limit_bytes": 34359738368,
+  "timeout_s": 600,
+  "approved_resources": {
+    "host_memory_bytes": 34359738368,
+    "device_observation_limit_bytes": 34359738368,
+    "timeout_s": 600
+  },
+  "model_mount_read_only": true,
+  "external_watchdog_confirmed": true,
+  "expires_at": "2026-11-04T08:56:06.700678+00:00",
+  "torch_version": "2.10.0",
+  "torch_npu_version": "2.10.0",
+  "transformers_version": "5.5.3",
+  "atol": 0.001,
+  "rtol": 0.001
+}
