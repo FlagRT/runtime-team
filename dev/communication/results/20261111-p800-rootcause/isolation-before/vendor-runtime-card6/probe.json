@@ -1,0 +1,59 @@
+{
+  "pid": 7,
+  "library": "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xre/so/libcudart.so",
+  "requested_pci": "00000000:B6:00.0",
+  "scope": "Native CUDA-compatible allocation/memset/copy; no torch, FlagCX or runtime prototype",
+  "steps": [
+    {
+      "function": "cudaGetDeviceCount",
+      "code": 0,
+      "seconds": 0.0027569050434976816
+    },
+    {
+      "function": "cudaDeviceGetPCIBusId",
+      "code": 0,
+      "seconds": 0.007299104938283563
+    },
+    {
+      "function": "cudaSetDevice",
+      "code": 0,
+      "seconds": 3.200024366378784e-06
+    },
+    {
+      "function": "cudaMalloc",
+      "code": 0,
+      "seconds": 6.864906754344702e-05
+    },
+    {
+      "function": "cudaMemset",
+      "code": 0,
+      "seconds": 4.466890823096037e-05
+    },
+    {
+      "function": "cudaDeviceSynchronize",
+      "code": 0,
+      "seconds": 4.549045115709305e-06
+    },
+    {
+      "function": "cudaMemcpy",
+      "code": 0,
+      "seconds": 2.95999925583601e-05
+    },
+    {
+      "function": "cudaFree",
+      "code": 0,
+      "seconds": 4.608894232660532e-05
+    }
+  ],
+  "verdict": "PASS",
+  "stage": "complete",
+  "pci_order": [
+    "0000:B6:00.0"
+  ],
+  "readback": [
+    16843009,
+    16843009,
+    16843009,
+    16843009
+  ]
+}

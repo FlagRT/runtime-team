@@ -1,0 +1,90 @@
+{
+  "current_blocker": "Recoverable device-side compute execution state; upstream trigger not established",
+  "only_reset_physical_card": 7,
+  "reset_invocations": 1,
+  "p800_strict_summary": {
+    "verdict": "PASS",
+    "scope": "Kunlun integration",
+    "identity": {
+      "backend": "flagcx",
+      "evidence_scope": "P800 integration",
+      "model_sha256": {
+        "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+        "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+        "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+      },
+      "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+      "torch": "2.9.0+cu129",
+      "seed": 923,
+      "dtype": "float32"
+    },
+    "runs": 9,
+    "gradient_checks_per_rank": 17,
+    "gradient_reference_max_abs": 3.725290298461914e-09,
+    "update_reference_max_abs": 3.725290298461914e-09,
+    "manual_fused_loss_max_abs": 0.0,
+    "all_modes_loss_max_abs": 0.0,
+    "final_rank_parameter_max_abs": 0,
+    "compared_modes": [
+      "manual",
+      "fused",
+      "observed"
+    ],
+    "gradient_calls_per_rank_per_50_steps": {
+      "manual": 850,
+      "fused": 50
+    },
+    "timing": {
+      "manual": {
+        "run_mean_step_ms": [
+          24.41605986794457,
+          24.176362154539675,
+          24.328592449892312
+        ],
+        "mean_ms": 24.307004824125517,
+        "sample_stddev_ms": 0.121298259025301
+      },
+      "fused": {
+        "run_mean_step_ms": [
+          14.782081882003695,
+          13.456861090380698,
+          14.329929871018976
+        ],
+        "mean_ms": 14.189624281134456,
+        "sample_stddev_ms": 0.6736592466166427
+      },
+      "observed": {
+        "run_mean_step_ms": [
+          6.883021343965083,
+          6.791476127691567,
+          6.522805436979979
+        ],
+        "mean_ms": 6.732434302878876,
+        "sample_stddev_ms": 0.18722533941532757
+      }
+    },
+    "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+  },
+  "observed_bucket_sizes_bytes": [
+    1289604,
+    396204
+  ],
+  "diagnostic_logging_bucket_sizes_bytes": [
+    1685808
+  ],
+  "trace_steps_per_rank": 50,
+  "host_tests": 115,
+  "new_host_tests": 13,
+  "source_sha256": {
+    "training/deepfm_train.py": "3eff07cb9ec2f848f3030ec73297fb729e8a9a52cfb73c3395aace09f564bff8",
+    "training/distributed.py": "74906f33cdfd145c0b7b87eb4494866ec0502e61e5c0eb770bb27a88bf1c949d",
+    "training/run_repeated.py": "8437c96556d5d70ce0f2efc9ee264a38dc0cc1b0df85e78f205993e5d14dbcdf",
+    "training/summarize_repeated.py": "091dac999cede03ff2e75e5b023cbad74a7998a1ca46f5e1e8ef241e4c3fb1e5",
+    "training/run_p800_selected.py": "3485fe6434836421ced8ddb6bf40acf88540ffad97f3186d3c57a040f1928684",
+    "probes/p800_identity.py": "bb1821838554b49c5b09054310053b96d787e11bd3cace3be482e7dae9d86d0b",
+    "probes/p800_health.py": "3135d59304b3a99c6e4b3cd72425d673fe7c1c9992a727f503a773966aaf0fcf",
+    "env/p800-single/docker-compose.yml": "75cae32eb128b1583b8123fa0f4e92c775b3621ac64105a270af078f5229f27d",
+    "env/p800-pair/docker-compose.yml": "9f7620550ee0d55b384ded5856ba78d8ffc8dc1c0ab5a79fe3f6fd4c6005dae2"
+  },
+  "boundary": "Native default DDP remains open; card4 not reset; no claim of permanent hardware failure or vendor root-trigger fix."
+}

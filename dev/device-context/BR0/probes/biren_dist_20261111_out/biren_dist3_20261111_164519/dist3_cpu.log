@@ -1,0 +1,31 @@
+[W1111 16:45:36.479219803 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+[W1111 16:45:39.136663122 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+[W1111 16:45:39.193138024 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+/usr/local/lib/python3.10/dist-packages/torch_br/__init__.py:152: UserWarning: edgeitems of torch print options has been change to 4 for BR166. If you want to change it, please call torch.set_printoptions.Please NOTE that odd edgeitems can cause error when you print supa tensor on BR166 device.
+  warnings.warn(
+W1111 16:45:43.214000 4444 torch/multiprocessing/spawn.py:169] Terminating process 4519 via signal SIGTERM
+Traceback (most recent call last):
+  File "/tmp/dist_cpu.py", line 18, in <module>
+    mp.spawn(worker, args=(), nprocs=2, join=True)
+  File "/usr/local/lib/python3.10/dist-packages/torch/multiprocessing/spawn.py", line 340, in spawn
+    return start_processes(fn, args, nprocs, join, daemon, start_method="spawn")
+  File "/usr/local/lib/python3.10/dist-packages/torch/multiprocessing/spawn.py", line 296, in start_processes
+    while not context.join():
+  File "/usr/local/lib/python3.10/dist-packages/torch/multiprocessing/spawn.py", line 215, in join
+    raise ProcessRaisedException(msg, error_index, failed_process.pid)
+torch.multiprocessing.spawn.ProcessRaisedException: 
+
+-- Process 0 terminated with the following error:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/torch/multiprocessing/spawn.py", line 90, in _wrap
+    fn(i, *args)
+  File "/tmp/dist_cpu.py", line 11, in worker
+    dist.all_reduce(x)
+  File "/usr/local/lib/python3.10/dist-packages/torch_br/distributed/distributed_c10d.py", line 1325, in all_reduce
+    work = group.allreduce([tensor], opts)
+RuntimeError: Tensors must be SUPA and dense
+

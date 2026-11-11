@@ -1,0 +1,1102 @@
+{
+  "backend": "gloo",
+  "device": "cpu",
+  "rank": 1,
+  "world_size": 2,
+  "torch": "2.4.1",
+  "prototype_revision": "4e9c124b9099353afcbc26637977fdaa3373ea0f",
+  "model_sha256": {
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+  },
+  "comm_mode": "observed",
+  "global_batch": 64,
+  "local_batch": 32,
+  "dtype": "float32",
+  "dataset": "deterministic synthetic; not recommendation accuracy",
+  "seed": 923,
+  "warmup_steps": 5,
+  "measured_steps": 50,
+  "evidence_scope": "CPU/gloo host-only",
+  "oracle": {
+    "mode": "eval with autograd: BN frozen, dropout disabled",
+    "gradient_checks": [
+      {
+        "name": "linear.bias",
+        "max_abs": 0.0,
+        "pass": true
+      },
+      {
+        "name": "linear.fc.weight",
+        "max_abs": 1.862645149230957e-09,
+        "pass": true
+      },
+      {
+        "name": "embedding.embedding.weight",
+        "max_abs": 1.1641532182693481e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.weight",
+        "max_abs": 1.2732925824820995e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.bias",
+        "max_abs": 1.1641532182693481e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.weight",
+        "max_abs": 2.9103830456733704e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.bias",
+        "max_abs": 2.9103830456733704e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.weight",
+        "max_abs": 1.4551915228366852e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.bias",
+        "max_abs": 2.3283064365386963e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.weight",
+        "max_abs": 2.9103830456733704e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.bias",
+        "max_abs": 9.313225746154785e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.weight",
+        "max_abs": 1.4551915228366852e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.bias",
+        "max_abs": 1.3969838619232178e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.weight",
+        "max_abs": 5.820766091346741e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.bias",
+        "max_abs": 1.862645149230957e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.weight",
+        "max_abs": 1.862645149230957e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.bias",
+        "max_abs": 0.0,
+        "pass": true
+      }
+    ],
+    "update_max_abs": 1.862645149230957e-09,
+    "update_pass": true,
+    "rank_parameter_max_abs": 0.0
+  },
+  "final_parameter_sha256": "cf38a4602cbcd00c11ee7ab48dd03bf7a2786438d39cf55392cb46ff962ad96a",
+  "training": {
+    "mode": "train: local BatchNorm + dropout=0.2",
+    "losses": [
+      0.9630154967308044,
+      1.3828762769699097,
+      1.0634299516677856,
+      1.5297313928604126,
+      1.7770589590072632,
+      1.2404208183288574,
+      0.9255862832069397,
+      0.983001172542572,
+      1.1853241920471191,
+      1.3372496366500854,
+      0.9324923753738403,
+      0.8235533237457275,
+      0.7230151891708374,
+      1.2007553577423096,
+      1.3424853086471558,
+      0.9989003539085388,
+      1.2109122276306152,
+      0.812578558921814,
+      1.3161170482635498,
+      1.2451508045196533,
+      1.3465169668197632,
+      1.3874703645706177,
+      1.4254597425460815,
+      1.2112176418304443,
+      1.2309406995773315,
+      0.8731551170349121,
+      1.0617696046829224,
+      1.5243934392929077,
+      1.1307835578918457,
+      1.1986579895019531,
+      1.4358673095703125,
+      1.0136059522628784,
+      0.7829879522323608,
+      1.1929295063018799,
+      1.071776032447815,
+      0.9742479920387268,
+      1.1041182279586792,
+      0.9100965857505798,
+      1.0453296899795532,
+      1.3023333549499512,
+      1.2978650331497192,
+      0.6745754480361938,
+      0.8691288828849792,
+      1.1386241912841797,
+      0.712759256362915,
+      1.1111907958984375,
+      0.9169867634773254,
+      0.9215536117553711,
+      1.1492416858673096,
+      1.1311328411102295
+    ],
+    "step_seconds": [
+      0.009079333045519888,
+      0.010414250078611076,
+      0.01013816602062434,
+      0.006527707912027836,
+      0.005564666003920138,
+      0.005412208964116871,
+      0.005973291001282632,
+      0.006774459034204483,
+      0.013685708050616086,
+      0.011615791940130293,
+      0.01137525006197393,
+      0.00911083398386836,
+      0.007248417008668184,
+      0.007696166983805597,
+      0.006336375023238361,
+      0.006804791046306491,
+      0.004886749899014831,
+      0.0060802079970017076,
+      0.004802291980013251,
+      0.004782957956194878,
+      0.004822916933335364,
+      0.005226916051469743,
+      0.004236208042129874,
+      0.004137000069022179,
+      0.004329791991040111,
+      0.0047886669635772705,
+      0.00456554105039686,
+      0.004406750085763633,
+      0.0056139579974114895,
+      0.004558832966722548,
+      0.004216999979689717,
+      0.0043464170303195715,
+      0.0041917499620467424,
+      0.0059653749922290444,
+      0.004804625059477985,
+      0.004319875035434961,
+      0.005995166953653097,
+      0.004652207950130105,
+      0.004851959063671529,
+      0.003930708975531161,
+      0.00454624998383224,
+      0.004092124989256263,
+      0.004514166037552059,
+      0.004611584008671343,
+      0.004536167019978166,
+      0.00417358404956758,
+      0.004237249959260225,
+      0.004496791982091963,
+      0.004288417054340243,
+      0.004711459041573107
+    ],
+    "sample_id_ranges": [
+      [
+        352,
+        384
+      ],
+      [
+        416,
+        448
+      ],
+      [
+        480,
+        512
+      ],
+      [
+        544,
+        576
+      ],
+      [
+        608,
+        640
+      ],
+      [
+        672,
+        704
+      ],
+      [
+        736,
+        768
+      ],
+      [
+        800,
+        832
+      ],
+      [
+        864,
+        896
+      ],
+      [
+        928,
+        960
+      ],
+      [
+        992,
+        1024
+      ],
+      [
+        1056,
+        1088
+      ],
+      [
+        1120,
+        1152
+      ],
+      [
+        1184,
+        1216
+      ],
+      [
+        1248,
+        1280
+      ],
+      [
+        1312,
+        1344
+      ],
+      [
+        1376,
+        1408
+      ],
+      [
+        1440,
+        1472
+      ],
+      [
+        1504,
+        1536
+      ],
+      [
+        1568,
+        1600
+      ],
+      [
+        1632,
+        1664
+      ],
+      [
+        1696,
+        1728
+      ],
+      [
+        1760,
+        1792
+      ],
+      [
+        1824,
+        1856
+      ],
+      [
+        1888,
+        1920
+      ],
+      [
+        1952,
+        1984
+      ],
+      [
+        2016,
+        2048
+      ],
+      [
+        2080,
+        2112
+      ],
+      [
+        2144,
+        2176
+      ],
+      [
+        2208,
+        2240
+      ],
+      [
+        2272,
+        2304
+      ],
+      [
+        2336,
+        2368
+      ],
+      [
+        2400,
+        2432
+      ],
+      [
+        2464,
+        2496
+      ],
+      [
+        2528,
+        2560
+      ],
+      [
+        2592,
+        2624
+      ],
+      [
+        2656,
+        2688
+      ],
+      [
+        2720,
+        2752
+      ],
+      [
+        2784,
+        2816
+      ],
+      [
+        2848,
+        2880
+      ],
+      [
+        2912,
+        2944
+      ],
+      [
+        2976,
+        3008
+      ],
+      [
+        3040,
+        3072
+      ],
+      [
+        3104,
+        3136
+      ],
+      [
+        3168,
+        3200
+      ],
+      [
+        3232,
+        3264
+      ],
+      [
+        3296,
+        3328
+      ],
+      [
+        3360,
+        3392
+      ],
+      [
+        3424,
+        3456
+      ],
+      [
+        3488,
+        3520
+      ]
+    ],
+    "parameter_count": 421452,
+    "rank_parameter_max_abs": 0.0,
+    "max_rank_measured_seconds": 0.3228725492954254,
+    "global_samples_per_second": 9911.031479706346,
+    "gradient_communication": {
+      "gradient_allreduce_calls": 100,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.10156687418930233,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    },
+    "bn_note": "local minibatch statistics; buffers need not match at exit; not equivalent to single-device train-mode BatchNorm",
+    "parameters_finite": true,
+    "ddp_logging_bucket_sizes_bytes": [
+      1291204,
+      394604
+    ],
+    "ddp_bucket_sizes_bytes": [
+      1291204,
+      394604
+    ],
+    "ddp_bucket_trace": [
+      {
+        "step": 0,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 1,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 2,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 4,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 5,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 6,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 7,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 8,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 9,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 10,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 11,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 12,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 13,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 14,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 15,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 16,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 17,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 18,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 19,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 20,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 21,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 22,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 23,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 24,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 25,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 26,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 27,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 28,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 29,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 30,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 31,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 32,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 33,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 34,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 35,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 36,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 37,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 38,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 39,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 40,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 41,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 42,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 43,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 44,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 45,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 46,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 47,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 48,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      },
+      {
+        "step": 49,
+        "buckets": [
+          {
+            "index": 0,
+            "bytes": 1291204
+          },
+          {
+            "index": 1,
+            "bytes": 394604
+          }
+        ]
+      }
+    ],
+    "ddp_bucket_metadata_source": "GradBucket callbacks per measured backward"
+  },
+  "verdict": "PASS",
+  "group_state": "CLOSED",
+  "teardown": "closed"
+}
