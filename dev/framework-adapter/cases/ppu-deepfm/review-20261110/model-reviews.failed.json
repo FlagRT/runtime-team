@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "reviews": [
+    {
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "workload": {
+        "model_id": "public DeepFM v1",
+        "phase": "train",
+        "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+        "settings_sha256": "3c80a86213b56695fe05f4df8210803eea04e029e93b80940b0c601e07971a42",
+        "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+      },
+      "status": "failed",
+      "revision": 1,
+      "evidence": "model-failed-evidence.json",
+      "evidence_sha256": "f974a1c03f290a622b9de35a2b850cc636c6473175a4260763f82c795f3ebbb7"
+    }
+  ]
+}

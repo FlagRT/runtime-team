@@ -1,0 +1,38 @@
+{
+  "schema": 4,
+  "enabled": true,
+  "operators": {
+    "embedding": {
+      "signatures": [
+        {
+          "weight_shape": [
+            3850,
+            16
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        },
+        {
+          "weight_shape": [
+            3850,
+            1
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        }
+      ]
+    }
+  },
+  "records": null,
+  "embedding_records": "records.json",
+  "workload_reviews": "workload-reviews.json",
+  "require_target": true
+}

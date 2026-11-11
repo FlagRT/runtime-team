@@ -1,0 +1,1534 @@
+{
+  "status": "fail",
+  "stage": "deepfm",
+  "mode": "candidate",
+  "scope": "PPU public DeepFM embedding short training; synthetic data, not CTR quality acceptance",
+  "adapter_version": "0.3.0.dev4",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0",
+  "model_loaded": true,
+  "model_files": {
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef"
+  },
+  "initial_state_sha256": "d50857ad807a2bcf826a29fc2734b4298f46030a207218ea8682283a28d554fb",
+  "parameter_count": 421452,
+  "public_config": {
+    "field_dims": [
+      1000,
+      2000,
+      500,
+      300,
+      50
+    ],
+    "embed_dim": 16,
+    "mlp_dims": [
+      400,
+      400,
+      400
+    ],
+    "dropout": 0.2
+  },
+  "workload": {
+    "model": "public DeepFM v1",
+    "dtype": "torch.float32",
+    "batch": 32,
+    "steps": 3,
+    "initialization": "random",
+    "initial_seed": 20261023,
+    "data_seed": 29000,
+    "dropout_seed": 23000,
+    "data": "synthetic categorical fields and binary labels",
+    "optimizer": "Adam",
+    "lr": 0.001,
+    "eps": 1e-08,
+    "weight_decay": 0,
+    "foreach": false,
+    "deterministic": true,
+    "dropout": 0.2
+  },
+  "runtime_sources": {
+    "runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+    "deepfm_probe.py": "94152c28fd7b3b5726d44c5cde224684c1102b2f1e398abeea0e8cff5c556d4c",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "6bf0b3301e0e1da9356db696216bd93cb6006dccb71abeefcbed365e7cd4827b",
+    "embedding_admission.py": "ec2eb55e94d2d545785255a05c48f0b7d31d9827edfa838bd3901c61c15323a9",
+    "adapter-package": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b"
+  },
+  "probe_sources": {
+    "deepfm_probe.py": "94152c28fd7b3b5726d44c5cde224684c1102b2f1e398abeea0e8cff5c556d4c",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "6bf0b3301e0e1da9356db696216bd93cb6006dccb71abeefcbed365e7cd4827b",
+    "embedding_admission.py": "ec2eb55e94d2d545785255a05c48f0b7d31d9827edfa838bd3901c61c15323a9"
+  },
+  "tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "steps": [
+    {
+      "step": 1,
+      "status": "pass",
+      "gradient_copies": 1,
+      "loss": 1.076857328414917,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 2,
+        "GEMS EMBEDDING BACKWARD": 2
+      },
+      "dispatcher_restored": true,
+      "routes": [
+        [
+          "embedding",
+          "flaggems",
+          "forward",
+          "completed",
+          2
+        ],
+        [
+          "relu",
+          "native",
+          "forward",
+          "operator_disabled",
+          3
+        ],
+        [
+          "sigmoid",
+          "native",
+          "forward",
+          "operator_disabled",
+          1
+        ],
+        [
+          "embedding",
+          "flaggems",
+          "backward",
+          "completed",
+          2
+        ]
+      ],
+      "gradient_tensors": 17,
+      "state_tensors": 28,
+      "optimizer_steps": 1
+    },
+    {
+      "step": 2,
+      "status": "fail",
+      "gradient_copies": 1,
+      "loss": 0.8497074246406555,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 2,
+        "GEMS EMBEDDING BACKWARD": 2
+      },
+      "dispatcher_restored": true,
+      "routes": [
+        [
+          "embedding",
+          "flaggems",
+          "forward",
+          "completed",
+          2
+        ],
+        [
+          "relu",
+          "native",
+          "forward",
+          "operator_disabled",
+          3
+        ],
+        [
+          "sigmoid",
+          "native",
+          "forward",
+          "operator_disabled",
+          1
+        ],
+        [
+          "embedding",
+          "flaggems",
+          "backward",
+          "completed",
+          2
+        ]
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "step1/prediction",
+      "file": "eda022dba2772494df4a4508186f10bea2f206411d1fb44e35332d82cf20df9e.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/loss",
+      "file": "c8ec833486f9cdc51023d8bfe61da922f9f968d9db2f33102439a96b841b861d.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/linear.bias",
+      "file": "f7ed4bf68100012864d35e412d15784e76890b08c43eeb772fdb9778deb3754b.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/linear.fc.weight",
+      "file": "9ca6234fe965b76fffbf4210e4eb7d231b5cc12c37218f38a4cfa22b6ef5a6c1.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.725290298461914e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/embedding.embedding.weight",
+      "file": "c03c5ccad7d2d2e9001f1986f519ce232f134547c826276a76e98aafa47e0d3c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.725290298461914e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.weight",
+      "file": "eda98b18957658661b98b015cb93a79311501abfb71329e519d5835db2b415d1.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.bias",
+      "file": "0515e77aa1022fce099cefa6fbba74f6aa671296f6b38a6d778332e7b05fbf3e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.weight",
+      "file": "faa4abbaa654b5519c0ed585cc317593ee3bf92f87bf0fecad7e8beca433a877.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.bias",
+      "file": "8fcb8bd662392778b0b359c065e04f5087d3e27a0be829320c40ce0bb95c0f17.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.weight",
+      "file": "cfd5c4abc9175c9aac9f2ff90cabb7c4c7ee45d02daa4f6499d2248164c12a78.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.bias",
+      "file": "ae6a5b172bc434761344b26580435ace7977375018c78f29240a8440b663542a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.weight",
+      "file": "f1231e3dc6bc6ead438f043f5826a5dd0e04367db16d9076df21f62f6660f3ea.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.bias",
+      "file": "053a167088ef535175da1e557d87e06e7b47936b65cb1c39395470c6583a1de0.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.weight",
+      "file": "d56e01743facd8eeb60b2f1e73d1553d3819157446806fc453ac946fe016c182.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.bias",
+      "file": "53cd6a9029ac261a56302bb96cca180461dd01222dacbdd0f945b91f3ab7d617.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.weight",
+      "file": "3a37630d82c40417c0aef7d68a4ac3451aafe2970c366a695601a05fe6fa0ed8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.bias",
+      "file": "bfb5450ac2ae851b0ab6b412394999bc217b8419e018c6973086d81ce37b6ca8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.weight",
+      "file": "34dde2d3ea95befc23f0a075ee0a3486dbb6f3f4b275842c655a812689807b3b.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.bias",
+      "file": "554a49a811fe00ecf7f2a17bf2260991c56e9bd04a232b9bc322d8d0ce82b3f7.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.bias",
+      "file": "4f1b8a33791912823797287f05572017e50cf6c3ca8350b8a3404854e041cf1a.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.offsets",
+      "file": "9b6b2b7be1e1810fcf04c3b9b78075da1d4762afd621c641d99456df8786bbe2.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.fc.weight",
+      "file": "30fca2d76cc18b7a4de56ce0746ae99c398c48d8477199d77b9b6cedaa18f379.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/embedding.offsets",
+      "file": "46e1b2aef963d9d43c6c0b0a4bfa580e3813947bfe97ce2036bfb150a2baf5bd.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/embedding.embedding.weight",
+      "file": "be195913944b386b69e32f8b260d0067c80b632ec085a8dd05b5230d00180b4c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.1641532182693481e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.weight",
+      "file": "09a4ef432fb6baa7ec2805e5470164dd4e094e4ef590ed9390ed9ef0bb517eb8.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.bias",
+      "file": "d778cc50c1c2f5a9c68be8ffd6bb20d3eee1e9be4918320bc6f64a13511ee7df.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.weight",
+      "file": "22c6c24e4d2b67782e6b94bf6249450ff3713cdffd317d4f922f03a0be4856d8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.bias",
+      "file": "77f26f0236912f8e8890bd1e1a913fdee5e5bf774b01d97087232253ed8ada77.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.running_mean",
+      "file": "1045fa939d7825937221895168e844719ec6ad71290840397d73761727e16621.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.running_var",
+      "file": "010da55c23c89dd86df5d1d3b8ace73c707155ccb222bb2225497f7b75bf986b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.num_batches_tracked",
+      "file": "fc4ed14cf87731d6bfc03635453a9180f41625c8da7d61dfb8b94989c5313365.pt",
+      "shape": [],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.4.weight",
+      "file": "0b1a73af2854695941e4827c9f7634b668ef070175489fc8d8c45fb0feb707e6.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.4.bias",
+      "file": "c1bf1308dcd83d68931a791c11f68d13bca774b915e4ba723c2f68bd90f3444b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.weight",
+      "file": "6494f2ccbf6742c92a2c89b8bc190add5be05f7144fa9ad4d8f52dde1c9cb17b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.bias",
+      "file": "4c680f5eb195084da1f304261560c9f594e66f6b035f8103f66e20c660ca5258.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.running_mean",
+      "file": "dc9d60088b0d17ff37c92c8eb56205621b6d0d36b05734582e9202a8f9a9cbf8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.running_var",
+      "file": "4f826b6442b11eecf58d12ff37c66d5173720c197861ee4723a959cc344f46ed.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.num_batches_tracked",
+      "file": "6dffe8871af7afc86d536f8b3b5d66f6d1184cf301d532ac382425fa68ad3c2b.pt",
+      "shape": [],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.8.weight",
+      "file": "124b1cfb7317e7fe09a7cd9cacc5e355c96dbfc87a6084eb81db719e6adf71aa.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.8.bias",
+      "file": "bae1551a044353dc5667c7477e8810bacb1fa99c8ef3a096a953aea32fa308e8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.weight",
+      "file": "5a0ea168a87970702e44862eee84d68673e65e22a15eb91389ebaddf5a2caa2c.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.bias",
+      "file": "861fa0e033b5a0cdd5fa05b1f614d994d9af32358654b195ff84d9ead9afdad6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.running_mean",
+      "file": "13799c36dc15806589c43f3c937986b14787d725ffacff7edc3a30697ae8f297.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.running_var",
+      "file": "14b953c66a95cc2a63322043adc2500c547e1be97a0fec96fe2b2ad7621da795.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.num_batches_tracked",
+      "file": "10120a8afef6c095c9558033b36f4c40c26ffb61c1f4436759bd31bef057dbb0.pt",
+      "shape": [],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.12.weight",
+      "file": "b153d929381f4b8fd244a75780c81f2aee026ded9bfd59fc977442a4af64c9ad.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.12.bias",
+      "file": "550bdf364ecc57b0f2b4a186b57b26fdea035d734c6a24a7f99d0993d47875f0.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/0/step",
+      "file": "b38c9fcc25ecafeb1b5ee70c6ae185015bef0bbae1d6480963c5b94b90d8e0d9.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/0/exp_avg",
+      "file": "a3723f46853c4fc8b7dd5ad8a2407b64d56344109a930b8792bc7bb767c7ee5c.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/0/exp_avg_sq",
+      "file": "1eb29b5ca9a592ef89dc5c843a16462fd50a2b9d945697e410626f34a6531783.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/1/step",
+      "file": "4d2c8e460d5011396e7d904bb491a1d905a6d6fd2e10053d4862112b8f314d10.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/1/exp_avg",
+      "file": "b7b0cff1776dd7e5f731feec6a1f6860c5f71525d1115d14b8ff1fb96c9951d9.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.656612873077393e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/1/exp_avg_sq",
+      "file": "3f97e7ffd89bdb4e1a947fc9f88b3b08b6060db472f3418bd748c44418f04cd1.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.2737367544323206e-13,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/2/step",
+      "file": "07d9a9ffa13d7e9102b4389074f7608665adb1204ce49067d49aa52c6c08764e.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/2/exp_avg",
+      "file": "ebc6a328a31e5dfdd0e3a91ecf6bed9a1080c62f530810fd47557236c4d9a4c1.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.656612873077393e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/2/exp_avg_sq",
+      "file": "35d704a9b1cf112c4ac7a1c2f6f30f8b702b92bb597fbf844f1ea9ef5955802f.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.2737367544323206e-13,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/3/step",
+      "file": "2b3d25186a002a0c294202214fc8ece9af4f883c45aaa8fffeaa330c66332bfc.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/3/exp_avg",
+      "file": "af2b8677d15bba17645c2e5305e491587a1e1c8d13e925d604c60c7c5c9b2cf4.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/3/exp_avg_sq",
+      "file": "b222f4a3f0fc168abc775289909de5538c412dbc3e5a2e74f028107e5b32fcb5.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/4/step",
+      "file": "4dbd0eb53afabb20ecb4de358ba5fc6750a308f9ec4bc9e0babf1cc59b393467.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/4/exp_avg",
+      "file": "1baf83a85f20f677da881e79da361eea475323cbecee5db0d37fb1972cbffbc7.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/4/exp_avg_sq",
+      "file": "dbb04aac4b02117d8109cc4d91ce55dbdf9396ef4def9b1ca39de63accca1420.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/5/step",
+      "file": "981db7435a63dbae38e85efb05942788cca882a2175d90ef0fcc2a9655c7af2f.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/5/exp_avg",
+      "file": "d392f9245c1dfc12df1154b16b1c661f5d81f7588409583d7b35ce9c3a00b2f1.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/5/exp_avg_sq",
+      "file": "44ea837a5ae7c36e81b312ccddbfbc9fc52d25025376c3f7c3db1dd9cd96e9bf.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/6/step",
+      "file": "f45f37af98a96bdc609df3c84baf186ee85c5f2c2dc91dc9f214261b4d50aa91.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/6/exp_avg",
+      "file": "b700a753bcdad287ec061cb75f46b1c4f375da906feda288f4b84a7710bf858b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/6/exp_avg_sq",
+      "file": "4a5004202c24d50ee86de7ea01390dba20d9018e36c39fed0895f916a9432ffe.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/7/step",
+      "file": "ebea0bbbc70a680b8ff7eed3a078e2eeae2f5b067de1aa8bc72a905f4bde4118.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/7/exp_avg",
+      "file": "475f000fb4caef6a8734d2de60505d6beeb62bf9cb19f1a039c9e83da90148ad.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/7/exp_avg_sq",
+      "file": "46932a8c2cf98e5c873720b4115aaee0dc6e9d55cbebad2e988b3b5809566905.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/8/step",
+      "file": "1231381f7dd9f6442ece717531db7a666bf0d76ea4c333cc0623bfabd0ddc318.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/8/exp_avg",
+      "file": "03b656fd6de202bcdb3feda14a6cd8c47d4a04c2cdd39c47960f892cea101a26.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/8/exp_avg_sq",
+      "file": "b21e612cc2d63afcc26844c0940f2844736c42e49d1ae8558e61ab4236ee4c84.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/9/step",
+      "file": "832b0f6ecaa3377c85d498e19dd650367e8a30c64af2f139d2cc7d8840e31958.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/9/exp_avg",
+      "file": "327bc4f328da83140bbd91e72610b613e69f367e2aaa72cac9ba035dc5388249.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/9/exp_avg_sq",
+      "file": "73d1119261b2d421bbc53042c14a435f7f1788042a71fbf9e7c57990e5c53b29.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/10/step",
+      "file": "6002f22ef0a02a197f6a110675269a6bf3edbac85532033f44ea68bf655d6691.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/10/exp_avg",
+      "file": "d0c736949c58f5e4ad221991914e9ca23c967c921fd29127f98b6ed6d8e880ab.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/10/exp_avg_sq",
+      "file": "f401dd6f5540c8aedeb75410b830dee3fd456333cd3741956ad1ba3f6fb58819.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/11/step",
+      "file": "ee91664eba34be37e544018e57908becb474ff865906766103cac6a3370f2229.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/11/exp_avg",
+      "file": "96a9aee4196d99a587250c658e687a76cf30823b96e7dd2cfa24e2d2b625c5d2.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/11/exp_avg_sq",
+      "file": "d1b63b7917ce7e5bf3b19ba035c73cc8c35d87f98d2911e9fab6c69a492bee8b.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/12/step",
+      "file": "e2a9a6fbeea4d0de44dddcad38fbc96be39118ae876a60f148e01a2101ecba64.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/12/exp_avg",
+      "file": "f7e5b5d3cc88bcfecfbd5ab2cb5b82d3d3ac7c9485b69b7ce1d6782f9946d814.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/12/exp_avg_sq",
+      "file": "86d82616905e9bdcff2d70f3987f6f85232fdbc3f4f47214a187f420b679b2e3.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/13/step",
+      "file": "4040185960cdf99ebf5e1a089beb00b7206ea1ebe90755d4c2bb91f5130bff3f.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/13/exp_avg",
+      "file": "a2837d1930b66fd89c22713f1e7d519741aae605486246d52168f768b37108e9.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/13/exp_avg_sq",
+      "file": "21c0fb276934c5ea845cf36fa0b7c1ad3818c40dc68bffa73c53677e1618ee94.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/14/step",
+      "file": "776a470995ab704257a6bb5b30711bb8d0afb2cad2fa6d7480c4a9ddae0b01e5.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/14/exp_avg",
+      "file": "10990893b6ff05e9864728d199b8a2d22ea436ff06cd42029425c0763428b659.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/14/exp_avg_sq",
+      "file": "fa1c6230ce43444970aada974d4123c9f49c3bfe992dca3d5fc9e458a39e6a30.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/15/step",
+      "file": "f108121bc3dac4f609d5553c485a08709f5bb46e7e690197fb04f062e0556712.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/15/exp_avg",
+      "file": "f611260cbd7809363e5812841d18555494efb5f8fa6e75efff46b42f10272548.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/15/exp_avg_sq",
+      "file": "b69965837843a63edccc44fa669538dd9bb0a88f4b482d4788aa5f66723468ea.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/16/step",
+      "file": "b8f2e0adaf58311c71860aee495b4750c696aead52aca4b45e00dfce9b2cca5c.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/16/exp_avg",
+      "file": "3811189ff1f50c21d9190460e1a73defc8e3a524d68b8b17809d7e77ee1ffd79.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/optimizer/16/exp_avg_sq",
+      "file": "53e42795ff6482396e27ce2a7fff3c50da3074b566fed75742793e846094c5bb.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/prediction",
+      "file": "4d1d1c934e69c94ac68f3cd405fe5126cd1e2b34cce59a110a8f4b4365947ba6.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 5.960464477539063e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/loss",
+      "file": "bc8108925532bb101997f64845ee0c4e6c8c484e851b4367896baacdc1cba108.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/linear.bias",
+      "file": "9f36cf8526b1c7055a5b59041fbff95165ef0c327fb4df8d943256ec5d18d07f.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/linear.fc.weight",
+      "file": "98affc204669736ca7d4eeb47fbdd48e11646e857ca7e8635f1f002b7ccfdb66.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.7939677238464355e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/embedding.embedding.weight",
+      "file": "d801dfd7d108f539b640be2135a2a323f567b6eb4498fe17e2be05970ea14dee.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 5.960464477539063e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.0.weight",
+      "file": "377acc1fd15996fa5c4772589ec5cb7aeb3c799d29c7a2be9436b11a77ec7ea3.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.450580596923828e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.0.bias",
+      "file": "24664764570ece234cbcf2cbe27bd4ca1f43a23b409fa7825f67af7be63eef10.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.1920928955078125e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.1.weight",
+      "file": "a213bf447977ea468cc32be1580b336dc7f4cf19006dbd18cb5cee3cf556aa42.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.0954757928848267e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.1.bias",
+      "file": "0fedee480f3907ec9fadb751797174b41c02f5344cd77af3d21491dddf7fa031.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.0954757928848267e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.4.weight",
+      "file": "36369c43c2004ff253430ff0b89249916e69eb91297e0414c19330a7135cfdf5.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.450580596923828e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.4.bias",
+      "file": "99d0161b54e6015a567728f1a11a39f8547d0350f1f837e9cf992f6aaedcdf85.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.725290298461914e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.5.weight",
+      "file": "23e8060d204f6e660bcabcb2f5c9782e96d5eb18eb1b63e580f345902bc42551.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.862645149230957e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.5.bias",
+      "file": "9e30b2de2efb0bab1629c349d0979cc9fd7e0382808bb5d4b047cf27fc6565c3.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.1641532182693481e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.8.weight",
+      "file": "31a4fd4e68a510625ee1c2f6a54e462e7dc273080aa86b904662869c403f47cf.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.6566128730773926e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.8.bias",
+      "file": "93ad076c19ec800e190a34e79d7409470b295c4dc4c1c3bfefa94612530ae177.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.979060471057892e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.9.weight",
+      "file": "9db883b6efa585a7583974ef76f417b02e589db12c5af8fa669c332c9bebed23.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.3969838619232178e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.9.bias",
+      "file": "6b43aa5054dffbff6d37e59bf2409a5f266dd31b90850b7adda06589b38fb31e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.656612873077393e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.12.weight",
+      "file": "325793767fa72db22108af2f519cd5ff4fea71904dbca1251fb0ee6e4b3457af.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.470348358154297e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.12.bias",
+      "file": "37ccb1a6cd5f93e4ef1443fe2d5d8b6fc3c6878e672084e5df6466a51baf7530.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/linear.bias",
+      "file": "4412d7e7157eead852206fd5c92d360d14a8342c5455da2ccf3f997671ac7bc2.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/linear.offsets",
+      "file": "3faccc461c3c3087ee46e4e073c00b582d539fe2f790b09c6c934432176e6d49.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/linear.fc.weight",
+      "file": "1ec192da57afda02cb0c7a503d7f34879075b51004efaa58439081fe380a024e.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/embedding.offsets",
+      "file": "ca0eb8a29f1782b33bf5693b520665ef8e4147d7ef3b3b40f52e8df0c781185f.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/embedding.embedding.weight",
+      "file": "6a8799d336661bd91a0906842a3df5f21f29045f83d4c7785b8ef0880ade7846.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.725290298461914e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/mlp.mlp.0.weight",
+      "file": "2a1addd939b7fbe4797843fc1aa2826b0d08576df08f9a709293cbbdbdb97e9a.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.30385160446167e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step2/state/mlp.mlp.0.bias",
+      "file": "93b60911639bc3938b8bf607df43c1c31c4881fdd8e084b2cec78b0b21d51e59.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0011403188109397888,
+      "mismatches": 331,
+      "mismatch_examples": [
+        {
+          "flat_index": 0,
+          "actual": 0.03681961074471474,
+          "reference": 0.03664689138531685,
+          "abs_error": 0.00017271935939788818,
+          "allowed_error": 1.3664689138531686e-05
+        },
+        {
+          "flat_index": 1,
+          "actual": 0.0462246909737587,
+          "reference": 0.046253591775894165,
+          "abs_error": 2.890080213546753e-05,
+          "allowed_error": 1.4625359177589417e-05
+        },
+        {
+          "flat_index": 3,
+          "actual": -0.07362006604671478,
+          "reference": -0.07399529963731766,
+          "abs_error": 0.00037523359060287476,
+          "allowed_error": 1.7399529963731767e-05
+        },
+        {
+          "flat_index": 4,
+          "actual": -0.10044997930526733,
+          "reference": -0.10047551244497299,
+          "abs_error": 2.553313970565796e-05,
+          "allowed_error": 2.00475512444973e-05
+        },
+        {
+          "flat_index": 5,
+          "actual": -0.044006891548633575,
+          "reference": -0.04372174292802811,
+          "abs_error": 0.00028514862060546875,
+          "allowed_error": 1.4372174292802812e-05
+        },
+        {
+          "flat_index": 6,
+          "actual": 0.05715255066752434,
+          "reference": 0.057068999856710434,
+          "abs_error": 8.355081081390381e-05,
+          "allowed_error": 1.5706899985671046e-05
+        },
+        {
+          "flat_index": 7,
+          "actual": 0.02121971920132637,
+          "reference": 0.02116108499467373,
+          "abs_error": 5.8634206652641296e-05,
+          "allowed_error": 1.2116108499467373e-05
+        },
+        {
+          "flat_index": 8,
+          "actual": 0.03908892720937729,
+          "reference": 0.038863588124513626,
+          "abs_error": 0.00022533908486366272,
+          "allowed_error": 1.3886358812451363e-05
+        }
+      ]
+    }
+  ],
+  "optimizer_steps": 2,
+  "adapter_bridge_sha256": "b68238df586e42b86a50ade0faebe7131840e46c485f306f2a49c1be2aef722a",
+  "adapter_package_identity": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b",
+  "workload_identity": {
+    "model_id": "public DeepFM v1",
+    "phase": "train",
+    "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+    "settings_sha256": "2ea8e8eac8b8ef37cfd33609ce4fa656461f200dbcc78b0c9d41dcc81597754e",
+    "operators_sha256": "ff189184f8f0a842c52df81a6e8d8057ebc86b68073318ef912b6053de2aee61"
+  },
+  "qualification_only": true,
+  "startup": {
+    "checks": [
+      {
+        "operator": "embedding",
+        "signature": {
+          "weight_shape": [
+            3850,
+            16
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        },
+        "reason": null
+      },
+      {
+        "operator": "embedding",
+        "signature": {
+          "weight_shape": [
+            3850,
+            1
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        },
+        "reason": null
+      }
+    ],
+    "qualification_only": true,
+    "workload": {
+      "model_id": "public DeepFM v1",
+      "phase": "train",
+      "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+      "settings_sha256": "2ea8e8eac8b8ef37cfd33609ce4fa656461f200dbcc78b0c9d41dcc81597754e",
+      "operators_sha256": "ff189184f8f0a842c52df81a6e8d8057ebc86b68073318ef912b6053de2aee61"
+    }
+  },
+  "optimizer_created": true,
+  "active_step": 2,
+  "provider_calls": {
+    "GEMS EMBEDDING FORWARD": 4,
+    "GEMS EMBEDDING BACKWARD": 4
+  },
+  "dispatcher_restored": true,
+  "error": "Traceback (most recent call last):\n  File \"/input/deepfm_probe.py\", line 190, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/deepfm_probe.py\", line 157, in run\n    for name,value in model.state_dict().items(): check(prefix+'state/'+name,value)\n                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/input/deepfm_probe.py\", line 106, in check\n    save(); raise AssertionError(f'{name}: {item[\"mismatches\"]} mismatches; max_abs={item[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step2/state/mlp.mlp.0.bias: 331 mismatches; max_abs=0.0011403188109397888\n"
+}

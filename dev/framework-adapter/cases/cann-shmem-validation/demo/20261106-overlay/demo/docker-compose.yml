@@ -1,0 +1,50 @@
+name: cgu135-overlay-framework-overlay-20261106
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {}
+services:
+  runtime-dev:
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    container_name: cgu135-overlay-framework-overlay-20261106
+    labels:
+      owner: cgu135
+    network_mode: host
+    ipc: host
+    ulimits:
+      memlock: -1
+    mem_limit: 48g
+    cpus: 8
+    init: true
+    restart: 'no'
+    command:
+    - sleep
+    - infinity
+    devices:
+    - /dev/davinci14:/dev/davinci14
+    - /dev/davinci15:/dev/davinci15
+    - /dev/davinci_manager:/dev/davinci_manager
+    - /dev/devmm_svm:/dev/devmm_svm
+    - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+    - /mnt/raid/cgu135/framework-overlay-20261106/input:/input:ro
+    - /mnt/raid/cgu135/framework-overlay-20261106/results:/results
+    - /mnt/raid/cgu135/framework-overlay-20261106/reviews:/reviews:ro
+    - /mnt/raid/cgu135/framework-overlay-20261106/input/runtime:/runtime:ro
+    - /home/cgu135/framework-v3-20261016/model/model-verified-20261014:/model:ro
+    - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      ASCEND_RT_VISIBLE_DEVICES: 0,1
+      DC_ROOT: /runtime
+      DC_BACKEND: ascend
+      DC_DIST_BT: hccl
+      DC_MODEL: /model
+      MAX_STEPS: '3'
+      BATCH: '1'
+      SEQ: '32'
+      LR: 1e-5
+      HCCL_WHITELIST_DISABLE: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      FLAGRT_VERIFIED_IMAGE_ID: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+      FLAGRT_CANN_SHMEM_WHEEL: /input/cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl

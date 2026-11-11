@@ -1,0 +1,55 @@
+name: cgu135-framework-revision-strict-02
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos:
+    FlagGems:
+      host_path: /home/cgu135/framework-deepfm-20261023/provider/FlagGems-f7ae8e6-20260922
+      container_path: /gems
+      activation: pythonpath
+services:
+  runtime-dev:
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    container_name: ${FLAGRT_CONTAINER:?required}
+    labels:
+      owner: cgu135
+      purpose: framework-official-unary
+    network_mode: host
+    devices:
+    - /dev/davinci${FLAGRT_DEVICE:?required}:/dev/davinci${FLAGRT_DEVICE}
+    - /dev/davinci15:/dev/davinci15
+    - /dev/davinci_manager:/dev/davinci_manager
+    - /dev/devmm_svm:/dev/devmm_svm
+    - /dev/hisi_hdc:/dev/hisi_hdc
+    mem_limit: 48g
+    volumes:
+    - ${FLAGRT_GEMS:?required}:/gems:ro
+    - ${FLAGRT_DEPS:?required}:/deps:ro
+    - ${FLAGRT_RUNTIME:?required}:/runtime:ro
+    - ${FLAGRT_OUTPUT:?required}:/results
+    - ${FLAGRT_RECORDS:?required}:/records:ro
+    - ${FLAGRT_MODEL:?required}:/model:ro
+    - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+    - /home/cgu135/framework-public-safety-20261104/input-clean/flagrt_framework_adapter-0.3.0.dev3-py3-none-any.whl:/package/flagrt_framework_adapter-0.3.0.dev3-py3-none-any.whl:ro
+    - /home/cgu135/framework-public-safety-20261104/input-clean/configs:/config:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      ASCEND_RT_VISIBLE_DEVICES: 0,1
+      FLAGRT_VERIFIED_IMAGE_ID: sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f
+      DC_ROOT: /runtime
+      DC_BACKEND: ascend
+      DC_DIST_BT: hccl
+      DC_MODEL: /model
+      DC_OUT_DIR: /results/train
+      MAX_STEPS: '3'
+      BATCH: '1'
+      SEQ: '32'
+      LR: 1e-05
+    command:
+    - sleep
+    - infinity
+    restart: 'no'
+    ipc: host
+    ulimits:
+      memlock: -1

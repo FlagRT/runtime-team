@@ -1,0 +1,269 @@
+{
+  "scope": "PPU DeepFM FP32 batch32 Adam 3 steps",
+  "runs": {
+    "dfm-qual-1110-01": {
+      "runner_status": "ERROR",
+      "card": 13,
+      "container_stopped": false
+    },
+    "dfm-qual-1110-02": {
+      "runner_status": "ERROR",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "ERROR",
+      "mode": null,
+      "optimizer_steps": null,
+      "provider_calls": null,
+      "comparisons": 0,
+      "max_abs": 0
+    },
+    "dfm-qual-1110-03": {
+      "runner_status": "ERROR",
+      "card": 1,
+      "container_stopped": false
+    },
+    "dfm-qual-1110-04": {
+      "runner_status": "PASS",
+      "card": 15,
+      "container_stopped": true,
+      "result_status": "PASS",
+      "mode": null,
+      "optimizer_steps": null,
+      "provider_calls": null,
+      "comparisons": 0,
+      "max_abs": 0
+    },
+    "dfm-native-1110-01": {
+      "runner_status": "ERROR",
+      "card": 15,
+      "container_stopped": false
+    },
+    "dfm-native-1110-02": {
+      "runner_status": "PASS",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "pass",
+      "mode": "native",
+      "optimizer_steps": 3,
+      "provider_calls": {},
+      "comparisons": 294,
+      "max_abs": 0
+    },
+    "dfm-repeat-1110-01": {
+      "runner_status": "PASS",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "pass",
+      "mode": "native_repeat",
+      "optimizer_steps": 3,
+      "provider_calls": {},
+      "comparisons": 294,
+      "max_abs": 0
+    },
+    "dfm-candidate-1110-01": {
+      "runner_status": "ERROR",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "fail",
+      "mode": "candidate",
+      "optimizer_steps": 1,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "comparisons": 26,
+      "max_abs": 0.001755736768245697
+    },
+    "dfm-off-1110-01": {
+      "runner_status": "PASS",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "pass",
+      "mode": "off",
+      "optimizer_steps": 3,
+      "provider_calls": {},
+      "comparisons": 294,
+      "max_abs": 0
+    },
+    "dfm-unknown-1110-01": {
+      "runner_status": "PASS",
+      "card": 1,
+      "container_stopped": true,
+      "result_status": "pass",
+      "mode": "unknown",
+      "optimizer_steps": 3,
+      "provider_calls": {},
+      "comparisons": 294,
+      "max_abs": 0
+    }
+  },
+  "candidate_first_failure": {
+    "name": "step1/state/mlp.mlp.0.bias",
+    "file": "d778cc50c1c2f5a9c68be8ffd6bb20d3eee1e9be4918320bc6f64a13511ee7df.pt",
+    "shape": [
+      400
+    ],
+    "dtype": "torch.float32",
+    "max_abs": 0.001755736768245697,
+    "mismatches": 317,
+    "mismatch_examples": [
+      {
+        "flat_index": 0,
+        "actual": 0.03601137548685074,
+        "reference": 0.03627531975507736,
+        "abs_error": 0.00026394426822662354,
+        "allowed_error": 0.000013627531975507738
+      },
+      {
+        "flat_index": 1,
+        "actual": 0.04567893221974373,
+        "reference": 0.0456082858145237,
+        "abs_error": 0.00007064640522003174,
+        "allowed_error": 0.000014560828581452371
+      },
+      {
+        "flat_index": 2,
+        "actual": -0.11050928384065628,
+        "reference": -0.10997890681028366,
+        "abs_error": 0.0005303770303726196,
+        "allowed_error": 0.000020997890681028368
+      },
+      {
+        "flat_index": 3,
+        "actual": -0.07305314391851425,
+        "reference": -0.07365155965089798,
+        "abs_error": 0.000598415732383728,
+        "allowed_error": 0.0000173651559650898
+      },
+      {
+        "flat_index": 5,
+        "actual": -0.042699284851551056,
+        "reference": -0.0433901809155941,
+        "abs_error": 0.000690896064043045,
+        "allowed_error": 0.000014339018091559412
+      },
+      {
+        "flat_index": 7,
+        "actual": 0.02146788500249386,
+        "reference": 0.021405192092061043,
+        "abs_error": 0.00006269291043281555,
+        "allowed_error": 0.000012140519209206105
+      },
+      {
+        "flat_index": 8,
+        "actual": 0.0389271005988121,
+        "reference": 0.039159324020147324,
+        "abs_error": 0.00023222342133522034,
+        "allowed_error": 0.000013915932402014733
+      },
+      {
+        "flat_index": 9,
+        "actual": 0.08996670693159103,
+        "reference": 0.08894652873277664,
+        "abs_error": 0.001020178198814392,
+        "allowed_error": 0.000018894652873277666
+      }
+    ]
+  },
+  "declared_input_sha_checks": 454,
+  "operator_qualified": true,
+  "model_qualified": false,
+  "verification": "PASS: successful controls and candidate failure both preserved",
+  "archive_sha256": "a37fa476746c8e3e7917b7a80dff8e5093da37c1a5c3697600d1e599833dfb9c",
+  "archived_file_count": 381,
+  "operator_qualification": {
+    "status": "PASS",
+    "stage": "qualification",
+    "cases": [
+      {
+        "operator": "sigmoid",
+        "dtype": "torch.float32",
+        "shape": [
+          32
+        ],
+        "mode": "direct",
+        "repeat": 0,
+        "atol": 0.00001,
+        "rtol": 0.0001,
+        "restored": true,
+        "hits": {
+          "GEMS SIGMOID FORWARD": 1,
+          "GEMS SIGMOID BACKWARD": 1
+        },
+        "status": "pass",
+        "forward_max_abs": 5.960464477539063e-8,
+        "backward_max_abs": 4.563480615615845e-8,
+        "cpu_forward_max_abs": 5.960464477539063e-8,
+        "cpu_backward_max_abs": 4.563480615615845e-8
+      },
+      {
+        "operator": "sigmoid",
+        "dtype": "torch.float32",
+        "shape": [
+          32
+        ],
+        "mode": "direct",
+        "repeat": 1,
+        "atol": 0.00001,
+        "rtol": 0.0001,
+        "restored": true,
+        "hits": {
+          "GEMS SIGMOID FORWARD": 1,
+          "GEMS SIGMOID BACKWARD": 1
+        },
+        "status": "pass",
+        "forward_max_abs": 5.960464477539063e-8,
+        "backward_max_abs": 4.563480615615845e-8,
+        "cpu_forward_max_abs": 5.960464477539063e-8,
+        "cpu_backward_max_abs": 4.563480615615845e-8
+      },
+      {
+        "operator": "sigmoid",
+        "dtype": "torch.float32",
+        "shape": [
+          32
+        ],
+        "mode": "direct",
+        "repeat": 2,
+        "atol": 0.00001,
+        "rtol": 0.0001,
+        "restored": true,
+        "hits": {
+          "GEMS SIGMOID FORWARD": 1,
+          "GEMS SIGMOID BACKWARD": 1
+        },
+        "status": "pass",
+        "forward_max_abs": 5.960464477539063e-8,
+        "backward_max_abs": 4.563480615615845e-8,
+        "cpu_forward_max_abs": 5.960464477539063e-8,
+        "cpu_backward_max_abs": 4.563480615615845e-8
+      }
+    ],
+    "environment": {
+      "chip": "PPU-ZW810E",
+      "torch": "2.10.0",
+      "backend_version": "1.5.1-1d747a",
+      "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+      "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+      "triton": "3.6.0",
+      "compiler_build": "0.7.0+ppu.gite223f42c",
+      "backend": "ppu",
+      "device_type": "cuda"
+    },
+    "provider": {
+      "kind": "installed-content",
+      "root": "/results/packages/flag_gems",
+      "files": 1259,
+      "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+    },
+    "versions": {
+      "flag-gems": "4.2.1rc0",
+      "flagtree": "0.7.0+ppu.gite223f42c",
+      "torch": "2.10.0",
+      "flagrt-framework-adapter": "0.3.0.dev4",
+      "triton-module": "3.6.0"
+    },
+    "provider_route": "nvidia",
+    "runtime_version": "0.4.0"
+  }
+}

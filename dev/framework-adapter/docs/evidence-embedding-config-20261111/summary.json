@@ -1,0 +1,126 @@
+{
+  "scope": "PPU unified embedding DeepFM regression",
+  "evidence_files": 63,
+  "cpu_package_tests": 178,
+  "wheel": {
+    "filename": "flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl",
+    "sha256": "1edf33728e67225c6f2a14d4264917fe7a7f82f36b9e911e23f940ad47699a49"
+  },
+  "runs": {
+    "native": {
+      "status": "pass",
+      "steps": 3,
+      "comparisons": 294,
+      "target_calls": {},
+      "failures": [],
+      "max_abs": 0
+    },
+    "repeat": {
+      "status": "pass",
+      "steps": 3,
+      "comparisons": 294,
+      "target_calls": {},
+      "failures": [],
+      "max_abs": 0.0
+    },
+    "candidate": {
+      "status": "fail",
+      "steps": 2,
+      "comparisons": 124,
+      "target_calls": {
+        "GEMS EMBEDDING FORWARD": 4,
+        "GEMS EMBEDDING BACKWARD": 4
+      },
+      "failures": [
+        {
+          "name": "step2/state/mlp.mlp.0.bias",
+          "file": "93b60911639bc3938b8bf607df43c1c31c4881fdd8e084b2cec78b0b21d51e59.pt",
+          "shape": [
+            400
+          ],
+          "dtype": "torch.float32",
+          "max_abs": 0.0011403188109397888,
+          "mismatches": 331,
+          "mismatch_examples": [
+            {
+              "flat_index": 0,
+              "actual": 0.03681961074471474,
+              "reference": 0.03664689138531685,
+              "abs_error": 0.00017271935939788818,
+              "allowed_error": 1.3664689138531686e-05
+            },
+            {
+              "flat_index": 1,
+              "actual": 0.0462246909737587,
+              "reference": 0.046253591775894165,
+              "abs_error": 2.890080213546753e-05,
+              "allowed_error": 1.4625359177589417e-05
+            },
+            {
+              "flat_index": 3,
+              "actual": -0.07362006604671478,
+              "reference": -0.07399529963731766,
+              "abs_error": 0.00037523359060287476,
+              "allowed_error": 1.7399529963731767e-05
+            },
+            {
+              "flat_index": 4,
+              "actual": -0.10044997930526733,
+              "reference": -0.10047551244497299,
+              "abs_error": 2.553313970565796e-05,
+              "allowed_error": 2.00475512444973e-05
+            },
+            {
+              "flat_index": 5,
+              "actual": -0.044006891548633575,
+              "reference": -0.04372174292802811,
+              "abs_error": 0.00028514862060546875,
+              "allowed_error": 1.4372174292802812e-05
+            },
+            {
+              "flat_index": 6,
+              "actual": 0.05715255066752434,
+              "reference": 0.057068999856710434,
+              "abs_error": 8.355081081390381e-05,
+              "allowed_error": 1.5706899985671046e-05
+            },
+            {
+              "flat_index": 7,
+              "actual": 0.02121971920132637,
+              "reference": 0.02116108499467373,
+              "abs_error": 5.8634206652641296e-05,
+              "allowed_error": 1.2116108499467373e-05
+            },
+            {
+              "flat_index": 8,
+              "actual": 0.03908892720937729,
+              "reference": 0.038863588124513626,
+              "abs_error": 0.00022533908486366272,
+              "allowed_error": 1.3886358812451363e-05
+            }
+          ]
+        }
+      ],
+      "max_abs": 0.0011403188109397888
+    },
+    "off": {
+      "status": "pass",
+      "steps": 3,
+      "comparisons": 294,
+      "target_calls": {},
+      "failures": [],
+      "max_abs": 0.0
+    },
+    "unknown": {
+      "status": "pass",
+      "steps": 3,
+      "comparisons": 294,
+      "target_calls": {},
+      "failures": [],
+      "max_abs": 0.0
+    }
+  },
+  "stopped_containers": 5,
+  "reference_tensors_verified": 294,
+  "decision": "Candidate denied; keep native; investigate numerical difference"
+}

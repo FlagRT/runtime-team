@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "base_image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "compiler_build": "flagtree==0.6.0+ascend.git15ec1a6c;cann-shmem==1.6.0@sha256:308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5",
+  "packages": {
+    "cann-shmem": {
+      "version": "1.6.0",
+      "wheel_sha256": "308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5"
+    },
+    "flagrt-framework-adapter": {
+      "version": "0.3.0.dev4",
+      "wheel_sha256": "3ef0c14cad166071218d71f9201659e900f4f96ee08c34a4f8e30368a88bf46a"
+    }
+  },
+  "measurement": "FLAGRT_CANN_SHMEM_WHEEL: verify wheel hash, package version, actual import origin and complete installed shmem payload before constructing environment identity"
+}

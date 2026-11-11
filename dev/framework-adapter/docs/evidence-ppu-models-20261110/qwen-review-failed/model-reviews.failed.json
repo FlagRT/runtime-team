@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "reviews": [
+    {
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "workload": {
+        "model_id": "Qwen3-Embedding-0.6B",
+        "phase": "train",
+        "model_sha256": "90dd28008b27ed7d9bebd30e695d496ba8e6ed492fa557979bfed794cebe62bd",
+        "settings_sha256": "83504bb54d0856e733a8ef3fb288754836789328088defc96342bbe073b5cc18",
+        "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+      },
+      "status": "failed",
+      "revision": 1,
+      "evidence": "model-failed-evidence.json",
+      "evidence_sha256": "1cc5b9040ec2ea80ed05b10f4bdd2b438472abb3f2d447983a02be354d69f60a"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": 3,
+  "enabled": true,
+  "require_target": true,
+  "operators": {
+    "sigmoid": {
+      "shapes": [
+        [
+          32
+        ]
+      ],
+      "dtypes": [
+        "torch.float32"
+      ]
+    }
+  },
+  "records": "operator-records.json",
+  "workload_reviews": "model-reviews.failed.json"
+}

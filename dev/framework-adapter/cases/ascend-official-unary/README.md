@@ -68,3 +68,13 @@ dc-train使用[训练配置](../../demo/training-configs/README.md)，继承同�
 OneRec单卡入口：先`--stage onerec-qualification --seq-len 16`，验证SiLU `(1,16,12288)`三种dtype；seq32必须另做资格。审核后`--stage onerec --onerec-mode native --steps 1 --seq-len 16 --model <完整OneRec-8B目录> --records <空记录>`生成原生单步SGD梯度/参数基线；再用独立输出目录依次选择native_repeat、disabled、unqualified、target，并加`--reference <成功native输出目录>`，target传入精确BF16资格。当前支持steps=1/2/3（case默认3）、seq=16/32；复现旧单步必须显式steps=1。模式间重载同一完整权重，梯度检查点、batch1、SGD0.01沿用公共训练配方，不运行通信。容器主存上限64GB，原生梯度/参数磁盘快照每步约32GB；先确认容量。目标预设atol=1e-3/rtol=1e-2，其他对照严格逐值一致；并非业务精度标准。固定三片权重哈希写在探针中。输出名称须唯一，避免历史容器名冲突；不能覆盖旧输出。有界多步不等于长训练验收。新增[配置启动入口](../../tools/README.md)可统一填写参数；native基线的步数/输入必须与对照一致。
 
 10-18实际结果：qualification、确定性sigmoid、unary三个stage PASS；默认sigmoid与原生重复诊断FAIL并保留[判定截选](assets/evidence/20261018-summary.md)。qwen选项尚未通过本入口重跑，0.6B既有证据不重复计入此次demo验收。demo/env.baseline.yaml是已执行样本，实际运行时由runner重生成。
+
+## 公共入口审核安全检查（2026-11-04）
+
+使用已发布dev3 wheel、固定公共入口及独立schema 3配置目录。
+`--training-lr 2e-5`用于改变实际学习率；审核仍引用原1e-5记录。默认模式应以workload_unverified保留原生。
+`--training-expect-blocked`仅接受严格schema 3配置，要求两rank均在进入训练前写BLOCKED、空算子计数、零步骤且恢复hooks；超时、被杀、缺rank报告或其他错误原因均不能通过。
+
+运行时代码变化测试只在本人冻结副本增加一个未导入的Python版本标记文件，保持入口、算子和模型原件不变，用于验证源码身份变化使旧审核失效。不是替换实际依赖库版本的兼容性测试。
+
+实际配置、baseline/demo、命令及结果见[安全检查报告](../../docs/公共训练入口安全检查-20261104.md)。每轮使用新输出目录，运行前重查资源；本轮源码变更是case测试能力，功能包仍固定40864f9。

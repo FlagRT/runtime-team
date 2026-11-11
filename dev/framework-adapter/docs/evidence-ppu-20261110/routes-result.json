@@ -1,0 +1,590 @@
+{
+  "status": "PASS",
+  "stage": "routes",
+  "cases": [
+    {
+      "operator": "silu",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 9.5367431640625e-07,
+      "cpu_backward_max_abs": 3.5762786865234375e-07,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 9.5367431640625e-07,
+      "backward_max_abs": 3.5762786865234375e-07,
+      "cpu_forward_max_abs": 4.76837158203125e-07,
+      "cpu_backward_max_abs": 2.384185791015625e-07,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 9.5367431640625e-07,
+      "cpu_backward_max_abs": 3.5762786865234375e-07,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.0019330978393554688,
+      "cpu_backward_max_abs": 0.00046944618225097656,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 3.0517578125e-05,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.0019330978393554688,
+      "cpu_backward_max_abs": 0.00046944618225097656,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.0019330978393554688,
+      "cpu_backward_max_abs": 0.00046944618225097656,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.015377998352050781,
+      "cpu_backward_max_abs": 0.0038940906524658203,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {
+        "GEMS SILU FORWARD": 1,
+        "GEMS SILU BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 6.103515625e-05,
+      "cpu_forward_max_abs": 0.015377998352050781,
+      "cpu_backward_max_abs": 0.0038940906524658203,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "silu",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "silu",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.015377998352050781,
+      "cpu_backward_max_abs": 0.0038940906524658203,
+      "events": [
+        {
+          "operator": "silu",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 1.1920928955078125e-07,
+      "cpu_backward_max_abs": 1.0151416063308716e-07,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 1.1920928955078125e-07,
+      "backward_max_abs": 1.0151416063308716e-07,
+      "cpu_forward_max_abs": 1.1920928955078125e-07,
+      "cpu_backward_max_abs": 9.12696123123169e-08,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 1.1920928955078125e-07,
+      "cpu_backward_max_abs": 1.0151416063308716e-07,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.00024384260177612305,
+      "cpu_backward_max_abs": 0.00022997800260782242,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 3.0517578125e-05,
+      "cpu_forward_max_abs": 0.00024384260177612305,
+      "cpu_backward_max_abs": 0.00022997800260782242,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 0.002,
+      "rtol": 0.002,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.00024384260177612305,
+      "cpu_backward_max_abs": 0.00022997800260782242,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "off",
+      "repeat": 0,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.0019530653953552246,
+      "cpu_backward_max_abs": 0.0017290245741605759,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "experimental_disabled"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "on",
+      "repeat": 1,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.000244140625,
+      "cpu_forward_max_abs": 0.0019530653953552246,
+      "cpu_backward_max_abs": 0.0017290245741605759,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "forward",
+          "reason": "completed"
+        },
+        {
+          "operator": "sigmoid",
+          "backend": "flaggems",
+          "stage": "backward",
+          "reason": "completed"
+        }
+      ],
+      "post_scope_native": true
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.bfloat16",
+      "shape": [
+        32,
+        64
+      ],
+      "mode": "unqualified",
+      "repeat": 2,
+      "atol": 0.02,
+      "rtol": 0.02,
+      "restored": true,
+      "hits": {},
+      "status": "pass",
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 0.0,
+      "cpu_forward_max_abs": 0.0019530653953552246,
+      "cpu_backward_max_abs": 0.0017290245741605759,
+      "events": [
+        {
+          "operator": "sigmoid",
+          "backend": "native",
+          "stage": "forward",
+          "reason": "capability_unverified"
+        }
+      ],
+      "post_scope_native": true
+    }
+  ],
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0"
+}

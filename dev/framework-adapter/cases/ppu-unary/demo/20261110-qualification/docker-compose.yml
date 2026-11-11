@@ -1,0 +1,36 @@
+name: cgu135-ppu-qual-1110-02
+x-flagrt:
+  image_baseline: /bmcp_lvm_fs/cgu135/framework-ppu-20261110/input02/image.baseline.yaml
+  mounted_repos: {}
+services:
+  test:
+    image: flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64
+    container_name: cgu135-ppu-qual-1110-02
+    network_mode: none
+    restart: 'no'
+    shm_size: 2g
+    mem_limit: 8g
+    pids_limit: 512
+    devices:
+    - /dev/alixpu:/dev/alixpu
+    - /dev/alixpu_ctl:/dev/alixpu_ctl
+    - /dev/alixpu_ppu7:/dev/alixpu_ppu7
+    volumes:
+    - /bmcp_lvm_fs/cgu135/framework-ppu-20261110/input02:/input:ro
+    - /bmcp_lvm_fs/cgu135/framework-ppu-20261110/qual-1110-02:/results
+    environment:
+      CUDA_VISIBLE_DEVICES: '0'
+      NCCL_SOCKET_IFNAME: bond0
+      GEMS_VENDOR: nvidia
+      PPU_DRIVER_ID: 1.5.1-1d747a
+      CASE_IMAGE_ID: sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8
+      PYTHONPATH: /results/packages:/input/public
+      DO_NOT_TRACK: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      TRITON_CACHE_DIR: /results/triton-cache
+      FLAGGEMS_CACHE_DIR: /results/gems-cache
+    extra_hosts:
+    - ai-server:127.0.0.1
+    command:
+    - sleep
+    - infinity

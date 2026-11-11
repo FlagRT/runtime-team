@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "records": [
+    {
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "operator": "silu",
+      "dtype": "torch.float32",
+      "shape": [
+        1,
+        32,
+        3072
+      ],
+      "stages": [
+        "forward",
+        "backward"
+      ],
+      "evidence": "operator-evidence.json",
+      "evidence_sha256": "e4cda2af20d7981a92566d16915c77e7fb27a927886684b31ec3246d558533ff",
+      "status": "passed",
+      "revision": 1
+    }
+  ]
+}

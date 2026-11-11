@@ -1,0 +1,123 @@
+{
+  "model_files": {
+    "1_Pooling/config.json": "37bf193fa101f19101bfad9c31d3eb0f786e247b7b1e5cb7f007d730eed1ddbd",
+    "README.md": "c34d9b7e5a267ad3fdd13227a253686bc90844ff4744a2a6a86c7c905e3d06f3",
+    "config.json": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+    "config_sentence_transformers.json": "10667c72ddb772627bf1780cb7f86af8e2ae0032b8c243c731172064105c6961",
+    "configuration.json": "f888421726665e8a84b738eed42a64875aed79de8be7daade851ac8bf4c0cef9",
+    "generation_config.json": "28396d421a2108acce96383f6a7de78008f7f1b17f807958f3c14c51dbfb65fb",
+    "merges.txt": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+    "model.safetensors": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd",
+    "modules.json": "84e40c8e006c9b1d6c122e02cba9b02458120b5fb0c87b746c41e0207cf642cf",
+    "tokenizer.json": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a",
+    "tokenizer_config.json": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0",
+    "vocab.json": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+  },
+  "settings": {
+    "integration": "device-context-public-causal-lm-v1",
+    "runtime_files": {
+      "__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "adapter_safety_revision.py": "3a16b30854727d41c2838652bdb49ed858e8ce74bf1ae7271ff71f9127f31df7",
+      "api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f"
+    },
+    "adapter_files": {
+      "__init__.py": "f490923663c914ddc9c5f3a348d924c5cf163c0ed8a2a9635ea7d9f419f15625",
+      "bridge.py": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+      "config.py": "5b95bb8ae9f122960da48e490aef1573c9dbec5fe0226e155f192ea94522ae42",
+      "policy.py": "5ca9cb516c430c6625b1b47dee0338ad16801cb9aa899db096962d7b804c08af",
+      "public_entry.py": "40cf01d512638f7a712a7cef28677e15f0d98934124707587a0b572eb27c3d45",
+      "records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+      "startup.py": "b0da9c872e9cbda74fa75c888180b4ecd9a90156b02bb2c844fa530f35b53726",
+      "step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+      "train_cli.py": "b0377ef85d40b6a38da0226511dcc4aa2bf10253997be498fc3dfe97079f7b7c",
+      "training.py": "bf6ad9f293a85b44d0226cbb447716f490df58667f535d9e4c29555a593de6c4",
+      "workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d"
+    },
+    "versions": {
+      "torch": "2.10.0+cpu",
+      "torch-npu": "2.10.0",
+      "transformers": "5.5.3",
+      "tokenizers": "0.22.2",
+      "safetensors": "0.7.0"
+    },
+    "execution": {
+      "deterministic_algorithms": true,
+      "matmul_allow_tf32": false,
+      "cudnn_allow_tf32": true
+    },
+    "bounds": {
+      "MAX_STEPS": 3,
+      "BATCH": 1,
+      "SEQ": 32
+    },
+    "backend": "ascend",
+    "dist_backend": "hccl",
+    "world_size": 2,
+    "local_world_size": 2,
+    "dtype": "torch.float32",
+    "phase": "train",
+    "runtime_options": {
+      "TASK_QUEUE_ENABLE": "1"
+    },
+    "optimizer": {
+      "name": "AdamW",
+      "lr": 1e-05,
+      "eps": 1e-08,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "weight_decay": 0.01,
+      "clip_grad_norm": 1.0
+    },
+    "initialization_seed": 1234,
+    "rank_seeds": [
+      1234,
+      1235
+    ],
+    "data": {
+      "kind": "synthetic_tokens",
+      "seed_start": 999,
+      "vocab_high": 30000,
+      "labels": "input_ids"
+    },
+    "gradient_sync": "all_reduce_sum_div_world"
+  },
+  "resolved_model": "/model",
+  "entry_sha256": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+  "workload": {
+    "model_id": "AutoModelForCausalLM:qwen3",
+    "phase": "train",
+    "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+    "settings_sha256": "5754b366b048a2009b292ec50e2754b8a239c2e3c7349944b258f7811f2de453",
+    "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+  }
+}

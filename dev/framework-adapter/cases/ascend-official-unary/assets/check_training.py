@@ -35,3 +35,26 @@ def check_run(output,mode,*,measured=False):
             rows[-1]['workload']=identity['workload']
     if measured: assert rows[0]['workload']==rows[1]['workload'], 'rank identity disagreement'
     return dict(status='pass',mode=mode,ranks=rows)
+
+
+def check_blocked(output,returncode):
+    """Nonzero alone is not success: require two complete pre-entry rejections."""
+    assert returncode not in (0,124,137), 'success/timeout/kill is not expected rejection'
+    root=Path(output)/'train'
+    rows=[]
+    for rank in (0,1):
+        adapter=json.loads((root/f'adapter_rank{rank}.json').read_text())
+        identity=json.loads((root/f'workload_rank{rank}.json').read_text())
+        hits=json.loads((root/f'kernel_hits_rank{rank}.json').read_text())
+        guard=json.loads((root/f'step-control/rank{rank}/report.json').read_text())
+        assert adapter['status']=='BLOCKED' and not adapter['counts'] and not adapter['events_tail']
+        assert adapter['startup']['require_target'] and adapter['startup']['workload_required']
+        assert adapter['startup']['workload']==identity['workload']
+        checks=adapter['startup']['checks']
+        assert checks and all(c['reason']=='workload_unverified' and c['decision']=='native' for c in checks)
+        assert not hits and guard['steps']==0 and guard['hooks_restored']
+        assert not (root/f'train_leg_result_rank{rank}.json').exists()
+        rows.append(dict(rank=rank,status='BLOCKED',reason='workload_unverified',
+                         steps=0,workload=identity['workload'],kernel_hits=hits))
+    assert rows[0]['workload']==rows[1]['workload']
+    return dict(status='pass',mode='expected-startup-rejection',test_returncode=returncode,ranks=rows)

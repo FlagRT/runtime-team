@@ -1,0 +1,450 @@
+{
+  "status": "fail",
+  "stage": "deepfm",
+  "mode": "candidate",
+  "scope": "PPU public DeepFM sigmoid short training; synthetic data, not CTR quality acceptance",
+  "adapter_version": "0.3.0.dev4",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0",
+  "model_loaded": true,
+  "model_files": {
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef"
+  },
+  "initial_state_sha256": "d50857ad807a2bcf826a29fc2734b4298f46030a207218ea8682283a28d554fb",
+  "parameter_count": 421452,
+  "public_config": {
+    "field_dims": [
+      1000,
+      2000,
+      500,
+      300,
+      50
+    ],
+    "embed_dim": 16,
+    "mlp_dims": [
+      400,
+      400,
+      400
+    ],
+    "dropout": 0.2
+  },
+  "workload": {
+    "model": "public DeepFM v1",
+    "dtype": "torch.float32",
+    "batch": 32,
+    "steps": 3,
+    "initialization": "random",
+    "initial_seed": 20261023,
+    "data_seed": 29000,
+    "dropout_seed": 23000,
+    "data": "synthetic categorical fields and binary labels",
+    "optimizer": "Adam",
+    "lr": 0.001,
+    "eps": 1e-08,
+    "weight_decay": 0,
+    "foreach": false,
+    "deterministic": true,
+    "dropout": 0.2
+  },
+  "runtime_sources": {
+    "runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+    "deepfm_probe.py": "4f79f792dbbe5d4334a41f114b3170e18493ccc8aefd9aafebd9d32a566c092d",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "b2bd62fb5c5fbc30207c9fcdc1b0c378463c36823ab7dc5406826a6c6ce7862e"
+  },
+  "probe_sources": {
+    "deepfm_probe.py": "4f79f792dbbe5d4334a41f114b3170e18493ccc8aefd9aafebd9d32a566c092d",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "b2bd62fb5c5fbc30207c9fcdc1b0c378463c36823ab7dc5406826a6c6ce7862e"
+  },
+  "tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "steps": [
+    {
+      "step": 1,
+      "status": "fail",
+      "loss": 1.0768572092056274,
+      "provider_calls": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "dispatcher_restored": true,
+      "routes": []
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "step1/prediction",
+      "file": "eda022dba2772494df4a4508186f10bea2f206411d1fb44e35332d82cf20df9e.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 5.960464477539063e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/loss",
+      "file": "c8ec833486f9cdc51023d8bfe61da922f9f968d9db2f33102439a96b841b861d.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 1.1920928955078125e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/linear.bias",
+      "file": "f7ed4bf68100012864d35e412d15784e76890b08c43eeb772fdb9778deb3754b.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/linear.fc.weight",
+      "file": "9ca6234fe965b76fffbf4210e4eb7d231b5cc12c37218f38a4cfa22b6ef5a6c1.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.725290298461914e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/embedding.embedding.weight",
+      "file": "c03c5ccad7d2d2e9001f1986f519ce232f134547c826276a76e98aafa47e0d3c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 8.940696716308594e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.weight",
+      "file": "eda98b18957658661b98b015cb93a79311501abfb71329e519d5835db2b415d1.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.450580596923828e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.bias",
+      "file": "0515e77aa1022fce099cefa6fbba74f6aa671296f6b38a6d778332e7b05fbf3e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.4901161193847656e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.weight",
+      "file": "faa4abbaa654b5519c0ed585cc317593ee3bf92f87bf0fecad7e8beca433a877.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.3283064365386963e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.bias",
+      "file": "8fcb8bd662392778b0b359c065e04f5087d3e27a0be829320c40ce0bb95c0f17.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.3283064365386963e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.weight",
+      "file": "cfd5c4abc9175c9aac9f2ff90cabb7c4c7ee45d02daa4f6499d2248164c12a78.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.450580596923828e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.bias",
+      "file": "ae6a5b172bc434761344b26580435ace7977375018c78f29240a8440b663542a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.7939677238464355e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.weight",
+      "file": "f1231e3dc6bc6ead438f043f5826a5dd0e04367db16d9076df21f62f6660f3ea.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.6298145055770874e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.bias",
+      "file": "053a167088ef535175da1e557d87e06e7b47936b65cb1c39395470c6583a1de0.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.280568540096283e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.weight",
+      "file": "d56e01743facd8eeb60b2f1e73d1553d3819157446806fc453ac946fe016c182.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 5.587935447692871e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.bias",
+      "file": "53cd6a9029ac261a56302bb96cca180461dd01222dacbdd0f945b91f3ab7d617.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.026798367500305e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.weight",
+      "file": "3a37630d82c40417c0aef7d68a4ac3451aafe2970c366a695601a05fe6fa0ed8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 9.313225746154785e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.bias",
+      "file": "bfb5450ac2ae851b0ab6b412394999bc217b8419e018c6973086d81ce37b6ca8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 9.313225746154785e-10,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.weight",
+      "file": "34dde2d3ea95befc23f0a075ee0a3486dbb6f3f4b275842c655a812689807b3b.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.9802322387695312e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.bias",
+      "file": "554a49a811fe00ecf7f2a17bf2260991c56e9bd04a232b9bc322d8d0ce82b3f7.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.bias",
+      "file": "4f1b8a33791912823797287f05572017e50cf6c3ca8350b8a3404854e041cf1a.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.offsets",
+      "file": "9b6b2b7be1e1810fcf04c3b9b78075da1d4762afd621c641d99456df8786bbe2.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/linear.fc.weight",
+      "file": "30fca2d76cc18b7a4de56ce0746ae99c398c48d8477199d77b9b6cedaa18f379.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/embedding.offsets",
+      "file": "46e1b2aef963d9d43c6c0b0a4bfa580e3813947bfe97ce2036bfb150a2baf5bd.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/embedding.embedding.weight",
+      "file": "be195913944b386b69e32f8b260d0067c80b632ec085a8dd05b5230d00180b4c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.862645149230957e-09,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.weight",
+      "file": "09a4ef432fb6baa7ec2805e5470164dd4e094e4ef590ed9390ed9ef0bb517eb8.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.2351741790771484e-08,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.bias",
+      "file": "d778cc50c1c2f5a9c68be8ffd6bb20d3eee1e9be4918320bc6f64a13511ee7df.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.001755736768245697,
+      "mismatches": 317,
+      "mismatch_examples": [
+        {
+          "flat_index": 0,
+          "actual": 0.03601137548685074,
+          "reference": 0.03627531975507736,
+          "abs_error": 0.00026394426822662354,
+          "allowed_error": 1.3627531975507738e-05
+        },
+        {
+          "flat_index": 1,
+          "actual": 0.04567893221974373,
+          "reference": 0.0456082858145237,
+          "abs_error": 7.064640522003174e-05,
+          "allowed_error": 1.4560828581452371e-05
+        },
+        {
+          "flat_index": 2,
+          "actual": -0.11050928384065628,
+          "reference": -0.10997890681028366,
+          "abs_error": 0.0005303770303726196,
+          "allowed_error": 2.0997890681028368e-05
+        },
+        {
+          "flat_index": 3,
+          "actual": -0.07305314391851425,
+          "reference": -0.07365155965089798,
+          "abs_error": 0.000598415732383728,
+          "allowed_error": 1.73651559650898e-05
+        },
+        {
+          "flat_index": 5,
+          "actual": -0.042699284851551056,
+          "reference": -0.0433901809155941,
+          "abs_error": 0.000690896064043045,
+          "allowed_error": 1.4339018091559412e-05
+        },
+        {
+          "flat_index": 7,
+          "actual": 0.02146788500249386,
+          "reference": 0.021405192092061043,
+          "abs_error": 6.269291043281555e-05,
+          "allowed_error": 1.2140519209206105e-05
+        },
+        {
+          "flat_index": 8,
+          "actual": 0.0389271005988121,
+          "reference": 0.039159324020147324,
+          "abs_error": 0.00023222342133522034,
+          "allowed_error": 1.3915932402014733e-05
+        },
+        {
+          "flat_index": 9,
+          "actual": 0.08996670693159103,
+          "reference": 0.08894652873277664,
+          "abs_error": 0.001020178198814392,
+          "allowed_error": 1.8894652873277666e-05
+        }
+      ]
+    }
+  ],
+  "optimizer_steps": 1,
+  "adapter_bridge_sha256": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+  "workload_identity": {
+    "model_id": "public DeepFM v1",
+    "phase": "train",
+    "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+    "settings_sha256": "3c80a86213b56695fe05f4df8210803eea04e029e93b80940b0c601e07971a42",
+    "operators_sha256": "a6e1925d05a9519553e0d2a22187cddad51a4ff5976456159a79c1d7f62b9263"
+  },
+  "qualification_only": true,
+  "optimizer_created": true,
+  "active_step": 1,
+  "provider_calls": {
+    "GEMS SIGMOID FORWARD": 1,
+    "GEMS SIGMOID BACKWARD": 1
+  },
+  "dispatcher_restored": true,
+  "error": "Traceback (most recent call last):\n  File \"/input/deepfm_probe.py\", line 201, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/deepfm_probe.py\", line 168, in run\n    for name,value in model.state_dict().items(): check(prefix+'state/'+name,value)\n                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/input/deepfm_probe.py\", line 118, in check\n    save(); raise AssertionError(f'{name}: {item[\"mismatches\"]} mismatches; max_abs={item[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step1/state/mlp.mlp.0.bias: 317 mismatches; max_abs=0.001755736768245697\n"
+}

@@ -1,0 +1,313 @@
+{
+  "date": "2026-11-04",
+  "source_commit": "40864f9ac266163a80e323ca1abe082bb6b8a2f9",
+  "wheel_sha256": "1df422076fbbc6e87ef04cc2ff4584afaa818220b81959b162ee87413a4a57b5",
+  "archive_sha256": "7b599d5036f30d32755ac4078a2a77c0ba06d0ff5fa3f15417575f4acdc090b2",
+  "runs": {
+    "lr-native-02": {
+      "result": {
+        "status": "pass",
+        "mode": "unqualified",
+        "ranks": [
+          {
+            "rank": 0,
+            "loss_curve": [
+              17.06,
+              15.4269,
+              13.4604
+            ],
+            "counts": [
+              {
+                "operator": "silu",
+                "backend": "native",
+                "stage": "forward",
+                "reason": "workload_unverified",
+                "count": 84
+              }
+            ],
+            "kernel_hits": {},
+            "upstream_verdict": "TRAIN_LEG_PASS",
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            }
+          },
+          {
+            "rank": 1,
+            "loss_curve": [
+              17.06,
+              15.4269,
+              13.4604
+            ],
+            "counts": [
+              {
+                "operator": "silu",
+                "backend": "native",
+                "stage": "forward",
+                "reason": "workload_unverified",
+                "count": 84
+              }
+            ],
+            "kernel_hits": {},
+            "upstream_verdict": "TRAIN_LEG_PASS",
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            }
+          }
+        ]
+      },
+      "changed_settings": [
+        "optimizer"
+      ],
+      "container_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-04T09:33:22.513768937Z",
+        "FinishedAt": "2026-11-04T09:34:22.690562887Z"
+      }
+    },
+    "lr-strict-02": {
+      "result": {
+        "status": "pass",
+        "mode": "expected-startup-rejection",
+        "test_returncode": 1,
+        "ranks": [
+          {
+            "rank": 0,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          },
+          {
+            "rank": 1,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          }
+        ]
+      },
+      "changed_settings": [
+        "optimizer"
+      ],
+      "container_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-04T09:35:09.269490568Z",
+        "FinishedAt": "2026-11-04T09:35:54.083110808Z"
+      }
+    },
+    "missing-strict-02": {
+      "result": {
+        "status": "pass",
+        "mode": "expected-startup-rejection",
+        "test_returncode": 1,
+        "ranks": [
+          {
+            "rank": 0,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          },
+          {
+            "rank": 1,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "2ceea823643b4ee48c30783ed8e594d30bcaa1bd61106c3e2c2d0b88bf64b9c9",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          }
+        ]
+      },
+      "changed_settings": [],
+      "container_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-04T09:35:55.437758673Z",
+        "FinishedAt": "2026-11-04T09:36:41.417745732Z"
+      }
+    },
+    "revision-strict-02": {
+      "result": {
+        "status": "pass",
+        "mode": "expected-startup-rejection",
+        "test_returncode": 1,
+        "ranks": [
+          {
+            "rank": 0,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "5754b366b048a2009b292ec50e2754b8a239c2e3c7349944b258f7811f2de453",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          },
+          {
+            "rank": 1,
+            "status": "BLOCKED",
+            "reason": "workload_unverified",
+            "steps": 0,
+            "workload": {
+              "model_id": "AutoModelForCausalLM:qwen3",
+              "phase": "train",
+              "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+              "settings_sha256": "5754b366b048a2009b292ec50e2754b8a239c2e3c7349944b258f7811f2de453",
+              "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+            },
+            "kernel_hits": {}
+          }
+        ]
+      },
+      "changed_settings": [
+        "runtime_files"
+      ],
+      "container_state": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-04T09:36:42.782173971Z",
+        "FinishedAt": "2026-11-04T09:37:27.512145016Z"
+      }
+    }
+  },
+  "files_sha256": {
+    "lr-native-02/result.json": "2b0b07edd16ac2e3c1adc9e7b49d6e234bb49ce5a55f78ce8e2555ce7bce7cf6",
+    "lr-native-02/summary.json": "cfe204992af9b509a6dc7c92d7f9375cb413bd5efedf6ab1d69744947ab9193e",
+    "lr-native-02/train/adapter_rank0.json": "ef81c8c61c5b53f33e6be342b4f6ec06f2dcaa3651b45c328786b7e7ee16cc2b",
+    "lr-native-02/train/adapter_rank1.json": "fba706b7a7c8afef541c27fa684b760c678f7e306f97d685ee0ef06463bce050",
+    "lr-native-02/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "lr-native-02/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "lr-native-02/train/step-control/rank0/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank0/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank0/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank0/report.json": "d4d856bcc5847308b7e9c79bca3026d211d03caac8a7edc5d6b8fcf5da3bdada",
+    "lr-native-02/train/step-control/rank0/run-id": "3d6569c3670bd8b59dfe6098bebefeea2e1427b3833d5ce35d7a1a3b45f5a349",
+    "lr-native-02/train/step-control/rank0/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank0/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank0/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/backward-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/backward-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/backward-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/report.json": "55c4cfd8ed715c6d79201f934038cee898135b2d2ed29ba4cded69f588f2860e",
+    "lr-native-02/train/step-control/rank1/run-id": "3d6569c3670bd8b59dfe6098bebefeea2e1427b3833d5ce35d7a1a3b45f5a349",
+    "lr-native-02/train/step-control/rank1/update-0": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/update-1": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/step-control/rank1/update-2": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lr-native-02/train/train_leg_result_rank0.json": "401bd41775b8e8706476ab46e2f76e74d64085189306b82947a7936265b6ab51",
+    "lr-native-02/train/train_leg_result_rank1.json": "fc54dbf6c375655d191c3b8575ef4b0e270e5b35666baff4e6b18cfbb5ede19b",
+    "lr-native-02/train/workload_rank0.json": "b815a422376b82a31765640918f8f4487686d6122a78cf761da09d22754e1b47",
+    "lr-native-02/train/workload_rank1.json": "b815a422376b82a31765640918f8f4487686d6122a78cf761da09d22754e1b47",
+    "lr-strict-02/result.json": "193365b988909b3a62db34228f37ec041a1c22a9eb72ec91aec9c719f5f7c0d8",
+    "lr-strict-02/summary.json": "e148b99d9e150e398feb6f96b336a3266bafac0ea8272ac5d914dca6b73fcd65",
+    "lr-strict-02/train/adapter_rank0.json": "645b24827040208e69c4e6eda57b2e08e9ae6fcec41cf8d688fbfab7e092ca8c",
+    "lr-strict-02/train/adapter_rank1.json": "645b24827040208e69c4e6eda57b2e08e9ae6fcec41cf8d688fbfab7e092ca8c",
+    "lr-strict-02/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "lr-strict-02/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "lr-strict-02/train/step-control/rank0/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "lr-strict-02/train/step-control/rank0/report.json": "ecd407478539b010c104c0d3e61b50d248f6536f53c2f00abe6123d1d337a48c",
+    "lr-strict-02/train/step-control/rank0/run-id": "f6069dda1631f3b44a791a46265bec6bd589cf54e3a01e6296d5544abb4b20c4",
+    "lr-strict-02/train/step-control/rank1/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "lr-strict-02/train/step-control/rank1/report.json": "d46f88340e22223d562475f9573a99a2c604ddfebfa1ec669dfc04028dfb2f18",
+    "lr-strict-02/train/step-control/rank1/run-id": "f6069dda1631f3b44a791a46265bec6bd589cf54e3a01e6296d5544abb4b20c4",
+    "lr-strict-02/train/workload_rank0.json": "b815a422376b82a31765640918f8f4487686d6122a78cf761da09d22754e1b47",
+    "lr-strict-02/train/workload_rank1.json": "b815a422376b82a31765640918f8f4487686d6122a78cf761da09d22754e1b47",
+    "missing-strict-02/result.json": "6bcb0a0de6015a4459e5e4aecb21c150746a5cecce6106c61f25082283747832",
+    "missing-strict-02/summary.json": "251271ece5a0853e5e9ea4e8f4db93acee89dfecc7b866f62eb9d16437b8f2ba",
+    "missing-strict-02/train/adapter_rank0.json": "7e92b017dd57ae8f121fbc9ca152954dd5716b92733e5994bf15872ff647c881",
+    "missing-strict-02/train/adapter_rank1.json": "7e92b017dd57ae8f121fbc9ca152954dd5716b92733e5994bf15872ff647c881",
+    "missing-strict-02/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "missing-strict-02/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "missing-strict-02/train/step-control/rank0/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "missing-strict-02/train/step-control/rank0/report.json": "ecd407478539b010c104c0d3e61b50d248f6536f53c2f00abe6123d1d337a48c",
+    "missing-strict-02/train/step-control/rank0/run-id": "db3607c6c6aec86bd358a54c51d10f58fc8306882118590f30f6a87751e620e3",
+    "missing-strict-02/train/step-control/rank1/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "missing-strict-02/train/step-control/rank1/report.json": "d46f88340e22223d562475f9573a99a2c604ddfebfa1ec669dfc04028dfb2f18",
+    "missing-strict-02/train/step-control/rank1/run-id": "db3607c6c6aec86bd358a54c51d10f58fc8306882118590f30f6a87751e620e3",
+    "missing-strict-02/train/workload_rank0.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "missing-strict-02/train/workload_rank1.json": "54355261ccf44ab58c74ca971be125d7a8af4550092a6a74fd04372d045deac6",
+    "revision-strict-02/result.json": "286d17c41b9775ff6d85d8664fc6a114c479f71e4b7361f433a31eaa1d6e1530",
+    "revision-strict-02/summary.json": "b969d088e7ff163a2c2253ab99445e1a0c92bb00c35b5711841d7a32f308e7b3",
+    "revision-strict-02/train/adapter_rank0.json": "2bba3e4bbcebc0d115f601a00e4425db51deebb3d361dc281004f7d0665c2606",
+    "revision-strict-02/train/adapter_rank1.json": "2bba3e4bbcebc0d115f601a00e4425db51deebb3d361dc281004f7d0665c2606",
+    "revision-strict-02/train/kernel_hits_rank0.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "revision-strict-02/train/kernel_hits_rank1.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "revision-strict-02/train/step-control/rank0/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "revision-strict-02/train/step-control/rank0/report.json": "ecd407478539b010c104c0d3e61b50d248f6536f53c2f00abe6123d1d337a48c",
+    "revision-strict-02/train/step-control/rank0/run-id": "acb76aff19cf61f0b7a3a0e1fb00c6902caa0d5110282468d3fa59a47c16eb1f",
+    "revision-strict-02/train/step-control/rank1/ABORT": "b8f7b008407b285f93b0dedc51545312b1c926fcf76936535f9ff8750cb31c55",
+    "revision-strict-02/train/step-control/rank1/report.json": "d46f88340e22223d562475f9573a99a2c604ddfebfa1ec669dfc04028dfb2f18",
+    "revision-strict-02/train/step-control/rank1/run-id": "acb76aff19cf61f0b7a3a0e1fb00c6902caa0d5110282468d3fa59a47c16eb1f",
+    "revision-strict-02/train/workload_rank0.json": "6abd79f6eabf075e96e3d1155eb4a3e93a745f6babfe5f94202e065ccff92e17",
+    "revision-strict-02/train/workload_rank1.json": "6abd79f6eabf075e96e3d1155eb4a3e93a745f6babfe5f94202e065ccff92e17"
+  },
+  "cpu_checker_tests": 14,
+  "preparation_aborted": "lr-native-01 stopped after detecting macOS metadata in initial archive; excluded from acceptance"
+}

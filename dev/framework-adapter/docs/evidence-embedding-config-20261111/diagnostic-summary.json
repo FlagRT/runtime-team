@@ -1,0 +1,268 @@
+{
+  "status": "verified",
+  "scope": "PPU DeepFM embedding numerical localization; not model approval",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "adapter_package_identity": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b",
+  "native_exact_comparisons": 294,
+  "three_path_trials": 60,
+  "forward_exact_trials": 60,
+  "provider_arguments_exact_trials": 60,
+  "repeatability": [
+    {
+      "sample": 0,
+      "max_abs": 1.1175870895385742e-08,
+      "by_path": {
+        "direct": 7.450580596923828e-09,
+        "standalone": 7.450580596923828e-09,
+        "unified": 1.1175870895385742e-08
+      }
+    },
+    {
+      "sample": 1,
+      "max_abs": 3.725290298461914e-09,
+      "by_path": {
+        "direct": 3.725290298461914e-09,
+        "standalone": 3.725290298461914e-09,
+        "unified": 3.725290298461914e-09
+      }
+    },
+    {
+      "sample": 2,
+      "max_abs": 1.4901161193847656e-08,
+      "by_path": {
+        "direct": 1.4901161193847656e-08,
+        "standalone": 1.4901161193847656e-08,
+        "unified": 1.4901161193847656e-08
+      }
+    },
+    {
+      "sample": 3,
+      "max_abs": 3.725290298461914e-09,
+      "by_path": {
+        "direct": 3.725290298461914e-09,
+        "standalone": 0.0,
+        "unified": 3.725290298461914e-09
+      }
+    }
+  ],
+  "direct_control_results": [
+    {
+      "sample": 0,
+      "table": "embedding.embedding",
+      "control": "captured",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 18,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 0,
+      "table": "embedding.embedding",
+      "control": "captured",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 18,
+      "repeat_max_abs": 7.450580596923828e-09,
+      "nonidentical_pairs": 10,
+      "native_max_abs": 7.450580596923828e-09
+    },
+    {
+      "sample": 0,
+      "table": "embedding.embedding",
+      "control": "unique_indices",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 0,
+      "table": "embedding.embedding",
+      "control": "unique_indices",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0,
+      "native_max_abs": 0.0
+    },
+    {
+      "sample": 1,
+      "table": "linear.fc",
+      "control": "captured",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 18,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 1,
+      "table": "linear.fc",
+      "control": "captured",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 18,
+      "repeat_max_abs": 3.725290298461914e-09,
+      "nonidentical_pairs": 7,
+      "native_max_abs": 3.725290298461914e-09
+    },
+    {
+      "sample": 1,
+      "table": "linear.fc",
+      "control": "unique_indices",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 1,
+      "table": "linear.fc",
+      "control": "unique_indices",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0,
+      "native_max_abs": 0.0
+    },
+    {
+      "sample": 2,
+      "table": "embedding.embedding",
+      "control": "captured",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 12,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 2,
+      "table": "embedding.embedding",
+      "control": "captured",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 12,
+      "repeat_max_abs": 1.4901161193847656e-08,
+      "nonidentical_pairs": 9,
+      "native_max_abs": 1.4901161193847656e-08
+    },
+    {
+      "sample": 2,
+      "table": "embedding.embedding",
+      "control": "unique_indices",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 2,
+      "table": "embedding.embedding",
+      "control": "unique_indices",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0,
+      "native_max_abs": 0.0
+    },
+    {
+      "sample": 3,
+      "table": "linear.fc",
+      "control": "captured",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 12,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 3,
+      "table": "linear.fc",
+      "control": "captured",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 12,
+      "repeat_max_abs": 3.725290298461914e-09,
+      "nonidentical_pairs": 6,
+      "native_max_abs": 3.725290298461914e-09
+    },
+    {
+      "sample": 3,
+      "table": "linear.fc",
+      "control": "unique_indices",
+      "path": "native",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0
+    },
+    {
+      "sample": 3,
+      "table": "linear.fc",
+      "control": "unique_indices",
+      "path": "direct",
+      "repeats": 5,
+      "repeated_index_count": 0,
+      "repeat_max_abs": 0.0,
+      "nonidentical_pairs": 0,
+      "native_max_abs": 0.0
+    }
+  ],
+  "provider": {
+    "module": "flag_gems.ops.embedding",
+    "source": "/results/packages/flag_gems/ops/embedding.py",
+    "source_sha256": "58ac369551bf30ba6bdc82145985a10914e5f033d67fa5ede06ac7e23b148e9a",
+    "versions": {
+      "flag-gems": "4.2.1rc0",
+      "flagtree": "0.7.0+ppu.gite223f42c",
+      "triton-module": "3.6.0"
+    }
+  },
+  "archives": [
+    {
+      "name": "embedding-diagnosis-01",
+      "files": 368,
+      "archive_sha256": "4b19b4e4bcbd8bdd51fb79d61664c21a2e10cbb839139aba784bac2fdc2519a4",
+      "archive_bytes": 18294880,
+      "state": "exited",
+      "pid": 0
+    },
+    {
+      "name": "embedding-direct-01",
+      "files": 12,
+      "archive_sha256": "2be804ad71643ae2b96c66604307786920c4334c95d8f62267d70d4cfd4e76cf",
+      "archive_bytes": 32967,
+      "state": "exited",
+      "pid": 0
+    },
+    {
+      "name": "embedding-direct-02",
+      "files": 20,
+      "archive_sha256": "a5e6a28d8f4f3cbfdcbcdf336881fd663223b77bc4f23ff622d26ca0e5d068c8",
+      "archive_bytes": 446605,
+      "state": "exited",
+      "pid": 0
+    }
+  ],
+  "raw_result_sha256": {
+    "diagnosis": "c4d558afb722746c90cf0974e96b4271a64a4c5af146832186169f266844757d",
+    "direct": "52f3431b243c21951205442a4c1c9a4be3c19a97523fb2292322f37aa9f0882b"
+  }
+}

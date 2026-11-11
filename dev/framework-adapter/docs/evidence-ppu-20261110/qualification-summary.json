@@ -1,0 +1,132 @@
+{
+  "status": "PASS",
+  "image": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+  "physical_card": 7,
+  "commands": [
+    {
+      "command": [
+        "/bmcp_lvm_fs/cgu135/framework-ppu-20261110/control-venv/bin/python",
+        "/bmcp_lvm_fs/cgu135/framework-ppu-20261110/input02/lib/baseline.py",
+        "export",
+        "/bmcp_lvm_fs/cgu135/framework-ppu-20261110/qual-1110-02/demo"
+      ],
+      "log": "export.log",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "bash",
+        "/bmcp_lvm_fs/cgu135/framework-ppu-20261110/input02/lib/up.sh",
+        "/bmcp_lvm_fs/cgu135/framework-ppu-20261110/qual-1110-02/demo",
+        "--strict"
+      ],
+      "log": "strict-start.log",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "cgu135-ppu-qual-1110-02",
+        "python3",
+        "-m",
+        "pip",
+        "install",
+        "--no-deps",
+        "--no-index",
+        "--target",
+        "/results/packages",
+        "/input/wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl",
+        "/input/wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl"
+      ],
+      "log": "install.log",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "cgu135-ppu-qual-1110-02",
+        "timeout",
+        "--kill-after=10s",
+        "480",
+        "python3",
+        "-u",
+        "/input/probe.py",
+        "--stage",
+        "qualification"
+      ],
+      "log": "probe.log",
+      "exit_code": 0
+    }
+  ],
+  "input_sha256": {
+    "probe.py": "4c44f31685c569446c5de42ef6fcc4f5f0aa8a5d3541a138514a8e9111f7e4e6",
+    "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+    "run.py": "c289dfdea359ee90f99dc67f9ecb99fb50387197a19e63df1954bb5a5ee98582",
+    "inputs.json": "b457eb6fb8aec8669d630eabc11caad14f9d02363b13db4dd2c6307fd2644dbf",
+    "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+    "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+    "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+    "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+    "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+    "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+    "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+    "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+    "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+    "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+    "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+    "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+    "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+    "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+    "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+    "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+    "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+    "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+    "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+    "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+    "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+    "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+    "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+    "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+    "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+    "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+    "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+    "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+    "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+    "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+    "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+    "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+    "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+    "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+    "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+    "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+    "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+    "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+    "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+    "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+    "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+    "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+    "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+    "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+    "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+    "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+    "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+    "demo/docker-compose.yml": "4e91c391d3f7297557652e6c86654514bac57b9ca713f7414c90ffe7358a28a5",
+    "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa",
+    "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f"
+  },
+  "stop": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 137,
+    "Error": "",
+    "StartedAt": "2026-11-10T02:52:05.080008148Z",
+    "FinishedAt": "2026-11-10T02:53:38.793094034Z"
+  }
+}

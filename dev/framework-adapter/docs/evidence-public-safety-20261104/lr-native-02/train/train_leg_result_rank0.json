@@ -1,0 +1,52 @@
+{
+  "rank": 0,
+  "world_size": 2,
+  "model": "/model",
+  "model_raw": "/model",
+  "model_source": "DC_MODEL",
+  "backend": "ascend",
+  "dist_backend": "hccl",
+  "checks": {
+    "device_context": {
+      "ok": true,
+      "detail": "rank0 绑定 npu:0；可见设备 2；统一流 <Stream backend=ascend native=Stream>"
+    },
+    "model_load": {
+      "ok": true,
+      "detail": "加载到 npu:0"
+    },
+    "comm_all_reduce": {
+      "ok": true,
+      "detail": "实测 3.0 / 期望 3.0"
+    },
+    "comm_all_gather": {
+      "ok": true,
+      "detail": "收集到 [0.0, 1.0]"
+    },
+    "comm_p2p": {
+      "ok": true,
+      "detail": "rank0 接收一致=True"
+    },
+    "loss_decrease": {
+      "ok": true,
+      "detail": "首 17.0600 → 末 13.4604（3 步）；无 NaN=True"
+    }
+  },
+  "device_type": "npu",
+  "perf": {
+    "steps": 3,
+    "batch": 1,
+    "seq": 32,
+    "tokens_per_s_per_rank": 43.9,
+    "tokens_per_s_total": 87.8,
+    "elapsed_s": 2.19
+  },
+  "loss_curve": [
+    17.06,
+    15.4269,
+    13.4604
+  ],
+  "verdict": "TRAIN_LEG_PASS",
+  "passed": 6,
+  "total": 6
+}

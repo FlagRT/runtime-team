@@ -1,0 +1,222 @@
+{
+  "status": "fail",
+  "stage": "onerec",
+  "mode": "candidate",
+  "scope": "full OneRec-8B BF16 single-card bounded training; not model quality",
+  "adapter_version": "0.3.0.dev4",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0",
+  "model_files": {
+    "model-00000-of-00003.safetensors": "54144c8a0fccb57ace38e288dd507401d6e6c89fabcc616748cb09db059964ca",
+    "model-00001-of-00003.safetensors": "9c6bcb75cc225008d937c3ce875f4b5c90db45b0cdf0db9b2ef2bf80a301ed6c",
+    "model-00002-of-00003.safetensors": "dec154ac50baceb71093e6cb1e60cfcb3218d91e4eafc5d7fe371fac4564af0b",
+    "config.json": "7cfca63823e48a9a61cb457bf40bf30263704f7e0dfa4472a626008a38728a30",
+    "model.safetensors.index.json": "c463df452d9333ec9f5c954bd6b315ff9ebd46f817c610d09bdb458afe6b531f"
+  },
+  "workload": {
+    "model": "OpenOneRec/OneRec-8B",
+    "revision": "29f95b3da63a4bbc00a1cd3aeee948efb2ff40ff",
+    "formulation": "synthetic causal LM",
+    "dtype": "torch.bfloat16",
+    "batch": 1,
+    "sequence_length": 16,
+    "steps": 3,
+    "seed": 1014,
+    "data_seed": 1014,
+    "optimizer": "SGD",
+    "lr": 0.01,
+    "momentum": 0.0,
+    "foreach": false,
+    "gradient_checkpointing": "non-reentrant",
+    "attention": "eager",
+    "use_cache": false,
+    "deterministic": true
+  },
+  "runtime_sources": {
+    "runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+    "runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d"
+  },
+  "tolerance": {
+    "atol": 0.001,
+    "rtol": 0.01
+  },
+  "steps": [
+    {
+      "step": 1,
+      "status": "fail",
+      "loss": 17.13646125793457,
+      "provider_calls": {
+        "GEMS SILU FORWARD": 36,
+        "GEMS SILU BACKWARD": 36
+      },
+      "dispatcher_restored": true,
+      "routes": [
+        [
+          "silu",
+          "flaggems",
+          "forward",
+          "completed",
+          36
+        ],
+        [
+          "silu",
+          "flaggems",
+          "backward",
+          "completed",
+          36
+        ]
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "step1/loss",
+      "file": "c8ec833486f9cdc51023d8bfe61da922f9f968d9db2f33102439a96b841b861d.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0048694610595703125,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.embed_tokens.weight",
+      "file": "4288ff161cecc39e684afddf81627d2ad1e3269a207ba422049e2152a5e67898.pt",
+      "shape": [
+        176384,
+        4096
+      ],
+      "dtype": "torch.bfloat16",
+      "max_abs": 0.28125,
+      "mismatches": 28460,
+      "mismatch_examples": [
+        {
+          "flat_index": 53494260,
+          "actual": 0.0341796875,
+          "reference": 0.03271484375,
+          "abs_error": 0.00146484375,
+          "allowed_error": 0.0013271484375
+        },
+        {
+          "flat_index": 53494510,
+          "actual": 0.048095703125,
+          "reference": 0.0498046875,
+          "abs_error": 0.001708984375,
+          "allowed_error": 0.001498046875
+        },
+        {
+          "flat_index": 53495391,
+          "actual": -0.046875,
+          "reference": -0.04541015625,
+          "abs_error": 0.00146484375,
+          "allowed_error": 0.0014541015625
+        },
+        {
+          "flat_index": 53496602,
+          "actual": -0.006439208984375,
+          "reference": -0.00537109375,
+          "abs_error": 0.001068115234375,
+          "allowed_error": 0.0010537109375
+        },
+        {
+          "flat_index": 81596419,
+          "actual": 0.0213623046875,
+          "reference": 0.02001953125,
+          "abs_error": 0.0013427734375,
+          "allowed_error": 0.0012001953125
+        },
+        {
+          "flat_index": 81596433,
+          "actual": 0.04345703125,
+          "reference": 0.044921875,
+          "abs_error": 0.00146484375,
+          "allowed_error": 0.00144921875
+        },
+        {
+          "flat_index": 81596445,
+          "actual": 0.01519775390625,
+          "reference": 0.016845703125,
+          "abs_error": 0.00164794921875,
+          "allowed_error": 0.0011684570312500001
+        },
+        {
+          "flat_index": 81596447,
+          "actual": 0.044189453125,
+          "reference": 0.0458984375,
+          "abs_error": 0.001708984375,
+          "allowed_error": 0.001458984375
+        }
+      ]
+    }
+  ],
+  "optimizer_steps": 0,
+  "model_loaded": true,
+  "optimizer_created": true,
+  "provider_calls": {
+    "GEMS SILU FORWARD": 36,
+    "GEMS SILU BACKWARD": 36
+  },
+  "adapter_bridge_sha256": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+  "workload_identity": {
+    "model_id": "OpenOneRec/OneRec-8B",
+    "phase": "train",
+    "model_sha256": "00186685633e8072d2b4704522473660edc4557e108daa7dd018fef8d835ebb7",
+    "settings_sha256": "900822d1af4b73132b2fac0faf3ec7a560780273b9de7c16aaa9cc7bcdb1d3ce",
+    "operators_sha256": "24f34f4c4d141a9e76e9686d182ee96e92e7ee263a159a1cb7ac722ee46a187d"
+  },
+  "startup": {
+    "require_target": true,
+    "checks": [
+      {
+        "operator": "silu",
+        "shape": [
+          1,
+          16,
+          12288
+        ],
+        "dtype": "torch.bfloat16",
+        "decision": "target",
+        "reason": null
+      }
+    ],
+    "provider_reason": null,
+    "workload_required": false,
+    "workload": null
+  },
+  "qualification_experiment": true,
+  "model_approved": false,
+  "acceptance": "explicit candidate versus native; approval requires separate review",
+  "loading_info": {
+    "missing_keys": [],
+    "unexpected_keys": [],
+    "mismatched_keys": [],
+    "error_msgs": []
+  },
+  "parameter_count": 8391013376,
+  "parameter_tensors": 399,
+  "active_step": 1,
+  "dispatcher_restored": true,
+  "error": "Traceback (most recent call last):\n  File \"/input/onerec_probe.py\", line 196, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/onerec_probe.py\", line 163, in run\n    check(prefix+'gradient/'+name,p.grad)\n  File \"/input/onerec_probe.py\", line 108, in check\n    save(); raise AssertionError(f'{name}: {row[\"mismatches\"]} mismatches, max_abs={row[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step1/gradient/model.embed_tokens.weight: 28460 mismatches, max_abs=0.28125\n"
+}

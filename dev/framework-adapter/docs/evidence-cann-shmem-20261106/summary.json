@@ -1,0 +1,181 @@
+{
+  "date": "2026-11-06",
+  "public_commit": "0da9977086d07a867bf915b207f08e70f541683c",
+  "host": "npu1-11",
+  "physical_device": 14,
+  "logical_device": 0,
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "source": "https://ascend.devcloud.huaweicloud.com/cann/pypi/simple/",
+  "installed": {
+    "distribution": "cann-shmem",
+    "version": "1.6.0",
+    "wheel": "cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl",
+    "sha256": "308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5"
+  },
+  "default_1_7_0": {
+    "status": "REJECTED_HASH_MISMATCH",
+    "index_sha256": "b96de29cad1f0ee5fde75a4131523fedc7c3701cef8d70154e740ca2fba20e32",
+    "download_sha256": "af8376c14688e80933d424c8118f358fb06f3b7247bb1445cbdbe02cd44d4191"
+  },
+  "before_minirepro": "FAIL_missing_shmem",
+  "after_minirepro": "PASS",
+  "silu": {
+    "status": "PASS",
+    "checks": [
+      {
+        "shape": [
+          128
+        ],
+        "stage": "forward",
+        "pass": true,
+        "max_abs": 1.1920928955078125e-07
+      },
+      {
+        "shape": [
+          128
+        ],
+        "stage": "backward",
+        "pass": true,
+        "max_abs": 1.1920928955078125e-07
+      },
+      {
+        "shape": [
+          2,
+          17
+        ],
+        "stage": "forward",
+        "pass": true,
+        "max_abs": 2.9802322387695312e-08
+      },
+      {
+        "shape": [
+          2,
+          17
+        ],
+        "stage": "backward",
+        "pass": true,
+        "max_abs": 5.960464477539063e-08
+      },
+      {
+        "shape": [
+          4,
+          1024
+        ],
+        "stage": "forward",
+        "pass": true,
+        "max_abs": 2.384185791015625e-07
+      },
+      {
+        "shape": [
+          4,
+          1024
+        ],
+        "stage": "backward",
+        "pass": true,
+        "max_abs": 2.384185791015625e-07
+      }
+    ],
+    "cache": "/tmp/shmem-silu-cold-36udxzfv"
+  },
+  "provenance": {
+    "versions": {
+      "torch": "2.10.0+cpu",
+      "torch-npu": "2.10.0",
+      "triton": null,
+      "flagtree": "0.6.0+ascend.git15ec1a6c",
+      "flag-gems": "0.0.0+f7ae8e6b934a",
+      "cann-shmem": "1.6.0",
+      "triton_module": "3.5.1"
+    },
+    "module_locations": {
+      "shmem": "/usr/local/python3.11.15/lib/python3.11/site-packages/shmem/__init__.py",
+      "torch": "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/__init__.py",
+      "triton": "/usr/local/python3.11.15/lib/python3.11/site-packages/triton/__init__.py",
+      "flag_gems": "/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems/__init__.py"
+    },
+    "package_changes": {
+      "cann-shmem": {
+        "before": null,
+        "after": "1.6.0"
+      }
+    }
+  },
+  "container_final_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 137,
+    "Error": "",
+    "StartedAt": "2026-11-06T11:56:03.599281297Z",
+    "FinishedAt": "2026-11-06T12:02:57.513576737Z"
+  },
+  "scope": "cold-cache loop kernel and direct FP32 SiLU forward/backward; no adapter eligibility change or model run",
+  "remote_evidence": "/home/cgu135/framework-shmem-20261106",
+  "archive_sha256": "b82421ca041239c2df8ccb46985d1057bed88ac2da376e16bbd047486dd67d92",
+  "files": {
+    "demo/.last-check.json": "8c041adf82ac416a349ba0c96d2ad0a98011064e5168822074a50132f7b2955c",
+    "demo/docker-compose.yml": "969a09f287db6a5471621488ae9b538238436fd98456889befa4e59b436cdba3",
+    "demo/env.baseline.yaml": "e5bb9f9d9b851c61ac512df83d5f177095cebcbdda542dd64a10eb0ed5741c8c",
+    "image.baseline.yaml": "fa927cc085002b72201cbe1504f2978d45b48175751b44fdee31239fa66f960e",
+    "input/index_check.py": "665cc054a98c12a5c22333483dbe37cd5c349029477fa576d4d33c545f90d0e1",
+    "input/minirepro_shmem.py": "56db87f0a12885b2684a0a63e9023af6bb7821ef155e0ab2862b01b82f9afade",
+    "input/provenance.py": "ab084af02a709e3f98c76ca9d5e308970401a2aef1b3e33eba70dba9a9930abd",
+    "input/provenance_v2.py": "09740e410580148eb873e40264b4170e20290ac6d4d61a58c6c58980dced64c5",
+    "input/run.py": "b1e0425ed16d3424cf82773cb2fdb7cf8bd7df6b740b95cc21a944789e84b8d9",
+    "input/run_v2.py": "23e5fc322e11867458ff1a0d0170c8112170893bf7878e067565235300af7e4b",
+    "input/silu_check.py": "86d2411029fb9982cd8cb84ba4cf6cd27674f21bbd8b05b3eb608a1bd2e8b606",
+    "input-manifest.json": "91eb08a5e63118e2458342d05acf5c9e8ca9847b7930f7c4f0aa9dd92df322cb",
+    "results/after-container-diff.command.json": "a64028b77c1fad9c9cefcad90753f4644802964d05c0e0cdf9e8c6d6dbf9da0e",
+    "results/after-container-diff.log": "9c5a1bd65157c762285e579b4f0d789bd37983352e4c209ed9d64ae16d887895",
+    "results/after-minirepro.command.json": "08ffc76d0a8cd108d4075f1dee566e8f98987b64fd472af0f759f079834b232f",
+    "results/after-minirepro.log": "c65bc81462ec5f4d2a59cd06b2f739a3ec4629e0e29b083a1977f410ee85e226",
+    "results/after-packages.command.json": "9dd7c043c1dab465908c526a7b099dcc58837832ce10b5b0ce7452988ab2746f",
+    "results/after-packages.log": "6a2a36e9080df9a8516a8f116b32b3a2404302b9e9e482f54b5a2ae72c93ac19",
+    "results/after-shmem-spec.command.json": "0570af4ac43d12bc17f8dfb9016d84706a52537c42ade2936a0727a9faa198d9",
+    "results/after-shmem-spec.log": "c4a417925ae8ee6a874c17024b3f8b092e97980501f7ac5d2da229a514661993",
+    "results/after-silu.command.json": "63df8a254bb02a4205afd9bee195285aa2a3a1135d414fd60c85802b38bfa250",
+    "results/after-silu.log": "8267af9978eebd873039c4d016b82b0a96158976421d9177238e8fac110998f5",
+    "results/baseline-export.command.json": "a1b44631344946f78690dec0e1b28fd68cd3ab85dd5acd4c9949bc0020a884c9",
+    "results/baseline-export.log": "a2cb62d25390cb1caf72568f807cf4d261f65fe1f696c1cbb5dde352f42dc42e",
+    "results/before-container-diff.command.json": "355524a64a80af8cc75f5cc42e893013c68e55a8f7e467376c3a6e654786b472",
+    "results/before-container-diff.log": "4e75a26c00c5d6734a6bba58274c51a35e3e27dd5160668eb12dde21c483544b",
+    "results/before-minirepro.command.json": "a9c0e0b44fea58ebcec8716484259f7d99840cefd340abe8ec6e984721a0aba2",
+    "results/before-minirepro.log": "c951c3939b387cdcc10f820cc92ccf843019e65275abd5056b2662b41b5222fc",
+    "results/before-packages.command.json": "58ffda8cb5d2c90b46b8734bc1dcb68c478cec2928dd17a632a72f43a56f0937",
+    "results/before-packages.log": "86cdbf9f1701c5e528dc584ec0dd1e9951401862b206f16ffbf2ef2378eafbb7",
+    "results/before-shmem-spec.command.json": "11cac07ac563e3db2dfaed7175ab5b69cb12e6c8bfa472b22ba52355ef0f0123",
+    "results/before-shmem-spec.log": "af5d8a21858f42808c9bcc17012b77bcc2fd6ab3b071dbd4a05f13f410470541",
+    "results/container.json": "6916f13f0235990de33bdfaae79d1545a160ec35d50c7eb0b6c4c130cee00d8c",
+    "results/device.json": "a3a3e25c0facc1d2ea6ac445315a8a9e04e98452e8dc01c3b9a9fc27e832b938",
+    "results/image-check.command.json": "2cfab67a4af1e9a17dd71d9d867d15544ed5cebc924f450a48b6becefd1095b9",
+    "results/image-check.log": "c9dad66aa3309affa2ca8b27b36a617e44b3944c26ade9520fe167f28111937f",
+    "results/index-check.json": "b3c2191dd6be72d9d93153852deda5ccce5275cd8c1ca565dd6bcdb07b295d12",
+    "results/install-container-diff.command.json": "ae7e4787d4059e9779cf21db8fe721dc5347e8bb6cccde3b3cb6611fe6f858d1",
+    "results/install-container-diff.log": "040b4a6cc8d56e06d245c549cb0f9c63c53f87d23171b19708f46a623559bb53",
+    "results/official-index.html": "abdefec80788b7420bc09084d055b46832e428ac4114c4bc98a07e9d048cf5ee",
+    "results/pip-download.command.json": "5cc18152983c79f9bab71475a08e3a179c624cef9e0f0955b882b5f0222b5108",
+    "results/pip-download.log": "8efe317dd385d5700079d163c126a175ea2f3bde6e02bde84069c8a175673782",
+    "results/pip-install.command.json": "ee85cdd53dd95b56edcbcb2d12a901c68a1378f8d25274a028a218fcfaf91497",
+    "results/pip-install.json": "6730d2ee717ac3fecedb7b9b1bc6699816401f9b793dd92ed81e889967be5739",
+    "results/pip-install.log": "372a73a9186955875f846c4afdd85c47336f23be9acfa3f0ba96dc3312873540",
+    "results/pip-plan-1.6.0.command.json": "cc08f7dc3c6c24653f2eb9b3643be0b7c5c40aae3c98463f7f98d2b68f561998",
+    "results/pip-plan-1.6.0.json": "c38d486e0a0860e7122ea8bd65a87b6909b1a1f6417de6138dde8c5b2b923f39",
+    "results/pip-plan-1.6.0.log": "a125821b15e536e4fd6a9876bd9628d691dd3f01a599a2e709f0ba0889907c5f",
+    "results/pip-plan.command.json": "d1c4ea584cb9e12b726bdf3471b2859a4b541415366747def4f29d0818ff5e2a",
+    "results/pip-plan.log": "472b1ff7b390a4935d08e1647c617e4bc9fcd4584bcefe58038a56df6b9fd442",
+    "results/plan-container-diff.command.json": "686bd00dd417c9f7c4f4995afceba9618ecbf32491c272b7ba393c6c153a1bd2",
+    "results/plan-container-diff.log": "68600370c6ced0042aa0ed775916c142c4f902510aa31214f924ba168b2cfd72",
+    "results/provenance.json": "bd7d0c9a1699119c51eb8360ea613a57a6d2a107cf883f77eda45ce07cb19d63",
+    "results/silu-result.json": "2fbd2c708c64e9e27d14ed6a9673a9a943ece7737f8401aa17efc672635c3546",
+    "results/stop.command.json": "1011601743d0e537381e4b6be61f43ced42c7cb48a9a2e498de3834189a8b250",
+    "results/stop.log": "91bad382e5e520978f1519c2d05bf0260ebec1b0a81c47dd15d9ae2713b1904d",
+    "results/stopped-state.json": "5744097f062d80a4c03bf891deed476e9f3d1014d6d70e161a77dbafe4295cb7",
+    "results/strict-start.command.json": "e88154ea4760f80ca1c102bf7b7bfbad854f49b2fb037b5c44053c6d375c4338",
+    "results/strict-start.log": "7d8d0b5a03ad5b9d39b7712ad989840bcd0cb660f6ff1b78cc5839d7248c0989",
+    "results/wheels/cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl": "308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "rank": 0,
+  "steps": 3,
+  "phase": "start",
+  "hooks_restored": true,
+  "waits": [
+    {
+      "phase": "backward",
+      "step": 0,
+      "seconds": 0.07115621003322303
+    },
+    {
+      "phase": "update",
+      "step": 0,
+      "seconds": 0.00017242692410945892
+    },
+    {
+      "phase": "backward",
+      "step": 1,
+      "seconds": 0.00018885801546275616
+    },
+    {
+      "phase": "update",
+      "step": 1,
+      "seconds": 0.0002044981811195612
+    },
+    {
+      "phase": "backward",
+      "step": 2,
+      "seconds": 0.00018531782552599907
+    },
+    {
+      "phase": "update",
+      "step": 2,
+      "seconds": 0.00017364718951284885
+    }
+  ],
+  "scope": "single-host pre-update gate; no rollback"
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "enabled": true,
+  "require_target": true,
+  "operators": {
+    "silu": {
+      "shapes": [
+        [
+          1,
+          32,
+          3072
+        ]
+      ],
+      "dtypes": [
+        "torch.float32"
+      ]
+    }
+  },
+  "records": "operator-records.json",
+  "workload_reviews": "model-reviews.failed.json"
+}

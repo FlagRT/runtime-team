@@ -1,0 +1,35 @@
+{
+  "status": "pass",
+  "mode": "expected-startup-rejection",
+  "test_returncode": 1,
+  "ranks": [
+    {
+      "rank": 0,
+      "status": "BLOCKED",
+      "reason": "workload_unverified",
+      "steps": 0,
+      "workload": {
+        "model_id": "AutoModelForCausalLM:qwen3",
+        "phase": "train",
+        "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+        "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+        "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+      },
+      "kernel_hits": {}
+    },
+    {
+      "rank": 1,
+      "status": "BLOCKED",
+      "reason": "workload_unverified",
+      "steps": 0,
+      "workload": {
+        "model_id": "AutoModelForCausalLM:qwen3",
+        "phase": "train",
+        "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+        "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+        "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+      },
+      "kernel_hits": {}
+    }
+  ]
+}

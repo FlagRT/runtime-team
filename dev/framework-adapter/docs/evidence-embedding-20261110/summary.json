@@ -1,0 +1,310 @@
+{
+  "status": "PASS",
+  "scope": "evidence consistency; model pass/fail remains explicit",
+  "runs": {
+    "embedding-candidate-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:08:23.956335587Z",
+        "FinishedAt": "2026-11-10T15:09:52.547697543Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "candidate",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 1.4901161193847656e-08,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 6,
+        "GEMS EMBEDDING BACKWARD": 6
+      },
+      "gradient_copies": 3
+    },
+    "embedding-native-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:04:28.139098937Z",
+        "FinishedAt": "2026-11-10T15:05:49.807114755Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "native",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 0,
+      "provider_calls": {},
+      "gradient_copies": 0
+    },
+    "embedding-off-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:10:14.933855427Z",
+        "FinishedAt": "2026-11-10T15:11:51.856226411Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "off",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "gradient_copies": 0
+    },
+    "embedding-on-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:15:05.863671669Z",
+        "FinishedAt": "2026-11-10T15:16:30.002446042Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "on",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 7.450580596923828e-09,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 6,
+        "GEMS EMBEDDING BACKWARD": 6
+      },
+      "gradient_copies": 3
+    },
+    "embedding-qual-01": {
+      "host_status": "PASS",
+      "result_status": "PASS",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T14:53:30.585119554Z",
+        "FinishedAt": "2026-11-10T14:54:49.755582012Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "cases": 24,
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 9.5367431640625e-06
+    },
+    "embedding-repeat-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:06:14.484231644Z",
+        "FinishedAt": "2026-11-10T15:07:48.029513372Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "native_repeat",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "gradient_copies": 0
+    },
+    "embedding-routes-01": {
+      "host_status": "PASS",
+      "result_status": "PASS",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:00:05.486250313Z",
+        "FinishedAt": "2026-11-10T15:01:30.632460886Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "cases": 6,
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 1.9073486328125e-06
+    },
+    "embedding-routes-02": {
+      "host_status": "PASS",
+      "result_status": "PASS",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:02:31.162073748Z",
+        "FinishedAt": "2026-11-10T15:03:55.446672102Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "cases": 6,
+      "forward_max_abs": 0.0,
+      "backward_max_abs": 1.9073486328125e-06
+    },
+    "embedding-unknown-01": {
+      "host_status": "PASS",
+      "result_status": "pass",
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T15:12:17.885082672Z",
+        "FinishedAt": "2026-11-10T15:13:54.019939785Z"
+      },
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "mode": "unknown",
+      "optimizer_steps": 3,
+      "comparisons": 294,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "gradient_copies": 0
+    }
+  },
+  "verified_files": 113
+}

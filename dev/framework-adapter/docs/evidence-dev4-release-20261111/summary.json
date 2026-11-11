@@ -1,0 +1,76 @@
+{
+  "status": "PASS",
+  "scope": "offline source/build/evidence controls; no new hardware run",
+  "commit": "78358ab05da16878e91fa5775b3859ba0ba479d2",
+  "version": "0.3.0.dev4",
+  "hardware_tested_wheel_sha256": "1edf33728e67225c6f2a14d4264917fe7a7f82f36b9e911e23f940ad47699a49",
+  "runtime_files": {
+    "flagrt_adapter/__init__.py": "d0a0f5cd0f23daa7ce9c023bce43723dfb3b881f2b5d6556bdaed73379fbf447",
+    "flagrt_adapter/adapter.py": "9cd54fa3c7a60010971abfd000ab297ffb1748c89e3ddce0885911ccaedfe217",
+    "flagrt_adapter/bridge.py": "dcd9f9ef34f8070021f150d848d571b323eade9a909b7d94371a934ae8020445",
+    "flagrt_adapter/callback.py": "4b3cf4dd5432cd4b7ae6af253a1e607c54ca3c620f70b82b64d2fc74498be76f",
+    "flagrt_adapter/config.py": "bbc8c8d0547beac69fa75bce0da05f7be23d90cabf4561968a774e598ab85005",
+    "flagrt_adapter/embedding.py": "b68238df586e42b86a50ade0faebe7131840e46c485f306f2a49c1be2aef722a",
+    "flagrt_adapter/embedding_policy.py": "054a14b63a03b2f805c70cc8d823ed0d78568e4d4e27779f7226183d5e57ee89",
+    "flagrt_adapter/environment.py": "e4783a2b686cb2ec0a3381230d406f6ca46a11639fac28f197a9ef8ba4094d21",
+    "flagrt_adapter/policy.py": "d7715880379d77c38149703f44fc4c01a16dbdfe73e942abb0d5ee98cf765e1d",
+    "flagrt_adapter/public_entry.py": "40cf01d512638f7a712a7cef28677e15f0d98934124707587a0b572eb27c3d45",
+    "flagrt_adapter/records.py": "9c77c734eced61f1de480dc6af5791a6605cb573806514ffe738ccdd83a50cf5",
+    "flagrt_adapter/startup.py": "a41724be202ed2139471ab8dd3166895babb6ae0fe024ecb196f71c80aa99450",
+    "flagrt_adapter/step_guard.py": "f38995aaca1a7daf4c462d120d4975f4b858c68ccbe284d6851eb1333ac97cfc",
+    "flagrt_adapter/train_cli.py": "3066a4cbc663077268ef99ebeb2490e7dcc8058026d5159dc13a9a3de3dcadec",
+    "flagrt_adapter/training.py": "cd668e86ebac749098f8b7b516d57d57f3b23e233ab6a1d1eac773dfe29ffa6d",
+    "flagrt_adapter/workload.py": "cfc8edcc603f5b4e9540a308500fabef538e27b0870acd62ee6a9cbdb4af973d"
+  },
+  "builds": [
+    {
+      "id": "20261111-dev4-release-03",
+      "wheel_sha256": "df480b71d0ae0bc1eede223d7e22368dce8d4115eaa0d35d1330adf5aeac3fac",
+      "package_controls": 178,
+      "commands": 21,
+      "source_snapshot_matches_commit": true
+    },
+    {
+      "id": "20261111-dev4-release-02",
+      "wheel_sha256": "618fb053d0df1985e972aefafb89cb52975acd58d5eda0108907a50723c2a75a",
+      "package_controls": 178,
+      "commands": 21,
+      "source_snapshot_matches_commit": true
+    }
+  ],
+  "case_controls": [
+    {
+      "suite": "ascend-official-unary/assets/test_*.py",
+      "tests": 17,
+      "status": "PASS"
+    },
+    {
+      "suite": "embedding/test_controls.py",
+      "tests": 3,
+      "status": "PASS"
+    },
+    {
+      "suite": "embedding-config/test_controls.py",
+      "tests": 4,
+      "status": "PASS"
+    },
+    {
+      "suite": "embedding-config/test_qwen.py",
+      "tests": 5,
+      "status": "PASS"
+    },
+    {
+      "suite": "operator-inventory/test_*.py",
+      "tests": 7,
+      "status": "PASS"
+    }
+  ],
+  "qwen_evidence": {
+    "files": 106,
+    "archive_sha256": "9b82e8e7dcd358b7383e8cdc362d2188f417cfc93bb87e092c711e5e2637acc3",
+    "cpu_startup_paths": 3,
+    "unchanged": true
+  },
+  "syntax_checked": 64,
+  "review_evidence_hashes_checked": 2
+}

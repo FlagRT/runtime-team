@@ -1,0 +1,56 @@
+{
+  "status": "BLOCKED",
+  "entry": "/runtime/runtime/proto/proto_train_leg.py",
+  "enabled": true,
+  "operators": [
+    "silu"
+  ],
+  "environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "backend_version": "2.10.0",
+    "gems_revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+    "image_id": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+    "triton": "3.2.0",
+    "compiler_build": "triton-ascend==3.2.1",
+    "backend": "ascend",
+    "device_type": "npu"
+  },
+  "provider_identity": {
+    "kind": "git",
+    "root": "/gems",
+    "revision": "f7ae8e6b934a33ec1ccaf2c9aae71edf205f8fb4",
+    "gems_file": "/gems/src/flag_gems/__init__.py",
+    "triton_file": "/usr/local/python3.11.15/lib/python3.11/site-packages/triton/__init__.py"
+  },
+  "acceptance": "external",
+  "startup": {
+    "require_target": true,
+    "checks": [
+      {
+        "operator": "silu",
+        "shape": [
+          1,
+          32,
+          3072
+        ],
+        "dtype": "torch.float32",
+        "decision": "native",
+        "reason": "workload_unverified"
+      }
+    ],
+    "provider_reason": null,
+    "workload_required": true,
+    "workload": {
+      "model_id": "AutoModelForCausalLM:qwen3",
+      "phase": "train",
+      "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+      "settings_sha256": "b7a22d2f8ddaef357bf21544010a8c1cde475f9b7543174b4b23776b0b327b71",
+      "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+    }
+  },
+  "error": "Traceback (most recent call last):\n  File \"/results/installed/flagrt_adapter/training.py\", line 20, in execute_training\n    policies, report['startup'] = prepare_policies(config, records, actual, provider_reason, workload=workload)\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/results/installed/flagrt_adapter/startup.py\", line 122, in prepare_policies\n    raise TargetBlocked('Target required but startup admission rejected: ' + str(checks), report)\nflagrt_adapter.startup.TargetBlocked: Target required but startup admission rejected: [{'operator': 'silu', 'shape': [1, 32, 3072], 'dtype': 'torch.float32', 'decision': 'native', 'reason': 'workload_unverified'}]\n",
+  "counts": [],
+  "events_tail": [],
+  "scope_failed": false
+}

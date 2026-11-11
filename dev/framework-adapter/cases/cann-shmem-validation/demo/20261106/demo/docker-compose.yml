@@ -1,0 +1,30 @@
+name: cgu135-cann-shmem-1106
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {}
+services:
+  runtime-dev:
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    container_name: cgu135-cann-shmem-1106
+    labels:
+      owner: cgu135
+    network_mode: host
+    shm_size: 2g
+    mem_limit: 12g
+    cpus: 4
+    restart: 'no'
+    command:
+    - sleep
+    - infinity
+    devices:
+    - /dev/davinci14:/dev/davinci14
+    - /dev/davinci_manager:/dev/davinci_manager
+    - /dev/devmm_svm:/dev/devmm_svm
+    - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+    - /home/cgu135/framework-shmem-20261106/input:/input:ro
+    - /home/cgu135/framework-shmem-20261106/results:/results
+    - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+    environment:
+      ASCEND_RT_VISIBLE_DEVICES: '0'
+      PYTHONDONTWRITEBYTECODE: '1'

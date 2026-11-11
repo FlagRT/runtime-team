@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "stage": "dc-train",
+  "device": 14,
+  "image": "sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f",
+  "container": "cgu135-unary-lr-strict-02",
+  "second_device": 15,
+  "training_config": "on",
+  "inputs": {
+    "source": "/home/cgu135/framework-public-safety-20261104/input-clean/source",
+    "runtime": "/home/cgu135/framework-public-safety-20261104/input-clean/public/dev/device-context/prototype",
+    "deps": "/home/cgu135/framework-deepfm-20261023/provider/deps-20260922",
+    "gems": "/home/cgu135/framework-deepfm-20261023/provider/FlagGems-f7ae8e6-20260922",
+    "records": "/home/cgu135/framework-rank-failure-20261024/records/experimental-records.json",
+    "model": "/home/cgu135/framework-v3-20261016/model/model-verified-20261014"
+  },
+  "training_qualification": null,
+  "training_lr": 2e-05,
+  "training_expect_blocked": true,
+  "wheel": {
+    "path": "/home/cgu135/framework-public-safety-20261104/input-clean/flagrt_framework_adapter-0.3.0.dev3-py3-none-any.whl",
+    "sha256": "1df422076fbbc6e87ef04cc2ff4584afaa818220b81959b162ee87413a4a57b5"
+  },
+  "test_returncode": 1,
+  "stop_returncode": 0,
+  "container_state": "{\"Status\":\"exited\",\"Running\":false,\"Paused\":false,\"Restarting\":false,\"OOMKilled\":false,\"Dead\":false,\"Pid\":0,\"ExitCode\":137,\"Error\":\"\",\"StartedAt\":\"2026-11-04T09:35:09.269490568Z\",\"FinishedAt\":\"2026-11-04T09:35:54.083110808Z\"}"
+}

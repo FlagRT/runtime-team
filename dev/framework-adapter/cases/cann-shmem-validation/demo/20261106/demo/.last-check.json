@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-11-06T19:56:03+08:00",
+  "env_dir": "/home/cgu135/framework-shmem-20261106/demo",
+  "baseline": "env.baseline.yaml",
+  "report": [
+    {
+      "status": "PASS",
+      "item": "image",
+      "detail": "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64 -> sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15"
+    },
+    {
+      "status": "INFO",
+      "item": "baked",
+      "detail": "固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）"
+    }
+  ],
+  "result": "PASS"
+}

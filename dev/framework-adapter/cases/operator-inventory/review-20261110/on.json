@@ -1,0 +1,20 @@
+{
+  "schema": 3,
+  "enabled": true,
+  "require_target": true,
+  "operators": {
+    "relu": {
+      "shapes": [
+        [
+          32,
+          400
+        ]
+      ],
+      "dtypes": [
+        "torch.float32"
+      ]
+    }
+  },
+  "records": "records.json",
+  "workload_reviews": "model-reviews.json"
+}

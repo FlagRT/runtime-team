@@ -1,0 +1,143 @@
+{
+  "status": "verified",
+  "scope": "PPU FP32 Qwen3-Embedding-0.6B embedding-only synthetic causal-LM 3 steps",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "adapter_package_identity": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b",
+  "qualification": {
+    "cases": 12,
+    "forward_max_abs": 0.0,
+    "backward_max_abs": 4.76837158203125e-06
+  },
+  "runs": {
+    "native-01": {
+      "mode": "native",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "5886799bf91486d6a88b9c2ae59dc7c610ad29d50e7a7839d24c143624b0ddd8"
+    },
+    "repeat-01": {
+      "mode": "native_repeat",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "6b66bf676151af7e7507bd6a171dab2fde29a2852a249a838332a212daf4bd9b"
+    },
+    "candidate-01": {
+      "mode": "candidate",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 3,
+        "GEMS EMBEDDING BACKWARD": 3
+      },
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "948666c87242a14e342c3fbf7f310325bfd33ed2d6648529c17fb121b7289100"
+    },
+    "candidate-02": {
+      "mode": "candidate",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 3,
+        "GEMS EMBEDDING BACKWARD": 3
+      },
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "948666c87242a14e342c3fbf7f310325bfd33ed2d6648529c17fb121b7289100"
+    },
+    "off-01": {
+      "mode": "off",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "e304a4a11b143aa3100f091a0a28cf1231417f1c092e43c8095843f16c2d8890"
+    },
+    "unknown-01": {
+      "mode": "unknown",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {},
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "efb7b196e649470662c9f08632d43586fabd9c8fd4a55c3560473436e348b8d4"
+    },
+    "on-01": {
+      "mode": "on",
+      "steps": 3,
+      "comparisons": 1863,
+      "max_abs": 0.0,
+      "provider_calls": {
+        "GEMS EMBEDDING FORWARD": 3,
+        "GEMS EMBEDDING BACKWARD": 3
+      },
+      "loss": [
+        18.588741302490234,
+        15.87237548828125,
+        14.525646209716797
+      ],
+      "sampled_parameter_update": 3.0044466257095337e-05,
+      "result_sha256": "07fc8801ccaa04c93d33b516e59c780108ae6651bc0fe7b95d6a902169344d22"
+    }
+  },
+  "verified_light_files": 106,
+  "archive_sha256": "9b82e8e7dcd358b7383e8cdc362d2188f417cfc93bb87e092c711e5e2637acc3",
+  "cpu_startup_replay": {
+    "off": "experimental_disabled",
+    "on": null,
+    "unknown": "workload_unverified"
+  },
+  "native_tensors": {
+    "count": 1863,
+    "bytes": 14302794504,
+    "storage": "remote originals; local SHA manifest, not downloaded"
+  },
+  "containers_stopped": 8
+}

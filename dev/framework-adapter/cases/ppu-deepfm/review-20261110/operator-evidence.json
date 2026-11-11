@@ -1,0 +1,95 @@
+{
+  "status": "PASS",
+  "stage": "qualification",
+  "cases": [
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32
+      ],
+      "mode": "direct",
+      "repeat": 0,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 5.960464477539063e-08,
+      "backward_max_abs": 4.563480615615845e-08,
+      "cpu_forward_max_abs": 5.960464477539063e-08,
+      "cpu_backward_max_abs": 4.563480615615845e-08
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32
+      ],
+      "mode": "direct",
+      "repeat": 1,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 5.960464477539063e-08,
+      "backward_max_abs": 4.563480615615845e-08,
+      "cpu_forward_max_abs": 5.960464477539063e-08,
+      "cpu_backward_max_abs": 4.563480615615845e-08
+    },
+    {
+      "operator": "sigmoid",
+      "dtype": "torch.float32",
+      "shape": [
+        32
+      ],
+      "mode": "direct",
+      "repeat": 2,
+      "atol": 1e-05,
+      "rtol": 0.0001,
+      "restored": true,
+      "hits": {
+        "GEMS SIGMOID FORWARD": 1,
+        "GEMS SIGMOID BACKWARD": 1
+      },
+      "status": "pass",
+      "forward_max_abs": 5.960464477539063e-08,
+      "backward_max_abs": 4.563480615615845e-08,
+      "cpu_forward_max_abs": 5.960464477539063e-08,
+      "cpu_backward_max_abs": 4.563480615615845e-08
+    }
+  ],
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0"
+}

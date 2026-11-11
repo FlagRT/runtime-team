@@ -1,0 +1,497 @@
+{
+  "date": "2026-11-06",
+  "status": "PASS",
+  "scope": "training v3 + verified cann-shmem 1.6.0; Qwen3-Embedding-0.6B causal-LM training entry; FP32 batch1 seq32 LR1e-5 two ranks three steps",
+  "collection": {
+    "files": 339,
+    "native_tensors": 3726,
+    "native_bytes": 28603256418,
+    "archive_sha256": "8a84e23caf14d46be34c82463af04246156f5f261ff579aa63a013e40e98f311"
+  },
+  "operator": {
+    "operator-qualification": {
+      "status": "PASS",
+      "environment": {
+        "chip": "Ascend910_9382",
+        "torch": "2.10.0+cpu",
+        "backend_version": "2.10.0",
+        "gems_revision": "package-sha256:3f88a35b57357813b06e355b7fa7f72bff741aa2858a003b87000dbf7091b52e",
+        "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+        "triton": "3.5.1",
+        "compiler_build": "flagtree==0.6.0+ascend.git15ec1a6c;cann-shmem==1.6.0@sha256:308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5",
+        "backend": "ascend",
+        "device_type": "npu"
+      },
+      "provider_identity": {
+        "kind": "installed-content",
+        "root": "/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems",
+        "files": 2312,
+        "identity": "package-sha256:3f88a35b57357813b06e355b7fa7f72bff741aa2858a003b87000dbf7091b52e"
+      },
+      "cases": [
+        {
+          "mode": "qual-0",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          },
+          "events": [],
+          "restored": true,
+          "status": "PASS"
+        },
+        {
+          "mode": "qual-1",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          },
+          "events": [],
+          "restored": true,
+          "status": "PASS"
+        },
+        {
+          "mode": "qual-2",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          },
+          "events": [],
+          "restored": true,
+          "status": "PASS"
+        }
+      ]
+    },
+    "operator-controls": {
+      "status": "PASS",
+      "environment": {
+        "chip": "Ascend910_9382",
+        "torch": "2.10.0+cpu",
+        "backend_version": "2.10.0",
+        "gems_revision": "package-sha256:3f88a35b57357813b06e355b7fa7f72bff741aa2858a003b87000dbf7091b52e",
+        "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+        "triton": "3.5.1",
+        "compiler_build": "flagtree==0.6.0+ascend.git15ec1a6c;cann-shmem==1.6.0@sha256:308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5",
+        "backend": "ascend",
+        "device_type": "npu"
+      },
+      "provider_identity": {
+        "kind": "installed-content",
+        "root": "/usr/local/python3.11.15/lib/python3.11/site-packages/flag_gems",
+        "files": 2312,
+        "identity": "package-sha256:3f88a35b57357813b06e355b7fa7f72bff741aa2858a003b87000dbf7091b52e"
+      },
+      "cases": [
+        {
+          "mode": "off",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {},
+          "events": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "experimental_disabled"
+            }
+          ],
+          "restored": true,
+          "status": "PASS"
+        },
+        {
+          "mode": "on",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 4.76837158203125e-07,
+          "calls": {
+            "GEMS SILU FORWARD": 1,
+            "GEMS SILU BACKWARD": 1
+          },
+          "events": [
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "forward",
+              "reason": "completed"
+            },
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "backward",
+              "reason": "completed"
+            }
+          ],
+          "restored": true,
+          "status": "PASS"
+        },
+        {
+          "mode": "unqualified",
+          "shape": [
+            1,
+            32,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "forward_max_abs": 0.0,
+          "backward_max_abs": 0.0,
+          "calls": {},
+          "events": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "capability_unverified"
+            }
+          ],
+          "restored": true,
+          "status": "PASS"
+        }
+      ]
+    }
+  },
+  "qualification": {
+    "native": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 0,
+        "atol": 0,
+        "rtol": 0,
+        "source_sha256": "fa6463f9e11e103d6cfce3dff2efb0e367a7678f4a3ae1c547d42dfc54530978"
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 0,
+        "atol": 0,
+        "rtol": 0,
+        "source_sha256": "140b3f80f88596bcc38c65f1db51c45f0114c656f0609f74aac1c338d03789a7"
+      }
+    ],
+    "repeat": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 0.0,
+        "atol": 0,
+        "rtol": 0,
+        "source_sha256": "aafd97831e7f41027d4ce77cb60f7268b57fcb11eccd79f76b1714fd8fcf0118"
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 0.0,
+        "atol": 0,
+        "rtol": 0,
+        "source_sha256": "f7281ea74a742dca162dbceea8c1be3debd9e61c927f1ee1be4961fb87992c67"
+      }
+    ],
+    "candidate": [
+      {
+        "rank": 0,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 9.5367431640625e-07,
+        "atol": 1e-05,
+        "rtol": 0.0001,
+        "source_sha256": "b3fc48c7afac9a172650a7601c8bf8190aae873381569447c72f9fff3e3a0bd9"
+      },
+      {
+        "rank": 1,
+        "items": 1863,
+        "status": "PASS",
+        "max_abs": 9.5367431640625e-07,
+        "atol": 1e-05,
+        "rtol": 0.0001,
+        "source_sha256": "59e13336c45a4728d8127684ead5b03de3188c960723d09b6481be758885383d"
+      }
+    ]
+  },
+  "routes": {
+    "off": {
+      "status": "pass",
+      "mode": "off",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "experimental_disabled",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "experimental_disabled",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    },
+    "on": {
+      "status": "pass",
+      "mode": "on",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "backward",
+              "reason": "completed",
+              "count": 84
+            },
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "forward",
+              "reason": "completed",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {
+            "GEMS SILU FORWARD": 84,
+            "GEMS SILU BACKWARD": 84
+          },
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "backward",
+              "reason": "completed",
+              "count": 84
+            },
+            {
+              "operator": "silu",
+              "backend": "flaggems",
+              "stage": "forward",
+              "reason": "completed",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {
+            "GEMS SILU FORWARD": 84,
+            "GEMS SILU BACKWARD": 84
+          },
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    },
+    "unqualified": {
+      "status": "pass",
+      "mode": "unqualified",
+      "ranks": [
+        {
+          "rank": 0,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "workload_unverified",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        },
+        {
+          "rank": 1,
+          "loss_curve": [
+            17.06,
+            16.3875,
+            14.4921
+          ],
+          "counts": [
+            {
+              "operator": "silu",
+              "backend": "native",
+              "stage": "forward",
+              "reason": "workload_unverified",
+              "count": 84
+            }
+          ],
+          "kernel_hits": {},
+          "upstream_verdict": "TRAIN_LEG_PASS",
+          "workload": {
+            "model_id": "AutoModelForCausalLM:qwen3",
+            "phase": "train",
+            "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+            "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+            "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+          }
+        }
+      ]
+    }
+  },
+  "builds": {
+    "01": {
+      "wheel_sha256": "3ef0c14cad166071218d71f9201659e900f4f96ee08c34a4f8e30368a88bf46a",
+      "cpu_tests": 142,
+      "commands": 19,
+      "baseline_sha256": "0c324062c344b95f209ad9bd7690c61cb4210a687f2a7870dc88d7adea0d597b",
+      "used_on_npu": true
+    },
+    "02": {
+      "wheel_sha256": "bca92d1982089b686963136b8b6eb847785354f231d31c94ba07402fa06be49a",
+      "cpu_tests": 142,
+      "commands": 19,
+      "baseline_sha256": "87c105c501364e72d6cdf34159549527580f6156e2224961bd124e8118e548ed",
+      "used_on_npu": false
+    }
+  },
+  "environment": {
+    "chip": "Ascend910_9382",
+    "torch": "2.10.0+cpu",
+    "backend_version": "2.10.0",
+    "gems_revision": "package-sha256:3f88a35b57357813b06e355b7fa7f72bff741aa2858a003b87000dbf7091b52e",
+    "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+    "triton": "3.5.1",
+    "compiler_build": "flagtree==0.6.0+ascend.git15ec1a6c;cann-shmem==1.6.0@sha256:308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5",
+    "backend": "ascend",
+    "device_type": "npu"
+  },
+  "workload": {
+    "model_id": "AutoModelForCausalLM:qwen3",
+    "phase": "train",
+    "model_sha256": "746aa3d98c83f2435c26013816b9936cc38b18a8bdf2bb7c28f187de980b7002",
+    "settings_sha256": "6fd01060b3fc2fcf6028fece9c08e321545d1d231ac9ba7253b3b100962208e2",
+    "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+  },
+  "public_sources": {
+    "public_commit": "0da9977086d07a867bf915b207f08e70f541683c",
+    "runtime_commit": "719de8cbaea75691b38ad87d6706a949e045b892"
+  },
+  "container_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 143,
+    "Error": "",
+    "StartedAt": "2026-11-06T12:20:16.313088937Z",
+    "FinishedAt": "2026-11-06T12:33:03.436423544Z"
+  },
+  "preserved_setup_failure": "controls-missing-review-01: reviews directory owner prevented copy; no test cases ran. Fixed only own new directory, then reran controls successfully; original logs retained.",
+  "runtime_files_matched": 13
+}

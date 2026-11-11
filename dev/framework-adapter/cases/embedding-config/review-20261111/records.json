@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "kind": "embedding-dense-no-padding-v1",
+  "records": [
+    {
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "signature": {
+        "weight_shape": [
+          3850,
+          16
+        ],
+        "indices_shape": [
+          32,
+          5
+        ],
+        "weight_dtype": "torch.float32",
+        "indices_dtype": "torch.int64"
+      },
+      "status": "passed",
+      "stages": [
+        "forward",
+        "backward"
+      ],
+      "evidence": "qualification.json",
+      "evidence_sha256": "86854b3862802131ba947718e2d8a859d82f6cebce930993808af9b87bb0d7e1",
+      "revision": 1
+    },
+    {
+      "environment": {
+        "chip": "PPU-ZW810E",
+        "torch": "2.10.0",
+        "backend_version": "1.5.1-1d747a",
+        "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+        "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+        "triton": "3.6.0",
+        "compiler_build": "0.7.0+ppu.gite223f42c",
+        "backend": "ppu",
+        "device_type": "cuda"
+      },
+      "signature": {
+        "weight_shape": [
+          3850,
+          1
+        ],
+        "indices_shape": [
+          32,
+          5
+        ],
+        "weight_dtype": "torch.float32",
+        "indices_dtype": "torch.int64"
+      },
+      "status": "passed",
+      "stages": [
+        "forward",
+        "backward"
+      ],
+      "evidence": "qualification.json",
+      "evidence_sha256": "86854b3862802131ba947718e2d8a859d82f6cebce930993808af9b87bb0d7e1",
+      "revision": 1
+    }
+  ]
+}

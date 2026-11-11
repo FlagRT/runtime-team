@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -41,6 +42,9 @@ def main():
     p.add_argument('--training-config',choices=('off','on','unqualified'))
     p.add_argument('--training-config-file',type=Path,
                    help='Schema 3 config with measured public model review; bundle mounted read-only')
+    p.add_argument('--training-lr',type=float,default=1e-5)
+    p.add_argument('--training-expect-blocked',action='store_true',
+                   help='Require both ranks to reject before model execution')
     p.add_argument('--training-qualification',choices=('native','repeat','candidate'),
                    help='Independent qualification probe, never creates model approval')
     p.add_argument('--wheel',type=Path,required=True,help='Independent adapter wheel, installed offline')
@@ -73,6 +77,11 @@ def main():
             p.error('Qualification requires measured dc-train config')
         if (a.training_qualification=='native') != (a.reference is None):
             p.error('Only native qualification has no reference')
+    if not math.isfinite(a.training_lr) or a.training_lr<=0:
+        p.error('training-lr must be finite and positive')
+    if a.training_expect_blocked and (not a.training_config_file or a.training_qualification or
+            not json.loads(a.training_config_file.read_text()).get('require_target')):
+        p.error('Expected rejection requires strict schema 3 normal CLI')
     if a.stage=='rank-failure' and (a.second_device is None or a.second_device<0 or a.second_device==a.device or not a.failure_scenario):
         p.error('rank-failure needs two distinct devices and an explicit scenario')
     if a.stage=='sdpa-candidate':
@@ -112,7 +121,7 @@ def main():
         service['ulimits']={'memlock':-1}
         service['environment'].update(ASCEND_RT_VISIBLE_DEVICES='0,1',DC_ROOT='/runtime',
             DC_BACKEND='ascend',DC_DIST_BT='hccl',DC_MODEL='/model',DC_OUT_DIR='/results/train',
-            MAX_STEPS='3',BATCH='1',SEQ='32',LR='1e-5')
+            MAX_STEPS='3',BATCH='1',SEQ='32',LR=str(a.training_lr))
         if a.stage=='rank-failure':
             # Private, test-specific configuration; never mutate shared training files.
             (a.output/'adapter-config.json').write_text(json.dumps({
@@ -145,12 +154,15 @@ def main():
              'second_device':a.second_device,'training_config':a.training_config,
              'inputs':{k:str(getattr(a,k)) for k in ('source','runtime','deps','gems','records','model')}}
     summary['training_qualification']=a.training_qualification
+    summary['training_lr']=a.training_lr
+    summary['training_expect_blocked']=a.training_expect_blocked
     if a.wheel:
         summary['wheel']={'path':str(a.wheel),'sha256':hashlib.sha256(a.wheel.read_bytes()).hexdigest()}
-    def execute(cmd,log):
+    def execute(cmd,log,allow_failure=False):
         with (a.output/log).open('x') as f:
             result=subprocess.run(cmd,env=env,stdout=f,stderr=subprocess.STDOUT,timeout=1200)
-        if result.returncode: raise RuntimeError(f'{log}: exit {result.returncode}')
+        if result.returncode and not allow_failure: raise RuntimeError(f'{log}: exit {result.returncode}')
+        return result.returncode
     started=False
     try:
         # Refuse collision; never stop a container not created by this run.
@@ -221,10 +233,13 @@ def main():
         shell='export PYTHONPATH=/gems/src:/deps:$PYTHONPATH; export TRITON_CACHE_DIR=/results/cache; exec '+shlex.join(['timeout','--kill-after=10s','900']+command)
         if a.wheel:
             shell='export PYTHONPATH=/results/installed:$PYTHONPATH; '+shell
-        execute(['docker','exec',name,'bash','-lc',shell],'test.log')
+        test_returncode=execute(['docker','exec',name,'bash','-lc',shell],'test.log',
+                               allow_failure=a.training_expect_blocked)
+        summary['test_returncode']=test_returncode
         if a.stage=='dc-train':
-            from check_training import check_run
-            result=check_run(a.output,a.training_config,measured=bool(a.training_config_file) and not a.training_qualification)
+            from check_training import check_run, check_blocked
+            result=(check_blocked(a.output,test_returncode) if a.training_expect_blocked else
+                    check_run(a.output,a.training_config,measured=bool(a.training_config_file) and not a.training_qualification))
             if a.training_qualification:
                 rows=[json.loads((a.output/f'train/qualification_rank{r}.json').read_text()) for r in (0,1)]
                 if not all(row['status']=='PASS' and row['optimizer_steps']==3 for row in rows):

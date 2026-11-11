@@ -1,0 +1,551 @@
+{
+  "status": "fail",
+  "stage": "model",
+  "mode": "candidate",
+  "scope": "PPU full 0.6B single-card short training; not quality or distributed acceptance",
+  "adapter_version": "0.3.0.dev4",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0",
+  "model_path": "/model",
+  "model_files": {
+    "config.json": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9",
+    "model.safetensors": "0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd"
+  },
+  "workload": {
+    "model": "Qwen3-Embedding-0.6B",
+    "formulation": "synthetic causal LM",
+    "dtype": "torch.float32",
+    "batch": 1,
+    "sequence_length": 32,
+    "steps": 3,
+    "seed": 1234,
+    "data_seed": 999,
+    "optimizer": "AdamW",
+    "lr": 1e-05,
+    "eps": 1e-08,
+    "weight_decay": 0.01,
+    "foreach": false,
+    "gradient_clip": 1.0,
+    "attention": "eager",
+    "deterministic": true
+  },
+  "runtime_sources": {
+    "runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+    "runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+    "runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0"
+  },
+  "tolerance": {
+    "atol": 1e-05,
+    "rtol": 0.0001
+  },
+  "steps": [
+    {
+      "step": 1,
+      "status": "fail",
+      "loss": 18.588741302490234,
+      "provider_calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "dispatcher_restored": true,
+      "routes": [
+        [
+          "silu",
+          "flaggems",
+          "forward",
+          "completed",
+          28
+        ],
+        [
+          "silu",
+          "flaggems",
+          "backward",
+          "completed",
+          28
+        ]
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "step1/loss",
+      "file": "c8ec833486f9cdc51023d8bfe61da922f9f968d9db2f33102439a96b841b861d.pt",
+      "shape": [],
+      "dtype": "torch.float32",
+      "max_abs": 0.0,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.embed_tokens.weight",
+      "file": "4288ff161cecc39e684afddf81627d2ad1e3269a207ba422049e2152a5e67898.pt",
+      "shape": [
+        151669,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 8.58306884765625e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.q_proj.weight",
+      "file": "743d2aaeebe44414c2012539230c7686069c705224348f396f474a3a2d724291.pt",
+      "shape": [
+        2048,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 9.611248970031738e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.k_proj.weight",
+      "file": "fcffe60eaae092becdba9a7a238da91b42be667b2dc368efa4435522c1a6cdd2.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.1920928955078125e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.v_proj.weight",
+      "file": "d4173328600b41837f8c64e53f3787570eafe09b294864b961d44cb56a80c080.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.872679710388184e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.o_proj.weight",
+      "file": "cd25ebbf692944753ecb5e4e648235e444caaf2678b07bcc1762aee0cfac0966.pt",
+      "shape": [
+        1024,
+        2048
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.3262033462524414e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.q_norm.weight",
+      "file": "a60a84feb2b7b3b4a381e3ac3d17bdcf6872051a83cca35544652971166a5786.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.2218952178955078e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.self_attn.k_norm.weight",
+      "file": "bd6ccefe7963e95ce00f6192a22a354bcb33ff086c48738e3c8e0e6f43e0e814.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.6193599700927734e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.mlp.gate_proj.weight",
+      "file": "2faa32fe0a7b99f0b4594121d9c82bb10b251bfcc514b0e0fb5156f70c8d827c.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.475214958190918e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.mlp.up_proj.weight",
+      "file": "eed80159c1f307ed496b2afbb9e69f42c3e5cd360a49043cbf5536e06b7b0b8f.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.862645149230957e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.mlp.down_proj.weight",
+      "file": "3b65ad6a79e93ebd64baef9dc278ebedc8fbf38cb1f6468173526b414d216d47.pt",
+      "shape": [
+        1024,
+        3072
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.821666955947876e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.input_layernorm.weight",
+      "file": "883083fb1b3f8a0f8a19f986e44cec8d39f5834da3dfde5cb141938404bf40a7.pt",
+      "shape": [
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.5033950805664062e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.0.post_attention_layernorm.weight",
+      "file": "34e4773230ef444f1d34b662e86ed5fc1108936dfca452297b40c7d89e39ecee.pt",
+      "shape": [
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.748603820800781e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.q_proj.weight",
+      "file": "85104c83702957eb35ea32547c241d04131362d66d210e3fe05c235c05250885.pt",
+      "shape": [
+        2048,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.6838312149047852e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.k_proj.weight",
+      "file": "b428d76779b4f2de24af4b0754feb29c86da9b9a2deb57ab40029d008353d5fb.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.2814998626708984e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.v_proj.weight",
+      "file": "103c30016a8a994214f57615610ee4c16a788d9c38aa5160647e5e9f907f1f25.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.853572368621826e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.o_proj.weight",
+      "file": "58e82ff33b8d5ed480a302a39a32b402720bc577c1a6ed06ff13ecdaa4278559.pt",
+      "shape": [
+        1024,
+        2048
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.431954145431519e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.q_norm.weight",
+      "file": "1502c7696293c0d9ba95a9497000cf1f92f87a1535a1c95605bdeec48d4901a6.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.7101486921310425e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.self_attn.k_norm.weight",
+      "file": "ad9e7ca67366694bdb4695cfa6b3a1d0c47c13eab5118161edebb65a087287b3.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.2223761081695557e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.mlp.gate_proj.weight",
+      "file": "e9bed9fbadd67dccd70ce2cd682a90833de0b2a4e65b956a1c7e734cbc22e9b6.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.157423973083496e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.mlp.up_proj.weight",
+      "file": "1b021abe0a3afc2909ad7a712a582b5197b615f32b55cdd3680c5d9625319c85.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.364898920059204e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.mlp.down_proj.weight",
+      "file": "cedaa59f0b9d3e259dcfcd9e52e25f3c89064123e86b2cb2cafc9ae70846ab76.pt",
+      "shape": [
+        1024,
+        3072
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 6.817281246185303e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.input_layernorm.weight",
+      "file": "6747cd9b92ea91171c4d3ae9af73a8471b17365f54a91387e2376a9a39e982e3.pt",
+      "shape": [
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.086162567138672e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.1.post_attention_layernorm.weight",
+      "file": "ffa0916ee38f49356b10aa2d62c5c939f537e9525273f4e3f2249d9d0829be45.pt",
+      "shape": [
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 3.427267074584961e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.q_proj.weight",
+      "file": "d19af83fa02dc6f4343f809747579e34aa95dc18926cbb6787b3cb190c70f20d.pt",
+      "shape": [
+        2048,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.1026859283447266e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.k_proj.weight",
+      "file": "cec04bf36f7a4c75c4e84e39898569987c7804c95db79b4b5525da2cdb942a15.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 4.783272743225098e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.v_proj.weight",
+      "file": "76a75d2098f3bf5df8868886afa07afd7ae3396b0e4ff46c9665b0a891f1e593.pt",
+      "shape": [
+        1024,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 7.033348083496094e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.o_proj.weight",
+      "file": "9b486262bdfca8b7ee5e81ecbc3873bec24a48e7873145615fd28de8af0aeb5c.pt",
+      "shape": [
+        1024,
+        2048
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.735985279083252e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.q_norm.weight",
+      "file": "fa69aa05c026b9fb92a1a2d56a3f48b285ae6ef692e0e5e8e11764737cd2ef2b.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.562999725341797e-06,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.self_attn.k_norm.weight",
+      "file": "be234302fd36d624821dba8482cac700f8aa44c147b1491d9efd6bcd2535f36b.pt",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.905726432800293e-07,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.mlp.gate_proj.weight",
+      "file": "191a18c7e22aeaaeb2e7a798e7e8e8b8d38c858e840127cccca16890cc9e7d1e.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 1.3828277587890625e-05,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.mlp.up_proj.weight",
+      "file": "5d531ec8279f5b1a9f86c6fb2440c07a7709ff6d3c3584390934085fa6aae95b.pt",
+      "shape": [
+        3072,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 2.5153160095214844e-05,
+      "mismatches": 0
+    },
+    {
+      "name": "step1/gradient/model.layers.2.mlp.down_proj.weight",
+      "file": "1e45c26405a6f1b77382abe1107d34387439c808126ffd1ac6ddc8f87ec7212c.pt",
+      "shape": [
+        1024,
+        3072
+      ],
+      "dtype": "torch.float32",
+      "max_abs": 0.000335693359375,
+      "mismatches": 12,
+      "mismatch_examples": [
+        {
+          "flat_index": 12343,
+          "actual": -0.15609003603458405,
+          "reference": -0.1560581475496292,
+          "abs_error": 3.1888484954833984e-05,
+          "allowed_error": 2.5605814754962922e-05
+        },
+        {
+          "flat_index": 12416,
+          "actual": 0.11697795242071152,
+          "reference": 0.11695506423711777,
+          "abs_error": 2.288818359375e-05,
+          "allowed_error": 2.1695506423711778e-05
+        },
+        {
+          "flat_index": 13777,
+          "actual": 0.14162111282348633,
+          "reference": 0.14159436523914337,
+          "abs_error": 2.6747584342956543e-05,
+          "allowed_error": 2.4159436523914336e-05
+        },
+        {
+          "flat_index": 101431,
+          "actual": -0.10268993675708771,
+          "reference": -0.10273036360740662,
+          "abs_error": 4.042685031890869e-05,
+          "allowed_error": 2.0273036360740665e-05
+        },
+        {
+          "flat_index": 101504,
+          "actual": 0.07239406555891037,
+          "reference": 0.07242312282323837,
+          "abs_error": 2.905726432800293e-05,
+          "allowed_error": 1.724231228232384e-05
+        },
+        {
+          "flat_index": 102865,
+          "actual": 0.09149723500013351,
+          "reference": 0.0915311798453331,
+          "abs_error": 3.394484519958496e-05,
+          "allowed_error": 1.915311798453331e-05
+        },
+        {
+          "flat_index": 371758,
+          "actual": 0.018157700076699257,
+          "reference": 0.018171025440096855,
+          "abs_error": 1.3325363397598267e-05,
+          "allowed_error": 1.1817102544009686e-05
+        },
+        {
+          "flat_index": 371767,
+          "actual": -0.11901947855949402,
+          "reference": -0.11907926201820374,
+          "abs_error": 5.97834587097168e-05,
+          "allowed_error": 2.1907926201820377e-05
+        }
+      ]
+    }
+  ],
+  "optimizer_steps": 0,
+  "adapter_bridge_sha256": "838da310a0fecc440bba0ae79e59283a8c7647be7731d8b5fea69d6ed73fc243",
+  "workload_identity": {
+    "model_id": "Qwen3-Embedding-0.6B",
+    "phase": "train",
+    "model_sha256": "90dd28008b27ed7d9bebd30e695d496ba8e6ed492fa557979bfed794cebe62bd",
+    "settings_sha256": "83504bb54d0856e733a8ef3fb288754836789328088defc96342bbe073b5cc18",
+    "operators_sha256": "98d7501b00b3ae015d10c1d1425dfea80a18d0cc09d9367960a52203a2355909"
+  },
+  "startup": {
+    "require_target": true,
+    "checks": [
+      {
+        "operator": "silu",
+        "shape": [
+          1,
+          32,
+          3072
+        ],
+        "dtype": "torch.float32",
+        "decision": "target",
+        "reason": null
+      }
+    ],
+    "provider_reason": null,
+    "workload_required": false,
+    "workload": null
+  },
+  "qualification_experiment": true,
+  "model_approved": false,
+  "model_loaded": true,
+  "loading_info": {
+    "missing_keys": [],
+    "unexpected_keys": [],
+    "mismatched_keys": [],
+    "error_msgs": []
+  },
+  "parameter_count": 595776512,
+  "parameter_tensors": 310,
+  "initial_parameter_sha256": "9823eb8852ffa926db67135b7d118b0e5311fb65084fe6b220178abc2e9ff354",
+  "optimizer_created": true,
+  "active_step": 1,
+  "provider_calls": {
+    "GEMS SILU FORWARD": 28,
+    "GEMS SILU BACKWARD": 28
+  },
+  "dispatcher_restored": true,
+  "error": "Traceback (most recent call last):\n  File \"/input/model_probe.py\", line 228, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/model_probe.py\", line 190, in run\n    check(prefix+'gradient/'+name,p.grad); gradients+=1\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/input/model_probe.py\", line 130, in check\n    save(); raise AssertionError(f'{name}: {row[\"mismatches\"]} mismatches, max_abs={row[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step1/gradient/model.layers.2.mlp.down_proj.weight: 12 mismatches, max_abs=0.000335693359375\n"
+}

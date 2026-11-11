@@ -1,0 +1,204 @@
+=== test_silu_policy; exit_code=0 ===
+test_admitted_experimental_case (test_silu_policy.PolicyTests) ... ok
+test_cuda_interface_does_not_admit_unknown_vendor (test_silu_policy.PolicyTests) ... ok
+test_default_closed (test_silu_policy.PolicyTests) ... ok
+test_empty_allowlist (test_silu_policy.PolicyTests) ... ok
+test_environment_fields (test_silu_policy.PolicyTests) ... ok
+test_incomplete_identity_even_when_expected_matches (test_silu_policy.PolicyTests) ... ok
+test_input_rejections (test_silu_policy.PolicyTests) ... ok
+test_known_v3_failure_cannot_be_overridden_by_positive_record (test_silu_policy.PolicyTests) ... ok
+test_kunlun_requires_its_own_evidence (test_silu_policy.PolicyTests) ... ok
+test_missing_or_stale_evidence (test_silu_policy.PolicyTests) ... ok
+test_negative_evidence_overrides_pass (test_silu_policy.PolicyTests) ... ok
+test_unknown_markers_are_not_identity (test_silu_policy.PolicyTests) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.001s
+
+OK
+
+=== test_silu_training_adapter; exit_code=0 ===
+test_backward_failure_no_update (test_silu_training_adapter.Controls) ... ok
+test_backward_outside_scope (test_silu_training_adapter.Controls) ... ok
+test_body_error_exit (test_silu_training_adapter.Controls) ... ok
+test_default_native (test_silu_training_adapter.Controls) ... ok
+test_engine_thread_allowed_but_foreign_forward_rejected (test_silu_training_adapter.Controls) ... ok
+test_environment_rejections_never_register_target (test_silu_training_adapter.Controls) ... ok
+test_forward_backward_restore (test_silu_training_adapter.Controls) ... ok
+test_higher_order_rejected (test_silu_training_adapter.Controls) ... ok
+test_inference (test_silu_training_adapter.Controls) ... ok
+test_nested_rejected (test_silu_training_adapter.Controls) ... ok
+test_registration_exit_failure (test_silu_training_adapter.Controls) ... ok
+test_target_failure_not_retried (test_silu_training_adapter.Controls) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.517s
+
+OK
+
+=== test_admission_records; exit_code=0 ===
+test_changed_evidence (test_admission_records.RecordTests) ... ok
+test_escaping_evidence (test_admission_records.RecordTests) ... ok
+test_explicit_kunlun_record (test_admission_records.RecordTests) ... ok
+test_incomplete_identity (test_admission_records.RecordTests) ... ok
+test_invalid_backend_device_pair (test_admission_records.RecordTests) ... ok
+test_invalid_types (test_admission_records.RecordTests) ... ok
+test_legacy_record_is_only_ascend (test_admission_records.RecordTests) ... ok
+test_missing_evidence (test_admission_records.RecordTests) ... ok
+test_non_object_or_boolean_schema (test_admission_records.RecordTests) ... ok
+test_partial_or_mixed_vendor_schema_denied (test_admission_records.RecordTests) ... ok
+test_valid_record (test_admission_records.RecordTests) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.006s
+
+OK
+
+=== test_multi_operator; exit_code=0 ===
+test_absent_operator_stays_native (test_multi_operator.MultiOperatorTests) ... ok
+test_failed_sigmoid_aborts_scope (test_multi_operator.MultiOperatorTests) ... ok
+test_mixed_forward_backward (test_multi_operator.MultiOperatorTests) ... ok
+test_policy_cannot_be_used_for_another_operator (test_multi_operator.MultiOperatorTests) ... ok
+test_sigmoid_out_stays_native (test_multi_operator.MultiOperatorTests) ... ok
+test_sigmoid_public_variants (test_multi_operator.MultiOperatorTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.219s
+
+OK
+
+=== test_training_config; exit_code=0 ===
+test_bad_switch_and_unknown_fields (test_training_config.TrainingConfigTests) ... ok
+test_cli_import_is_lightweight (test_training_config.TrainingConfigTests) ... ok
+test_disabled_does_not_require_records (test_training_config.TrainingConfigTests) ... ok
+test_enabled_missing_records_errors (test_training_config.TrainingConfigTests) ... ok
+test_runpy_disabled_and_exception_cleanup (test_training_config.TrainingConfigTests) ... ok
+test_three_policies (test_training_config.TrainingConfigTests) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.503s
+
+OK
+
+=== test_startup; exit_code=0 ===
+test_allow_partial_and_strict_denies (test_startup.StartupTests) ... ok
+test_blocked_report_without_running_entry (test_startup.StartupTests) ... ok
+test_default_identity_still_rejects_dirty_git (test_startup.StartupTests) ... ok
+test_disabled_never_probes_provider (test_startup.StartupTests) ... ok
+test_explicit_content_identity_never_claims_git_commit (test_startup.StartupTests) ... ok
+test_known_bad_image_skips_import_probe (test_startup.StartupTests) ... ok
+test_kunlun_startup_uses_declared_device (test_startup.StartupTests) ... ok
+test_missing_provider_native_and_strict (test_startup.StartupTests) ... ok
+test_schema_two_and_bad_strict_configs (test_startup.StartupTests) ... ok
+test_strict_empty_hit_is_not_pass (test_startup.StartupTests) ... ok
+test_strict_out_rejected_before_native_write (test_startup.StartupTests) ... ok
+test_strict_rejects_unqualified_runtime_input (test_startup.StartupTests) ... ok
+test_upstream_failure_does_not_leave_pass (test_startup.StartupTests) ... ok
+test_wheel_identity_is_content_based (test_startup.StartupTests) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.190s
+
+OK
+
+=== test_model_safety; exit_code=0 ===
+test_backward_failure_no_optimizer_step (test_model_safety.ModelSafetyTests) ... ok
+test_forward_failure_no_optimizer_step (test_model_safety.ModelSafetyTests) ... ok
+test_restore_failure_no_optimizer_step (test_model_safety.ModelSafetyTests) ... ok
+test_tanh_saved_output_and_variants (test_model_safety.ModelSafetyTests) ... ok
+test_two_models_three_step_trajectories (test_model_safety.ModelSafetyTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.388s
+
+OK
+
+=== test_step_guard; exit_code=0 ===
+test_abort_prevents_ready (test_step_guard.GuardTests) ... ok
+test_backward_failure (test_step_guard.GuardTests) ... ok
+test_failure_between_gates (test_step_guard.GuardTests) ... ok
+test_forward_failure (test_step_guard.GuardTests) ... ok
+test_invalid_configuration (test_step_guard.GuardTests) ... ok
+test_missing_peer_timeout (test_step_guard.GuardTests) ... ok
+test_normal_three_steps (test_step_guard.GuardTests) ... ok
+test_real_torch_mode_and_optimizer_construction (test_step_guard.GuardTests) ... ok
+test_stale_peer_rejected (test_step_guard.GuardTests) ... ok
+test_stale_rank_rejected (test_step_guard.GuardTests) ... ok
+test_step_without_backward (test_step_guard.GuardTests) ... ok
+test_sync_error_publishes_abort (test_step_guard.GuardTests) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.391s
+
+OK
+
+=== test_workload; exit_code=0 ===
+test_approved_strict_model_without_hits_is_blocked (test_workload.WorkloadTests) ... ok
+test_canonical_identity_and_nonfinite_rejected (test_workload.WorkloadTests) ... ok
+test_changed_environment_rejects_prepared_model_approval (test_workload.WorkloadTests) ... ok
+test_corrupt_review_never_runs_or_falls_back (test_workload.WorkloadTests) ... ok
+test_denial_wins_regardless_of_revision_order (test_workload.WorkloadTests) ... ok
+test_disabled_needs_neither_context_nor_review (test_workload.WorkloadTests) ... ok
+test_disabled_training_without_review_or_provider (test_workload.WorkloadTests) ... ok
+test_environment_not_borrowed (test_workload.WorkloadTests) ... ok
+test_invalid_review_fields_or_identity_stops (test_workload.WorkloadTests) ... ok
+test_model_pass_cannot_override_known_failed_image (test_workload.WorkloadTests) ... ok
+test_no_model_context_is_unverified (test_workload.WorkloadTests) ... ok
+test_operator_combination_is_exact (test_workload.WorkloadTests) ... ok
+test_pass_requires_both_layers (test_workload.WorkloadTests) ... ok
+test_pass_still_checks_each_runtime_input (test_workload.WorkloadTests) ... ok
+test_review_hash_corruption_stops (test_workload.WorkloadTests) ... ok
+test_review_path_escape_or_symlink_stops (test_workload.WorkloadTests) ... ok
+test_schema_three_and_legacy_separation (test_workload.WorkloadTests) ... ok
+test_strict_denial_has_startup_report (test_workload.WorkloadTests) ... ok
+test_strict_model_denial_never_runs_entry (test_workload.WorkloadTests) ... ok
+test_strict_unknown_is_blocked (test_workload.WorkloadTests) ... ok
+test_unknown_or_future_approval_is_not_pass (test_workload.WorkloadTests) ... ok
+test_wrong_model_phase_and_settings_fail_closed (test_workload.WorkloadTests) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.407s
+
+OK
+
+=== test_public_entry; exit_code=0 ===
+test_changed_entry_or_resolver_rejected (test_public_entry.PublicEntryTests) ... ok
+test_cli_rejects_legacy_config_before_runtime_import (test_public_entry.PublicEntryTests) ... ok
+test_hf_file_symlink_bytes_measured_and_broken_link_rejected (test_public_entry.PublicEntryTests) ... ok
+test_invalid_execution_rejected (test_public_entry.PublicEntryTests) ... ok
+test_measured_identity_drives_off_on_and_mismatch (test_public_entry.PublicEntryTests) ... ok
+test_model_relocation_does_not_change_identity (test_public_entry.PublicEntryTests) ... ok
+test_remote_code_and_missing_weights_rejected (test_public_entry.PublicEntryTests) ... ok
+test_repeated_measurement_and_rank_independence (test_public_entry.PublicEntryTests) ... ok
+test_training_bounds_lr_runtime_versions_and_precision_change_identity (test_public_entry.PublicEntryTests) ... ok
+test_weights_config_and_tokenizer_change_identity (test_public_entry.PublicEntryTests) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.048s
+
+OK
+
+=== test_training_callback; exit_code=0 ===
+test_approved_synthetic_target_and_empty_hit_rejection (test_training_callback.CallbackTests) ... ok
+test_changed_workload_invalidates_review (test_training_callback.CallbackTests) ... ok
+test_damaged_evidence_stops (test_training_callback.CallbackTests) ... ok
+test_deferred_result_stops_before_validation (test_training_callback.CallbackTests) ... ok
+test_disabled_executes_once_and_validates_after_restoration (test_training_callback.CallbackTests) ... ok
+test_existing_report_is_preserved (test_training_callback.CallbackTests) ... ok
+test_failed_review_never_trains (test_training_callback.CallbackTests) ... ok
+test_invalid_or_deferred_callbacks_never_run (test_training_callback.CallbackTests) ... ok
+test_legacy_config_is_rejected (test_training_callback.CallbackTests) ... ok
+test_lightweight_import (test_training_callback.CallbackTests) ... ok
+test_missing_review_retains_native (test_training_callback.CallbackTests) ... ok
+test_operator_set_mismatch_is_rejected (test_training_callback.CallbackTests) ... ok
+test_strict_missing_review_never_trains (test_training_callback.CallbackTests) ... ok
+test_train_failure_not_retried_and_scope_restored (test_training_callback.CallbackTests) ... ok
+test_unknown_contract_and_invalid_workload_never_run (test_training_callback.CallbackTests) ... ok
+test_validation_exception_propagates (test_training_callback.CallbackTests) ... ok
+test_validation_false_fails (test_training_callback.CallbackTests) ... ok
+test_validation_must_be_finite_boolean_json (test_training_callback.CallbackTests) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.052s
+
+OK

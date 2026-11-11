@@ -1,0 +1,2497 @@
+{
+  "status": "pass",
+  "stage": "deepfm",
+  "mode": "native",
+  "scope": "PPU public DeepFM embedding short training; synthetic data, not CTR quality acceptance",
+  "adapter_version": "0.3.0.dev4",
+  "environment": {
+    "chip": "PPU-ZW810E",
+    "torch": "2.10.0",
+    "backend_version": "1.5.1-1d747a",
+    "gems_revision": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3",
+    "image_id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "triton": "3.6.0",
+    "compiler_build": "0.7.0+ppu.gite223f42c",
+    "backend": "ppu",
+    "device_type": "cuda"
+  },
+  "provider": {
+    "kind": "installed-content",
+    "root": "/results/packages/flag_gems",
+    "files": 1259,
+    "identity": "package-sha256:664fd150be9120ebd042ae7fc62b3cb6fab0b37e9e1da3bc1e733c07894bbde3"
+  },
+  "versions": {
+    "flag-gems": "4.2.1rc0",
+    "flagtree": "0.7.0+ppu.gite223f42c",
+    "torch": "2.10.0",
+    "flagrt-framework-adapter": "0.3.0.dev4",
+    "triton-module": "3.6.0"
+  },
+  "provider_route": "nvidia",
+  "runtime_version": "0.4.0",
+  "model_loaded": true,
+  "model_files": {
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef"
+  },
+  "initial_state_sha256": "d50857ad807a2bcf826a29fc2734b4298f46030a207218ea8682283a28d554fb",
+  "parameter_count": 421452,
+  "public_config": {
+    "field_dims": [
+      1000,
+      2000,
+      500,
+      300,
+      50
+    ],
+    "embed_dim": 16,
+    "mlp_dims": [
+      400,
+      400,
+      400
+    ],
+    "dropout": 0.2
+  },
+  "workload": {
+    "model": "public DeepFM v1",
+    "dtype": "torch.float32",
+    "batch": 32,
+    "steps": 3,
+    "initialization": "random",
+    "initial_seed": 20261023,
+    "data_seed": 29000,
+    "dropout_seed": 23000,
+    "data": "synthetic categorical fields and binary labels",
+    "optimizer": "Adam",
+    "lr": 0.001,
+    "eps": 1e-08,
+    "weight_decay": 0,
+    "foreach": false,
+    "deterministic": true,
+    "dropout": 0.2
+  },
+  "runtime_sources": {
+    "runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+    "deepfm_probe.py": "94152c28fd7b3b5726d44c5cde224684c1102b2f1e398abeea0e8cff5c556d4c",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "6bf0b3301e0e1da9356db696216bd93cb6006dccb71abeefcbed365e7cd4827b",
+    "embedding_admission.py": "ec2eb55e94d2d545785255a05c48f0b7d31d9827edfa838bd3901c61c15323a9",
+    "adapter-package": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b"
+  },
+  "probe_sources": {
+    "deepfm_probe.py": "94152c28fd7b3b5726d44c5cde224684c1102b2f1e398abeea0e8cff5c556d4c",
+    "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+    "model_probe.py": "78cda0958d00e776d443a43fbb109f80bc7694249589772f1b03dee83148faf2",
+    "environment.py": "6bf0b3301e0e1da9356db696216bd93cb6006dccb71abeefcbed365e7cd4827b",
+    "embedding_admission.py": "ec2eb55e94d2d545785255a05c48f0b7d31d9827edfa838bd3901c61c15323a9"
+  },
+  "tolerance": {
+    "atol": 0,
+    "rtol": 0
+  },
+  "steps": [
+    {
+      "step": 1,
+      "status": "pass",
+      "gradient_copies": 0,
+      "loss": 1.076857328414917,
+      "provider_calls": {},
+      "dispatcher_restored": true,
+      "routes": [],
+      "gradient_tensors": 17,
+      "state_tensors": 28,
+      "optimizer_steps": 1
+    },
+    {
+      "step": 2,
+      "status": "pass",
+      "gradient_copies": 0,
+      "loss": 0.8497074246406555,
+      "provider_calls": {},
+      "dispatcher_restored": true,
+      "routes": [],
+      "gradient_tensors": 17,
+      "state_tensors": 28,
+      "optimizer_steps": 2
+    },
+    {
+      "step": 3,
+      "status": "pass",
+      "gradient_copies": 0,
+      "loss": 1.120832085609436,
+      "provider_calls": {},
+      "dispatcher_restored": true,
+      "routes": [],
+      "gradient_tensors": 17,
+      "state_tensors": 28,
+      "optimizer_steps": 3
+    }
+  ],
+  "comparisons": [
+    {
+      "name": "step1/prediction",
+      "file": "eda022dba2772494df4a4508186f10bea2f206411d1fb44e35332d82cf20df9e.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/loss",
+      "file": "c8ec833486f9cdc51023d8bfe61da922f9f968d9db2f33102439a96b841b861d.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/linear.bias",
+      "file": "f7ed4bf68100012864d35e412d15784e76890b08c43eeb772fdb9778deb3754b.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/linear.fc.weight",
+      "file": "9ca6234fe965b76fffbf4210e4eb7d231b5cc12c37218f38a4cfa22b6ef5a6c1.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/embedding.embedding.weight",
+      "file": "c03c5ccad7d2d2e9001f1986f519ce232f134547c826276a76e98aafa47e0d3c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.weight",
+      "file": "eda98b18957658661b98b015cb93a79311501abfb71329e519d5835db2b415d1.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.0.bias",
+      "file": "0515e77aa1022fce099cefa6fbba74f6aa671296f6b38a6d778332e7b05fbf3e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.weight",
+      "file": "faa4abbaa654b5519c0ed585cc317593ee3bf92f87bf0fecad7e8beca433a877.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.1.bias",
+      "file": "8fcb8bd662392778b0b359c065e04f5087d3e27a0be829320c40ce0bb95c0f17.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.weight",
+      "file": "cfd5c4abc9175c9aac9f2ff90cabb7c4c7ee45d02daa4f6499d2248164c12a78.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.4.bias",
+      "file": "ae6a5b172bc434761344b26580435ace7977375018c78f29240a8440b663542a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.weight",
+      "file": "f1231e3dc6bc6ead438f043f5826a5dd0e04367db16d9076df21f62f6660f3ea.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.5.bias",
+      "file": "053a167088ef535175da1e557d87e06e7b47936b65cb1c39395470c6583a1de0.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.weight",
+      "file": "d56e01743facd8eeb60b2f1e73d1553d3819157446806fc453ac946fe016c182.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.8.bias",
+      "file": "53cd6a9029ac261a56302bb96cca180461dd01222dacbdd0f945b91f3ab7d617.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.weight",
+      "file": "3a37630d82c40417c0aef7d68a4ac3451aafe2970c366a695601a05fe6fa0ed8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.9.bias",
+      "file": "bfb5450ac2ae851b0ab6b412394999bc217b8419e018c6973086d81ce37b6ca8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.weight",
+      "file": "34dde2d3ea95befc23f0a075ee0a3486dbb6f3f4b275842c655a812689807b3b.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/gradient/mlp.mlp.12.bias",
+      "file": "554a49a811fe00ecf7f2a17bf2260991c56e9bd04a232b9bc322d8d0ce82b3f7.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/linear.bias",
+      "file": "4f1b8a33791912823797287f05572017e50cf6c3ca8350b8a3404854e041cf1a.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/linear.offsets",
+      "file": "9b6b2b7be1e1810fcf04c3b9b78075da1d4762afd621c641d99456df8786bbe2.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step1/state/linear.fc.weight",
+      "file": "30fca2d76cc18b7a4de56ce0746ae99c398c48d8477199d77b9b6cedaa18f379.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/embedding.offsets",
+      "file": "46e1b2aef963d9d43c6c0b0a4bfa580e3813947bfe97ce2036bfb150a2baf5bd.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step1/state/embedding.embedding.weight",
+      "file": "be195913944b386b69e32f8b260d0067c80b632ec085a8dd05b5230d00180b4c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.weight",
+      "file": "09a4ef432fb6baa7ec2805e5470164dd4e094e4ef590ed9390ed9ef0bb517eb8.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.0.bias",
+      "file": "d778cc50c1c2f5a9c68be8ffd6bb20d3eee1e9be4918320bc6f64a13511ee7df.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.weight",
+      "file": "22c6c24e4d2b67782e6b94bf6249450ff3713cdffd317d4f922f03a0be4856d8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.bias",
+      "file": "77f26f0236912f8e8890bd1e1a913fdee5e5bf774b01d97087232253ed8ada77.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.running_mean",
+      "file": "1045fa939d7825937221895168e844719ec6ad71290840397d73761727e16621.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.running_var",
+      "file": "010da55c23c89dd86df5d1d3b8ace73c707155ccb222bb2225497f7b75bf986b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.1.num_batches_tracked",
+      "file": "fc4ed14cf87731d6bfc03635453a9180f41625c8da7d61dfb8b94989c5313365.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step1/state/mlp.mlp.4.weight",
+      "file": "0b1a73af2854695941e4827c9f7634b668ef070175489fc8d8c45fb0feb707e6.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.4.bias",
+      "file": "c1bf1308dcd83d68931a791c11f68d13bca774b915e4ba723c2f68bd90f3444b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.weight",
+      "file": "6494f2ccbf6742c92a2c89b8bc190add5be05f7144fa9ad4d8f52dde1c9cb17b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.bias",
+      "file": "4c680f5eb195084da1f304261560c9f594e66f6b035f8103f66e20c660ca5258.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.running_mean",
+      "file": "dc9d60088b0d17ff37c92c8eb56205621b6d0d36b05734582e9202a8f9a9cbf8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.running_var",
+      "file": "4f826b6442b11eecf58d12ff37c66d5173720c197861ee4723a959cc344f46ed.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.5.num_batches_tracked",
+      "file": "6dffe8871af7afc86d536f8b3b5d66f6d1184cf301d532ac382425fa68ad3c2b.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step1/state/mlp.mlp.8.weight",
+      "file": "124b1cfb7317e7fe09a7cd9cacc5e355c96dbfc87a6084eb81db719e6adf71aa.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.8.bias",
+      "file": "bae1551a044353dc5667c7477e8810bacb1fa99c8ef3a096a953aea32fa308e8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.weight",
+      "file": "5a0ea168a87970702e44862eee84d68673e65e22a15eb91389ebaddf5a2caa2c.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.bias",
+      "file": "861fa0e033b5a0cdd5fa05b1f614d994d9af32358654b195ff84d9ead9afdad6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.running_mean",
+      "file": "13799c36dc15806589c43f3c937986b14787d725ffacff7edc3a30697ae8f297.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.running_var",
+      "file": "14b953c66a95cc2a63322043adc2500c547e1be97a0fec96fe2b2ad7621da795.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.9.num_batches_tracked",
+      "file": "10120a8afef6c095c9558033b36f4c40c26ffb61c1f4436759bd31bef057dbb0.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step1/state/mlp.mlp.12.weight",
+      "file": "b153d929381f4b8fd244a75780c81f2aee026ded9bfd59fc977442a4af64c9ad.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/state/mlp.mlp.12.bias",
+      "file": "550bdf364ecc57b0f2b4a186b57b26fdea035d734c6a24a7f99d0993d47875f0.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/0/step",
+      "file": "b38c9fcc25ecafeb1b5ee70c6ae185015bef0bbae1d6480963c5b94b90d8e0d9.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/0/exp_avg",
+      "file": "a3723f46853c4fc8b7dd5ad8a2407b64d56344109a930b8792bc7bb767c7ee5c.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/0/exp_avg_sq",
+      "file": "1eb29b5ca9a592ef89dc5c843a16462fd50a2b9d945697e410626f34a6531783.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/1/step",
+      "file": "4d2c8e460d5011396e7d904bb491a1d905a6d6fd2e10053d4862112b8f314d10.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/1/exp_avg",
+      "file": "b7b0cff1776dd7e5f731feec6a1f6860c5f71525d1115d14b8ff1fb96c9951d9.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/1/exp_avg_sq",
+      "file": "3f97e7ffd89bdb4e1a947fc9f88b3b08b6060db472f3418bd748c44418f04cd1.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/2/step",
+      "file": "07d9a9ffa13d7e9102b4389074f7608665adb1204ce49067d49aa52c6c08764e.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/2/exp_avg",
+      "file": "ebc6a328a31e5dfdd0e3a91ecf6bed9a1080c62f530810fd47557236c4d9a4c1.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/2/exp_avg_sq",
+      "file": "35d704a9b1cf112c4ac7a1c2f6f30f8b702b92bb597fbf844f1ea9ef5955802f.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/3/step",
+      "file": "2b3d25186a002a0c294202214fc8ece9af4f883c45aaa8fffeaa330c66332bfc.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/3/exp_avg",
+      "file": "af2b8677d15bba17645c2e5305e491587a1e1c8d13e925d604c60c7c5c9b2cf4.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/3/exp_avg_sq",
+      "file": "b222f4a3f0fc168abc775289909de5538c412dbc3e5a2e74f028107e5b32fcb5.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/4/step",
+      "file": "4dbd0eb53afabb20ecb4de358ba5fc6750a308f9ec4bc9e0babf1cc59b393467.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/4/exp_avg",
+      "file": "1baf83a85f20f677da881e79da361eea475323cbecee5db0d37fb1972cbffbc7.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/4/exp_avg_sq",
+      "file": "dbb04aac4b02117d8109cc4d91ce55dbdf9396ef4def9b1ca39de63accca1420.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/5/step",
+      "file": "981db7435a63dbae38e85efb05942788cca882a2175d90ef0fcc2a9655c7af2f.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/5/exp_avg",
+      "file": "d392f9245c1dfc12df1154b16b1c661f5d81f7588409583d7b35ce9c3a00b2f1.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/5/exp_avg_sq",
+      "file": "44ea837a5ae7c36e81b312ccddbfbc9fc52d25025376c3f7c3db1dd9cd96e9bf.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/6/step",
+      "file": "f45f37af98a96bdc609df3c84baf186ee85c5f2c2dc91dc9f214261b4d50aa91.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/6/exp_avg",
+      "file": "b700a753bcdad287ec061cb75f46b1c4f375da906feda288f4b84a7710bf858b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/6/exp_avg_sq",
+      "file": "4a5004202c24d50ee86de7ea01390dba20d9018e36c39fed0895f916a9432ffe.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/7/step",
+      "file": "ebea0bbbc70a680b8ff7eed3a078e2eeae2f5b067de1aa8bc72a905f4bde4118.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/7/exp_avg",
+      "file": "475f000fb4caef6a8734d2de60505d6beeb62bf9cb19f1a039c9e83da90148ad.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/7/exp_avg_sq",
+      "file": "46932a8c2cf98e5c873720b4115aaee0dc6e9d55cbebad2e988b3b5809566905.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/8/step",
+      "file": "1231381f7dd9f6442ece717531db7a666bf0d76ea4c333cc0623bfabd0ddc318.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/8/exp_avg",
+      "file": "03b656fd6de202bcdb3feda14a6cd8c47d4a04c2cdd39c47960f892cea101a26.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/8/exp_avg_sq",
+      "file": "b21e612cc2d63afcc26844c0940f2844736c42e49d1ae8558e61ab4236ee4c84.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/9/step",
+      "file": "832b0f6ecaa3377c85d498e19dd650367e8a30c64af2f139d2cc7d8840e31958.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/9/exp_avg",
+      "file": "327bc4f328da83140bbd91e72610b613e69f367e2aaa72cac9ba035dc5388249.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/9/exp_avg_sq",
+      "file": "73d1119261b2d421bbc53042c14a435f7f1788042a71fbf9e7c57990e5c53b29.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/10/step",
+      "file": "6002f22ef0a02a197f6a110675269a6bf3edbac85532033f44ea68bf655d6691.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/10/exp_avg",
+      "file": "d0c736949c58f5e4ad221991914e9ca23c967c921fd29127f98b6ed6d8e880ab.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/10/exp_avg_sq",
+      "file": "f401dd6f5540c8aedeb75410b830dee3fd456333cd3741956ad1ba3f6fb58819.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/11/step",
+      "file": "ee91664eba34be37e544018e57908becb474ff865906766103cac6a3370f2229.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/11/exp_avg",
+      "file": "96a9aee4196d99a587250c658e687a76cf30823b96e7dd2cfa24e2d2b625c5d2.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/11/exp_avg_sq",
+      "file": "d1b63b7917ce7e5bf3b19ba035c73cc8c35d87f98d2911e9fab6c69a492bee8b.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/12/step",
+      "file": "e2a9a6fbeea4d0de44dddcad38fbc96be39118ae876a60f148e01a2101ecba64.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/12/exp_avg",
+      "file": "f7e5b5d3cc88bcfecfbd5ab2cb5b82d3d3ac7c9485b69b7ce1d6782f9946d814.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/12/exp_avg_sq",
+      "file": "86d82616905e9bdcff2d70f3987f6f85232fdbc3f4f47214a187f420b679b2e3.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/13/step",
+      "file": "4040185960cdf99ebf5e1a089beb00b7206ea1ebe90755d4c2bb91f5130bff3f.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/13/exp_avg",
+      "file": "a2837d1930b66fd89c22713f1e7d519741aae605486246d52168f768b37108e9.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/13/exp_avg_sq",
+      "file": "21c0fb276934c5ea845cf36fa0b7c1ad3818c40dc68bffa73c53677e1618ee94.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/14/step",
+      "file": "776a470995ab704257a6bb5b30711bb8d0afb2cad2fa6d7480c4a9ddae0b01e5.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/14/exp_avg",
+      "file": "10990893b6ff05e9864728d199b8a2d22ea436ff06cd42029425c0763428b659.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/14/exp_avg_sq",
+      "file": "fa1c6230ce43444970aada974d4123c9f49c3bfe992dca3d5fc9e458a39e6a30.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/15/step",
+      "file": "f108121bc3dac4f609d5553c485a08709f5bb46e7e690197fb04f062e0556712.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/15/exp_avg",
+      "file": "f611260cbd7809363e5812841d18555494efb5f8fa6e75efff46b42f10272548.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/15/exp_avg_sq",
+      "file": "b69965837843a63edccc44fa669538dd9bb0a88f4b482d4788aa5f66723468ea.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/16/step",
+      "file": "b8f2e0adaf58311c71860aee495b4750c696aead52aca4b45e00dfce9b2cca5c.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/16/exp_avg",
+      "file": "3811189ff1f50c21d9190460e1a73defc8e3a524d68b8b17809d7e77ee1ffd79.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step1/optimizer/16/exp_avg_sq",
+      "file": "53e42795ff6482396e27ce2a7fff3c50da3074b566fed75742793e846094c5bb.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/prediction",
+      "file": "4d1d1c934e69c94ac68f3cd405fe5126cd1e2b34cce59a110a8f4b4365947ba6.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/loss",
+      "file": "bc8108925532bb101997f64845ee0c4e6c8c484e851b4367896baacdc1cba108.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/linear.bias",
+      "file": "9f36cf8526b1c7055a5b59041fbff95165ef0c327fb4df8d943256ec5d18d07f.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/linear.fc.weight",
+      "file": "98affc204669736ca7d4eeb47fbdd48e11646e857ca7e8635f1f002b7ccfdb66.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/embedding.embedding.weight",
+      "file": "d801dfd7d108f539b640be2135a2a323f567b6eb4498fe17e2be05970ea14dee.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.0.weight",
+      "file": "377acc1fd15996fa5c4772589ec5cb7aeb3c799d29c7a2be9436b11a77ec7ea3.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.0.bias",
+      "file": "24664764570ece234cbcf2cbe27bd4ca1f43a23b409fa7825f67af7be63eef10.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.1.weight",
+      "file": "a213bf447977ea468cc32be1580b336dc7f4cf19006dbd18cb5cee3cf556aa42.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.1.bias",
+      "file": "0fedee480f3907ec9fadb751797174b41c02f5344cd77af3d21491dddf7fa031.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.4.weight",
+      "file": "36369c43c2004ff253430ff0b89249916e69eb91297e0414c19330a7135cfdf5.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.4.bias",
+      "file": "99d0161b54e6015a567728f1a11a39f8547d0350f1f837e9cf992f6aaedcdf85.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.5.weight",
+      "file": "23e8060d204f6e660bcabcb2f5c9782e96d5eb18eb1b63e580f345902bc42551.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.5.bias",
+      "file": "9e30b2de2efb0bab1629c349d0979cc9fd7e0382808bb5d4b047cf27fc6565c3.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.8.weight",
+      "file": "31a4fd4e68a510625ee1c2f6a54e462e7dc273080aa86b904662869c403f47cf.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.8.bias",
+      "file": "93ad076c19ec800e190a34e79d7409470b295c4dc4c1c3bfefa94612530ae177.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.9.weight",
+      "file": "9db883b6efa585a7583974ef76f417b02e589db12c5af8fa669c332c9bebed23.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.9.bias",
+      "file": "6b43aa5054dffbff6d37e59bf2409a5f266dd31b90850b7adda06589b38fb31e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.12.weight",
+      "file": "325793767fa72db22108af2f519cd5ff4fea71904dbca1251fb0ee6e4b3457af.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/gradient/mlp.mlp.12.bias",
+      "file": "37ccb1a6cd5f93e4ef1443fe2d5d8b6fc3c6878e672084e5df6466a51baf7530.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/linear.bias",
+      "file": "4412d7e7157eead852206fd5c92d360d14a8342c5455da2ccf3f997671ac7bc2.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/linear.offsets",
+      "file": "3faccc461c3c3087ee46e4e073c00b582d539fe2f790b09c6c934432176e6d49.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step2/state/linear.fc.weight",
+      "file": "1ec192da57afda02cb0c7a503d7f34879075b51004efaa58439081fe380a024e.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/embedding.offsets",
+      "file": "ca0eb8a29f1782b33bf5693b520665ef8e4147d7ef3b3b40f52e8df0c781185f.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step2/state/embedding.embedding.weight",
+      "file": "6a8799d336661bd91a0906842a3df5f21f29045f83d4c7785b8ef0880ade7846.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.0.weight",
+      "file": "2a1addd939b7fbe4797843fc1aa2826b0d08576df08f9a709293cbbdbdb97e9a.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.0.bias",
+      "file": "93b60911639bc3938b8bf607df43c1c31c4881fdd8e084b2cec78b0b21d51e59.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.1.weight",
+      "file": "dea64021e057929def9b406dc68e2cbf67352bdb57a6126cdb8e5da769311bd9.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.1.bias",
+      "file": "4f90443f416407e35d8f6ffbaf7f4e36d0a9741044409fc148b15d1bfd87d462.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.1.running_mean",
+      "file": "e61917dd61b9cc7bc3b6fe975e8e827eb80f350a7ada8058e987d8c52b2d1c24.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.1.running_var",
+      "file": "3c1fa346584c53cbb1e732082d611c17157e6814837702c8225a5e1a3c2d38e8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.1.num_batches_tracked",
+      "file": "4add83caaece436f2c3f454b3b5b751f477f1bbe8db59201e222d86271bdf12d.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step2/state/mlp.mlp.4.weight",
+      "file": "9ef4442cd0f6c6c316f55ffbb9e6090ff40d50dc59d23a82c752621e88bdc2cf.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.4.bias",
+      "file": "76b7f4cc1c4d0f6a6d758d4161832d473b08ffbef600e85afc4343d317e7f3ec.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.5.weight",
+      "file": "beea0bb187dff74663e2cf44b5092c902657a396addc39927ec7d2a2df67fccb.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.5.bias",
+      "file": "8b894412627d35817ad9b437eac4754a4a1c711801a40bb61b7dde9666a21712.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.5.running_mean",
+      "file": "3266face46dcc51d6a92fa5226e1268a367491d82526b56567771514fa5cb7b2.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.5.running_var",
+      "file": "7bfbf4349510933256f742650f542725f5d29602d38bde0d260273a61c715141.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.5.num_batches_tracked",
+      "file": "605c5a7bdf62d4988b352355898c69f099ba73889be01aaf3aa81f2053171929.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step2/state/mlp.mlp.8.weight",
+      "file": "286483731c0a2619b5e9ef55eda3b457781bb865df97cadb7de344338aec6886.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.8.bias",
+      "file": "f8b18eeae32b77cd393606541610cbb7f6725c9befd9402bb5c766361ce3204a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.9.weight",
+      "file": "a2081506d0bfc931d5a34cbd9a3bd8779138a9f6e7fe30813b2763836f69a7ad.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.9.bias",
+      "file": "3b1f778b425d6bb198572ee4d6e0b9ef60763d428c25e183f904b558fa7e975f.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.9.running_mean",
+      "file": "25f8a2b9a47d463ff09759b3330cdf75d16d782ad3364fcf411a59ce7e71cf7c.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.9.running_var",
+      "file": "aaf6c17105a8c7559794a281def24f2bfc8fdcb0ab69602bfefb2de77e5125e5.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.9.num_batches_tracked",
+      "file": "e66909be103e4ec0a7f61b3be8c5f0b03b8e4af2a996f073ce66508d9e1402da.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step2/state/mlp.mlp.12.weight",
+      "file": "8d4ca96fcea517550d7c2661ce0e84d1534354aca3217d25e1bce890b9506eef.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/state/mlp.mlp.12.bias",
+      "file": "8bc3bcf5d3f8f42965a5a4c19b7171c51b5fe202c2a8caa5c2e0be647755270a.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/0/step",
+      "file": "f855fa2d45e1342c24052faafead48c7ff021b41ceed2edfe0286bcba91f82b1.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/0/exp_avg",
+      "file": "946c0dc8aaad019eb485a3f1c91e0c3f6c8ec22bbeaae3db94ed00117595d07d.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/0/exp_avg_sq",
+      "file": "4531f64cb94130f1cc3a14a1ea90d0baebbc404b866131798d0f4cdce1a0f04b.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/1/step",
+      "file": "f9cf164e71fca18fd973020b95ef3c41c7889b24d91fd19d9b66d79abb3ee8ac.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/1/exp_avg",
+      "file": "61f66a6fd5d2c0a8eb81981b7f349a32237879a241708fde4afb8f6025f778e7.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/1/exp_avg_sq",
+      "file": "7b67a67e11f55f1696bc3cb4b1bb24690730d9beb2349efe323924c0c69cab21.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/2/step",
+      "file": "8dd552097a1f0175b69ddfea61fb173257800486f7b0b604cb20a4f80fe7c324.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/2/exp_avg",
+      "file": "48d35ed876738eaee235d3146ec455590637050a08c7b384cb38e70456929ff1.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/2/exp_avg_sq",
+      "file": "cd8f6c014d528309ff7f2eb067bbe0d629893842b75ec0257e97e8b46f796007.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/3/step",
+      "file": "1569144015dc239367165b130da49945962d26dfaf459357c197081a742b175f.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/3/exp_avg",
+      "file": "fd7983f7a8c014c434dc8c773d480007207614eb3b980fefc35905c77037c7f6.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/3/exp_avg_sq",
+      "file": "c3b7c85adc59169368ec2c7d7faf4c8f300e048a6b6b6b61b72926e83be12b24.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/4/step",
+      "file": "7dc2143c30721fc0d44faaf1c4d3dc866932fc00f820fd25febe349399b90dc2.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/4/exp_avg",
+      "file": "3896a67ec416280b361b9e8d8634ce1ed34f7a7b0af6aeaf683d8a004133d3db.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/4/exp_avg_sq",
+      "file": "ab7ba684901a8b8f7aafa0464a0d15ad30d115478ea0f30db8bba244c4801c8e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/5/step",
+      "file": "13876e6df287d274933d753471d0927d94bffb44e8499721b0c42f726d3c15dd.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/5/exp_avg",
+      "file": "de1e3d7bcbcb1262d9efdcd40a9ed1dcaa17ff60c8ad8488c359ef4979a8aa46.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/5/exp_avg_sq",
+      "file": "d49514671b10ffe250a7d77630b1efa2cf90e74c202f64bdebee2f585ec6f5ea.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/6/step",
+      "file": "e27803404e016640ca30d64f23162082a6cb8cf89d827d4305080241bee89635.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/6/exp_avg",
+      "file": "5d48209c6574b08c43bd4179ccd8ca3436bdd16ba589606e1dcf77bd72a3a687.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/6/exp_avg_sq",
+      "file": "1e0997a42117e579d9946f8df2386fabf49ec21908bc07567151254e6d17a947.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/7/step",
+      "file": "bfba37e8f1f5a96718c7fefb93c34219bd7a4db4dc4b9b732dc1bb07e6c8a878.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/7/exp_avg",
+      "file": "beec0844533cf0d574d73fdebbba56bcff439100b2e41b6d11da39394b503353.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/7/exp_avg_sq",
+      "file": "bd6b7fde216684aa692b736d7fee51ed5ccb47aee02200ea480adaa338dd1b50.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/8/step",
+      "file": "540c1dc0b15cb1ff4a77e491a1bd1ab3fa91e99a6a9352f189ddc321f61524b0.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/8/exp_avg",
+      "file": "9b88102a1bd85cc4b529f89c2f061b6a76fe699ca2a3e3c2eed9c8ad983da1ee.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/8/exp_avg_sq",
+      "file": "938e6440bb52bf569cdb778b97760d7ae76f7e0eeb25802624f6d2d5646ee81d.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/9/step",
+      "file": "7b0a6e9731eb2582236f8207bd748b3604f4e2f54239c455e061890095e5e740.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/9/exp_avg",
+      "file": "e230f0036358893941f47d55766fa7ef08155ef7849e4d54babba521c517cb32.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/9/exp_avg_sq",
+      "file": "37289a6aab38fd6911af6983be68f81770fef606003e1d754ca64bfc4e0886b5.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/10/step",
+      "file": "a57d788ee0d81da4d8fea0b2e70f990c3c45812e9a599f27d39d304966542f97.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/10/exp_avg",
+      "file": "edf74c5f104deaf9a4f3f2ebc5da51dc3276834fd02196c27e6f0196692b183f.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/10/exp_avg_sq",
+      "file": "0abc874f47e360f203c3dca6a82cbaebe83e284915b0595b8f2afe216b88dcb6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/11/step",
+      "file": "86f7f31c01a0121cad3a0e6eb524fb39fa527ac2b89c919f2ae9011c495e2625.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/11/exp_avg",
+      "file": "8e6193b5b041fe3de17542e3cddceec454e2d6f908e45a1f508751ae514ea8cf.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/11/exp_avg_sq",
+      "file": "66dea9aa43d9fcd8f6bc555316222cda6b69d9559d6a208b5c48ed8a6e8ed15a.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/12/step",
+      "file": "0635d8fe5f9132730aa33286a8b0c2bc6234fe85b5f22630e0433ccb497b7f0d.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/12/exp_avg",
+      "file": "2568a9adf3224ee7bad82b15beb178ffa627f0659712e538f17d310f3b708345.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/12/exp_avg_sq",
+      "file": "fb997ebadf84c0230f056612f7fa4e7e1e72d1a1566658877d7063829edc8028.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/13/step",
+      "file": "2cbb025228a2c343d08c55ee4bf6fa7f22a5a1c281b0b333157a1d2cabb57289.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/13/exp_avg",
+      "file": "11be51cd583346179c9a031bcb74b5b80820dd6358d6762257bedecdc1bd565f.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/13/exp_avg_sq",
+      "file": "590012c6a6909aafb18f78ea96d5677a0b07e63110415c23105acbc324d3667a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/14/step",
+      "file": "294288383644e9f07ea10d2ace42842e9a6238d08e797b60e6d33944ab0b0bfa.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/14/exp_avg",
+      "file": "8856b38f8ed27ef7417c1a3b29007474761dc81a02306318cc24c7af7e462bdc.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/14/exp_avg_sq",
+      "file": "0b2751e8c0bbd27a63c75355886c8bff1393a0ffa34dedefffbac2e2c9d3e899.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/15/step",
+      "file": "cd2122ed6fa64880a29316b375d7cc51749a3ae57f00ae809deb4ad4789f4671.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/15/exp_avg",
+      "file": "f954684fd5c8fc4913813df120d108970bc8e6fb8806712e564e8a05abcc06b2.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/15/exp_avg_sq",
+      "file": "ff4f2b75fa67596e85c21308a587654afb62e087037ad26568284447080a6bdb.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/16/step",
+      "file": "d22e13a3f313affb03cbb584d2bbf7c866995a15342dc51999139f0a23cf38cb.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/16/exp_avg",
+      "file": "48a05b2fbf60606f5cbad2006e86059ddc466f60064578cfcdc7e6a7eff6bd55.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step2/optimizer/16/exp_avg_sq",
+      "file": "a67cf9b6945eb1cbb2937f95152b6b6118f3afc90042e5de2a59db9b5ef79ac9.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/prediction",
+      "file": "5fd71294f22703e32475bfcb9789bb2df0583667c0eb38a9857fdbe11436f00c.pt",
+      "shape": [
+        32
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/loss",
+      "file": "39bfd9986abb14d398d31a20571cc6fe7e89f28a3a558b21700c45b28f612f6a.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/linear.bias",
+      "file": "6c5472353ed35a23ecab915c6548bfa4f38329611d289dc756bc7ddaafc2ff7e.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/linear.fc.weight",
+      "file": "ee8bf9d5479663eab756adf7f38a9301568b950e3158ee7e32957fe57d625028.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/embedding.embedding.weight",
+      "file": "c8e0a0c6067a5766c925825937bf4588f2f9a008cacfe0b0582368214880383c.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.0.weight",
+      "file": "c73442a408e0ed689092a909995c48be272bbb81af2f4a9e30a33045fcf16dd2.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.0.bias",
+      "file": "1eefe3d7221f8143e36d26e64f60d80330f6900c5e0d1b72cac472f3f598ef40.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.1.weight",
+      "file": "6c5c21e8b28adfff0af82af8a59ee1e50aca6a9380cb03230bd607f90c559fd6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.1.bias",
+      "file": "e99a7a8fbbb0295de02400effb0bf6614ffd0631808615d965d2c3a6428a91b6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.4.weight",
+      "file": "79e77de90f776bd996c88833abc9b2c0052e479389a007f1953705f9210c31fd.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.4.bias",
+      "file": "a13bf9eae4f1bac4e4d7b6e2049a5a1a42beab1aa3d850a68054e65b4c346598.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.5.weight",
+      "file": "44f4e578d2c438cc389686c2d716ed069769d7122b432f759c0eae4dbd8bcfa8.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.5.bias",
+      "file": "c1eca12c52eb51d52e1f6b707060bcb7a8bbf2b8c9dc43405ac45812020d53b7.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.8.weight",
+      "file": "37a8d3df802ec2e61f4d155b318d919957262d289044858085c45b5a53507872.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.8.bias",
+      "file": "e65283efc14fdcf1a699756208d5bf26029deec3987e7528039b0eaefbcc1d49.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.9.weight",
+      "file": "1a97df7a9f2ee618bb3132d82a533bc4698017e3e586f430c317e367f4bb7b11.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.9.bias",
+      "file": "6ac1232f6286cebc068c24ba26c1f3009083493b111ebb0021954739651e4028.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.12.weight",
+      "file": "0e12e05fee37fa4b7f2856302fcf4886f1bfd55c5fafe6832df83ba51ac96474.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/gradient/mlp.mlp.12.bias",
+      "file": "535384af2a9629c7aeaa01104631ad02b3fc5fd0f055ed12e787996ee7bb2e2b.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/linear.bias",
+      "file": "56965be2b546d273610ee23e7a1ba2f1298c77b3ac4c26213d8a0aea5c012137.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/linear.offsets",
+      "file": "fc2a39414ebd2190fd53c1ee5413e11fa325bbb00f542844112b0b76900dc07d.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step3/state/linear.fc.weight",
+      "file": "4f8d82da910ccbb74d6dd666a411481137d38283372779f6be966616c7b3844e.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/embedding.offsets",
+      "file": "eb3470c21bcf0b3e161c7a26a47245cf58f444d0553f09cfeee8b911a89f0318.pt",
+      "shape": [
+        5
+      ],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step3/state/embedding.embedding.weight",
+      "file": "136a25a773f9e93a8d1e715d8d02f490b9b8238bf27bcb72c2de74cea8706141.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.0.weight",
+      "file": "340d03178d01f47c648239a6f909099055005f9de00000ed5b5adac7f98d9cf5.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.0.bias",
+      "file": "4f52fd7ff6166ce901f3d1330c41e09485330caeeaa47c071ffa0b3d363b77d9.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.1.weight",
+      "file": "171a58056ec62a60edb1d9e87b632ce465d548dfa86220e8c46e81395a104ae6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.1.bias",
+      "file": "ddf0001f83c1829f1de1141d3c63668e8572392a514a693f8d332f2e11116e0e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.1.running_mean",
+      "file": "518695f82a86ec389da135f7c9b7dd0f50859b2aa77a6130678f230d2e396ea4.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.1.running_var",
+      "file": "004f906379dd83595943cc5e3121a3157bcb768c8df1cdf230ec9588de6afa20.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.1.num_batches_tracked",
+      "file": "14e2d7f6b93b862aeed750327db91740c655e9ae2abd6db58cce84982fd1cdae.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step3/state/mlp.mlp.4.weight",
+      "file": "065cca6a7611a4ddbeed1b77d41c1e5d85f76db895c9ee580322ec347aad5dc6.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.4.bias",
+      "file": "e50dc1cead2ad4dea03a2a5671caaf16b1be4b4bbf7dfa5dfb00db8007699e69.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.5.weight",
+      "file": "2297c3661d931e2ce59a5ec0dee19eb8e34ab6038976c2c383b24eb3ff9205e6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.5.bias",
+      "file": "800e61d7fa5a775b796a2eb43bc30155a2844ce6b7fd6f68a6d19344ce0f12d1.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.5.running_mean",
+      "file": "afbbb36038df7edff91d6a66161c70d5f225546bdc66bdd895453c61e0c4164b.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.5.running_var",
+      "file": "8ed70e920a5e380340a01be9f8ed4afa6a4796582d9e72191e5b0241ac3baa91.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.5.num_batches_tracked",
+      "file": "d3536210d2b487f311fd7c52e705554756cd02e3d0fc393b7ea8651dd206968a.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step3/state/mlp.mlp.8.weight",
+      "file": "c6ac8420220b4b586a17f161483fbae7dc9c797dcd88e60a640374bfb84cb2d1.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.8.bias",
+      "file": "15e11e6905087374207b66c2cd8edced1b6a0ae8594709224cedab189dc80d21.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.9.weight",
+      "file": "c499146ed2f45cfbaecb03f6342f2a27d008d82c5500c01845d1fb426f58d91a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.9.bias",
+      "file": "59309aaf70dfad347f70af56368f1aa40c627814455eb3152b5cc20cfd85e03a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.9.running_mean",
+      "file": "4fcadd66640053e94b159dc7e265df746b07b29d8144bf07ecbaa2217e62508e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.9.running_var",
+      "file": "412a49698d0ea6b3e27230d2346b7ada4ce9d91fb93d45390920fbeb5645fa7a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.9.num_batches_tracked",
+      "file": "4bce610b09b7b5c14f9f5a7e90549d4a8b177e727de1f0a36d801034bcbcb161.pt",
+      "shape": [],
+      "dtype": "torch.int64"
+    },
+    {
+      "name": "step3/state/mlp.mlp.12.weight",
+      "file": "06af3ca149af2c90e75536ce504f217b11e5e2fc7da291db4c2d7b59638a054a.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/state/mlp.mlp.12.bias",
+      "file": "c56c66625410661299b85757c7fd5412ff5e7fe4d1119856b742a711651a69b5.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/0/step",
+      "file": "2b7993268939822b9b3c9352b0f1b34e10e154d8c9a89fad5fce23a8a0f162cd.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/0/exp_avg",
+      "file": "7a8ef108e10c1de28d639a4fa39fcb83b406434e3625761af5bebde3ade74b18.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/0/exp_avg_sq",
+      "file": "627975a626a5c709bf661b1334ba8b6c1590ef5c7811753310a6150992a6b03e.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/1/step",
+      "file": "ea1ee283601323e6585740081f7167db64af1609cb8ef51a52a4635a64b51156.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/1/exp_avg",
+      "file": "7f37547ab4ba74e99073bf1e9fa59a3ad387982bd36f04dfaf97c65b3d263097.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/1/exp_avg_sq",
+      "file": "f8c16c687d14343c05e704c0cb33025958648fc1d1fa769f3d906076aee4e773.pt",
+      "shape": [
+        3850,
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/2/step",
+      "file": "ca3c2a9254673942a264afad1718fb649c3ad04896e849b20a44da494fec7381.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/2/exp_avg",
+      "file": "c8a67c1e96d666abf8ba96adb388cd74ba4e8a13b31db7be2f938a4c6133f621.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/2/exp_avg_sq",
+      "file": "5c1b5de941c3792d4e25e4d2aef7033e829d83803a1f73440d3e11e6c0399b51.pt",
+      "shape": [
+        3850,
+        16
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/3/step",
+      "file": "1b1caf7c489125fa9ba0364dd1d081c115cda93d2c323576e3cc6f158ba62b1b.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/3/exp_avg",
+      "file": "44ac8f6539d327a140ca40e90f5cffb5ede0bc9100825863fa39f6b6b51e7425.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/3/exp_avg_sq",
+      "file": "6380487b197c3aec59aa9781237edda57ccaf46e8f0d587bbfba8aed28939cab.pt",
+      "shape": [
+        400,
+        80
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/4/step",
+      "file": "0bcd23d69ba09f501cba8c6e1c386eee4ada07e70da1efa08dc999da31e9b564.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/4/exp_avg",
+      "file": "9c1c93ca084552a33a7523e16bca34d50adfa8303d904713528646e0108c28b4.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/4/exp_avg_sq",
+      "file": "a2b7dacb3e88ecb64bc568a1eab35ea4df34de544a056e61a38ab26c31ad43c4.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/5/step",
+      "file": "1078fb1154a80b44fdaac7f4bfc3495e803ee41182b923119494b6bb3e3e6810.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/5/exp_avg",
+      "file": "ff23a9b79381ce9c2200ebb6b426aff0aa95f4d24daaf886049b79146d3acbc5.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/5/exp_avg_sq",
+      "file": "d3143947f8acb0fb8771c1c747d992f15b60ebe0ad9d713f102744e2fa66055c.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/6/step",
+      "file": "bede3f5d1274a8359e4d00e054a36bd3e761f5ded2f7482f0bccce31c85a1736.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/6/exp_avg",
+      "file": "e5a4120acab07b2704c910703e30df1b3c7a88e0b0c4dada00198f9fe5711a58.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/6/exp_avg_sq",
+      "file": "5e093a1d209c691e79d5488e63df353e1d6d36f364e27ab54d0d2379a1a9b404.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/7/step",
+      "file": "214af9f3ab2cfa7871c5f611751550434418cb2ddc321764522002475df634fd.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/7/exp_avg",
+      "file": "10b32ac3f47396f9a4118f61ed0aec6331b80f2f48db29792c27fd07f488afcf.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/7/exp_avg_sq",
+      "file": "4615e9fa90069da17b5504d1917b8ff481963371580dd75f94778bf4f58c612a.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/8/step",
+      "file": "5728d70ae6fd7b4ab6f6c3eed0973d4cc3773d2d0ab08540e4e0dedf9b1737fc.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/8/exp_avg",
+      "file": "a3f93b5615b5b351ebed309e654bd16358c62198e7b234f96806a8d89a57320f.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/8/exp_avg_sq",
+      "file": "aa985ccc984613aa6a61f69e672980c84a6fe7828b22e75fb80a2763d28a59fd.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/9/step",
+      "file": "1c434722e473e5c9491f4c55691b5d429aaea860e392cbee38985885d1c5cc55.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/9/exp_avg",
+      "file": "6daae0b67d4a54ecee8bd035879538eecef775c801285e201046226a0e5bc01e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/9/exp_avg_sq",
+      "file": "a9d373d9b910e618378333ebdedbe62a62652be3c355570c0b3bda626a2b7ac2.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/10/step",
+      "file": "cbf166b9e7455b3421845ba0ca76419cfd75d67ae5200359dc972fef9a9a3638.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/10/exp_avg",
+      "file": "6d2f98d6f773b5722bf349760512495b0607354f10e91742df539a4c0a4a24e6.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/10/exp_avg_sq",
+      "file": "6918ccef9cd9b84635f8fbc757aa5334b17e1095b7c2e0a1a598d6d7ed25871a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/11/step",
+      "file": "bfb48e0ccdcbdd97d6ad80fa76d902be1e0a68e190e7f44178243303202eba81.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/11/exp_avg",
+      "file": "5c773c329ecd4ccc226914caa9dc859ef8df53090c226343d1ba28e781d39a95.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/11/exp_avg_sq",
+      "file": "458b3b7695b16fa261a7172f5024cddec58a9405f65c0faf5ec755fd8fbf51ee.pt",
+      "shape": [
+        400,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/12/step",
+      "file": "4ef83930c902294c6b64608b26bc3bd06723e0dfbd1112d4f21b4447aca35418.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/12/exp_avg",
+      "file": "81aaa795109ae71819f871ab5f2adc21c530cd4b6a1633ca5504322b905a3b4e.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/12/exp_avg_sq",
+      "file": "a5bee43da9ccd764af63ea73a996964d4121ed49e285c34dd9636254b0306b0a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/13/step",
+      "file": "4bbd84e9fdaa6a9c24a5529334e1eedf6acceb04cc845e62477efc9e88d72d42.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/13/exp_avg",
+      "file": "7337e5fa227943a88a4af9d9e0c22d5179c4073e4990a4643d66f21563d74064.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/13/exp_avg_sq",
+      "file": "ff85c8234dd351af8e232eb7e3d6596e8f8219ba12ec415724173ecb61fc4382.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/14/step",
+      "file": "f6d1c23c85d7573e7788d059fea07e50d006ceedd399f5a9a7b104a44af02674.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/14/exp_avg",
+      "file": "a474b5a36fdeebfd4d4675fa2a0f250c65304fcab3b23ed41c878ee0c8fd2d9a.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/14/exp_avg_sq",
+      "file": "b63f1ba6a6d576260193588533037d266fbc8886e8a04bb1cc5e795e3e3fd34f.pt",
+      "shape": [
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/15/step",
+      "file": "aa4c61ad27115b9936ac8a3e8682337571a2cb6983568da3308c34c1ba292091.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/15/exp_avg",
+      "file": "0e04a654db6e978230284bb7836d4dfdaf307de3513672835d2cbeddd74fa0e0.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/15/exp_avg_sq",
+      "file": "0e30c152688d18f2eca37f03329edeee012a2bc641703e6e062b68575c6fd28e.pt",
+      "shape": [
+        1,
+        400
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/16/step",
+      "file": "0d32211040c4f377b33f9ccf77a1447284a74f70cf6bc69a7929576cbf4ddf44.pt",
+      "shape": [],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/16/exp_avg",
+      "file": "8609ec92f396b586dee0db430fc7d10d3228834cd964587285e681e25f5f49dd.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    },
+    {
+      "name": "step3/optimizer/16/exp_avg_sq",
+      "file": "4506fb5d36f564ad1ab57387f11e127a34c05d48de62bdcdc01980f251c56c33.pt",
+      "shape": [
+        1
+      ],
+      "dtype": "torch.float32"
+    }
+  ],
+  "optimizer_steps": 3,
+  "adapter_bridge_sha256": "b68238df586e42b86a50ade0faebe7131840e46c485f306f2a49c1be2aef722a",
+  "adapter_package_identity": "package-sha256:9fafa4e10004d5a5332ee6ac07347992c64be993169d9494c7bc013a5e228d4b",
+  "workload_identity": {
+    "model_id": "public DeepFM v1",
+    "phase": "train",
+    "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+    "settings_sha256": "2ea8e8eac8b8ef37cfd33609ce4fa656461f200dbcc78b0c9d41dcc81597754e",
+    "operators_sha256": "ff189184f8f0a842c52df81a6e8d8057ebc86b68073318ef912b6053de2aee61"
+  },
+  "configuration_schema": 4,
+  "startup": {
+    "require_target": false,
+    "checks": [
+      {
+        "operator": "embedding",
+        "signature": {
+          "weight_shape": [
+            3850,
+            16
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        },
+        "decision": "native",
+        "reason": "experimental_disabled"
+      },
+      {
+        "operator": "embedding",
+        "signature": {
+          "weight_shape": [
+            3850,
+            1
+          ],
+          "indices_shape": [
+            32,
+            5
+          ],
+          "weight_dtype": "torch.float32",
+          "indices_dtype": "torch.int64"
+        },
+        "decision": "native",
+        "reason": "experimental_disabled"
+      }
+    ],
+    "provider_reason": null,
+    "workload_required": true,
+    "workload": {
+      "model_id": "public DeepFM v1",
+      "phase": "train",
+      "model_sha256": "b497ad8af6991a29ef67729e07d9f3726f8278d23c5894ec55146a0a6ea5a138",
+      "settings_sha256": "2ea8e8eac8b8ef37cfd33609ce4fa656461f200dbcc78b0c9d41dcc81597754e",
+      "operators_sha256": "ff189184f8f0a842c52df81a6e8d8057ebc86b68073318ef912b6053de2aee61"
+    }
+  },
+  "optimizer_created": true,
+  "active_step": 3,
+  "sampled_parameter_update": 0.001369972131215036,
+  "provider_calls": {},
+  "dispatcher_restored": true
+}

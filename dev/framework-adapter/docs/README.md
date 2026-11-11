@@ -1,11 +1,24 @@
 # 接入与回退报告索引
 
-整理：2026-11-04。当前完成情况与发布状态看[STATUS](../STATUS.md)，运行路径看[HANDOFF](../HANDOFF.md)。这里按主题定位材料，不重复维护进度或把旧“未推送”带入今天。
+整理：2026-11-11。当前完成情况与发布状态看[STATUS](../STATUS.md)，运行路径看[HANDOFF](../HANDOFF.md)。这里按主题定位材料，不重复维护进度或把旧“未推送”带入今天。
 
 ## 优先阅读
 
+本期对外统一入口：[阶段进展与验证入口-20261111](阶段进展与验证入口-20261111.md)，含三模型、算子扩展、基座修复、数值定位及dev4发布证据。
+
 | 主题 | 报告 | 证据与执行入口 |
 |---|---|---|
+| PPU Qwen embedding，11-11 | [独立资格、模型三路与复现](../cases/embedding-config/README.md#qwen-embedding独立资格及模型三路) | [核验摘要](evidence-qwen-embedding-20261111/summary.json)、[实测baseline/demo](../cases/embedding-config/demo/README.md)；原始张量位置及审核输入看HANDOFF |
+| embedding统一配置，11-11 | [实现、模型回归与差异记录](../cases/embedding-config/README.md) | [核验摘要](evidence-embedding-config-20261111/summary.json)；承接独立接口，新代码资格按新身份处理，原件位置见HANDOFF |
+| PPU DeepFM embedding，11-10 | [两输入接入与模型验证](PPU-DeepFM-embedding接入验证-20261110.md) | [9轮核验摘要](evidence-embedding-20261110/summary.json)、[case与审核](../cases/embedding/README.md)；原件、构建和冻结输入见HANDOFF |
+| 三模型清单与ReLU扩展，11-10 | [清单、选择及验证](三模型算子清单与ReLU接入验证-20261110.md) | [完整逐项表](evidence-operator-inventory-20261110/算子清单-20261110.md)、[case](../cases/operator-inventory/README.md)；实际调用与源码可用性分列，原始证据路径见HANDOFF |
+| PPU Qwen/OneRec模型验证，11-10 | [两模型接入与安全准入](PPU两模型接入与安全准入验证-20261110.md) | [证据索引](evidence-ppu-models-20261110/README.md)、[case](../cases/ppu-models/README.md)、[实际baseline/demo](../cases/ppu-models/demo/README.md)；成功与数值拒绝分别记录 |
+| PPU DeepFM训练与准入，11-10 | [模型训练与安全准入](PPU-DeepFM训练与安全准入验证-20261110.md) | [摘要](evidence-ppu-deepfm-20261110/summary.json)、[case](../cases/ppu-deepfm/README.md)；原生保留成功，直接候选参数超差，失败审核保留 |
+| PPU算子资格与三路验证，11-10 | [接入与安全回退验证](PPU算子接入与安全回退验证-20261110.md) | [资格与审核](../cases/ppu-unary/review-20261110/)、[三路结果](evidence-ppu-20261110/routes-result.json)、[case](../cases/ppu-unary/README.md) |
+| 训练v3补包审核与模型三路，11-06 | [Qwen回归报告](训练v3补包审核与Qwen回归-20261106.md) | [摘要与SHA](evidence-overlay-regression-20261106/summary.json)、[baseline/demo](../cases/cann-shmem-validation/demo/20261106-overlay/README.md)；补包身份及限定模型审核，承接同日最小修复验证 |
+| 训练v3补依赖，11-06 | [cann-shmem修复验证](cann-shmem修复验证-20261106.md) | [摘要](evidence-cann-shmem-20261106/summary.json)、[case与baseline/demo](../cases/cann-shmem-validation/README.md)；补充原缺失问题的修复组合与1.7.0源校验问题 |
+| 公共训练回调候选，11-04 | [接口对接与本地验证](公共训练回调接口对接-20261104.md) | [摘要](evidence-training-callback-20261104/summary.json)、[CPU输出](evidence-training-callback-20261104/cpu-tests.txt)；本地dev4提案，旧CLI保留 |
+| 公共入口安全检查，11-04 | [旧审核失效与严格拒绝](公共训练入口安全检查-20261104.md) | [摘要](evidence-public-safety-20261104/summary.json)、[baseline/demo](../cases/ascend-official-unary/demo/20261104-public-safety/README.md)；后续增量，本地未推 |
 | dev3源码发布，11-04 | [发布审查](dev3发布审查-20261104.md) | [核验摘要及脚本](evidence-dev3-release-20261104/)、[依赖锁](../package.lock.json) |
 | 公共训练入口模型审核，11-04 | [接入与三路回归](公共训练入口模型审核接入-20261104.md) | [摘要](evidence-public-entry-20261104/summary.json)、[baseline/demo](../cases/ascend-official-unary/demo/20261104-public-entry/README.md)；替代同日勘察的“未实施”状态，对应dev3源码候选 |
 | 新P800 DeepFM三路回归，11-04 | [新机环境与三路训练](P800新机三路回归-20261104.md) | [摘要及7轮结果](evidence-p800-regression-20261104/summary.json)、[实际baseline/demo](../cases/kunlun-unary/demo/20261104-deepfm-on/README.md)；GEMM补丁关闭 |

@@ -1,0 +1,1173 @@
+{
+  "runs": {
+    "onerec-candidate-01": {
+      "host_status": "ERROR",
+      "model_status": "fail",
+      "mode": "candidate",
+      "steps": [
+        {
+          "step": 1,
+          "status": "fail",
+          "loss": 17.13646125793457,
+          "provider_calls": {
+            "GEMS SILU FORWARD": 36,
+            "GEMS SILU BACKWARD": 36
+          },
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "flaggems",
+              "forward",
+              "completed",
+              36
+            ],
+            [
+              "silu",
+              "flaggems",
+              "backward",
+              "completed",
+              36
+            ]
+          ]
+        }
+      ],
+      "optimizer_steps": 0,
+      "comparison_count": 2,
+      "provider_calls": {
+        "GEMS SILU FORWARD": 36,
+        "GEMS SILU BACKWARD": 36
+      },
+      "failure": [
+        {
+          "name": "step1/gradient/model.embed_tokens.weight",
+          "file": "4288ff161cecc39e684afddf81627d2ad1e3269a207ba422049e2152a5e67898.pt",
+          "shape": [
+            176384,
+            4096
+          ],
+          "dtype": "torch.bfloat16",
+          "max_abs": 0.28125,
+          "mismatches": 28460,
+          "mismatch_examples": [
+            {
+              "flat_index": 53494260,
+              "actual": 0.0341796875,
+              "reference": 0.03271484375,
+              "abs_error": 0.00146484375,
+              "allowed_error": 0.0013271484375
+            },
+            {
+              "flat_index": 53494510,
+              "actual": 0.048095703125,
+              "reference": 0.0498046875,
+              "abs_error": 0.001708984375,
+              "allowed_error": 0.001498046875
+            },
+            {
+              "flat_index": 53495391,
+              "actual": -0.046875,
+              "reference": -0.04541015625,
+              "abs_error": 0.00146484375,
+              "allowed_error": 0.0014541015625
+            },
+            {
+              "flat_index": 53496602,
+              "actual": -0.006439208984375,
+              "reference": -0.00537109375,
+              "abs_error": 0.001068115234375,
+              "allowed_error": 0.0010537109375
+            },
+            {
+              "flat_index": 81596419,
+              "actual": 0.0213623046875,
+              "reference": 0.02001953125,
+              "abs_error": 0.0013427734375,
+              "allowed_error": 0.0012001953125
+            },
+            {
+              "flat_index": 81596433,
+              "actual": 0.04345703125,
+              "reference": 0.044921875,
+              "abs_error": 0.00146484375,
+              "allowed_error": 0.00144921875
+            },
+            {
+              "flat_index": 81596445,
+              "actual": 0.01519775390625,
+              "reference": 0.016845703125,
+              "abs_error": 0.00164794921875,
+              "allowed_error": 0.0011684570312500001
+            },
+            {
+              "flat_index": 81596447,
+              "actual": 0.044189453125,
+              "reference": 0.0458984375,
+              "abs_error": 0.001708984375,
+              "allowed_error": 0.001458984375
+            }
+          ]
+        }
+      ],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T11:05:33.082558086Z",
+        "FinishedAt": "2026-11-10T11:07:53.073002859Z"
+      },
+      "error": "Traceback (most recent call last):\n  File \"/input/onerec_probe.py\", line 196, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/onerec_probe.py\", line 163, in run\n    check(prefix+'gradient/'+name,p.grad)\n  File \"/input/onerec_probe.py\", line 108, in check\n    save(); raise AssertionError(f'{name}: {row[\"mismatches\"]} mismatches, max_abs={row[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step1/gradient/model.embed_tokens.weight: 28460 mismatches, max_abs=0.28125\n"
+    },
+    "onerec-native-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "native",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.131591796875,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.731744766235352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 16.946002960205078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 2397,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:49:46.467229083Z",
+        "FinishedAt": "2026-11-10T10:55:35.242979103Z"
+      },
+      "error": null,
+      "tensor_count": 2397,
+      "tensor_bytes": 100697510616
+    },
+    "onerec-off-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "off",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.131591796875,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.731744766235352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 16.946002960205078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 2397,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T11:11:36.75542281Z",
+        "FinishedAt": "2026-11-10T11:18:53.082401682Z"
+      },
+      "error": null
+    },
+    "onerec-qual-01": {
+      "host_status": "PASS",
+      "model_status": "PASS",
+      "mode": null,
+      "steps": null,
+      "optimizer_steps": null,
+      "comparison_count": 0,
+      "provider_calls": null,
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:47:32.248108994Z",
+        "FinishedAt": "2026-11-10T10:49:04.159915463Z"
+      },
+      "error": null
+    },
+    "onerec-repeat-02": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "native_repeat",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.131591796875,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.731744766235352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 16.946002960205078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "compared_tensors": 799
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 2397,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:57:17.24504593Z",
+        "FinishedAt": "2026-11-10T11:04:25.588381907Z"
+      },
+      "error": null
+    },
+    "onerec-unknown-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "unknown",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 17.131591796875,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.731744766235352,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 16.946002960205078,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              36
+            ]
+          ],
+          "compared_tensors": 799
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 2397,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T11:20:10.782547478Z",
+        "FinishedAt": "2026-11-10T11:26:53.980548238Z"
+      },
+      "error": null
+    },
+    "qwen-candidate-01": {
+      "host_status": "ERROR",
+      "model_status": "fail",
+      "mode": "candidate",
+      "steps": [
+        {
+          "step": 1,
+          "status": "fail",
+          "loss": 18.588741302490234,
+          "provider_calls": {
+            "GEMS SILU FORWARD": 28,
+            "GEMS SILU BACKWARD": 28
+          },
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "flaggems",
+              "forward",
+              "completed",
+              28
+            ],
+            [
+              "silu",
+              "flaggems",
+              "backward",
+              "completed",
+              28
+            ]
+          ]
+        }
+      ],
+      "optimizer_steps": 0,
+      "comparison_count": 33,
+      "provider_calls": {
+        "GEMS SILU FORWARD": 28,
+        "GEMS SILU BACKWARD": 28
+      },
+      "failure": [
+        {
+          "name": "step1/gradient/model.layers.2.mlp.down_proj.weight",
+          "file": "1e45c26405a6f1b77382abe1107d34387439c808126ffd1ac6ddc8f87ec7212c.pt",
+          "shape": [
+            1024,
+            3072
+          ],
+          "dtype": "torch.float32",
+          "max_abs": 0.000335693359375,
+          "mismatches": 12,
+          "mismatch_examples": [
+            {
+              "flat_index": 12343,
+              "actual": -0.15609003603458405,
+              "reference": -0.1560581475496292,
+              "abs_error": 3.1888484954833984e-05,
+              "allowed_error": 2.5605814754962922e-05
+            },
+            {
+              "flat_index": 12416,
+              "actual": 0.11697795242071152,
+              "reference": 0.11695506423711777,
+              "abs_error": 2.288818359375e-05,
+              "allowed_error": 2.1695506423711778e-05
+            },
+            {
+              "flat_index": 13777,
+              "actual": 0.14162111282348633,
+              "reference": 0.14159436523914337,
+              "abs_error": 2.6747584342956543e-05,
+              "allowed_error": 2.4159436523914336e-05
+            },
+            {
+              "flat_index": 101431,
+              "actual": -0.10268993675708771,
+              "reference": -0.10273036360740662,
+              "abs_error": 4.042685031890869e-05,
+              "allowed_error": 2.0273036360740665e-05
+            },
+            {
+              "flat_index": 101504,
+              "actual": 0.07239406555891037,
+              "reference": 0.07242312282323837,
+              "abs_error": 2.905726432800293e-05,
+              "allowed_error": 1.724231228232384e-05
+            },
+            {
+              "flat_index": 102865,
+              "actual": 0.09149723500013351,
+              "reference": 0.0915311798453331,
+              "abs_error": 3.394484519958496e-05,
+              "allowed_error": 1.915311798453331e-05
+            },
+            {
+              "flat_index": 371758,
+              "actual": 0.018157700076699257,
+              "reference": 0.018171025440096855,
+              "abs_error": 1.3325363397598267e-05,
+              "allowed_error": 1.1817102544009686e-05
+            },
+            {
+              "flat_index": 371767,
+              "actual": -0.11901947855949402,
+              "reference": -0.11907926201820374,
+              "abs_error": 5.97834587097168e-05,
+              "allowed_error": 2.1907926201820377e-05
+            }
+          ]
+        }
+      ],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:39:00.007070166Z",
+        "FinishedAt": "2026-11-10T10:41:15.326385228Z"
+      },
+      "error": "Traceback (most recent call last):\n  File \"/input/model_probe.py\", line 228, in main\n    try: run(a,r)\n         ^^^^^^^^\n  File \"/input/model_probe.py\", line 190, in run\n    check(prefix+'gradient/'+name,p.grad); gradients+=1\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/input/model_probe.py\", line 130, in check\n    save(); raise AssertionError(f'{name}: {row[\"mismatches\"]} mismatches, max_abs={row[\"max_abs\"]}')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: step1/gradient/model.layers.2.mlp.down_proj.weight: 12 mismatches, max_abs=0.000335693359375\n"
+    },
+    "qwen-native-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "native",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 18.588741302490234,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 192.114990234375
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.87237548828125,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 157.26365661621094
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 14.525646209716797,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 114.5621109008789
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 1863,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:32:03.154153058Z",
+        "FinishedAt": "2026-11-10T10:34:14.192943066Z"
+      },
+      "error": null,
+      "tensor_count": 1863,
+      "tensor_bytes": 14302794504
+    },
+    "qwen-off-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "off",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 18.588741302490234,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 192.114990234375
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.87237548828125,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 157.26365661621094
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 14.525646209716797,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "experimental_disabled",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 114.5621109008789
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 1863,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:41:52.217990678Z",
+        "FinishedAt": "2026-11-10T10:43:43.436551029Z"
+      },
+      "error": null
+    },
+    "qwen-qual-01": {
+      "host_status": "ERROR",
+      "model_status": null,
+      "mode": null,
+      "steps": null,
+      "optimizer_steps": null,
+      "comparison_count": 0,
+      "provider_calls": null,
+      "failure": [],
+      "stop": null,
+      "error": "Traceback (most recent call last):\n  File \"/bmcp_lvm_fs/cgu135/framework-ppu-models-20261110/qwen-input01/run.py\", line 72, in <module>\n    assert len(wheels) == 2, 'Need exactly one adapter and one provider wheel'\n           ^^^^^^^^^^^^^^^^\nAssertionError: Need exactly one adapter and one provider wheel\n"
+    },
+    "qwen-qual-02": {
+      "host_status": "PASS",
+      "model_status": "PASS",
+      "mode": null,
+      "steps": null,
+      "optimizer_steps": null,
+      "comparison_count": 0,
+      "provider_calls": null,
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:29:37.904127719Z",
+        "FinishedAt": "2026-11-10T10:30:53.729863561Z"
+      },
+      "error": null
+    },
+    "qwen-repeat-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "native_repeat",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 18.588741302490234,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 192.114990234375
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.87237548828125,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 157.26365661621094
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 14.525646209716797,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 114.5621109008789
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 1863,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:36:28.701259673Z",
+        "FinishedAt": "2026-11-10T10:38:21.763259119Z"
+      },
+      "error": null
+    },
+    "qwen-unknown-01": {
+      "host_status": "PASS",
+      "model_status": "pass",
+      "mode": "unknown",
+      "steps": [
+        {
+          "step": 1,
+          "status": "pass",
+          "loss": 18.588741302490234,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 192.114990234375
+        },
+        {
+          "step": 2,
+          "status": "pass",
+          "loss": 15.87237548828125,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 157.26365661621094
+        },
+        {
+          "step": 3,
+          "status": "pass",
+          "loss": 14.525646209716797,
+          "provider_calls": {},
+          "dispatcher_restored": true,
+          "routes": [
+            [
+              "silu",
+              "native",
+              "forward",
+              "workload_unverified",
+              28
+            ]
+          ],
+          "gradient_tensors": 310,
+          "parameter_tensors": 310,
+          "grad_norm": 114.5621109008789
+        }
+      ],
+      "optimizer_steps": 3,
+      "comparison_count": 1863,
+      "provider_calls": {},
+      "failure": [],
+      "stop": {
+        "Status": "exited",
+        "Running": false,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 0,
+        "ExitCode": 137,
+        "Error": "",
+        "StartedAt": "2026-11-10T10:44:32.950847266Z",
+        "FinishedAt": "2026-11-10T10:46:39.455769963Z"
+      },
+      "error": null
+    }
+  },
+  "inputs": {
+    "onerec-input01": {
+      "candidate.py": "8b52c07ea970661b66af78702499195fa985f4eb539b7deb48e7297c825ba632",
+      "environment.py": "a5c2e8b48c3018ecdadeb2b7a1cc0d030f880848225ab53863b96727f04e0475",
+      "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+      "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+      "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+      "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "e6c257c92287392ece112dbdf6ce242d4c04f3f2a9030d10849da57db60a29f6",
+      "onerec_probe.py": "18266ed512f1c01c2f77d71be1af59a9824f4f7d86afb44bfc89c29c2ff1a212",
+      "port.json": "8b55883ab85af41687bf7f8c3d3550c67c74c508106e63ab3ab7cf95e07d7809",
+      "probe.py": "235c5abcb7f3e0ec8300dacc89648b14b32a92e1080f79122ba4bc1cbe112d01",
+      "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+      "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+      "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+      "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+      "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+      "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+      "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+      "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+      "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+      "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+      "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+      "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+      "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+      "resources.py": "0471d2abbf880c82d8248205fe65eebfc6c545c6b862e1b247b24911ad9b47cf",
+      "run.py": "3ffd34f13321ea3de2ba0355633bdda037cc1d38af72c94b763b08c287d219b1",
+      "unary_probe.py": "255da5f3c2619bbdbb5f9ed806c3447836ee2f9a1c32b1b4ee02421b19a2392a",
+      "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f",
+      "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa"
+    },
+    "onerec-input02": {
+      "candidate.py": "8b52c07ea970661b66af78702499195fa985f4eb539b7deb48e7297c825ba632",
+      "environment.py": "a5c2e8b48c3018ecdadeb2b7a1cc0d030f880848225ab53863b96727f04e0475",
+      "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+      "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+      "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+      "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "e6c257c92287392ece112dbdf6ce242d4c04f3f2a9030d10849da57db60a29f6",
+      "onerec_probe.py": "18266ed512f1c01c2f77d71be1af59a9824f4f7d86afb44bfc89c29c2ff1a212",
+      "port.json": "8b55883ab85af41687bf7f8c3d3550c67c74c508106e63ab3ab7cf95e07d7809",
+      "probe.py": "235c5abcb7f3e0ec8300dacc89648b14b32a92e1080f79122ba4bc1cbe112d01",
+      "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+      "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+      "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+      "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+      "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+      "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+      "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+      "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+      "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+      "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+      "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+      "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+      "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+      "resources.py": "0471d2abbf880c82d8248205fe65eebfc6c545c6b862e1b247b24911ad9b47cf",
+      "review/off.json": "4948ad2ea9b1c9509ce76493b438c3100a5e9233dd86b73474ec1b00c98cb0c2",
+      "review/operator-evidence.json": "8ac51f547c677403cf0db90ce710d7f95378735b96137d9a2d0829a33cd8db3e",
+      "review/operator-records.json": "2ee9d319a0ead03418c0ee7a14d4f10cee1fd4368985a471badd69beb45b8702",
+      "review/unknown.json": "d42e0dee5a0c0d6192b389f5db459f5fa21374df07b27e31e89eaeefc49728ef",
+      "run.py": "3ffd34f13321ea3de2ba0355633bdda037cc1d38af72c94b763b08c287d219b1",
+      "unary_probe.py": "255da5f3c2619bbdbb5f9ed806c3447836ee2f9a1c32b1b4ee02421b19a2392a",
+      "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f",
+      "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa"
+    },
+    "qwen-input01": {
+      "candidate.py": "8b52c07ea970661b66af78702499195fa985f4eb539b7deb48e7297c825ba632",
+      "environment.py": "a5c2e8b48c3018ecdadeb2b7a1cc0d030f880848225ab53863b96727f04e0475",
+      "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+      "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+      "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+      "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "e6c257c92287392ece112dbdf6ce242d4c04f3f2a9030d10849da57db60a29f6",
+      "onerec_probe.py": "18266ed512f1c01c2f77d71be1af59a9824f4f7d86afb44bfc89c29c2ff1a212",
+      "port.json": "b8dd8d40e579aa1722b55c45e20f06a4f581162b5c5005c6647b190cfa553d29",
+      "probe.py": "235c5abcb7f3e0ec8300dacc89648b14b32a92e1080f79122ba4bc1cbe112d01",
+      "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+      "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+      "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+      "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+      "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+      "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+      "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+      "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+      "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+      "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+      "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+      "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+      "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+      "resources.py": "0471d2abbf880c82d8248205fe65eebfc6c545c6b862e1b247b24911ad9b47cf",
+      "run.py": "d4bbee1783f47f6484f410336a4c6f71cfcf2efdb626f218d39a2a1a75440327",
+      "unary_probe.py": "e57346fdd05f222058554b806460ebcea2d171d448c7298de72a4763c9b855af",
+      "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f",
+      "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa"
+    },
+    "qwen-input02": {
+      "candidate.py": "8b52c07ea970661b66af78702499195fa985f4eb539b7deb48e7297c825ba632",
+      "environment.py": "a5c2e8b48c3018ecdadeb2b7a1cc0d030f880848225ab53863b96727f04e0475",
+      "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+      "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+      "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+      "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "e6c257c92287392ece112dbdf6ce242d4c04f3f2a9030d10849da57db60a29f6",
+      "onerec_probe.py": "18266ed512f1c01c2f77d71be1af59a9824f4f7d86afb44bfc89c29c2ff1a212",
+      "port.json": "b8dd8d40e579aa1722b55c45e20f06a4f581162b5c5005c6647b190cfa553d29",
+      "probe.py": "235c5abcb7f3e0ec8300dacc89648b14b32a92e1080f79122ba4bc1cbe112d01",
+      "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+      "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+      "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+      "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+      "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+      "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+      "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+      "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+      "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+      "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+      "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+      "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+      "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+      "resources.py": "0471d2abbf880c82d8248205fe65eebfc6c545c6b862e1b247b24911ad9b47cf",
+      "run.py": "d4bbee1783f47f6484f410336a4c6f71cfcf2efdb626f218d39a2a1a75440327",
+      "unary_probe.py": "e57346fdd05f222058554b806460ebcea2d171d448c7298de72a4763c9b855af",
+      "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f",
+      "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa"
+    },
+    "qwen-input03": {
+      "candidate.py": "8b52c07ea970661b66af78702499195fa985f4eb539b7deb48e7297c825ba632",
+      "environment.py": "a5c2e8b48c3018ecdadeb2b7a1cc0d030f880848225ab53863b96727f04e0475",
+      "image.baseline.yaml": "df8d468ee6b568c86ea3f2a4e67fc8014e8440cdd07d2eef37731708a9370e71",
+      "lib/baseline.py": "9dbd7a5ac0e4a4aa92da33ca48e7f7b7e1b6e88ad175d3ca0f1b9cc14fc40cc6",
+      "lib/tests/test_baseline.py": "1eebc73ba7794c64f2578eaf7e8b3738d1430168f4bf46eeb257ea5e68b789d8",
+      "lib/up.sh": "4efc2050c07f9e27afbd5b98c2cb8f461c07b10f8a34e6775d98fc3707e4c0e1",
+      "model_admission.py": "7e42c9a76c37e0d6d5deec207646c7d1fa69910a0a3362aa762a62663de16f0c",
+      "model_probe.py": "e6c257c92287392ece112dbdf6ce242d4c04f3f2a9030d10849da57db60a29f6",
+      "onerec_probe.py": "18266ed512f1c01c2f77d71be1af59a9824f4f7d86afb44bfc89c29c2ff1a212",
+      "port.json": "b8dd8d40e579aa1722b55c45e20f06a4f581162b5c5005c6647b190cfa553d29",
+      "probe.py": "235c5abcb7f3e0ec8300dacc89648b14b32a92e1080f79122ba4bc1cbe112d01",
+      "public/runtime/README.md": "cdb3933366111e8f2871f8a5fb03e5b76a503fc0f05f9d15f900a274085a32b2",
+      "public/runtime/__init__.py": "ad716e4761abfc83d98538a0dcfc5465d82f4b76a9fd183e946609a1ba298bae",
+      "public/runtime/api/__init__.py": "8bfa104fd337f93112928a4150a66814fc76be9fac83f548ed39c8ff772359d5",
+      "public/runtime/api/errors.py": "1ce0507e8ca3fd6009363601b495c163ff5f2ae533e32716ad6b3688b67c59d4",
+      "public/runtime/api/stream.py": "c9e2cb6afab83ab18348aee3e0763b4c52cd00eaebcec90dc83ebfa122083956",
+      "public/runtime/backends/__init__.py": "17533d6ffd6dc55987f8c571806df1e192404ecbd77cc14e4e967af2ae29d0fb",
+      "public/runtime/backends/ascend/__init__.py": "515654d5b35aa49ec25b5db8da762fb8f9747ea1f7b8c1d7e091fc40f9531d4d",
+      "public/runtime/backends/ascend/backend.py": "4393ed829994f352f5e4e4b925569aaa54a68205f1045c6b8609b93dd00a434c",
+      "public/runtime/backends/base.py": "3048c2bd811382d24513b56409035c0f205dfeb535fcc0085134612d254b6b08",
+      "public/runtime/backends/cambricon/__init__.py": "7e445f802dea7351839face88b00773e4e09f4b449cb563e612f64bd4b328f3c",
+      "public/runtime/backends/cambricon/backend.py": "bfff8129ede3bbd1d4ed1b465ab44912a4801cee690b06be5d442ae881f55d8e",
+      "public/runtime/backends/kunlun/__init__.py": "c52336713a48e373dbf7f614b2bcf5fc0d11834564127fddb9f117fe6669cf22",
+      "public/runtime/backends/kunlun/backend.py": "bfece23901ccd0eaaa3a8d926b37108b0def7d1deefe53c80ab59413741a2eef",
+      "public/runtime/backends/ppu/__init__.py": "0e961e3a988a6e8c73e9e3ee07127489c4b1dd5aade5b7f3d17266e5502a6f60",
+      "public/runtime/backends/ppu/backend.py": "bd4569dbfef86e46b6b67f12043ec1b091ac30a915c66cc2022b788a4a02f4f0",
+      "public/runtime/backends/registry.py": "f6ca4347d0a7c41bb53828e963f8ebba947195c5bbcd929158d53ee50eeedf44",
+      "public/runtime/conformance/cases.py": "42ddca53c9413d4ca0c8e96b920e3c0cb857de2a7cb2cc74815ecae9adac7664",
+      "public/runtime/conformance/conf_proto_flagos_13.json": "9c2cd5cc2dd56bb74e6f3443a00dc4e2bf388a28c93b5c88a877f4f9b585d428",
+      "public/runtime/conformance/conf_proto_infer_13.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conf_proto_infer_6.json": "55ddf1170069c9b0e7ebb989e8cfc8f1f76db864b642f65169c179f6ec641260",
+      "public/runtime/conformance/conformance_runtime_ascend.json": "9ec1a0dac5fe6925d5240fa800965e703723f5ac4cb0192adc53a9b8d184fffe",
+      "public/runtime/conformance/conformance_runtime_infer.json": "a9624d438d26e73020abdbb3b2d5a1b79ffa82110bcb8e923ff53aa935ca25a7",
+      "public/runtime/conformance/conformance_runtime_kunlun.json": "df44f1473162657509837ef80b243506fe640ed48cb46915fe0eb164ccb281e9",
+      "public/runtime/conformance/conformance_runtime_kunlun_infer.json": "e85b5a10f7276f1700c7566ceea3a6f106cbb1e4e19fb81da274997f11bddaaf",
+      "public/runtime/conformance/contract_invariants.py": "1234f0cb05ca0fcc79350de748ad412b60f34b8ecd15201a24129a72ce127155",
+      "public/runtime/conformance/device_state.py": "80e884a1859620e0719c64020838e912866c562ec61b00e8d9c65ab9ddbb8225",
+      "public/runtime/conformance/errors.py": "1e14978c5b9c22b80d2703f35df16d95db9d4da2e24af8ebaa94441dec0fe826",
+      "public/runtime/conformance/infer_cases.py": "9765417010ec1c8569dcb1bb482270959f43d0b99d8e0c7749e47c937d536862",
+      "public/runtime/conformance/npu_events.py": "58889338979c0954225d2988487e14860728502d89839595bc33e658c3471743",
+      "public/runtime/conformance/recovery.py": "d62185080fd07bfe1a7437718a444cb6f199f98aef1745e1be36d3607c3b611f",
+      "public/runtime/conformance/runner.py": "53d9ff05668b0947699b554985bb6adf3cc4c4d47014809ac596b922183ce694",
+      "public/runtime/demos/demo_unified.py": "6a2ac09cb74a52fa8a5578b3446e287d8cfb2ff1a3f0d586c7dd16d12ee45f9b",
+      "public/runtime/proto/error_recovery_loop_ascend.json": "2516228aa4d8163956500f645ebac1655cffb8f3a607554d424827bbf16d945e",
+      "public/runtime/proto/error_recovery_loop_flagos.json": "8ccb3d9b12f3905bb73be12455bd928ec85ee755b1168dd082e1ccbe4605ce58",
+      "public/runtime/proto/model_path.py": "308109da33889aa72a00506d0356c0637fc6c4f6c4aca572f0d0145edba1431d",
+      "public/runtime/proto/proto_error_recovery_loop.py": "dee02c2b1ce5c34c10ed22fc2d7a081d410081cc44a9c18f3b52ba6e8660c918",
+      "public/runtime/proto/proto_infer_leg.py": "d85550643f17348c23516e4143138bcfddae8f51211a0d6ee74b2601229a597f",
+      "public/runtime/proto/proto_infer_leg_result.json": "887c8ea91b28e0a8ba98dd66badecaf032aebadf5f9c55e838e6b40efe19d852",
+      "public/runtime/proto/proto_infer_serve.py": "2ebc0657cef67c70abd32851c1853ec5478b7cf571af734b8856f1cfb15ac659",
+      "public/runtime/proto/proto_infer_serve_result.json": "7f8fa578ddde29e538b2643b844305c15af7d909cff91fbbb913a1c737a6a0c3",
+      "public/runtime/proto/proto_train_leg.py": "67c5365654a3f0d0ea077f06ebe267acbc947b1ae5db79a95ff4ca15d6b58e06",
+      "public/runtime/proto/train_leg_result_rank0.json": "6b620d165e6656c2914558da1fce898412b57f3cd3226a982f80416ab35c6e53",
+      "public/runtime/proto/train_leg_result_rank1.json": "4f515b17c16f1b2a83ebe089b40057a5c5dbaba5ab4c4a904cdc23e9855d20d1",
+      "public/runtime/smoke_runtime.py": "7e69042aec6c80711b274e3d1ea62681fc58e8d27c1e8af523021f2cdaf4c38f",
+      "resources.py": "0471d2abbf880c82d8248205fe65eebfc6c545c6b862e1b247b24911ad9b47cf",
+      "review/off.json": "9fe5e45c1f349942aecb9faf969caf7f52206ac334fa336c3d958c48d72c1957",
+      "review/operator-evidence.json": "e4cda2af20d7981a92566d16915c77e7fb27a927886684b31ec3246d558533ff",
+      "review/operator-records.json": "a7b9aef4ba7abe69b3962f0a10eed79b755004ec760a96e406714089fd4a769d",
+      "review/unknown.json": "7eb7542b5011933aa2430a98f5dc1fa8f0ec1204106ef63809cd1b73c0729618",
+      "run.py": "d4bbee1783f47f6484f410336a4c6f71cfcf2efdb626f218d39a2a1a75440327",
+      "unary_probe.py": "e57346fdd05f222058554b806460ebcea2d171d448c7298de72a4763c9b855af",
+      "wheels/flag_gems-4.2.1rc0-cp312-cp312-linux_x86_64.whl": "4b0ff0534346170950bda66dc74c48d9473ae00420dfb981c6aa1777ce21512f",
+      "wheels/flagrt_framework_adapter-0.3.0.dev4-py3-none-any.whl": "90c6bf14a1cee050e507586faecd8f61ee91969f4018260794421969aaa9cffa"
+    }
+  },
+  "tensor_backup": "remote only; SHA manifest included"
+}
