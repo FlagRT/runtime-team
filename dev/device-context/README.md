@@ -1,16 +1,18 @@
 # 设备上下文（device-context）· 主看板
 
-> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-11-05**
+> 分支：`kistich/device-context` ｜ PR 目标：`dev-1.0` ｜ 更新：**2026-11-11**
 > 职责：**运行时层的设备抽象与执行上下文**（上承算子层/编译层，下接多机多卡分布式训练推理）
 > 🆕 **四芯片兼容性对照表 v0.11（2026-11-05 MLU590 上机逐格核验；v0.10 为 PPU 归档复核；v0.9 于 11-04 把「算子库」拆两行：实际使用的厂商算子库 / 自带的 FlagGems 系）**：`docs/CHIP_COMPAT_MATRIX_20261104.md` —— 四芯片（910C / P800 / MLU590 / PPU）× 五层（OS / 驱动 / 开发包 / 框架 / 算子库）逐格标 **✅已验证 / 🟡部分验证 / ⚪待核验 / ⛔不支持**，每格附仓内证据指针。
 > 当前 **✅18 · 🟡6 · ⚪0 · ⛔0**（**24 格** = 6 行 × 4 芯片；四家「算子库·实际使用（厂商）」全 ✅；MLU590 操作系统格已转 ✅）；
 > 🆕 **MLU590 上机核验（2026-11-05 15:55–16:07）**：容器 OS 实测 `Ubuntu 22.04.5 LTS` ⇒ 操作系统格 🟡→✅；**唯一 ⚪ 格结案** —— FlagGems `enable()` 能接管 8/9 算子 dispatch，但 4/9 算子与真实前向因 triton-mlu autotuner 参数（`task_type` / `BLOCK_ROW_SIZE`）失败 ⇒ **当前不可替换**，判 🟡（不是测出可用）；驱动格登记两机分叉（Mlu-1 运行态 `6.5.52` / Mlu-2 `6.2.29` / `dpkg` 两台 `6.2.29-7`），历史值不改写。详见 `MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md`。
 > **PPU 归档复核（2026-11-05，未上机）**：三个 SSH 入口仍不可达 ⇒ **零新真机读数、状态判定一格未改**；把「宿主 OS/内核未采集」更正为「宿主内核 `5.10.134-17.2.al8.x86_64` 与容器 OS `Ubuntu 24.04.2 LTS` 有 10-10 实测原文、宿主发行版仍缺宿主侧 `os-release` 原文」，并备好只读采集脚本 `PPU/probes/collect_ppu_compat_20261105.sh`；详见 `PPU/docs/PPU_COMPAT_RECHECK_20261105.md`。
+> 🆕 **第五家壁仞 BR_0 接入进行中（2026-11-11）**：新增第 5 个芯片实例 `biren`（`torch.supa` 命名空间 / pip 包 `torch-br`，路线 A 厂商官方插件），实例资产在 **`BR0/`**（按接入手册**新建实例**、只迁规范与方法）。已过判据：离线契约自检 **83/0/1** → 真机 smoke **46/0** → **conformance 13/13 + 6/6** → 多流 **`STREAM_SEMANTICS_PASS 8/8`**（多流 16 项逐项对照：12 实测通过 / 1 实测不具备有效优先级 / 1 不适用 / 2 本轮未做）。训练腿与推理腿**按裁定本轮不做**；服务化 `serve_standard.sh` 待补 `biren)` 分支。详见 `BR0/docs/BIREN_BR0_CONFORMANCE_AND_STREAM_20261111.md` 与 `BR0/docs/BIREN_BR0_IMAGE_AND_RUNTIME_20261111.md`。
+> ⚠️ **BR_0 取卡铁律（11-11 现场踩到）**：卡池当日从 8 张掉到 6 张（`03/63` 掉总线，`05/83` 新发 `smmu` 故障），且 **`brsmi` 显示索引 ≠ `/dev/biren/card_N` 节点名**——`BIREN_VISIBLE_DEVICES` 按**节点序号**选卡；`brsmi` 正常 ≠ 卡可用，取卡前跑最小算子探针。
 > ⭐ 已更正：**910C 驱动 `26.1.1`**（旧记 `25.5.0` 作废）、**910C 宿主 OS = openEuler 22.03 LTS-SP4**（非 Ubuntu）、**P800 `XTDK 3.6.0.1`/`XRE 5.13.0.0` 有自证**（`torch_xmlir/_versions.txt`）。
 > 🆕 **交付仓（自建仓，2026-11-03 起）**：可安装的 runtime 包已迁至 **`FlagRT/flagos-device-context`（public）**，当前发布 **v0.4.0**（[Release](https://github.com/FlagRT/flagos-device-context/releases/tag/runtime-v0.4.0)，`pip install` 可用 wheel）。本目录**只留芯片实例资产、看板与证据**；报备四字段与版本锚见 `STATUS.md`「交付仓报备」节。
 > 统一基座配置：**`dev/stack.lock.910c.v2.yaml`**（总组定稿；锁定镜像、使用规则、两条腿约束）
 > 本方向状态文件：**`STATUS.md`**（按全组约定，总组据此收拢诉求与裁定基座）
-> 当前快照：**四实例接入完成**（910C / P800 / MLU590 / PPU；PPU 13 段全量重跑零回归 10-26）·
+> 当前快照：**四实例接入完成 + 第五家（壁仞 BR_0）接入中**（910C / P800 / MLU590 / PPU；BR_0 已过 conformance 13+6 与多流 8/8，训推两腿本轮不做）·
 > 共享层四处改动三实例复跑零回归（10-26/27）· 两腿 `DC_MODEL` 口径统一（10-27，P800/MLU 复验 9/0）·
 > **thead-ppu-runtime v2 已由总组裁定生效（ADR-0011，10-29）** · memory 下游建议已落地（11-03，embed 默认 gmu 0.4）。
 > 基座依据：**只消费总组定稿**（`dev/stack.lock.910c.v1–v4.yaml` · `dev/images/**/lock.yaml`）；

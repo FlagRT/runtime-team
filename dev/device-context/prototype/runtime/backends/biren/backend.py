@@ -13,19 +13,30 @@
   `device_type` 用 `"supa"` 而非 `"biren"`：本栈设备串就是 `supa:0`，设备 API 命名空间也叫 `supa`。
 
 **本后端的能力声明 = 逐项实测结果，未实测一律不声明**（依据：本方向「声明即承诺」纪律）：
-  · 2026-11-11 实测通过（见 `BR0/probes/biren_setup_20261111_out/`）：
-      `device`（device_count/set_device/get_device_name）、`memory`（mem_get_info/memory_allocated）、
-      `stream`（Stream/synchronize/current_stream）、`event`（Event/record/query）、`multidevice`（2 卡可见）
-  · ❌ **不声明** `stream_priority`：本栈 `Stream(priority=...)` 接受参数，但**优先级实际生效与回读尚未实测**
-      （本方向纪律：「能设 ≠ 有效果」；`torch.mlu` 曾出现「构造参数回显 ≠ 设备侧取值」的判据空转）。
+  · ✅ 已实测声明（9 键，证据见 `BR0/probes/biren_image_20261111_out/` 与
+    `BR0/probes/biren_conf_stream_20261111_out/`）：
+      `device`（device_count/set_device/get_device_name）、`memory`（mem_get_info）、
+      `memory_alloc_stat`（memory_allocated）、`stream`（Stream/synchronize/current_stream）、
+      `event`（Event/record/query，含 E3「未 record 时 query 误报 True」的本层修正）、
+      `multidevice`（2 卡可见）、`recovery_probe`（探针级探测），
+      `device_state` / `device_state_control`（本层共享四态账本，芯片无关）。
+  · ❌ **不声明** `stream_priority` / `stream_priority_control` / `stream_priority_readback`：
+      2026-11-11 实测 `Stream(priority=N)` 对 N∈{0,±1,−2,−5,7} **构造全成功但 `stream.priority` 回读恒 0**（单档、未生效）；
+      `Stream.priority_range()` 抛 `RuntimeError: greatest_priority <= -1 INTERNAL ASSERT FAILED`。
+      ⇒ 尤其**不声明 readback**：接口存在但恒 0、不反映设置，声明它即制造假能力（「能设 ≠ 有效果」）。
   · ❌ **不声明** `bounded_sync` / `sync_timeout`：`Stream.synchronize()` 与 `torch.supa.synchronize()`
-      **均无 timeout 参数**；主机侧有界等待用「`Event.query()` 轮询 + deadline」实现（见 `wait_event_host`），
-      是否算「真有界」待 conformance 判据确认后再声明。
-  · ❌ **不声明** `recovery_real` / `device_state_control` / `graph_capture` / `memory_alloc` /
-      `memory_alloc_stat` / `record_stream` / `context_*`：**未探测**（不写进来 = `supports()` 如实返回 False）。
+      **均无 timeout 参数**，原生只能无限等待；本层用「`query()` 轮询 + deadline」做成**超时上报**语义
+      （到点抛 `TimeoutError`，**不保证中断底层已提交执行**）。conformance `e2_host_timeout` 已实测
+      「未 record 的 `wait_host(200ms)` 返回 False、耗时 200 ms」——通过的是「不永久阻塞」这一条，
+      不是「原生有界」。
+  · ❌ **不声明** `recovery_real` / `graph_capture` / `memory_alloc` / `record_stream` / `context_*`：
+      **未探测**（不写进来 = `supports()` 如实返回 False）。
       注意本栈确实暴露了 `SUPAGraph`/`graph`/`caching_allocator_alloc`/`set_stream_by_id` 等入口 —— 有入口 ≠ 已实测可用。
   · ❌ **不声明** `error_map`：错误码形态未采集（首轮只看到 `ErrorCode: 100` 与 `SUDNN` 错误名两类，
       未做码表探测）。
+
+**已通过的真机判据（2026-11-11）**：离线契约自检 83/0/1 · smoke 46/0 · conformance 13/13 · 推理 conformance 6/6 ·
+多流探针 `STREAM_SEMANTICS_PASS 8/8`。详见 `BR0/docs/BIREN_BR0_CONFORMANCE_AND_STREAM_20261111.md`。
 
 ⚠️ **已知语义缺口（实测，已在适配层修正）**
   E3 型：**未 record 的 `Event.query()` 原生返回 `True`**（`torch.supa.Event()` 直接 `query() is True`）——
@@ -471,18 +482,41 @@ class BirenBackend(RuntimeBackend):
                 "evidence": "2026-11-11 实测：source 前 ImportError / source 后正常（`BR0/probes/`）",
             },
             {
-                "id": "BIREN-CARD-0-2-HW-FAULT",
+                "id": "BIREN-STREAM-PRIORITY-SINGLE-TIER",
+                "severity": "medium",
+                "scope": "流语义（多流基线第 12 项：流优先级）",
+                "condition": "构造 `torch.supa.Stream(priority=N)` 想设置流优先级，并回读 `stream.priority` 验证",
+                "symptom": "构造对 N∈{0,±1,−2,−5,7} **全部成功**，但 `stream.priority` **逐个回读都是 0**"
+                           "（`current_stream().priority` 亦为 0）⇒ 参数被接收、优先级不生效（单档）；"
+                           "另 `Stream.priority_range()` 抛 `RuntimeError: greatest_priority <= -1 "
+                           "INTERNAL ASSERT FAILED`（`BR_PACKAGE/buildSystem/...`），进程不崩",
+                "root_cause_layer": "厂商 PyTorch 插件（torch_br）流优先级实现 + 上游优先级区间上报",
+                "workaround": "`stream_priority` / `stream_priority_control` / `stream_priority_readback` "
+                              "**三键均不声明**——尤其 readback：接口存在但恒 0、不反映设置，"
+                              "声明它等于制造假能力（『能设 ≠ 有效果』）。多流并发语义另由探针 S12 并发段覆盖",
+                "report_to": "torch_br 上游（可选：优先级设置落地 / `priority_range()` 返回合法区间）。"
+                             "注：与昆仑芯侧同形断言属**各自实测**，未做同源性证明，不合并归因",
+                "evidence": "`BR0/probes/biren_conf_stream_20261111_out/biren_facts_20261111_145533/"
+                            "facts_s12_i6_20261111_145533.log`（§A/§A2 两段）",
+            },
+            {
+                "id": "BIREN-CARD-HW-FAULT-SPREADING",
                 "severity": "info",
                 "scope": "测试机资源（非本层缺陷）",
-                "condition": "使用本机 0 号或 2 号卡",
-                "symptom": "2026-11-10 热复位后不可用：brsmi 读数全 N/A（卡 0 另残留 128 MiB 占用）",
-                "root_cause_layer": "硬件/驱动（dmesg：卡2 `smmu context fault` ×3 → `PQM hang recovery fail` "
-                                    "→ `can not register`；卡0 `detect CORE hang` + `MCU0 hang @HCQD4`）",
-                "workaround": "接入期只用健康卡（1/3/4/5/6/7）；已单独出故障报告提交上游",
-                "report_to": "壁仞 / 机器提供方（工单对象应为卡 0 与卡 2，"
+                "condition": "使用本机的坏卡；或按 `brsmi` 显示索引挑卡",
+                "symptom": "2026-11-10 起故障**扩散**：11-11 当天 `03:00.0` 与 `63:00.0` 彻底 `device remove`（8 张→6 张），"
+                           "同时 `05:00.0`(13:34)、`83:00.0`(14:22) 新发同型故障（复位后仍 N/A + 128 MiB 残留）。"
+                           "⚠️ 卡掉线后 `brsmi` 索引会重排、而 `/dev/biren/card_N` 节点名不变 ⇒ "
+                           "表里的『第 3 号』与节点 `card_3` 不再是同一张卡",
+                "root_cause_layer": "硬件/驱动（dmesg 链条同一形状：`smmu context fault(Read) fsr=0x402` → "
+                                    "`PQM hang recovery fail` → `found spc hang, mask 0xffffffff` → `hot reset triggered`）",
+                "workaround": "① 只用健康卡（当前 `85:00.0`=节点 `card_5`、`a5:00.0`=节点 `card_7` 为在用）；"
+                              "② `BIREN_VISIBLE_DEVICES` 按**设备节点序号**选卡，**不按 `brsmi` 显示索引**；"
+                              "③ 取卡前跑最小算子探针（`brsmi` 读数正常 ≠ 卡可用）",
+                "report_to": "壁仞 / 机器提供方（工单对象是 `03/63/05/83` 这四张的 Bus-Id，"
                              "**不是**交接清单里写的 7 号卡）",
-                "evidence": "`BR0/docs/BIREN_CARD02_FAULT_REPORT_20261111.md` 与 "
-                            "`BR0/probes/biren_card02_20261111_out/card02_timeline_20261111.log`",
+                "evidence": "`BR0/docs/BIREN_CARD02_FAULT_REPORT_20261111.md`（11-10 两张）、"
+                            "`BR0/docs/BIREN_BR0_CONFORMANCE_AND_STREAM_20261111.md` §6（11-11 扩散与节点/索引错位）",
             },
         ]
 

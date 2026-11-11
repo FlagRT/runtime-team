@@ -327,12 +327,31 @@ def main():
             else:
                 detail = f"统一 API 返回={rng}"
             support = "支持"
-        else:
+        elif BACKEND == "kunlun":
             detail = ("**不支持**：统一 API 返回 None（昆仑芯后端已主动拦截）——"
                       "实测裸调 `Stream.priority_range()` 会触发 PyTorch 自身 "
                       "INTERNAL ASSERT FAILED at c10/cuda/CUDAStream.h:188 "
                       "(greatest_priority <= -1)，属上游上报非法优先级区间，非本层可修")
             support = "不支持（上游缺陷，如实标注）"
+        elif BACKEND == "biren":
+            # 2026-11-11 壁仞 BR_0 实测（此前本分支沿用昆仑芯文案，属**错归属**，已改正）：
+            #   · `Stream(priority=N)` 对 N∈{0,-1,-2,1} 均构造成功，但 `stream.priority`
+            #     **逐值回读恒 0** ⇒ 参数被接收、优先级未生效（单档）；
+            #   · `Stream.priority_range()` 抛 RuntimeError: INTERNAL ASSERT FAILED
+            #     (greatest_priority <= -1) —— 与昆仑芯**同形的上游上报缺陷**。
+            #   ⇒ 三键全不声明：`stream_priority`（未生效）、`_control`（设置不落地）、
+            #     `_readback`（回读存在但恒 0、不反映设置，声明它即假能力）。
+            detail = ("**未声明（实测单档/未生效）**：`Stream(priority=N)` 构造收参，但 "
+                      "`stream.priority` 对 N∈{0,-1,-2,1} **逐值回读恒 0** ⇒ 优先级未生效；"
+                      "`Stream.priority_range()` 抛 RuntimeError: INTERNAL ASSERT FAILED "
+                      "(greatest_priority <= -1)（与昆仑芯同形的上游缺陷）。"
+                      "故 stream_priority / _control / _readback 三键全不声明——"
+                      "回读接口存在但不反映设置，声明 readback 即假能力")
+            support = "未声明（参数被接收但回读恒 0，未生效）"
+        else:
+            detail = (f"**未声明**：统一 API 返回 None（{BACKEND} 后端未声明 stream_priority）——"
+                      f"「未声明」其含义是**未实测**，不等同于平台不具备")
+            support = "未声明（未实测）"
 
         # 多流并发仍正确（语义验证优先于优先级调度效果验证）
         sh, sl = dev.Stream(), dev.Stream()
