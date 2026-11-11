@@ -1,0 +1,30 @@
+=== OP PARITY mode=gems ===
+flag_gems_in_modules_before False
+/flagos/lib/python3.10/site-packages/torch_mlu/utils/model_transfer/__init__.py:2: FutureWarning: `torch_mlu.utils.model_transfer` is deprecated. Please use `torch_mlu.utils.gpu_migration` instead.
+  warnings.warn("`torch_mlu.utils.model_transfer` is deprecated. "
+/flagos/lib/python3.10/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+  warnings.warn(
+/flagos/lib/python3.10/site-packages/torch/library.py:365: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+  Overriding a previously registered kernel for the same operator and the same dispatch key
+  operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+    registered at /pytorch/build/aten/src/ATen/RegisterSchema.cpp:6
+  dispatch key: PrivateUse1
+  previous kernel: registered at /pytorch/build/aten/src/ATen/RegisterCPU_3.cpp:7154
+       new kernel: registered at /dev/null:63 (Triggered internally at /pytorch/aten/src/ATen/core/dispatch/OperatorEntry.cpp:154.)
+  self.m.impl(
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d's behavior for PrivateUse1 dispatch key and aten namespace.
+WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding replication_pad3d_backward's behavior for PrivateUse1 dispatch key and aten namespace.
+ENABLE_OK triton=3.2.0 flag_gems=5.4.0rc2.post3
+device_count 1
+ROW:{"err": "", "head": [24.157644, 3.965378, 11.057143, 3.408013, 8.09526, -1.531765, 8.420314, -1.266799], "inf": 0, "nan": 0, "ok": true, "op": "gemm64", "sum": -258.007294}
+ROW:{"err": "", "head": [-3.901241, 4.812939, 15.697252, 8.003288, -0.613821, 4.392731, -8.274897, -1.960157], "inf": 0, "nan": 0, "ok": true, "op": "matmul", "sum": -21.737907}
+ROW:{"err": "KeyError: 'Keyword argument task_type was specified but unrecognised'", "head": [], "inf": null, "last_frame": "raise KeyError(\"Keyword argument %s was specified but unrecognised\" % k)", "nan": null, "ok": false, "op": "add", "sum": null}
+ROW:{"err": "KeyError: 'Keyword argument task_type was specified but unrecognised'", "head": [], "inf": null, "last_frame": "raise KeyError(\"Keyword argument %s was specified but unrecognised\" % k)", "nan": null, "ok": false, "op": "mul", "sum": null}
+ROW:{"err": "KeyError: 'Keyword argument task_type was specified but unrecognised'", "head": [], "inf": null, "last_frame": "raise KeyError(\"Keyword argument %s was specified but unrecognised\" % k)", "nan": null, "ok": false, "op": "silu", "sum": null}
+ROW:{"err": "", "head": [0.489635, 0.567159, 1.550745, 0.0, 0.679168, 0.0, 0.0, 0.0], "inf": 0, "nan": 0, "ok": true, "op": "relu", "sum": 783.258545}
+ROW:{"err": "", "head": [0.007998, 0.003402, 0.011866, 0.012095, 0.003917, 0.005892, 0.033661, 0.026528], "inf": 0, "nan": 0, "ok": true, "op": "softmax", "sum": 32.000004}
+ROW:{"err": "KeyError: 'Keyword argument BLOCK_ROW_SIZE was specified but unrecognised'", "head": [], "inf": null, "last_frame": "raise KeyError(\"Keyword argument %s was specified but unrecognised\" % k)", "nan": null, "ok": false, "op": "layernorm", "sum": null}
+ROW:{"err": "", "head": [-0.901206, 0.565595, -0.488226, 0.750696, 0.589254, -0.455196, -0.813548, 0.26704], "inf": 0, "nan": 0, "ok": true, "op": "triu", "sum": 16.7458}
+OP_PARITY_DONE

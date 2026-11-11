@@ -1,4 +1,4 @@
-"""End-to-end retrieval and reranking pipeline; generation is added later."""
+"""Retrieval and reranking pipeline with an optional local generation stage."""
 
 from __future__ import annotations
 
@@ -20,12 +20,14 @@ class RetrievalPipeline:
         reranker: Qwen3Reranker,
         *,
         execution_mode: str = "concurrent",
+        generator=None,
     ) -> None:
         validate_execution_mode(execution_mode)
         self.store = store
         self.embedder = embedder
         self.reranker = reranker
         self.execution_mode = execution_mode
+        self.generator = generator
         self._search_executor = (
             ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-search")
             if execution_mode == "concurrent" else None
@@ -82,3 +84,10 @@ class RetrievalPipeline:
     def _require_open(self):
         if self._closed:
             raise RuntimeError("Retrieval pipeline is closed")
+
+    def generate(self, query, hits, max_new_tokens=256, timings=None):
+        self._require_open()
+        if self.generator is None:
+            raise ValueError('Generation is not enabled')
+        with measure_stage(timings, 'generation_ms'):
+            return self.generator.generate(query, hits, max_new_tokens)

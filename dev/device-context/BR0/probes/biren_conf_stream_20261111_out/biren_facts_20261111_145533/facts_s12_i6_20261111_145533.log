@@ -1,0 +1,45 @@
+=== 壁仞 BR_0 事实归档（S12 流优先级 / i6 重叠率）===
+[HOST] wz-server008 2026-11-11 14:55:33 CST
+[IMG ] birensupa-smartinfer-vllm:26.07.09-py310-pt2.8.0-vllm0.21.0-c066s001t001b24145-br1xx
+[VIS ] BIREN_VISIBLE_DEVICES=5,7
+[NODE] card_5 card_7 
+
+--- A. 流优先级：范围 API / 构造 / 回读一致性 ---
+[W1111 14:55:36.425492954 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+=== 流优先级事实探针（biren / torch.supa）===
+torch: 2.8.0+cpu | torch_br: 1.8.7.20800+br1xx
+devices: 2
+has torch.supa.stream_priority_range: False
+has torch.supa.Stream.priority_range: True
+has torch.supa.Stream.priority  : True
+Stream(priority=  0): 构造成功 | 回读 priority=0 | 一致=是
+Stream(priority= -5): 构造成功 | 回读 priority=0 | 一致=否
+Stream(priority=  7): 构造成功 | 回读 priority=0 | 一致=否
+current_stream().priority: 0
+dev._C 有 get_stream_priority_range: False
+=== 探针结束 ===
+
+--- A2. 档内逐值设置-回读（含 range 调用结果）---
+[W1111 14:55:41.163993177 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+=== Stream.priority_range 定性 ===
+priority_range() 失败: RuntimeError greatest_priority <= -1 INTERNAL ASSERT FAILED at "/home/jenkins/agent/workspace/BR_PACKAGE/buildSystem/on_demand/full-s
+
+=== 合法档内设置-回读一致性 ===
+  set   0 -> readback 0
+  set  -1 -> readback 0
+  set  -2 -> readback 0
+  set   1 -> readback 0
+=== done ===
+rc=0
+
+--- B. i6 口径随工作量变化（预热后计时）---
+[W1111 14:55:47.515551286 GeneratorForPrivateuseone.cpp:17] Warning: REGISTER_GENERATOR_PRIVATEUSE1 is deprecated.       Please derive PrivateUse1HooksInterface to implememt getNewGenerator instead. (function _GeneratorRegister)
+=== i6 口径随工作量变化（预热后计时）===
+  n= 512 batches= 4 | pipe=0.0023s serial=0.0016s 重叠率=-44.7%
+  n=1024 batches= 8 | pipe=0.0048s serial=0.0048s 重叠率=+1.7%
+  n=2048 batches= 8 | pipe=0.0133s serial=0.0134s 重叠率=+1.1%
+  n=2048 batches=16 | pipe=0.0240s serial=0.0239s 重叠率=-0.1%
+  n=4096 batches= 8 | pipe=0.0631s serial=0.0632s 重叠率=+0.1%
+=== done ===
+
+=== END ===

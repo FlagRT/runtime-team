@@ -1,127 +1,43 @@
 # memory · STATUS
 
-> 总组速览入口（战略文档 §8.2 格式）｜ 详细看板见 [PROGRESS.md](PROGRESS.md) / [README.md](README.md)
-> 最近更新：2026-11-03
+最近更新：2026-11-05｜开发主力：刘鑫；既有画像/卸载负责人：陈沅昕（请假中，返回后分工待议）。
 
-## 交付物指针（组件代码在独立仓）
-
-- **仓地址**：`git@github.com:FlagRT/FlagMemory.git`
-- **协作线**：`dev-1.0`（`main` 只放发版同步 / `<名字>/<功能>` 个人分支）
-- **当前版本锚**：见各运行环境目录 `env.baseline.yaml` 的 `mounted_repos`
-  （布局登记处 `dev/repos.yaml` 只管布局与协作线，不锁提交）
-- **与 dev-1.0 的关系**：**不并仓**。本目录保留看板、状态与实测证据；
-  显存池管理器的组件代码、接口头文件与单测在独立仓。依据 ADR-0014。
-
-## 设备接入路线
-
-- **当前路线：Route A**。memory 不走 `torch_fl` 设备层；统一基于各芯片厂商官方设备插件接入，再使用 FlagGems、FlagCX 与 vllm-plugin-FL 等 FlagOS 组件。
-- 路线变更依据：[FlagOS 设备层路线变更指南](docs/common/policy_设备层路线变更指南.md)。该文档明确 2026-08-22 起生产交付由 B 切换为 A，2026-09-03 起 `torch_fl` 设备层路线冻结。
-- `docs/goals/legacy-2.4-910c/` 下的 `torch_fl` 内容仅作历史验证资产，不作为 memory 当前开发基线。
+本页按 [战略目标 §8.2](../../docs/运行时层原型验证-战略目标-910C.v1.md) 维护当前阶段、关键阻塞和更新日期；详细历史看板仍见 [README](README.md) / [PROGRESS](PROGRESS.md)。组件功能、接口和单测在 [FlagMemory](https://github.com/FlagRT/FlagMemory)，本仓负责组内同步和验收资料。
 
 ## 当前阶段
 
-- 对应 §3 验收标准**第 4 条**（显存池定义 + 显存占用峰值画像；KV 相关不作硬性指标）。
-- §5 memory 任务清单进度：
-  1. 锁定推理镜像显存画像 —— ✅ **完成**（2026-09-10，npu1-27 davinci-7，锁定镜像内实测）。
-     环境核对 + embedding API surface 实测 + 加载阶段 HBM 分解 + 运行阶段峰值 sweep（batch×seq-len）+ A/B 三轴。
-     报告：[docs/goals/proto-910c-202609/profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)（已从骨架转正）。探针已实测通过；
-     `hbm-sampler_910c.py` 解析器按 npu-smi 25.5.0 A3 版式修过（按 Phy-ID 做键）。
-  2. 显存池定义文档 + 对照数据 —— ✅ **完成**。[docs/goals/proto-910c-202609/design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md)：
-     两层池（torch_npu caching allocator 底座 + vLLM 层）、gpu_memory_utilization/pooling 预分配/
-     ACLGraph capture、复用回收、A/B 对照表、**给 device-context/调度 的安全区间**
-     （embedding 服务：gmu 0.35–0.45、max_num_seqs 64–128）。原始数据 `benchmarks/out/`。
-  3. 分层缓存/Host 溢出 —— 本期非硬性指标，routeA-S4 留档即可（对 embedding 无意义：预分配池是余量非需求）。
-  4. 生成式模型显存画像 —— ✅ **完成**（2026-09-23，npu1-27 davinci1，标准环境 `serve_standard.sh`，910C 不启用 FL）。
-     主模型 `OpenOneRec/OneRec-8B`（revision `29f95b3d`，已落共享盘 `/data_lib/models/OneRec-8B`）；
-     冒烟 PASS（model_list 首条生成记录）+ A(加载)/C(decode 增长)/E(归还闭环)/B(输入长度)/D(并发)/F(gmu 对照) 全矩阵。
-     **双指标方法论**：设备 HBM（npu-smi）+ 引擎 KV 使用率（/metrics `kv_cache_usage_perc`）同步采集。
-     报告：[docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md)；
-     探针 [probes/910c/](probes/910c/) gen-{load,matrix,parse}；原始数据 `benchmarks/out/gen910c/`（gitignored，服务器本地）。
+- 对应战略目标 §3 第4条（显存池定义与占用峰值画像）；旧画像与三栈卸载成果保留。当前已推进分级块池、租约与流有序归还、统一桥接及单模型连续池输入验证。
+- 池核心/主机合同已验收；新统一桥接三生命周期真实3通过0跳过；最终源主机715通过/1旧跳过/11真卡未选；OneRec-8B单加载16对/32 forward、maxdiff0、1alloc8MiB/1release/live0已独立接受。精确源码身份与限制见 [阶段验收摘要](https://github.com/FlagRT/FlagMemory/blob/xliu969/pool-impl/docs/validation/2026-11-05-pool-stage.md)。
+- 招标显存组件18条整体尚未完成；11月12日设计评审已通过（2026-11-05提前：用户主审，设备方向对接口章确认无异议）；11月25日接口冻结已实质达成（2026-11-05双方认可，冻结文件v1落device-context目录、待公共合入）；余11月28日阶段公共交付复核与11月30日分层设计出口待组织，不能以本次固定模型输入链替代。
 
-  5. FL 双栈显存画像 —— ✅ **完成**（2026-10-12，npu1-27 davinci4，v3 统一基座 `vllm-plugin-fl 0.0.0+g8b059122e`）。
-     14 组全矩阵（A/C/E/B/D/F）对照 vllm-ascend 基线：池精确减半（`vllm_fl/worker/worker.py` 静态 50% 预留，
-     双模型复现）、decode ~400× 慢（prefill 正常）、shmem 缺失两层三触发点；KV token 账目两栈一致
-     （≈0.14 MiB/tok）——卸载结论结构性可平移，池大小/并发数字须标栈。
-     报告：[docs/goals/proto-910c-202610/profile_FL双栈显存画像对照_910c.md](docs/goals/proto-910c-202610/profile_FL双栈显存画像对照_910c.md)。
-  6. KV 卸载到 Host（W2 最小闭环 + W3 开关对照）—— ✅ **vllm-ascend 锁定栈完成**（2026-10-14，npu1-27 davinci4，
-     外挂 NPU connector 适配件，vllm-ascend 本体零改动）。
-     卸→存→召回→结果正确四步实测闭环（召回 15 批 CPU→GPU DMA 实锤、12/12 请求正确）；
-     **64 GiB 生产池型（K=1.63×G）召回实测（2026-10-14 夜）：召回率 40/40=100%、收益 0.112 s/请求、真实等效扩容 +63.2%**；
-     8 GiB 边界档（上游默认值）：等效扩容 +20.4%（账面）、decode 代价 7-8%（第一版，未优化）；**Host 池 > GPU 池（>39.2 GiB）才成真两级缓存（64 GiB 档实测验证）**。
-     FL 栈未测卸载（decode 性能限制，结论可平移，实测排 v3 验证窗口）。
-     报告：[docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md](docs/goals/proto-910c-202610/profile_KV卸载Host对照_910c.md)。
-  7. P800（昆仑芯）KV 卸载 xpu 适配全链闭环 + 真模型 A/B —— ✅ **完成**（2026-10-23/24，P800 节点 xpu5，
-     vLLM 0.20.2 + vllm-plugin-fl 0.2.0 + offload.xpu_offload 外挂 connector）。
-     卸→存→召回→正确四步实测闭环（store/load DMA 逐批日志实锤）；真模型 A/B 收口用**暖跑配对口径**
-     （冷跑噪声 ±70% 弃用）：expand 超池档开卸载快 38%、TTFT max −24%、池内代价≈0；
-     多模型链独占口径可用性验证（OneRec-8B / Qwen3-4B 零漂移）。
-     报告：[docs/goals/proto-p800-202610/](docs/goals/proto-p800-202610/)
-     （RESULT_诊断与四步闭环_P800昆仑_20261023 + RESULT_AB卸载开关_P800昆仑_20261024）。
-  8. 画像规范 PROFILE-PROTOCOL 首次双芯完整执行 —— ✅ **完成**（2026-10-25，P800 + 910C，真模型 OneRec-8B 全腿本，
-     「换芯不换脑」）。执行抓出规范 4 处漏洞并修订升 v0.3；P800 池满悬崖场景开卸载快 17%
-     （批量病态=池 100% 满载态，昆仑特有）；910C FL 0.2.0 补测：decode 慢路未修复（0.06 tok/s 与 0.0.0 持平）、
-     50% 池预留依旧（worker.py:524）——归因进一步指向 vendor 分发层而非芯片本体。
-     报告：[docs/goals/proto-p800-202610/](docs/goals/proto-p800-202610/)
-     （PLAN_protocol_run + RESULT_规范验证跑_{P800,910C} + 通俗版；原始数据本地/服务器归档）。
-  9. PPU（ZW810E）ppu_offload 移植闭环 —— ✅ **冒烟级完成**（2026-10-26，PPU 节点单卡 TP=1，
-     vLLM 0.24.0（FL vendor）+ vllm-plugin-fl 0.3.0rc0 + offload.ppu_offload 四补丁外挂）。
-     store/load DMA 逐块日志实锤；开关冒烟对照：池内零代价、超池 200% 净代价 +2.1%；
-     真模型规范级验证待通道恢复后另行排期（本项以冒烟口径交付，不作规范验证口径引用）。
-     报告：[docs/goals/proto-ppu-202610/](docs/goals/proto-ppu-202610/)（PLAN_AB + RESULT_AB卸载开关）。
+## 关键阻塞与需总组同步
 
-## 关键结论（供总组 / device-context / 调度）
+- 接口语言面已裁定并落地（2026-11-05，ADR-0015 Accepted）：「接口头文件」=类型存根+接口文档，C头触发式（非Python消费方或验收方明确要求）；定稿措辞已在组件仓公共 dev-1.0（f3c7125）。
+- 下游交界已联合冻结（2026-11-05，双方认可）：统一内存句柄加「用途标签+所属流」两字段、强持有与能力缺失语义，冻结文件v1 = [HANDLE_AND_POOL_INTERFACE_FREEZE_20261105](../device-context/docs/HANDLE_AND_POOL_INTERFACE_FREEZE_20261105.md)（归属device-context目录，待公共合入）；寒武纪MLU590句柄能力状态、两字段落地形态两件待设备方向明确。通用分层管理器及池回调未接线，OOM防护真机、画像工具归位仍待推进。
+- 当前设备结果限单芯片固定模型输入缓冲，不含权重/KV/激活接管、多rank/训练/generate、业务质量或性能收益；HBM仅离散观察，完整logits未落盘，不能独立重算全部向量。
+- 两仓唯一个人汇总线分别为组件仓 `xliu969/pool-impl`、本仓 `xliu969/memory-stage-closeout`；历史300份脱敏资料及旧报告脱敏修正已进入本仓个人线，组件仓旧reports改为索引；两仓公共 `dev-1.0` 均已由用户合入（本仓494cc017；组件仓f3c7125含接口章定稿措辞）。新桥接原始证据私有保留，不随历史批次公开。
 
-- **embedding-on-vLLM 的 HBM 峰值 ≈ driver 2.82 + 权重 1.13 + `gpu_memory_utilization` × 空闲HBM(61.3 GiB) + 激活 0.2–0.57 + graph 0–0.1（GiB）**。
-- **峰值几乎与 batch / seq-len / max_model_len 无关**；唯一大杠杆是 `gpu_memory_utilization`。
-- vLLM 对 pooling runner 仍按 gmu 吃满空闲 HBM 建 "KV cache" 池（gmu0.9 → 53.79 GiB / 503,552 tok），
-  但 embedding 永不使用 → 纯余量。**gmu 0.4 实测 HBM 峰值 42.8%（28 GiB），吞吐与 0.9 无差**。
-- eager vs ACLGraph：显存差仅 0.2 GiB，是时延（load +15s）↔吞吐（+8%）权衡，非显存权衡。
-- `expandable_segments:True` 对 embedding 无可测效果（池是整块分配，无碎片）。
-- 预热 4.7s（旧栈生成式首次 attention 是 437s）。
+## 组内同步与月度待办
 
-**生成式（OneRec-8B，2026-09-23）追加**：
-- **生成式账本与 embedding 同构**：HBM ≈ idle 2.82 + 权重 + gmu×可见HBM + 激活 ~0.3（GiB）。
-  OneRec-8B 权重 15.66 GiB、KV 池 39.23 GiB / 285,568 tok、HBM 峰值 90.7%；激活两种负载下都是 0.2–0.6 GiB 零头。
-- **双指标口径（判泄漏/判容量的标准）**：预分配使设备 HBM 恒平（实测波动仅 142 MiB），KV 块涨落只在
-  `/metrics kv_cache_usage_perc` 可见（0→0.4%→0）；单看 npu-smi 会误判"无动态"或"泄漏"。
-- **单 token KV 成本 0.14 MiB/token**（OneRec-8B / TP=1，结算行与压测两口径互证）→ 最大并发 ≈ 池 tokens ÷ 单请求上下文；
-  gmu（动分子）与 max_model_len（动分母）对并发是等比例的两个旋钮。
-- **gmu 语义随负载变化**：embedding 的池是纯余量（可放心压 0.4）；生成式的池是真实并发容量
-  （0.9→0.4 并发 69.7×→15.3×）。共享机实验建议 gmu0.4，独占卡生产 0.9。
-- 归还闭环健康：完成/客户端取消均回收 KV 块、无累积；标准栈上 Memory 侧暂无适配缺口（调度器抢占未测）。
+- 两仓公共合入均已完成（用户执行）；后续公共合入沿用同一流程：个人分支提交后由用户经 sync_to_dev 执行，两仓是独立Git仓、分别操作。
+- 本仓标准动作见 [根README标准提交流程](../../README.md#标准提交流程) 及 [同步脚本](../sync_to_dev.sh)：在已提交且干净的个人分支运行 `bash dev/sync_to_dev.sh`，无参数；会合入并推送本仓公共 `dev-1.0`，结束停在公共分支。该动作由用户最后执行。组件仓在公共协作仓的 `FlagMemory/` 子目录时，可从该组件仓个人分支运行 `bash ../dev/sync_to_dev.sh`，脚本按当前Git仓根操作；组件仓自身没有同名脚本。
+- 组件仓布局与协作线见 [仓登记](../repos.yaml)；环境启动、精确版本登记与核验遵循 [环境规范](../ENV-SPEC.md)，基座以现行锁定声明为准。
+- 后续按未完成18条范围组织正式评审、接口与下游确认、分层/防护/画像工具交付及跨场景联合验收，分别报告质量与性能。
 
-## 给下游子方向的建议（Action Items，待接收）
+## 功能×芯片进度矩阵
 
-> 以下三项是 memory 本期产出里**别的方向用得上、但目前只写在 memory 自己文档里**的部分。仓库里没有找到 `调度`/`监控` 的子方向目录（截至 2026-09-11，`dev/` 下只有 `communication` / `device-context` / `memory` / `performance` / `rag_ljy`），无法直接对接到具体目录，先在此列清楚，等总组确认接收方或该方向建目录后对接。
+状态四档：**待探查 / 待接入 / 已接入 / 已验收**（已验收 = 真卡实测通过且证据入档）。功能说明文档锚定组件仓 [FlagMemory](https://github.com/FlagRT/FlagMemory)：[显存池概念与设计基础](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/显存池概念与设计基础.md)、[分层存储概念与设计基础](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/docs/design/分层存储概念与设计基础.md)。
 
-| # | 给谁 | 内容 | 状态 |
-|---|---|---|---|
-| 1 | **device-context**（段二显存参数） | 段二 embedding 服务建议起服务参数：`gpu_memory_utilization=0.35~0.45`（推荐 0.4）、`max_num_seqs=128`、`enforce_eager=False`（默认）。依据见 [design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md) §6。不采纳的实际后果：默认 `gmu=0.9` 会把单卡 HBM 打到 91%，带卡容器抢名额/显存时（本次画像就因此被卡三轮）没有回旋余地。 | 待接收 |
-| 2 | **调度**（请求调度侧） | 同上参数里 `max_num_seqs=128` 直接影响调度侧的并发/排队策略；HBM 峰值几乎不随 batch/并发变化（见同文档 §3.4），排队策略不必为"显存不够"保守让路。 | 待接收（该方向暂无仓库目录） |
-| 3 | **监控**（§5 监控任务 2：内存采集脚本） | 建议直接复用 [`probes/910c/hbm-sampler_910c.py`](probes/910c/hbm-sampler_910c.py)（宿主侧轮询 npu-smi，已针对本机 npu-smi 25.5.0 版式修过解析 bug，采过 HBM+AICore），而不是各写一份——避免口径不一致、避免监控重踩已经踩过的解析器坑。错误注入闭环若涉及 OOM 类注入，此脚本可直接复用抓 HBM 证据。生成式服务请**同时采 npu-smi 与 /metrics `kv_cache_usage_perc`**（[`probes/910c/gen-load_910c.py`](probes/910c/gen-load_910c.py) 已实现，可直接复用）。 | 待接收（该方向暂无仓库目录） |
-| 4 | **device-context / performance**（生成式服务参数） | OneRec-8B@910C 实测参数建议：独占卡 `gmu=0.9`（69.7 路 × 4096 tok，c64 无压力）；共享卡 `gmu=0.4`（15 路，HBM 42.9%，c8 轻负载实测够用）；若业务生成短，优先砍 `MAX_MODEL_LEN`（4096→1024 并发 ×4，零显存代价）。依据见 [profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md) §10-11。 | 待接收 |
+| 功能 | 昇腾 910C | 昆仑芯 P800 | 平头哥 PPU | 寒武纪 MLU | 壁仞 BR_0 |
+|---|---|---|---|---|---|
+| [池本体（分级块池）](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/显存池概念与设计基础.md) | 已验收：[三生命周期真卡证据](evidence/flagmemory-pool/ascend-pool-lifecycle-3de6d5a/)、[OneRec 单输入](evidence/flagmemory-pool/onerec-input-consume-4967c6a/)、[验证叙事](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/validation/2026-11-04-ascend-pool-onerec.md) | 已验收（公开仓暂无独立归档件；池阶段验收摘要见 [2026-11-05-pool-stage](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/validation/2026-11-05-pool-stage.md)） | 已验收（公开仓暂无独立归档件；真卡全套收尾见 [ppu-tier-closeout-536bf3b](evidence/flagmemory-pool/ppu-tier-closeout-536bf3b/)） | 待接入（句柄能力状态待设备方向明确，见 [接口冻结文件](../device-context/docs/HANDLE_AND_POOL_INTERFACE_FREEZE_20261105.md)） | 待接入（机器权限未通） |
+| [芯片接线（backends）](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md) | 已验收：[昇腾接线真卡用例](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/tests/tiering/test_npu_backend_realcard.py) | 已验收：[昆仑芯接线真卡用例](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/tests/tiering/test_xpu_backend_realcard.py) | 已验收：[平头哥接线真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_ppu_tier_manager_realcard.py) | 待接入（无搬运适配层，见[分层存储设计 4.5 节](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md)） | 待接入 |
+| [分层存储（管理器端到端+真模型）](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md) | 已验收：[昇腾管理器端到端真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_npu_tier_manager_realcard.py) | 已验收：[昆仑芯管理器端到端真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_xpu_tier_manager_realcard.py) | 已验收（含真模型 A/B）：[ppu-tier-closeout-536bf3b](evidence/flagmemory-pool/ppu-tier-closeout-536bf3b/) | 待接入（[分层存储设计 4.5 节](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md)） | — |
+| [异步搬运（真卡 E2E）](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md) | 已验收：[昇腾异步轨 E2E 真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_npu_tier_manager_realcard.py) | 已验收：[昆仑芯异步轨 E2E 真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_xpu_tier_manager_realcard.py) | 已验收：[平头哥异步轨 E2E 真卡用例](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/tests/tiering/test_ppu_tier_manager_realcard.py) | 待接入 | — |
+| [KV 卸载插件（connector）](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/flagmemory/tiering/offload/README.md) | 先例未入本线（旧线画像/卸载证据见 [flagmemory-offload](evidence/flagmemory-offload/)） | 已接入（运行环境已定档）：[xpu RUNBOOK](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/flagmemory/tiering/offload/xpu/RUNBOOK.md) | 先例未入本线（[PPU 移植闭环结果报告](docs/goals/proto-ppu-202610/)） | 待探查 | — |
+| [原生优化路径](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md) | 可立项待拍板（VMM 全链条候选，见[分层存储设计第十节](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/docs/design/分层存储概念与设计基础.md)） | 可立项待拍板（流有序候选须先过 torch 伪版本门禁，见[分层存储设计第十节](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/docs/design/分层存储概念与设计基础.md)） | 待探查 | 待探查 | 待探查 |
+| [能力/粒度取证](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/分层存储概念与设计基础.md) | 已验收：[SDK 原语取证补记](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/docs/design/分层存储概念与设计基础.md) | 已验收：[SDK 原语取证补记](https://github.com/FlagRT/FlagMemory/blob/xliu969/tier-impl/docs/design/分层存储概念与设计基础.md)（粒度实例另见[显存池设计第八节第 4 条](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/显存池概念与设计基础.md)） | 已验收（四家显存利用率实测同向，见[显存池设计第五节](https://github.com/FlagRT/FlagMemory/blob/dev-1.0/docs/design/显存池概念与设计基础.md)） | 已验收（2026-11-10；公开仓证据链接待入档） | 部分探明（驱动栈）；公开仓暂无登记件，待落点入档 |
 
-**给 performance（§5 任务 4：统一验收报告）的现成证据块**（可直接引用/粘贴，格式对齐 `dev/performance/README.md` 的「当前进展」表）：
+> 注记：上表 FlagMemory 链接中锚定分支 （已推送公开）的文件，在该分支合入公共  后链接随之固化。runtime-team 仓内链接为相对路径；「待接入 / 待探查」端元的链接指向最接近的解释文档。
 
-| 能力 | 当前状态 | 已验证范围 | 交付状态 |
-|---|---|---|---|
-| 显存池定义 + 画像（910C 锁定镜像） | 已完成 | 锁定镜像 `vllm-ascend:v0.20.2rc1-a3`、`Qwen/Qwen3-Embedding-0.6B`，davinci-7 单卡；加载阶段 HBM 分解 + batch(8-256)×seqlen(128-512) 峰值 sweep + gmu/enforce-eager/alloc-conf 三轴 A/B，全部实测（2026-09-10/11） | 分支 `xliu969/memory-docs-reorg`（尚未合 `dev-1.0`），证据：[profile_显存画像_910c.md](docs/goals/proto-910c-202609/profile_显存画像_910c.md)、[design_显存池定义_910c.md](docs/goals/proto-910c-202609/design_显存池定义_910c.md) |
-| KV 分层缓存 / Host 溢出 | 未验证（本期非硬指标） | 验收模型为 embedding，无生成式缓存增长场景，该能力对本次验收模型无意义 | 不在本期交付范围（§7 已注明），910C native 路径阻塞留档见 [note_KV卸载Host尝试_910c.md](docs/goals/proto-910c-202609/note_KV卸载Host尝试_910c.md) |
-| 生成式显存画像（910C 标准环境） | 已完成 | `OpenOneRec/OneRec-8B`（revision `29f95b3d`），davinci1 单卡，`serve_standard.sh`（TP=1 / MAX_MODEL_LEN=4096 / EAGER=1）；加载基线 + decode KV 线性增长 + 完成/取消归还闭环 + 输入长度/并发对照 + gmu 0.9/0.4 对照，双指标（HBM + /metrics）全实测（2026-09-23） | 已合入 `dev-1.0`（merge `d7d6b1c`，2026-10-09），证据：[profile_生成式显存画像_910c.md](docs/goals/proto-910c-202609/profile_生成式显存画像_910c.md)、原始数据 `benchmarks/out/gen910c/` |
-
-## 跨方向反馈（待总组收拢，本次画像顺带实测出的环境事实）
-
-| # | 发现 | 建议处理方 | 处理建议 |
-|---|---|---|---|
-| 1 | 带卡容器并发**实测上限 2**（`x-benchmark` 跑多进程 sweep 时）：第 3 个容器 acl/dcmi init 报 `-8020 device is used` + `DrvMngGetConsoleLogLevel failed ret=4`，与 `stack.lock` rule #1 写的「上限 3」不符——本次因此被卡了三轮（起容器→排查→等窗口）。可能真实上限是「≈3 个 DrvMng 客户端」而非「3 个容器」，`x-benchmark` 多进程一次占多个槽。 | 总组 | 核实 + 更新 `stack.lock` rule #1 表述；跑结论性验证前先确认同机其他容器的进程数，不只数容器数 |
-| 2 | house 起容器脚本（如 `distributed_inference/start_infer_container.sh` 一类）的驱动绑定用 `:ro`，在本机 driver 25.5.0 下会 `DrvMngGetConsoleLogLevel failed ret=4` / `device_count()=0`；实测须改 `:rw` 才能起。 | device-context | 检查并修正相关起容器脚本的驱动挂载模式 |
-| 3 | 锁定推理镜像 `vllm-ascend:v0.20.2rc1-a3` 内 `transformers` 实测自带 **5.5.3**（战略文档 §7 提到的两处冲突记录 5.15.1 / 5.5.3 之一，本次是权威实测值）。 | device-context | 按 §7「device-context 负责固定版本并回写 stack.lock」处理 |
-
-## 遗留 / 环境备忘
-
-- `flagos-proto-infer-910c` 画像跑完已 `docker rm -f` 拆除，davinci-7 归还 idle。
-- 画像期间为腾容器名额，`rag-ljy-vllm-910c` 被临时停过（memory 未重启，需 rag_ljy 或总组视情况处理）。
-
-## 最近更新日期
-
-2026-11-03
+历史结果见 [批次报告](docs/goals/) 与 [画像/卸载证据](evidence/flagmemory-offload/)；新池 910C 真卡证据（映射 / 健康 / 三生命周期 + OneRec 单输入消费，2026-11-04，脱敏副本）见 [池真卡证据](evidence/flagmemory-pool/)。历史材料不代表新池跨平台能力。

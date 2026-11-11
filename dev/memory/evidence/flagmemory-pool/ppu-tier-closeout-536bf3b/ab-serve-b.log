@@ -1,0 +1,361 @@
+(EngineCore pid=571) /usr/local/lib/python3.12/site-packages/flag_gems/config.py:171: UserWarning: resolve_user_setting: no exclude ops found; returning empty list
+(EngineCore pid=571)   warnings.warn(
+(EngineCore pid=571) /usr/local/lib/python3.12/site-packages/torch/library.py:363: UserWarning: Warning only once for all operators,  other operators may also be overridden.
+(EngineCore pid=571)   Overriding a previously registered kernel for the same operator and the same dispatch key
+(EngineCore pid=571)   operator: aten::__ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
+(EngineCore pid=571)     registered at aten/src/ATen/RegisterSchema.cpp:6
+(EngineCore pid=571)   dispatch key: CUDA
+(EngineCore pid=571)   previous kernel: registered at aten/src/ATen/RegisterCPU_3.cpp:7150
+(EngineCore pid=571)        new kernel: registered at /usr/local/lib/python3.12/site-packages/flag_gems/__init__.py:63 (Triggered internally at ../aten/src/ATen/core/dispatch/OperatorEntry.cpp:208.)
+(EngineCore pid=571)   self.m.impl(
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Scalar's behavior for CUDA dispatch key and aten namespace.
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding ne_.Tensor's behavior for CUDA dispatch key and aten namespace.
+(EngineCore pid=571) WARNING:root:Skipped registering operator: This is not allowed since there's already a kernel registered from python overriding unbind_copy.int's behavior for CUDA dispatch key and aten namespace.
+[rank0]:[W1106 18:36:36.541079197 ProcessGroupGloo.cpp:524] Warning: Unable to resolve hostname to a (local) address. Using the loopback address as fallback. Manually set the network interface to bind to with GLOO_SOCKET_IFNAME. (function operator())
+(EngineCore pid=571) [2026-11-06 18:36:41] [INFO] [vllm_fl.dispatch.policy] Using custom config from '/opt/vllm-plugin-FL/vllm_fl/dispatch/config/thead.yaml'
+(EngineCore pid=571) [2026-11-06 18:36:41] [INFO] [vllm_fl.dispatch] Registering vendor backends for current platform: thead
+(EngineCore pid=571) [2026-11-06 18:36:41] [INFO] [vllm_fl.dispatch.manager] OpManager initialized: 11 ops with 20 implementations
+(EngineCore pid=571) [2026-11-06 18:36:41] [INFO] [vllm_fl.dispatch.manager] Op 'attention_backend' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(EngineCore pid=571) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  5.92it/s]
+(EngineCore pid=571) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  5.91it/s]
+(EngineCore pid=571) 
+(EngineCore pid=571) [2026-11-06 18:36:42] [INFO] [vllm_fl.dispatch.manager] Op 'rms_norm' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) [2026-11-06 18:36:43] [INFO] [vllm_fl.dispatch.manager] Op 'rotary_embedding' using 'default.flagos' (kind=flagos, vendor=None)
+(EngineCore pid=571) [2026-11-06 18:36:44] [INFO] [vllm_fl.dispatch.manager] Op 'silu_and_mul' using 'default.flagos' (kind=flagos, vendor=None)
+(APIServer pid=1) INFO:     Started server process [1]
+(APIServer pid=1) INFO:     Waiting for application startup.
+(APIServer pid=1) INFO:     Application startup complete.
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-86a69d64c32538a8-803066a8 computed=0 n_hashes=2 remaining=2
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b730d9c271aea58b-a7204e27 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-af75d51d995e8d9e-9ca4849a computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-82bd9f3d9a26e7ef-a8645a6f computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=1 total_store_blocks=2 t=18:37:37
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=3 layers=24 total_store_calls=2 total_store_blocks=5 t=18:37:45
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=3 total_store_blocks=6 t=18:37:49
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=4 total_store_blocks=7 t=18:37:49
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=5 total_store_blocks=9 t=18:37:49
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a127801357fd6957-94a8ff67 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=6 total_store_blocks=10 t=18:37:57
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-acf0f39326c7290e-a9489487 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=7 total_store_blocks=11 t=18:37:58
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=8 total_store_blocks=12 t=18:37:58
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=9 total_store_blocks=13 t=18:37:58
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=10 total_store_blocks=14 t=18:37:59
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9bcc076b0527e452-b1f34e44 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=11 total_store_blocks=15 t=18:38:00
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=12 total_store_blocks=16 t=18:38:00
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=13 total_store_blocks=17 t=18:38:00
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=14 total_store_blocks=18 t=18:38:01
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-844486d1692af682-a50b1ba6 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=15 total_store_blocks=19 t=18:38:01
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=16 total_store_blocks=20 t=18:38:01
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=17 total_store_blocks=21 t=18:38:01
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=18 total_store_blocks=22 t=18:38:01
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=19 total_store_blocks=23 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=20 total_store_blocks=24 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=21 total_store_blocks=25 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=22 total_store_blocks=26 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=23 total_store_blocks=27 t=18:38:02
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b50f6cb94cc3d498-8c496758 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=24 total_store_blocks=28 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=25 total_store_blocks=29 t=18:38:02
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=26 total_store_blocks=30 t=18:38:03
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9ca63e5267c925a9-86db9c1e computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=27 total_store_blocks=31 t=18:38:03
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=28 total_store_blocks=33 t=18:38:03
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=29 total_store_blocks=34 t=18:38:03
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-902f8ff2d16ac4e9-927b7418 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=30 total_store_blocks=35 t=18:38:03
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=31 total_store_blocks=36 t=18:38:04
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=32 total_store_blocks=38 t=18:38:04
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=33 total_store_blocks=39 t=18:38:04
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a6b95a07b1b130a7-85f5fb60 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=34 total_store_blocks=40 t=18:38:04
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=35 total_store_blocks=41 t=18:38:04
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=36 total_store_blocks=42 t=18:38:05
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=37 total_store_blocks=44 t=18:38:05
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=38 total_store_blocks=45 t=18:38:05
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=39 total_store_blocks=46 t=18:38:06
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=40 total_store_blocks=48 t=18:38:06
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b97c457a818521bd-9a24e375 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=41 total_store_blocks=49 t=18:38:06
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=42 total_store_blocks=50 t=18:38:06
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-90128e824d5b2579-b059ea68 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=43 total_store_blocks=51 t=18:38:07
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=44 total_store_blocks=53 t=18:38:07
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=45 total_store_blocks=54 t=18:38:07
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b0aa67960723bfc4-89d86557 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=46 total_store_blocks=55 t=18:38:07
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=47 total_store_blocks=56 t=18:38:08
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=48 total_store_blocks=57 t=18:38:08
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=49 total_store_blocks=58 t=18:38:08
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a032eba75b4c78a0-91a440a1 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=50 total_store_blocks=59 t=18:38:08
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=51 total_store_blocks=60 t=18:38:08
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=52 total_store_blocks=61 t=18:38:09
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=53 total_store_blocks=62 t=18:38:09
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=54 total_store_blocks=63 t=18:38:09
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=55 total_store_blocks=64 t=18:38:09
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=56 total_store_blocks=65 t=18:38:09
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-83a514627ff4b174-86b61bed computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=57 total_store_blocks=67 t=18:38:10
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=58 total_store_blocks=68 t=18:38:10
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b22a28b8520e7972-b0dca600 computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=59 total_store_blocks=69 t=18:38:10
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=60 total_store_blocks=70 t=18:38:11
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=61 total_store_blocks=71 t=18:38:11
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9da02e5efaa99b70-80b449fd computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=62 total_store_blocks=72 t=18:38:11
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=63 total_store_blocks=73 t=18:38:11
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=64 total_store_blocks=74 t=18:38:12
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=65 total_store_blocks=75 t=18:38:12
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b5aa5054df0f9ef9-a77a698a computed=16 n_hashes=2 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=66 total_store_blocks=76 t=18:38:12
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=67 total_store_blocks=77 t=18:38:12
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=68 total_store_blocks=78 t=18:38:12
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=69 total_store_blocks=80 t=18:38:12
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=70 total_store_blocks=81 t=18:38:13
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=71 total_store_blocks=82 t=18:38:13
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=72 total_store_blocks=84 t=18:38:13
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=73 total_store_blocks=85 t=18:38:14
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=74 total_store_blocks=87 t=18:38:16
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=75 total_store_blocks=88 t=18:38:22
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-811a6663f67be885-9af59ff8 computed=16 n_hashes=6 remaining=5
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-92c78f298d8e2169-b1466e8d computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=4 layers=24 total_store_calls=76 total_store_blocks=92 t=18:38:25
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b2c073b91016bc0e-b0578df2 computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-83b927ce6ef17080-9ca47fb3 computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=77 total_store_blocks=94 t=18:38:25
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=78 total_store_blocks=96 t=18:38:26
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=79 total_store_blocks=97 t=18:38:26
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=80 total_store_blocks=98 t=18:38:27
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=81 total_store_blocks=100 t=18:38:27
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=82 total_store_blocks=101 t=18:38:27
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=83 total_store_blocks=102 t=18:38:27
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=84 total_store_blocks=103 t=18:38:28
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-af9529cfb46ea1ef-8adc593b computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-98c7e0a1983c7f66-982ec66d computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-93f97cbfcd7402af-8533bc46 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a47dd83affc3fcba-938898ac computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=85 total_store_blocks=104 t=18:38:34
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=86 total_store_blocks=105 t=18:38:34
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=87 total_store_blocks=107 t=18:38:34
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=88 total_store_blocks=108 t=18:38:35
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=89 total_store_blocks=109 t=18:38:35
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=90 total_store_blocks=110 t=18:38:35
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8aaa915a34a03b32-a1474883 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=91 total_store_blocks=111 t=18:39:17
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-ac70f038e0fd43b0-99fc2329 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=92 total_store_blocks=112 t=18:39:19
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=93 total_store_blocks=113 t=18:39:20
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=94 total_store_blocks=114 t=18:39:21
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b5ad005ad5a18c5a-a003e70d computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=95 total_store_blocks=115 t=18:39:21
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a68d752d08f0308d-9f1f130a computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=96 total_store_blocks=116 t=18:39:23
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=97 total_store_blocks=117 t=18:39:24
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-93e5518cf87ddf97-b0999b55 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-bcc48fbe65bd51d2-a589b3fb computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b0a9dd5cd3057e1f-b4482043 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-ad4ab5c7207bca05-9afb0ca1 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=20 layers=24 total_store_calls=98 total_store_blocks=137 t=18:39:29
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=60 layers=24 total_store_calls=99 total_store_blocks=197 t=18:39:29
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=100 total_store_blocks=198 t=18:39:30
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=3 layers=24 total_store_calls=101 total_store_blocks=201 t=18:39:30
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=102 total_store_blocks=202 t=18:39:30
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=3 layers=24 total_store_calls=103 total_store_blocks=205 t=18:39:30
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=104 total_store_blocks=206 t=18:39:31
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=2 layers=24 total_store_calls=105 total_store_blocks=208 t=18:39:31
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b2992b6024fe8a5a-88bd6956 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9b26043a4389c341-8c070eb6 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=106 total_store_blocks=209 t=18:39:38
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=107 total_store_blocks=210 t=18:39:39
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-84256a6d167f563d-9e1a2a55 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-865f104b0996abfb-927fe113 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9c191c1574ac7211-8da6e82b computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a413ccbdb13bd76e-a2f3dc48 computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=108 total_store_blocks=211 t=18:40:21
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=109 total_store_blocks=212 t=18:40:22
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-ab001fa55b4c3137-8957751c computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-963f61502064c95a-93a4f1dd computed=96 n_hashes=6 remaining=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-be5d00d1eb89f888-b940d14f computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a35fc73ddf941d5e-83dcb965 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a4e326b98ccbfdb5-8fd36367 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b8be1c4e8be33e00-82475912 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b823915ad1077dba-ad659347 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-bbc81f9f2c0c9cf8-8ecfe98f computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a2eade576b0e810b-8002e458 computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=21 remaining=20
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=20 layers=24 total_store_calls=110 total_store_blocks=232 t=18:40:29
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-be5d00d1eb89f888-b940d14f computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a35fc73ddf941d5e-83dcb965 computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a4e326b98ccbfdb5-8fd36367 computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b8be1c4e8be33e00-82475912 computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b823915ad1077dba-ad659347 computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-bbc81f9f2c0c9cf8-8ecfe98f computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-a2eade576b0e810b-8002e458 computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=336 n_hashes=22 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=120 layers=24 total_store_calls=111 total_store_blocks=352 t=18:40:30
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=112 total_store_blocks=353 t=18:40:31
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=6 layers=24 total_store_calls=113 total_store_blocks=359 t=18:40:31
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=240 n_hashes=22 remaining=7
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=224 n_hashes=22 remaining=8
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=114 total_store_blocks=360 t=18:40:32
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=6 layers=24 total_store_calls=115 total_store_blocks=366 t=18:40:32
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=128 n_hashes=22 remaining=14
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=112 n_hashes=22 remaining=15
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=116 total_store_blocks=367 t=18:40:33
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=6 layers=24 total_store_calls=117 total_store_blocks=373 t=18:40:33
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-8097e5b71d0e7a21-b8d4b7cc computed=16 n_hashes=22 remaining=21
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=0
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=118 total_store_blocks=374 t=18:40:35
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=20 layers=24 total_store_calls=119 total_store_blocks=394 t=18:40:36
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=120 total_store_blocks=395 t=18:40:36
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=121 total_store_blocks=396 t=18:40:37
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=122 total_store_blocks=397 t=18:40:37
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b35a14566ed017de-8a16b807 computed=16 n_hashes=6 remaining=5
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=80
+(EngineCore pid=571) [PpuOffload-DMA] load blocks=5 layers=24 total_load_calls=1 total_load_blocks=5 t=18:40:40
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-9a0276e7c5a1913e-8a9001ad computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=16
+(EngineCore pid=571) [PpuOffload-DMA] load blocks=1 layers=24 total_load_calls=2 total_load_blocks=6 t=18:40:42
+(EngineCore pid=571) [PpuOffload-DMA] store blocks=1 layers=24 total_store_calls=123 total_store_blocks=398 t=18:40:44
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-b2fcbea043dd1cce-83524465 computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=16
+(EngineCore pid=571) [PpuOffload-DMA] load blocks=1 layers=24 total_load_calls=3 total_load_blocks=7 t=18:40:44
+(EngineCore pid=571) [PpuOffload-SCHED] entry req=chatcmpl-95201960406c9d7d-a318b45d computed=80 n_hashes=6 remaining=1
+(EngineCore pid=571) [PpuOffload-SCHED] hit_len=16
+(EngineCore pid=571) [PpuOffload-DMA] load blocks=1 layers=24 total_load_calls=4 total_load_blocks=8 t=18:40:45

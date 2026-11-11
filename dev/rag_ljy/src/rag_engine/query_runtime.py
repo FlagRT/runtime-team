@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-def create_pipeline(device: str, *, settings=None, execution_mode: str = "concurrent"):
+def create_pipeline(device: str, *, settings=None, execution_mode: str = "concurrent", safety_mib=5120):
     from . import Settings, create_retrieval_store
     from .vllm_embedding import create_embedder
     from .pipeline import RetrievalPipeline
@@ -31,7 +31,13 @@ def create_pipeline(device: str, *, settings=None, execution_mode: str = "concur
         device=device,
         instruction=settings.retrieval_instruction,
     )
-    return RetrievalPipeline(store, embedder, reranker, execution_mode=execution_mode)
+    generator = None
+    if settings.generation_enabled:
+        from .generation import GenerationLimits, OneRecGenerator
+        generator = OneRecGenerator(settings.generation_model_path, device=device,
+            limits=GenerationLimits(settings.generation_max_input_tokens, settings.generation_max_new_tokens),
+            safety_mib=safety_mib)
+    return RetrievalPipeline(store, embedder, reranker, execution_mode=execution_mode, generator=generator)
 
 
 def format_hits(hits: list[dict]) -> list[dict]:

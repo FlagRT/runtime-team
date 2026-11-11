@@ -32,7 +32,7 @@ gaps:
     （2026-10-15 实测 manifest 404，rc 标签被回收）；该仓现行可拉的是 2.2.0-0.2.2
     （sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94），未经本组验证。
     推理腿登记以该替代镜像通过验收为前置。
-  - "flag_gems 5.4.0rc2.post3 由基座自带，本组尚未在本芯片上做结论性验证（组外实测口径：FlagGems _cambricon 后端相对厂商 native / TMO 路径显著偏慢，宜作 fallback 与对拍用途，不作性能路径）"
+  - "flag_gems 5.4.0rc2.post3 由基座自带。2026-11-05 本组已做结论性验证（11-05 批次）：enable() 生效且 8/9 算子 dispatch 被接管，但 4/9 算子与 Qwen3-Embedding-0.6B 真实前向因 triton-mlu autotuner 参数（task_type / BLOCK_ROW_SIZE）失败 ⇒ 当前不可替换；证据 MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md §4 与 MLU590/probes/mlu_compat_20261105_out/。（组外实测口径：FlagGems _cambricon 后端相对厂商 native / TMO 路径显著偏慢，宜作 fallback 与对拍用途，不作性能路径 —— 仍为组外口径，本组无性能判据）"
   - "CNCL 走 MLU_LINK 片间互联，未加载 libibverbs / libmlx5 ⇒ RDMA 路径未启用；集合通信结论只覆盖单机多卡，跨机未验证"
 
 notes: |

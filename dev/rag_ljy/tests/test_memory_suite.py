@@ -45,3 +45,12 @@ def test_incomplete_trial_stops_suite_and_prevents_pass_summary(tmp_path):
     result,calls=invoke(tmp_path,'--run',fail=True)
     assert result.returncode==2 and len(calls)==2
     assert not any('scripts/checks/summarize_measured_acceptance.py' in c for c in calls)
+
+
+def test_generation_suite_requires_generation_in_preflight_loads_and_summary(tmp_path):
+    result,calls=invoke(tmp_path,'--run','--generate','--max-new-tokens','128')
+    assert result.returncode==0 and len(calls)==9
+    checks=[c for c in calls if 'scripts/checks/check_measured_watermarks.py' in c]
+    assert len(checks)==4 and '--run' not in checks[0]
+    assert all('--generate' in c and c[c.index('--max-new-tokens')+1]=='128' for c in checks)
+    assert '--generate' in calls[-1]

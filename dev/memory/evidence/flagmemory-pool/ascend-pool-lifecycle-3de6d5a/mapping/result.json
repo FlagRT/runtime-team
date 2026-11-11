@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "stage": "mapping",
+  "status": "failed",
+  "run_id": "37aa081758054415968727990c712ed5",
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "started_at": "2026-11-04T07:26:57.175049+00:00",
+  "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+  "captured_bytes": 85,
+  "cleanup": {
+    "ownership_verified": true,
+    "removed": true,
+    "errors": [],
+    "docker_queryable": true,
+    "post_snapshot_sha256": "6f443e1b75920b728d4e1ef1106d6d7ec18f2aa59592bd57956198aab41ca339",
+    "target_facts": {
+      "physical": 15,
+      "npu": 7,
+      "chip": 1,
+      "bus": "0000:83:00.0",
+      "health": "OK",
+      "hbm_used_mb": 2880,
+      "hbm_total_mb": 65536,
+      "aicore": 0,
+      "pids": []
+    },
+    "target_facts_match": true,
+    "postcheck_review_required": false
+  },
+  "target_postcheck_required": true,
+  "container_id": "1f044b50bb78573582e0365ede97510ec72a2dd1a712862d65c147475bfe4b97",
+  "reason": "container_exit",
+  "elapsed_s": 2.841303477063775,
+  "exit_code": 1
+}

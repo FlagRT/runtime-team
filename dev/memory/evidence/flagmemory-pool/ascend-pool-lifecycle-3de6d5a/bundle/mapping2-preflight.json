@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+  "source_sha256": "5eab1f9bbc68ee48be09cb65cd443d54de5a0f7083214cb8fbacb42d2f868bb7",
+  "collected_at": "2026-11-04T07:38:21.874732+00:00",
+  "window_confirmed": true,
+  "window_mode": "shared_candidate",
+  "target": {
+    "physical": 15,
+    "major": 235,
+    "minor": 15,
+    "healthy": true,
+    "process_count": 0
+  },
+  "target_snapshot": {
+    "physical": 15,
+    "npu": 7,
+    "chip": 1,
+    "bus": "0000:83:00.0",
+    "health": "OK",
+    "hbm_used_mb": 2880,
+    "hbm_total_mb": 65536,
+    "aicore": 0,
+    "pids": []
+  },
+  "hbm_tolerance_mb": 64,
+  "filter": {
+    "version": "v1",
+    "review_status": "accepted",
+    "reviewer": "??????? shared-execution-clearance.md",
+    "evidence_path": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/bundle/mapping2-filter-evidence.json",
+    "sha256": "677c35b81bdb79471593d65cfbbdb6cf2df543e2efe2425361e9df804cffffeb",
+    "allowed_compute": [
+      15
+    ],
+    "controls": [
+      "davinci_manager",
+      "devmm_svm",
+      "hisi_hdc"
+    ]
+  },
+  "inputs": {
+    "reviewed-abi.json": "/home/<user>/flagmemory-run-20261104-3de6d5a-edc1cb41377f4bd79e27880f1b35e021/bundle/reviewed-abi.json"
+  }
+}
