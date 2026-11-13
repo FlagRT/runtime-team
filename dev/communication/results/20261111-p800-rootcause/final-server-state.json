@@ -1,0 +1,81 @@
+{
+  "smi": {
+    "argv": [
+      "xpu-smi",
+      "-m"
+    ],
+    "exit_code": 0,
+    "stdout": "00000000:03:00.0 0 0 02K15K0264D00DNC 36 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 36 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 42 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 42 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 35 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 34 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 41 0 0 0 96 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 46 0 0 0 99 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+    "stderr": ""
+  },
+  "own_pair_state": {
+    "argv": [
+      "docker",
+      "inspect",
+      "flagrt-communication-p800-pair-1028",
+      "--format",
+      "{{json .State}}"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"Status\":\"exited\",\"Running\":false,\"Paused\":false,\"Restarting\":false,\"OOMKilled\":false,\"Dead\":false,\"Pid\":0,\"ExitCode\":137,\"Error\":\"\",\"StartedAt\":\"2026-11-11T10:20:34.668208109Z\",\"FinishedAt\":\"2026-11-11T10:21:45.142682862Z\"}\n",
+    "stderr": ""
+  },
+  "diagnostic_containers": {
+    "argv": [
+      "docker",
+      "ps",
+      "--filter",
+      "label=flagrt.purpose=p800-rootcause-20261111",
+      "--format",
+      "{{.Names}}"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "card6_processes": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "6",
+      "-q",
+      "-d",
+      "PIDS"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:23:28 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:B6:00.0\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "card7_processes": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-q",
+      "-d",
+      "PIDS"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:23:28 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:BB:00.0\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "card7_kernel": {
+    "argv": [
+      "journalctl",
+      "-k",
+      "-b",
+      "--no-pager",
+      "-o",
+      "short-iso",
+      "--since",
+      "2026-11-11 18:12:18",
+      "--case-sensitive=no",
+      "--grep",
+      "PCI:0000:bb:00"
+    ],
+    "exit_code": 0,
+    "stdout": "2026-11-11T18:12:18+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] reset begin ...\n2026-11-11T18:12:18+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] kill all related processes ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush dma(at most 20s), please wait ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush handle_exception_work(at most 60s), please wait ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush noc(at most 20s), please wait ...\n2026-11-11T18:12:20+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] cu0_noc_main_pending(0x37), but reset anyway ...\n2026-11-11T18:12:20+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] m3 mode1 reset...(at most 10s)\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] noc_num= 4\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] cuen from hardcode: 0x0fff0fff\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] cuen= 0fff0fff, cl_disable_mask= 00000000, sd_disable_mask= 00000000\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] reset done ...\n",
+    "stderr": ""
+  },
+  "post_reset_card7_exceptions": []
+}

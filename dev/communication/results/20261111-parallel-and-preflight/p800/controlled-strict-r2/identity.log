@@ -1,0 +1,8 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+Traceback (most recent call last):
+  File "/workspace/dev/communication/probes/p800_identity.py", line 31, in <module>
+    raise SystemExit(main())
+  File "/workspace/dev/communication/probes/p800_identity.py", line 18, in main
+    raise ValueError('K-3: XPU_EVENT_KL3_ENABLE must be unset')
+ValueError: K-3: XPU_EVENT_KL3_ENABLE must be unset

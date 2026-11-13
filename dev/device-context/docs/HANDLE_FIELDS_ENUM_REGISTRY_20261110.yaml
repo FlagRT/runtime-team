@@ -1,0 +1,143 @@
+# ==============================================================================
+# 统一句柄新增字段枚举登记 · v2（device-context 审核修订版）
+# ==============================================================================
+# 用途：为联合冻结文件（HANDLE_AND_POOL_INTERFACE_FREEZE_20261105）新增的两个字段
+#      （用途标签 / 所属流）提供机读枚举登记。v1 由 memory 侧提案（2026-11-10），
+#      v2 为 device-context 审核修订——id 0..5 的值与语义【一字未动】（可增不可改），
+#      只做：歧义修正 / 键名映射标注 / 缺失语义补全 / 设备方向四个待补问题的答复。
+# 纪律：
+#   1. 枚举【可增不可改语义】——新增值只允许追加，已有值的 id 与语义不得变更/复用；
+#   2. 缺省（未打标）按「未声明」处理；【显式给出但不在枚举内 ⇒ 报错】（与 FlagMemory
+#      接口文档 alloc_on_stream 错误条款一致，两者是两种情形，不得混写）；
+#   3. 谁申请谁打标；池解释；设备方向统一层只透传，不实现任何标签行为；
+#   4. 本文件为提案（Proposed），双方确认后改 Accepted 并随冻结文件同目录生效。
+# v1 → v2 修订清单（详见同目录 HANDLE_FIELDS_ENUM_REVIEW_20261110.md）：
+#   A. 修正 usage_label.policy 中「未知值按未声明处理」与「报错不静默」的自相矛盾——拆为两条；
+#   B. 补 workspace ↔ FlagMemory SCRATCH 的键名映射标注（同一物两键，Accepted 时定规范名）；
+#   C. owning_stream：明确 v1 阶段标识由申请方（池）分配——池 register_stream() 已返回 int；
+#      设备方向【不建第二张流表、不校验对应关系】（删除 v1「登记表由设备方向维护」的待确认项）；
+#   D. 补厂商私有扩展区（64..127）的消费侧语义：池遇未识别标签 ⇒ 报错，不猜测；
+#   E. open_for_device_review 四项全部给出 device-context 答复（见文件末尾 device_answers）。
+# 出处：ADR-0013 §3.4 / 接口冻结文件 / inbox/联合冻结稿草案-20261125.md（指挥台仓）
+# ==============================================================================
+
+schema_version: 2
+proposed_by: memory（刘鑫）v1 ｜ device-context（刘鸿彬）v2 审核修订
+status: Proposed          # Proposed → Accepted（双方确认后，由 device-context 写）
+date: "2026-11-10"
+
+# ---------------------------------------------------------------- 字段一：用途标签
+usage_label:
+  field: usage_label
+  type: enum (int8)       # Python 面 = int；C 面 layout 触发式再定（对齐 ADR-0015）
+  policy:
+    - 可增不可改语义（追加新值须走冻结文件变更条款）
+    - 申请方打标；池解释；统一层透传
+    - 缺省（未提供 / None）⇒ 按「未声明」(id=0) 处理，不报错          # v2-A：拆分
+    - 显式给出但不在枚举内（含未来已登记但本实现不认识的新值）⇒ ValueError，不得静默
+      按未声明处理                                                   # v2-A：拆分
+    - 厂商私有扩展区（64..127）同样适用上一条：池不识别 ⇒ 报错，不猜测 # v2-D：补全
+  values:                  # id / key / 语义 —— v1 原文保留，一字未动
+    - id: 0
+      key: undeclared
+      name: 未声明
+      semantics: 申请方未提供用途信息
+      pool_policy: 最保守——不回收、不进复用池，仅记账
+    - id: 1
+      key: weights
+      name: 权重
+      semantics: 模型参数，服务生命周期内常驻
+      pool_policy: 永不回收、不进复用池，仅记账
+    - id: 2
+      key: kv_cache
+      name: KV 缓存
+      semantics: 推理上下文缓存
+      pool_policy: 可复用、可分页、可降级主机侧（分层存储主对象）
+    - id: 3
+      key: activation
+      name: 激活
+      semantics: 前向/反向中间结果
+      pool_policy: 短生命周期，优先复用（块复用主战场）
+    - id: 4
+      key: comm_buffer
+      name: 通信缓冲
+      semantics: 集合通信收发缓冲（其他方向申请）
+      pool_policy: 不得被池回收，仅记账——通信与显存生命周期协同的接口前提
+    - id: 5
+      key: workspace
+      name: 临时工作区
+      semantics: 算子工作空间
+      pool_policy: 最优先回收
+      aliases: ["SCRATCH"]   # v2-B：FlagMemory 池内枚举名（flagmemory/pool/types.Purpose.SCRATCH）
+                              # 与本 key 同义；Accepted 时定一处为规范名，另一侧做别名映射
+  # ---- 预留与扩展（已知但未启用；启用须走变更条款）----
+  reserved:
+    - range: "6..15"
+      note: 近期扩展预留（如需细分 KV 为 prefill/decode 两相、区分梯度缓冲 grad_buffer 等，届时评估）
+    - range: "16..63"
+      note: 一般扩展预留
+    - range: "64..127"
+      note: 厂商/后端私有扩展预留（须带后端名前缀登记）；消费侧语义见 policy 末条 # v2-D
+
+# ---------------------------------------------------------------- 字段二：所属流
+owning_stream:
+  field: owning_stream
+  type: int64（流标识，不存流对象/不存厂商指针）   # Python 面 = int
+  policy:
+    - 存流标识（整型），避免流对象生命周期与句柄纠缠
+    - 缺省 0 = 默认流
+    - 用于流有序分配与回收屏障：池需知道块当初在哪条流上分配
+    - 强持有纪律（设计硬约束）：池对流的持有一律强持有，禁用弱引用（平头哥/昇腾实测退出期段错误教训）
+    - >-                                                            # v2-C：新增决议
+      标识分配主体（v1 阶段裁定）：由【申请方（池）】自行分配——池的
+      register_stream(stream) 已返回池内整型流标识（flagmemory/interfaces/pool.pyi L98）。
+      设备方向统一层【不建第二张流表、不分配、不校验】owning_stream 与任何真实流的
+      对应关系（透传 + 记账）；避免两套流 ID 体系撞车。若未来需要统一层发 ID，
+      须走冻结文件变更条款升 v2 接口，不在本登记内扩。
+  values:                    # 非枚举语义值，为保留标识约定
+    - id: 0
+      key: default_stream
+      name: 默认流
+      semantics: 申请方未指定时缺省；按默认流参与回收屏障
+    - id: -1
+      key: unspecified_legacy
+      name: 显式未指定（历史句柄迁移期）
+      semantics: 语义等同默认流，但显式区分「从未设置」；仅迁移过渡期使用，新申请禁止
+  reserved:
+    - note: "正整数区间 = 申请方（池）流登记表分配的流标识（v2-C）"
+    - note: "除 0 与 -1 外的负值为保留值，禁止使用（v2-C）"
+
+# ------------------------------------- 设备方向对 v1 待补问题的答复（v2-E）
+device_answers:              # 对应 v1 文件 open_for_device_review 四项
+  int8_width_and_serialization:
+    answer: >-
+      Python 面两字段就是 int（int8/int64 只是对值域的约束：usage_label ∈ [0,127]、
+      owning_stream ∈ {-1} ∪ [0, +inf)）；不定义字节序与二进制 layout。C 头出现时
+      （触发式，ADR-0015）再定结构体落位与 endianness——届时在本登记追加 serial
+      小节，属「可增」范畴。
+  handle_struct_landing:     # 实现落点（问题①后半 + 冻结文件 §六.2）
+    answer: >-
+      不并入五公共字段常量 MEMORY_HANDLE_KEYS（base.py L36；「不变部分一字不改」）。
+      新增独立常量 HANDLE_EXT_KEYS = ("usage_label", "owning_stream")，句柄 dict 在
+      五公共字段之外携带这两个键；allocate() 签名扩为
+      allocate(size_bytes, ordinal=0, *, usage_label=0, owning_stream=0)，
+      纯透传、不解释、不校验语义（值域校验只做「int 类型 + 非负」这一层）。
+      判据联动：backend_offline_check 的句柄形态判定是子集判断
+      （set(MEMORY_HANDLE_KEYS) <= set(h)），多带字段不破坏既有判据；
+      duty_response_audit 的 PROMISED_UNIFIED_CONSTS 若纳入 HANDLE_EXT_KEYS 须同批更新。
+      排期：与寒武纪能力声明更新同窗口落地（一次真机窗口完成）。
+  stream_id_allocation:
+    answer: >-
+      见 owning_stream.policy 末条：v1 由申请方（池）分配，设备方向不建流 ID 登记表。
+      （现状核对：统一层确无对外整型流 ID 设施——create_stream 返回厂商 Stream 对象；
+      _owned_streams 以 id(native) 为键属内部账本，不对外，且该键有地址复用前科，
+      不得复用为对外流标识。）
+  private_range_rules:       # 问题③
+    answer: >-
+      厂商私有扩展（64..127）：登记时须带后端名前缀（如 ascend.xxx / kunlun.xxx），
+      追加进本文件 values 并在 note 里写后端名与申请方向；统一层照旧透传；
+      池遇未识别标签（含私有区）一律报错（见 usage_label.policy）。
+  registry_home:             # 问题④
+    answer: >-
+      归属：随冻结文件同目录（本文件所在 dev/device-context/docs/），作为其机读配套；
+      Accepted 后本文件与冻结文件同版本演进（冻结文件 v1.1 引用本登记）。

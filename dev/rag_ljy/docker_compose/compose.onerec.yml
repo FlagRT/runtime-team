@@ -1,0 +1,14 @@
+# Select one host die, exposed as logical npu:0. Default die 0 = physical card 0/chip 0.
+# RAG_NPU_DIE=15 selects physical card 7/chip 1.
+# Append to compose.vllm.yml. Preserve the existing embedding/reranker mount.
+# RAG_RUNTIME_IMAGE must name an image containing the current working runtime.
+services:
+  runtime-dev:
+    image: ${RAG_RUNTIME_IMAGE:-rag-ljy-runtime:npu7-backup}
+    devices: !override
+      - /dev/davinci${RAG_NPU_DIE:-0}:/dev/davinci${RAG_NPU_DIE:-0}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      - /home/jliu171/jliu171_data/models:/mnt/onerec:ro

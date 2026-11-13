@@ -28,9 +28,20 @@ class Settings:
     reranker_model_path: Path
     embedding_dims: int
     retrieval_instruction: str
+    generation_enabled: bool = False
+    generation_model_path: Path = Path('/mnt/onerec/OneRec-8B')
+    generation_max_input_tokens: int = 4096
+    generation_max_new_tokens: int = 1024
 
     @classmethod
     def from_env(cls) -> "Settings":
+        generation_enabled = os.getenv('RAG_GENERATION_ENABLED', 'false').strip().lower()
+        if generation_enabled not in ('true', 'false', '1', '0'):
+            raise ValueError('RAG_GENERATION_ENABLED must be true/false or 1/0')
+        from .generation import GenerationLimits
+        generation_limits = GenerationLimits(
+            int(os.getenv('RAG_GENERATION_MAX_INPUT_TOKENS', '4096')),
+            int(os.getenv('RAG_GENERATION_MAX_NEW_TOKENS', '1024')))
         model_dir = Path(
             os.getenv("MODEL_DIR", "/mnt/raid/jliu171/models")
         ).expanduser()
@@ -92,6 +103,10 @@ class Settings:
                 "RETRIEVAL_INSTRUCTION",
                 "Given a web search query, retrieve relevant passages that answer the query",
             ),
+            generation_enabled=generation_enabled in ('true', '1'),
+            generation_model_path=Path(os.getenv('RAG_GENERATION_MODEL_PATH', '/mnt/onerec/OneRec-8B')).expanduser(),
+            generation_max_input_tokens=generation_limits.max_input_tokens,
+            generation_max_new_tokens=generation_limits.max_new_tokens,
         )
 
     @property

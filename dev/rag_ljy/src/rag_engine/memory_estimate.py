@@ -123,6 +123,7 @@ class RequestMemoryEstimator:
         self.flash_verified = False
         self.flash_candidate = False
         self.cache_snapshot = {"reclaimable_mib":0, "sampled_monotonic":float("inf")}
+        self.generation_estimator = None
 
     @classmethod
     def from_pipeline(cls, pipeline):
@@ -161,6 +162,14 @@ class RequestMemoryEstimator:
             'allocator_config': __import__('os').getenv('PYTORCH_NPU_ALLOC_CONF', ''),
             'allocator_fraction': getattr(reranker, 'allocator_fraction', None),
             'cache_reclaim_backend': getattr(reranker, 'cache_reclaim_backend', None)}
+        generator = getattr(pipeline, 'generator', None)
+        if generator is not None:
+            if str(generator.device) != str(reranker.device):
+                raise ValueError('Generation and reranking must share the monitored device')
+            estimator.generation_estimator = generator.memory_estimator
+            estimator.version = 'qwen3-execution-v4-generation'
+            estimator.execution_profile['generation'] = generator.execution_profile
+            hashes['generation'] = generator.memory_estimator.fingerprint
         hashes['execution'] = hashlib.sha256(json.dumps(estimator.execution_profile, sort_keys=True).encode()).hexdigest()
         estimator.fingerprint = hashes
         estimator.flash_candidate = (str(reranker.device).startswith('npu') and dtype in ('torch.bfloat16', 'torch.float16')
@@ -214,7 +223,8 @@ class RequestMemoryEstimator:
             credit = min(max(0, cache_credit_mib), rerank['estimated_mib'])
             result.update(rerank=rerank, allocator_growth_allowance_mib=growth, cache_credit_mib=credit,
                           planned_reranker_batch_size=batch,
-                          estimated_incremental_mib=result['embedding']['estimated_mib'] + rerank['estimated_mib'] - credit + growth)
+                          estimated_incremental_mib=result['embedding']['estimated_mib'] + rerank['estimated_mib'] - credit + growth
+                          + result.get('generation', {}).get('estimated_mib', 0))
             if result['estimated_incremental_mib'] <= available_mib:
                 break
         return result
@@ -238,7 +248,7 @@ class RequestMemoryEstimator:
         rerank_batch = min(request.reranker_batch_size, request.coarse_top_k)
         rerank = self.forward_estimate(max(1, rerank_tokens), rerank_batch)
         allocator_growth = max(1024, math.ceil(.1 * rerank['estimated_mib'])) if self.flash_verified else 0
-        return {'version': self.version, 'status': 'analytical_uncalibrated',
+        result = {'version': self.version, 'status': 'analytical_uncalibrated',
                 'estimated_incremental_mib': embedding['estimated_mib'] + rerank['estimated_mib'] + allocator_growth,
                 'allocator_growth_allowance_mib': allocator_growth,
                 'embedding': embedding, 'rerank': rerank,
@@ -246,3 +256,11 @@ class RequestMemoryEstimator:
                 'execution_profile': self.execution_profile,
                 'resident_weights': 'already included in measured device usage',
                 'policy': 'stage peak envelopes plus allocator growth; exclusive verified idle-cache credit is promoted when released; not a hard memory cap'}
+        if getattr(request, 'generate', False):
+            if self.generation_estimator is None:
+                raise ValueError('Generation is unavailable for this estimator')
+            generation = self.generation_estimator.estimate(
+                self.generation_estimator.limits.max_input_tokens, request.max_new_tokens)
+            result['generation'] = generation
+            result['estimated_incremental_mib'] += generation['estimated_mib']
+        return result

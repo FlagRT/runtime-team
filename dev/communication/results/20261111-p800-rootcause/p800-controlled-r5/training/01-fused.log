@@ -1,0 +1,16 @@
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/runpy.py:126: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+  warn(RuntimeWarning(msg))
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+XCCL /root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xccl//so/libbkcl.so loaded
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+[35mSYMBOL_REWRITE [0m[32mtorch success[0m
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+环境变量 XPU_EVENT_KL3_ENABLE 未设置；官方手册要求测试前 export XPU_EVENT_KL3_ENABLE=1，否则部分路径行为未定义
+[18:15:42][3f66846392d3][463:463][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+[18:15:42][3f66846392d3][464:464][INFO][XCCL][globals.cpp:299] xccl version: 0792b03 [rdma] [[BKCL-1245] allow masking GC signal handlers via BKCL_GC_SIGNAL_MASK] build data: Feb  9 2026 13:05:11
+{"rank": 0, "functional_verdict": "PASS", "error": null, "teardown": "pending"}
+{"rank": 1, "functional_verdict": "PASS", "error": null, "teardown": "pending"}
+{"rank": 0, "verdict": "PASS", "output": "/workspace/evidence/controlled-strict-r5-after-card7-reset/training/01-fused/rank0.json"}
+{"rank": 1, "verdict": "PASS", "output": "/workspace/evidence/controlled-strict-r5-after-card7-reset/training/01-fused/rank1.json"}

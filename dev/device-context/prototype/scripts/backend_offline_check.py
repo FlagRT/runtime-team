@@ -96,7 +96,9 @@ class _VendorRuntimeBlocker:
     # 注：`torch_fl` 属路线 B（已归档删除），此处**仍然保留在阻断清单里** ——
     # 阻断清单的语义是"厂商运行时一个都不许碰"，多列一家只会更安全（防误引入）。
     VENDOR_ROOTS = ("acl", "torch_npu", "torch_fl", "torch_mlu", "torch_npu_ops",
-                    "torch_mlu_ops", "torch_xmlir", "torch_xray", "flagcx", "cncl")
+                    "torch_mlu_ops", "torch_xmlir", "torch_xray", "flagcx", "cncl",
+                    # 2026-11-11（壁仞 BR_0，第五实例）：`torch_br` 是注册 PrivateUse1 的顶层厂商包
+                    "torch_br")
 
     def find_spec(self, name, path=None, target=None):
         if name.split(".")[0] in self.VENDOR_ROOTS:
@@ -328,6 +330,15 @@ def _stub_cambricon(mode="full"):
     return _vendor_stub("mlu", ("torch_mlu",), mode)
 
 
+def _stub_biren(mode="full"):
+    """壁仞 BR_0 `torch.supa`（PrivateUse1，pip 包 `torch-br`）—— 需伪造顶层 `torch_br`。
+
+    与 cambricon 同形（独立命名空间 + 顶层厂商模块）：`torch.supa` 是设备 API 命名空间，
+    `torch_br` 是注册 PrivateUse1 实现的顶层包。2026-11-11 新增（第五个接入实例）。
+    """
+    return _vendor_stub("supa", ("torch_br",), mode)
+
+
 def _stub_kunlun(mode="full"):
     """昆仑芯走 `torch.cuda` 兼容层（XPytorch）—— 无额外顶层厂商模块。"""
     return _vendor_stub("cuda", (), mode)
@@ -542,6 +553,8 @@ _STUBS = {
     #（优先级多档可设 / 上下文可管理 / 无数值错误码）⇒ 由各后端的 _capabilities 表达。
     "ppu": (_stub_ppu, "cuda", {"stub_vendor_extension": False}),
     "ascend": (_stub_ascend, "npu", {"stub_real_ops": False, "stub_bounded_sync": False}),
+    # 壁仞 BR_0（2026-11-11，第五实例）：`torch.supa` 独立命名空间 + 顶层 `torch_br`
+    "biren": (_stub_biren, "supa", {}),
 }
 
 
@@ -555,7 +568,8 @@ def fresh_import(proto_dir, backend, stub_fn, mode="full", with_vendor=True, **s
     _install_blocker()
     for m in [k for k in list(sys.modules)
               if k.startswith("runtime")
-              or k.split(".")[0] in ("torch", "torch_mlu", "torch_npu", "torch_fl", "acl")]:  # torch_fl 同属阻断清单，见 VENDOR_ROOTS 注释
+              or k.split(".")[0] in ("torch", "torch_mlu", "torch_npu", "torch_fl", "acl",
+                                     "torch_br")]:  # torch_fl / torch_br 同属阻断清单，见 VENDOR_ROOTS 注释
         del sys.modules[m]
     if proto_dir not in sys.path:
         sys.path.insert(0, proto_dir)

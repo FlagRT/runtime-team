@@ -19,6 +19,43 @@ def shard_bounds(global_batch, rank, world_size):
     return rank * local_batch, (rank + 1) * local_batch
 
 
+class ObservedBucketTrace:
+    """Record real GradBucket callbacks, not version-dependent DDP log guesses."""
+    def __init__(self):
+        self.steps = []
+        self.active = None
+
+    def begin(self, step):
+        if self.active is not None or type(step) is not int or step != len(self.steps):
+            raise ValueError('Measured backward steps must be sequential and non-overlapping')
+        self.active = {'step': step, 'buckets': []}
+
+    def record(self, bucket, tensor):
+        if self.active is None:
+            return  # Oracle and warmup callbacks are not measured samples.
+        index = bucket.index()
+        size = tensor.numel() * tensor.element_size()
+        if (type(index) is not int or index < 0 or size <= 0
+                or any(item['index'] == index for item in self.active['buckets'])):
+            raise ValueError('Invalid or duplicate GradBucket in one backward')
+        self.active['buckets'].append({'index': index, 'bytes': size})
+
+    def end(self):
+        if self.active is None or not self.active['buckets']:
+            raise ValueError('Backward has no completed bucket observations')
+        self.active['buckets'].sort(key=lambda item: item['index'])
+        self.steps.append(self.active)
+        self.active = None
+
+    def sizes(self):
+        if self.active is not None or not self.steps:
+            raise ValueError('Incomplete bucket trace')
+        first = self.steps[0]['buckets']
+        if any(step['buckets'] != first for step in self.steps):
+            raise ValueError('Measured fixed-shape bucket plan changed')
+        return [item['bytes'] for item in first]
+
+
 class TrainingGroup:
     def __init__(self, backend, rank, world_size, synchronize, timeout_seconds=60):
         if backend not in ('hccl', 'gloo', 'flagcx'):
@@ -63,6 +100,7 @@ class TrainingGroup:
         self.calls = 0
         self.payload_bytes = 0
         self.seconds = 0.0
+        self.bucket_trace = ObservedBucketTrace()
 
     def snapshot(self):
         return {'gradient_allreduce_calls': self.calls,
@@ -90,6 +128,7 @@ def observed_mean_hook(group, bucket):
         dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
         tensor.div_(group.world_size)
         group.synchronize()
+        group.bucket_trace.record(bucket, tensor)
     except BaseException:
         group.state = 'FAILED'
         raise

@@ -1,0 +1,7 @@
+01-manual: launcher=-9 timeout=True
+Traceback (most recent call last):
+  File "/workspace/dev/communication/training/run_repeated.py", line 78, in <module>
+    if __name__ == '__main__': main()
+  File "/workspace/dev/communication/training/run_repeated.py", line 73, in main
+    if code != 0: raise RuntimeError(f'{name} failed; no silent retry')
+RuntimeError: 01-manual failed; no silent retry

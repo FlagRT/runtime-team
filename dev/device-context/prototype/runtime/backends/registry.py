@@ -30,6 +30,8 @@ _REGISTRY: Dict[str, RuntimeBackend] = {}
 #: 当前生效后端名
 _CURRENT: Optional[str] = None
 
+#: 2026-11-11：新增 biren（壁仞 BR_0 / Biren166M，**第五个接入实例**）—— 厂商官方插件路线，
+#: `torch.supa` 命名空间（pip 包 `torch-br`）。实例资产在 `BR0/`（新建实例、只迁规范与方法）。
 #: 自动发现时扫描的 vendor 模块（新增厂商只需在此登记或提供同名子包）
 #: 2026-10-10：新增 ppu（平头哥 真武 ZW810E，第四个接入实例）—— 同样属**厂商官方插件路线**，
 #:            形态上复用 `torch.cuda`（与 kunlun 同构，故厂商标识只能靠设备名/驱动特征）。
@@ -39,7 +41,7 @@ _CURRENT: Optional[str] = None
 #: `ascend`（torch_npu）/ `kunlun`（`torch.cuda` 兼容层，XPytorch）/ `cambricon`（torch_mlu）。
 #: 原路线 B 的后端已**整体删除**（不再是本原型的活跃或备用后端）；
 #: 路线 A/B 的取舍依据见 `summary/DEVICE_ABSTRACTION_ROUTE_AB_SUMMARY_20260922.md`。
-_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon", "ppu")
+_KNOWN_BACKENDS = ("ascend", "kunlun", "cambricon", "ppu", "biren")
 
 
 class BackendNotFound(RuntimeError):
