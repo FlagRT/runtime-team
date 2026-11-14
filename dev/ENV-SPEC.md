@@ -2,7 +2,7 @@
 
 > 状态：生效（2026-10-10）。本文件是环境基线机制的唯一规范：概念、判定规则、文件格式、
 > 工具与用法。设计依据见
-> [黄金准则 GR3/GR5 与 §3](../docs/运行时基座建设-黄金准则与方案存档.v1.md)。
+> [黄金准则 GR3/GR5 与 §3](../docs/运行时基座建设-黄金准则与方案存档.v1.md)（历史存档）。
 
 ## 0. 结论
 
@@ -260,6 +260,45 @@ services:
 
 compose `include` 不能覆盖被引入文件中已定义的服务，不用于这一场景。
 
+### 3.3 运行环境层包（`env_packages`）
+
+**定义**：运行环境可在镜像之上**加装镜像内没有的新增预编译包**，记录于 `env.baseline.yaml` 的
+`env_packages[]`。它是挂载资产之外的第二类运行环境侧加装物：不改镜像、不改挂载 repo，只补
+镜像未携带的预编译发行包。
+
+| 字段 | 内容 |
+|---|---|
+| `name` / `version` | pip 发行名与版本（`version` 是 check 项） |
+| `index_url` | 获取来源（包索引地址） |
+| `wheel` | 第二版本锚：`filename`、`sha256`、`source`（wheel 的获取来源） |
+| `install` | 安装方式：`up.sh` 起容器时安装；`--strict` 下核对容器内已装版本与登记 `version` 一致 |
+
+**规则**：
+
+1. **只加新包，不覆盖镜像内 baked 包**——运行环境层包不做与镜像内已装包同名的覆盖安装；
+   要改镜像内的包走 §2.3 晋升（写入新版本镜像配方后重建）。
+2. **每条目必须 `version` + `sha256` 双锚**——`wheel.sha256` 与 `version` 并记，离线环境
+   可按指纹复装，不依赖索引页存活。
+3. **check ＝ 容器内 `pip show` 版本一致**——核对已装版本与登记 `version` 逐字一致，
+   不一致即 FAIL。
+
+**实例（首个条目）**：昇腾训练腿（`ascend-train-comm/v3`）运行环境加装 `cann-shmem 1.6.0`：
+
+```yaml
+env_packages:
+  - name: cann-shmem
+    version: "1.6.0"
+    index_url: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+    wheel:
+      filename: cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl
+      sha256: 308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5
+      source: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+    install: up.sh
+```
+
+> 现行生效范围：`ascend-train-comm/v3` 现行运行环境为 `env/v1`，不含本条目；本条目随该镜像
+> 下一版运行环境目录（`env/v2`）落地生效。
+
 ## 4. 管理脚本：`dev/lib/baseline.py`
 
 ### 4.1 动作与场景
@@ -449,4 +488,13 @@ python3 dev/lib/baseline.py list
 - §2 新增 2.4「布局不变量」：仓根一级目录名 == 容器挂载引用名；布局唯一登记处 = dev/repos.yaml
   （报备-收录制）；clone_all.sh 只对齐布局与协作线、不锁提交；确切版本事实由 env.baseline.yaml 的
   mounted_repos 承担。
+-->
+
+<!-- changelog: 2026-11-14
+S2 基座文档瘦身批C（ADR-0028）：新增 §3.3「运行环境层包（env_packages）」——定义运行环境在镜像
+之上加装新增预编译包的登记格式（name/version=index check 项/index_url/wheel{filename,sha256,source}
+第二版本锚/install=up.sh 起容器时安装）与三条规则（只加新包不覆盖 baked 包、version+sha256 双锚
+离线可复装、check=容器内 pip show 版本一致）；首个条目 cann-shmem 1.6.0 作为节内实例（现行生效
+载体=ascend-train-comm/v3 的 env/v2，现行 env/v1 不加装）。头部黄金准则引用句补（历史存档）标注
+（该存档文档已加历史参考头注）。
 -->

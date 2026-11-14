@@ -1,6 +1,7 @@
 # VERSIONS.md —— 物资起始清单与版本事实源
 
 > 用途：**新成员起步 + 组级版本事实源**——只记仓库、设备层构成与公共环境变量；各芯片可复现的镜像 / venv 组合以对应子方向 README 为准。
+> 定位：通用开发底座说明；基座镜像栈的版本事实以 [`dev/images`](dev/images/README.md) 两锚点（USAGE_MATRIX.md / RELEASE_INDEX.yaml）为准。
 > 设备层 = 各芯片厂商设备插件（昇腾 `torch_npu`、昆仑芯厂商 CUDA 兼容 torch）；其上 FlagGems（算子）/ FlagCX（通信）/ vllm-plugin-FL（推理插件）/ vLLM。
 
 ## 0. 物资起始清单（一屏）
