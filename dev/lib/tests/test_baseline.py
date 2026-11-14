@@ -696,6 +696,241 @@ x-flagrt:
         self.assertIn("origin 远端与基线不一致", out.getvalue())
 
 
+# --------------------------------------------------------------------------
+# §3.3 运行环境层包（env_packages）：export 抄录 / check 容器内核对 / install 幂等安装
+# --------------------------------------------------------------------------
+
+class TestEnvPackages(TempCase):
+    """env_packages：声明（compose x-flagrt）→ 登记（env.baseline.yaml）→ 容器内核对。
+
+    docker 侧（inspect 状态 / 容器内 pip show / 主进程 cmdline / pip install）全部 mock。"""
+
+    PKG = {"name": "cann-shmem", "version": "1.6.0",
+           "index_url": "https://ascend.example/simple",
+           "wheel": {"filename": "cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl",
+                     "sha256": "3" * 64,
+                     "source": "https://ascend.example/simple"}}
+
+    def setUp(self):
+        super().setUp()
+        self.image_baseline = self.tmp / "image.baseline.yaml"
+        self.image_baseline.write_text(json.dumps({
+            "schema": baseline.SCHEMA, "kind": "image",
+            "image": {"ref": "flagrt/img:1", "id": "sha256:" + "a" * 64, "recipe": []},
+            "baked_repos": {"FlagCX": {"layer": "L3", "from": "img/v3 ...",
+                                       "commit": "4" * 40,
+                                       "install": "pip (non-editable)"}},
+            "baked_packages": [{"name": "somebaked", "version": "0.1",
+                                "index_url": "https://idx/simple",
+                                "install": "pip (non-editable)"}],
+            "baked_resources": [],
+        }), encoding="utf-8")
+        self.env = self.tmp / "demo"
+        self.env.mkdir()
+        self._write_compose([self.PKG])
+
+    def _write_compose(self, env_packages):
+        pkg_yaml = ""
+        if env_packages is not None:
+            lines = ["  env_packages:"]
+            for p in env_packages:
+                lines += [f"    - name: {p['name']}",
+                          f"      version: '{p['version']}'",
+                          f"      index_url: {p['index_url']}",
+                          "      wheel:",
+                          f"        filename: {p['wheel']['filename']}",
+                          f"        sha256: {p['wheel']['sha256']}",
+                          f"        source: {p['wheel']['source']}"]
+            pkg_yaml = "\n".join(lines)
+        (self.env / "docker-compose.yml").write_text(f"""services:
+  dev:
+    image: flagrt/img:1
+    container_name: flagrt-demo-test
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {{}}
+{pkg_yaml}
+""", encoding="utf-8")
+
+    def _export(self, **kw):
+        with mock.patch.object(baseline, "repo_info", return_value=None):
+            return baseline.export_env(self.env, **kw)
+
+    def _check(self, pip_version=None, running=True):
+        with mock.patch.object(baseline, "inspect_image", fake_inspect()), \
+             mock.patch.object(baseline, "docker_inspect_state",
+                               return_value="running" if running else None), \
+             mock.patch.object(baseline, "container_pip_version",
+                               return_value=pip_version), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            rc = baseline.check_env(self.env)
+        return rc, out.getvalue()
+
+    def _install(self, pip_versions, pid1=("sleep infinity",), install_rc=0):
+        """pip_versions: pip show 依次返回值（安装前后各查一次时取前两个）。"""
+        calls = []
+
+        def fake_run(cmd, **kw):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, install_rc, "", "")
+
+        with mock.patch.object(baseline, "docker_inspect_state", return_value="running"), \
+             mock.patch.object(baseline, "container_pid1_cmdline",
+                               side_effect=list(pid1) + ["sleep infinity"] * 50), \
+             mock.patch.object(baseline, "container_pip_version",
+                               side_effect=list(pip_versions)), \
+             mock.patch.object(baseline.subprocess, "run", side_effect=fake_run), \
+             mock.patch.object(baseline.time, "sleep", lambda _s: None), \
+             mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            rc = baseline.install_env_packages(self.env)
+        return rc, out.getvalue(), calls
+
+    # ---- export ----
+
+    def test_export_copies_declaration_with_install_upsh(self):
+        self.assertEqual(self._export(), 0)
+        text = (self.env / "env.baseline.yaml").read_text(encoding="utf-8")
+        self.assertIn("环境层包（env_packages）", text)
+        self.assertLess(text.index("mounted_repos:"), text.index("env_packages:"))
+        data = baseline.load_yaml(self.env / "env.baseline.yaml")
+        self.assertEqual(data["env_packages"], [{
+            "name": "cann-shmem", "version": "1.6.0",
+            "index_url": "https://ascend.example/simple",
+            "wheel": {"filename": "cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl",
+                      "sha256": "3" * 64, "source": "https://ascend.example/simple"},
+            "install": "up.sh"}])
+
+    def test_export_without_declaration_is_unchanged(self):
+        """旧环境（无 env_packages 声明）导出结果不含该节——向后兼容是硬要求。"""
+        self._write_compose(None)
+        self.assertEqual(self._export(), 0)
+        text = (self.env / "env.baseline.yaml").read_text(encoding="utf-8")
+        self.assertNotIn("env_packages", text)
+        self.assertNotIn("环境层包", text)
+
+    def test_export_rejects_baked_package_and_baked_repo_pip_name(self):
+        """规则 1：只加新包——与 baked_packages 或固化 repo 的 pip 发行名同名即拒绝。"""
+        for bad in ("somebaked", "flagcx"):
+            pkg = dict(self.PKG, name=bad)
+            self._write_compose([pkg])
+            with self.assertRaises(baseline.BaselineError) as cm:
+                self._export()
+            self.assertEqual(cm.exception.code, 2)
+            self.assertIn("不做覆盖安装", str(cm.exception))
+        self._write_compose([self.PKG])   # 恢复合法声明
+        self.assertEqual(self._export(), 0)
+
+    def test_export_rejects_missing_fields_and_bad_sha256(self):
+        (self.env / "docker-compose.yml").write_text("""services:
+  dev:
+    image: flagrt/img:1
+    container_name: flagrt-demo-test
+x-flagrt:
+  image_baseline: ../image.baseline.yaml
+  mounted_repos: {}
+  env_packages:
+    - name: cann-shmem
+      version: '1.6.0'
+      wheel:
+        filename: cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl
+        sha256: 3333333333333333333333333333333333333333333333333333333333333333
+        source: https://ascend.example/simple
+""", encoding="utf-8")
+        with self.assertRaises(baseline.BaselineError) as cm:
+            self._export()
+        self.assertIn("index_url", str(cm.exception))
+        pkg = dict(self.PKG, wheel=dict(self.PKG["wheel"], sha256="zz"))
+        self._write_compose([pkg])
+        with self.assertRaises(baseline.BaselineError) as cm:
+            self._export()
+        self.assertIn("sha256", str(cm.exception))
+
+    def test_export_rejects_duplicates_and_warns_on_filename_mismatch(self):
+        self._write_compose([self.PKG, dict(self.PKG, version="2.0.0")])
+        with self.assertRaises(baseline.BaselineError) as cm:
+            self._export()
+        self.assertIn("重复登记", str(cm.exception))
+        pkg = dict(self.PKG, version="9.9.9")   # 文件名里没有 9.9.9：只告警、不拒绝
+        self._write_compose([pkg])
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            self.assertEqual(self._export(), 0)
+        self.assertIn("未出现在 wheel 文件名", out.getvalue())
+
+    # ---- check ----
+
+    def test_check_skips_section_when_container_not_running(self):
+        self._export()
+        rc, out = self._check(running=False)
+        self.assertEqual(rc, 0)
+        self.assertIn("容器未运行，核对跳过", out)
+
+    def test_check_verifies_container_pip_version(self):
+        self._export()
+        rc, out = self._check(pip_version="1.6.0")
+        self.assertEqual(rc, 0)
+        self.assertIn("[PASS] env:cann-shmem", out)
+        rc, out = self._check(pip_version="0.9.0")
+        self.assertEqual(rc, 1)
+        self.assertIn("容器内版本不一致", out)
+        rc, out = self._check(pip_version=None)
+        self.assertEqual(rc, 1)
+        self.assertIn("内未安装（基线登记 1.6.0）", out)
+
+    def test_check_old_baseline_without_section_is_unchanged(self):
+        self._write_compose(None)
+        self._export()
+        rc, out = self._check(pip_version=None)
+        self.assertEqual(rc, 0)
+        self.assertNotIn("env_packages", out)
+
+    # ---- install ----
+
+    def test_install_is_noop_without_registration(self):
+        self._write_compose(None)
+        self._export()
+        rc, out, calls = self._install([])
+        self.assertEqual(rc, 0)
+        self.assertIn("无需安装", out)
+        self.assertEqual(calls, [])
+
+    def test_install_skips_when_version_matches(self):
+        self._export()
+        rc, out, calls = self._install(["1.6.0"])
+        self.assertEqual(rc, 0)
+        self.assertIn("已装且与登记一致，跳过", out)
+        self.assertEqual(calls, [], "幂等：已装且版本一致时不该再跑 pip install")
+
+    def test_install_runs_pip_when_missing(self):
+        self._export()
+        rc, out, calls = self._install([None, "1.6.0"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls, [["docker", "exec", "flagrt-demo-test", "python3", "-m", "pip",
+                                  "install", "cann-shmem==1.6.0", "-i",
+                                  "https://ascend.example/simple"]])
+
+    def test_install_waits_for_activation_then_installs(self):
+        """主进程还在 pip-editable 激活安装时须等待（并发写 site-packages 会互踩）。"""
+        self._export()
+        rc, out, calls = self._install(
+            [None, "1.6.0"],
+            pid1=("bash -c pip install --no-deps -e /workspace/FlagCX && exec sleep infinity",))
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 1)
+
+    def test_install_fails_when_no_running_container(self):
+        self._export()
+        with mock.patch.object(baseline, "docker_inspect_state", return_value=None), \
+             mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            rc = baseline.install_env_packages(self.env)
+        self.assertEqual(rc, 1)
+        self.assertIn("找不到运行中的容器", err.getvalue())
+
+    def test_install_fails_when_pip_install_fails(self):
+        self._export()
+        rc, out, calls = self._install([None], install_rc=1)
+        self.assertEqual(rc, 1)
+
+
 class TestEnvCurrentField(TempCase):
     """image.env_current：现行推荐运行环境目录（ADR-0008 决定 1/2，ENV-SPEC §3.1）。
 
@@ -834,15 +1069,20 @@ class TestComposeBinds(TempCase):
 
 
 class TestUpSh(TempCase):
-    """up.sh 给 compose 的 WORKSPACE_ROOT 与 baseline.py 用的 FLAGRT_WORKSPACE_ROOT 同源。"""
+    """up.sh 给 compose 的 WORKSPACE_ROOT 与 baseline.py 用的 FLAGRT_WORKSPACE_ROOT 同源；
+    起容器后追加 baseline.py install（env_packages，ENV-SPEC §3.3），--strict 装完再 check。"""
 
-    def _run_up(self, extra_env):
+    def _run_up(self, extra_env, *args):
         lib = self.tmp / "dev" / "lib"  # up.sh 以 lib/../.. 为仓根
         lib.mkdir(parents=True)
         (lib / "up.sh").write_text((LIB / "up.sh").read_text(encoding="utf-8"), encoding="utf-8")
+        stub_log = self.tmp / "stub.log"
         (lib / "baseline.py").write_text(
-            "import os\nprint('CHECK', os.environ.get('FLAGRT_WORKSPACE_ROOT'),"
-            " os.environ.get('WORKSPACE_ROOT'))\n", encoding="utf-8")
+            "import os, sys\n"
+            "print('CHECK', os.environ.get('FLAGRT_WORKSPACE_ROOT'),"
+            " os.environ.get('WORKSPACE_ROOT'))\n"
+            f"open({str(stub_log)!r}, 'a').write(' '.join(sys.argv[1:]) + '\\n')\n",
+            encoding="utf-8")
         bindir = self.tmp / "bin"
         bindir.mkdir()
         (bindir / "docker").write_text('#!/bin/sh\necho "DOCKER $WORKSPACE_ROOT"\n',
@@ -854,19 +1094,35 @@ class TestUpSh(TempCase):
         env.pop("WORKSPACE_ROOT", None)
         if "FLAGRT_WORKSPACE_ROOT" not in extra_env:
             env.pop("FLAGRT_WORKSPACE_ROOT", None)
-        return subprocess.run(["bash", str(lib / "up.sh"), str(envdir)], env=env,
-                              capture_output=True, text=True).stdout
+        proc = subprocess.run(["bash", str(lib / "up.sh"), str(envdir), *args], env=env,
+                              capture_output=True, text=True)
+        calls = (stub_log.read_text(encoding="utf-8").splitlines()
+                 if stub_log.is_file() else [])
+        return proc.stdout + proc.stderr, calls
 
     def test_flagrt_workspace_root_drives_compose(self):
-        out = self._run_up({"FLAGRT_WORKSPACE_ROOT": "/srv/other"})
+        out, _ = self._run_up({"FLAGRT_WORKSPACE_ROOT": "/srv/other"})
         self.assertIn("CHECK /srv/other /srv/other", out)
         self.assertIn("DOCKER /srv/other", out)
 
     def test_default_is_repo_root(self):
-        out = self._run_up({})
+        out, _ = self._run_up({})
         root = str(self.tmp.resolve())
         self.assertIn(f"CHECK {root} {root}", out)
         self.assertIn(f"DOCKER {root}", out)
+
+    def test_install_phase_runs_after_compose_up(self):
+        """起容器后调 baseline.py install（env_packages）；无 --strict 时不再复核。"""
+        out, calls = self._run_up({})
+        envdir = str(self.tmp / "envdir")
+        self.assertEqual(calls, [f"check {envdir}", f"install {envdir}"])
+        self.assertLess(out.index("DOCKER"), out.index("CHECK", out.index("DOCKER")),
+                        "install 须发生在 compose up 之后")
+
+    def test_strict_rechecks_after_install(self):
+        out, calls = self._run_up({}, "--strict")
+        envdir = str(self.tmp / "envdir")
+        self.assertEqual(calls, [f"check {envdir}", f"install {envdir}", f"check {envdir}"])
 
 
 class TestInfoBlock(TempCase):
