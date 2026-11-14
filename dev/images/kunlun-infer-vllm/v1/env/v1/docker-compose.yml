@@ -1,0 +1,81 @@
+# kunlun-infer-vllm v1 · env/v1 —— 昆仑芯推理腿（KV connector 宿主栈）第一版运行环境
+# （ADR-0026 定档镜像的首个 up-sh 环境目录，此前 registered-only；规范见 dev/ENV-SPEC.md §3.2）。
+#
+# 【形态来源】FM 仓 flagmemory/tiering/offload/xpu/RUNBOOK.md 与
+# tests/tiering/test_xpu_tier_manager_realcard.py 文件头的 2026-11-09 已验证形态：
+#   docker run --network none --device /dev/xpu<N> --device /dev/xpuctrl \
+#     -v <repo>:/ws:ro -w /ws -e PYTHONPATH=/ws  （单卡授予，容器内枚举即 cuda:0）
+# 本 compose 逐项对应：单卡设备授予 + xpuctrl（设备访问前提）+ FlagMemory 只读挂载 +
+# PYTHONPATH 仓根生效 + network none + 工作目录仓根。差异一处，有出处：
+#   · ulimits memlock=-1/stack：锁页判据（tier manager 套件 pin_memory 池 64 行×2MiB=128MiB
+#     超容器默认 memlock），口径同 kunlun-operator-runtime/v2/env/v1（同机先例）。
+#
+# 【勿把仓根（或任何别的目录）挂到 /workspace】镜像 /workspace 自带 vllm-plugin-FL /
+# FlagCX / vllm 等源树（vllm_fl 以 editable 指向 /workspace/vllm-plugin-FL，该副本
+# VENDOR_DEVICE_MAP 含 kunlunxin）。宿主仓根若挂上来，会用仓内 gitignore 的陈旧
+# vllm-plugin-FL 副本（VENDOR_DEVICE_MAP 无 kunlunxin）遮蔽镜像源树，import 链在
+# `Vendor kunlunxin not found` 上断掉（2026-11-15 P800-A 二分实测：整仓挂 /workspace
+# 必挂、只挂 FlagMemory 必过）。样例脚本因此经 stdin 注入而非仓根挂载（见
+# dev/memory/cases/connector-kunlunxin/run.sh）。
+#
+# 【FlagMemory 生效方式】PYTHONPATH=/workspace/FlagMemory（RUNBOOK §1 原生口径，不 pip install）。
+# 2026-11-15 P800-A 真卡实证：--strict 两轮全绿、FM 0.3.0 导入绿；判据三件当日 2/5
+#             （机器级 D2H 拷贝路径问题，见 ../README.md 与样例二 REPORT）；
+# 容器内 python 落 miniconda base（PATH 不含 conda env bin），跑负载一律用
+# /root/miniconda/envs/python310_torch29_cuda/bin/python。
+#
+# 【选卡纪律】xpu-smi 挑零负载/零显存卡；避开卡 1/卡 2（分配挂死前科）与有残留占用的卡；
+# 本机他人容器映射全 8 卡属常态（空壳可共存），以 xpu-smi 实测占用为准。CUDA_VISIBLE_DEVICES
+# 刻意不设：容器仅授予一卡（枚举即 cuda:0），选卡由 XPU_CARD 设备授予承担（同
+# kunlun-operator-runtime/v2/env/v1 的选卡口径）。
+#
+# 用法（仓根执行，机器 P800-A）：
+#   xpu-smi                                                        # 挑空闲卡，记卡号 <n>
+#   XPU_CARD=<n> dev/lib/up.sh dev/images/kunlun-infer-vllm/v1/env/v1 --strict
+#   docker exec -it flagrt-kunlun-infer-v1-env-v1-p800a bash       # 容器内 0 号卡 = 宿主 <n> 号
+#   # 用毕收尾（勿动他人容器）：
+#   XPU_CARD=<n> WORKSPACE_ROOT=$PWD docker compose -f \
+#     dev/images/kunlun-infer-vllm/v1/env/v1/docker-compose.yml down
+# 验收样例（单入口，含选卡前置与回落核验）：dev/memory/cases/connector-kunlunxin/。
+
+name: flagrt-kunlun-infer-v1-env-v1
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # FlagMemory 只读源树挂载、PYTHONPATH 生效（RUNBOOK §1，不 pip install）；
+  # 其余仓不在 import 路径上（ENV-SPEC §2.1）。
+  mounted_repos:
+    FlagMemory: {activation: pythonpath-source}
+
+services:
+  runtime-xpu-infer:
+    container_name: flagrt-kunlun-infer-v1-env-v1-p800a
+    image: harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4
+    network_mode: none
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    tty: true
+    stdin_open: true
+    devices:
+      # 单卡授予（同-name 直通，与 RUNBOOK/测试文件头 2026-11-09 形态一致）：
+      # 容器内仅此一卡 ⇒ 枚举即 cuda:0；xpuctrl 为设备访问前提
+      - /dev/xpu${XPU_CARD:?set_XPU_CARD}:/dev/xpu${XPU_CARD}
+      - /dev/xpuctrl:/dev/xpuctrl
+    volumes:
+      # 只挂 FlagMemory（镜像 /workspace 无 FlagMemory，无遮蔽；仓根勿整体挂，见文件头注）
+      - ${WORKSPACE_ROOT}/FlagMemory:/workspace/FlagMemory:ro
+    environment:
+      - DO_NOT_TRACK=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/workspace/FlagMemory
+    working_dir: /workspace/FlagMemory
+    restart: "no"
+    # 镜像 ENTRYPOINT=/bin/bash，命令须给 -c
+    command: ["-c", "sleep infinity"]
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-11-15  新建（S4-B）：首个 up-sh 运行环境目录（此前 registered-only）。形态按
+#             xpu RUNBOOK 2026-11-09 已验证形态派生；FlagMemory@v0.3.0 只读挂载 +
+#             PYTHONPATH 生效。真机 --strict 与判据三件验证记录见 ../README.md。
