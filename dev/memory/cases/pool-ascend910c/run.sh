@@ -35,7 +35,7 @@
 #   TRAIN_DIE_A=0 TRAIN_DIE_B=1 bash dev/memory/cases/pool-ascend910c/run.sh
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$HERE/../../.." && pwd)"
+ROOT="$(cd "$HERE/../../../.." && pwd)"
 ENV_DIR="$ROOT/dev/images/ascend-train-comm/v3/env/v2"
 CONTAINER=flagrt-train-v3-env-v2-910c
 TS="$(date +%Y%m%d-%H%M%S)"
@@ -84,9 +84,10 @@ done
 # ---- 1) 镜像自证 ----
 read_ref() { python3 -c "import yaml;print(yaml.safe_load(open('$ENV_DIR/env.baseline.yaml'))['image']['$1'])"; }
 REF="$(read_ref ref)"; WANT_ID="$(read_ref id)"
+if [ -z "$REF" ] || [ -z "$WANT_ID" ]; then echo "[FAIL] 基线 image.ref/id 读取为空"; exit 2; fi
 GOT_ID="$(docker image inspect "$REF" --format '{{.Id}}' 2>/dev/null || true)"
 echo "[INFO] 镜像自证: ref=$REF"; echo "[INFO] 基线 id=$WANT_ID"; echo "[INFO] 本地 id=$GOT_ID"
-if [ "$GOT_ID" != "$WANT_ID" ]; then echo "[FAIL] 镜像 id 与 env/v2 基线不一致"; exit 2; fi
+if [ -z "$GOT_ID" ] || [ "$GOT_ID" != "$WANT_ID" ]; then echo "[FAIL] 镜像 id 与 env/v2 基线不一致"; exit 2; fi
 echo "[PASS] 镜像 id 与 env/v2 基线一致"
 
 # ---- 2) 起环境 ----
