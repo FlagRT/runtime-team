@@ -1,0 +1,78 @@
+# ⚠️ 生成物，禁手改：由 dev/lib/release_index.py export 聚合各 image.baseline.yaml 生成；
+# 互锁校验：python3 dev/lib/check_release.py；导航入口：dev/images/README.md §1。
+schema: flagrt.release-index/v1
+generated_by: dev/lib/release_index.py export
+generated_at: '2026-11-14T21:45:09+08:00'
+environments:
+  ascend910c-train:
+    image:
+      ref: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+      id: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
+      baseline: dev/images/ascend-train-comm/v3/image.baseline.yaml
+    env_current:
+      dir: dev/images/ascend-train-comm/v3/env/v1
+      baseline: dev/images/ascend-train-comm/v3/env/v1/env.baseline.yaml
+    env_form: up-sh
+    stack_lock: dev/stack.lock.910c.v4.yaml
+  ascend910c-infer:
+    image:
+      ref: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+      id: sha256:2e56022ae5b39930e6df12cbd69cece9156adf2a2a1136952f87c1ef0960315f
+      baseline: dev/images/ascend-infer-vllm/v1/image.baseline.yaml
+      digest: sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7
+    env_current:
+      dir: dev/images/ascend-infer-vllm/v1/env/v1
+      baseline: dev/images/ascend-infer-vllm/v1/env/v1/env.baseline.yaml
+    env_form: up-sh
+    stack_lock: dev/stack.lock.910c.v4.yaml
+  kunlunxin-train:
+    image:
+      ref: flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64
+      id: sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a
+      baseline: dev/images/kunlun-operator-runtime/v2/image.baseline.yaml
+    env_current:
+      dir: dev/images/kunlun-operator-runtime/v2/env/v1
+      baseline: dev/images/kunlun-operator-runtime/v2/env/v1/env.baseline.yaml
+    env_form: up-sh
+    stack_lock: dev/stack.lock.kunlunxin.v1.yaml
+  kunlunxin-infer:
+    image:
+      ref: harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4
+      id: sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1
+      baseline: dev/images/kunlun-infer-vllm/v1/image.baseline.yaml
+      digest: sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1
+    env_current: null
+    env_form: registered-only
+    stack_lock: dev/stack.lock.kunlunxin.v1.yaml
+  cambricon-train:
+    image:
+      ref: harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+      id: sha256:e887e0ca4333a27185817fb8fef6ce95d5d9220c5a9725641187d602cabeea96
+      baseline: dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml
+      digest: sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2
+    env_current:
+      dir: dev/images/cambricon-mlu-runtime/v1/demo
+      baseline: dev/images/cambricon-mlu-runtime/v1/demo/env.baseline.yaml
+    env_form: demo
+    stack_lock: dev/stack.lock.cambricon.v1.yaml
+  cambricon-infer:
+    image:
+      ref: harbor.baai.ac.cn/flagos-app/vllm0.20.2-cambricon-neuware4.4.3:2.2.0-0.2.2
+      id: sha256:4f298aa57807e13c02ee179385cfe07e97db4613470bc72d428d02d65e6273fe
+      baseline: dev/images/cambricon-infer-vllm/v1/image.baseline.yaml
+      digest: sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94
+    env_current:
+      dir: dev/images/cambricon-infer-vllm/v1/demo
+      baseline: dev/images/cambricon-infer-vllm/v1/demo/env.baseline.yaml
+    env_form: demo
+    stack_lock: dev/stack.lock.cambricon.v1.yaml
+  thead-ppu:
+    image:
+      ref: flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64
+      id: sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8
+      baseline: dev/images/thead-ppu-runtime/v2/image.baseline.yaml
+    env_current:
+      dir: dev/images/thead-ppu-runtime/v2/env/v1
+      baseline: dev/images/thead-ppu-runtime/v2/env/v1/env.baseline.yaml
+    env_form: up-sh
+    stack_lock: dev/stack.lock.thead-ppu.v1.yaml
