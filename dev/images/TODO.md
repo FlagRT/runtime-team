@@ -1,5 +1,7 @@
 # dev/images TODO —— 镜像归档 / 重建的待办
 
+> ⚠️ 历史参考：本文为过程/存档记录，现状以 dev/images/README.md（入口）及两锚点（USAGE_MATRIX / RELEASE_INDEX）为准。
+
 > 只跟踪本目录职责内的事（归档、重建、索引、case 包）。项目层面的诉求（谁用、路线选型、验收）见 `dev/stack.lock.910c.*.yaml`（当前生效版本见该文件自身状态）/ `docs/`。
 
 ## 待办

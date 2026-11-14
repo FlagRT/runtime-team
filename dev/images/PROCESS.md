@@ -1,5 +1,7 @@
 # dev/images 过程记录 —— 候选血统的构建与验证过程
 
+> ⚠️ 历史参考：本文为过程/存档记录，现状以 dev/images/README.md（入口）及两锚点（USAGE_MATRIX / RELEASE_INDEX）为准。
+
 > 只记录"怎么走到今天这个状态"的过程性叙述（尝试了什么、为什么换路线、round 之间的
 > 因果关系、STOP CONDITION 的发现与处理）。**当前状态的事实性结论**见 `image_list.md`
 > （索引，含层级视图）与各 `<name>/vN/lock.yaml`（权威，逐层 pin + changelog）。

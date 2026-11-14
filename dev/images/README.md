@@ -1,11 +1,46 @@
-# dev/images —— 基座镜像归档与重建
+# dev/images —— 基座镜像区唯一导航入口
 
 > 状态：生效（2026-09-10）
 
+本文件是 images 区唯一导航入口：现行用什么、去哪查、怎么起、历史在哪，一律从这里出发。
+
+## 1. 现行生效（两个锚点）
+
+| 锚点 | 文件 | 是什么 |
+|---|---|---|
+| 锚点 1 · 人读 | [`USAGE_MATRIX.md`](USAGE_MATRIX.md) | 现行 7 环境 × 五层矩阵（镜像 / 运行环境 / 芯片基座 / 基础栈 / 活跃库），一页看全 |
+| 锚点 2 · 机读 | [`RELEASE_INDEX.yaml`](RELEASE_INDEX.yaml) | 由各 `image.baseline.yaml` 聚合生成（`python3 dev/lib/release_index.py export`），**生成物，禁手改**；与锚点 1 / 各 baseline 的一致性由 [`dev/lib/check_release.py`](../lib/check_release.py) 互锁校验 |
+
+现行锁定声明：
+
+- [`../stack.lock.910c.v4.yaml`](../stack.lock.910c.v4.yaml)（昇腾 910C，两腿分栈）
+- [`../stack.lock.kunlunxin.v1.yaml`](../stack.lock.kunlunxin.v1.yaml)（昆仑芯 P800，两腿）
+- [`../stack.lock.cambricon.v1.yaml`](../stack.lock.cambricon.v1.yaml)（寒武纪 MLU590）
+- [`../stack.lock.thead-ppu.v1.yaml`](../stack.lock.thead-ppu.v1.yaml)（平头哥 PPU）
+
+## 2. 怎么用环境
+
+- [`../ENV-SPEC.md`](../ENV-SPEC.md) —— 环境基线唯一规范（概念、判定规则、文件形态、工具与用法）
+- [`../_template/README.md`](../_template/README.md) —— 自建运行环境目录模板
+- 各镜像 `v<N>/README.md` 与其现行运行环境目录（现行是哪版见 §1 两锚点）：
+  [`ascend-train-comm/v3/`](ascend-train-comm/v3/)｜[`ascend-infer-vllm/v1/`](ascend-infer-vllm/v1/)｜[`kunlun-operator-runtime/v2/`](kunlun-operator-runtime/v2/)｜[`kunlun-infer-vllm/v1/`](kunlun-infer-vllm/v1/)｜[`cambricon-mlu-runtime/v1/`](cambricon-mlu-runtime/v1/)｜[`cambricon-infer-vllm/v1/`](cambricon-infer-vllm/v1/)｜[`thead-ppu-runtime/v2/`](thead-ppu-runtime/v2/)
+- 发版事实与限制清单（发版说明）：[`../../docs/基座发版说明-20261014.md`](../../docs/基座发版说明-20261014.md)（910C）｜[`../../docs/基座发版说明-20261015-MLU590.md`](../../docs/基座发版说明-20261015-MLU590.md)｜[`../../docs/基座发版说明-20261015-PPU.md`](../../docs/基座发版说明-20261015-PPU.md)
+- 起容器：`dev/lib/up.sh <env-dir> [--strict]`（机制见 ENV-SPEC §4.3）；服务起法以各腿锁定声明与各 `v<N>/README.md` 为准
+
+## 3. 历史版本与过程
+
+- [`image_list.md`](image_list.md) —— 全量历史版本归档（追加式）：各系列版本索引表
+- [`PROCESS.md`](PROCESS.md) / [`TODO.md`](TODO.md) —— 历史参考（过程叙述 / 待办存档）
+- [`../../docs/运行时基座建设-黄金准则与方案存档.v1.md`](../../docs/运行时基座建设-黄金准则与方案存档.v1.md) —— 黄金准则存档（历史参考：设计依据存档，现行机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)）
+- [`../../docs/运行时基座-使用与维护指南.md`](../../docs/运行时基座-使用与维护指南.md) §6 已退役机制 / §7 一页决策
+- 其余过程文档（`docs/v3-*`、`docs/跨组需求-*` 等）均为历史参考，文首带历史参考头注
+
+## 4. 目录规范与入档门槛
+
+### 4.1 职责
+
 > 基座设计的黄金准则与整体方案见 `docs/运行时基座建设-黄金准则与方案存档.v1.md`
 > （回答"为什么这样分层挂载、为什么选这条技术路线"）；本目录只回答下面三件事。
-
-## 1. 本目录的职责
 
 对**已使用过的基座镜像**按血统与版本做归档、整理、索引，并保证可重建。只回答：
 
@@ -15,16 +50,18 @@
 
 **边界**：为什么用它、给项目的哪个环节、什么使用约束、设备路线选型——由消费方文档（`dev/stack.lock.910c.*.yaml`、`docs/` 阶段目标文档）各自声明，具体以消费方文档为准。
 
-## 2. 结构
+### 4.2 结构
 
 ```
 dev/images/
-  README.md                  # 本文件：职责 + 规范 + 结构
-  image_list.md              # 索引：所有归档镜像的 tag / repro_status / 目录链接（只做索引，层级构成见各 lock.yaml 的 layers）
-  USAGE_MATRIX.md            # 现行环境 × 代码仓一页矩阵（对齐用；随换锁/ image_list 刷新）
-  PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）
+  README.md                  # 本文件：导航入口 + 规范
+  image_list.md              # 全量历史版本归档（追加式）：所有归档镜像的 tag / repro_status / 目录链接（层级构成见各 lock.yaml 的 layers）
+  USAGE_MATRIX.md            # 现行环境 × 代码仓一页矩阵（锚点 1；随换锁刷新）
+  RELEASE_INDEX.yaml         # 现行环境机读索引（锚点 2；release_index.py 生成，禁手改）
+  PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）——历史参考
+  TODO.md                    # 待办存档——历史参考
   .gitignore                 # 大文件与 *.local 护栏
-  CASE-TEMPLATE.md           # case 目录标准（§7）
+  CASE-TEMPLATE.md           # case 目录标准（§4.7）
   <name>/                    # 一个镜像血统一目录（去 registry 前缀与 tag 的稳定短名）
     v<N>/                    # 一个版本一目录，多版本共存
       Dockerfile             # 原始构造还原（逐字节复现目标；可能缺 owner 私有件）
@@ -46,18 +83,18 @@ dev/images/
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
 
-## 3. 命名与版本化
+### 4.3 命名与版本化
 
 - `<name>` = 稳定短名，同一血统的所有版本归其下。
-- `v<N>/` 目录不可变，对应一个镜像 tag。当前生效版本见 `image_list.md`。
+- `v<N>/` 目录不可变，对应一个镜像 tag。当前生效版本见 §1 两锚点。
 - 镜像有变更 → 新建 `v<N+1>/`，旧目录保留，旧 `lock.yaml` 顶部加 `superseded_by: v<N+1>`。
 - 不影响已产出制品的措辞修正，直接改当前目录并记 `lock.yaml` changelog。
 
 （与 `docs/` 阶段目标文档 §8 的文档版本化规则一致。）
 
-## 4. 官方 / 自定义边界
+### 4.4 官方 / 自定义边界
 
-### 4.0 术语："官方"在本目录指哪个主体（必须带主体名，不写裸"官方"）
+#### 术语："官方"在本目录指哪个主体（必须带主体名，不写裸"官方"）
 
 | 简称 | 主体 | 在本目录出现的东西 | 性质 |
 |---|---|---|---|
@@ -66,7 +103,7 @@ dev/images/
 | **BAAI 内部（非发布物）** | 智源内部构建，未对外发布 | `harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl:manual-*`（CANN 底座） | 人工手搭（`manual-` 前缀），仅存 BAAI harbor + 本机 + 离线包 |
 | **通用开源上游** | ubuntu / python.org / MPICH 等各自项目 | ubuntu 22.04、CPython、MPICH 源码 | 各项目官方发行版 |
 
-### 4.1 origin 标注
+#### origin 标注
 
 `lock.yaml` 的 `layers:` 逐项标 `origin`，供重建时判断"跟随上游"还是"需按 pin 重现"：
 
@@ -75,9 +112,9 @@ dev/images/
 | `official` | 上游原样产物（华为昇腾官方 / 通用开源上游）：CANN、ubuntu、CPython、`vllm-ascend`、华为发布的 `triton-ascend` wheel、MPICH 源码等 | digest 或上游版本号 |
 | `custom` | FlagRT/FlagOS 自行组合或打补丁：Torch-FL、FlagGems、FlagCX、triton 补丁、verify 脚本、运行时开关 ENV | git commit + patch sha256 |
 
-> 注：`origin: official` 只表示"该层是上游原样产物、按上游版本号/digest 跟随"，**不等于"华为发布"**——CANN 底座镜像本体是 **BAAI 内部**手搭的（见 4.0），只是其中的 CANN toolkit 用的是华为昇腾官方版本。
+> 注：`origin: official` 只表示"该层是上游原样产物、按上游版本号/digest 跟随"，**不等于"华为发布"**——CANN 底座镜像本体是 **BAAI 内部**手搭的（见上表），只是其中的 CANN toolkit 用的是华为昇腾官方版本。
 
-## 5. 入档门槛
+### 4.5 入档门槛
 
 一个镜像被本目录归档，其 `v<N>/` 须满足：
 
@@ -92,12 +129,22 @@ dev/images/
 
 上游发布的镜像（华为昇腾官方 `vllm-ascend`）/ BAAI 内部 CANN 底座（无自建 Dockerfile）用 🟢 表示"digest 锁定 + 已归档 + 已验证可拉"，与自建镜像的 `functional-repro` 是两层含义，`image_list.md` 的 `repro_status` 列会写明是哪一种。
 
-## 6. 迁移前置
+### 4.6 迁移前置
 
 把归档整套迁到新机器，需要：① 仓内配方（本目录，随 git）② 各 `ARCHIVE.md` 指向的离线包（三个 `docker save` tar.gz + `recovered/` 资产，当前在 raid 盘，不随 git）③ 上游可达（`harbor.baai.ac.cn` 的 **BAAI 内部** CANN 底座、`quay.io` 的**华为昇腾官方** vLLM 镜像）。三者缺一：缺 ② 退化到"从 ① + ③ 功能等价重建"；缺 ③ 且缺 ② 则阻塞。逐字节复现另需 owner 私有 FlagCX commit + patch（见 `TODO.md`）。
 
-## 7. Case 目录标准
+### 4.7 Case 目录标准
 
 `v<N>/` 目录同时作为对外交付的 case 包(他组据此复现问题、验证修复)。目录构成、
 README 三段式(用途与现状 / 复现 / 验证)、脚本三分类(复现 / 验证 / 收数)与四条硬规则
 (单入口、外部依赖声明、验证脚本自判定、完整日志不进仓)见 [`CASE-TEMPLATE.md`](CASE-TEMPLATE.md)。
+
+## 5. 文档版本纪律
+
+| 文档 | 版本事实（image id / digest / 版本号）口径 |
+|---|---|
+| 锚点文件（`USAGE_MATRIX.md` / `RELEASE_INDEX.yaml`）与锁定声明（`dev/stack.lock.*.yaml`） | 随发版更新；允许且必须写版本事实 |
+| 机制类文档（本文件、`dev/ENV-SPEC.md`、`docs/运行时基座-使用与维护指南.md`） | 只写机制与指向，不写具体版本号 / image id / digest；引用某版本作举例须显式写「实例」 |
+| 样例与 case 模板 | 见 [`CASE-TEMPLATE.md`](CASE-TEMPLATE.md) |
+
+判据：下次发新版，机制类文档不需要改。

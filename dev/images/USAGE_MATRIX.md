@@ -3,6 +3,7 @@
 > **一页看全**：现行生效的每个基础环境（芯片 × 腿）用什么镜像、什么运行环境目录、各层组件与代码仓的引入方式、版本、锚点 ID 与备注。
 > **数据源**：四份现行锁定声明（`dev/stack.lock.910c.v4.yaml` / `stack.lock.kunlunxin.v1.yaml` / `stack.lock.cambricon.v1.yaml` / `stack.lock.thead-ppu.v1.yaml`）＋ 各 `v<N>/image.baseline.yaml`、`env/v1/env.baseline.yaml`、`assets/provenance/pipfreeze-*.txt`。本表只做汇总呈现，**版本事实以各 baseline / lock 为准**。
 > **更新纪律**：任何镜像入锁 / 换锁 / 运行环境换版时，随 `image_list.md` 一并刷新本表（现状-only；过程与理由进 ADR，不写这里）。
+> **锚点职责**：本文件为人读现状锚点（锚点1）；机读锚点=RELEASE_INDEX.yaml（生成物），版本事实字段以机锚为准、经 dev/lib/check_release.py 互锁校验。
 > 生成：2026-11-14（v2：单元格四行结构化；基线取自 dev-1.0）。
 
 **形态图例**：**基座**=厂商/官方基座自带（被动继承，不可重建）｜**配方**=本组配方带入（重建可变）｜**覆盖**=env/vN 运行环境挂载生效（优先于镜像固化）｜**上游**=上游发布镜像自带（版本锚=digest）｜**—**=不在此环境。
