@@ -2,7 +2,7 @@
 
 最近更新：2026-11-14｜开发主力：刘鑫；既有画像/卸载负责人：陈沅昕（请假中，返回后分工待议）。
 
-本页按 [战略目标 §8.2](../../docs/运行时层原型验证-战略目标-910C.v1.md) 维护当前阶段、关键阻塞和更新日期；详细历史看板仍见 [README](README.md) / [PROGRESS](PROGRESS.md)。组件功能、接口和单测在 [FlagMemory](https://github.com/FlagRT/FlagMemory)，本仓负责组内同步和验收资料。
+本页按 [战略目标 §8.2](../../docs/运行时层原型验证-战略目标-910C.v1.md) 维护当前阶段、关键阻塞和更新日期；详细历史看板仍见 [README](README.md) / [PROGRESS](PROGRESS.md)。组件功能、接口和单测在 [FlagMemory](https://github.com/FlagRT/FlagMemory)（现行发版 **v0.3.0**，[Release](https://github.com/FlagRT/FlagMemory/releases/tag/v0.3.0)），本仓负责组内同步和验收资料。
 
 ## 当前阶段
 
