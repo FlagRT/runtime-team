@@ -8,6 +8,7 @@
 > | 层级构成（L1~L4 由哪些层组成） | 各 `v<N>/lock.yaml` 的 `layers:` 字段 |
 > | 过程叙述（尝试了什么、round 之间为什么切换、STOP CONDITION 怎么发现） | [`PROCESS.md`](PROCESS.md) |
 > | 怎么用、已知限制 | 各 `v<N>/README.md` 与其现行运行环境目录（910C 两腿为 `env/` 系列，其余为 `demo/`） |
+> | 现行环境 × 代码仓一页矩阵（对齐用） | [`USAGE_MATRIX.md`](USAGE_MATRIX.md) |
 > | 用途 / 使用约束 | 消费方文档：`dev/stack.lock.910c.*.yaml` 现行版本、`docs/` 阶段目标文档 |
 > | 目录规范、入档门槛、"官方"的三个主体定义 | [`README.md`](README.md)（§2/§5/§4.0） |
 > | 分层设计依据 | [`docs/运行时基座建设-黄金准则与方案存档.v1.md`](../../docs/运行时基座建设-黄金准则与方案存档.v1.md) |
