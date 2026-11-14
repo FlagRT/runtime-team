@@ -101,3 +101,23 @@ repos:
     purge_primaries: [main]
     note: 显存池管理器组件交付仓（招标清单 18 条）；按严格三线分支模型维护，依据 ADR-0014
     registered: "2026-11-03"
+
+  - url: git@github.com:FlagRT/flagos-device-context.git
+    dir: flagos-device-context
+    branch: main
+    kind: direction
+    owner: device-context（Kistich）
+    visibility: public
+    purge_primaries: []
+    note: main 即唯一工作线（同 framework-adapter 例外）；public 即满足「开放全组 clone」；报备 2026-11-03，收录 2026-11-14
+    registered: "2026-11-14"
+
+  - url: git@github.com:FlagRT/FlagScheduler.git
+    dir: FlagScheduler
+    branch: main
+    kind: direction
+    owner: batch_yxy（袁先乙）
+    visibility: private
+    purge_primaries: []
+    note: 节点级调度引擎独立仓（v0.2.0，自 dev/batch_yxy 拆出，历史提交完整保留）；private 需总组在 GitHub 侧开通权限（袁先乙/刘继阳 write）；报备五项方向已备齐，收录 2026-11-14
+    registered: "2026-11-14"
