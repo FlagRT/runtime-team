@@ -21,6 +21,7 @@
 dev/images/
   README.md                  # 本文件：职责 + 规范 + 结构
   image_list.md              # 索引：所有归档镜像的 tag / repro_status / 目录链接（只做索引，层级构成见各 lock.yaml 的 layers）
+  USAGE_MATRIX.md            # 现行环境 × 代码仓一页矩阵（对齐用；随换锁/ image_list 刷新）
   PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）
   .gitignore                 # 大文件与 *.local 护栏
   CASE-TEMPLATE.md           # case 目录标准（§7）
