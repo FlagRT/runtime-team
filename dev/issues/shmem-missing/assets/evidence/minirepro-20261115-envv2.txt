@@ -1,0 +1,25 @@
+# 截选自 npu1-11 运行日志（用户 xliu969），2026-11-15，运行环境 dev/images/ascend-train-comm/v3/env/v2
+# 完整日志留在执行机器：npu1-11:/tmp/s4-closeout-20261115/（envv2-up.log、minirepro-envv2-20261115.txt）
+# 1 卡（ASCEND_RT_VISIBLE_DEVICES=0 = 容器内 0 号 = 宿主 die 10），脚本 dev/issues/shmem-missing/assets/minirepro_shmem.py
+# 环境核对：up.sh --strict 起（image id e13a15d0d02b… + FlagCX 62fe615 / flagos-device-context
+#   984687f / FlagMemory 58e60a9 三挂载核对 + 层包 cann-shmem 1.6.0 装后核对全 PASS）
+
+## 判定运行（未规避环境；shmem 模块由层包 cann-shmem 1.6.0 提供，非占位模块），退出码 0
+## 命令: docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-train-v3-env-v2-910c \
+##   bash -c 'PYTHONPATH=${PYTHONPATH#/opt/flagrt-stub:} python3 dev/issues/shmem-missing/assets/minirepro_shmem.py'
+can not use command: npu-smi info
+TRITON_CACHE_DIR=/tmp/minirepro-triton-cache-63fhdhbf (fresh)
+...（import shmem 触发 cann-shmem 自带环境探测横幅：容器内无 npu-smi 故芯片识别 UNKNOWN、
+   RDMA 未检测到 IP 配置等，均与判定无关；横幅报「找到 libshmem.so（910 backend）…符号已找到」，
+   全量见机器日志）
+MINIREPRO_OK=True y[:5]=[0.0, 2.0, 4.0, 6.0, 8.0]
+
+=== VERDICT (minirepro_shmem, 1 card) ===
+  for-loop kernel compiled and the numeric result is correct -> no shmem gap in this environment
+overall: PASS
+exit=0
+
+## 附：容器内层包版本
+## 命令: docker exec flagrt-train-v3-env-v2-910c python3 -m pip show cann-shmem
+Name: cann-shmem
+Version: 1.6.0
