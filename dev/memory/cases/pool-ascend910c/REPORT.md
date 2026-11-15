@@ -12,6 +12,14 @@
   torch_npu 接管 torch.cuda，按 FM 仓文件头部 npu 先例原样运行；接管经
   `torch_npu.contrib.transfer_to_npu` 预导入——torch 2.10 上裸 `import torch_npu`
   不接管 torch.cuda，夹具取不到卡会全量 skip）。
+- **载体口径**：FM 仓昇腾侧另有正式真卡入口 `tests/pool/test_pool_ascend_realcard.py`
+  （独立适配器，3 个有界生命周期用例，单芯片受控、累计额度 ≤1 GiB、显式 enable 门控）与
+  `tests/pool/test_pool_device_context_ascend_realcard.py`（统一桥接入口，同 3 用例形态）；
+  二者与本样例载体**不同构且互不包含**——正式入口服务单芯片受控验证实例（映射 / 4096 字节
+  健康 / 三生命周期），本样例在现行训练腿运行环境内全量跑 11 用例（判据一/二、自管路、水位、
+  整理回收、全生命周期、粒度、屏障恢复、三类误用拦截）。`dev/memory/STATUS.md` 矩阵昇腾池格
+  的「已验收」锚 = `ascend-pool-lifecycle-3de6d5a` 等证据（正式入口产物）；矩阵中链接
+  `test_pool_realcard.py` 的是寒武纪 MLU 格。
 - **运行环境**：直接引用现行环境目录
   [`dev/images/ascend-train-comm/v3/env/v2`](../../../images/ascend-train-comm/v3/env/v2/)
   （镜像 ascend-train-comm v3 + FlagCX/flagos-device-context/FlagMemory 三挂载 +
@@ -53,4 +61,11 @@
      2026-11-15 真机窗口补验完成：占用者已释放，die 10/11（daizijian 空壳容器共存）；
      --strict 全绿、11/11 pass、summary PASS、down 后 die 回落基线、容器删净。同笔修
      容器侧 runner 第三处潜伏缺陷：torch 2.10 裸 import torch_npu 不接管 torch.cuda
-     （夹具 is_available()=False → 全量 skip），改为预导入 transfer_to_npu 后起 pytest。 -->
+     （夹具 is_available()=False → 全量 skip），改为预导入 transfer_to_npu 后起 pytest。
+     2026-11-15 载体口径核实（收尾件）：比对 FM dev-1.0@58e60a9 的 tests/README 备注
+     （test_pool_realcard.py=旧 CUDA 草稿、禁作昇腾结果）与昇腾正式入口
+     （test_pool_ascend_realcard.py / test_pool_device_context_ascend_realcard.py，各 3 个
+     有界生命周期用例）——与 11 用例不同构亦非超集（不同物），裁定维持本样例载体不变、不切换。
+     事实链更正一处：STATUS.md 矩阵昇腾池格锚的是 ascend-pool-lifecycle 证据（正式入口产物），
+     链接 test_pool_realcard.py 的是寒武纪 MLU 格（建议交 FM 线与设备方向复核该链接口径）。
+     FM tests/README 过时备注未改（FM 文档由 FM 线自修）。正文新增「载体口径」条（现状-only）。 -->
