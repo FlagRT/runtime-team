@@ -51,8 +51,8 @@
 | v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40） | `ascend-train-comm/v2/` |
 | v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 `e13a15d0d02b`） | 🟡 partial-repro | [`ascend-train-comm/v3/`](ascend-train-comm/v3/README.md) |
 
-> v3 是**训练腿发布物**（🟡；已知限制 A-2~A-4，其中 A-2 按运行环境版本分述：现行 env/v1 挂载覆盖含修复的 FlagCX 后不命中），现行运行环境
-> [`ascend-train-comm/v3/env/v1/`](ascend-train-comm/v3/env/v1/docker-compose.yml)（demo/ 为冻结的第 0 版验收记录）；两条 v3 的 🟡 成因与升 🟢
+> v3 是**训练腿发布物**（🟡；已知限制 A-2~A-4，其中 A-2 按运行环境版本分述：现行 env/v2 挂载覆盖含修复的 FlagCX 后不命中），现行运行环境
+> [`ascend-train-comm/v3/env/v2/`](ascend-train-comm/v3/env/v2/docker-compose.yml)（env/v1 为第 1 版、demo/ 为冻结的第 0 版验收记录）；两条 v3 的 🟡 成因与升 🟢
 > 条件见各自 README 的「已知限制」，待修缺陷的 case 包见 [`../issues/`](../issues/README.md)。
 > 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见各 `lock.yaml`。
 

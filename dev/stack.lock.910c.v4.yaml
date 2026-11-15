@@ -46,8 +46,8 @@ device_registration:
 lock:
   train:                                # 训练腿：2 卡分布式微调（组内完整镜像）
     image: "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64"
-    notes: "= 基座镜像超集（含推理栈组件，V4 用于训练腿）；已知限制按运行环境版本分述（ADR-0008）：现行运行环境 env/v1 以 pip-editable 挂载覆盖宿主 FlagCX（须处于修复提交 62fe615，up.sh --strict 核对），原生 DDP 可用；镜像内固化 FlagCX 为修复前形态，A-2 在该形态仍命中（不用原生 DDP 封装、不用列表形式 all_gather，每个 collective 后显式 torch.npu.synchronize()）。限制清单见 docs/基座发版说明-20261014.md"
-    container_name: "flagrt-train-v3-env-v1-910c（训练腿现行运行环境容器：dev/images/ascend-train-comm/v3/env/v1/；demo/ 为冻结的第 0 版验收记录）"
+    notes: "= 基座镜像超集（含推理栈组件，V4 用于训练腿）；已知限制按运行环境版本分述（ADR-0008）：现行运行环境 env/v2 以 pip-editable 挂载 FlagCX（须处于修复提交 62fe615）＋ flagos-device-context ＋ FlagMemory，层包 cann-shmem 1.6.0（up.sh --strict 核对），原生 DDP 可用；镜像内固化 FlagCX 为修复前形态，A-2 在该形态仍命中（不用原生 DDP 封装、不用列表形式 all_gather，每个 collective 后显式 torch.npu.synchronize()）。限制清单见 docs/基座发版说明-20261014.md"
+    container_name: "flagrt-train-v3-env-v2-910c（训练腿现行运行环境容器：dev/images/ascend-train-comm/v3/env/v2/；env/v1 为第 1 版、demo/ 为冻结的第 0 版验收记录）"
     base_image_entry: "dev/images/ascend-train-comm/v3"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
     registry_status: "组内镜像无 registry 要求；离线包在 npu1-11 /mnt/raid/user_cache/xliu969/v3-round4-archive/，含 SHA256SUMS；也可按仓内配方重建（先建 dev/images/ascend-operator-runtime/v3 基座再执行 build.sh，见各目录 REBUILD.md）。image id：npu1-11 sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15（npu1-27 侧同源 7028028bb62c，不作分发源）｜ repro_status 🟡 partial-repro"
   infer:                                # 推理腿：单卡推理服务（华为昇腾官方镜像）
@@ -147,9 +147,9 @@ per_leg:
   train:
     device_backend: "npu（torch_npu autoload + FlagCX 原生 flagcx c10d 后端，Route A）"
     note: |
-      训练腿在其现行运行环境 env/v1 容器内运行，多项训练侧验证共用该容器、以
+      训练腿在其现行运行环境 env/v2 容器内运行，多项训练侧验证共用该容器、以
       ASCEND_RT_VISIBLE_DEVICES 分区（昇腾驱动对带卡容器独占，第二个带卡容器
-      一律 EBUSY）。env/v1 挂载覆盖宿主 FlagCX（须处于修复提交），原生 DDP 可用；
+      一律 EBUSY）。env/v2 挂载覆盖宿主 FlagCX（须处于修复提交），原生 DDP 可用；
       镜像内固化形态仍受 A-2 约束：须手动多卡写法，每个 collective 后显式
       torch.npu.synchronize()，不用列表形式 all_gather、不用原生 DDP 封装。
       学习率显式用 1e-5（默认 5e-5 在 bf16+AdamW 下第 16 步 NaN，A-4）。
@@ -305,3 +305,11 @@ changelog:
       FlagCX（62fe615）后原生 DDP 可用，镜像内固化形态（4e0e0cb）仍命中；
       container_name 改指 env/v1 容器；lock.infer 的 env_baseline 改指 env/v1
       现行运行环境。demo/ 冻结为第 0 版验收记录。
+
+  - date: "2026-11-15"
+    who: "总组"
+    what: |
+      训练腿现行运行环境改指 env/v2（三挂载 FlagCX 62fe615 / flagos-device-context
+      984687f / FlagMemory 58e60a9 ＋ cann-shmem 1.6.0 层包；up.sh --strict 真机全绿，
+      容器内 torch.npu device_count=2；验收样例一 pool-ascend910c 同日真机 11/11）。
+      RELEASE_INDEX / USAGE_MATRIX / release_index 声明表同步；env/v1 保留为第 1 版。
