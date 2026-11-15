@@ -1,15 +1,14 @@
-# 华为昇腾官方 vllm-ascend v1 的运行环境，第 2 版（env/v2；规范见 dev/ENV-SPEC.md §3.2/§3.3）。
+# 华为昇腾官方 vllm-ascend v1 的现行推荐运行环境，第 2 版（env/v2；规范见 dev/ENV-SPEC.md §3.2/§3.3）。
 # 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
 # dev/lib/baseline.py export 生成，不手工编辑）。
 #
 # 【完备性】本目录含 env.baseline.yaml（2026-11-15 生成，由 baseline.py export 生成、不手工编辑），
 # 已完备；up.sh --strict 启动时照常核对。
 #
-# 【定位】现行推荐 = 同级 env/v1（现行锁定声明与镜像索引仍以 env/v1 为准）；本目录 env/v2 =
-# 组合层（在 env/v1 骨架上叠加组件挂载），供需要设备执行上下文 / 显存池组件（npu KV connector）
-# 的推理场景使用，是否转现行随 Top5 场景验证一起定。同级 ../../demo/ = 冻结的第 0 版，只作该
-# 镜像版本验收时所用配置的历史记录，内容不再变动、不承担推荐用法。本目录发布后不再修改，
-# 后续变更只新增下一版目录。
+# 【定位】现行推荐 = 本目录 env/v2：在 env/v1 骨架上组合一层挂载加装物（设备执行上下文 /
+# 显存池组件，供 npu KV connector 的推理场景使用）。同级 env/v1 = 第 1 版、../../demo/ = 冻结的
+# 第 0 版，均为历史记录、内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明
+# 为准，不以目录名判断。本目录发布后不再修改，后续变更只新增下一版目录。
 #
 # 【分工】env 只管容器生命周期（起容器 / 停容器 / 环境核对），服务启动统一走组内启动标准
 # serve_standard.sh（dev/device-context/prototype/scripts/serve_standard.sh，唯一入口）——
