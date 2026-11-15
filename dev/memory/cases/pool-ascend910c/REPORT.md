@@ -9,7 +9,9 @@
 - **验收对象**：FlagMemory（显存池管理器）池本体在昇腾 910C 真卡上的功能面——
   分配/复用、生命周期、流序、回收屏障等，载体 = FM 仓
   `tests/pool/test_pool_realcard.py` 全量 **11** 用例（torch.cuda 兼容命名空间套件，
-  torch_npu 接管 torch.cuda，按 FM 仓文件头部 npu 先例原样运行）。
+  torch_npu 接管 torch.cuda，按 FM 仓文件头部 npu 先例原样运行；接管经
+  `torch_npu.contrib.transfer_to_npu` 预导入——torch 2.10 上裸 `import torch_npu`
+  不接管 torch.cuda，夹具取不到卡会全量 skip）。
 - **运行环境**：直接引用现行环境目录
   [`dev/images/ascend-train-comm/v3/env/v2`](../../../images/ascend-train-comm/v3/env/v2/)
   （镜像 ascend-train-comm v3 + FlagCX/flagos-device-context/FlagMemory 三挂载 +
@@ -18,9 +20,9 @@
 
 | 判定项 | 判据 | 结果 |
 |---|---|---|
-| 环境核对 | `up.sh --strict` 全绿（镜像 id、三挂载 commit、cann-shmem 实装版本） | 未执行（本样例未起容器；env/v2 本体已于 2026-11-15 两次 `--strict` 全绿，见下注） |
-| 池真卡套件 | `test_pool_realcard.py` 11/11 pass（0 fail / 0 error / 0 skip） | 未执行（2026-11-15 机器全 16 die 被并存容器映射，非特权容器 open 一律 EBUSY、device_count=0；待窗口重跑） |
-| 机器可判 | `evidence/summary.json` `result: PASS`，run.sh 退出码 0 | 未执行（无 summary.json，不虚构） |
+| 环境核对 | `up.sh --strict` 全绿（镜像 id、三挂载 commit、cann-shmem 实装版本） | 通过（2026-11-15 真机 die 10/11，镜像 id / 三挂载 commit / cann-shmem 1.6.0 实装全 PASS） |
+| 池真卡套件 | `test_pool_realcard.py` 11/11 pass（0 fail / 0 error / 0 skip） | 通过（2026-11-15 真机 11/11 pass，0 fail / 0 error / 0 skip；daizijian 空壳带卡容器共存不挡） |
+| 机器可判 | `evidence/summary.json` `result: PASS`，run.sh 退出码 0 | 通过（`evidence/summary.json` `result: PASS`；run.sh 退出码 0，判定行 `overall: PASS`） |
 
 ## 判据与口径
 
@@ -38,7 +40,8 @@
 
 - 机器可判结果：[`evidence/summary.json`](evidence/summary.json)（用例名→pass/fail、
   计数、镜像 id、三挂载 commit 锚、cann-shmem 实装版本；由 run.sh 生成）。
-- 完整日志：执行机器 910c-11 的 `/tmp/pool-ascend910c-<时间戳>/`（run.log、pytest.log、
+- 完整日志：执行机器 910c-11 的 `/tmp/pool-ascend910c-<时间戳>/`（现行一次：
+  `/tmp/pool-ascend910c-20261115-132716/`，run.log、pytest.log、junit.xml、npu-smi 前后对照）（run.log、pytest.log、
   junit.xml、npu-smi 前后对照；完整日志不进仓）。
 - 环境版本事实：`dev/images/ascend-train-comm/v3/env/v2/env.baseline.yaml`。
 
@@ -46,4 +49,8 @@
      2026-11-15 真机窗口尝试：run.sh 未跑成——机器全 16 die 被并存带卡容器映射（npu-eval：2-15；
      flagos-op-ascend-daizijian：0-1），非特权容器 open die 一律 EBUSY、torch_npu device_count=0
      （die 0/1 与 10/11 各试一次；privileged 对照可枚举 16 卡）。诊断与 up.sh --strict 两次全绿
-     记录：910c-11 /tmp/s4-env2-20261115/。待空闲窗口后重跑本样例。 -->
+     记录：910c-11 /tmp/s4-env2-20261115/。待空闲窗口后重跑本样例。
+     2026-11-15 真机窗口补验完成：占用者已释放，die 10/11（daizijian 空壳容器共存）；
+     --strict 全绿、11/11 pass、summary PASS、down 后 die 回落基线、容器删净。同笔修
+     容器侧 runner 第三处潜伏缺陷：torch 2.10 裸 import torch_npu 不接管 torch.cuda
+     （夹具 is_available()=False → 全量 skip），改为预导入 transfer_to_npu 后起 pytest。 -->

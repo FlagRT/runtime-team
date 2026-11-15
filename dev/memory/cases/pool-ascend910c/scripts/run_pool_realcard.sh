@@ -15,7 +15,10 @@ if ! python3 -m pip show pytest >/dev/null 2>&1; then
   echo "[INFO] 容器内无 pytest，pip 安装（run.sh 已声明的外部依赖）"
   python3 -m pip install pytest
 fi
-python3 -m pytest tests/pool/test_pool_realcard.py -o addopts= -m realcard \
+# npu torch.cuda compat: bare torch_npu import does NOT take over torch.cuda (torch 2.10);
+# fixture is_available()=False -> all 11 skip. Pre-import torch_npu.contrib.transfer_to_npu instead.
+python3 -c 'import torch_npu, torch_npu.contrib.transfer_to_npu, sys, pytest; sys.exit(pytest.console_main())' \
+  tests/pool/test_pool_realcard.py -o addopts= -m realcard \
   -q --junitxml="$OUT/junit.xml" 2>&1 | tee "$OUT/pytest.log"
 rc=${PIPESTATUS[0]}
 echo "pytest rc=$rc"
