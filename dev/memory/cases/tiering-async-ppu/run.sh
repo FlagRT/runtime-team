@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # 验收样例 · tiering-async-ppu —— FlagMemory PPU 分层存储「异步在途轨」端到端真卡用例
-# 单入口 runner（宿主侧）。**真机验证待 PTG_0 VPN 窗口**：本脚本可执行，机器
-# （PTG_0 / ai-server）当前经 VPN 不可达，尚未在真机跑过——REPORT 如实标注，无结果可引。
+# 单入口 runner（宿主侧）。
 #
 # 【环境引用方式】本样例使用 case 自建运行环境目录 ./env（ENV-SPEC §3.2「各方向自建」
-# 形态：thead-ppu-runtime v2 镜像 + FlagMemory@58e60a9 pip-editable 挂载）——PPU 样例
-# 的验收环境与昇腾训练腿现行环境不同源，须自带装配；版本事实 = env/env.baseline.yaml。
+# 形态：flagrelease vllm0.24 定档镜像（flagrelease_ppu_vllm024_gems_540:1012，FM 仓
+# flagmemory/tiering/offload/ppu/RUNBOOK.md §0 定档，暂不入 stack.lock）+
+# FlagMemory@58e60a9 pip-editable 挂载）——PPU 样例的验收环境与昇腾训练腿现行环境
+# 不同源，须自带装配；版本事实 = env/env.baseline.yaml（手写登记式）+
+# env/image.anchor.yaml（镜像登记桩）。SDK 三件套（source envsetup + UMD/HGGC）在
+# compose 与 scripts/run_tiering_ppu.sh 两级内置；thead-ppu-runtime v2 镜像内
+# FM offload/ppu import 链断（vllm 0.19 无 PIN_MEMORY）为 RUNBOOK 已登记环境边界。
 #
 # 【单入口】幂等，可重复执行。流程 =
 #   0) 前置核对：ppu-smi 挑空闲卡（PPU_CARD，缺省 0，须 0% util / ~2MiB 显存）
@@ -18,7 +22,7 @@
 #   5) down 清理＋零残留
 #
 # 【外部依赖声明】（基线文件之外）
-#   - pytest：容器内按需 pip 安装（python3 -m pip install pytest，默认 PyPI）
+#   - pytest：镜像内自带（7.2.0）；缺失时容器内按需 pip 安装（默认 PyPI）
 #   - 一张空闲 PPU 卡（PPU_CARD，缺省 0）
 #   - 机器：PTG_0 / ai-server（经 VPN 窗口可达）
 #

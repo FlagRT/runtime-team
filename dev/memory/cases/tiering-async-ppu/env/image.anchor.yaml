@@ -1,0 +1,24 @@
+# 镜像登记桩（手写）—— flagrelease vllm0.24 定档镜像的 case 内锚点文件。
+# 为什么是手写桩而非 dev/lib/baseline.py 管理的 image.baseline.yaml：
+#   1) 本镜像为 FlagRelease 厂商发布线应用镜像，不在本仓 dev/images 重建体系内，
+#      baseline.py export 的 Dockerfile 血统核对（ENV-SPEC §4.2）不适用；
+#   2) 权威登记处 = FlagMemory 仓 flagmemory/tiering/offload/ppu/RUNBOOK.md「运行环境
+#      （定档）」节（ref/digest/容器内栈实测 2026-11-14）；本文件只作指针与本地核对锚；
+#   3) 0.24 定档镜像暂不入 stack.lock（用户裁定 2026-11-15），入锁另行立项。
+# 本地核对锚 = image id（docker image inspect 实测）；digest 为版本主锚（RUNBOOK 同源）。
+schema: flagrt.baseline/v1
+kind: image-anchor
+image:
+  ref: harbor.baai.ac.cn/flagrelease-public/flagrelease_ppu_vllm024_gems_540:1012
+  id: sha256:6cd05dcdcf306fa292b1a9f766e92cdb6654a50a330323d4d672af8ce8108527
+  digest: sha256:399937f1d77a0565ffcfae386d6abc0b9f4f16b1546e9ae46f49d7d75355bb03
+  registry: harbor.baai.ac.cn/flagrelease-public
+  authority: FlagMemory flagmemory/tiering/offload/ppu/RUNBOOK.md §0（定档 2026-11-14）
+# 核心栈（容器内实测 2026-11-14，抄录自 RUNBOOK §0）：vllm 0.24.0+empty /
+# vllm-plugin-FL 0.3.0rc2.post3（/opt/vllm-plugin-FL）/ torch 2.11.0+v0.1.0.ppu2.1.0.oe /
+# triton 3.5.0+gitcc5446cf / flag_gems 5.4.0+g0d95c2092 / PPU SDK v2.1.0（CUDA wrapper
+# cuda-13.0）/ Python 3.12.3。pytest 7.2.0、git 在位（容器内实测 2026-11-15）。
+# changelog:
+# 2026-11-15  新建：case 样例锚由 thead-ppu-runtime v2 改为 flagrelease vllm0.24 定档镜像
+#             （RUNBOOK §0 为权威登记处；v2 镜像内 FM offload/ppu import 链断——vllm 0.19
+#             无 PIN_MEMORY——为 RUNBOOK 已登记环境边界）。
