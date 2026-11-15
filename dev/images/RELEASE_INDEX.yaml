@@ -2,7 +2,7 @@
 # 互锁校验：python3 dev/lib/check_release.py；导航入口：dev/images/README.md §1。
 schema: flagrt.release-index/v1
 generated_by: dev/lib/release_index.py export
-generated_at: '2026-11-14T21:45:09+08:00'
+generated_at: '2026-11-15T19:44:15+08:00'
 environments:
   ascend910c-train:
     image:
@@ -10,8 +10,8 @@ environments:
       id: sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15
       baseline: dev/images/ascend-train-comm/v3/image.baseline.yaml
     env_current:
-      dir: dev/images/ascend-train-comm/v3/env/v1
-      baseline: dev/images/ascend-train-comm/v3/env/v1/env.baseline.yaml
+      dir: dev/images/ascend-train-comm/v3/env/v2
+      baseline: dev/images/ascend-train-comm/v3/env/v2/env.baseline.yaml
     env_form: up-sh
     stack_lock: dev/stack.lock.910c.v4.yaml
   ascend910c-infer:
@@ -21,8 +21,8 @@ environments:
       baseline: dev/images/ascend-infer-vllm/v1/image.baseline.yaml
       digest: sha256:5cf8a2b6db8b06eb1bc7fc7d191d667aebf2b197351bdba13f776918c11ec7a7
     env_current:
-      dir: dev/images/ascend-infer-vllm/v1/env/v1
-      baseline: dev/images/ascend-infer-vllm/v1/env/v1/env.baseline.yaml
+      dir: dev/images/ascend-infer-vllm/v1/env/v2
+      baseline: dev/images/ascend-infer-vllm/v1/env/v2/env.baseline.yaml
     env_form: up-sh
     stack_lock: dev/stack.lock.910c.v4.yaml
   kunlunxin-train:

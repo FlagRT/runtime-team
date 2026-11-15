@@ -1,0 +1,31 @@
+# 截选自 npu1-11 运行日志（用户 xliu969），2026-11-15，运行环境 dev/images/ascend-train-comm/v3/env/v1
+# 完整日志留在执行机器：npu1-11:/tmp/s4-closeout-20261115/（envv1-up.log、minirepro-envv1-20261115.txt）
+# 1 卡（ASCEND_RT_VISIBLE_DEVICES=0 = 容器内 0 号 = 宿主 die 10），脚本 dev/issues/shmem-missing/assets/minirepro_shmem.py
+# 环境核对：up.sh --strict 起（image id e13a15d0d02b… + 宿主 FlagCX 62fe615 双核对 PASS）；
+#   env/v1 无运行环境层包，容器内无 shmem 模块（占位模块前缀剥离为空操作——该版装配本不含占位模块）
+
+## 判定运行（未规避环境），退出码 1
+## 命令: docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-train-v3-env-v1-910c \
+##   bash -c 'PYTHONPATH=${PYTHONPATH#/opt/flagrt-stub:} python3 dev/issues/shmem-missing/assets/minirepro_shmem.py'
+can not use command: npu-smi info
+TRITON_CACHE_DIR=/tmp/minirepro-triton-cache-qra8brnv (fresh)
+Traceback (most recent call last):
+  File "/workspace/dev/issues/shmem-missing/assets/minirepro_shmem.py", line 67, in main
+    loop_kernel[(triton.cdiv(N, BLOCK),)](x, y, N, BLOCK=BLOCK, SUB=SUB)
+  ...（中间栈略，完整栈见机器日志：visit_For -> import triton.experimental.tle -> import shmem）
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/triton/spec/ascend/compiler/code_generator.py", line 1599, in visit
+    raise CompilationError(self.jit_fn.src, self.cur_node, repr(e)) from None
+triton.compiler.errors.CompilationError: at 5:4:
+def loop_kernel(x_ptr, y_ptr, n, BLOCK: tl.constexpr, SUB: tl.constexpr):
+    pid = tl.program_id(0)
+    base = pid * BLOCK
+    # 这个 for 循环是唯一的触发点：visit_For -> import triton.experimental.tle -> import shmem
+    for i in range(0, BLOCK, SUB):
+    ^
+ModuleNotFoundError("No module named 'shmem'")
+
+
+=== VERDICT (minirepro_shmem, 1 card) ===
+  repro: CONFIRMED - for-loop kernel compilation hit ModuleNotFoundError: No module named 'shmem'
+overall: FAIL
+exit=1

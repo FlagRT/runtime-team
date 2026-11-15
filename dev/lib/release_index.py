@@ -35,13 +35,13 @@ GENERATED_BY = "dev/lib/release_index.py export"
 ENVIRONMENTS = {
     "ascend910c-train": {
         "baseline": "dev/images/ascend-train-comm/v3/image.baseline.yaml",
-        "env_dir": "dev/images/ascend-train-comm/v3/env/v1",
+        "env_dir": "dev/images/ascend-train-comm/v3/env/v2",
         "env_form": "up-sh",
         "stack_lock": "dev/stack.lock.910c.v4.yaml",
     },
     "ascend910c-infer": {
         "baseline": "dev/images/ascend-infer-vllm/v1/image.baseline.yaml",
-        "env_dir": "dev/images/ascend-infer-vllm/v1/env/v1",
+        "env_dir": "dev/images/ascend-infer-vllm/v1/env/v2",
         "env_form": "up-sh",
         "stack_lock": "dev/stack.lock.910c.v4.yaml",
     },

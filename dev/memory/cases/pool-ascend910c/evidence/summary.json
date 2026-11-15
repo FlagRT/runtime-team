@@ -1,0 +1,46 @@
+{
+  "schema": "flagrt.case-summary/v1",
+  "case": "pool-ascend910c",
+  "executed_at": "2026-11-15T13:28:25+08:00",
+  "result": "PASS",
+  "criteria": {
+    "suite": "FlagMemory tests/pool/test_pool_realcard.py",
+    "expect_total": 11
+  },
+  "counts": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "tests": {
+    "tests.pool.test_pool_realcard.TestNormal::test_判据一_按大小分级的块池": "pass",
+    "tests.pool.test_pool_realcard.TestNormal::test_判据二_按流顺序分配与归还": "pass",
+    "tests.pool.test_pool_realcard.TestNormal::test_自管路是这一款芯片上的必经路": "pass",
+    "tests.pool.test_pool_realcard.TestNormal::test_水位双指标在真卡上都有真数": "pass",
+    "tests.pool.test_pool_realcard.TestNormal::test_整理与压力回收把块交回底座": "pass",
+    "tests.pool.test_pool_realcard.TestNormal::test_完整生命周期走一遍并留下证据": "pass",
+    "tests.pool.test_pool_realcard.TestBoundary::test_实测得到的粒度是正数且档位按它切": "pass",
+    "tests.pool.test_pool_realcard.TestBoundary::test_屏障超时在真卡上也是可恢复态": "pass",
+    "tests.pool.test_pool_realcard.TestError::test_未record的事件在这一栈上原生误报已完成": "pass",
+    "tests.pool.test_pool_realcard.TestError::test_重复归还由池账本拦下": "pass",
+    "tests.pool.test_pool_realcard.TestError::test_容量不足时报错不静默缩小请求": "pass"
+  },
+  "image": {
+    "ref": "flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64",
+    "id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15"
+  },
+  "env": {
+    "dir": "dev/images/ascend-train-comm/v3/env/v2",
+    "mounted_repos": {
+      "FlagCX": "62fe6153852658f17e729a06be4da1c766201ef7",
+      "flagos-device-context": "984687f1b7e76593276552fc18b86dafb6494791",
+      "FlagMemory": "58e60a94929e8920166fe634b1709290fef1bf4f"
+    },
+    "env_packages": {
+      "cann-shmem": "1.6.0"
+    },
+    "cann-shmem_installed": "1.6.0"
+  }
+}

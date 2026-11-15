@@ -1,0 +1,123 @@
+# ascend-train-comm v3 的现行推荐运行环境，第 2 版（env/v2；规范见 dev/ENV-SPEC.md §3.2/§3.3）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【完备性】本目录含 env.baseline.yaml（2026-11-15 生成，由 baseline.py export 生成、不手工编辑），
+# 已完备；up.sh --strict 启动时照常核对。
+#
+# 【定位】现行推荐 = 本目录 env/v2；同级 ../demo/ = 冻结的第 0 版、../env/v1/ = 第 1 版，
+# 均为历史记录、内容不再变动。现行是哪一版以镜像索引与现行锁定声明为准，不以目录名判断。
+# 本目录发布后不再修改，后续变更只新增下一版目录。
+#
+# 【本版构成】在 env/v1（FlagCX 覆盖挂载）之上组合两层加装物：
+#   · 挂载（pip-editable）：FlagCX（覆盖镜像内固化副本，同 env/v1）、flagos-device-context
+#     （设备执行上下文，宿主检出 984687f = v0.4.0 发版提交）、FlagMemory（显存池管理器，
+#     宿主检出 58e60a9 = v0.3.0 发版提交，pyproject 在仓根）。
+#   · 运行环境层包（x-flagrt.env_packages，ENV-SPEC §3.3）：cann-shmem 1.6.0
+#     （version+sha256 双锚，up.sh 起容器后幂等安装，--strict 装完核对容器内已装版本）。
+# 三份挂载的实际 commit 以 env.baseline.yaml 的 mounted_repos 为准；up.sh --strict 核对
+# 宿主 HEAD 与其一致。
+#
+# 【启动前须确认宿主检出】
+#   git -C FlagCX rev-parse HEAD                # 须为 env.baseline.yaml 登记的修复提交
+#   git -C flagos-device-context rev-parse HEAD # 984687f（v0.4.0 发版提交）
+#   git -C FlagMemory rev-parse HEAD            # 58e60a9（v0.3.0 发版提交）
+# 停在其他提交时按基线 load（python3 dev/lib/baseline.py load <本目录>）或手工对齐后再启动。
+#
+# 【设备纪律】一机同时只一个带卡容器（昇腾驱动对带卡容器独占，第二个带卡容器一律 EBUSY；
+# 映射全 16 张会报 dcmi device is used）。本文件只映射 TRAIN_DIE_A / TRAIN_DIE_B 两张 die，
+# 缺省不给值即拒绝启动；编号每次重新检查：须无计算占用、无其他容器映射。
+#
+# 用法（仓根执行）：
+#   npu-smi info | grep -E "910|Process"   # 挑空闲 die
+#   docker ps                              # 确认本机无其他带卡容器
+#   # 仅在有 docker 的发布窗口内、且尚无 env.baseline.yaml 时执行一次（须给 die 值参与插值）：
+#   #   TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> python3 dev/lib/baseline.py export \
+#   #     dev/images/ascend-train-comm/v3/env/v2 --require-clean
+#   TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-train-comm/v3/env/v2 --strict
+#   docker logs -f flagrt-train-v3-env-v2-910c    # 进入 sleep infinity 前为三份覆盖安装阶段
+#   docker exec -it flagrt-train-v3-env-v2-910c bash
+# 覆盖安装日志在仓根 evidence/{flagcx,dc,flagmemory}-build.log；容器进入 sleep infinity 才表示
+# 安装完成，up.sh 随后安装 cann-shmem（幂等）并复核（--strict）。
+#
+# 收尾（确认自己的进程已结束，不操作其他容器）：
+#   TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> docker compose \
+#     -f dev/images/ascend-train-comm/v3/env/v2/docker-compose.yml down
+# 本容器只跑训练腿；推理腿见现行锁定声明的 lock.infer。
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-train-v3-env-v2
+
+# 【导出基线的额外前置】生成 env.baseline.yaml 时也必须给 TRAIN_DIE_A / TRAIN_DIE_B 赋值：
+# baseline.py 为解析绑定挂载会调 docker compose config，而本文件的 die 变量用 ${VAR:?}
+# 形态（缺省即拒绝启动），插值失败则导出报错。这两个值只参与解析、不进基线。
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # 三份挂载均为 pip-editable（容器启动时以可编辑方式装入，见 command）：
+  #   FlagCX 覆盖镜像内固化副本（同 env/v1）；flagos-device-context 与 FlagMemory 为
+  #   镜像不含的组件（其余 repo 仍为镜像固化资产，见镜像基线 baked_repos）。
+  mounted_repos:
+    FlagCX: {activation: pip-editable}
+    flagos-device-context: {activation: pip-editable}
+    FlagMemory: {activation: pip-editable}
+  # 运行环境层包（ENV-SPEC §3.3）：只加新包不覆盖 baked 包；up.sh 起容器后幂等安装
+  # （pip install cann-shmem==1.6.0 -i <index_url>），--strict 核对容器内已装版本。
+  env_packages:
+    - name: cann-shmem
+      version: "1.6.0"
+      index_url: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+      wheel:
+        filename: cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl
+        sha256: 308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5
+        source: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+
+services:
+  runtime-dev:
+    container_name: flagrt-train-v3-env-v2-910c
+    image: flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # 只映射选定的两张 die；缺省即拒绝启动。需要更多卡时先确认整机无其他带卡容器再增行。
+    devices:
+      - /dev/davinci${TRAIN_DIE_A:?set_unused_die}:/dev/davinci${TRAIN_DIE_A}
+      - /dev/davinci${TRAIN_DIE_B:?set_unused_die}:/dev/davinci${TRAIN_DIE_B}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      # 仓根挂载同时提供三份 pip-editable 挂载源（/workspace/FlagCX、
+      # /workspace/flagos-device-context、/workspace/FlagMemory）。
+      - ${WORKSPACE_ROOT}:/workspace
+      # 镜像内不含驱动用户态库，须挂宿主驱动目录。
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    environment:
+      HCCL_WHITELIST_DISABLE: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_OPTIONAL_LOCKS: '0'
+      MAX_JOBS: '4'
+    working_dir: /workspace
+    # 启动即依次 pip-editable 安装三份挂载（FlagCX 覆盖镜像内固化副本；USE_ASCEND=1 为
+    # FlagCX 构建所需）；任一失败则容器退出。cann-shmem 由 up.sh 在容器常驻后安装。
+    command: [bash, -c, 'mkdir -p /workspace/evidence && USE_ASCEND=1 python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagCX > /workspace/evidence/flagcx-build.log 2>&1 && python3 -m pip install --no-deps --no-build-isolation -e /workspace/flagos-device-context > /workspace/evidence/dc-build.log 2>&1 && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/flagmemory-build.log 2>&1 && exec sleep infinity']
+    restart: 'no'
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-11-15  新建 env/v2（S4-A）。构成 = env/v1 的 FlagCX 覆盖挂载 + 新增
+#             flagos-device-context@984687f（v0.4.0）与 FlagMemory@58e60a9（v0.3.0）
+#             两份 pip-editable 挂载 + 首条运行环境层包 cann-shmem 1.6.0
+#             （ADR-0028 D13/D19、ADR-0029；version+sha256 双锚）。装配沿 env/v1 实测骨架
+#             （两 die 变量、只读驱动挂载、host 网络/IPC/shm512g），三份 editable 安装串行
+#             于 command 内、日志分件落仓根 evidence/；层包安装与核对由升级后的 up.sh 承担
+#             （baseline.py install + --strict 装后复核）。

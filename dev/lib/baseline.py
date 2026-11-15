@@ -8,6 +8,7 @@
   baseline.py check|show --image <image-dir>
   baseline.py export <env-dir> [--require-clean]
   baseline.py check|load|show <env-dir>
+  baseline.py install <env-dir>
   baseline.py list
 
 退出码：0 一致/成功；1 不一致（check）或交叉核对失败（export/load）；
@@ -22,6 +23,7 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,6 +89,7 @@ LAYER = {
 }
 DEFAULT_LAYER = "L3"
 SHA40 = re.compile(r"[0-9a-f]{40}")
+SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 # baked_repos 的 provenance 分组头（ENV-SPEC §3.1「怎么读镜像基线」维度 B）。划分依据就是
 # 已有的 from 字段，不新增字段：`base_image` 是被动继承的现状，其余（含父层配方继承来的
 # Dockerfile.repro(...)）是本组配方带入、可控的资产。风格同 env.baseline.yaml 的
@@ -1471,7 +1474,7 @@ def check_image(image_dir, online=False) -> int:
 # ---- 运行环境场景 ----
 
 def _env(env_dir):
-    """读取 <env-dir>/docker-compose.yml 的 x-flagrt 声明。"""
+    """读取 <env-dir>/docker-compose.yml 的 x-flagrt 声明（含 env_packages，ENV-SPEC §3.3）。"""
     env_dir = Path(env_dir).resolve()
     compose = env_dir / "docker-compose.yml"
     if not compose.is_file():
@@ -1484,7 +1487,37 @@ def _env(env_dir):
     mounted = x.get("mounted_repos") or {}
     if not isinstance(mounted, dict):
         raise BaselineError("x-flagrt.mounted_repos 不是映射")
-    return env_dir, compose, x["image_baseline"], mounted
+    return env_dir, compose, x["image_baseline"], mounted, _declared_env_packages(x)
+
+
+def _declared_env_packages(x: dict) -> list:
+    """校验并返回 x-flagrt.env_packages[] 声明（ENV-SPEC §3.3：version+sha256 双锚必填）。
+
+    只加新包、不覆盖镜像内 baked 包的规则在 export_env 里对照镜像基线核（这里只看得到
+    声明本身）。声明字段：name / version / index_url / wheel{filename, sha256, source}。"""
+    pkgs = x.get("env_packages") or []
+    if not isinstance(pkgs, list):
+        raise BaselineError("x-flagrt.env_packages 不是列表")
+    seen = set()
+    for p in pkgs:
+        if not isinstance(p, dict):
+            raise BaselineError("x-flagrt.env_packages 条目不是映射")
+        where = f"env_packages[{p.get('name', '?')}]"
+        for k in ("name", "version", "index_url"):
+            if not p.get(k):
+                raise BaselineError(f"{where} 缺少必填字段 {k}（ENV-SPEC §3.3）")
+        wheel = p.get("wheel")
+        if not isinstance(wheel, dict):
+            raise BaselineError(f"{where} 缺少 wheel{{filename, sha256, source}}")
+        for k in ("filename", "sha256", "source"):
+            if not wheel.get(k):
+                raise BaselineError(f"{where}.wheel 缺少必填字段 {k}")
+        if not SHA256_HEX.fullmatch(str(wheel["sha256"])):
+            raise BaselineError(f"{where}.wheel.sha256 不是 64 位十六进制指纹")
+        if p["name"] in seen:
+            raise BaselineError(f"env_packages 重复登记 {p['name']}")
+        seen.add(p["name"])
+    return pkgs
 
 
 def _host_head(host: Path):
@@ -1513,8 +1546,68 @@ def _on_remote(host: Path, commit: str) -> bool:
     return bool(out)
 
 
+# ---- 容器侧读取（env_packages 的 check / install 用；单测里 mock） ----
+
+def container_names(compose: Path) -> list:
+    """compose 里显式声明 container_name 的服务，按 YAML 顺序返回 [(服务名, 容器名)]。
+
+    只读 YAML、不走 docker compose config：后者会插值 ${VAR:?} 形态的设备变量（如
+    训练腿的 TRAIN_DIE_A），check 在容器未起时并没有这些值。"""
+    services = load_yaml(compose).get("services") or {}
+    return [(svc, spec.get("container_name")) for svc, spec in services.items()
+            if isinstance(spec, dict) and spec.get("container_name")]
+
+
+def docker_inspect_state(name: str) -> str | None:
+    """容器当前状态（docker inspect State.Status）；容器不存在返回 None。"""
+    try:
+        proc = subprocess.run(["docker", "inspect", "--format", "{{.State.Status}}", name],
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise BaselineError(f"无法执行 docker inspect {name}: {e}")
+    return proc.stdout.strip() or None if proc.returncode == 0 else None
+
+
+def _running_env_container(compose: Path):
+    """本环境当前在跑的容器（显式 container_name 的服务里第一个 running 的）。
+
+    无 container_name 的服务无法稳定寻址（compose 生成的名字随项目目录漂移），跳过并
+    由调用方告警；多容器环境取第一个 running（本仓运行环境均为单容器）。"""
+    for svc, cname in container_names(compose):
+        if cname and docker_inspect_state(cname) == "running":
+            return cname
+    return None
+
+
+def container_pip_version(container: str, dist: str) -> str | None:
+    """容器内 `python3 -m pip show <dist>` 的已装版本；未装返回 None。
+
+    用 PATH 上的 python3（与 ENV-SPEC §5 pip-editable 写法同一假定）；conda 多环境
+    基座不成立时由该环境的 compose 明示绝对路径——当前登记的 env_packages 环境均满足
+    PATH 假定。"""
+    try:
+        proc = subprocess.run(["docker", "exec", container, "python3", "-m", "pip", "show", dist],
+                              capture_output=True, text=True, timeout=180)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise BaselineError(f"无法在容器 {container} 内执行 pip show {dist}: {e}")
+    if proc.returncode != 0:
+        return None
+    m = re.search(r"^Version: (.+)$", proc.stdout, re.M)
+    return m.group(1).strip() if m else None
+
+
+def container_pid1_cmdline(container: str) -> str:
+    """容器主进程命令行（/proc/1/cmdline，NUL 分隔转空格）。"""
+    try:
+        proc = subprocess.run(["docker", "exec", container, "cat", "/proc/1/cmdline"],
+                              capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise BaselineError(f"无法读取容器 {container} 的 /proc/1/cmdline: {e}")
+    return proc.stdout.replace("\x00", " ") if proc.returncode == 0 else ""
+
+
 def export_env(env_dir, require_clean=False) -> int:
-    env_dir, compose, image_baseline_rel, declared = _env(env_dir)
+    env_dir, compose, image_baseline_rel, declared, env_pkgs_declared = _env(env_dir)
     image_baseline = load_yaml(env_dir / image_baseline_rel)
     baked = image_baseline.get("baked_repos") or {}
     binds = compose_binds(compose) if declared else []
@@ -1571,6 +1664,28 @@ def export_env(env_dir, require_clean=False) -> int:
         print(f"[WARN] {name}: 宿主 repo 没有 origin 远端，remote 记 unavailable，"
               f"他人无从得知这份代码该从哪个仓取（ENV-SPEC §3.2）")
 
+    # ---- env_packages：声明 → 登记（ENV-SPEC §3.3。只加新包，不覆盖镜像内 baked 包） ----
+    env_pkgs = []
+    for p in env_pkgs_declared:
+        name = str(p["name"])
+        if any(str(bp.get("name")) == name for bp in baked_pkgs):
+            raise BaselineError(
+                f"env_packages 的 {name} 是镜像基线里的索引发行包（baked_packages），"
+                f"运行环境层包不做覆盖安装（ENV-SPEC §3.3 规则 1）；要改走 §2.3 晋升重建镜像")
+        colliding = [repo for pip_name, repo in PKG_TO_REPO.items()
+                     if pip_name == name and repo in baked]
+        if colliding:
+            raise BaselineError(
+                f"env_packages 的 {name} 是镜像内固化 repo {colliding[0]} 的 pip 发行名，"
+                f"运行环境层包不做覆盖安装（ENV-SPEC §3.3 规则 1）；要改走挂载覆盖或 §2.3 晋升")
+        wheel = {k: str(p["wheel"][k]) for k in ("filename", "sha256", "source")}
+        if str(p["version"]) not in wheel["filename"]:
+            print(f"[WARN] env_packages 的 {name}: 登记版本 {p['version']} 未出现在 wheel 文件名 "
+                  f"{wheel['filename']} 中，请核对是否笔误")
+        env_pkgs.append({"name": name, "version": str(p["version"]),
+                         "index_url": str(p["index_url"]), "wheel": wheel,
+                         "install": "up.sh"})
+
     img = image_baseline.get("image") or {}
     L = [f"schema: {SCHEMA}", "kind: container",
          f"generated_by: dev/lib/baseline.py export {rel_to_repo(env_dir)}",
@@ -1592,6 +1707,19 @@ def export_env(env_dir, require_clean=False) -> int:
             L.append("baked_packages:            # 原样抄录自镜像基线，只读；不可下放为挂载资产")
             L += [f"  - {y(p)}" for p in baked_pkgs]
             L.append("")
+    if env_pkgs:
+        L.append("# " + "─" * 26 + " 环境层包（env_packages） " + "─" * 26)
+        L.append("env_packages:              # up.sh 起容器后幂等安装；check 核对容器内已装版本（ENV-SPEC §3.3）")
+        for p in env_pkgs:
+            L.append(f"  - name: {y(p['name'])}")
+            L.append(f"    version: {y(p['version'])}")
+            L.append(f"    index_url: {y(p['index_url'])}")
+            L.append("    wheel:")
+            L.append(f"      filename: {y(p['wheel']['filename'])}")
+            L.append(f"      sha256: {y(p['wheel']['sha256'])}")
+            L.append(f"      source: {y(p['wheel']['source'])}")
+            L.append("    install: up.sh")
+        L.append("")
     out = env_dir / "env.baseline.yaml"
     out.write_text("\n".join(L[:-1]) + "\n", encoding="utf-8")
     print(f"[OK] 运行环境基线已生成 -> {rel_to_repo(out)}")
@@ -1599,7 +1727,7 @@ def export_env(env_dir, require_clean=False) -> int:
 
 
 def check_env(env_dir) -> int:
-    env_dir, compose, _, _ = _env(env_dir)
+    env_dir, compose, _, _, _ = _env(env_dir)
     base = load_yaml(env_dir / "env.baseline.yaml")
     img = base.get("image") or {}
     report = [_check_image_id(img.get("ref"), img.get("id"))[0]]
@@ -1644,6 +1772,26 @@ def check_env(env_dir) -> int:
                            + ", ".join(p.get("file", "?") for p in item["baked_patches"])))
     if base.get("baked_repos"):
         report.append(("INFO", "baked", "固化资产不与宿主比对，由 image id 约束（ENV-SPEC §2）"))
+    # ---- env_packages：容器在跑才核对（check 也在 up.sh 启动路径上，那时容器未起） ----
+    env_pkgs = base.get("env_packages") or []
+    if env_pkgs:
+        container = _running_env_container(compose)
+        if container is None:
+            report.append(("INFO", "env_packages",
+                           f"容器未运行，核对跳过（登记 {[p.get('name') for p in env_pkgs]}；"
+                           f"up.sh 起容器后自动安装并核对，ENV-SPEC §3.3）"))
+        else:
+            for p in env_pkgs:
+                name, want = str(p.get("name")), str(p.get("version"))
+                got = container_pip_version(container, name)
+                if got is None:
+                    report.append(("FAIL", f"env:{name}",
+                                   f"容器 {container} 内未安装（基线登记 {want}）"))
+                elif got != want:
+                    report.append(("FAIL", f"env:{name}",
+                                   f"容器内版本不一致: 基线 {want} 实际 {got}"))
+                else:
+                    report.append(("PASS", f"env:{name}", f"容器内已装 {got}（{container}）"))
     ok = _print_report(report)
     out = env_dir / ".last-check.json"
     out.write_text(json.dumps({
@@ -1701,6 +1849,66 @@ def load_env(env_dir) -> int:
                   file=sys.stderr)
             return 1
         print(f"[OK] {name}: 切换后 commit={new[:12]} (detached HEAD)")
+    return 0
+
+
+def install_env_packages(env_dir) -> int:
+    """按 env.baseline.yaml 的 env_packages 登记在运行中的容器内幂等安装（ENV-SPEC §3.3）。
+
+    up.sh 起容器后调用：已装且版本一致则跳过，否则 `pip install <name>==<version> -i
+    <index_url>`。安装前等容器主进程结束自身的 pip install（pip-editable 覆盖安装与
+    层包安装并发会写同一 site-packages）。无登记时为无操作——旧环境行为不变。"""
+    env_dir, compose, _, _, _ = _env(env_dir)
+    env_pkgs = load_yaml(env_dir / "env.baseline.yaml").get("env_packages") or []
+    if not env_pkgs:
+        print("[INFO] 基线未登记 env_packages，无需安装")
+        return 0
+    container = _running_env_container(compose)
+    if container is None:
+        running = [c for _, c in container_names(compose)]
+        detail = f"（显式容器名 {running}）" if running else "（compose 无显式 container_name）"
+        print(f"[FAIL] 找不到运行中的容器，无法安装 env_packages{detail}", file=sys.stderr)
+        return 1
+    # 等 compose command 里的 pip-editable 安装结束（主进程 cmdline 不再含 pip install）
+    budget = int(os.environ.get("FLAGRT_ENV_PKG_WAIT", "1800"))
+    waited = 0
+    while "pip install" in container_pid1_cmdline(container):
+        if docker_inspect_state(container) != "running":
+            print(f"[FAIL] 容器 {container} 在层包安装等待期间退出", file=sys.stderr)
+            return 1
+        if waited >= budget:
+            print(f"[FAIL] 等待容器 {container} 主进程完成自身 pip install 超时"
+                  f"（{budget}s，可用 FLAGRT_ENV_PKG_WAIT 调整）", file=sys.stderr)
+            return 1
+        if waited == 0:
+            print(f"[INFO] 等待容器 {container} 完成 pip-editable 激活安装…")
+        time.sleep(10)
+        waited += 10
+    for p in env_pkgs:
+        name, version = str(p["name"]), str(p["version"])
+        got = container_pip_version(container, name)
+        if got == version:
+            print(f"[OK] {name}=={version} 已装且与登记一致，跳过（幂等）")
+            continue
+        if got is not None:
+            print(f"[WARN] {name} 容器内为 {got}，与登记 {version} 不一致，重装")
+        cmd = ["docker", "exec", container, "python3", "-m", "pip", "install",
+               f"{name}=={version}", "-i", str(p["index_url"])]
+        print(f"[INFO] 安装 {name}=={version}（-i {p['index_url']}）")
+        try:
+            proc = subprocess.run(cmd, timeout=1800)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            print(f"[FAIL] {name} 安装执行失败: {e}", file=sys.stderr)
+            return 1
+        if proc.returncode != 0:
+            print(f"[FAIL] {name}=={version} 安装失败（pip 退出码 {proc.returncode}）",
+                  file=sys.stderr)
+            return 1
+        got = container_pip_version(container, name)
+        if got != version:
+            print(f"[FAIL] {name} 安装后核对不符: 登记 {version} 实际 {got}", file=sys.stderr)
+            return 1
+        print(f"[OK] {name}=={version} 安装完成")
     return 0
 
 
@@ -1777,6 +1985,13 @@ def show(target, image: bool) -> int:
         print(_table([[i.get("layer"), n, str(i.get("commit"))[:12], i.get("install"),
                        "被挂载覆盖" if n in mounted else ""] for n, i in baked.items()],
                      ["层级", "资产", "commit", "安装方式", "备注"]))
+    pkgs = data.get("env_packages") or []
+    if pkgs:
+        print("\n环境层包（env_packages，up.sh 安装、check 核对容器内版本）:")
+        print(_table([[p.get("name"), p.get("version"), p.get("install"),
+                       p.get("index_url"), _short((p.get("wheel") or {}).get("sha256"), 16)]
+                      for p in pkgs],
+                     ["包", "version", "安装方式", "来源索引", "wheel sha256"]))
     return 0
 
 
@@ -1832,6 +2047,9 @@ def build_parser():
                                  "up.sh --strict 的启动路径上。需绕代理时先 export no_proxy='*'")
     sub.add_parser("load", help="按基线切换挂载 repo（仅运行环境场景）").add_argument(
         "env_dir", help="运行环境目录")
+    sub.add_parser("install",
+                   help="按基线 env_packages 在运行中的容器内幂等安装（up.sh 起容器后调用）"
+                        "（仅运行环境场景）").add_argument("env_dir", help="运行环境目录")
     sub.add_parser("list", help="列出仓内全部镜像基线的资产与版本")
     return p
 
@@ -1847,6 +2065,8 @@ def main(argv=None) -> int:
             return list_baselines()
         if args.action == "load":
             return load_env(args.env_dir)
+        if args.action == "install":
+            return install_env_packages(args.env_dir)
         if bool(args.image) == bool(args.env_dir):
             print("用法错误: 必须且只能给一个场景（--image <image-dir> 或 <env-dir>）", file=sys.stderr)
             return 2
@@ -1884,3 +2104,17 @@ if __name__ == "__main__":
 #   不 FAIL；remote 与宿主实际 origin 不一致报 WARN（commit 相等已保证代码内容相同，但别人会
 #   按基线找错仓）。单测见 dev/lib/tests/test_baseline.py 的 TestEnvCurrentField 与
 #   TestEnvScenario 的 mounted_repos.remote 段。
+
+# changelog: 2026-11-15
+# 补齐 ENV-SPEC §3.3「运行环境层包 env_packages」的工具支持（S2 已定机制、工具缺位）：
+# - export：compose 的 x-flagrt.env_packages[]（name/version/index_url/wheel{filename,sha256,source}
+#   必填，version+sha256 双锚）经与镜像基线交叉核对（不与 baked_packages / 固化 repo 的 pip
+#   发行名同名，规则 1「只加新包」）后写入 env.baseline.yaml 的 env_packages[]（install: up.sh）。
+#   无该声明的旧环境导出结果不变（向后兼容）。
+# - check：容器在跑才逐条核对容器内 pip 已装版本与登记 version 逐字一致；容器未运行该节
+#   INFO 跳过（check 在 up.sh 启动路径上，彼时容器未起；起后由 up.sh 的 strict 复核实测）。
+# - install（新动作，up.sh 起容器后调用）：等容器主进程完成自身 pip-editable 激活安装
+#   （并发写同一 site-packages 会互踩），再逐条幂等安装——已装且版本一致跳过，否则
+#   pip install <name>==<version> -i <index_url>；装后即核对版本。无登记时无操作。
+#   容器按 compose 显式 container_name 寻址（不走 docker compose config，避免设备变量插值）。
+# 单测见 dev/lib/tests/test_baseline.py 的 TestEnvPackages 与 TestUpSh 的 install 段。
