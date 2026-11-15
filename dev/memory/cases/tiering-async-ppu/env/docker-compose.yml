@@ -68,10 +68,12 @@ services:
       - "ai-server:127.0.0.1"     # 坑①：--network host 下主机名不解析 → torchrun 挂 300s
     working_dir: /workspace
     # 启动即 pip-editable 安装 FlagMemory；失败则容器退出。SDK 环境变量由镜像 ENV 固化。
-    command: [bash, -c, 'mkdir -p /workspace/evidence && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/flagmemory-build.log 2>&1 && exec sleep infinity']
+    command: [bash, -c, 'git config --global --add safe.directory /workspace/FlagMemory && mkdir -p /workspace/evidence && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/flagmemory-build.log 2>&1 && touch /workspace/evidence/flagmemory-build.done && exec sleep infinity']
     restart: "no"
 
 # ---------------------------------------------------------------
 # changelog
 # 2026-11-15  新建（S4-A 样例三）。装配 = thead-ppu-runtime/v2/env/v1 实测骨架 + FlagMemory
 #             挂载；服务化不在本环境内。真机验证待 PTG_0 VPN 窗口（REPORT 如实标注）。
+# 2026-11-15  真机补完：主命令前置 git safe.directory（uid 不同致 pip-editable 元数据生成
+#             失败），安装成功后落 flagmemory-build.done 标记供 run.sh 就绪等待。

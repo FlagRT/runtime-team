@@ -29,7 +29,7 @@
 #   PPU_CARD=0 bash dev/memory/cases/tiering-async-ppu/run.sh
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$HERE/../../.." && pwd)"
+ROOT="$(cd "$HERE/../../../.." && pwd)"
 ENV_DIR="$HERE/env"
 CONTAINER=flagrt-fm-tiering-ppu-ptg0
 PPU_CARD="${PPU_CARD:-0}"
@@ -39,6 +39,18 @@ CASE_EVIDENCE="$HERE/evidence"
 RC_TESTS=0; RC_SUMMARY=0; RC_ENV=0
 
 cd "$ROOT"
+# PTG_0 宿主默认 python3=3.6（<3.10），dev/lib/baseline.py 需 ≥3.10：建 python3→新解释器 shim 前置 PATH
+_PY_SHIM=""
+if [ "$(python3 -c "import sys; print(1 if sys.version_info>=(3,10) else 0)" 2>/dev/null || echo 0)" != "1" ]; then
+  for _CAND in python3.12 python3.11 python3.10; do
+    if command -v "$_CAND" >/dev/null 2>&1; then
+      _PY_SHIM="$(mktemp -d /tmp/flagrt-py310-shim-XXXXXX)"
+      ln -s "$(command -v "$_CAND")" "$_PY_SHIM/python3"
+      PATH="$_PY_SHIM:$PATH"; break
+    fi
+  done
+fi
+[ -n "$_PY_SHIM" ] && trap 'rm -rf "$_PY_SHIM"' EXIT
 mkdir -p "$LOG_DIR" "$CASE_EVIDENCE"
 exec > >(tee -a "$LOG_DIR/run.log") 2>&1
 echo "== tiering-async-ppu $(date -Is) card=$PPU_CARD log=$LOG_DIR"
@@ -66,6 +78,20 @@ if ! bash dev/lib/up.sh "$ENV_DIR" --strict; then
 fi
 
 if [ "$RC_ENV" = "0" ]; then
+  # ---- 2.5) 等容器内 FlagMemory pip-editable 装配完成（compose command 成功后落 done 标记）----
+  READY=0
+  for _ in $(seq 1 60); do
+    if docker exec "$CONTAINER" test -f /workspace/evidence/flagmemory-build.done 2>/dev/null; then READY=1; break; fi
+    sleep 3
+  done
+  if [ "$READY" != "1" ]; then
+    echo "[FAIL] 容器内 FlagMemory pip-editable 装配未在 180s 内完成（或容器已退出）："
+    docker exec "$CONTAINER" tail -20 /workspace/evidence/flagmemory-build.log 2>/dev/null || true
+    RC_TESTS=1
+  fi
+fi
+
+if [ "$RC_ENV" = "0" ] && [ "$READY" = "1" ]; then
   # ---- 3) 容器内跑 3 用例 ----
   docker exec "$CONTAINER" mkdir -p /workspace/evidence/tiering-async-ppu
   if docker exec -e FLAGMEMORY_ENABLE_LEGACY_CUDA=I_ACCEPT_LEGACY_RISKS \

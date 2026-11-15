@@ -1,0 +1,32 @@
+{
+  "schema": "flagrt.case-summary/v1",
+  "case": "tiering-async-ppu",
+  "executed_at": "2026-11-15T13:31:43+08:00",
+  "result": "FAIL",
+  "criteria": {
+    "suite": "FlagMemory tests/tiering/test_ppu_tier_manager_realcard.py",
+    "expect_total": 3
+  },
+  "counts": {
+    "total": 3,
+    "passed": 0,
+    "failed": 0,
+    "errors": 3,
+    "skipped": 0
+  },
+  "tests": {
+    "tests.tiering.test_ppu_tier_manager_realcard::test_T8负例_级二容量不大于级一池容量报错不启": "fail",
+    "tests.tiering.test_ppu_tier_manager_realcard::test_真卡异步轨全链_发起即返回确认后落账交块": "fail",
+    "tests.tiering.test_ppu_tier_manager_realcard::test_destroy_有在途搬运_不静默丢弃排空后才销毁": "fail"
+  },
+  "image": {
+    "ref": "flagrt/thead-ppu-runtime:1.0.0-ppu3.6-py312-torch2.10.0-flagtree0.7.0-triton3.6.0-x86_64",
+    "id": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8"
+  },
+  "env": {
+    "dir": "dev/memory/cases/tiering-async-ppu/env",
+    "mounted_repos": {
+      "FlagMemory": "58e60a94929e8920166fe634b1709290fef1bf4f"
+    }
+  }
+}
