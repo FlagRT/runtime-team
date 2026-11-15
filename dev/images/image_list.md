@@ -60,7 +60,7 @@
 
 | 版本 | tag | repro_status | 目录 |
 |---|---|---|---|
-| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + env/v1 现行运行环境（ADR-0007/0008） | `ascend-infer-vllm/v1/` |
+| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + env/v2 现行运行环境（ADR-0007/0008） | `ascend-infer-vllm/v1/` |
 
 > 该系列为**现行推理腿**（华为昇腾官方镜像，digest 锁定，🟢），公开 registry 按 digest 拉取；
 > 不携带已知限制 A-1~A-4 任何一条。起服务纪律（`unset VLLM_PLUGINS`、经

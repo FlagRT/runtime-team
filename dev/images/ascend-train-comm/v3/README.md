@@ -56,7 +56,7 @@ TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> FLAGRT_MODELS_DIR=/home/xliu969/models \
 ### 复现 FlagCX collective 缺陷
 
 ```bash
-docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-train-v3-env-v1-910c \
+docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-train-v3-env-v2-910c \
   torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py --iters 20
 ```
 

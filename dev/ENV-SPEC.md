@@ -296,8 +296,8 @@ env_packages:
     install: up.sh
 ```
 
-> 现行生效范围：`ascend-train-comm/v3` 现行运行环境为 `env/v1`，不含本条目；本条目随该镜像
-> 下一版运行环境目录（`env/v2`）落地生效。
+> 现行生效范围：`ascend-train-comm/v3` 现行运行环境为 `env/v2`，本条目随该目录生效
+> （第 1 版 `env/v1` 与 `demo/` 不加装）。
 
 ## 4. 管理脚本：`dev/lib/baseline.py`
 
