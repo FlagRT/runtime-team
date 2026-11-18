@@ -2,12 +2,12 @@
 #
 # 来源：从本机镜像 docker history 还原（id d948410966b0，构建于 2026-09-03T09:29:49Z，
 #       Docker 20.10.8 / arm64）。assets/docker-history.txt 为原始逐层记录。
-# 边界：BASE_IMAGE 为 official（昇腾 CANN 9.0.0 基座，见 lock.yaml）；本文件内新增层为 custom。
-# byte 级重建还需：BASE_IMAGE 可拉取、assets/、wheelhouse/、按 lock.yaml commit 检出的
-#       Torch-FL / FlagGems 源码、mpich-4.1.3.tar.gz。缺口见 lock.yaml:gaps。
+# 边界：BASE_IMAGE 为 official（昇腾 CANN 9.0.0 基座，见同目录 image.baseline.yaml）；本文件内新增层为 custom。
+# byte 级重建还需：BASE_IMAGE 可拉取、assets/、wheelhouse/、按 image.baseline.yaml 的 commit 检出的
+#       Torch-FL / FlagGems 源码、mpich-4.1.3.tar.gz。历史缺口记录见 git 历史。
 
 # --- official：CANN 9.0.0 基座（ubuntu22.04 + python3.12.13 + /usr/local/Ascend + 构建工具 + ATB/ASCEND ENV + ENTRYPOINT） ---
-# 注：docker history 不保留 FROM 的镜像名，只余 digest；此处填回已知的真实来源（见 lock.yaml:parent_image / image_list.md）。
+# 注：docker history 不保留 FROM 的镜像名，只余 digest；此处填回已知的真实来源（见 image.baseline.yaml:base_image / image_list.md）。
 ARG BASE_IMAGE=harbor.baai.ac.cn/flagos-dev/pytorch-plugin-fl@sha256:a36a302204e282411dd46bd3f1edd64f7fce7190020bb4511e8b409ac8d4ba29
 FROM ${BASE_IMAGE}
 

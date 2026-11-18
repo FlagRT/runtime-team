@@ -90,7 +90,7 @@ def main():
         print(f"overall: {'PASS' if all_ok else 'FAIL'}", flush=True)
 
     # 跳过 destroy_process_group 与解释器正常退出:FlagCX 已知的退出期
-    # free(): invalid pointer SIGABRT(lock.yaml known_issues teardown-sigabrt)会把
+    # free(): invalid pointer SIGABRT(README 已知限制 teardown-sigabrt)会把
     # 判定覆盖成 torchrun 失败。判定已汇总并打印,直接按判定退出。
     sys.stdout.flush()
     sys.stderr.flush()

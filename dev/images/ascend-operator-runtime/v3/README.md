@@ -89,7 +89,7 @@ docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
 
 ## torch_npu 默认发现行为
 
-> 2026-11-18 自本目录 lock.yaml（已退役）迁入，内容未改。
+> 2026-11-18 整理自本目录历史构建记录，内容未改。
 
   v2 的实测结论（见 ascend-operator-runtime/v2/REBUILD.md「torch_npu 共存问题」）
   已经确认：torch_fl 与 torch_npu 的冲突是"进程内 import 顺序"约束，不是"能否

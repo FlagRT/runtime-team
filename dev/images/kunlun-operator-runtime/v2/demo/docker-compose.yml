@@ -70,11 +70,11 @@ services:
       # 推理腿（vLLM）的必需开关：默认 dispatch（flagos 优先）下 rotary embedding 的
       # index_select 经 FlagGems OOT 路径触发 "CUDA error: invalid device function"，
       # EngineCore 初始化即失败。vendor 优先是 vllm-plugin-fl 自带的标准配置项。
-      # 依据见 ../lock.yaml known_issues: flagos-index-select-invalid-device-function。
+      # 依据见发版说明限制清单 K-2。
       - VLLM_FL_PREFER=vendor
       - PYTHONDONTWRITEBYTECODE=1   # 否则宿主 checkout 中出现 root 属主的 __pycache__
       # 注：**不要设置 XPU_EVENT_KL3_ENABLE**（厂商手册要求，但实测单卡单进程即挂死，
-      # 见 ../lock.yaml known_issues: xpu-event-kl3-enable-hang）。此处刻意不设，
+      # 见发版说明限制清单 K-3）。此处刻意不设，
       # 也不要在自建环境里加回来。
       #
       # 注：CUDA_VISIBLE_DEVICES 刻意不设默认值 —— 选哪张卡是每次运行的纪律

@@ -1701,7 +1701,7 @@ def fake_curl(page, rc=0, stderr=""):
 
 class TestIndexWheelSha256(TempCase):
     """坑都是 2026-10-12 在真索引页上实测到的，逐条钉死，见
-    kunlun-operator-runtime/v2/lock.yaml known_issues: flagtree-wheel-sha256-in-check-chain。"""
+    kunlun-operator-runtime/v2 历史构建记录（flagtree-wheel-sha256-in-check-chain）。"""
 
     def _resolve(self, page=IDX_PAGE, **kw):
         # TempCase 默认把 resolve_index_wheel 封死了，这里要测的正是它本体，故直接调

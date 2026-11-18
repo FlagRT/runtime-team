@@ -387,7 +387,7 @@ def resolve_index_wheel(index_url: str, dist: str, version: str, tag=None) -> di
     """在索引页上定位 dist==version 的那个 wheel，返回 {filename, sha256}。
 
     **按解析匹配，不按字符串匹配**，两个坑都是实测到的（见 kunlun-operator-runtime/v2/
-    lock.yaml known_issues: flagtree-wheel-sha256-in-check-chain）：
+    REBUILD.md 历史构建记录 flagtree-wheel-sha256-in-check-chain）：
       · 子串匹配会误命中 —— 该索引上子串 `0.6.1` 命中 20 条，还有 `0.6.1a1+xpu3.6` 这种
         近邻干扰项，故按 PEP 440 的 Version 相等比较。
       · 不能「自己拼出文件名再比字符串」—— PEP 427 规定文件名的 version 段应把非字母

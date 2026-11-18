@@ -2,8 +2,8 @@
 # 重建 ascend-operator-runtime v2 —— 全新血统首次构建(见 REBUILD.md)。
 #
 # 前置(准备构建上下文):
-#   src/FlagGems   git archive 自本机 checkout 的 pin commit(见 lock.yaml)
-#   src/Torch-FL   git archive 自本机 checkout 的 pin commit(见 lock.yaml)
+#   src/FlagGems   git archive 自本机 checkout 的 pin commit(见同目录 image.baseline.yaml)
+#   src/Torch-FL   git archive 自本机 checkout 的 pin commit(见同目录 image.baseline.yaml)
 # llvm 工具链 / triton 编译依赖 / FlagTree 源码本身由 Dockerfile.repro 在构建期
 # 从 BAAI·FlagTree 官方公开资源现场拉取,不需要预置进构建上下文。
 set -euo pipefail

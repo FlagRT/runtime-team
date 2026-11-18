@@ -4,8 +4,7 @@
 #
 # 本层相对基座**只新增 flagtree 一个包**，不变更基座已有的任何资源。FlagGems 直接用基座
 # 自带的那份（/env/FlagGems，editable，源码在镜像内 —— 按 dev/ENV-SPEC.md §2.1 即固化资产
-# install: editable-in-image）：既不 COPY 进来，也不重装一遍。取舍见 lock.yaml
-# known_issues: flaggems-version-fact-comes-from-base。
+# install: editable-in-image）：既不 COPY 进来，也不重装一遍。取舍见同目录 REBUILD.md（flaggems-version-fact-comes-from-base）。
 #
 # 与 v1 的关系：组件集合与 pin 完全相同（flagtree 0.6.1+xpu3.6 + FlagGems @73c5aff1），
 # 差别只剩两处：
@@ -13,7 +12,7 @@
 #      重新安装一遍，既多一层，又依赖那个可变目录在构建期存在；v2 直接用基座已装好的那份。
 #   ② 静态自检改为无设备可跑：import flag_gems 需要真实 XPU 设备，而 docker build
 #      不能传 --device，v1 配方的自检层在普通构建中不可能通过
-#      （见 ../v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build）。
+#      （见 docs/裁定备忘-20261014-总组.md）。
 # flagtree 的形态两版相同：pip 索引预编译 wheel（§4.2 模式 6），版本锚由
 # ARG == LABEL == 镜像内实装 dist 版本三方核对，无 commit（记在 baked_packages[]）。
 #
@@ -33,8 +32,7 @@ ARG FLAGTREE_INDEX_URL=https://resource.flagos.net/repository/flagos-pypi-hosted
 # 的断言**：声明「我预期这个基座里装的 FlagGems 就是这个 commit」——形同 lockfile 对不受本组
 # 控制的上游制品记 digest。baseline.py export 会核对「从基座 pip 元数据读出的 commit ==
 # 下面 LABEL io.flagrt.flag_gems.commit」，不一致即报错，厂商以同一 tag 悄悄换基座内容时
-# 立刻暴露。该断言只在标签存在时生效，见 lock.yaml known_issues:
-# flaggems-version-fact-comes-from-base。
+# 立刻暴露。该断言只在标签存在时生效（flaggems-version-fact-comes-from-base）。
 ARG FLAG_GEMS_COMMIT=73c5aff1e304c293ab525ecb03e9449644496fbb
 
 LABEL org.opencontainers.image.title="FlagRT Kunlun operator runtime" \
@@ -49,7 +47,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # 基座本身不含 triton/flagtree，无法编译/运行 FlagGems 的 triton 后端。
 # --no-deps 是必须的：不加会让 pip 解析 torch 的可选依赖，拉起 PyPI 通用 triton==3.5.0
 # 覆盖 flagtree 提供的 triton/ 命名空间，冲掉 xpu 编译后端
-# （见 v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing）。
+# （见发版说明限制清单 K-4）。
 # 注：该 wheel ~3.3GB，经代理下载易 IncompleteRead 中断，构建期建议直连（见 REBUILD.md）。
 RUN ${PYTHON_BIN} -m pip install --no-deps "flagtree===${FLAGTREE_VERSION}" \
       --index-url=${FLAGTREE_INDEX_URL}

@@ -19,7 +19,7 @@
 
 已知缺陷不计入 PASS/FAIL：GEMM（mm/bmm/addmm）在本 pin 组合下编译期 SIGABRT，
 本脚本在**子进程**里探它（否则会把验证进程一起带走），结果以 KNOWN 行报告。
-依据见 ../lock.yaml known_issues: gemm-compile-sigabrt。
+依据见 ../../issues/kunlunxin-gemm-triton-compile/。
 """
 import argparse
 import json
@@ -80,7 +80,7 @@ def static_checks():
 
     def _libtriton_xpu():
         # 决定性断言：若 PyPI 通用 triton 覆盖了 flagtree 的 triton/ 目录，这里即 ImportError，
-        # xpu 编译后端整体不可用（见 ../lock.yaml known_issues: flaggems-kunlunxin-extras-missing）
+        # xpu 编译后端整体不可用（见发版说明限制清单 K-4）
         from triton._C.libtriton import xpu
         return xpu is not None, "flagtree 的 xpu 编译后端在位，triton 命名空间未被覆盖"
     check("triton/libtriton.xpu", _libtriton_xpu)

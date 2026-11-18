@@ -442,7 +442,7 @@ round 3/4 的 `flagcx_sync_test.py` 每次调用使用相同数据（rank+1）�
 
 ## 附录 A · flagcx 适配层术语考据
 
-> 2026-11-18 自本目录 lock.yaml（已退役）的 flagcx_adaptor_terminology 段迁入，内容未改。
+> 2026-11-18 整理自本目录历史构建记录（flagcx_adaptor_terminology 段），内容未改。
 
   这是本次设计阶段做出的、基于阅读现有代码/文档得出的判断，**不是从 FlagCX
   源码逐行核实过的事实**（FlagCX 源码在构建期才 git clone/archive，不在本

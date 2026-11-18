@@ -4,7 +4,7 @@
 # (../ascend-operator-runtime/v2/build.sh)。
 #
 # 前置(准备构建上下文):
-#   src/FlagCX/   git archive 自本机 checkout 的 pin commit(见 lock.yaml)
+#   src/FlagCX/   git archive 自本机 checkout 的 pin commit(见同目录 image.baseline.yaml)
 # third-party/json、third-party/googletest 由 Dockerfile.repro 在构建期从公开
 # 上游 git clone,不需要预置进构建上下文。
 set -euo pipefail

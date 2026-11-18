@@ -19,7 +19,7 @@ image:
 #    device-context 方向，demo 经 WORKSPACE_ROOT 挂载使用，不固化进镜像。
 # ④ flag_gems 由基座自带。按 ENV-SPEC §3.1「首选不产生第二份」，不再固化第二份；
 #    2026-11-05 已做结论性验证（11-05 批次）：enable() 生效但 4/9 算子与真实前向失败 ⇒ 当前不可替换；
-#    证据 MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md §4，另见 lock.yaml gaps。
+#    证据 MLU590/docs/MLU590_COMPAT_RECHECK_20261105.md §4，另见同目录 REBUILD.md。
 
 baked_repos:
   # ──────────────── FlagOS 官方基座自带（被动继承，不可重建） ────────────────
@@ -49,7 +49,7 @@ baked_repos:
     commit: unavailable
     version: 3.2.0+mlu1.7.2
     install: in-image (/opt/triton)
-    info: 寒武纪 triton-mlu 变体，非 FlagTree 构建物（FlagTree 无寒武纪镜像线）；源码在 /opt/triton，不在 site-packages，仅经 shell 启动时进 PYTHONPATH（见 lock.yaml notes ②）
+    info: 寒武纪 triton-mlu 变体，非 FlagTree 构建物（FlagTree 无寒武纪镜像线）；源码在 /opt/triton，不在 site-packages，仅经 shell 启动时进 PYTHONPATH（见同目录 README）
   flag_gems:
     layer: L2
     from: base_image
