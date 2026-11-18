@@ -1,0 +1,554 @@
+{
+  "backend": "flagcx",
+  "device": "cuda:1",
+  "rank": 1,
+  "world_size": 2,
+  "torch": "2.9.0+cu129",
+  "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+  "model_sha256": {
+    "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+    "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+    "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+  },
+  "comm_mode": "fused",
+  "global_batch": 64,
+  "local_batch": 32,
+  "dtype": "float32",
+  "dataset": "deterministic synthetic; not recommendation accuracy",
+  "seed": 923,
+  "warmup_steps": 5,
+  "measured_steps": 50,
+  "evidence_scope": "P800 integration",
+  "runtime_info": {
+    "name": "kunlun",
+    "capabilities": [
+      "bounded_sync",
+      "context_query",
+      "device",
+      "device_state",
+      "device_state_control",
+      "event",
+      "graph_capture",
+      "memory",
+      "memory_alloc",
+      "memory_alloc_stat",
+      "multidevice",
+      "record_stream",
+      "recovery_probe",
+      "stream",
+      "stream_priority",
+      "stream_priority_control",
+      "stream_priority_readback"
+    ],
+    "native_accesses": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "degradations": {
+      "total": 0,
+      "by_kind": {}
+    },
+    "device_type": "cuda",
+    "framework": "XPytorch (torch.cuda 兼容层) + torch_xray 符号重写",
+    "torch": "2.9.0+cu129",
+    "torch_build": {
+      "USE_CUDA": true,
+      "USE_XPU": false
+    },
+    "device_count": 2,
+    "supports": {
+      "device": true,
+      "memory": true,
+      "stream": true,
+      "event": true,
+      "bounded_sync": true,
+      "sync_timeout": true,
+      "error_map": false,
+      "recovery_probe": true,
+      "recovery_real": false,
+      "device_state": true,
+      "graph_capture": true,
+      "stream_priority": true,
+      "multidevice": true,
+      "memory_alloc": true,
+      "memory_alloc_stat": true,
+      "record_stream": true,
+      "context_lifecycle": false,
+      "context_query": true,
+      "device_state_control": true,
+      "stream_priority_control": true,
+      "stream_priority_readback": true
+    },
+    "error_grading": {
+      "code_map": false,
+      "message_hint": true
+    },
+    "bounded_sync_scope": "主机侧等待（event.wait_host）真有界；流同步为超时上报语义",
+    "vendor_discriminator": [
+      "torch_xray / torch_xmlir 模块存在",
+      "/proc/kunlun 存在",
+      "xpu-smi 存在",
+      "通信库 libbkcl.so（XCCL/BKCL）"
+    ],
+    "known_upstream_defects": [
+      "Stream.priority_range() → PyTorch INTERNAL ASSERT (c10/cuda/CUDAStream.h:188)（⚠️ 这是 **torch API 路径**的问题；底层真原语 `cuCtxGetStreamPriorityRange` **安全可读**且返回 `(0,0)` ⇒ 设备报的是「只有一个档位」，不是「没这个接口」；见 known_issues 的 KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL）",
+      "厂商错误码不透出到 Python 异常（仅退出钩子偶见 error code=101）",
+      "XPU_EVENT_KL3_ENABLE=1 且存在设备侧集合通信时，设备事件同步概率性永久挂死（≈89%，自旋于厂商 libcuda.so）—— 详见 known_issues[0] 与 prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md"
+    ],
+    "known_issues": [
+      {
+        "id": "KUNLUN-KL3-EVENT-SYNC-HANG",
+        "severity": "high",
+        "scope": "多进程设备侧集合通信（flagcx / BKCL）",
+        "condition": "环境变量 XPU_EVENT_KL3_ENABLE=1 **且**存在设备侧集合通信",
+        "symptom": "概率性永久挂死。自旋点三处：① dist.all_reduce 内部 c10d::flagcxBackend::syncStream → CUDAEvent::record → cudaEventRecordWithFlags；② 上层 torch.cuda.synchronize → cudaDeviceSynchronize；③ 通信域首次初始化（bkcl::init_rank / net_socket_all_gather）。前两处自旋于厂商 libcuda.so（实为 libxpucuda.so）内，用户态 100% CPU",
+        "repro_rate": "≈89%（18 次运行 16 次挂死；本轮基线 4/4 = 100%）；挂死步数游走，与数据量/张量形状/reduce op/用卡对/同步间隔均无关",
+        "root_cause_layer": "厂商 CUDA 兼容运行时 —— libxpucuda.so / XRE 的 KL3 事件机制与设备事件同步原语的交互",
+        "ruled_out": "算子层（FlagGems 未参与，探针全程裸 torch.distributed）、编译层（无 triton 编译，BKCL 为预编译内核）均已排除",
+        "workaround": "在**不依赖 FlagGems** 的验证路径中不设置 XPU_EVENT_KL3_ENABLE（实测 8 次运行 0 次挂死，且 all_reduce 结果真值 2^120 精确匹配）。本方向训练腿（transformers 纯 torch）与推理腿（vLLM）均不依赖 FlagGems，故适用",
+        "workaround_risk": "该变量是 FlagGems kunlunxin 官方推荐值（tools/env.sh、src/flag_gems/backends.yaml、CI P800.yml 三处均设 1）；关闭可能影响厂商设备事件上报。**走 FlagGems 路径时不适用本规避**。注意 flagcx 侧无法规避：syncStream 是流序正确性所必需（backend_flagcx.cpp:424，14 处集合通信各调一次）",
+        "report_to": "昆仑芯（XPytorch / XRE）—— 我方已上报，对应本方向对外提交项 C3",
+        "evidence": "prototype/docs/KUNLUN_P800_ROOT_CAUSE_VERIFY_20260914.md"
+      },
+      {
+        "id": "KUNLUN-STREAM-PRIORITY-SINGLE-LEVEL",
+        "severity": "low",
+        "scope": "流优先级（`stream_priority_control` / `stream_priority_range`）",
+        "condition": "任何调用 `stream_priority_range()` 或 `create_stream(priority=…)` 的场景",
+        "symptom": "`cuCtxGetStreamPriorityRange` 返回 **least=0, greatest=0** ⇒ **优先级区间退化为单点**：接口可用、可设置、可回读，但**设置不产生任何调度区分**（设备只暴露一个档位）",
+        "repro_rate": "100%（2026-09-30 三次独立运行一致）。**2026-10-08 自证审计加宽证据面**：① **逐卡 7/8** 张（跳过他人作业在用的卡）全部 `rc=0` 且 `range=[0,0]`；② **两条独立实现路径读数一致** —— driver API（`cuCtxGetStreamPriorityRange`）与 runtime API （`cudaDeviceGetStreamPriorityRange`）都是 `(0,0)`；③ `cuStreamCreateWithPriority` 对 -10/-5/-2/-1/0/1/5/10、`cudaStreamCreateWithPriority` 对 -2/-1/0/1/2 **全部 rc=0、回读 0**",
+        "root_cause_layer": "厂商 CUDA 兼容运行时（libxpucuda.so.515.58.kunlun）上报的设备属性 —— 设备只暴露一个优先级档位",
+        "ruled_out": "**不是**接口没实现：三个入口（`cuCtxGetStreamPriorityRange` / `cuStreamCreateWithPriority` / `cuStreamGetPriority`）都在且可用；**不是**包装不了：`torch.cuda.ExternalStream(handle)` 回取句柄**逐位相同**且能在其上跑对算子；**不是**「只看了兼容层」：driver(`cu*`) 与 runtime(`cuda*`) 两条路径读数一致；**也不是**「原生层另有一套」：全量 `nm -D` 扫描下 `xpu*`/`XPU*` 前缀的 `Stream`/`Queue` API **零命中**，`libxpurt.so.12.9.1.kunlun` 含 `priority` 与 `Stream` 的符号**都是 0 个**；**不是**「只测了一张卡」：逐卡 7/8 张一致",
+        "workaround": "需要**按优先级编排**的上层：本平台做不到，**请勿据此做调度决策**；需要**跨芯片可移植的调用面**：正常调用 `create_stream(priority=0)`（唯一合法值），越界值本层会 `ValueError` 拒绝",
+        "workaround_risk": "无（区间由设备自报，本层只是如实转达）",
+        "report_to": "昆仑芯（XPytorch / XRE）—— 若要支持多档优先级，需厂商侧暴露",
+        "evidence": "P800/probes/prio_settable_kunlun_20260930.log、P800/probes/audit_20261008_out/kunlun_audit.log（2026-10-08 自证审计：逐卡 / runtime API 交叉 / 全量符号扫描）"
+      }
+    ]
+  },
+  "oracle": {
+    "mode": "eval with autograd: BN frozen, dropout disabled",
+    "gradient_checks": [
+      {
+        "name": "linear.bias",
+        "max_abs": 0.0,
+        "pass": true
+      },
+      {
+        "name": "linear.fc.weight",
+        "max_abs": 2.7939677238464355e-09,
+        "pass": true
+      },
+      {
+        "name": "embedding.embedding.weight",
+        "max_abs": 3.4924596548080444e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.weight",
+        "max_abs": 2.9103830456733704e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.0.bias",
+        "max_abs": 8.731149137020111e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.weight",
+        "max_abs": 1.0186340659856796e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.1.bias",
+        "max_abs": 8.731149137020111e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.weight",
+        "max_abs": 2.764863893389702e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.4.bias",
+        "max_abs": 1.3969838619232178e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.weight",
+        "max_abs": 6.548361852765083e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.5.bias",
+        "max_abs": 1.3969838619232178e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.weight",
+        "max_abs": 3.7834979593753815e-10,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.8.bias",
+        "max_abs": 1.3969838619232178e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.weight",
+        "max_abs": 8.731149137020111e-11,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.9.bias",
+        "max_abs": 2.3283064365386963e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.weight",
+        "max_abs": 3.725290298461914e-09,
+        "pass": true
+      },
+      {
+        "name": "mlp.mlp.12.bias",
+        "max_abs": 0.0,
+        "pass": true
+      }
+    ],
+    "update_max_abs": 3.725290298461914e-09,
+    "update_pass": true,
+    "rank_parameter_max_abs": 0.0
+  },
+  "final_parameter_sha256": "be6facefd3040f33a9f871418d67e3f680b6d7c85baef84abbf705923a2554ad",
+  "training": {
+    "mode": "train: local BatchNorm + dropout=0.2",
+    "losses": [
+      1.071882724761963,
+      1.3272695541381836,
+      1.0799423456192017,
+      1.2915475368499756,
+      1.6799283027648926,
+      1.2267476320266724,
+      0.8867157697677612,
+      0.9181730151176453,
+      1.177677035331726,
+      1.286001443862915,
+      0.8878718614578247,
+      0.8014582991600037,
+      0.9433110952377319,
+      1.2026253938674927,
+      1.4637659788131714,
+      1.0603015422821045,
+      1.3415942192077637,
+      0.9150137305259705,
+      1.322799801826477,
+      1.095931887626648,
+      1.2184946537017822,
+      1.4920903444290161,
+      1.4046889543533325,
+      1.1260405778884888,
+      1.12488853931427,
+      0.9060193300247192,
+      0.9286738038063049,
+      1.4288452863693237,
+      1.0662689208984375,
+      1.230493187904358,
+      1.4814512729644775,
+      1.0541948080062866,
+      0.8886234760284424,
+      1.1969783306121826,
+      0.9844082593917847,
+      1.189941644668579,
+      1.125940203666687,
+      0.8435553908348083,
+      1.1882268190383911,
+      1.2176762819290161,
+      1.3848257064819336,
+      0.7313587665557861,
+      0.8962892293930054,
+      1.0473822355270386,
+      0.9266946911811829,
+      1.0530962944030762,
+      0.9407327771186829,
+      0.7178337574005127,
+      1.1495072841644287,
+      1.0408313274383545
+    ],
+    "step_seconds": [
+      0.013219938962720335,
+      0.01321080990601331,
+      0.013177910004742444,
+      0.013190019060857594,
+      0.013206438976339996,
+      0.013171250000596046,
+      0.01321450900286436,
+      0.013241888023912907,
+      0.013189709978178144,
+      0.013174680061638355,
+      0.013161009992472827,
+      0.013185858959332108,
+      0.013189619057811797,
+      0.013227939023636281,
+      0.013209019089117646,
+      0.012053482001647353,
+      0.012126191053539515,
+      0.012134699965827167,
+      0.012113490956835449,
+      0.012146880966611207,
+      0.00990412407554686,
+      0.013157651061192155,
+      0.013315577059984207,
+      0.10756003600545228,
+      0.013474764069542289,
+      0.013287467998452485,
+      0.013199278968386352,
+      0.01319693902041763,
+      0.013158070971257985,
+      0.013123520999215543,
+      0.00984499603509903,
+      0.013207298936322331,
+      0.013200749061070383,
+      0.013175219995900989,
+      0.013153020991012454,
+      0.013167069992050529,
+      0.013110580970533192,
+      0.0131594700505957,
+      0.013339075958356261,
+      0.013161079958081245,
+      0.012128439964726567,
+      0.01320006896276027,
+      0.013154980028048158,
+      0.013230658951215446,
+      0.013198578963056207,
+      0.01321411901153624,
+      0.011024291976355016,
+      0.0132002989994362,
+      0.013171439990401268,
+      0.01313988002948463
+    ],
+    "sample_id_ranges": [
+      [
+        352,
+        384
+      ],
+      [
+        416,
+        448
+      ],
+      [
+        480,
+        512
+      ],
+      [
+        544,
+        576
+      ],
+      [
+        608,
+        640
+      ],
+      [
+        672,
+        704
+      ],
+      [
+        736,
+        768
+      ],
+      [
+        800,
+        832
+      ],
+      [
+        864,
+        896
+      ],
+      [
+        928,
+        960
+      ],
+      [
+        992,
+        1024
+      ],
+      [
+        1056,
+        1088
+      ],
+      [
+        1120,
+        1152
+      ],
+      [
+        1184,
+        1216
+      ],
+      [
+        1248,
+        1280
+      ],
+      [
+        1312,
+        1344
+      ],
+      [
+        1376,
+        1408
+      ],
+      [
+        1440,
+        1472
+      ],
+      [
+        1504,
+        1536
+      ],
+      [
+        1568,
+        1600
+      ],
+      [
+        1632,
+        1664
+      ],
+      [
+        1696,
+        1728
+      ],
+      [
+        1760,
+        1792
+      ],
+      [
+        1824,
+        1856
+      ],
+      [
+        1888,
+        1920
+      ],
+      [
+        1952,
+        1984
+      ],
+      [
+        2016,
+        2048
+      ],
+      [
+        2080,
+        2112
+      ],
+      [
+        2144,
+        2176
+      ],
+      [
+        2208,
+        2240
+      ],
+      [
+        2272,
+        2304
+      ],
+      [
+        2336,
+        2368
+      ],
+      [
+        2400,
+        2432
+      ],
+      [
+        2464,
+        2496
+      ],
+      [
+        2528,
+        2560
+      ],
+      [
+        2592,
+        2624
+      ],
+      [
+        2656,
+        2688
+      ],
+      [
+        2720,
+        2752
+      ],
+      [
+        2784,
+        2816
+      ],
+      [
+        2848,
+        2880
+      ],
+      [
+        2912,
+        2944
+      ],
+      [
+        2976,
+        3008
+      ],
+      [
+        3040,
+        3072
+      ],
+      [
+        3104,
+        3136
+      ],
+      [
+        3168,
+        3200
+      ],
+      [
+        3232,
+        3264
+      ],
+      [
+        3296,
+        3328
+      ],
+      [
+        3360,
+        3392
+      ],
+      [
+        3424,
+        3456
+      ],
+      [
+        3488,
+        3520
+      ]
+    ],
+    "parameter_count": 421452,
+    "rank_parameter_max_abs": 0.0,
+    "max_rank_measured_seconds": 0.7391040921211243,
+    "global_samples_per_second": 4329.566070749862,
+    "gradient_communication": {
+      "gradient_allreduce_calls": 50,
+      "gradient_payload_bytes": 84290400,
+      "synchronous_hook_seconds": 0.07807991385925561,
+      "payload_definition": "input tensor bytes per rank; NOT link traffic",
+      "timing_definition": "all_reduce + mean + device sync wall time; no overlap"
+    },
+    "bn_note": "local minibatch statistics; buffers need not match at exit; not equivalent to single-device train-mode BatchNorm",
+    "parameters_finite": true
+  },
+  "memory_stats_at_end": {
+    "total_mb": 98304,
+    "used_mb": 634,
+    "free_mb": 97670,
+    "allocated_mb": 9
+  },
+  "verdict": "PASS",
+  "group_state": "CLOSED",
+  "teardown": "closed"
+}

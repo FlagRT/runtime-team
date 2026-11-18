@@ -1,0 +1,53 @@
+{
+  "scope": "Native single-card probe; no FlagCX or training claim",
+  "preflight_xpu_smi": "00000000:03:00.0 0 0 02K15K0264D00DNC 34 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 54 0 0 0 362 1450 1450 1450 1450 1450 1450 0 96 46592 98304 97 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 60 0 0 0 387 1450 1450 1450 1450 1450 1450 0 96 46592 98304 91 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 55 0 0 0 334 1450 1450 1450 1450 1450 1450 0 96 46592 98304 88 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 33 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 32 0 0 0 91 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 36 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 41 0 0 0 97 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+  "runs": [
+    {
+      "physical_card": 6,
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "CUDA_VISIBLE_DEVICES=0",
+        "flagrt-communication-p800-pair-1028",
+        "timeout",
+        "-k",
+        "5",
+        "35",
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "dev/communication/probes/p800_health.py",
+        "--expected-uuid",
+        "GPU-20631204-1bc4-596e-bf1a-81d6ce7e3053",
+        "--output",
+        "/workspace/evidence/native-isolation/card6.json"
+      ],
+      "exit_code": 0
+    },
+    {
+      "physical_card": 7,
+      "argv": [
+        "docker",
+        "exec",
+        "-e",
+        "CUDA_VISIBLE_DEVICES=1",
+        "flagrt-communication-p800-pair-1028",
+        "timeout",
+        "-k",
+        "5",
+        "35",
+        "/root/miniconda/envs/python310_torch29_cuda/bin/python3",
+        "dev/communication/probes/p800_health.py",
+        "--expected-uuid",
+        "GPU-66371c5f-2ce9-5990-9dfa-be6236b4f74e",
+        "--output",
+        "/workspace/evidence/native-isolation/card7.json"
+      ],
+      "exit_code": 137
+    }
+  ],
+  "physical_cards": [
+    6,
+    7
+  ],
+  "own_container_stop_exit": 0
+}

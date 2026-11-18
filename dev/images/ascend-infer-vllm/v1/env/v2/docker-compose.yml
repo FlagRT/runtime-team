@@ -1,0 +1,131 @@
+# 华为昇腾官方 vllm-ascend v1 的现行推荐运行环境，第 2 版（env/v2；规范见 dev/ENV-SPEC.md §3.2/§3.3）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实，由
+# dev/lib/baseline.py export 生成，不手工编辑）。
+#
+# 【完备性】本目录含 env.baseline.yaml（2026-11-15 生成，由 baseline.py export 生成、不手工编辑），
+# 已完备；up.sh --strict 启动时照常核对。
+#
+# 【定位】现行推荐 = 本目录 env/v2：在 env/v1 骨架上组合一层挂载加装物（设备执行上下文 /
+# 显存池组件，供 npu KV connector 的推理场景使用）。同级 env/v1 = 第 1 版、../../demo/ = 冻结的
+# 第 0 版，均为历史记录、内容不再变动、不承担推荐用法。现行是哪一版以镜像索引与现行锁定声明
+# 为准，不以目录名判断。本目录发布后不再修改，后续变更只新增下一版目录。
+#
+# 【分工】env 只管容器生命周期（起容器 / 停容器 / 环境核对），服务启动统一走组内启动标准
+# serve_standard.sh（dev/device-context/prototype/scripts/serve_standard.sh，唯一入口）——
+# 两者是两层，不冲突、不重复：env 起「毛坯房」，serve 在里面「点火」。
+#
+# 【驱动】镜像内含用户态 toolkit（CANN/ATB），不含驱动用户态库，故须挂宿主
+# /usr/local/Ascend/driver（:ro，2026-10-23 T-046 真机验收实测口径，无 507008）。
+#
+# 【设备纪律】一机同时只一个带卡容器（昇腾驱动对带卡容器独占，第二个带卡容器一律 EBUSY；
+# 映射全 16 张会报 dcmi device is used）。本文件只映射 INFER_DIE 一张 die，缺省不给值即拒绝
+# 启动；编号每次重新检查：须无计算占用、无其他容器映射。容器内该 die 的设备序号为 0。
+#
+# 【服务硬纪律】起服务前 unset VLLM_PLUGINS（vllm-plugin-FL 无 ascend 后端），由
+# serve_standard.sh ascend 分支执行，容器层不设 VLLM_PLUGINS 相关环境变量。
+#
+# 【本版构成】在 env/v1（单 die 变量 + 只读驱动挂载 + 模型目录）之上组合一层挂载加装物：
+#   · 挂载（pip-editable）：flagos-device-context（设备执行上下文，宿主检出 984687f =
+#     v0.4.0 发版提交）、FlagMemory（显存池管理器，宿主检出 58e60a9 = v0.3.0 发版提交，
+#     pyproject 在仓根）。npu KV connector 的宿主栈即本镜像，定档见 FM 仓
+#     flagmemory/tiering/offload/npu/RUNBOOK.md §0。
+#   · 无运行环境层包（env_packages 不登记）。
+# 两份挂载的实际 commit 以 env.baseline.yaml 的 mounted_repos 为准；up.sh --strict 核对
+# 宿主 HEAD 与其一致。
+#
+# 【启动前须确认宿主检出】
+#   git -C flagos-device-context rev-parse HEAD # 984687f（v0.4.0 发版提交）
+#   git -C FlagMemory rev-parse HEAD            # 58e60a9（v0.3.0 发版提交）
+# 停在其他提交时按基线 load（python3 dev/lib/baseline.py load <本目录>）或手工对齐后再启动。
+#
+# 用法（仓根执行）：
+#   npu-smi info                        # 挑空闲 die（避开他人容器已映射的 die）
+#   docker ps                           # 确认本机其他带卡容器的 die 映射
+#   # 仅在有 docker 的发布窗口内、且尚无 env.baseline.yaml 时执行一次（须给 die 值参与插值）：
+#   #   INFER_DIE=<die> python3 dev/lib/baseline.py export \
+#   #     dev/images/ascend-infer-vllm/v1/env/v2 --require-clean
+#   INFER_DIE=<die> FLAGRT_MODELS_DIR=<模型目录> dev/lib/up.sh \
+#     dev/images/ascend-infer-vllm/v1/env/v2 --strict
+#   docker logs -f flagrt-infer-v1-env-v2-910c   # 进入 sleep infinity 前为两份挂载安装阶段
+#   docker exec -it flagrt-infer-v1-env-v2-910c bash
+# 挂载安装日志在仓根 evidence/{dc,flagmemory}-build.log（容器进入 sleep infinity 才表示安装完成）。
+#
+# 收尾（确认自己的进程已结束，不操作其他容器）：
+#   INFER_DIE=<die> docker compose \
+#     -f dev/images/ascend-infer-vllm/v1/env/v2/docker-compose.yml down
+# 绕开 up.sh 直接 docker compose 时需自行 export WORKSPACE_ROOT=<公共仓根绝对路径>。
+
+name: flagrt-infer-v1-env-v2
+
+# 【导出基线的额外前置】生成 env.baseline.yaml 时也必须给 INFER_DIE 赋值：baseline.py 为
+# 解析绑定挂载会调 docker compose config，而本文件的 die 变量用 ${VAR:?} 形态（缺省即拒绝
+# 启动），插值失败则导出报错。该值只参与解析、不进基线。
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # 两份挂载均为 pip-editable（容器启动时以可编辑方式装入，见 command）。官方镜像全部资产
+  # 为固化（厂商自带，env/v1 基线 mounted_repos 为空），本层只加装镜像不含的组件、
+  # 不覆盖任何 baked 包。
+  mounted_repos:
+    flagos-device-context: {activation: pip-editable}
+    FlagMemory: {activation: pip-editable}
+  # 无运行环境层包（env_packages 不登记，ENV-SPEC §3.3 允许为空）。
+
+services:
+  runtime-infer:
+    container_name: flagrt-infer-v1-env-v2-910c
+    image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
+    network_mode: host
+    ipc: host
+    shm_size: 512g
+    ulimits:
+      memlock: -1
+    cap_add:
+      - SYS_PTRACE
+    tty: true
+    stdin_open: true
+    # 只映射选定的单张 die；缺省即拒绝启动。
+    devices:
+      - /dev/davinci${INFER_DIE:?set_unused_die}:/dev/davinci${INFER_DIE}
+      - /dev/davinci_manager:/dev/davinci_manager
+      - /dev/devmm_svm:/dev/devmm_svm
+      - /dev/hisi_hdc:/dev/hisi_hdc
+    volumes:
+      # 仓根挂载同时提供两份 pip-editable 挂载源（/workspace/flagos-device-context、
+      # /workspace/FlagMemory）。
+      - ${WORKSPACE_ROOT}:/workspace
+      # 宿主驱动目录（镜像内不含驱动用户态库）；挂载口径同 env/v1（:ro，T-046 实测）。
+      - /usr/local/Ascend/driver:/usr/local/Ascend/driver:ro
+      # 模型目录：默认取仓根 models/，可用 FLAGRT_MODELS_DIR 指向实体目录。
+      # 仓根 models/ 在多机是软链，容器内无法解析，启动时须显式给值。
+      - ${FLAGRT_MODELS_DIR:-${WORKSPACE_ROOT}/models}:/workspace/models:ro
+    # 硬纪律（unset VLLM_PLUGINS）由 serve_standard.sh 执行，不在容器层设。
+    environment:
+      - DO_NOT_TRACK=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - GIT_OPTIONAL_LOCKS=0
+    working_dir: /workspace
+    # 启动即依次 pip-editable 安装两份挂载，任一失败则容器退出。安装走
+    # --no-deps --no-build-isolation（镜像自带 pip/setuptools，无需网络）；无 FlagCX，
+    # 故不需要训练腿 env/v2 的 USE_ASCEND=1。
+    # 安装前先加 git safe.directory：镜像内 setuptools-scm 10/vcs-versioning 构建期经 CLI
+    # git 读版本元数据，而容器内 root 对宿主属主的绑定挂载仓会触发 git safe.directory
+    # 属主防护（镜像 git 2.34.1 为 Ubuntu 22.04 回移版，带该检查；训练腿镜像的 scm 栈无此
+    # 路径）。只写容器内 /root/.gitconfig，随容器销毁，不动宿主与两仓任何文件。
+    command: [bash, -c, 'mkdir -p /workspace/evidence && git config --global --add safe.directory /workspace/flagos-device-context && git config --global --add safe.directory /workspace/FlagMemory && python3 -m pip install --no-deps --no-build-isolation -e /workspace/flagos-device-context > /workspace/evidence/dc-build.log 2>&1 && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/flagmemory-build.log 2>&1 && exec sleep infinity']
+    restart: "no"
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-11-15  新建 env/v2（S4 推理侧，ADR-0028 D13/D19）。构成 = env/v1 骨架（单 die
+#             变量、只读驱动挂载、host 网络/IPC/shm512g、serve 分工与 VLLM_PLUGINS 硬纪律
+#             均不动）+ 新增 flagos-device-context@984687f（v0.4.0）与 FlagMemory@58e60a9
+#             （v0.3.0）两份 pip-editable 挂载；无运行环境层包。装配沿训练腿 env/v2 先例
+#             （editable 安装串行于 command 内、日志分件落仓根 evidence/），另按本镜像
+#             scm 栈实测加安装前 git safe.directory（容器内生效，见 command 注释）。
+#             2026-11-15 真机验收通过（910c-11 die4，避开他人容器 die0-1）：up.sh --strict
+#             两轮全绿；容器内 torch.npu.device_count()=1、runtime.use("ascend")+
+#             set_device(0) 最小面 OK、flagmemory 0.3.0 导入 OK、npu connector 冒烟三件
+#             全过（offload 导入 1/1 + backend 全链路搬运 1/1 + tier manager 3/3，判据族
+#             = FM RUNBOOK §0 六判据 + T8 负例）、容器内无 VLLM_PLUGINS 环境变量；
+#             down 后 die4 与整机回落基线。现行仍为 env/v1（转现行随 Top5 场景验证定）。

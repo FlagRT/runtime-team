@@ -11,15 +11,16 @@
   推理腿为华为昇腾官方 `vllm-ascend`,见同文件 `lock.infer`;
   tag 中的 `comm` 字样为历史命名,保留不改。
 - 版本事实见 [`image.baseline.yaml`](image.baseline.yaml);现行运行环境(推荐用法)见
-  [`env/v1/`](env/v1/docker-compose.yml)(以 pip-editable 挂载覆盖宿主 FlagCX 修复提交,原生 DDP 可用);
+  [`env/v2/`](env/v2/docker-compose.yml)(pip-editable 三挂载:FlagCX 修复提交(原生 DDP 可用)+flagos-device-context+FlagMemory,层包 cann-shmem 1.6.0);
+  [`env/v1/`](env/v1/docker-compose.yml) 为第 1 版;
   [`demo/`](demo/docker-compose.yml) 为冻结的第 0 版验收记录(ADR-0008)。
 - `repro_status`:🟡 partial-repro。
-  - 推理:可用,前提为两项运行时配置(已写入现行运行环境 env/v1,见本 README「复现」节)。
+  - 推理:可用,前提为两项运行时配置(已写入现行运行环境 env/v2,见本 README「复现」节)。
   - 训练:2 卡手动 DDP 写法(梯度 all_reduce 后显式 `torch.npu.synchronize()`)可用,
     Qwen2.5-1.5B 24 步 loss 2.8911 → 2.5528;PyTorch 原生 `DistributedDataParallel`
-    封装在镜像固化形态下不可用(现行运行环境 env/v1 挂载覆盖修复后可用)。
+    封装在镜像固化形态下不可用(现行运行环境 env/v2 挂载覆盖修复后可用)。
   - 升 🟢 条件:FlagCX c10d 层修复异步返回,原生 DDP 双卡验证通过。
-- 已知限制(下表为**镜像内固化形态**;现行运行环境 env/v1 挂载覆盖修复后的 FlagCX,第一行的原生 DDP
+- 已知限制(下表为**镜像内固化形态**;现行运行环境 env/v2 挂载覆盖修复后的 FlagCX,第一行的原生 DDP
   不可用不再命中——按运行环境版本分述,详见 `docs/基座发版说明-20261014.md`):
 
 | 问题 | 归属 | 详情 |
@@ -35,7 +36,7 @@
 | 项 | 要求 | 获取方式 |
 |---|---|---|
 | 镜像 | 本目录完整镜像 tag(见上) | 先按基座目录构建 `ascend-operator-runtime` v3,再执行本目录 `build.sh`(见 `REBUILD.md`);或从 `ARCHIVE.md` 所列离线包 `docker load` |
-| 运行环境 | `env/v1/`(现行;`demo/` 为冻结验收记录) | 随仓;image id 与宿主 FlagCX 提交由 `up.sh --strict` 核对;env/v1 以 pip-editable 挂载覆盖宿主 FlagCX(须处于登记的修复提交),其余 repo 为固化资产不受宿主检出影响 |
+| 运行环境 | `env/v2/`(现行;`env/v1/` 为第 1 版,`demo/` 为冻结验收记录) | 随仓;image id 与三挂载提交由 `up.sh --strict` 核对;env/v2 以 pip-editable 挂载 FlagCX(须处于登记的修复提交)/flagos-device-context/FlagMemory,层包 cann-shmem;其余 repo 为固化资产不受宿主检出影响 |
 | 卡 | 2 × 910C | 启动前 `docker ps` 确认本机无其他带卡容器(昇腾驱动对带卡容器独占);多项验证共用一个容器,以 `ASCEND_RT_VISIBLE_DEVICES` 分区 |
 | 模型与数据(仅训练) | Qwen2.5-1.5B;wikitext-2-raw-v1 | 模型目录经 `FLAGRT_MODELS_DIR` 挂到容器内 `/workspace/models`(npu1-11 现有副本 `/home/xliu969/models/Qwen2.5-1.5B`);数据集由脚本经 `datasets.load_dataset("Salesforce/wikitext", ...)` 拉取,需可访问 HuggingFace 或其镜像 |
 
@@ -46,16 +47,16 @@ docker ps
 git -C FlagCX rev-parse HEAD    # 须为 env.baseline.yaml 登记的 FlagCX 修复提交(up.sh --strict 核对)
 mkdir -p evidence               # 容器覆盖安装日志(evidence/flagcx-build.log)所需
 TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> FLAGRT_MODELS_DIR=/home/xliu969/models \
-  dev/lib/up.sh dev/images/ascend-train-comm/v3/env/v1 --strict
+  dev/lib/up.sh dev/images/ascend-train-comm/v3/env/v2 --strict
 ```
 
-验证结束后 `TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> docker compose -f dev/images/ascend-train-comm/v3/env/v1/docker-compose.yml down`
+验证结束后 `TRAIN_DIE_A=<die> TRAIN_DIE_B=<die> docker compose -f dev/images/ascend-train-comm/v3/env/v2/docker-compose.yml down`
 (绕开 `up.sh` 时先 `export WORKSPACE_ROOT=<仓根绝对路径>`)。
 
 ### 复现 FlagCX collective 缺陷
 
 ```bash
-docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-train-v3-env-v1-910c \
+docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0,1 flagrt-train-v3-env-v2-910c \
   torchrun --nproc_per_node=2 dev/images/ascend-train-comm/v3/assets/flagcx_sync_test.py --iters 20
 ```
 

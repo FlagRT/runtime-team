@@ -1,6 +1,7 @@
 # 壁仞 BR_0 · 第五实例看板
 
 > 分支：`kistich/device-context` ｜ 更新：**2026-11-11** ｜ 负责人：Kistich（hliu553）
+> 🆕 **2026-11-11 集合通信后端名探测（训练腿前置，16:35–16:51）**：后端名实测为 **`sccl`**（`torch_br/__init__.py:179` `register_backend("sccl", …, devices=["supa","cpu"])`），**SCCL 版本 `10.8.0`**；2-rank supa 双卡 `all_reduce` **值精确匹配**（`BIREN_DIST_ALLREDUCE_PASS`，rc=0）；错名 `bccl` → `AssertionError: Unknown backend type` ⇒ **无静默回落**。⚠️ 两条边界：`all_reduce` **拒绝 CPU 张量**（`Tensors must be SUPA and dense`）；`BIREN_VISIBLE_DEVICES` **不许进程内改**（改则设备上下文静默挂住）。报告 `docs/BIREN_BR0_DIST_BACKEND_20261111.md`，证据 `probes/biren_dist_20261111_out/`。
 > 🆕 **2026-11-11 判据推进**：真机 **conformance 13/13 + 推理 6/6**（各 `rc=0`）、多流探针 **`STREAM_SEMANTICS_PASS 8/8`**；
 > 多流 **16 项基线逐项对照** = **12 项实测通过 / 1 项实测「不具备有效优先级」/ 1 项不适用 / 2 项本轮未做**（训推两腿按裁定不做）。
 > 关键实测：`Stream(priority=N)` 对 N∈{0,±1,−2,−5,7} 构造全成功但 `stream.priority` **回读恒 0**、`Stream.priority_range()`
@@ -25,6 +26,7 @@
 | 3 | conformance 设备上下文与多流 13 例 | **13/13** `CONFORMANCE_PASS`，`rc=0` | `probes/biren_conf_stream_20261111_out/biren_conf_20261111_144929/{conf13.log,conf13.json}` |
 | 4 | conformance 推理 6 例 | **6/6** `CONFORMANCE_PASS`，`rc=0` | 同上 `{conf6.log,conf6.json}` |
 | 5 | 多流 16 项基线 | **逐项对照**（12 实测通过 / 1 实测不具备有效优先级 / 1 不适用 / 2 未做）；探针 **`STREAM_SEMANTICS_PASS 8/8`** | `docs/BIREN_BR0_CONFORMANCE_AND_STREAM_20261111.md` §4；`…/biren_stream2_20261111_145225/` |
+| 5b | **集合通信后端名探测**（训练腿前置） | ✅ **`sccl`**（SCCL `10.8.0`）；2-rank `all_reduce` PASS；错名报错无回落 | `docs/BIREN_BR0_DIST_BACKEND_20261111.md`；`probes/biren_dist_20261111_out/` |
 | 6 | 训练腿（两 rank / 50 步） | ⛔ **本轮不做**（用户裁定） | — |
 | 7 | 推理腿（前向 / 服务化） | ⛔ **本轮不做**（用户裁定） | — |
 | 8 | 错误闭环（四类注入） | ⛔ 未做 | — |
@@ -103,6 +105,9 @@ bash biren_facts_run.sh     # S12 流优先级三问 + i6 随工作量缩放
 8. **`Event()` 未 `record()` 时原生 `query()` 返回 True（误报已完成）** —— 与 PPU / MLU590 同族；本层 `BirenEventAdapter`
    用 `_recorded` 标志修正为 `False`（`known_issues` 条目 `BIREN-EVENT-UNRECORDED-QUERY-TRUE`）。
 
+9. **集合通信后端名是 `sccl`（不是 nccl/hccl/bccl）**，由 `import torch_br` 时注册（`torch_br/__init__.py:179`，`devices=["supa","cpu"]`，注册条件是 `torch_br._C._c10d_supa_init` 可用）。`dist.is_backend_available()` 对 16 个常见厂商名（nccl/hccl/cncl/bccl/bcl/supa/biren/rccl/accl/pccl/xccl…）**全部 False**，猜名猜不到 ⇒ **必须以源码注册处为准**。实用面 **supa-only**（CPU 张量 `all_reduce` 被拒）；训练腿用 `DC_DIST_BT=sccl`。
+10. **`BIREN_VISIBLE_DEVICES` 是容器级变量，进程内改会挂住**（不是无效）——实测 `mp.spawn` worker 里改它导致整段判据静默超时（连「错名必须报错」都不报错）；选卡交给 `-e`，进程内只用 `torch_br.supa.set_device(rank)`。
+
 ---
 
 ## 3. 环境版本组合
@@ -129,7 +134,7 @@ bash biren_facts_run.sh     # S12 流优先级三问 + i6 随工作量缩放
 |---|---|---|---|
 | 1 | **卡池故障扩散** | 原 8 张 → **6 张**：`03:00.0`、`63:00.0` 当日彻底 `device remove`；`05:00.0`（13:34）、`83:00.0`（14:22）**新发同型故障**（`smmu context fault(Read) fsr=0x402` → `PQM hang recovery fail` → `found spc hang, mask 0xffffffff` → `hot reset`），复位后仍 `N/A` + 128 MiB 残留 | 提供方/硬件（工单对象是 **Bus-Id `03/63/05/83` 四张**，**不是**交接清单写的 7 号卡） |
 | 2 | 我方在用两张卡 | `85:00.0`(`card_5`)、`a5:00.0`(`card_7`) **日志干净**（最后事件仅我方重建容器的 `SIGTERM`） | 本方向 |
-| 3 | **集合通信后端名** | **未探测**（属训练腿前置）——纪律：**宁可报错不给兜底** | 本方向（做训练腿时第一件） |
+| 3 | ~~集合通信后端名~~ | ✅ **已探测（11-11）：`sccl` / SCCL 10.8.0**，2-rank `all_reduce` PASS，错名报错无回落 ⇒ 训练腿可直接用 | 已完成 |
 | 4 | `serve_standard.sh` 缺 `biren)` 分支 | 未补（新芯片必经项） | 本方向 |
 | 5 | `/share` 96% 满、`/data` 只读 | 镜像与模型优先复用机内已有，新增数据落 `~`（余 425G） | 环境约束 |
 
@@ -154,10 +159,10 @@ bash biren_facts_run.sh     # S12 流优先级三问 + i6 随工作量缩放
 ## 6. 已完成 / 后续
 
 **已完成**：环境打通（SSH/sudo/docker）→ 资源普查 → 镜像定档 → 后端落地（13 抽象 + `build()` + `supports()` 如实声明 9 键）
-→ 离线契约自检 83/0/1 → 真机 smoke 46/0 → conformance 13/13 + 6/6 → 多流 16 项逐项对照。
+→ 离线契约自检 83/0/1 → 真机 smoke 46/0 → conformance 13/13 + 6/6 → 多流 16 项逐项对照 → **集合通信后端名探测（`sccl`，2-rank all_reduce PASS）**。
 
 **顺手修的工具缺口**：`prototype/scripts/backend_offline_check.py` 的 `VENDOR_ROOTS` 阻断名单与 `fresh_import` 清理名单
 **都硬编码且少了 `torch_br`** ⇒ 「缺厂商扩展必须报错」这条判据会因上一轮残留而**静默通过**；两处已补，并新增 `_stub_biren`（工具此前只认四家）。
 
-**后续（按手册顺序）**：① 集合通信后端名探测 → 训练腿（两 rank / 50 步）→ ② 推理腿前向与服务化（镜像自带 vllm 0.21.0）
+**后续（按手册顺序）**：① ~~集合通信后端名探测~~ ✅（`sccl`）→ 训练腿（两 rank / 50 步）→ ② 推理腿前向与服务化（镜像自带 vllm 0.21.0）
 → ③ `serve_standard.sh` 补 `biren)` 分支 → ④ 错误闭环四类注入 → ⑤ 职责响应审计 78 项 → ⑥ 接入完成前按手册 §7 + manifest §1 做**同口径核验**。

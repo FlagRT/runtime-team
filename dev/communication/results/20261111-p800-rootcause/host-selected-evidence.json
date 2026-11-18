@@ -1,0 +1,124 @@
+{
+  "identity": {
+    "argv": [
+      "sh",
+      "-c",
+      "date -Is; hostname; uname -a; uptime; id"
+    ],
+    "exit_code": 0,
+    "stdout": "2026-11-11T17:59:49+08:00\nVM-20-14-ubuntu\nLinux VM-20-14-ubuntu 6.8.0-87-generic #88-Ubuntu SMP PREEMPT_DYNAMIC Sat Oct 11 09:28:41 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux\n 17:59:49 up 12 days,  2:42,  7 users,  load average: 3.68, 4.20, 4.18\nuid=0(root) gid=0(root) groups=0(root)\n",
+    "stderr": ""
+  },
+  "resources": {
+    "argv": [
+      "sh",
+      "-c",
+      "free -h; df -h / /data1 /data2"
+    ],
+    "exit_code": 0,
+    "stdout": "               total        used        free      shared  buff/cache   available\nMem:           1.5Ti        83Gi        68Gi       166Mi       1.3Ti       1.4Ti\nSwap:             0B          0B          0B\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda3        98G   80G   15G  85% /\n/dev/nvme0n1p1  5.9T  3.3T  2.6T  57% /data1\n/dev/nvme1n1p1  5.9T  1.9T  4.0T  32% /data2\n",
+    "stderr": ""
+  },
+  "topology": {
+    "argv": [
+      "xpu-smi",
+      "topo",
+      "-m"
+    ],
+    "exit_code": 0,
+    "stdout": "\t\u001b[4mXPU0\tXPU1\tXPU2\tXPU3\tXPU4\tXPU5\tXPU6\tXPU7\tNIC0\tNIC1\tNIC2\tNIC3\tNIC4\tNIC5\tNIC6\tNIC7\tCPU Affinity\tNUMA Affinity\u001b[0m\nXPU0\t X \tXL\tXL\tXL\tSYS\tXL\tSYS\tSYS\tPIX\tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\t0-95,192-287\t0\nXPU1\tXL\t X \tXL\tXL\tXL\tSYS\tSYS\tSYS\tNODE\tPIX\tPHB\tNODE\tSYS\tSYS\tSYS\tSYS\t0-95,192-287\t0\nXPU2\tXL\tXL\t X \tXL\tSYS\tSYS\tXL\tSYS\tNODE\tPHB\tPIX\tNODE\tSYS\tSYS\tSYS\tSYS\t0-95,192-287\t0\nXPU3\tXL\tXL\tXL\t X \tSYS\tSYS\tSYS\tXL\tNODE\tNODE\tNODE\tPIX\tSYS\tSYS\tSYS\tSYS\t0-95,192-287\t0\nXPU4\tSYS\tXL\tSYS\tSYS\t X \tXL\tXL\tXL\tSYS\tSYS\tSYS\tSYS\tPIX\tNODE\tNODE\tNODE\t96-191,288-383\t1\nXPU5\tXL\tSYS\tSYS\tSYS\tXL\t X \tXL\tXL\tSYS\tSYS\tSYS\tSYS\tNODE\tPIX\tNODE\tNODE\t96-191,288-383\t1\nXPU6\tSYS\tSYS\tXL\tSYS\tXL\tXL\t X \tXL\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tPIX\tPHB\t96-191,288-383\t1\nXPU7\tSYS\tSYS\tSYS\tXL\tXL\tXL\tXL\t X \tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tPHB\tPIX\t96-191,288-383\t1\nNIC0\tPIX\tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\t X \tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\t\t\nNIC1\tNODE\tPIX\tPHB\tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\t X \tPHB\tNODE\tSYS\tSYS\tSYS\tSYS\t\t\nNIC2\tNODE\tPHB\tPIX\tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\tPHB\t X \tNODE\tSYS\tSYS\tSYS\tSYS\t\t\nNIC3\tNODE\tNODE\tNODE\tPIX\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tNODE\t X \tSYS\tSYS\tSYS\tSYS\t\t\nNIC4\tSYS\tSYS\tSYS\tSYS\tPIX\tNODE\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\t X \tNODE\tNODE\tNODE\t\t\nNIC5\tSYS\tSYS\tSYS\tSYS\tNODE\tPIX\tNODE\tNODE\tSYS\tSYS\tSYS\tSYS\tNODE\t X \tNODE\tNODE\t\t\nNIC6\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tPIX\tPHB\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\t X \tPHB\t\t\nNIC7\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tPHB\tPIX\tSYS\tSYS\tSYS\tSYS\tNODE\tNODE\tPHB\t X \t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  XL   = Connection traversing XPULink\n\nNIC Legend:\n\n  NIC0: mlx5_bond_0\n  NIC1: mlx5_bond_1\n  NIC2: mlx5_bond_2\n  NIC3: mlx5_bond_3\n  NIC4: mlx5_bond_4\n  NIC5: mlx5_bond_5\n  NIC6: mlx5_bond_6\n  NIC7: mlx5_bond_7\n\n",
+    "stderr": ""
+  },
+  "holders": {
+    "argv": [
+      "fuser",
+      "-v",
+      "/dev/xpu0",
+      "/dev/xpu4",
+      "/dev/xpu5",
+      "/dev/xpu6",
+      "/dev/xpu7"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "card4": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "4",
+      "-q"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:00:09 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:84:00.0\n    Product Name                          : P800 OAM\n    Product Brand                         : KUNLUNXIN\n    Product Architecture                  : KL3\n    Serial Number                         : 02K15K0264D00DV1\n    XPU UUID                              : GPU-ccddbe29-309f-5c0a-8f33-b0863be0b9fc\n    Minor Number                          : 4\n    OAM Id                                : 6\n    XPU Part Number                       : B00100300110512\n    Firmware Version\n        PBL Version                       : 1.0\n        PCIE Version                      : 2.43\n        SBL Version                       : 1.86\n        ALL Version                       : 1.0.2.43.1.86\n        CPLD Version                      : 5.3\n    PCI\n        Bus                               : 0x84\n        Device                            : 0x00\n        Function                          : 0x0\n        Domain                            : 0x0000\n        Device Id                         : 0x36881D22\n        Bus Id                            : 00000000:84:00.0\n        Sub System Id                     : 0x00010001\n        XPU Link Info\n            PCIe Generation\n                Max                       : 5\n                Current                   : 5\n            Link Width\n                Max                       : 16x\n                Current                   : 16x\n    Memory Usage\n        Total                             : 98304 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 98304 MiB\n    L3 Usage\n        Total                             : 96 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 96 MiB\n    Utilization\n        Xpu                               : 0 %\n    Ecc Mode\n        Current                           : Enabled\n        Pending                           : Enabled\n    ECC Errors\n        Volatile\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n        Aggregate\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n    Remapped rows\n            Pending                       : NO\n            Remapping failure occurred    : NO\n            Max                           : 3072\n            Partial                       : 0\n            None                          : 0\n    Temperature\n        XPU Current Temp                  : 32 C\n    Power Readings\n        Enforced Power Limit              : 400.00 W\n        Power Draw                        : 92.00 W\n    Clocks\n        Cluster                           : 1450 MHz\n        CDNN                              : 1450 MHz\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "card6": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "6",
+      "-q"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:00:09 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:B6:00.0\n    Product Name                          : P800 OAM\n    Product Brand                         : KUNLUNXIN\n    Product Architecture                  : KL3\n    Serial Number                         : 02K15K0264D00DTW\n    XPU UUID                              : GPU-20631204-1bc4-596e-bf1a-81d6ce7e3053\n    Minor Number                          : 5\n    OAM Id                                : 7\n    XPU Part Number                       : B00100300110512\n    Firmware Version\n        PBL Version                       : 1.0\n        PCIE Version                      : 2.43\n        SBL Version                       : 1.86\n        ALL Version                       : 1.0.2.43.1.86\n        CPLD Version                      : 5.3\n    PCI\n        Bus                               : 0xB6\n        Device                            : 0x00\n        Function                          : 0x0\n        Domain                            : 0x0000\n        Device Id                         : 0x36881D22\n        Bus Id                            : 00000000:B6:00.0\n        Sub System Id                     : 0x00010001\n        XPU Link Info\n            PCIe Generation\n                Max                       : 5\n                Current                   : 5\n            Link Width\n                Max                       : 16x\n                Current                   : 16x\n    Memory Usage\n        Total                             : 98304 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 98304 MiB\n    L3 Usage\n        Total                             : 96 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 96 MiB\n    Utilization\n        Xpu                               : 0 %\n    Ecc Mode\n        Current                           : Enabled\n        Pending                           : Enabled\n    ECC Errors\n        Volatile\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n        Aggregate\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n    Remapped rows\n            Pending                       : NO\n            Remapping failure occurred    : NO\n            Max                           : 3072\n            Partial                       : 0\n            None                          : 0\n    Temperature\n        XPU Current Temp                  : 36 C\n    Power Readings\n        Enforced Power Limit              : 400.00 W\n        Power Draw                        : 94.00 W\n    Clocks\n        Cluster                           : 1450 MHz\n        CDNN                              : 1450 MHz\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "card7": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-q"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:00:09 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:BB:00.0\n    Product Name                          : P800 OAM\n    Product Brand                         : KUNLUNXIN\n    Product Architecture                  : KL3\n    Serial Number                         : 02K15K0264D00DVV\n    XPU UUID                              : GPU-66371c5f-2ce9-5990-9dfa-be6236b4f74e\n    Minor Number                          : 6\n    OAM Id                                : 4\n    XPU Part Number                       : B00100300110512\n    Firmware Version\n        PBL Version                       : 1.0\n        PCIE Version                      : 2.43\n        SBL Version                       : 1.86\n        ALL Version                       : 1.0.2.43.1.86\n        CPLD Version                      : 5.3\n    PCI\n        Bus                               : 0xBB\n        Device                            : 0x00\n        Function                          : 0x0\n        Domain                            : 0x0000\n        Device Id                         : 0x36881D22\n        Bus Id                            : 00000000:BB:00.0\n        Sub System Id                     : 0x00010001\n        XPU Link Info\n            PCIe Generation\n                Max                       : 5\n                Current                   : 5\n            Link Width\n                Max                       : 16x\n                Current                   : 16x\n    Memory Usage\n        Total                             : 98304 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 98304 MiB\n    L3 Usage\n        Total                             : 96 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 96 MiB\n    Utilization\n        Xpu                               : 0 %\n    Ecc Mode\n        Current                           : Enabled\n        Pending                           : Enabled\n    ECC Errors\n        Volatile\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n        Aggregate\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n    Remapped rows\n            Pending                       : NO\n            Remapping failure occurred    : NO\n            Max                           : 3072\n            Partial                       : 0\n            None                          : 0\n    Temperature\n        XPU Current Temp                  : 40 C\n    Power Readings\n        Enforced Power Limit              : 400.00 W\n        Power Draw                        : 97.00 W\n    Clocks\n        Cluster                           : 1450 MHz\n        CDNN                              : 1450 MHz\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "kernel_chronology": {
+    "84": {
+      "exception_count_in_retained_window": 197,
+      "first_recorded_exception": "2026-11-08T18:09:58+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:84:00): 0, pid=4189990, name=python, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "last_recorded_exception": "2026-11-11T17:29:32+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:84:00): 0, pid=497834, name=python3, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "first_task_context": [
+        "2026-11-08T18:09:58+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:84:00): [XPUW] err task, pid=4189990, comm=python, sess=1, hwq=0, .tk=11202 .name=_Z17get_cluster_clockPVy .ncl=12 .nco=1 .addr=400a20d000 .ksz=168",
+        "2026-11-08T18:09:58+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:84:00): [XPUW] cluster[1]: ..reason[29] task timeout",
+        "2026-11-08T18:09:58+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:84:00): [XPUW] cluster[7]: ..reason[29] task timeout",
+        "2026-11-08T18:09:58+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:84:00): 0, pid=4189990, name=python, KL_XID_KERNEL_EXCEPTION, ch=0"
+      ],
+      "reset_records": []
+    },
+    "b6": {
+      "exception_count_in_retained_window": 212,
+      "first_recorded_exception": "2026-11-08T20:43:04+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:b6:00): 0, pid=761056, name=python, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "last_recorded_exception": "2026-11-11T15:58:00+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:b6:00): 0, pid=4159974, name=python, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "first_task_context": [
+        "2026-11-08T20:43:04+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [XPUW] err task, pid=761056, comm=python, sess=1, hwq=0, .tk=5705 .name=_Z17get_cluster_clockPVy .ncl=12 .nco=1 .addr=400a20e000 .ksz=168",
+        "2026-11-08T20:43:04+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [XPUW] cluster[3]: ..reason[29] task timeout",
+        "2026-11-08T20:43:04+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [XPUW] cluster[9]: ..reason[29] task timeout",
+        "2026-11-08T20:43:04+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:b6:00): 0, pid=761056, name=python, KL_XID_KERNEL_EXCEPTION, ch=0"
+      ],
+      "reset_records": [
+        "2026-11-09T17:44:13+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [INFO] reset begin ...",
+        "2026-11-09T17:44:21+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [INFO] reset done ...",
+        "2026-11-11T13:25:53+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [INFO] reset begin ...",
+        "2026-11-11T13:26:01+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:b6:00): [INFO] reset done ..."
+      ]
+    },
+    "bb": {
+      "exception_count_in_retained_window": 76,
+      "first_recorded_exception": "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:bb:00): 0, pid=735718, name=python, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "last_recorded_exception": "2026-11-11T17:27:42+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:bb:00): 0, pid=486015, name=python3, KL_XID_KERNEL_EXCEPTION, ch=0",
+      "first_task_context": [
+        "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] err task, pid=735718, comm=python, sess=1, hwq=0, .tk=5083 .name=_Z17get_cluster_clockPVy .ncl=12 .nco=1 .addr=400a20e000 .ksz=168",
+        "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] cluster[4]: ..reason[29] task timeout",
+        "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] cluster[7]: ..reason[29] task timeout",
+        "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] cluster[11]: ..reason[29] task timeout",
+        "2026-11-08T20:43:03+08:00 VM-20-14-ubuntu kernel: KLRM: Xid (PCI:0000:bb:00): 0, pid=735718, name=python, KL_XID_KERNEL_EXCEPTION, ch=0"
+      ],
+      "reset_records": []
+    }
+  },
+  "full_private_inventory_sha256": "038b6c5305678911bb7bebb8620563ae280d8bbc981899f27b5f89bb3b715ec9"
+}

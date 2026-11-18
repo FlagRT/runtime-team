@@ -1,0 +1,59 @@
+# cambricon-mlu-runtime v1 的运行环境目录 env/v1（由 demo 派生；规范见 dev/ENV-SPEC.md §3.2）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（登记式，
+# manual-registration 口径，数值承自同镜像 demo 基线真机实测）。装配与 demo 一致
+# （设备节点/cnmon/仓根/网络/shm），仅 compose 项目名与容器名不同。
+# **待 HWJ_1 VPN 真机验证后转现行**（现行仍以 demo 计——见 release_index.ENVIRONMENTS
+# 与 USAGE_MATRIX，本次不改）。
+# 寒武纪实情（档位由宿主驱动定、宿主无 neuware、无容器 toolkit、MLU_VISIBLE_DEVICES
+# 选卡、容器内核对用 bash -lc）与用法/收尾命令见 dev/images/cambricon-mlu-runtime/v1/demo/docker-compose.yml 头注
+# （同等适用，容器名换为本文件 container_name）。
+name: flagrt-mlu-v1-env-v1
+
+x-flagrt:
+  image_baseline: ../../image.baseline.yaml
+  # 官方镜像全部资产为固化（FlagOS 官方自带，无本组配方层），本环境不挂载任何 repo：
+  # 仓根整体挂到 /workspace 只使代码可见、不使其生效（ENV-SPEC §2.1）。
+  mounted_repos: {}
+
+services:
+  runtime-mlu:
+    container_name: flagrt-mlu-v1-env-v1-mlu2
+    image: harbor.baai.ac.cn/flagos-runtime/flagos-runtime-cambricon-neuware4.4.3:2.2.0
+    network_mode: host
+    shm_size: 64g
+    tty: true
+    stdin_open: true
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    devices:
+      # cambricon_ctl 是设备访问前提（缺 ctl 则 cnmon / 设备枚举失效）；gdr = GDR 直通；
+      # ipcmN = 卡间 IPC 通道（CNCL 用）。映射全部 8 卡 ⇒ 容器内逻辑号 == 宿主物理号；
+      # 实际用卡由 MLU_VISIBLE_DEVICES 授予。共 18 个节点。
+      - /dev/cambricon_ctl:/dev/cambricon_ctl
+      - /dev/cambricon_gdr:/dev/cambricon_gdr
+      - /dev/cambricon_dev0:/dev/cambricon_dev0
+      - /dev/cambricon_dev1:/dev/cambricon_dev1
+      - /dev/cambricon_dev2:/dev/cambricon_dev2
+      - /dev/cambricon_dev3:/dev/cambricon_dev3
+      - /dev/cambricon_dev4:/dev/cambricon_dev4
+      - /dev/cambricon_dev5:/dev/cambricon_dev5
+      - /dev/cambricon_dev6:/dev/cambricon_dev6
+      - /dev/cambricon_dev7:/dev/cambricon_dev7
+      - /dev/cambricon_ipcm0:/dev/cambricon_ipcm0
+      - /dev/cambricon_ipcm1:/dev/cambricon_ipcm1
+      - /dev/cambricon_ipcm2:/dev/cambricon_ipcm2
+      - /dev/cambricon_ipcm3:/dev/cambricon_ipcm3
+      - /dev/cambricon_ipcm4:/dev/cambricon_ipcm4
+      - /dev/cambricon_ipcm5:/dev/cambricon_ipcm5
+      - /dev/cambricon_ipcm6:/dev/cambricon_ipcm6
+      - /dev/cambricon_ipcm7:/dev/cambricon_ipcm7
+    volumes:
+      - ${WORKSPACE_ROOT}:/workspace
+      # cnmon 是宿主工具（宿主无 neuware，容器内也不自带）；不挂则容器内无法查卡
+      - /usr/bin/cnmon:/usr/bin/cnmon:ro
+    environment:
+      - DO_NOT_TRACK=1
+    restart: "no"
+    command: sleep infinity

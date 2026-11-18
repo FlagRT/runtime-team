@@ -1,0 +1,63 @@
+{
+  "verdict": "PASS",
+  "scope": "CPU/Gloo host-only",
+  "identity": {
+    "backend": "gloo",
+    "evidence_scope": "CPU/gloo host-only",
+    "model_sha256": {
+      "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+      "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+      "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+    },
+    "prototype_revision": "4e9c124b9099353afcbc26637977fdaa3373ea0f",
+    "torch": "2.4.1",
+    "seed": 923,
+    "dtype": "float32"
+  },
+  "runs": 9,
+  "gradient_checks_per_rank": 17,
+  "gradient_reference_max_abs": 1.862645149230957e-09,
+  "update_reference_max_abs": 1.862645149230957e-09,
+  "manual_fused_loss_max_abs": 0.0,
+  "all_modes_loss_max_abs": 0.0,
+  "final_rank_parameter_max_abs": 0,
+  "compared_modes": [
+    "manual",
+    "fused",
+    "observed"
+  ],
+  "gradient_calls_per_rank_per_50_steps": {
+    "manual": 850,
+    "fused": 50
+  },
+  "timing": {
+    "manual": {
+      "run_mean_step_ms": [
+        7.271475784946233,
+        8.336596610024571,
+        7.275470015592873
+      ],
+      "mean_ms": 7.627847470187892,
+      "sample_stddev_ms": 0.6137980090258023
+    },
+    "fused": {
+      "run_mean_step_ms": [
+        4.878177542705089,
+        4.92297500371933,
+        5.192766680847853
+      ],
+      "mean_ms": 4.997973075757424,
+      "sample_stddev_ms": 0.17017671569996062
+    },
+    "observed": {
+      "run_mean_step_ms": [
+        4.043574980460107,
+        6.457450874149799,
+        4.179085816722363
+      ],
+      "mean_ms": 4.893370557110757,
+      "sample_stddev_ms": 1.3562268340133365
+    }
+  },
+  "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+}

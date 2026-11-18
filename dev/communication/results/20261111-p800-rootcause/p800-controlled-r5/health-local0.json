@@ -1,0 +1,14 @@
+{
+  "torch": "2.9.0+cu129",
+  "checks": {
+    "identity": true,
+    "fill_readback": true,
+    "matmul": true,
+    "event_completed": true
+  },
+  "verdict": "PASS",
+  "stage": "event_query",
+  "uuid": "20631204-1bc4-596e-bf1a-81d6ce7e3053",
+  "memory_allocated_bytes": 4608,
+  "seconds": 1.3402195840608329
+}

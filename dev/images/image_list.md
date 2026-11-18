@@ -1,16 +1,7 @@
 # 镜像索引
 
-> 本文件只做索引：有哪些镜像、各自状态、归档目录在哪。新增版本在对应表尾追加一行。
->
-> | 想查 | 看哪里 |
-> |---|---|
-> | 版本事实（commit、资源 sha256） | v3：各 `v<N>/image.baseline.yaml`（`python3 dev/lib/baseline.py list` 一次列全）；v1/v2 与未接入基线机制的版本：各 `v<N>/lock.yaml` |
-> | 层级构成（L1~L4 由哪些层组成） | 各 `v<N>/lock.yaml` 的 `layers:` 字段 |
-> | 过程叙述（尝试了什么、round 之间为什么切换、STOP CONDITION 怎么发现） | [`PROCESS.md`](PROCESS.md) |
-> | 怎么用、已知限制 | 各 `v<N>/README.md` 与其现行运行环境目录（910C 两腿为 `env/` 系列，其余为 `demo/`） |
-> | 用途 / 使用约束 | 消费方文档：`dev/stack.lock.910c.*.yaml` 现行版本、`docs/` 阶段目标文档 |
-> | 目录规范、入档门槛、"官方"的三个主体定义 | [`README.md`](README.md)（§2/§5/§4.0） |
-> | 分层设计依据 | [`docs/运行时基座建设-黄金准则与方案存档.v1.md`](../../docs/运行时基座建设-黄金准则与方案存档.v1.md) |
+> 本文件 = 全量历史版本归档（追加式，新增版本在对应表尾追加一行）：有哪些镜像、各自状态、归档目录在哪。
+> 现行生效一页见 [`USAGE_MATRIX.md`](USAGE_MATRIX.md) / [`RELEASE_INDEX.yaml`](RELEASE_INDEX.yaml)，导航见 [`README.md`](README.md)。
 
 ---
 
@@ -60,8 +51,8 @@
 | v2 | `flagrt/ascend-operator-runtime-comm:1.0.0-flagtree3.5-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64` | 🟢 functional-repro（真机 2 卡 40/40） | `ascend-train-comm/v2/` |
 | v3 | `flagrt/ascend-operator-runtime-comm:2.0.0-flagtree3.5-routeA-cann9.0-py311-torch2.10-flagcx0.13.0g4e0e0cb-arm64`（npu1-11 `e13a15d0d02b`） | 🟡 partial-repro | [`ascend-train-comm/v3/`](ascend-train-comm/v3/README.md) |
 
-> v3 是**训练腿发布物**（🟡；已知限制 A-2~A-4，其中 A-2 按运行环境版本分述：现行 env/v1 挂载覆盖含修复的 FlagCX 后不命中），现行运行环境
-> [`ascend-train-comm/v3/env/v1/`](ascend-train-comm/v3/env/v1/docker-compose.yml)（demo/ 为冻结的第 0 版验收记录）；两条 v3 的 🟡 成因与升 🟢
+> v3 是**训练腿发布物**（🟡；已知限制 A-2~A-4，其中 A-2 按运行环境版本分述：现行 env/v2 挂载覆盖含修复的 FlagCX 后不命中），现行运行环境
+> [`ascend-train-comm/v3/env/v2/`](ascend-train-comm/v3/env/v2/docker-compose.yml)（env/v1 为第 1 版、demo/ 为冻结的第 0 版验收记录）；两条 v3 的 🟡 成因与升 🟢
 > 条件见各自 README 的「已知限制」，待修缺陷的 case 包见 [`../issues/`](../issues/README.md)。
 > 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见各 `lock.yaml`。
 
@@ -69,7 +60,7 @@
 
 | 版本 | tag | repro_status | 目录 |
 |---|---|---|---|
-| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + env/v1 现行运行环境（ADR-0007/0008） | `ascend-infer-vllm/v1/` |
+| v1 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3`（`@sha256:5cf8a2b6…`） | 🟢 digest 锁定、已归档、已验证可拉；登记式基线 + env/v2 现行运行环境（ADR-0007/0008） | `ascend-infer-vllm/v1/` |
 
 > 该系列为**现行推理腿**（华为昇腾官方镜像，digest 锁定，🟢），公开 registry 按 digest 拉取；
 > 不携带已知限制 A-1~A-4 任何一条。起服务纪律（`unset VLLM_PLUGINS`、经

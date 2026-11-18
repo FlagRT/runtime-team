@@ -1,0 +1,36 @@
+{
+  "schema": "flagrt.case-summary/v1",
+  "case": "connector-kunlunxin",
+  "executed_at": "2026-11-15T07:53:49+08:00",
+  "result": "FAIL",
+  "criteria": {
+    "suite": "FlagMemory tests/tiering/ 判据三件（xpu RUNBOOK 口径）: test_offload_realcard.py -k xpu / test_xpu_backend_realcard.py / test_xpu_tier_manager_realcard.py",
+    "expect_total": 5,
+    "expect_flagmemory": "0.3.0"
+  },
+  "counts": {
+    "total": 5,
+    "passed": 2,
+    "failed": 2,
+    "errors": 1,
+    "skipped": 0
+  },
+  "tests": {
+    "test_offload_realcard::test_栈可导入且取到导出类[flagmemory.tiering.offload.xpu-XpuSimpleCPUOffloadConnector]": "pass",
+    "test_xpu_backend_realcard::test_真connector懒加载与全链路搬运闭环": "fail",
+    "test_xpu_tier_manager_realcard::test_T8负例_级二容量不大于级一池容量报错不启": "pass",
+    "test_xpu_tier_manager_realcard::test_真卡异步轨全链_发起即返回确认后落账交块": "fail",
+    "test_xpu_tier_manager_realcard::test_destroy_有在途搬运_不静默丢弃排空后才销毁": "fail"
+  },
+  "image": {
+    "ref": "harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4",
+    "id": "sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1"
+  },
+  "env": {
+    "dir": "dev/images/kunlun-infer-vllm/v1/env/v1",
+    "mounted_repos": {
+      "FlagMemory": "58e60a94929e8920166fe634b1709290fef1bf4f"
+    },
+    "flagmemory_installed": "0.3.0"
+  }
+}

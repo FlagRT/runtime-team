@@ -482,6 +482,33 @@ class BirenBackend(RuntimeBackend):
                 "evidence": "2026-11-11 实测：source 前 ImportError / source 后正常（`BR0/probes/`）",
             },
             {
+                "id": "BIREN-SCCL-CPU-TENSOR-REJECTED",
+                "severity": "info",
+                "scope": "集合通信（训练腿前置）",
+                "condition": "用 `sccl` 后端对 **CPU** 张量调 `all_reduce`（该后端注册时声明 `devices=[\"supa\",\"cpu\"]`）",
+                "symptom": "`RuntimeError: Tensors must be SUPA and dense`"
+                           "（栈在 `torch_br/distributed/distributed_c10d.py:1325`）——注册声明含 cpu，但集合算子只吃 supa 张量",
+                "root_cause_layer": "厂商插件（torch_br）能力边界：注册的 devices 列表比实际支持的张量类型宽",
+                "workaround": "集合操作一律用 supa 张量；需要主机侧结果时显式 `.cpu()`（本层训练腿按此写）",
+                "report_to": "torch_br 上游（可选：让 `devices` 声明与实际支持面一致，或在 init 时就拒绝 cpu-only 用法）",
+                "evidence": "`BR0/probes/biren_dist_20261111_out/biren_dist3_20261111_164519/dist3_cpu.log`；"
+                            "结论与用法见 `BR0/docs/BIREN_BR0_DIST_BACKEND_20261111.md` §2",
+            },
+            {
+                "id": "BIREN-VISIBLE-DEVICES-NOT-IN-PROCESS",
+                "severity": "medium",
+                "scope": "运行前置（容器级变量）",
+                "condition": "在**进程内**改 `os.environ[\"BIREN_VISIBLE_DEVICES\"]`（例如在 `mp.spawn` 的 worker 里设）",
+                "symptom": "不是「设了无效」，而是**设备上下文挂住**：进程不报错、不前进（实测三段判据全 124 超时，"
+                           "连「错名必须报错」那条都超时而非断言失败）",
+                "root_cause_layer": "厂商运行时（容器级注入变量在进程启动后不可改）",
+                "workaround": "选卡只用容器参数 `-e BIREN_VISIBLE_DEVICES=...`；进程内仅用 `torch_br.supa.set_device(rank)`。"
+                              "排查手段：给 worker 每步加 `print(..., flush=True)` 定位静默挂起点",
+                "report_to": "无（用法约束；已写入 BR_0 看板与探测报告）",
+                "evidence": "`BR0/probes/biren_dist_20261111_out/biren_dist_20261111_163650/`（超时反证）与 "
+                            "`…/biren_dist3_20261111_164519/`（去掉该行后全通）",
+            },
+            {
                 "id": "BIREN-STREAM-PRIORITY-SINGLE-TIER",
                 "severity": "medium",
                 "scope": "流语义（多流基线第 12 项：流优先级）",

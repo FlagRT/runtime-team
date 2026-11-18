@@ -179,7 +179,11 @@ def run(args):
             optimizer.zero_grad(set_to_none=True)
             prediction = wrapped(x[sl].to(device))
             loss = torch.nn.functional.binary_cross_entropy(prediction, y[sl].to(device))
+            if args.comm_mode == 'observed' and step >= args.warmup:
+                group.bucket_trace.begin(step - args.warmup)
             loss.backward()
+            if args.comm_mode == 'observed' and step >= args.warmup:
+                group.bucket_trace.end()
             if args.comm_mode in ('manual', 'fused'):
                 manual_mean_gradients(model, group, args.comm_mode == 'fused')
             optimizer.step()
@@ -216,11 +220,20 @@ def run(args):
                                          'not equivalent to single-device train-mode BatchNorm'}
         result['training']['parameters_finite'] = bool(torch.isfinite(flat_parameters(model)).all().item())
         if args.comm_mode=='observed':
-            # Locked PyTorch's diagnostic bucket metadata, not a fixed guess
-            # based on model size. Native default DDP remains unqualified.
-            logging=wrapped._get_ddp_logging_data()
-            sizes=logging.get('rebuilt_bucket_sizes') or logging.get('bucket_sizes')
-            result['training']['ddp_bucket_sizes_bytes']=[int(v.strip()) for v in sizes.split(',')]
+            # Some vendor PyTorch versions keep initial bucket_sizes in their
+            # diagnostic logger after the reducer rebuilt actual buckets.
+            # Retain that diagnostic value, but accept real per-backward
+            # GradBucket callbacks only; never infer buckets from call count.
+            try:
+                logging=wrapped._get_ddp_logging_data()
+                sizes=logging.get('rebuilt_bucket_sizes') or logging.get('bucket_sizes')
+                result['training']['ddp_logging_bucket_sizes_bytes']=(
+                    [int(v.strip()) for v in sizes.split(',')] if sizes else [])
+            except (AttributeError, TypeError, ValueError) as diagnostic_error:
+                result['training']['ddp_logging_diagnostic_error']=repr(diagnostic_error)
+            result['training']['ddp_bucket_sizes_bytes']=group.bucket_trace.sizes()
+            result['training']['ddp_bucket_trace']=group.bucket_trace.steps
+            result['training']['ddp_bucket_metadata_source']='GradBucket callbacks per measured backward'
         if not result['training']['parameters_finite'] or spread > 1e-6:
             raise AssertionError('Parameters non-finite or different across ranks')
         if runtime:

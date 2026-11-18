@@ -1,0 +1,14 @@
+stage enumerate
+return xpu_device_count 0
+return xpu_device_list 0
+return xpu_device_get_attr 0
+identity 0 0000:84:00.0
+stage select_verified_pci
+return xpu_set_device 0
+return xpu_current_device 0
+stage create_xdnn_context
+stage allocate
+return xpu_malloc 0
+stage constant_kernel
+return xdnn_constant 0
+stage wait_for_kernel
