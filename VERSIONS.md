@@ -1,6 +1,7 @@
 # VERSIONS.md —— 物资起始清单与版本事实源
 
 > 用途：**新成员起步 + 组级版本事实源**——只记仓库、设备层构成与公共环境变量；各芯片可复现的镜像 / venv 组合以对应子方向 README 为准。
+> 定位：通用开发底座说明；基座镜像栈的版本事实以 [`dev/images`](dev/images/README.md) 两锚点（USAGE_MATRIX.md / RELEASE_INDEX.yaml）为准。
 > 设备层 = 各芯片厂商设备插件（昇腾 `torch_npu`、昆仑芯厂商 CUDA 兼容 torch）；其上 FlagGems（算子）/ FlagCX（通信）/ vllm-plugin-FL（推理插件）/ vLLM。
 
 ## 0. 物资起始清单（一屏）
@@ -67,7 +68,7 @@
 **昇腾 910C**
 - 推理结论性测试：`quay.io/ascend/vllm-ascend` 镜像自带 python 3.11 + torch 2.10.0+cpu + **torch_npu 2.10.0** + vllm 0.20.2 + vllm_ascend（device-context P0–P3 在此验证）
 - 训练 / device-context / conformance / 通信：容器内装 **torch_npu 2.10.0** + FlagCX（`plugin/torch`）+ FlagGems（± vllm-plugin-FL）；具体镜像与 venv 组合以 `dev/device-context/README.md`、`dev/communication/README.md` 为准
-- **候选血统（Route A 默认 + 训练/推理统一基座，v3）**：版本事实见 `dev/images/ascend-train-comm/v3/image.baseline.yaml`；运行环境 `dev/images/ascend-train-comm/v3/env/v1/`（`demo/` 为冻结验收记录），用 `dev/lib/up.sh <env-dir> [--strict]` 启动（启动前核对基线）；机制见 `dev/ENV-SPEC.md`，构建与验证记录见 `dev/images/ascend-operator-runtime/v3/lock.yaml`、`dev/images/ascend-train-comm/v3/lock.yaml`
+- **候选血统（Route A 默认 + 训练/推理统一基座，v3）**：版本事实见 `dev/images/ascend-train-comm/v3/image.baseline.yaml`；运行环境 `dev/images/ascend-train-comm/v3/env/v2/`（`env/v1/` 为第 1 版、`demo/` 为冻结验收记录），用 `dev/lib/up.sh <env-dir> [--strict]` 启动（启动前核对基线）；机制见 `dev/ENV-SPEC.md`，构建与验证记录见 `dev/images/ascend-operator-runtime/v3/lock.yaml`、`dev/images/ascend-train-comm/v3/lock.yaml`
 
 **昆仑芯 P800**（厂商官方发布镜像内）
 - python 3.10 + 厂商 CUDA 兼容 torch 2.9 + vllm 0.13 + **vllm-plugin-FL** + FlagGems + FlagCX + triton 3.0.0；口径见 `dev/memory/README.md`
@@ -87,6 +88,7 @@
 
 ## 5. 变更记录
 
+- 2026-11-15：§3 昇腾 910C 候选血统 v3 运行环境指针改指 `env/v2/`（`env/v1/` 为第 1 版），与现行锁定声明同步；推理腿现行运行环境同步为 `dev/images/ascend-infer-vllm/v1/env/v2/`
 - 2026-10-11：§3 昆仑芯 P800 增加候选血统指针（`dev/images/kunlun-operator-runtime/v2/` 的 `image.baseline.yaml` + `demo/`）；同步 v1 状态变化（`repro_status` 🟢 → 🟡，归档镜像为 `docker commit` 产物）。版本号与索引不在本文件重复，仍以 `dev/images/image_list.md` 和各 `image.baseline.yaml` 为准
 - 2026-09-09：§2 加注——910C 原型阶段锁定镜像自成一套，索引见 `dev/images/image_list.md`，状态见 `dev/stack.lock.910c.v1.yaml`；本节通用 dev 底座不用于原型结论性验证。不新开 VERSIONS 版本文件（镜像索引归 `dev/images/image_list.md`）。
 - 2026-09-03：§2 基础镜像加注——明确该镜像为「昇腾工具链底座」而非设备层交付物；`pytorch-plugin-fl` 名与 `/data_lib` 挂载为 B 线（已冻结）血统残留、保留无害；harbor 源与本地副本同一 IMAGE ID；大小订正 13.7GB→11.2GB。同步 `compose.base.yml` 顶部与 `/data_lib` 挂载注释

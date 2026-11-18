@@ -28,6 +28,10 @@ class Settings:
     reranker_model_path: Path
     embedding_dims: int
     retrieval_instruction: str
+    retrieval_backends: tuple[str, ...] = ()
+    generation_backend: str = "transformers"
+    generation_url: str = "http://127.0.0.1:8090"
+    generation_physical_die: int = 6
     generation_enabled: bool = False
     generation_model_path: Path = Path('/mnt/onerec/OneRec-8B')
     generation_max_input_tokens: int = 4096
@@ -38,6 +42,9 @@ class Settings:
         generation_enabled = os.getenv('RAG_GENERATION_ENABLED', 'false').strip().lower()
         if generation_enabled not in ('true', 'false', '1', '0'):
             raise ValueError('RAG_GENERATION_ENABLED must be true/false or 1/0')
+        generation_backend = os.getenv("RAG_GENERATION_BACKEND", "transformers")
+        if generation_backend not in ("transformers", "vllm"):
+            raise ValueError("RAG_GENERATION_BACKEND must be transformers or vllm")
         from .generation import GenerationLimits
         generation_limits = GenerationLimits(
             int(os.getenv('RAG_GENERATION_MAX_INPUT_TOKENS', '4096')),
@@ -56,16 +63,23 @@ class Settings:
                 f"RETRIEVAL_BACKEND must be one of: {choices}; "
                 f"got {retrieval_backend!r}"
             )
+        retrieval_backends = tuple(dict.fromkeys(
+            item.strip() for item in os.getenv('RAG_RETRIEVAL_BACKENDS', retrieval_backend).split(',') if item.strip()))
+        if not retrieval_backends or any(item not in SUPPORTED_RETRIEVAL_BACKENDS for item in retrieval_backends):
+            raise ValueError('RAG_RETRIEVAL_BACKENDS must list milvus and/or elasticsearch')
+        if retrieval_backend not in retrieval_backends:
+            raise ValueError('Default retrieval backend must be enabled in RAG_RETRIEVAL_BACKENDS')
         password = os.getenv("ELASTICSEARCH_PASSWORD") or os.getenv(
             "ELASTIC_PASSWORD", ""
         )
-        if retrieval_backend == "elasticsearch" and not password:
+        if "elasticsearch" in retrieval_backends and not password:
             raise RuntimeError(
                 "ELASTIC_PASSWORD (or ELASTICSEARCH_PASSWORD) is not set"
             )
 
         return cls(
             retrieval_backend=retrieval_backend,
+            retrieval_backends=retrieval_backends,
             elasticsearch_url=os.getenv(
                 "ELASTICSEARCH_URL", f"http://127.0.0.1:{port}"
             ),
@@ -103,6 +117,9 @@ class Settings:
                 "RETRIEVAL_INSTRUCTION",
                 "Given a web search query, retrieve relevant passages that answer the query",
             ),
+            generation_backend=generation_backend,
+            generation_url=os.getenv("RAG_GENERATION_URL", "http://127.0.0.1:8090"),
+            generation_physical_die=int(os.getenv("RAG_GENERATION_DIE", "6")),
             generation_enabled=generation_enabled in ('true', '1'),
             generation_model_path=Path(os.getenv('RAG_GENERATION_MODEL_PATH', '/mnt/onerec/OneRec-8B')).expanduser(),
             generation_max_input_tokens=generation_limits.max_input_tokens,

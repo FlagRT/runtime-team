@@ -1,0 +1,93 @@
+# 验收样例 tiering-async-ppu 的自建运行环境目录（ENV-SPEC §3.2「各方向自建」形态，自由命名）。
+# 本目录 = 一套完备运行环境：本文件（启动与装配）+ env.baseline.yaml（版本事实）+
+# image.anchor.yaml（镜像登记桩）。
+#
+# 【构成】flagrelease vllm0.24 定档镜像（flagrelease_ppu_vllm024_gems_540:1012，
+# id 6cd05dcf…，FM 仓 flagmemory/tiering/offload/ppu/RUNBOOK.md §0 定档，暂不入
+# stack.lock）+ FlagMemory@58e60a9（v0.3.0）pip-editable 挂载。容器骨架沿用
+# thead-ppu-runtime/v2/env/v1 实测体例（网络/hosts/shm/全 16 卡设备）；PPU 无带卡
+# 容器独占，实际用卡由 CUDA_VISIBLE_DEVICES 授予。
+#
+# 【0.24 镜像容器边界】（RUNBOOK §1「启动三件套」）：ENTRYPOINT 为 bash
+# /opt/t-head/entrypoint.sh（服务化引导）→ 本样例覆盖 entrypoint 直接跑装配；
+# SDK 环境不固化在镜像 ENV → 须 source /usr/local/PPU_SDK/envsetup.sh 且置
+# UMD_PLATFORM_TYPE=1、HGGC_DRIVER_CANDIDATE=UMD（compose environment 固化两变量，
+# docker exec 会话由 scripts/run_tiering_ppu.sh 再 source envsetup）。
+#
+# 【两条 PPU 启动坑规避沿用】（同 thead env/v1）：--network host 下宿主主机名
+# （ai-server）不在 DNS 须 --add-host；NCCL_SOCKET_IFNAME 覆盖为 bond0（本样例单卡
+# pytest 不涉集合通信，保留无害）。
+#
+# 用法（仓根执行，机器 = PTG_0 / ai-server）：
+#   ppu-smi | tail -24      # 挑空闲卡
+#   dev/lib/up.sh dev/memory/cases/tiering-async-ppu/env --strict
+#   docker exec -it flagrt-fm-tiering-ppu-ptg0 bash
+# 收尾：
+#   WORKSPACE_ROOT=$PWD docker compose -f dev/memory/cases/tiering-async-ppu/env/docker-compose.yml down
+
+name: flagrt-fm-tiering-ppu
+
+x-flagrt:
+  # 镜像登记桩（手写，本目录内）：权威登记处 = FM RUNBOOK §0；0.24 定档镜像暂不入锁。
+  image_baseline: image.anchor.yaml
+  # FlagMemory 以可编辑方式挂载（镜像不含本组件；pyproject 在仓根）。
+  mounted_repos:
+    FlagMemory: {activation: pip-editable}
+
+services:
+  runtime-ppu:
+    container_name: flagrt-fm-tiering-ppu-ptg0
+    image: harbor.baai.ac.cn/flagrelease-public/flagrelease_ppu_vllm024_gems_540:1012
+    network_mode: host
+    ipc: host
+    shm_size: 32g
+    tty: true
+    stdin_open: true
+    devices:
+      # 映射全部 16 卡 ⇒ 容器内逻辑号 == 宿主物理号；实际用卡由 CUDA_VISIBLE_DEVICES 授予。
+      - /dev/alixpu:/dev/alixpu
+      - /dev/alixpu_ctl:/dev/alixpu_ctl
+      - /dev/alixpu_ppu0:/dev/alixpu_ppu0
+      - /dev/alixpu_ppu1:/dev/alixpu_ppu1
+      - /dev/alixpu_ppu2:/dev/alixpu_ppu2
+      - /dev/alixpu_ppu3:/dev/alixpu_ppu3
+      - /dev/alixpu_ppu4:/dev/alixpu_ppu4
+      - /dev/alixpu_ppu5:/dev/alixpu_ppu5
+      - /dev/alixpu_ppu6:/dev/alixpu_ppu6
+      - /dev/alixpu_ppu7:/dev/alixpu_ppu7
+      - /dev/alixpu_ppu8:/dev/alixpu_ppu8
+      - /dev/alixpu_ppu9:/dev/alixpu_ppu9
+      - /dev/alixpu_ppu10:/dev/alixpu_ppu10
+      - /dev/alixpu_ppu11:/dev/alixpu_ppu11
+      - /dev/alixpu_ppu12:/dev/alixpu_ppu12
+      - /dev/alixpu_ppu13:/dev/alixpu_ppu13
+      - /dev/alixpu_ppu14:/dev/alixpu_ppu14
+      - /dev/alixpu_ppu15:/dev/alixpu_ppu15
+    volumes:
+      # 仓根挂载提供 FlagMemory → /workspace/FlagMemory（pip-editable 挂载源）。
+      - ${WORKSPACE_ROOT}:/workspace
+    environment:
+      - DO_NOT_TRACK=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - GIT_OPTIONAL_LOCKS=0
+      # 0.24 镜像 SDK 环境变量不固化（RUNBOOK 三件套之二/三）
+      - UMD_PLATFORM_TYPE=1
+      - HGGC_DRIVER_CANDIDATE=UMD
+      - NCCL_SOCKET_IFNAME=bond0
+    extra_hosts:
+      - "ai-server:127.0.0.1"     # --network host 下主机名不解析 → torchrun 挂 300s
+    working_dir: /workspace
+    # 覆盖镜像 ENTRYPOINT（bash /opt/t-head/entrypoint.sh 为服务化引导）：source SDK
+    # envsetup 后 pip-editable 安装 FlagMemory；失败则容器退出；成功落 done 标记。
+    entrypoint: [bash, -c, 'source /usr/local/PPU_SDK/envsetup.sh && git config --global --add safe.directory /workspace/FlagMemory && mkdir -p /workspace/evidence && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/flagmemory-build.log 2>&1 && touch /workspace/evidence/flagmemory-build.done && exec sleep infinity']
+    restart: "no"
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-11-15  新建（S4-A 样例三）。装配 = thead-ppu-runtime/v2/env/v1 实测骨架 + FlagMemory
+#             挂载；服务化不在本环境内。真机验证待 PTG_0 VPN 窗口（REPORT 如实标注）。
+# 2026-11-15  真机补完：主命令前置 git safe.directory（uid 不同致 pip-editable 元数据生成
+#             失败），安装成功后落 flagmemory-build.done 标记供 run.sh 就绪等待。
+# 2026-11-15  样例锚改定 flagrelease vllm0.24 镜像（FM RUNBOOK §0 定档）：换 image/加
+#             entrypoint 覆盖与 SDK 三件套（envsetup source + UMD/HGGC 变量）、
+#             image_baseline 指向本目录手写登记桩 image.anchor.yaml（0.24 镜像暂不入锁）。

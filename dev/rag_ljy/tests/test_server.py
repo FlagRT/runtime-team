@@ -65,6 +65,9 @@ def test_reuses_models_on_initialization_thread_and_retains_output_contract():
         health = client.get("/health").json()
         assert health.pop("device_memory") == {"enabled": False, "status": "disabled"}
         assert health.pop("memory_admission") == {"enabled": False, "status": "disabled"}
+        assert health.pop("scheduling") == {
+            "policy": "priority_with_aging", "priorities": ["high", "normal", "low"],
+            "default": "normal", "aging_seconds": 30.0, "preemptive": False, "dispatch_evidence": True}
         assert health == {
             "status": "ready", "device": "npu:3", "busy": False,
             "inflight": 0, "max_inflight": 8, "embedding_backend": "transformers",

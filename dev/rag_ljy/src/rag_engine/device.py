@@ -38,6 +38,9 @@ def prepare_torch_device(device: str = "auto"):
     """Bind the device on the calling inference thread and return torch/device."""
     global _selected_backend
     backend_name, prefix, ordinal = device_selection(device)
+    if backend_name == 'ascend':
+        from .ascend_visibility import check_pinned_visibility
+        check_pinned_visibility()
     if backend_name is None:
         import torch
 

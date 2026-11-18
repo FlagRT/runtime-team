@@ -62,10 +62,31 @@ def summarize(root, include_native=False, include_observed=False):
                 if not buckets or any(type(v)!=int or v<=0 for v in buckets) or sum(buckets)!=t['parameter_count']*4:
                     raise ValueError('DDP bucket coverage mismatch')
                 expected_calls=len(buckets)*50
+                if 'ddp_bucket_trace' in t:
+                    trace=t['ddp_bucket_trace']
+                    if (t.get('ddp_bucket_metadata_source')!='GradBucket callbacks per measured backward'
+                            or len(trace)!=50 or [item['step'] for item in trace]!=list(range(50))):
+                        raise ValueError('Incomplete measured backward bucket trace')
+                    plan=None
+                    for item in trace:
+                        observed=item['buckets']
+                        indices=[bucket['index'] for bucket in observed]
+                        sizes=[bucket['bytes'] for bucket in observed]
+                        if (not observed or any(type(i) is not int or i<0 for i in indices)
+                                or indices!=list(range(len(observed)))
+                                or any(type(size) is not int or size<=0 or size%4 for size in sizes)
+                                or sizes!=buckets or sum(sizes)!=t['parameter_count']*4):
+                            raise ValueError('Invalid per-step bucket index/byte coverage')
+                        if plan is not None and observed!=plan:
+                            raise ValueError('Fixed-shape measured bucket plan changed')
+                        plan=observed
             if stats['gradient_allreduce_calls'] != expected_calls:
                 raise ValueError('Unexpected gradient call count')
             if stats['gradient_payload_bytes'] != t['parameter_count']*4*50:
                 raise ValueError('Unexpected input payload count')
+        if run['mode']=='observed' and any('ddp_bucket_trace' in r['training'] for r in pair):
+            if (pair[0]['training'].get('ddp_bucket_trace')!=pair[1]['training'].get('ddp_bucket_trace')):
+                raise ValueError('Cross-rank observed bucket plan mismatch')
         records[key] = pair
     if any({r for r,m in records if m=='manual'} != {r for r,m in records if m==mode} for mode in modes):
         raise ValueError('Unpaired trials')

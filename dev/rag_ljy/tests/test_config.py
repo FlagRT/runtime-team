@@ -5,6 +5,7 @@ from rag_engine.config import Settings
 
 DATABASE_ENV_KEYS = (
     "RETRIEVAL_BACKEND",
+    "RAG_RETRIEVAL_BACKENDS",
     "ELASTIC_PASSWORD",
     "ELASTICSEARCH_PASSWORD",
     "ELASTICSEARCH_INDEX",

@@ -21,15 +21,19 @@ class RetrievalPipeline:
         *,
         execution_mode: str = "concurrent",
         generator=None,
+        stores=None,
     ) -> None:
         validate_execution_mode(execution_mode)
         self.store = store
+        self.stores = dict(stores) if stores is not None else {getattr(store, 'backend_name', 'unknown'): store}
+        if self.stores.get(getattr(store, 'backend_name', 'unknown')) is not store:
+            raise ValueError('Default store must belong to the enabled store mapping')
         self.embedder = embedder
         self.reranker = reranker
         self.execution_mode = execution_mode
         self.generator = generator
         self._search_executor = (
-            ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-search")
+            ThreadPoolExecutor(max_workers=2 * len(self.stores), thread_name_prefix="rag-search")
             if execution_mode == "concurrent" else None
         )
         self._closed = False
@@ -66,11 +70,13 @@ class RetrievalPipeline:
         with measure_stage(timings, "embedding_ms"):
             return self.embedder.encode_queries([query], batch_size=batch_size)[0]
 
-    def search(self, query, vector, retriever_top_k=50, coarse_top_k=30, timings=None):
+    def search(self, query, vector, retriever_top_k=50, coarse_top_k=30, timings=None, *, backend=None):
         """Database stage; safe to schedule independently of the model worker."""
         self._require_open()
+        # Request-local selection: never mutate the shared default store.
+        store = self.store if backend is None else self.stores[backend]
         return hybrid_search(
-            self.store, query, vector, retriever_top_k=retriever_top_k,
+            store, query, vector, retriever_top_k=retriever_top_k,
             coarse_top_k=coarse_top_k, timings=timings,
             execution_mode=self.execution_mode, executor=self._search_executor,
         )

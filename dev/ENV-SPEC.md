@@ -2,7 +2,7 @@
 
 > 状态：生效（2026-10-10）。本文件是环境基线机制的唯一规范：概念、判定规则、文件格式、
 > 工具与用法。设计依据见
-> [黄金准则 GR3/GR5 与 §3](../docs/运行时基座建设-黄金准则与方案存档.v1.md)。
+> [黄金准则 GR3/GR5 与 §3](../docs/运行时基座建设-黄金准则与方案存档.v1.md)（历史存档）。
 
 ## 0. 结论
 
@@ -260,6 +260,45 @@ services:
 
 compose `include` 不能覆盖被引入文件中已定义的服务，不用于这一场景。
 
+### 3.3 运行环境层包（`env_packages`）
+
+**定义**：运行环境可在镜像之上**加装镜像内没有的新增预编译包**，记录于 `env.baseline.yaml` 的
+`env_packages[]`。它是挂载资产之外的第二类运行环境侧加装物：不改镜像、不改挂载 repo，只补
+镜像未携带的预编译发行包。
+
+| 字段 | 内容 |
+|---|---|
+| `name` / `version` | pip 发行名与版本（`version` 是 check 项） |
+| `index_url` | 获取来源（包索引地址） |
+| `wheel` | 第二版本锚：`filename`、`sha256`、`source`（wheel 的获取来源） |
+| `install` | 安装方式：`up.sh` 起容器时安装；`--strict` 下核对容器内已装版本与登记 `version` 一致 |
+
+**规则**：
+
+1. **只加新包，不覆盖镜像内 baked 包**——运行环境层包不做与镜像内已装包同名的覆盖安装；
+   要改镜像内的包走 §2.3 晋升（写入新版本镜像配方后重建）。
+2. **每条目必须 `version` + `sha256` 双锚**——`wheel.sha256` 与 `version` 并记，离线环境
+   可按指纹复装，不依赖索引页存活。
+3. **check ＝ 容器内 `pip show` 版本一致**——核对已装版本与登记 `version` 逐字一致，
+   不一致即 FAIL。
+
+**实例（首个条目）**：昇腾训练腿（`ascend-train-comm/v3`）运行环境加装 `cann-shmem 1.6.0`：
+
+```yaml
+env_packages:
+  - name: cann-shmem
+    version: "1.6.0"
+    index_url: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+    wheel:
+      filename: cann_shmem-1.6.0-cp311-cp311-linux_aarch64.whl
+      sha256: 308a1c5a3dfe039d77d1159e27f3b1c16f38f4990a19c1fc68c7c052dee2b3f5
+      source: https://ascend.devcloud.huaweicloud.com/cann/pypi/simple
+    install: up.sh
+```
+
+> 现行生效范围：`ascend-train-comm/v3` 现行运行环境为 `env/v2`，本条目随该目录生效
+> （第 1 版 `env/v1` 与 `demo/` 不加装）。
+
 ## 4. 管理脚本：`dev/lib/baseline.py`
 
 ### 4.1 动作与场景
@@ -267,8 +306,9 @@ compose `include` 不能覆盖被引入文件中已定义的服务，不用于�
 | 动作 | 镜像场景（`--image <image-dir>`） | 运行环境场景（`<env-dir>`） |
 |---|---|---|
 | `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--env-current <dir>` 写入 `image.env_current`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
-| `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底。另核对 `image.env_current` 指向的目录仍存在且仍是运行环境目录 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净、`origin` 远端是否仍是基线记的 `remote`；结果写 `.last-check.json` |
+| `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底。另核对 `image.env_current` 指向的目录仍存在且仍是运行环境目录 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净、`origin` 远端是否仍是基线记的 `remote`；`env_packages` 在容器运行中时逐条核对容器内已装版本（§3.3 规则 3），容器未运行该节 INFO 跳过；结果写 `.last-check.json` |
 | `load` | 不适用（镜像只能重新构建） | 将每个挂载 repo 切换到基线 commit；不拉取、不构建镜像 |
+| `install` | 不适用 | 按基线 `env_packages` 在运行中的容器内幂等安装（§3.3；`up.sh` 起容器后调用，已装且版本一致则跳过）；基线无该节时为无操作 |
 | `show` | 以表格打印资产、版本、层级与 info | 同左，并标出覆盖关系 |
 | `list` | 列出仓内全部 `dev/images/*/v*/image.baseline.yaml` 的资产与版本 | — |
 
@@ -337,14 +377,18 @@ dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不�
 - **check**：镜像 id 不一致、挂载 repo commit 不一致、容器内挂载来源与核对的宿主目录不一致，
   均报告为不一致；工作区不干净、commit 未推送、`origin` 远端与基线 `remote` 不一致只警告；
   固化部分不与宿主比对。
-- **向后兼容**：`image.env_current` 与 `mounted_repos.<名称>.remote` 都是后加的字段，不含它们的
-  旧基线文件 `check` 一律报 INFO、不 FAIL（提示重新 `export` 即可补齐）。
+- **向后兼容**：`image.env_current`、`mounted_repos.<名称>.remote` 与 `env_packages` 都是后加的字段，
+  不含它们的旧基线文件 `check` 一律报 INFO、不 FAIL（提示重新 `export` 即可补齐）；compose 无
+  `x-flagrt.env_packages` 声明的旧环境，`export` 输出与 `up.sh` 行为均不变。
 - **load**：任一挂载 repo 工作区不干净 → 整体中止（退出码 3），不做部分切换；本地缺少目标 commit
   时先 `git fetch`；切换结果为 detached HEAD，并打印切换前的 commit 与分支以便回退；切换后
   检出不完整即报错。
 - **`dev/lib/up.sh <env-dir> [--strict]`**：先执行 check，默认只报告不一致、不阻止启动；加
   `--strict` 时不一致即拒绝启动，用于验收与出结论的运行。然后执行
-  `docker compose -f <env-dir>/docker-compose.yml up -d`。`--strict` 只约束启动时刻：
+  `docker compose -f <env-dir>/docker-compose.yml up -d`。起容器后对基线 `env_packages`
+  逐条幂等安装（`baseline.py install`；等容器主进程完成自身的 pip-editable 激活安装后再装，
+  并发写同一 site-packages 会互踩）；`--strict` 装完再 check 一次，此时容器在跑，
+  `env_packages` 节为容器内实测核对（§3.3）。`--strict` 只约束启动时刻：
   宿主 checkout 在启动后的改动会直接进入运行中的实例。
 - `up.sh` 以 `FLAGRT_WORKSPACE_ROOT`（缺省为本仓根）同时导出 compose 的 `WORKSPACE_ROOT`，保证
   check 核对的就是容器实际挂载的 checkout。绕开 `up.sh` 直接使用 `docker compose` 时须自行
@@ -449,4 +493,21 @@ python3 dev/lib/baseline.py list
 - §2 新增 2.4「布局不变量」：仓根一级目录名 == 容器挂载引用名；布局唯一登记处 = dev/repos.yaml
   （报备-收录制）；clone_all.sh 只对齐布局与协作线、不锁提交；确切版本事实由 env.baseline.yaml 的
   mounted_repos 承担。
+-->
+
+<!-- changelog: 2026-11-14
+S2 基座文档瘦身批C（ADR-0028）：新增 §3.3「运行环境层包（env_packages）」——定义运行环境在镜像
+之上加装新增预编译包的登记格式（name/version=index check 项/index_url/wheel{filename,sha256,source}
+第二版本锚/install=up.sh 起容器时安装）与三条规则（只加新包不覆盖 baked 包、version+sha256 双锚
+离线可复装、check=容器内 pip show 版本一致）；首个条目 cann-shmem 1.6.0 作为节内实例（现行生效
+载体=ascend-train-comm/v3 的 env/v2，现行 env/v1 不加装）。头部黄金准则引用句补（历史存档）标注
+（该存档文档已加历史参考头注）。
+-->
+
+<!-- changelog: 2026-11-15
+S4-A 工具补位：baseline.py 落地 §3.3 的机制（S2 只定了规范、工具未支持）。§4.1 动作表增 `install`
+行（按基线 env_packages 在运行中的容器内幂等安装，无登记时无操作）；`check` 行补 env_packages
+核对口径（容器运行中才逐条核对，未运行 INFO 跳过）；§4.3 up.sh 条目补装后流程（起容器 → 幂等
+安装 → --strict 装完复核）；向后兼容条目补 env_packages（旧基线 INFO、旧环境 export 输出与
+up.sh 行为不变）。
 -->

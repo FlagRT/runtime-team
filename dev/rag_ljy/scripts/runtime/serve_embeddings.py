@@ -2,8 +2,8 @@
 """Start the default vLLM embedding engine on this container's visible NPU.
 
 Default endpoint: http://127.0.0.1:8089/v1/embeddings
-The single-die container maps the selected host die to logical 0. RAG_DEVICE does not
-control this separate process; ASCEND_RT_VISIBLE_DEVICES selects its NPU.
+The selected host die is logical 0 inside the application. RAG_DEVICE does not
+control this separate process; preserve the inherited ASCEND_RT_VISIBLE_DEVICES.
 """
 
 import sys as _sys
@@ -31,7 +31,11 @@ def main():
         parser.error('Require a local model directory, memory fraction in (0,1), and nonnegative device index')
     if args.synchronous:
         os.environ['ASCEND_LAUNCH_BLOCKING'] = '1'
-    os.environ['ASCEND_RT_VISIBLE_DEVICES'] = str(args.device_index)
+    from rag_engine.ascend_visibility import embedding_visible_device
+    try:
+        os.environ['ASCEND_RT_VISIBLE_DEVICES'] = embedding_visible_device(args.device_index)
+    except (ValueError, RuntimeError) as error:
+        parser.error(str(error))
     # This image's Triton uses _npu_getCurrentRawStreamNoWait. Disabling its
     # task queue bypasses queued torch_npu producers (observed at Q/K -> RoPE),
     # yielding different embeddings for identical input. Override the shared

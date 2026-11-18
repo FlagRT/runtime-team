@@ -15,6 +15,8 @@
     `triton-ascend`，不含本缺陷路径。
   - **残留影响**：该缺陷路径仍在 **现行训练腿发布物镜像**内（其 triton 为 FlagTree triton）——
     凡在该镜像内编译含 for 循环的 Triton kernel（例如启用 FlagGems 接管算子）仍会命中。
+    现行推荐运行环境 `env/v2` 以层包 `cann-shmem 1.6.0` 补齐 `shmem` 模块后该路径不再命中
+    （分版表态见下方「版本集合」）；`demo/`（第 0 版）与 `env/v1`（第 1 版）不含该层包，仍命中。
   - **现行运行环境里没有针对本缺陷的规避装配**：训练腿发布物的第 0 版运行环境
     [`demo/docker-compose.yml`](../../images/ascend-train-comm/v3/demo/docker-compose.yml) 不挂载占位模块、
     不前置 `PYTHONPATH`、不设 `VLLM_FL_FLAGOS_BLACKLIST`（训练腿标准路径不编译 Triton kernel，
@@ -49,7 +51,8 @@
 | 坐标 | 状态 | 依据 |
 |---|---|---|
 | `ascend-train-comm v3` · 第 0 版（[`demo/`](../../images/ascend-train-comm/v3/demo/docker-compose.yml)） | **在该版仍命中** | 2026-10-11 npu1-11：最小复现 `overall: FAIL`（退出码 1）。该版装配不含占位模块与 `PYTHONPATH` 前置 ⇒ 缺陷路径按缺省即命中 |
-| `ascend-train-comm v3` · 第 1 版（[`env/v1/`](../../images/ascend-train-comm/v3/env/v1/docker-compose.yml)） | **未在该版测过** | 无本缺陷在该版的实测。该版与第 0 版的声明差异是 FlagCX 以 `pip-editable` 挂载覆盖，不触及 triton 编译路径，但**未实测即不表态为不命中** |
+| `ascend-train-comm v3` · 第 1 版（[`env/v1/`](../../images/ascend-train-comm/v3/env/v1/docker-compose.yml)） | **在该版仍命中** | 2026-11-15 npu1-11：最小复现 `overall: FAIL`（退出码 1，`repro: CONFIRMED`）。`up.sh --strict` 起（image id + 宿主 FlagCX 62fe615 双核对）；该版无运行环境层包，容器内无 `shmem` 模块 ⇒ 缺陷路径按缺省即命中。证据：[`assets/evidence/minirepro-20261115-envv1.txt`](assets/evidence/minirepro-20261115-envv1.txt) |
+| `ascend-train-comm v3` · 第 2 版（[`env/v2/`](../../images/ascend-train-comm/v3/env/v2/docker-compose.yml)） | **在该版已修**（形态：运行环境层包 `cann-shmem 1.6.0` 补齐 `shmem` 模块——真实现非占位模块，见 ENV-SPEC §3.3） | 2026-11-15 npu1-11：最小复现 `overall: PASS`（退出码 0，含 for 循环 kernel 编译通过且数值正确）。`up.sh --strict` 起（image id + 三挂载 commit + 层包装后核对全 PASS）；容器内 `pip show cann-shmem` = 1.6.0。证据：[`assets/evidence/minirepro-20261115-envv2.txt`](assets/evidence/minirepro-20261115-envv2.txt) |
 | `ascend-operator-runtime v3`（历史血统，推理腿已切华为官方 `vllm-ascend`）· 第 0 版 | **在该版仍命中** | 2026-10-10 全栈 9 步：撤除规避后 `vllm_encode_real_output: FAIL`；带规避 9/9 PASS |
 
 ## 复现
@@ -107,7 +110,7 @@ overall: FAIL
 
 | 脚本 | 类别 | 命令 | 通过判据 | 最近一次结果与证据 |
 |---|---|---|---|---|
-| [`assets/minirepro_shmem.py`](assets/minirepro_shmem.py) | 复现 / 验证 | 见「单入口命令」 | 退出码 0 且 `overall: PASS` | 2026-10-11 npu1-11 demo 环境：撤除规避 `overall: FAIL`（退出码 1，缺陷复现）；带规避对照组 `overall: PASS`（退出码 0）。证据：[`assets/evidence/minirepro-20261011.txt`](assets/evidence/minirepro-20261011.txt) |
+| [`assets/minirepro_shmem.py`](assets/minirepro_shmem.py) | 复现 / 验证 | 见「单入口命令」 | 退出码 0 且 `overall: PASS` | 2026-11-15 npu1-11 分版实测：`env/v1`（无层包）`overall: FAIL`（退出码 1，仍命中）；`env/v2`（层包 `cann-shmem 1.6.0`）`overall: PASS`（退出码 0）。证据：[`minirepro-20261115-envv1.txt`](assets/evidence/minirepro-20261115-envv1.txt)、[`minirepro-20261115-envv2.txt`](assets/evidence/minirepro-20261115-envv2.txt)。更早：2026-10-11 demo 第 0 版撤除规避 FAIL / 带规避对照组 PASS（[`minirepro-20261011.txt`](assets/evidence/minirepro-20261011.txt)） |
 | `v3_step5_validate.py`（引用，不复制） | 验证 | 见「完整栈路线」 | 退出码 0，9 个 `[STEP]` 全 OK，且不设 `VLLM_FL_FLAGOS_BLACKLIST` | 2026-10-10 带规避 9/9 PASS；撤除规避按预期失败。证据：[`infer-demo-20261010.txt`](../../images/ascend-operator-runtime/v3/assets/evidence/infer-demo-20261010.txt) |
 
 修复到货后，v3 demo 中的占位模块挂载、`PYTHONPATH` 前置与 `VLLM_FL_FLAGOS_BLACKLIST` 三项一并删除，
@@ -133,5 +136,15 @@ overall: FAIL
      须自行挂入占位模块（2026-10-11 的对照组读数取自当时含该装配的环境）。
      本条只校正装配事实，未改动复现命令本身，也未重跑验证（本批无 docker）。
   未改动：NOTES-step-by-step.md 与 assets/（其中指向 demo 的命令按 ADR-0008 决定 4 保持有效）。
+2026-11-15 —— A-1 版本分述收口（env/v2 层包已修实测）：按本 README 自身判据（撤除占位模块、
+  单入口 minirepro）在 npu1-11 分版各跑一次——env/v1（无层包）overall FAIL/退出码 1（repro
+  CONFIRMED，缺陷仍命中，原「未在该版测过」改为「仍命中」）；env/v2（层包 cann-shmem 1.6.0，
+  up.sh --strict 装后核对 PASS）overall PASS/退出码 0（kernel 编译通过且数值正确）⇒ 新增
+  「第 2 版 env/v2 已修（形态=层包 cann-shmem 1.6.0 补齐 shmem 模块）」行；「残留影响」补
+  env/v2 不再命中、demo/env/v1 仍命中的现状分句；修复验收表 minirepro 行更新为 2026-11-15
+  分版读数。两版容器均临时起、跑完即 down 点名清理（flagrt-train-v3-env-v1/v2-910c，零残留）。
+  证据截选入 assets/evidence/minirepro-20261115-envv1.txt / -envv2.txt；完整日志
+  npu1-11:/tmp/s4-closeout-20261115/。root cause 仍在镜像内、「挂起，不跟进」状态不变；
+  上游 FlagTree triton 修复到货后的 repro_status 升级条款不变。
 -->
 

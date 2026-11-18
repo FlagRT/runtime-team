@@ -1,0 +1,79 @@
+{
+  "pid": 7,
+  "library": "/root/miniconda/envs/python310_torch29_cuda/lib/python3.10/site-packages/torch_xmlir/xre/so/libxpucuda.so.1",
+  "requested_pci": "00000000:84:00.0",
+  "scope": "Vendor driver API only; no torch, FlagCX or device prototype",
+  "steps": [
+    {
+      "function": "cuInit",
+      "code": 0,
+      "seconds": 0.002327142981812358
+    },
+    {
+      "function": "cuDeviceGetCount",
+      "code": 0,
+      "seconds": 1.0050018317997456e-05
+    },
+    {
+      "function": "cuDeviceGet",
+      "code": 0,
+      "seconds": 3.519933670759201e-06
+    },
+    {
+      "function": "cuDeviceGetPCIBusId",
+      "code": 0,
+      "seconds": 4.00003045797348e-06
+    },
+    {
+      "function": "cuDevicePrimaryCtxRetain",
+      "code": 0,
+      "seconds": 0.008057138998992741
+    },
+    {
+      "function": "cuCtxSetCurrent",
+      "code": 0,
+      "seconds": 3.079068847000599e-06
+    },
+    {
+      "function": "cuMemAlloc_v2",
+      "code": 0,
+      "seconds": 7.439905311912298e-05
+    },
+    {
+      "function": "cuMemsetD32_v2",
+      "code": 0,
+      "seconds": 4.476902540773153e-05
+    },
+    {
+      "function": "cuCtxSynchronize",
+      "code": 0,
+      "seconds": 3.7400750443339348e-06
+    },
+    {
+      "function": "cuMemcpyDtoH_v2",
+      "code": 0,
+      "seconds": 2.7418951503932476e-05
+    },
+    {
+      "function": "cuMemFree_v2",
+      "code": 0,
+      "seconds": 4.6020024456083775e-05
+    },
+    {
+      "function": "cuDevicePrimaryCtxRelease",
+      "code": 0,
+      "seconds": 0.0026813159929588437
+    }
+  ],
+  "verdict": "PASS",
+  "stage": "complete",
+  "pci_order": [
+    "0000:84:00.0"
+  ],
+  "readback": [
+    1065353216,
+    1065353216,
+    1065353216,
+    1065353216
+  ]
+}

@@ -133,13 +133,26 @@ class DeviceMemoryMonitor:
             self._probe.close()
 
 
-def _isolated_probe_worker(connection, device):
+def _isolated_probe_worker(connection, device, physical_die=None):
+    if physical_die is not None:
+        os.environ['ASCEND_RT_VISIBLE_DEVICES'] = str(physical_die)
+        os.environ['RAG_ASCEND_PINNED_DIE'] = str(physical_die)
+        os.environ['DC_BACKEND'] = 'ascend'
+    elif os.environ.get('RAG_ASCEND_PINNED_DIE', '').isdecimal():
+        physical_die = int(os.environ['RAG_ASCEND_PINNED_DIE'])
     probe = DeviceMemoryProbe(device)
     try:
         while connection.recv() == 'sample':
             result = probe.sample()
-            import os
             result['sampling_process'] = os.getpid()
+            if physical_die is not None and result.get('status') == 'ok':
+                import ctypes
+                lib = ctypes.CDLL('libascendcl.so')
+                actual = ctypes.c_int32(-1)
+                rc = lib.aclrtGetPhyDevIdByLogicDevId(0, ctypes.byref(actual))
+                if rc or actual.value != physical_die:
+                    result.update(status='unavailable', error='Physical die does not match requested sampler')
+                result['physical_die'] = actual.value
             connection.send(result)
     except EOFError:
         pass
@@ -153,7 +166,8 @@ class IsolatedMemoryProbe:
     The observer creates a device context but no tensors or pressure allocations.
     Its persistent context overhead is included in the measured idle baseline.
     """
-    def __init__(self, device):
+    def __init__(self, device, *, physical_die=None):
+        self.physical_die = physical_die
         self.device = device
         self.process = None
         self.connection = None
@@ -163,7 +177,7 @@ class IsolatedMemoryProbe:
             import multiprocessing
             ctx = multiprocessing.get_context('spawn')
             self.connection, child = ctx.Pipe()
-            self.process = ctx.Process(target=_isolated_probe_worker, args=(child,self.device),daemon=True)
+            self.process = ctx.Process(target=_isolated_probe_worker, args=(child,self.device,self.physical_die),daemon=True)
             self.process.start()
             child.close()
         if not self.process.is_alive():

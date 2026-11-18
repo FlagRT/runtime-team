@@ -8,6 +8,7 @@ import json
 import math
 from time import perf_counter_ns, monotonic
 from uuid import uuid4
+from typing import Literal
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from functools import partial
@@ -18,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .query_runtime import create_pipeline, format_hits
 from .retrieval import validate_execution_mode
 from .scheduler import StageQueue
-from .memory_probe import DeviceMemoryMonitor
+from .memory_probe import DeviceMemoryMonitor, IsolatedMemoryProbe
 from .admission import MemoryAdmissionConfig, MemoryAdmissionController
 
 
@@ -34,6 +35,8 @@ class QueryRequest(BaseModel):
     fine_top_k: int = Field(default=5, ge=3, le=5)
     embedding_batch_size: int = Field(default=8, ge=1, le=8)
     reranker_batch_size: int = Field(default=4, ge=1, le=50)
+    retrieval_backend: Literal["milvus", "elasticsearch"] | None = None
+    priority: Literal["high", "normal", "low"] = "normal"
     generate: bool = False
     max_new_tokens: int = Field(default=256, ge=1, le=8192)
 
@@ -42,19 +45,23 @@ def create_app(
     device: str = "auto", pipeline_factory=None, *, execution_mode: str = "concurrent",
     max_inflight: int = 8, retrieval_workers: int = 4,
     embedding_workers: int = 2, stage_queue_capacity: int | None = None,
+    priority_aging_seconds: float = 30.0,
+    generation_workers: int = 4, generation_memory_probe_factory=None,
     memory_probe_enabled: bool = True, memory_probe_interval_s: float = 1.0,
     memory_probe_factory=None,
     memory_admission: MemoryAdmissionConfig | None = None,
     max_reranker_batch_size: int = 4,
     memory_estimator_factory=None,
 ) -> FastAPI:
-    """Advance requests independently through bounded FIFO stage queues.
+    """Advance requests independently through bounded priority stage queues.
 
     Remote vLLM embedding calls use a separate pool. Local accelerator models
     remain on their initialization thread. Full stage queues apply backpressure
     within the overall admitted-request bound; new excess requests receive 503.
     """
     validate_execution_mode(execution_mode)
+    if not math.isfinite(priority_aging_seconds) or priority_aging_seconds <= 0:
+        raise ValueError("Priority aging interval must be finite and positive")
     if not 1 <= max_reranker_batch_size <= 50:
         raise ValueError("max_reranker_batch_size must be between 1 and 50")
     memory_admission = memory_admission or MemoryAdmissionConfig()
@@ -64,7 +71,7 @@ def create_app(
         raise ValueError("Disabling the request count limit requires memory admission")
     if stage_queue_capacity is None:
         stage_queue_capacity = max_inflight or 8
-    if min(retrieval_workers, embedding_workers, stage_queue_capacity) < 1:
+    if min(retrieval_workers, embedding_workers, generation_workers, stage_queue_capacity) < 1:
         raise ValueError("Worker counts and request/queue capacities must be positive")
     if not math.isfinite(memory_probe_interval_s) or memory_probe_interval_s <= 0:
         raise ValueError("Memory probe interval must be finite and positive")
@@ -78,12 +85,15 @@ def create_app(
         retrieval_executor = ThreadPoolExecutor(
             max_workers=retrieval_workers, thread_name_prefix="rag-retrieval")
         embedding_executor = None
+        generation_executor = None
         app.state.stage_queues = {}
         app.state.ready = False
         app.state.tasks = set()
         app.state.executor = executor
         app.state.retrieval_executor = retrieval_executor
         app.state.memory_monitor = None
+        app.state.generation_memory_monitor = None
+        app.state.generation_memory_admission = None
         app.state.cache_reclaim_task = None
         app.state.cache_reclaim_attempted = False
         app.state.memory_admission = MemoryAdmissionController(memory_admission)
@@ -119,17 +129,31 @@ def create_app(
                     max_workers=embedding_workers, thread_name_prefix="rag-embedding-http")
             app.state.stage_queues = {
                 "embedding": StageQueue("embedding", embedding_executor or executor,
-                    capacity=stage_queue_capacity, workers=embedding_workers if remote_embedding else 1),
+                    capacity=stage_queue_capacity, priority_aging_seconds=priority_aging_seconds, workers=embedding_workers if remote_embedding else 1),
                 "retrieval": StageQueue("retrieval", retrieval_executor,
-                    capacity=stage_queue_capacity, workers=retrieval_workers),
+                    capacity=stage_queue_capacity, priority_aging_seconds=priority_aging_seconds, workers=retrieval_workers),
                 "rerank": StageQueue("rerank", executor,
-                    capacity=stage_queue_capacity, workers=1),
+                    capacity=stage_queue_capacity, priority_aging_seconds=priority_aging_seconds, workers=1),
             }
             if generator is not None:
-                # Both resident local models share their initialization thread.
-                # Their queues remain independent, without overlapping forwards.
+                remote_generation = getattr(generator, 'backend', '') == 'vllm'
+                if remote_generation:
+                    generation_executor = ThreadPoolExecutor(max_workers=generation_workers,
+                        thread_name_prefix='rag-generation-http')
+                    app.state.generation_memory_admission = MemoryAdmissionController(memory_admission)
+                    probe = (generation_memory_probe_factory(generator.physical_die)
+                             if generation_memory_probe_factory else
+                             IsolatedMemoryProbe('npu:0', physical_die=generator.physical_die))
+                    app.state.generation_memory_monitor = DeviceMemoryMonitor('npu:0',
+                        interval_s=memory_probe_interval_s, probe=probe)
+                    app.state.generation_memory_monitor.on_sample = app.state.generation_memory_admission.snapshot
+                    app.state.generation_memory_monitor.start()
+                # Local Transformers still stays on its initialization thread;
+                # remote vLLM calls use their own pool so reranking can progress.
                 app.state.stage_queues['generation'] = StageQueue(
-                    'generation', executor, capacity=stage_queue_capacity, workers=1)
+                    'generation', generation_executor or executor, capacity=stage_queue_capacity,
+                    priority_aging_seconds=priority_aging_seconds,
+                    workers=generation_workers if remote_generation else 1)
             # The remote embedding adapter's 'remote-vllm' label is not a device.
             # Probe the local rerank device without occupying its model worker.
             probe_device = str(getattr(getattr(app.state.pipeline, "reranker", None), "device", device))
@@ -170,12 +194,16 @@ def create_app(
                     await app.state.cache_reclaim_task
                 for queue in app.state.stage_queues.values():
                     await queue.close()
+                if app.state.generation_memory_monitor is not None:
+                    await app.state.generation_memory_monitor.close()
                 if app.state.memory_monitor is not None:
                     await app.state.memory_monitor.close()
                 close = getattr(getattr(app.state, "pipeline", None), "close", None)
                 if close is not None:
                     await asyncio.get_running_loop().run_in_executor(executor, close)
             finally:
+                if generation_executor is not None:
+                    generation_executor.shutdown(wait=True, cancel_futures=True)
                 if embedding_executor is not None:
                     embedding_executor.shutdown(wait=True, cancel_futures=True)
                 retrieval_executor.shutdown(wait=True, cancel_futures=True)
@@ -192,7 +220,19 @@ def create_app(
         memory = app.state.memory_monitor.snapshot()
         estimator_fault = app.state.estimator_fault or getattr(app.state.memory_estimator, 'fault', None)
         generation = getattr(app.state.pipeline, 'generator', None)
-        return {"status": "ready", "device": app.state.device, "busy": bool(active),
+        admission_state = app.state.memory_admission.snapshot(memory)
+        extra = {}
+        if hasattr(app.state.pipeline, 'stores'):
+            extra['retrieval_backends'] = sorted(app.state.pipeline.stores)
+        if app.state.generation_memory_monitor is not None:
+            generation_memory = app.state.generation_memory_monitor.snapshot()
+            generation_state = app.state.generation_memory_admission.snapshot(generation_memory)
+            extra = {**extra, 'device_memory_by_stage': {'embedding_rerank': memory, 'generation': generation_memory},
+                     'memory_admission_by_stage': {'embedding_rerank': admission_state, 'generation': generation_state}}
+            if generation_state['status'] != 'ready':
+                admission_state = {**admission_state, 'status': generation_state['status'],
+                                   'reason': generation_state['reason'], 'blocked_stage': 'generation'}
+        return {**extra,"status": "ready", "device": app.state.device, "busy": bool(active),
                 "inflight": active, "max_inflight": max_inflight,
                 "reranker_batch_limit": max_reranker_batch_size,
                 "memory_estimation": {"enabled": app.state.memory_estimator is not None,
@@ -203,7 +243,11 @@ def create_app(
                 "retrieval_backend": getattr(getattr(app.state.pipeline, "store", None), "backend_name", "unknown"),
                 "execution_mode": execution_mode,
                 "device_memory": memory,
-                "memory_admission": app.state.memory_admission.snapshot(memory),
+                "memory_admission": admission_state,
+                "scheduling": {"policy": "priority_with_aging",
+                    "priorities": ["high", "normal", "low"], "default": "normal",
+                    "aging_seconds": priority_aging_seconds, "preemptive": False,
+                    "dispatch_evidence": True},
                 "stage_queues": {name: queue.snapshot()
                                  for name, queue in app.state.stage_queues.items()},
                 **({'generation': {'enabled': True, 'execution_profile': generation.execution_profile}}
@@ -212,6 +256,7 @@ def create_app(
     async def process(request, request_id):
         pipeline = app.state.pipeline
         timings = {}
+        dispatch = {}
         started = perf_counter_ns()
 
         async def stage(name, operation):
@@ -231,7 +276,9 @@ def create_app(
                                 request_id, name, perf_counter_ns())
                     request_context.reset(context_token)
 
-            return await app.state.stage_queues[name].run(work)
+            dispatch[name] = []
+            return await app.state.stage_queues[name].run(work, priority=request.priority,
+                request_id=request_id, dispatch_trace=dispatch[name])
 
         status = "error"
         try:
@@ -239,7 +286,8 @@ def create_app(
                 pipeline.embed, request.query, request.embedding_batch_size, timings))
             candidates = await stage("retrieval", partial(
                 pipeline.search, request.query, vector, request.retriever_top_k,
-                request.coarse_top_k, timings))
+                request.coarse_top_k, timings,
+                **({'backend': request.retrieval_backend} if request.retrieval_backend is not None else {})))
             hits = await stage("rerank", partial(
                 pipeline.rank, request.query, candidates, request.fine_top_k,
                 request.reranker_batch_size, timings))
@@ -247,7 +295,9 @@ def create_app(
             if request.generate:
                 generated = await stage('generation', partial(
                     pipeline.generate, request.query, hits, request.max_new_tokens, timings))
-                result = {**generated, 'hits': result, 'timings_ms': timings}
+                result = {**generated, 'hits': result, 'timings_ms': timings,
+                          'scheduling': {'priority': request.priority, 'stages': dispatch},
+                          'retrieval_backend': selected_backend(request)}
             status = "ok"
             return result
         finally:
@@ -265,6 +315,14 @@ def create_app(
                 and cache.get('sampled_monotonic', float('inf')) <= sample.get('sample_started_monotonic', 0)):
             credit = min(cache.get('reclaimable_mib', 0), state.get('measured_used_mib', 0))
         return estimator.plan(request, state.get('available_after_reservations_mib', 0), cache_credit_mib=credit)
+
+    def selected_backend(request):
+        default = getattr(getattr(app.state.pipeline, 'store', None), 'backend_name', 'unknown')
+        return request.retrieval_backend or default
+
+    def validate_backend(request):
+        if request.retrieval_backend is not None and request.retrieval_backend not in getattr(app.state.pipeline, 'stores', {}):
+            raise HTTPException(status_code=422, detail='Requested retrieval backend is not enabled')
 
     def validate_generation(request):
         if not request.generate:
@@ -285,6 +343,7 @@ def create_app(
                                 headers={'Retry-After': '1'})
         if request.reranker_batch_size > max_reranker_batch_size:
             raise HTTPException(status_code=422, detail='reranker_batch_size exceeds configured limit')
+        validate_backend(request)
         validate_generation(request)
         try:
             sample = app.state.memory_monitor.snapshot()
@@ -305,6 +364,7 @@ def create_app(
             raise HTTPException(status_code=422, detail=f"reranker_batch_size exceeds configured limit {max_reranker_batch_size}", headers=headers)
         if not app.state.ready:
             raise HTTPException(status_code=503, detail="Service is not ready", headers=headers)
+        validate_backend(request)
         validate_generation(request)
         # No await between capacity check and task registration: atomic on this loop.
         if max_inflight > 0 and len(app.state.tasks) >= max_inflight:
@@ -334,6 +394,20 @@ def create_app(
                     logger.info('event=memory_admission decision=%s', json.dumps(admission.reject_unestimated(request_id, 'memory_estimate_unavailable')))
                     raise HTTPException(status_code=503, detail={"reason": "memory_estimate_unavailable"}, headers={**headers, "Retry-After": "1"})
                 logger.info('event=memory_estimate request_id=%s estimate=%s', request_id, json.dumps(estimate, sort_keys=True))
+            # The remote die has no synthetic generation reservation: vLLM
+            # owns KV capacity. It still independently gates new requests on
+            # measured high/low watermarks, fresh telemetry and 5GiB headroom.
+            if request.generate and app.state.generation_memory_monitor is not None:
+                generation_sample = app.state.generation_memory_monitor.snapshot()
+                generation_state = app.state.generation_memory_admission.snapshot(generation_sample)
+                if generation_state['status'] != 'ready':
+                    reason = generation_state['reason']
+                    logger.info('event=memory_admission stage=generation decision=%s',
+                        json.dumps(admission.reject_unestimated(request_id, reason)))
+                    raise HTTPException(status_code=503, detail={'reason': reason, 'stage': 'generation',
+                        'physical_die': getattr(app.state.pipeline.generator, 'physical_die', None),
+                        'admission_snapshot': {'memory_admission': generation_state, 'device_memory': generation_sample}},
+                        headers={**headers, 'Retry-After': '1'})
             sample = app.state.memory_monitor.snapshot()
             decision = admission.reserve(request_id, sample,
                 request_budget_mib=estimate['estimated_incremental_mib'] if estimate else None,
@@ -355,6 +429,8 @@ def create_app(
                     'estimated_incremental_mib': estimate['estimated_incremental_mib'],
                     'overlapped_other_requests': bool(app.state.tasks)}
         response.headers["X-Request-ID"] = request_id
+        response.headers["X-Request-Priority"] = request.priority
+        response.headers["X-Retrieval-Backend"] = selected_backend(request)
         try:
             task = asyncio.create_task(process(request, request_id), name="rag-" + request_id)
         except BaseException:
@@ -387,6 +463,10 @@ def create_app(
         try:
             return await asyncio.shield(task)
         except Exception as error:
+            from .vllm_generation import GenerationServiceError
+            if isinstance(error, GenerationServiceError):
+                raise HTTPException(status_code=503, detail={'reason': 'generation_service_unavailable'},
+                                    headers={**headers, 'Retry-After': '1'}) from error
             raise HTTPException(status_code=500, detail="Query failed; see server logs",
                                 headers=headers) from error
 

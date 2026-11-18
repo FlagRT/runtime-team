@@ -139,3 +139,29 @@ def test_isolated_sampler_worker_keeps_runtime_result(monkeypatch):
     assert connection.closed and len(connection.results)==1
     assert connection.results[0]['stats']['used_mb']==80
     assert connection.results[0]['sampling_process']>0
+
+
+def test_isolated_sampler_sets_only_child_die_and_checks_physical_identity(monkeypatch):
+    import ctypes
+    import os
+    from rag_engine.memory_probe import _isolated_probe_worker
+    monkeypatch.setenv('RAG_ASCEND_PINNED_DIE','7')
+    monkeypatch.setenv('ASCEND_RT_VISIBLE_DEVICES','7')
+    monkeypatch.setenv('DC_BACKEND','ascend')
+    class Connection:
+        def __init__(self): self.commands=iter(['sample','stop']); self.results=[]
+        def recv(self): return next(self.commands)
+        def send(self, result): self.results.append(result)
+        def close(self): pass
+    def sample():
+        assert os.environ['ASCEND_RT_VISIBLE_DEVICES']=='6'
+        assert os.environ['RAG_ASCEND_PINNED_DIE']=='6'
+        return {'status':'ok','stats':{'total_mb':100,'used_mb':10,'free_mb':90}}
+    def physical(logical, output):
+        output._obj.value=6
+        return 0
+    monkeypatch.setattr(memory_probe,'DeviceMemoryProbe',lambda _:SimpleNamespace(sample=sample))
+    monkeypatch.setattr(ctypes,'CDLL',lambda _:SimpleNamespace(aclrtGetPhyDevIdByLogicDevId=physical))
+    connection=Connection()
+    _isolated_probe_worker(connection,'npu:0',6)
+    assert connection.results[0]['physical_die']==6

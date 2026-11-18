@@ -164,10 +164,10 @@ class RequestMemoryEstimator:
             'cache_reclaim_backend': getattr(reranker, 'cache_reclaim_backend', None)}
         generator = getattr(pipeline, 'generator', None)
         if generator is not None:
-            if str(generator.device) != str(reranker.device):
+            if getattr(generator, "backend", "transformers") != "vllm" and str(generator.device) != str(reranker.device):
                 raise ValueError('Generation and reranking must share the monitored device')
             estimator.generation_estimator = generator.memory_estimator
-            estimator.version = 'qwen3-execution-v4-generation'
+            estimator.version = 'qwen3-execution-v5-no-generation-reservation'
             estimator.execution_profile['generation'] = generator.execution_profile
             hashes['generation'] = generator.memory_estimator.fingerprint
         hashes['execution'] = hashlib.sha256(json.dumps(estimator.execution_profile, sort_keys=True).encode()).hexdigest()
@@ -223,8 +223,7 @@ class RequestMemoryEstimator:
             credit = min(max(0, cache_credit_mib), rerank['estimated_mib'])
             result.update(rerank=rerank, allocator_growth_allowance_mib=growth, cache_credit_mib=credit,
                           planned_reranker_batch_size=batch,
-                          estimated_incremental_mib=result['embedding']['estimated_mib'] + rerank['estimated_mib'] - credit + growth
-                          + result.get('generation', {}).get('estimated_mib', 0))
+                          estimated_incremental_mib=result['embedding']['estimated_mib'] + rerank['estimated_mib'] - credit + growth)
             if result['estimated_incremental_mib'] <= available_mib:
                 break
         return result
@@ -259,8 +258,12 @@ class RequestMemoryEstimator:
         if getattr(request, 'generate', False):
             if self.generation_estimator is None:
                 raise ValueError('Generation is unavailable for this estimator')
-            generation = self.generation_estimator.estimate(
-                self.generation_estimator.limits.max_input_tokens, request.max_new_tokens)
-            result['generation'] = generation
-            result['estimated_incremental_mib'] += generation['estimated_mib']
+            # Do not reserve a worst-case 4096-token generation envelope for
+            # every incoming request. Generation allocation belongs to its
+            # execution backend; resident engine pools are measured usage.
+            # This is zero *reservation*, not an estimate of zero consumption.
+            result['generation'] = {
+                'reserved_mib': 0,
+                'policy': 'no upfront generation reservation; execution backend manages allocation',
+            }
         return result

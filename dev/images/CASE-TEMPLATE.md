@@ -10,6 +10,35 @@
 声明所用镜像 tag、image id 与核对方式(`up.sh --strict`);§3 的三段标题相应读作
 **问题与现状 / 复现 / 修复验收**,内容义务不变。
 
+## 0. 验收样例四件套(子方向功能验收样例,§1 之外的第三种形态)
+
+子方向的**功能验收样例**(对某组件在某芯片真卡上的功能面给机器可判结论)不放 `dev/images/`
+也不放 `../issues/`,单独立目录于各方向(实例:[`../memory/cases/pool-ascend910c/`](../memory/cases/pool-ascend910c/)、
+[`../memory/cases/tiering-async-ppu/`](../memory/cases/tiering-async-ppu/)),目录构成固定为四件套:
+
+```
+<方向>/cases/<样例名>/
+  run.sh            # 幂等单入口(宿主侧):环境核对 → up.sh --strict → 容器内跑用例 → 机器可判结果 → down
+  env/              # 环境钉扎:直接引用现行环境目录(README 说明引用方式)或自建运行环境目录
+                    #   (compose + env.baseline.yaml;若目标机不可达,声明齐而基线待真机导出/重导)
+  scripts/          # 容器内执行体(测试/验收命令)与结果转换(junit → summary)
+  REPORT.md         # 现状-only:判据表 / 通过态 / 证据指针
+  evidence/         # summary.json(机器可判:用例名→pass/fail、计数、镜像 id、commit 锚) + 截选
+```
+
+硬规则沿用 §2 四条并具体化:
+
+- **单入口**:一条 `run.sh` 命令完成全流程(前置核对含选卡纪律;收尾含 down、显存回落、零残留),
+  失败路径也要清理。
+- **外部依赖声明**:环境与代码仓经 `up.sh --strict` 机器核对(基线文件覆盖);基线外依赖
+  (pytest 等按需 pip 安装的运行器、空闲卡、目标机器可达性)在 run.sh 头部与 REPORT 判据节声明。
+- **自判定**:`overall: PASS/FAIL` 判定行 + 退出码 + `evidence/summary.json`(schema
+  `flagrt.case-summary/v1`);REPORT 通过态表只填已执行的结果,**机器不可达/未执行时如实标注,
+  不得虚构**。
+- **完整日志不进仓**:执行机器 `/tmp/<样例名>-<时间戳>/`;仓内只留 summary.json 与截选。
+
+
+
 ## 1. 目录构成
 
 ```
@@ -92,3 +121,5 @@ README 是摘要与入口,技术细节以 `lock.yaml` / `REBUILD.md` 为准,READ
 - [ ] 报错证据有 `assets/evidence/` 截选;完整日志的机器名与路径已注明
 - [ ] 容器生命周期等多步操作有 `NOTES-step-by-step.md`(或 README 已覆盖)
 - [ ] README 中引用的路径全部有效
+- [ ] 验收样例(§0 形态):四件套齐;run.sh 单入口含收尾;REPORT 通过态与 evidence/summary.json
+      一致(未执行样例如实标注,不虚构)

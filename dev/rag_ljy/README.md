@@ -1,6 +1,6 @@
 # RAG 检索与阶段调度（rag_ljy）
 
-更新：2026-11-11。入口供新同学查看；详细操作、设计和结果按用途分开。
+更新：2026-11-18。入口供新同学查看；详细操作、设计和结果按用途分开。
 
 项目最新状态统一记录在根目录 [status.md](status.md)，该文件必须保留在此处并持续更新。
 
@@ -42,9 +42,13 @@ rag_ljy/
 ```
 
 基础NPU Compose保留`/dev/davinci1`；OneRec overlay通过`RAG_NPU_DIE`选择单die，
-当前改试物理卡0的`/dev/davinci0`，容器内仍为`npu:0`。单独`docker start`不会更新设备映射。
+当前RAG使用特权模式，应用选择物理卡3/chip1的`/dev/davinci7`，应用内为`npu:0`；
+embedding与Elasticsearch＋OneRec API已恢复，实际物理ID已验证。特权模式不提供Docker单卡隔离。
+单独`docker start`不会更新设备映射。
 `rag-ljy-milvus` 为内嵌 etcd 的单容器；`rag-ljy-elasticsearch` 为单容器。
 NFCorpus 原始3,633文档分为6,543块，两个数据库保存相同块和向量。
 
 代码入口见 [scripts/README.md](scripts/README.md)。完整语料、模型和数据库
 持久化目录位于宿主机 RAID；`.venv`、缓存和包元数据为本地生成文件。
+
+请求优先级与功能测试：[三级优先级调度](docs/priority.md)（high/normal/low、等待老化、非抢占）。

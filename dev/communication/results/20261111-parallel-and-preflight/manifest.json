@@ -1,0 +1,134 @@
+{
+  "new_host_tests": 23,
+  "host_tests_passed": 102,
+  "baseline_host_tests": 79,
+  "tp_pp_cpu": {
+    "verdict": "PASS",
+    "scope": "CPU/Gloo host-only",
+    "device_vendor": "cpu",
+    "collective": "gloo",
+    "cases": 4,
+    "launches": 12,
+    "rank_records": 24,
+    "steps_per_launch": 50,
+    "forward_max_abs": 2.384185791015625e-07,
+    "tensor_check_max_abs": 2.384185791015625e-07,
+    "parameter_max_abs": 1.4901161193847656e-08,
+    "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+    "source_sha256": {
+      "parallel_minimal.py": "035e5d3f97007506fbd1524b8a410efdd8aa961ed3e0caa0a2d7486ebaa2754d",
+      "distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+      "deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+      "run_parallel_matrix.py": "26133088902ebe3f13663cf2644932e649dc3f53ed00a110ca4cddf98c401d8b"
+    },
+    "limits": "Two-layer synthetic FP32 TP/serialized PP examples, not DeepFM/OneRec model partitioning, multi-node, pipeline overlap, performance gains or checkpoint recovery."
+  },
+  "tp_pp_ascend": {
+    "verdict": "PASS",
+    "scope": "ascend integration",
+    "device_vendor": "ascend",
+    "collective": "hccl",
+    "cases": 4,
+    "launches": 12,
+    "rank_records": 24,
+    "steps_per_launch": 50,
+    "forward_max_abs": 3.5762786865234375e-07,
+    "tensor_check_max_abs": 3.5762786865234375e-07,
+    "parameter_max_abs": 1.4901161193847656e-08,
+    "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+    "source_sha256": {
+      "parallel_minimal.py": "035e5d3f97007506fbd1524b8a410efdd8aa961ed3e0caa0a2d7486ebaa2754d",
+      "distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+      "deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+      "run_parallel_matrix.py": "26133088902ebe3f13663cf2644932e649dc3f53ed00a110ca4cddf98c401d8b"
+    },
+    "limits": "Two-layer synthetic FP32 TP/serialized PP examples, not DeepFM/OneRec model partitioning, multi-node, pipeline overlap, performance gains or checkpoint recovery."
+  },
+  "deepfm_hccl": {
+    "verdict": "PASS",
+    "scope": "Ascend integration",
+    "identity": {
+      "backend": "hccl",
+      "evidence_scope": "NPU integration",
+      "model_sha256": {
+        "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+        "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+        "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+      },
+      "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+      "torch": "2.10.0+cpu",
+      "seed": 923,
+      "dtype": "float32"
+    },
+    "runs": 9,
+    "gradient_checks_per_rank": 17,
+    "gradient_reference_max_abs": 4.190951585769653e-09,
+    "update_reference_max_abs": 3.725290298461914e-09,
+    "manual_fused_loss_max_abs": 4.76837158203125e-07,
+    "all_modes_loss_max_abs": 5.960464477539062e-07,
+    "final_rank_parameter_max_abs": 0,
+    "compared_modes": [
+      "manual",
+      "fused",
+      "observed"
+    ],
+    "gradient_calls_per_rank_per_50_steps": {
+      "manual": 850,
+      "fused": 50
+    },
+    "timing": {
+      "manual": {
+        "run_mean_step_ms": [
+          9.678084473125637,
+          9.345757495611906,
+          9.71994963940233
+        ],
+        "mean_ms": 9.581263869379958,
+        "sample_stddev_ms": 0.20502588153907952
+      },
+      "fused": {
+        "run_mean_step_ms": [
+          6.220810553058982,
+          7.288622744381428,
+          6.225229678675532
+        ],
+        "mean_ms": 6.578220992038648,
+        "sample_stddev_ms": 0.6152299321933009
+      },
+      "observed": {
+        "run_mean_step_ms": [
+          5.304338489659131,
+          5.464502512477338,
+          5.434513376094401
+        ],
+        "mean_ms": 5.401118126076956,
+        "sample_stddev_ms": 0.08514435151038237
+      }
+    },
+    "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+  },
+  "p800_training_acceptance": "NOT_PASSED; explicit control timed out, later native probes failed before training",
+  "source_sha256": {
+    "dev/communication/training/compare_saved_parameters.py": "f3191242226ae1d0dbe01324959f6c2068b99a07ea88984984cd0baad4714ca9",
+    "dev/communication/training/compare_trace.py": "0cedc495124cd6fc3e667b1250a78f0d6324388a970e405a54ce9fb25f9edd7d",
+    "dev/communication/training/deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+    "dev/communication/training/distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+    "dev/communication/training/failure_restart.py": "05717d3c3025be2a14ab89d46d650325b6971c1d52602528b7f386e1ebdbb42d",
+    "dev/communication/training/onerec_smoke.py": "04658f70a9ad2f9b7d79d796f6a5c41874ce058f495f3c5d6837462f112e2b77",
+    "dev/communication/training/parallel_minimal.py": "035e5d3f97007506fbd1524b8a410efdd8aa961ed3e0caa0a2d7486ebaa2754d",
+    "dev/communication/training/probe_training_env.py": "6d2b21f4093868a4de2f86994e80cae072e318eb033835f8aa5ad01f97fc59fb",
+    "dev/communication/training/run_host_checks.py": "faecac3b08ad450dcca4b96d15318bc200dbef80a47c35c326bcd39fc1f64672",
+    "dev/communication/training/run_onerec_case.py": "6edc12297f7b966191598e2e7c9682098f47f4007d8b5c685cb4d3df8ce318d6",
+    "dev/communication/training/run_onerec_matrix.py": "5d40d7231012e9cb373f60d7443663fdf89f2b141bc4d356a1048d850a1b9478",
+    "dev/communication/training/run_p800_selected.py": "3485fe6434836421ced8ddb6bf40acf88540ffad97f3186d3c57a040f1928684",
+    "dev/communication/training/run_parallel_matrix.py": "26133088902ebe3f13663cf2644932e649dc3f53ed00a110ca4cddf98c401d8b",
+    "dev/communication/training/run_repeated.py": "8437c96556d5d70ce0f2efc9ee264a38dc0cc1b0df85e78f205993e5d14dbcdf",
+    "dev/communication/training/summarize_npu.py": "a90e2bab2b2a650203f59f56f810762549295137157229dff454410595fc6eaa",
+    "dev/communication/training/summarize_onerec.py": "942408136f074a82fa7bb24af8578c76ff4528c21ae57a8d6de1ec7392be6bcd",
+    "dev/communication/training/summarize_onerec_matrix.py": "097ae865a446a379f618d17b74b37ed7badd0f75b66e84c7844a46727856dc72",
+    "dev/communication/training/summarize_p800_single.py": "55a9d44e80873220079cec903c99fe637c81d4e37a7b33c75ab88610108de14a",
+    "dev/communication/training/summarize_repeated.py": "309b9f3152818f2776dddd0637042bbddc9c07b1221892e273c0dca3828c40c1",
+    "dev/communication/training/trace_deepfm.py": "38b402927cd42bab0486ca752917c5102b7e61fa63ed2e6cfc73e9039d1e4010"
+  },
+  "limits": "Separate CPU and NPU scopes; synthetic TP/serialized PP only. No P800 strict DDP, full-model TP/PP, PPU, multi-node, checkpoint, overlap or downstream acceptance claim."
+}

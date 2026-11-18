@@ -118,5 +118,41 @@ class RepeatedEvidenceTests(unittest.TestCase):
         self.change('01-observed/rank0.json',lambda d:d['training'].update(ddp_bucket_sizes_bytes=[1]))
         with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
 
+    def callback_fixture(self):
+        self.observed_fixture()
+        for path in self.root.glob('*observed/rank*.json'):
+            def mutate(d):
+                t=d['training'];sizes=t['ddp_bucket_sizes_bytes']
+                t['ddp_logging_bucket_sizes_bytes']=[sum(sizes)]  # Vendor diagnostic is stale.
+                t['ddp_bucket_metadata_source']='GradBucket callbacks per measured backward'
+                t['ddp_bucket_trace']=[{'step':step,'buckets':[
+                    {'index':index,'bytes':size} for index,size in enumerate(sizes)]} for step in range(50)]
+            self.change(path.relative_to(self.root),mutate)
+
+    def test_actual_callbacks_override_stale_diagnostic_without_guessing(self):
+        self.callback_fixture()
+        self.assertEqual(summarize(self.root,include_observed=True)['verdict'],'PASS')
+
+    def test_missing_backward_trace_rejected(self):
+        self.callback_fixture()
+        self.change('01-observed/rank0.json',lambda d:d['training']['ddp_bucket_trace'].pop())
+        with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
+
+    def test_wrong_bucket_index_rejected(self):
+        self.callback_fixture()
+        self.change('01-observed/rank0.json',lambda d:d['training']['ddp_bucket_trace'][0]['buckets'][1].update(index=0))
+        with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
+
+    def test_incomplete_per_step_bytes_rejected(self):
+        self.callback_fixture()
+        self.change('01-observed/rank0.json',lambda d:d['training']['ddp_bucket_trace'][0]['buckets'][1].update(bytes=8))
+        with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
+
+    def test_old_p800_stale_metadata_does_not_get_relabelled_pass(self):
+        self.observed_fixture()
+        self.change('01-observed/rank0.json',lambda d:d['training'].update(
+            ddp_bucket_sizes_bytes=[d['training']['parameter_count']*4]))
+        with self.assertRaises(ValueError):summarize(self.root,include_observed=True)
+
 
 if __name__ == '__main__': unittest.main()

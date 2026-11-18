@@ -1,0 +1,42 @@
+{
+  "mode": "pair",
+  "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+  "observations": [
+    {
+      "time": 1794388687.0332239,
+      "raw": "00000000:03:00.0 0 0 02K15K0264D00DNC 33 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 53 0 0 0 322 1450 1450 1450 1450 1450 1450 0 96 46592 98304 96 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 58 0 0 0 345 1450 1450 1450 1450 1450 1450 0 96 46592 98304 95 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 55 0 0 0 345 1450 1450 1450 1450 1450 1450 0 96 46592 98304 96 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 32 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 32 0 0 0 91 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 36 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 40 0 0 0 97 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+      "free_ids": [
+        0,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "runs": [],
+  "verdict": "ERROR",
+  "source_sha256": {
+    "training/deepfm_train.py": "65caaf68996c8a18329b41ad857ba1c6c4b5700695baaa72954244ac92c50ca7",
+    "training/distributed.py": "704bf63b02c7e6f9dae8793cb15c9c7e213cd51718ced78a3a2bd30cca5bf58d",
+    "training/run_repeated.py": "8437c96556d5d70ce0f2efc9ee264a38dc0cc1b0df85e78f205993e5d14dbcdf",
+    "training/summarize_repeated.py": "309b9f3152818f2776dddd0637042bbddc9c07b1221892e273c0dca3828c40c1",
+    "training/run_p800_selected.py": "8ce5f1f7297b3d8974e90a97b6115b82acc389af57866b767e7959429405cccf",
+    "probes/p800_identity.py": "bb1821838554b49c5b09054310053b96d787e11bd3cace3be482e7dae9d86d0b",
+    "env/p800-single/docker-compose.yml": "ce890e18617a9224431ad3317c0662f1b2b4ee47b893875f193dae8c2a03f65e",
+    "env/p800-pair/docker-compose.yml": "9f7620550ee0d55b384ded5856ba78d8ffc8dc1c0ab5a79fe3f6fd4c6005dae2"
+  },
+  "selected": [
+    {
+      "physical_card": 4,
+      "node": "/dev/xpu4",
+      "uuid": "GPU-ccddbe29-309f-5c0a-8f33-b0863be0b9fc"
+    },
+    {
+      "physical_card": 5,
+      "node": "/dev/xpu7",
+      "uuid": "GPU-98022bb8-3e47-59b4-8ede-bb6f7195a37c"
+    }
+  ],
+  "reason": "CalledProcessError(1, ['docker', 'exec', 'flagrt-communication-p800-pair-1028', '/root/miniconda/envs/python310_torch29_cuda/bin/python3', 'dev/communication/probes/p800_identity.py', '--output', '/workspace/evidence/controlled-strict-r2/identity.json', '--expected-uuid', 'GPU-ccddbe29-309f-5c0a-8f33-b0863be0b9fc', '--expected-uuid', 'GPU-98022bb8-3e47-59b4-8ede-bb6f7195a37c'])"
+}

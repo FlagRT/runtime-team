@@ -1,0 +1,126 @@
+{
+  "authorization": "User explicitly approved physical card 7 only",
+  "physical_card": 7,
+  "expected_pci": "00000000:BB:00.0",
+  "expected_uuid": "GPU-66371c5f-2ce9-5990-9dfa-be6236b4f74e",
+  "expected_node": "/dev/xpu6",
+  "verdict": "RESET_COMMAND_COMPLETED",
+  "reset_invocations": 1,
+  "before_smi": {
+    "argv": [
+      "xpu-smi",
+      "-m"
+    ],
+    "exit_code": 0,
+    "stdout": "00000000:03:00.0 0 0 02K15K0264D00DNC 35 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 36 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 39 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 45 0 0 0 97 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 33 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 33 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 39 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 43 0 0 0 98 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+    "stderr": ""
+  },
+  "before_query": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-q"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:12:17 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:BB:00.0\n    Product Name                          : P800 OAM\n    Product Brand                         : KUNLUNXIN\n    Product Architecture                  : KL3\n    Serial Number                         : 02K15K0264D00DVV\n    XPU UUID                              : GPU-66371c5f-2ce9-5990-9dfa-be6236b4f74e\n    Minor Number                          : 6\n    OAM Id                                : 4\n    XPU Part Number                       : B00100300110512\n    Firmware Version\n        PBL Version                       : 1.0\n        PCIE Version                      : 2.43\n        SBL Version                       : 1.86\n        ALL Version                       : 1.0.2.43.1.86\n        CPLD Version                      : 5.3\n    PCI\n        Bus                               : 0xBB\n        Device                            : 0x00\n        Function                          : 0x0\n        Domain                            : 0x0000\n        Device Id                         : 0x36881D22\n        Bus Id                            : 00000000:BB:00.0\n        Sub System Id                     : 0x00010001\n        XPU Link Info\n            PCIe Generation\n                Max                       : 5\n                Current                   : 5\n            Link Width\n                Max                       : 16x\n                Current                   : 16x\n    Memory Usage\n        Total                             : 98304 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 98304 MiB\n    L3 Usage\n        Total                             : 96 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 96 MiB\n    Utilization\n        Xpu                               : 0 %\n    Ecc Mode\n        Current                           : Enabled\n        Pending                           : Enabled\n    ECC Errors\n        Volatile\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n        Aggregate\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n    Remapped rows\n            Pending                       : NO\n            Remapping failure occurred    : NO\n            Max                           : 3072\n            Partial                       : 0\n            None                          : 0\n    Temperature\n        XPU Current Temp                  : 43 C\n    Power Readings\n        Enforced Power Limit              : 400.00 W\n        Power Draw                        : 98.00 W\n    Clocks\n        Cluster                           : 1450 MHz\n        CDNN                              : 1450 MHz\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "holders": {
+    "argv": [
+      "fuser",
+      "-v",
+      "/dev/xpu6"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "before_processes": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-q",
+      "-d",
+      "PIDS"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:12:18 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:BB:00.0\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "before_containers": {
+    "argv": [
+      "docker",
+      "ps",
+      "--format",
+      "{{.ID}} {{.Names}}"
+    ],
+    "exit_code": 0,
+    "stdout": "9cb2534f2f49 zhenghaojia-vllm-native-reranker-r04-XPUALL\nc34957566016 zhenghaojia-vllm-native-base-XPUALL\nc308ad57e8a5 xtx-dev-xpu\n335f3e6c4e18 zhenghaojia-qwen36-flagos-XPUALL\n9c4adf526808 x-model-accept-p800-b\n5c162cd1a5fa x-model-accept-p800\na627b1998c08 mwy-dev-xpu\n4b8177bb829d x-benchmark\ncadad4707c97 dengyuzhi-f09-8xpu\n45c0494db69b evalx-p800-2\n",
+    "stderr": ""
+  },
+  "started_at": "2026-11-11T18:12:18.084989+08:00",
+  "kernel_since": "2026-11-11 18:12:18",
+  "reset": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-r",
+      "-eow"
+    ],
+    "exit_code": 0,
+    "stdout": "XPU 00000000:BB:00.0 was successfully reset.\nAll done.\n",
+    "stderr": ""
+  },
+  "after_smi": {
+    "argv": [
+      "xpu-smi",
+      "-m"
+    ],
+    "exit_code": 0,
+    "stdout": "00000000:03:00.0 0 0 02K15K0264D00DNC 35 0 0 0 93 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:16:00.0 1 1 02K15K0264D00DTV 35 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:1C:00.0 2 2 02K15K0264D00DS0 39 0 0 0 94 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:2E:00.0 3 3 02K15K0264D00DKN 45 0 0 0 96 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:84:00.0 4 4 02K15K0264D00DV1 34 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:9C:00.0 5 5 02K15K0264D00DRW 33 0 0 0 92 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:B6:00.0 6 6 02K15K0264D00DTW 39 0 0 0 95 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n00000000:BB:00.0 7 7 02K15K0264D00DVV 43 0 0 0 98 1450 1450 1450 1450 1450 1450 0 96 0 98304 0 1.0:2.43:1.86.5.3 \"P800 OAM\" 0 0 0 0 0 0 0 0 0 0\n",
+    "stderr": ""
+  },
+  "after_query": {
+    "argv": [
+      "xpu-smi",
+      "-i",
+      "7",
+      "-q"
+    ],
+    "exit_code": 0,
+    "stdout": "\n==============XPUSMI LOG==============\n\nTimestamp                                 : Wed Nov 11 18:12:22 2026\nDriver Version                            : 5.0.21.47\nXPU-RT Version                            : 10.2\n\nAttached XPUs                             : 8\nXPU 00000000:BB:00.0\n    Product Name                          : P800 OAM\n    Product Brand                         : KUNLUNXIN\n    Product Architecture                  : KL3\n    Serial Number                         : 02K15K0264D00DVV\n    XPU UUID                              : GPU-66371c5f-2ce9-5990-9dfa-be6236b4f74e\n    Minor Number                          : 6\n    OAM Id                                : 4\n    XPU Part Number                       : B00100300110512\n    Firmware Version\n        PBL Version                       : 1.0\n        PCIE Version                      : 2.43\n        SBL Version                       : 1.86\n        ALL Version                       : 1.0.2.43.1.86\n        CPLD Version                      : 5.3\n    PCI\n        Bus                               : 0xBB\n        Device                            : 0x00\n        Function                          : 0x0\n        Domain                            : 0x0000\n        Device Id                         : 0x36881D22\n        Bus Id                            : 00000000:BB:00.0\n        Sub System Id                     : 0x00010001\n        XPU Link Info\n            PCIe Generation\n                Max                       : 5\n                Current                   : 5\n            Link Width\n                Max                       : 16x\n                Current                   : 16x\n    Memory Usage\n        Total                             : 98304 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 98304 MiB\n    L3 Usage\n        Total                             : 96 MiB\n        Reserved                          : 0 MiB\n        Used                              : 0 MiB\n        Free                              : 96 MiB\n    Utilization\n        Xpu                               : 0 %\n    Ecc Mode\n        Current                           : Enabled\n        Pending                           : Enabled\n    ECC Errors\n        Volatile\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n        Aggregate\n            DRAM Correctable              : 0\n            DRAM Uncorrectable            : 0\n    Remapped rows\n            Pending                       : NO\n            Remapping failure occurred    : NO\n            Max                           : 3072\n            Partial                       : 0\n            None                          : 0\n    Temperature\n        XPU Current Temp                  : 43 C\n    Power Readings\n        Enforced Power Limit              : 400.00 W\n        Power Draw                        : 98.00 W\n    Clocks\n        Cluster                           : 1450 MHz\n        CDNN                              : 1450 MHz\n    Processes                             : None\n\n",
+    "stderr": ""
+  },
+  "after_containers": {
+    "argv": [
+      "docker",
+      "ps",
+      "--format",
+      "{{.ID}} {{.Names}}"
+    ],
+    "exit_code": 0,
+    "stdout": "9cb2534f2f49 zhenghaojia-vllm-native-reranker-r04-XPUALL\nc34957566016 zhenghaojia-vllm-native-base-XPUALL\nc308ad57e8a5 xtx-dev-xpu\n335f3e6c4e18 zhenghaojia-qwen36-flagos-XPUALL\n9c4adf526808 x-model-accept-p800-b\n5c162cd1a5fa x-model-accept-p800\na627b1998c08 mwy-dev-xpu\n4b8177bb829d x-benchmark\ncadad4707c97 dengyuzhi-f09-8xpu\n45c0494db69b evalx-p800-2\n",
+    "stderr": ""
+  },
+  "kernel": {
+    "argv": [
+      "journalctl",
+      "-k",
+      "-b",
+      "--no-pager",
+      "-o",
+      "short-iso",
+      "--since",
+      "2026-11-11 18:12:18",
+      "--case-sensitive=no",
+      "--grep",
+      "reset|PCI:0000:bb:00"
+    ],
+    "exit_code": 0,
+    "stdout": "2026-11-11T18:12:18+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] reset begin ...\n2026-11-11T18:12:18+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] kill all related processes ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush dma(at most 20s), please wait ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush handle_exception_work(at most 60s), please wait ...\n2026-11-11T18:12:19+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] flush noc(at most 20s), please wait ...\n2026-11-11T18:12:20+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [XPUW] cu0_noc_main_pending(0x37), but reset anyway ...\n2026-11-11T18:12:20+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] m3 mode1 reset...(at most 10s)\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] noc_num= 4\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] cuen from hardcode: 0x0fff0fff\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] cuen= 0fff0fff, cl_disable_mask= 00000000, sd_disable_mask= 00000000\n2026-11-11T18:12:22+08:00 VM-20-14-ubuntu kernel: KLRM: (PCI:0000:bb:00): [INFO] reset done ...\n",
+    "stderr": ""
+  }
+}

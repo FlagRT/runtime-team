@@ -1,0 +1,63 @@
+{
+  "verdict": "PASS",
+  "scope": "Ascend integration",
+  "identity": {
+    "backend": "hccl",
+    "evidence_scope": "NPU integration",
+    "model_sha256": {
+      "model.py": "319ca8968ee79f233a70338991cdb0f2cdd91dcb1d61329a14d3018a14434eef",
+      "config.py": "2c5355658a94d5aee632299d5e3612685b09ceb77de27898feecabfac9fc2ded",
+      "build.py": "4651418ef428ee5e6b6be68e9119da4166ebff78547b2df8877f7bc65cb16964"
+    },
+    "prototype_revision": "3f95b09411cb6b305151444d05d9f865b163b229",
+    "torch": "2.10.0+cpu",
+    "seed": 923,
+    "dtype": "float32"
+  },
+  "runs": 9,
+  "gradient_checks_per_rank": 17,
+  "gradient_reference_max_abs": 4.190951585769653e-09,
+  "update_reference_max_abs": 3.725290298461914e-09,
+  "manual_fused_loss_max_abs": 4.76837158203125e-07,
+  "all_modes_loss_max_abs": 5.960464477539062e-07,
+  "final_rank_parameter_max_abs": 0,
+  "compared_modes": [
+    "manual",
+    "fused",
+    "observed"
+  ],
+  "gradient_calls_per_rank_per_50_steps": {
+    "manual": 850,
+    "fused": 50
+  },
+  "timing": {
+    "manual": {
+      "run_mean_step_ms": [
+        9.678084473125637,
+        9.345757495611906,
+        9.71994963940233
+      ],
+      "mean_ms": 9.581263869379958,
+      "sample_stddev_ms": 0.20502588153907952
+    },
+    "fused": {
+      "run_mean_step_ms": [
+        6.220810553058982,
+        7.288622744381428,
+        6.225229678675532
+      ],
+      "mean_ms": 6.578220992038648,
+      "sample_stddev_ms": 0.6152299321933009
+    },
+    "observed": {
+      "run_mean_step_ms": [
+        5.304338489659131,
+        5.464502512477338,
+        5.434513376094401
+      ],
+      "mean_ms": 5.401118126076956,
+      "sample_stddev_ms": 0.08514435151038237
+    }
+  },
+  "caveat": "Synthetic data; no CTR claim. Input bytes are not wire traffic. Timings include buffer broadcasts/packing; exclude data generation and post-step validation. CPU results do not establish NPU performance or FlagCX correctness."
+}

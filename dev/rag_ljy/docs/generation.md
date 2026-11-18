@@ -1,6 +1,59 @@
+## 请求级数据库选择
+
+同一个8088同时接入Milvus与Elasticsearch，模型及阶段队列共享。
+请求填写`retrieval_backend: "milvus"`或`"elasticsearch"`，两类请求可以并发；
+不填则使用`RAG_WORKFLOW_BACKEND`指定的默认库，不需要为每次选择重启容器。
+`X-Retrieval-Backend`响应头及生成响应中的`retrieval_backend`返回所选后端。
+
+```bash
+bash scripts/checks/run_priority_generation_50.sh --backend milvus --run
+bash scripts/checks/run_priority_generation_50.sh --backend elasticsearch --run
+```
+
+这是两次独立50条测试；混合4并发（两库各2条）功能检查：
+
+```bash
+docker exec -w /workspace/dev/rag_ljy rag-ljy-vllm-910c \
+  .venv/bin/python scripts/checks/check_vllm_rag_live.py --backend mixed --run
+```
+
+# 当前启动与OneRec vLLM完整接入
+
+当前8088 RAG调用die6上的8090 OneRec vLLM；die7运行8089 embedding及本地精排。
+生成不做每请求大额预留，vLLM管理KV池；两颗die独立检查85%/75%水位、5GiB余量和3秒采样年龄。
+`/health`可见`generation.execution_profile.backend=vllm`及两个`device_memory_by_stage`。
+
+已应用统一Compose入口后，启动命令：
+
+```bash
+docker start rag-ljy-vllm-910c
+docker logs -f rag-ljy-vllm-910c
+```
+
+看到`WORKFLOW=ready`表示三个服务均就绪。数据库容器须保持运行；本入口不创建或重建数据库。
+启动配置固定物理卡3的die6、die7；日志保存在`experiment_outputs/runtime/vllm_workflow/<UTC>/`。
+不要同时手动重复启动模型服务。停止容器时先排空API，再停止模型服务。
+
+真实Elasticsearch固定50条测试：
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+bash scripts/checks/run_priority_generation_50.sh --run
+```
+
+原输入`data/queries/nfcorpus-50.jsonl`，默认4并发、输出上限256、低/中/高优先级轮换，50条各发送一次。
+输出在`experiment_outputs/benchmarks/priority_generation_50/elasticsearch/<UTC>/`，
+含可读回答、原始响应/调度证据及两颗die的显存时间线。拒绝或未观测调度竞争均如实报告。
+旧独立API重启脚本不用于此受监督部署；冷启动压力实验需按统一进程生命周期单独适配。
+
+开发期间完整链路复验脚本：`scripts/checks/check_vllm_rag_live.py --run`（4条真实RAG，不冒充50条验收）。
+旧Transformers后端仍可通过`RAG_GENERATION_BACKEND=transformers`选择；当前统一启动明确设置为vllm，无自动回退。
+
+以下是实现细节和阶段性历史记录；其中早期“仅部署独立服务／尚未接入”的描述不再是当前状态。
+
 # OneRec 生成阶段
 
-更新：2026-11-11。当前实测状态及证据以根目录 [status.md](../status.md) 为准。
+更新：2026-11-18。当前实测状态及证据以根目录 [status.md](../status.md) 为准。
 
 ## 模型与设备
 
@@ -9,20 +62,26 @@
 36层、8个KV heads、head_dim 128。三个权重分片合计16,782,026,752字节（约15.63GiB）。
 宿主机路径 `/home/jliu171/jliu171_data/models/OneRec-8B`，容器内 `/mnt/onerec/OneRec-8B`。
 
-用户最后指定改试**物理NPU卡0、chip0、die0、`/dev/davinci0`**，单die容器内使用`npu:0`。
-此前物理卡7的die15已尝试，设备节点返回EBUSY；`/dev/davinci7`属于物理卡3。
-新增overlay保留原embedding/reranker模型挂载及实验输出挂载，只增加OneRec只读挂载。
+用户2026-11-18指定改用**物理NPU卡3**，当前映射chip1/die7、`/dev/davinci7`，单die容器内使用`npu:0`。
+本地`.env`已保存`RAG_NPU_DIE=7`。普通容器模式下该节点曾因另一普通容器重叠挂载而返回EBUSY。
+用户授权后，RAG overlay已改为`privileged:true`，保留其他容器运行，物理卡3的共享开关未修改。
+应用通过`ASCEND_RT_VISIBLE_DEVICES=7`与`RAG_ASCEND_PINNED_DIE=7`选择die7，
+embedding启动器保留继承的选择，`--device-index 0`和API的`npu:0`都指向物理卡3/chip1。
+CANN物理ID查询已实测确认，8089 embedding与8088 Elasticsearch＋OneRec API均已就绪。
+特权模式扩大设备访问范围，以上是应用选择，不是Docker单卡安全隔离。
+2026-11-11的真实验证使用物理卡0/die0；此前物理卡7/die15也曾因EBUSY无法使用。
+OneRec overlay保留原embedding/reranker及实验输出挂载，增加OneRec只读挂载，并配置上述特权模式和设备选择。
 从宿主机项目目录使用：
 
 ```bash
-RAG_NPU_DIE=0 docker compose --env-file .env -f ../compose.base.yml \
+RAG_NPU_DIE=7 docker compose --env-file .env -f ../compose.base.yml \
   -f docker_compose/compose.vllm.yml -f docker_compose/compose.onerec.yml \
   up -d --no-deps runtime-dev
 ```
 
 该命令会在配置改变时重建主容器。仅在已有推理任务结束后执行。
 overlay默认使用已保存运行环境镜像`rag-ljy-runtime:npu7-backup`，可用`RAG_RUNTIME_IMAGE`指定另一份已准备的运行镜像。
-镜像tag中的`npu7`只是历史命名，实际设备由`RAG_NPU_DIE`选择；设15表示物理卡7/chip1。
+镜像tag中的`npu7`只是历史命名，实际设备由`RAG_NPU_DIE`选择；7表示物理卡3/chip1，15表示物理卡7/chip1。
 原始厂商镜像不包含本地额外安装的完整环境，不能直接替换后假定依赖仍然齐全。
 
 ## 实现与接口
@@ -175,3 +234,69 @@ ES使用`--backend elasticsearch`。上述档位只是可复现输入配置，�
 `checks/onerec_generation/`、`checks/generation_integration/<backend>/`、
 `checks/measured_watermarks_generation/<backend>/`、`checks/memory_acceptance_generation/<backend>/`。
 记录输入、版本元数据、源码快照、实际显存、预算/HTTP与返回；NPU计算利用率未由这些检查测量。
+
+## OneRec独立vLLM部署（2026-11-18）
+
+当前镜像实测可运行OneRec-8B：物理NPU3/chip0/die6，进程内逻辑npu:0，
+`http://127.0.0.1:8090/v1/chat/completions`，模型名`onerec-8b`。
+无需重启Docker，启动脚本为`scripts/runtime/serve_generation_vllm.py`。
+使用BF16、eager、5120上下文、4条活跃序列、4096批处理token上限、chunked prefill、关闭prefix caching。
+vLLM显存目标比例0.55属于引擎常驻分配策略，不是每请求预留，也不是85%高水位或硬内存上限。
+启动前通过独立子进程核对device-context读数及CANN物理die，要求引擎目标分配后仍留5GiB且低于85%。
+
+**这一步仅完成独立模型服务部署。8088 RAG仍使用原Transformers生成器，尚未切到8090。**
+8088及8089仍在die7，原85%/75%准入保持不变；新8090是原生vLLM端点，
+并不自带本项目的85%/75%暂停/恢复和503策略。后续接入RAG必须加入die6独立采样与预算账本、
+适配vLLM常驻KV池，而不能继续使用die7读数或直接合并两颗die显存。
+
+现有服务运行期间不要重复启动。未来停止后，可在容器内前台启动（外层会话管理器可保持进程）：
+
+```bash
+docker exec -it -w /workspace/dev/rag_ljy rag-ljy-vllm-910c \
+  .venv/bin/python -u scripts/runtime/serve_generation_vllm.py --run
+```
+
+复验独立生成服务（1次串行＋4个并发短请求，是真实NPU生成，不是50条RAG或水位验收）：
+
+```bash
+docker exec -w /workspace/dev/rag_ljy rag-ljy-vllm-910c \
+  .venv/bin/python -u scripts/checks/check_onerec_vllm_live.py --run
+```
+
+启动日志：`experiment_outputs/checks/onerec_vllm_start/20261118T074132Z/engine.log`。
+模型/配置及设备预检：`experiment_outputs/checks/onerec_vllm/20261118T074140.217362Z/launch.json`。
+5/5生成请求通过：`experiment_outputs/checks/onerec_vllm_smoke/20261118T074224.796969Z/`，
+含原始请求响应、可读回答及设备/服务健康快照；不作为语义质量或优先级验证通过的证据。
+
+### 随容器自动启动OneRec vLLM
+
+`docker_compose/compose.onerec.yml`现已将容器默认命令改为
+`serve_generation_vllm.py --physical-die ${RAG_GENERATION_DIE:-6} --run`，
+保留镜像原CANN/ATB初始化入口，启用init进程及8090健康检查。
+Compose配置校验通过；目前只改了文件，没有重建正在运行的容器。
+
+现有容器需应用配置一次：
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+docker compose --env-file .env \
+  -f ../compose.base.yml \
+  -f docker_compose/compose.vllm.yml \
+  -f docker_compose/compose.onerec.yml \
+  up -d --no-deps --force-recreate runtime-dev
+```
+
+**重建会终止该容器中的现有8088、8089、8090进程；新入口只自动启动8090 OneRec，
+embedding和RAG API暂未纳入自动启动。** 现有挂载模型、数据、实验输出保持原路径。
+此后`docker stop rag-ljy-vllm-910c`再`docker start rag-ljy-vllm-910c`会自动加载OneRec。
+这不等于主机开机自启：restart策略仍为no。可用`docker logs -f rag-ljy-vllm-910c`查看模型加载日志。
+若未先应用Compose配置，旧容器的docker start仍只启动原bash入口。
+
+
+### 移除生成入口预留（2026-11-18）
+
+入口估算及精排批量规划不再附加按4096输入上限计算的生成预算，
+返回`generation.reserved_mib=0`明确表示“不预留”，不表示实际显存需求为0。
+embedding/精排预算及85%/75%和5GiB检查保持不变。
+独立vLLM服务继续自行管理KV缓存和生成调度；旧Transformers实际执行检查保留。
+这项修改不自动将8088路由到8090，不应当作双die准入接入已完成。

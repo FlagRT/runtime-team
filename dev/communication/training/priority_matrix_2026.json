@@ -1,0 +1,17 @@
+{
+  "scope": "Nine yellow rows of the team TOP5 screenshot; training and communication only; inference acceptance does not transfer",
+  "platforms": ["Ascend 910C", "Kunlun P800", "T-Head PPU"],
+  "waves": [
+    {"window": "This week", "models": ["DIN", "DeepFM", "DSSM"], "exit": "DeepFM control; DIN/DSSM synthetic DP correctness with an independent global-batch reference"},
+    {"window": "November wave 2", "models": ["DCN-Mix", "SASRec"], "exit": "Multi-expert cross and sequence training entrypoints; reference and dual-rank traces"},
+    {"window": "November / early December", "models": ["LightGCN", "BAAI/bge-m3"], "exit": "Agree graph split and embedding fine-tuning recipes; pin data and model versions"},
+    {"window": "December wave 1", "models": ["openai/clip-vit-large-patch14", "Qwen/Qwen3-Reranker-8B"], "exit": "Confirm image-text contrastive and reranking objectives; qualify memory and communication separately"},
+    {"window": "December acceptance", "models": "All nine", "exit": "Model × vendor matrix with backend, inputs, steps, loss/gradient/parameter checks, timeout, device availability, and explicit blocked entries"}
+  ],
+  "rules": [
+    "Keep 27 model/vendor cells distinct; smoke, functional acceptance, and real-data quality are separate.",
+    "Start with two cards on one host, never interpret split single-card allocation as a same-host pair.",
+    "DeepFM's 1111 evidence is historical and serves only as a baseline, unless re-run.",
+    "Qwen3-Embedding-0.6B and OneRec are not among the highlighted nine."
+  ]
+}
