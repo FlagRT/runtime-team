@@ -87,7 +87,7 @@ rules:
     镜像与大文件落 /srv（11T），勿写系统盘。
   - |
     基座镜像入锁门槛（沿用既有口径）：任何镜像进入本文件 lock: 前，
-    dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
+    dev/images/<name>/v<N>/ 必须存在且含 image.baseline.yaml（repro_status 见 dev/images/image_list.md ≥ 🟡）；
     上游发布的镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
     统一基座的确定/调整/发布由总组裁定；各方向只消费不自建，诉求写进本方向
     STATUS.md 由总组收拢。
@@ -129,7 +129,7 @@ changelog:
       Harbor digest 锚）；设备注册（档位由宿主驱动决定、无带卡容器独占、cnmon 选卡、
       MLU_VISIBLE_DEVICES 重编号、18 设备节点、宿主无 neuware）按寒武纪实情分叉，
       不照抄昇腾/昆仑芯/PPU；已知限制 C-1~C-5 各带删除条件。依据文件：
-      dev/images/cambricon-mlu-runtime/v1/{lock.yaml,image.baseline.yaml,README.md}、
+      dev/images/cambricon-mlu-runtime/v1/{image.baseline.yaml,README.md}、
       dev/images/cambricon-mlu-runtime/v1/demo/。
   - date: "2026-10-24"
     who: "总组"

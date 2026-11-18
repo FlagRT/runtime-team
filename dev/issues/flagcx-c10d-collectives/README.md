@@ -58,7 +58,7 @@
 - **连带现象**：未同步的调用若在执行中途其张量被释放，迟到的写入会落到复用该内存的后续张量上
   （测试早期版本中观察到 `broadcast` 源 rank 的张量被上一次调用的数据覆盖）。
 - 退出期另有已知的 `free(): invalid pointer` SIGABRT（低优先级，结果已在退出前输出，不影响判定；
-  见 [`ascend-train-comm/v3/lock.yaml`](../../images/ascend-train-comm/v3/lock.yaml) known_issues `teardown-sigabrt`）。
+  见 [`ascend-train-comm/v3/README.md`](../../images/ascend-train-comm/v3/README.md) 已知限制表 `teardown-sigabrt`）。
 
 ### 版本集合（分版表态）
 

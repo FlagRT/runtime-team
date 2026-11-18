@@ -20,11 +20,11 @@
 
 ## 相比 v1 的改进
 
-见 `lock.yaml` 的 `improvement_over_v1` 字段：FlagCX 层改用公开 commit
+见本文件改进记录：FlagCX 层改用公开 commit
 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`（`FlagRT/FlagCX` 组织仓公开主干，
 同步自 `flagos-ai/FlagCX` 公开上游），`USE_ASCEND=1 pip install .
 --no-build-isolation` 直接从干净 checkout 端到端构建。相比 v1 依赖的 owner
-私有 commit `55eb2ffff698…` + 2 个私有 patch（`lock.yaml:gaps`，需回收已装包
+私有 commit `55eb2ffff698…` + 2 个私有 patch（历史 gaps 记录见 git 历史，需回收已装包
 vendor），v2 **没有 gaps 段**——这是真正可从零复现的训练腿通信层。
 
 ## 验证（2026-09-12 实测，真机 2 卡）
@@ -65,7 +65,7 @@ double-free 类问题。
 JSON 结果，`dev/communication/probes/communication_correctness.py` 本身也是先
 写结果文件再退出——两者都不会让这个已知问题掩盖真实的通信正确性结果。**批处理式
 短生命周期任务不能依赖进程退出码判断成功与否，需检查落盘/打印的结果本身。**
-详见 `lock.yaml:known_issues`，跟进见 `dev/images/TODO.md`。
+详见发版说明限制清单与 `dev/images/TODO.md`。
 
 ## 另一个真机实测发现：triton "2 active drivers" 冲突（已在 v2 basefix，非本层）
 

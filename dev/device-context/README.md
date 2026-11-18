@@ -15,7 +15,7 @@
 > 当前快照：**四实例接入完成 + 第五家（壁仞 BR_0）接入中**（910C / P800 / MLU590 / PPU；BR_0 已过 conformance 13+6 与多流 8/8，训推两腿本轮不做）·
 > 共享层四处改动三实例复跑零回归（10-26/27）· 两腿 `DC_MODEL` 口径统一（10-27，P800/MLU 复验 9/0）·
 > **thead-ppu-runtime v2 已由总组裁定生效（ADR-0011，10-29）** · memory 下游建议已落地（11-03，embed 默认 gmu 0.4）。
-> 基座依据：**只消费总组定稿**（`dev/stack.lock.910c.v1–v4.yaml` · `dev/images/**/lock.yaml`）；
+> 基座依据：**只消费总组定稿**（`dev/stack.lock.910c.v1–v4.yaml` · `dev/images/**/image.baseline.yaml`）；
 > 本方向原「工作草稿」`dev/stack.lock.910c.yaml` 已于 **2026-10-16 清理**（纪律：草稿不随 `dev-1.0` 走），
 > 新实测约束改由 `STATUS.md` 的「基座与约束 / 阻塞与需要协调的事项」登记，交总组收拢并入其定稿
 >

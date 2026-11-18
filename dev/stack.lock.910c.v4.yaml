@@ -37,7 +37,7 @@ device_registration:
     训练腿：torch_npu autoload 抢注 PrivateUse1="npu"，集合通信走 FlagCX 注册的原生
     "flagcx" c10d 后端；torch_fl 在镜像内为 opt-in（须显式 TORCH_DEVICE_BACKEND_AUTOLOAD=0
     且在 torch_npu 抢注之前手动 import torch_fl），见
-    dev/images/ascend-operator-runtime/v3/lock.yaml 的 torch_npu_default_finding。
+    dev/images/ascend-operator-runtime/v3/README.md「torch_npu 默认发现行为」节。
     推理腿：官方镜像自带 torch_npu，通信后端为原生 hccl。
 
 # ---------------------------------------------------------------
@@ -72,7 +72,7 @@ candidates:
       dev/images/ascend-train-comm/v2，父层 ascend-operator-runtime/v2）：2026-09-12
       登记的候选新血统（真机 2 卡通信 40/40 通过），已由 v3 完整镜像取代
       （superseded），不再作为切换候选。三条血统（v1/v2/v3）目录并存归档、各自
-      lock.yaml 均 superseded_by: null，索引见 dev/images/image_list.md 版本索引。
+      无取代关系（并存归档），索引见 dev/images/image_list.md 版本索引。
 
 # ---------------------------------------------------------------
 # vllm-plugin-FL 在 910C 的状态（挂起）
@@ -130,7 +130,7 @@ rules:
   - "起容器前自查：本机无其他带卡容器（有则与占用方共用容器或约时间）、镜像与本文件一致（含 registry_status）、容器名符合规范、卡资源空闲"
   - "合入把关五条：镜像与 stack.lock 一致 ｜ 容器/分支命名合规 ｜ 接口约定章节完稿且下游确认 ｜ 能跑自己那段 demo ｜ 无环境分叉"
   - |
-    基座镜像入锁门槛：任何镜像进入本文件 lock: 前，dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，
+    基座镜像入锁门槛：任何镜像进入本文件 lock: 前，dev/images/<name>/v<N>/ 必须存在且含 image.baseline.yaml，
     repro_status ≥ 🟡（配方在手；组内镜像不涉及 registry，看能否凭仓内 Dockerfile.repro+assets 重建）；
     上游发布的镜像（华为昇腾官方 / 社区）可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
     统一基座的确定/调整/发布由总组裁定（依据各子方向 STATUS.md 暴露的问题与意见）；各方向只消费不自建
@@ -231,8 +231,8 @@ changelog:
       历史血统 superseded 注记（v1/v2，不列 v3 自己）；「带卡容器并发上限 3」规则原文
       照抄并追加待核注记（EBUSY / -8020 两种现象，由总组核实后更新）。4 条已知限制
       （A-1~A-4）不在本文件抄录，指针：docs/基座发版说明-20261014.md。依据文件：
-      dev/images/ascend-train-comm/v3/lock.yaml、image.baseline.yaml、ARCHIVE.md，
-      dev/images/ascend-operator-runtime/v3/lock.yaml，docs/基座发版说明-20261014.md。
+      dev/images/ascend-train-comm/v3/image.baseline.yaml、REBUILD.md、ARCHIVE.md，
+      dev/images/ascend-operator-runtime/v3/image.baseline.yaml 与 REBUILD.md，docs/基座发版说明-20261014.md。
   - date: "2026-10-14"
     who: "总组"
     what: |

@@ -152,7 +152,7 @@ commit 可用 `commit_source: in-image-git` 的口径取自镜像内 `.git`（�
 **但首选是不产生第二份**：基座已带着某个组件、且版本正是本组要的，就直接用它，不要再固化
 一遍同一 commit。重复声明同一事实会制造「哪份生效」的歧义，`supersedes` 只是把歧义记录下来，
 并没有消除它。昆仑芯 v2 原先 `COPY` 固化了与基座同 commit 的 `FlagGems`，正是按这条口径
-去掉的（见 [`images/kunlun-operator-runtime/v2/lock.yaml`](images/kunlun-operator-runtime/v2/lock.yaml)
+去掉的（见 [`images/kunlun-operator-runtime/v2/README.md`](images/kunlun-operator-runtime/v2/README.md)
 `changelog` 2026-10-11）；`supersedes` 留给确有覆盖必要的场景（本组需要的版本与基座不同）。
 基座版本不是本组要的、又只需在运行实例里临时改动时，用 §2.2 的挂载覆盖，不要改镜像。
 
@@ -439,7 +439,7 @@ dist 版本（经模式 3 的 `PYTHON_BIN` 读出）须同时相等，三方不�
 - **load 修改宿主 repo 状态**：共享机器上可能影响同一 checkout 的其他使用者，运行环境目录宜在
   个人 checkout 上使用。
 - **昇腾** `ascend-operator-runtime` / `ascend-train-comm` 的 v1/v2 没有 commit 标签，不纳入本机制；这是那两个具体目录的事实，不是「凡 v1/v2 都排除」。能提供版本锚的旧版本照样可纳入——例如 `kunlun-operator-runtime/v1` 带 `io.flagrt.flag_gems.commit`，
-  但它的归档镜像与配方不一致（见该目录 `lock.yaml` known_issues: `v1-image-is-docker-commit-not-build`），接入工作放在 v2。
+  但它的归档镜像与配方不一致（见 `docs/裁定备忘-20261014-总组.md` 与 `images/image_list.md` 昆仑芯节），接入工作放在 v2。
 
 ## 7. 常用流程
 
@@ -465,7 +465,7 @@ python3 dev/lib/baseline.py list
 ## 8. 与其他文档的关系
 
 - [`../docs/运行时基座-使用与维护指南.md`](../docs/运行时基座-使用与维护指南.md)：面向维护者与使用者的流程入口（发布新镜像、接入新芯片、分支开发与固化）。
-- [`images/README.md`](images/README.md) 与各 `lock.yaml`：`lock.yaml` 记录构建过程、已知问题与验证结果；
+- [`images/README.md`](images/README.md) 与各 `REBUILD.md`：构建过程与验证结果记 `REBUILD.md`，已知问题记镜像目录 README（或发版说明限制清单）；
   版本事实以 `image.baseline.yaml` 为准。
 - [`../VERSIONS.md`](../VERSIONS.md)：指向镜像基线与 demo 目录，不重复版本号。
 - `dev/stack.lock.910c.*.yaml`：锁定声明，本机制不修改。

@@ -54,7 +54,7 @@
 > v3 是**训练腿发布物**（🟡；已知限制 A-2~A-4，其中 A-2 按运行环境版本分述：现行 env/v2 挂载覆盖含修复的 FlagCX 后不命中），现行运行环境
 > [`ascend-train-comm/v3/env/v2/`](ascend-train-comm/v3/env/v2/docker-compose.yml)（env/v1 为第 1 版、demo/ 为冻结的第 0 版验收记录）；两条 v3 的 🟡 成因与升 🟢
 > 条件见各自 README 的「已知限制」，待修缺陷的 case 包见 [`../issues/`](../issues/README.md)。
-> 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见各 `lock.yaml`。
+> 跨机 image id 不同属预期（内容同源）：npu1-27 侧为 `be30a952c2eb` / `7028028bb62c`，见 `stack.lock.910c.v4.yaml` 与各目录 REBUILD.md。
 
 **`ascend-infer-vllm` 系列**（华为昇腾官方一体镜像，非本组构建）
 
@@ -75,7 +75,7 @@
 
 **BAAI·FlagTree 官方指南**：FlagTree xpu 用户手册 <https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-xpu>
 （线号 xpu3.6，无多线分叉）。本条目显式 pin 在 `flagtree 0.6.1+xpu3.6`，不跟随手册当前最新版本——
-memory、device-context 两个子方向已各自验证该组合可用，理由与实测证据见该版本 `lock.yaml`。
+memory、device-context 两个子方向已各自验证该组合可用，理由与实测证据见该版本 REBUILD.md。
 
 ## 版本索引
 
@@ -89,7 +89,7 @@ memory、device-context 两个子方向已各自验证该组合可用，理由�
 > v1 2026-10-11 由 🟢 降为 🟡：归档镜像经查实是 `docker commit` 产物，不是其
 > `Dockerfile.repro` 的构建产物，🟢 的定义（README §5）不成立；镜像本身可用，其运行时
 > 验证结论（771 passed、训练 6/6、推理 PASSED）仍然成立。证据与影响见
-> `kunlun-operator-runtime/v1/lock.yaml` 的 `known_issues: v1-image-is-docker-commit-not-build`。
+> 依据见 `docs/裁定备忘-20261014-总组.md`。
 > v2 用修正后的配方走正规 `docker build` 重建，组件集合与 pin 与 v1 完全相同，**从零重建用 v2**。
 > v1 未接入环境基线机制（无 `image.baseline.yaml` 与 demo 运行环境目录）；v2 已接入
 > （`kunlun-operator-runtime/v2/image.baseline.yaml` + `kunlun-operator-runtime/v2/demo/`）。
@@ -165,7 +165,7 @@ flagtree 线号理解。
 > 做到「拉起镜像即可服务化」。派生层**只做加法**：不升级/降级基座任何包、不装本组运行时。
 >
 > 分发：本机构建、**未 push**（`RepoDigests` 为空）⇒ 走离线包（[`thead-ppu-runtime/v2/ARCHIVE.md`](thead-ppu-runtime/v2/ARCHIVE.md)）
-> + 仓内配方重建，与训练腿镜像同口径。跨机 image id 不同属预期，版本锚 = `lock.yaml` 的 `image_id` + wheel sha256。
+> + 仓内配方重建，与训练腿镜像同口径。跨机 image id 不同属预期，版本锚 = `image.baseline.yaml` 的 `image.id` + wheel sha256。
 > 离线包实测：17.15 GiB · sha256 `6ab0dfb9…` · `pigz -t` rc=0 · `docker load` 回读 image id 与发布物逐字相同。
 >
 > 流程状态：**v2 为现行生效版本**（2026-10-29 总组裁定切生效，指挥台 ADR-0011；
@@ -199,7 +199,7 @@ flagtree 线号理解。
 > 已接入基线机制（推理腿为登记式，ADR-0007）。
 > 三条自建血统 v1/v2/v3 并存归档，v1/v2 供历史结论追溯。`kunlun-operator-runtime v1` 已
 > `superseded_by: v2`，**不得用于从零重建**（其归档镜像是 `docker commit` 产物，见该目录
-> `lock.yaml` known_issues）。
+> `docs/裁定备忘-20261014-总组.md`）。
 > 分发方式：组内镜像（训练腿）无 registry 要求，走离线包与仓内配方重建；推理腿为公开
 > registry 官方镜像，按 digest 拉取。
 

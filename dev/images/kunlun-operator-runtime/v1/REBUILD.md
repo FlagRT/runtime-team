@@ -87,7 +87,7 @@ docker run --net=host --privileged \
 ```
 
 **不要设置 `XPU_EVENT_KL3_ENABLE=1`**——单卡单进程场景下实测会挂死（见
-`lock.yaml known_issues: xpu-event-kl3-enable-hang`）。设备 API 走
+发版说明 K-3）。设备 API 走
 `torch.cuda`，不是 `torch.xpu`（xpu 用户手册约定，本机复核一致）。
 
 验证命令（复用 FlagGems 自带测试，基座 `/env/FlagGems/tests`）：
@@ -121,7 +121,7 @@ Fatal Python error: Aborted
 ```
 完整 traceback 见 `assets/provenance/verify-test_accuracy_mm-SIGABRT-traceback.txt`。
 这是本 pin 组合下的确定性崩溃（非偶发），与 memory 子方向此前在同 triton
-3.6.0 线上的独立实测记录一致，详见 `lock.yaml known_issues: gemm-compile-sigabrt`。
+3.6.0 线上的独立实测记录一致，详见 `dev/issues/kunlunxin-gemm-triton-compile/` 与本节记录。
 
 ### 训练 / 推理端到端 smoke
 
@@ -130,14 +130,12 @@ Fatal Python error: Aborted
 （`DC_BACKEND=kunlun`、`FLAGCX_ADAPTOR=klx`、`dist_backend=cpu:gloo,cuda:flagcx`），
 模型 Qwen3-Embedding-0.6B，`MAX_STEPS=20`，不设 `XPU_EVENT_KL3_ENABLE`。
 `TRAIN_LEG_PASS 6/6`，loss 15.4488→11.2841（20 步），1713.1 tok/s（两卡合计）。
-详见 `lock.yaml repro_result.e2e_smoke_training`。
+详见本文件验证记录。
 
 **推理**（单卡，卡 7）：`vllm serve` + `--runner pooling --convert embed`，
 模型同上，**须设 `VLLM_FL_PREFER=vendor`**（默认 dispatch 下 `index_select`
-经 FlagGems 路径触发 `CUDA error: invalid device function`，见 `lock.yaml
-known_issues: flagos-index-select-invalid-device-function`）。设置后服务正常
-启动，`/v1/embeddings` 请求成功返回 1024 维向量。详见 `lock.yaml
-repro_result.e2e_smoke_inference`。
+经 FlagGems 路径触发 `CUDA error: invalid device function`，对应发版说明限制清单 K-2）。设置后服务正常
+启动，`/v1/embeddings` 请求成功返回 1024 维向量。详见本文件验证记录。
 
 ## GPU/机器纪律
 

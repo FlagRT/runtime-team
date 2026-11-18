@@ -64,6 +64,6 @@ PTG_0 本机已有该镜像真身（5 个 FlagTree 工作负载容器共用，�
 changelog:
 2026-10-15 —— 首次登记（登记式基线，ADR-0007 同款流程）：BAAI·FlagTree 官方 PPU 基座镜像，
 digest 锁定；新增 image.baseline.yaml（manual-registration）+ demo/ 运行环境 +
-lock.yaml。PPU 后端接入证据（conformance 13/13 等）由 device-context 方向自行
+image_list.md 归档表。PPU 后端接入证据（conformance 13/13 等）由 device-context 方向自行
 维护与合入，本目录只登记镜像基座。
 -->

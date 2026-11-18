@@ -24,7 +24,7 @@ BAAI·FlagTree 官方公开资源,不是 FlagRT 私有资产,构建期只读、�
 | FlagTree 源码(triton_v3.5.x) | `Dockerfile.repro` 构建期从 `https://github.com/flagos-ai/FlagTree.git`(上游)`git fetch --depth 1` 到 pinned commit,未入库 |
 | 基座镜像 | `harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2`(本机已存在;BAAI·FlagTree 官方公开 harbor + 官方离线包镜像) |
 
-## 与 v1 的区别(见 lock.yaml 逐层 diff)
+## 与 v1 的区别(逐层 diff 见两版 image.baseline.yaml 的 baked_repos 对照)
 
 1. **基座**:BAAI·FlagTree 官方预构建镜像,取代 BAAI 内部手工构建的
    `pytorch-plugin-fl:manual-20260807-ascend-dev`。这是本血统相对 v1 的核心

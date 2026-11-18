@@ -71,7 +71,7 @@ dev/lib/up.sh dev/images/thead-ppu-runtime/v2/env/v1 --strict      # 起容器�
 
 | 环节 | 状态 | 落在哪 |
 |---|---|---|
-| 入档门槛（README §5：`lock.yaml` 在 + `repro_status` ≥ 🟡） | ✅ 满足 | [`lock.yaml`](lock.yaml) `repro_status: 🟢 functional-repro` |
+| 入档门槛（README §5：image.baseline.yaml 在 + image_list.md repro_status ≥ 🟡） | ✅ 满足 | image_list.md 归档表 `🟢 functional-repro` |
 | 镜像基线（版本事实唯一来源） | ✅ | [`image.baseline.yaml`](image.baseline.yaml)（ADR-0007 登记式，`check` PASS） |
 | 运行环境（ADR-0008 双版本轴） | ✅ | [`env/v1/`](env/v1/)（镜像 v2 → 环境 v1） |
 | 离线归档 | ✅ 已产出并三重核验 | [`ARCHIVE.md`](ARCHIVE.md)（17.15 GiB · sha256 `6ab0dfb9…` · `load` 回读 id 一致） |

@@ -81,7 +81,7 @@ rules:
     /data 99%（勿写入），docker 与大文件落 /bmcp_lvm_fs（11T，剩 628G）。
   - |
     基座镜像入锁门槛（沿用既有口径）：任何镜像进入本文件 lock: 前，
-    dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
+    dev/images/<name>/v<N>/ 必须存在且含 image.baseline.yaml（repro_status 见 dev/images/image_list.md ≥ 🟡）；
     上游发布的镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
     统一基座的确定/调整/发布由总组裁定；各方向只消费不自建，诉求写进本方向
     STATUS.md 由总组收拢。
@@ -95,7 +95,7 @@ known_issues: []
 # 在其目录内跟踪；属运行时层职责外的平台事实，不入本清单。
 # 镜像使用注意（pip show triton 无输出 ⇒ 勿用 pip show 判装没装；flagtree.__version__ 自报
 # 3.6.0 跟随 triton 线号 ⇒ 版本锚一律用 wheel 文件名/dist-info + sha256；image.baseline 为
-# ADR-0007 登记式）登记于 dev/images/thead-ppu-runtime/v2/lock.yaml 的 known_issues 与 gaps。
+# ADR-0007 登记式）登记于该目录 README 与 REBUILD.md。
 
 # ---------------------------------------------------------------
 # 变更记录
@@ -126,5 +126,5 @@ changelog:
       thead-ppu-runtime v1（BAAI·FlagTree 官方基座镜像，登记式基线 ADR-0007，
       Harbor digest 锚）；设备注册（无带卡容器独占、ppu-smi 选卡、CUDA_VISIBLE_DEVICES
       重编号、两条启动坑）按 PPU 实情分叉，不照抄昇腾/昆仑芯。依据文件：
-      dev/images/thead-ppu-runtime/v1/{lock.yaml,image.baseline.yaml,README.md}、
+      dev/images/thead-ppu-runtime/v1/{image.baseline.yaml,README.md}、
       dev/images/thead-ppu-runtime/v1/demo/。

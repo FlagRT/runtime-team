@@ -4,7 +4,7 @@
 
 > 只记录"怎么走到今天这个状态"的过程性叙述（尝试了什么、为什么换路线、round 之间的
 > 因果关系、STOP CONDITION 的发现与处理）。**当前状态的事实性结论**见 `image_list.md`
-> （索引，含层级视图）与各 `<name>/vN/lock.yaml`（权威，逐层 pin + changelog）。
+> （索引，含层级视图）与各 `<name>/vN/REBUILD.md`（构建过程与验证记录；版本事实以 image.baseline.yaml 为准）。
 > 本文件按芯片 → 版本线 → round 组织，是跨系列（`ascend-operator-runtime` +
 > `ascend-train-comm` 等）的综合叙述，只做跨系列的因果串联——单个系列自己的完整技术细节
 > 仍以其自己的 `REBUILD.md` 为准。
@@ -32,7 +32,7 @@ pip 装上游 `triton==3.5.0` 官方 wheel + **华为昇腾官方** `triton-asce
 （取代 pip 装 wheel 组合）。实测 `triton.__version__ == 3.5.1`（手册版本线表格暗示
 3.5.0，按实测记录，未采信假设）。FlagCX 层改用 `FlagRT/FlagCX` 组织仓公开主干 tip
 commit `4e0e0cbcbf721169ca82348080f8353aebfe2c31`，**不再依赖任何 owner 私有
-commit/patch**，`lock.yaml` 不再有 `gaps` 段。
+commit/patch**。
 
 **关键实测结论（后续 v3 的设计依据）**：torch_fl 与 torch_npu 的冲突是**进程内
 import 顺序**约束，不是"能否共装"的约束——先 `torch_fl` 后 `torch_npu`：安全；反过来
@@ -162,7 +162,7 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
 
 - **决策①（吸收 FlagCX sync 修复）**：不切换 FlagRT 私有 fork，改为在上游 pin
   `8b059122e` 之上叠加**显式声明的覆盖层补丁**——`5d545c9` 的 format-patch
-  原样导出入档 `assets/patches/vllm-plugin-FL/`（sha256 记入 lock.yaml），
+  原样导出入档 `assets/patches/vllm-plugin-FL/`（sha256 记入 REBUILD.md），
   实测干净套用零冲突（上游 tip 领先 fork 基点 19 提交，但均未触碰补丁涉及的
   两个文件）；Dockerfile.repro 加 `git apply --check`（fail-closed）。补丁有
   保质期：上游合入后整层删除。upstream-first 并行启动（PR 草稿见决策备忘录

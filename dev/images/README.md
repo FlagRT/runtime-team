@@ -55,7 +55,7 @@
 ```
 dev/images/
   README.md                  # 本文件：导航入口 + 规范
-  image_list.md              # 全量历史版本归档（追加式）：所有归档镜像的 tag / repro_status / 目录链接（层级构成见各 lock.yaml 的 layers）
+  image_list.md              # 全量历史版本归档（追加式）：所有归档镜像的 tag / repro_status / 目录链接
   USAGE_MATRIX.md            # 现行环境 × 代码仓一页矩阵（锚点 1；随换锁刷新）
   RELEASE_INDEX.yaml         # 现行环境机读索引（锚点 2；release_index.py 生成，禁手改）
   PROCESS.md                 # 过程记录：候选血统怎么走到今天这个状态（round 叙述、STOP CONDITION）——历史参考
@@ -68,7 +68,6 @@ dev/images/
       Dockerfile.repro       # 已实机验证可重建的配方（功能等价）
       build.sh               # 一键重建 + 校验
       image.baseline.yaml    # 镜像基线：固化资产与版本（baseline.py export 生成，版本事实以此为准）
-      lock.yaml              # 血统 + 官方/自定义边界 + 构建历史 + 已知问题 + 重建验证结果
       REBUILD.md             # 重建步骤、踩坑、验证方法
       ARCHIVE.md             # 离线归档清单（tar 名 / 大小 / sha256 / 内容 / docker load 用法）— 机器无关，追踪
       BACKUP.local           # 本机归档实体的绝对路径 + 最近校验日期 — 机器相关，不追踪
@@ -77,18 +76,18 @@ dev/images/
       env/v1/                # 现行推荐运行环境：缺陷修复与用法变更只新增下一版（ADR-0008）
 ```
 
-版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准，`lock.yaml` 不再重复填写；
+版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准；构建过程与验证记录见 `REBUILD.md`；
 机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。运行环境目录放在镜像血统的版本目录下：`demo/` 为该版本验收时的
 冻结记录，目录内最高版 `env/v<N>/` 为现行推荐（如 `ascend-train-comm/v3/`），由 `image.baseline.yaml` 的 `image.env_current` 指向。
 
-上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `lock.yaml` + `ARCHIVE.md`，无 Dockerfile。
+上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `README.md` + `image.baseline.yaml`（登记式）+ `ARCHIVE.md`，无 Dockerfile。
 
 ### 4.3 命名与版本化
 
 - `<name>` = 稳定短名，同一血统的所有版本归其下。
 - `v<N>/` 目录不可变，对应一个镜像 tag。当前生效版本见 §1 两锚点。
-- 镜像有变更 → 新建 `v<N+1>/`，旧目录保留，旧 `lock.yaml` 顶部加 `superseded_by: v<N+1>`。
-- 不影响已产出制品的措辞修正，直接改当前目录并记 `lock.yaml` changelog。
+- 镜像有变更 → 新建 `v<N+1>/`，旧目录保留，旧目录 README 头部标注「被 `v<N+1>` 取代」。
+- 不影响已产出制品的措辞修正，直接改当前目录并记 README changelog。
 
 （与 `docs/` 阶段目标文档 §8 的文档版本化规则一致。）
 
@@ -105,7 +104,7 @@ dev/images/
 
 #### origin 标注
 
-`lock.yaml` 的 `layers:` 逐项标 `origin`，供重建时判断"跟随上游"还是"需按 pin 重现"：
+`image.baseline.yaml` 的 `baked_repos` 逐项带 `from`（血统来源），供重建时判断"跟随上游"还是"需按 pin 重现"：
 
 | origin | 含义 | pin 方式 |
 |---|---|---|
@@ -118,7 +117,7 @@ dev/images/
 
 一个镜像被本目录归档，其 `v<N>/` 须满足：
 
-1. 有 `lock.yaml`（血统 + 官方/自定义边界）；自建镜像另有 `image.baseline.yaml`（v1/v2 缺 commit 标签，除外）；
+1. 有 `image.baseline.yaml`（版本事实与血统来源 `baked_repos.from`；v1/v2 缺 commit 标签，除外）；
 2. `repro_status` ≥ 🟡；
 3. 上游发布的镜像（华为昇腾官方 / 社区）可无 Dockerfile，但须记可拉取 digest + 上游来源。
 

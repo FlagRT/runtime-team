@@ -102,7 +102,7 @@ grep -rniE "adaptor|hccl|flagos|torch_npu" /opt/flagrt/src/FlagCX/setup.py \
   /opt/flagrt/src/FlagCX/CMakeLists.txt 2>/dev/null
 ```
 
-确认是否存在遗漏的构建期开关；若发现有，需回来修正本文件与 `lock.yaml` 的
+确认是否存在遗漏的构建期开关；若发现有，需回来修正本文件的
 `flagcx_adaptor_terminology` 段落。
 
 ### 2. `FLAGCX_TORCH_BACKEND` 这个 ENV 是否被 FlagCX 包本身实际读取
@@ -118,7 +118,7 @@ v2 的 Dockerfile 设置了 `FLAGCX_TORCH_BACKEND=flagos`，但本组现有代�
 
 ### 3. `train_qwen_1_5b_npu.py` 不显式 `import flagcx` 但 `proto_train_leg.py`（昆仑芯路径）显式 import
 
-见 `lock.yaml` 的 `flagcx_adaptor_terminology` 段落最后一节。两份代码对"是否
+见本文件附录 A「flagcx 适配层术语考据」末节。两份代码对"是否
 需要显式 `import flagcx` 才能让 `backend="flagcx"` / `"cuda:flagcx"` 被
 `dist.init_process_group` 识别"做法不一致，本阶段无法判断是芯片差异
 （910C vs 昆仑芯 P800）、安装方式差异（本组 `pip install .` vs
@@ -129,7 +129,7 @@ phase 2 应实测确认去掉这行是否仍然成功（如果成功，说明确
 
 ### 4. 退出期 SIGABRT 已知问题是否在 v3 默认路径下复现
 
-见 `lock.yaml:known_issues`。v2 记录的退出期 `free(): invalid pointer`
+（v2 记录的退出期 `free(): invalid pointer`
 SIGABRT 被隔离认定为"FlagCX 与 Torch-FL 清理顺序冲突"；v3 默认路径完全不
 import torch_fl，理论上可能不复现，`train_qwen_1_5b_npu.py` 的既有验证记录
 （不同分支：`kistich/ascend-dev1.0`）也显示"进程干净退出"，是支持性的间接
@@ -163,7 +163,7 @@ round 1（容器 `v3-validate-train-910c`，2 卡 `--device=/dev/davinci0,1`，
 | `verify_flagcx_runtime.py --device`（torch_npu + backend="flagcx"，真机 2 卡） | **通过**：两个 rank 均 `device_all_reduce_ok: true`，`device_backend_str: "flagcx"`，`torch_npu_default_check: "passed (PrivateUse1='npu' with no special import order)"`。退出期复现 v2 已知的 `free(): invalid pointer` SIGABRT（见下方，结果已在 teardown 前打印，不影响判定） |
 | `verify_flagcx_p2p.py`（同上路径） | **通过**：两个 rank 全部 4 组 payload（1/4/257/65536 elements）sha256 校验一致，`status: "passed"`，`inner_backend: "name=flagcx,_get_backend_name=flagcx"` 确认走的是 FlagCX 自己注册的原生 c10d 后端而非 Torch-FL 的 flagos 包装层。退出期同样复现 SIGABRT（同上，不影响判定） |
 | `dev/communication/probes/communication_correctness.py` | **未执行**——训练脚本本身（`train_qwen_1_5b_npu.py`）在 DDP 构造阶段就已失败（见下方 STOP CONDITION），已确认根因是 `flagcx` backend 的 `broadcast`/`all_gather`（而非 `all_reduce`/P2P）返回错误结果；既然已经用更直接的诊断脚本精确定位到问题，判断再跑一遍这个更大的探针脚本不会产出新信息，故未重复执行，优先把时间留给记录与报告 |
-| 退出期 SIGABRT 是否复现（开放问题 4） | **复现**——v3 默认路径（不 import torch_fl）下 `verify_flagcx_runtime.py --device` 与 `verify_flagcx_p2p.py` 均在成功完成通信后于进程退出阶段报 `free(): invalid pointer` SIGABRT。这推翻了 lock.yaml 里"因为不装 torch_fl 所以可能不复现"的推测——根因显然不是"FlagCX 与 Torch-FL 的清理顺序冲突"（v3 默认路径完全不碰 torch_fl），必须是 FlagCX 自身的退出期清理逻辑问题，或 FlagCX 与 torch_npu（而非 torch_fl）的清理顺序冲突。两个 verify 脚本已经按设计在 teardown 前打印结果，所以这不影响上面两行"通过"的判定，但需要更新 known_issues 的根因假设 |
+| 退出期 SIGABRT 是否复现（开放问题 4） | **复现**——v3 默认路径（不 import torch_fl）下 `verify_flagcx_runtime.py --device` 与 `verify_flagcx_p2p.py` 均在成功完成通信后于进程退出阶段报 `free(): invalid pointer` SIGABRT。这推翻了此前"因为不装 torch_fl 所以可能不复现"的推测——根因显然不是"FlagCX 与 Torch-FL 的清理顺序冲突"（v3 默认路径完全不碰 torch_fl），必须是 FlagCX 自身的退出期清理逻辑问题，或 FlagCX 与 torch_npu（而非 torch_fl）的清理顺序冲突。两个 verify 脚本已经按设计在 teardown 前打印结果，所以这不影响上面两行"通过"的判定，但需要更新 known_issues 的根因假设 |
 | 与 `train_qwen_1_5b_npu.py` 的 loss/吞吐对比 | **无法给出**——训练脚本本身跑不起来，见下方 STOP CONDITION |
 | **训练脚本 `train_qwen_1_5b_npu.py`（2 卡 DDP，MAX_STEPS=400）** | **失败，STOP CONDITION**——见下方详述 |
 
@@ -233,7 +233,7 @@ params, while rank 0 has inconsistent 0 params.
 4245-5428 tok/s）——问题出在本血统实际构建出的 FlagCX 0.13.0 @
 `4e0e0cbcbf721169ca82348080f8353aebfe2c31`（`FlagRT/FlagCX` 组织仓公开主干）
 的 `broadcast`/`all_gather` 实现上，与历史验证记录所用的环境（不同分支
-`kistich/ascend-dev1.0`，见 lock.yaml 已有记录）不是同一份构建，无法排除是
+`kistich/ascend-dev1.0`，见本文件 round 记录）不是同一份构建，无法排除是
 两者之间某个未知差异导致的问题（编译选项、HCCL 版本、还是 FlagCX 该 commit
 本身在这两个 op 上确有 bug——本阶段无法判断，需要 FlagCX 维护者介入）。
 
@@ -344,7 +344,7 @@ ProcessGroup 实现里（即私有 fork commit `5d545c9` 实际打的位置：
 sync 修复（即下面 P1 拍板项：是否正式吸收私有 fork 的 fix）。
 
 两个脚本已迁入本目录 `assets/flagcx_sync_test.py` / `train_qwen_1_5b_npu_syncpatch.py`。
-`known_issues` 与 `lock.yaml` 已回填真实结果（见下）。
+`known_issues` 段与本文已回填真实结果（见下）。
 
 
 ## ROUND 4（2026-10-08）：级联重建（继承覆盖层补丁）
@@ -437,3 +437,48 @@ round 3/4 的 `flagcx_sync_test.py` 每次调用使用相同数据（rank+1）�
 
 同次复验推理腿：`ascend-operator-runtime/v3/assets/v3_step5_validate.py` 原样执行
 9/9 PASS，撤除规避配置的对照组按预期失败（证据见该目录 `assets/evidence/infer-demo-20261010.txt`）。
+
+---
+
+## 附录 A · flagcx 适配层术语考据
+
+> 2026-11-18 自本目录 lock.yaml（已退役）的 flagcx_adaptor_terminology 段迁入，内容未改。
+
+  这是本次设计阶段做出的、基于阅读现有代码/文档得出的判断，**不是从 FlagCX
+  源码逐行核实过的事实**（FlagCX 源码在构建期才 git clone/archive，不在本
+  仓库里可供静态 grep）：
+
+  "adaptor=ascend"（FlagCX Dockerfile 里 USE_ASCEND=1 选的）是**硬件目标**
+  ——选择编译进 CANN/HCCL 支持，这个维度 v2 与 v3 完全相同，没有变化。
+
+  任务书里"从 flagos 适配切到 HCCL 适配"的措辞，对应的实际是**消费侧**
+  （谁在运行时使用 FlagCX、通过什么 API）的差别，不是 FlagCX 自身的一个独立
+  编译期 flag：
+    - v2（flagos 适配）：Torch-FL 先 import 拿到 PrivateUse1="flagos"，
+      `dist.init_process_group("flagos")` 用的是 Torch-FL 自己注册的
+      "flagos" ProcessGroup，这个 ProcessGroup 内部再调用 FlagCX 做实际通信
+      （见 ascend-train-comm/v2/assets/verify_flagcx_runtime.py 里那段关于
+      `dist.Backend.backend_capability["flagcx"]` 为什么不能拿来断言的详细
+      注释）。
+    - v3（HCCL 适配）：torch_npu autoload 拿到 PrivateUse1="npu"，
+      `dist.init_process_group(backend="flagcx")` 直接用 FlagCX 自己注册的
+      原生 "flagcx" c10d 后端——这条路径在
+      dev/device-context/910C/distributed_training/scripts/train_qwen_1_5b_npu.py
+      里已经真机验证过（2481 步训练闭环），且完全不涉及 Torch-FL。
+
+  这两条路径共享同一份 FlagCX 编译产物（同一个 commit，同一条
+  `USE_ASCEND=1 pip install .` 命令）——差别只在运行时"哪个包先抢注
+  PrivateUse1 + 传给 init_process_group 的 backend 字符串是什么"。**如果
+  phase 2 实机验证发现这个判断有误（比如确实存在一个被本文档忽略的 FlagCX
+  编译期 flag），需要回来修正本文件与 Dockerfile.repro，不能继续假设。**
+
+  另需注意（同样未验证，见 REBUILD.md）：train_qwen_1_5b_npu.py 并未显式
+  `import flagcx`（只 `import torch_npu`），却能成功用 backend="flagcx"——
+  暗示 `pip install .` 的构建方式让 FlagCX 注册为可自动发现的 c10d 后端。
+  dev/device-context/prototype/runtime/proto/proto_train_leg.py 对昆仑芯
+  P800 走类似 flagcx 路径时则**显式** `import flagcx`
+  （"显式导入才会把 cuda:flagcx 注册为 c10d 后端"）——两份代码对"是否需要显式
+  import" 的做法不一致，本阶段无法判断是芯片差异、安装方式差异
+  （.pth 注册法 vs pip install）、还是其中一份代码只是防御性写法。v3 的
+  verify 脚本保留了显式 `import flagcx`（防御性，无害），但明确标注这一点
+  为待确认项。

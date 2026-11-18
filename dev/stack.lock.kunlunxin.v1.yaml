@@ -60,7 +60,7 @@ lock:
       sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f）
       已 superseded_by: v2：不得用于从零重建——其归档镜像经查实是 docker commit
       产物而非其 Dockerfile.repro 的构建产物（dev/images/kunlun-operator-runtime/
-      v1/lock.yaml known_issues: v1-image-is-docker-commit-not-build）。镜像本身
+      docs/裁定备忘-20261014-总组.md）。镜像本身
       可用、其运行时验证结论（771 passed、训练 6/6、推理 PASSED）仍成立；v2 与
       v1 组件集合与 pin 完全相同，仅改配方形态并走正规 docker build。
 
@@ -93,7 +93,7 @@ rules:
   - "共享机纪律：P800 无带卡容器独占，但绝不 stop/rm 他人容器（实测 9 容器并存仍可用）；选卡纪律见 device_registration.selection"
   - |
     基座镜像入锁门槛（沿用昇腾侧口径）：任何镜像进入本文件 lock: 前，
-    dev/images/<name>/v<N>/ 必须存在且含 lock.yaml，repro_status ≥ 🟡；
+    dev/images/<name>/v<N>/ 必须存在且含 image.baseline.yaml（repro_status 见 dev/images/image_list.md ≥ 🟡）；
     上游发布的镜像可无 Dockerfile 但须有可拉取 digest。规范见 dev/images/README.md。
     统一基座的确定/调整/发布由总组裁定；各方向只消费不自建，诉求写进本方向
     STATUS.md 由总组收拢。
@@ -104,19 +104,19 @@ rules:
 known_issues:
   - id: "K-1"
     summary: "FlagGems GEMM 类算子（mm/bmm/addmm）在 flagtree 0.6.1+xpu3.6 下编译阶段即失败。按运行环境版本分述：第 0 版（demo/）仍命中、无 workaround；现行运行环境 env/v1（显式启用 GEMM compat 后）编译维度已修（minirepro 12/12 编译 + pytest mm 18/18 + 扩展 99/99，2026-10-28 真机验收）——数值缺口独立为 K-5"
-    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-triton-compile/；dev/images/kunlun-operator-runtime/v2/env/v1/（现行运行环境与启用方式）；dev/images/kunlun-operator-runtime/v2/lock.yaml known_issues: gemm-same-defect-two-failure-stages"
+    ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-triton-compile/；dev/images/kunlun-operator-runtime/v2/env/v1/（现行运行环境与启用方式）；dev/images/kunlun-operator-runtime/v2/README.md 已知限制（gemm-same-defect-two-failure-stages）"
   - id: "K-5"
     summary: "GEMM 数值正确性（demo 与 env/v1 均命中，缺陷在 compiler/kernel 本体、与运行环境版本无关）：64×64×64 fp32 非确定性乱值（同输入 rel 0.29~1.02，任何口径不可接受，禁用于关键路径）+ 64³ bf16 超绝对容差 4.5× + 大形状 fp16/bf16 超本组绝对容差 1.6×~9.8×（相对误差 2.8e-4~6e-3，口径裁定中）；已验可用面 = pytest 18/99 矩阵 + minirepro 12 组"
     ref: "docs/基座发版说明-20261014.md；dev/issues/kunlunxin-gemm-numeric-64cube/（已同步编译组、被动等进展）"
   - id: "K-2"
     summary: "vLLM 推理默认 dispatch（flagos 优先）下 rotary embedding 的 index_select 触发 CUDA error: invalid device function，服务起不来；必设 VLLM_FL_PREFER=vendor"
-    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: flagos-index-select-invalid-device-function"
+    ref: "docs/基座发版说明-20261014.md；docs/基座发版说明-20261014.md 限制清单 K-2"
   - id: "K-3"
     summary: "设置 XPU_EVENT_KL3_ENABLE=1（厂商手册要求）后单卡单进程即挂死；必不设"
-    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: xpu-event-kl3-enable-hang"
+    ref: "docs/基座发版说明-20261014.md；docs/基座发版说明-20261014.md 限制清单 K-3"
   - id: "K-4"
     summary: "FlagGems 该 commit 无 kunlunxin extras 组，pip install .[kunlunxin] 静默退化并引入通用 triton 覆盖 flagtree；flagtree 一律 --no-deps 安装"
-    ref: "docs/基座发版说明-20261014.md；dev/images/kunlun-operator-runtime/v1/lock.yaml known_issues: flaggems-kunlunxin-extras-missing"
+    ref: "docs/基座发版说明-20261014.md；docs/基座发版说明-20261014.md 限制清单 K-4"
 
 # ---------------------------------------------------------------
 # 变更记录
@@ -130,8 +130,8 @@ changelog:
       限制 K-1~K-4，指针见 known_issues 段与 docs/基座发版说明-20261014.md）；
       v1 随发版标 superseded_by: v2 且不得用于从零重建；设备注册（无带卡容器
       独占、xpu-smi 选卡、CUDA_VISIBLE_DEVICES 重编号）与使用规则按 P800 实情
-      分叉，不照抄昇腾。依据文件：dev/images/kunlun-operator-runtime/v2/lock.yaml、
-      image.baseline.yaml、ARCHIVE.md，dev/images/kunlun-operator-runtime/v1/lock.yaml，
+      分叉，不照抄昇腾。依据文件：dev/images/kunlun-operator-runtime/v2/
+      image.baseline.yaml、REBUILD.md、ARCHIVE.md，dev/images/kunlun-operator-runtime/v1/REBUILD.md，
       docs/基座发版说明-20261014.md。
   - date: "2026-10-28"
     who: "总组"
@@ -157,6 +157,6 @@ changelog:
       import 链断，环境性）；本镜像 connector import 实测可用，2026-11-09 P800-A
       真卡三件验证通过。自本条起两腿分栈：训练/设备上下文 = runtime 腿不变，
       推理与 KV connector 场景 = infer 腿（同 910C ADR-0007 两腿分栈思路）。
-      登记件 dev/images/kunlun-infer-vllm/v1（lock.yaml + image.baseline.yaml +
+      登记件 dev/images/kunlun-infer-vllm/v1（image.baseline.yaml +
       README.md，manual-registration）。取证全程只读（docker inspect / 在跑容器
       pip list / Harbor manifest API），未起容器。
