@@ -1,0 +1,155 @@
+{
+  "revision": "1ff7964da3e09b92f70757048ba047c63579fe22",
+  "scope": "synthetic functional tests, not quality or throughput",
+  "cpu-gloo": [
+    {
+      "model": "din",
+      "device_backend": "cpu",
+      "collective": "gloo",
+      "steps": 50,
+      "ranks": 2,
+      "verdict": "PASS",
+      "torch": "2.4.1",
+      "parameters": 4706,
+      "revision": "1ff7964da3e09b92f70757048ba047c63579fe22",
+      "final_parameters_identical": true,
+      "max_abs": {
+        "logit_max_abs": 1.341104507446289e-07,
+        "grad_max_abs": 4.470348358154297e-08,
+        "param_max_abs": 1.4901161193847656e-08
+      },
+      "communication": {
+        "gradient_allreduce_calls": 50,
+        "gradient_payload_bytes": 941200
+      }
+    },
+    {
+      "model": "dssm",
+      "device_backend": "cpu",
+      "collective": "gloo",
+      "steps": 50,
+      "ranks": 2,
+      "verdict": "PASS",
+      "torch": "2.4.1",
+      "parameters": 7432,
+      "revision": "1ff7964da3e09b92f70757048ba047c63579fe22",
+      "final_parameters_identical": true,
+      "max_abs": {
+        "logit_max_abs": 4.5299530029296875e-06,
+        "grad_max_abs": 6.556510925292969e-07,
+        "param_max_abs": 1.1920928955078125e-07
+      },
+      "communication": {
+        "gradient_allreduce_calls": 50,
+        "gradient_payload_bytes": 1486400
+      }
+    }
+  ],
+  "ascend-hccl": [
+    {
+      "model": "din",
+      "device_backend": "ascend",
+      "collective": "hccl",
+      "steps": 50,
+      "ranks": 2,
+      "verdict": "PASS",
+      "torch": "2.10.0+cpu",
+      "parameters": 4706,
+      "revision": "1ff7964da3e09b92f70757048ba047c63579fe22",
+      "final_parameters_identical": true,
+      "max_abs": {
+        "logit_max_abs": 1.1920928955078125e-07,
+        "grad_max_abs": 2.60770320892334e-08,
+        "param_max_abs": 5.960464477539063e-08
+      },
+      "communication": {
+        "gradient_allreduce_calls": 50,
+        "gradient_payload_bytes": 941200
+      }
+    },
+    {
+      "model": "dssm",
+      "device_backend": "ascend",
+      "collective": "hccl",
+      "steps": 50,
+      "ranks": 2,
+      "verdict": "PASS",
+      "torch": "2.10.0+cpu",
+      "parameters": 7432,
+      "revision": "1ff7964da3e09b92f70757048ba047c63579fe22",
+      "final_parameters_identical": true,
+      "max_abs": {
+        "logit_max_abs": 4.410743713378906e-06,
+        "grad_max_abs": 8.344650268554688e-07,
+        "param_max_abs": 2.384185791015625e-07
+      },
+      "communication": {
+        "gradient_allreduce_calls": 50,
+        "gradient_payload_bytes": 1486400
+      }
+    },
+    {
+      "model": "DeepFM",
+      "steps": 50,
+      "ranks": 2,
+      "verdict": "PASS",
+      "gradient_reference_checks_per_rank": 17,
+      "gradient_reference_max_abs": 4.190951585769653e-09,
+      "final_parameters_identical": true,
+      "communication": {
+        "gradient_allreduce_calls": 50,
+        "gradient_payload_bytes": 84290400
+      }
+    }
+  ],
+  "ascend_environment": {
+    "container_image_id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15",
+    "scope": "training v3 locked image + prototype source + native HCCL; not env/v2 overlay qualification",
+    "physical_dies": [
+      10,
+      11
+    ],
+    "container_ordinals": [
+      0,
+      1
+    ]
+  },
+  "kunlun": {
+    "single_card": {
+      "host": "first",
+      "physical_card": 7,
+      "identity_check": "PASS",
+      "compute": "TIMEOUT",
+      "exit_code": 124,
+      "last_stage": "fill_and_synchronize",
+      "kernel_events": [
+        "KLRM: (PCI:0000:bb:00): [XPUW] kl3_wait_for_noc_idle() timeout, val= 00000007 mask= 00000008 reg0228= 007ff000",
+        "KLRM: (PCI:0000:bb:00): [XPUW] kl3_wait_for_noc_idle() timeout, val= 00000007 mask= 00000008 reg0228= 007ff000",
+        "KLRM: (PCI:0000:bb:00): [XPUW] cluster[0]: ..reason[29] task timeout",
+        "KLRM: (PCI:0000:bb:00): [XPUW] cluster[3]: ..reason[29] task timeout",
+        "KLRM: Xid (PCI:0000:bb:00): 0, pid=3208047, name=python3, KL_XID_KERNEL_EXCEPTION, ch=0"
+      ]
+    },
+    "dual_card": {
+      "host": "second",
+      "physical_cards": [
+        2,
+        3
+      ],
+      "status": "NOT_RUN",
+      "reason": "Existing processes on both reserved cards"
+    }
+  },
+  "ppu": {
+    "status": "NOT_RUN",
+    "reason": "Documented SSH endpoint refused connection"
+  },
+  "host_unittest": 119,
+  "source_sha256": {
+    "priority_models.py": "131e21b8a759b35b518556dce13ed657a2f581b933c7bbf8089fb032c244139e",
+    "run_priority_models.py": "1aa5bdc1cd5b6a2a2dbaa01ad092f2f187d381c6db095ebdfee1533e40f4634f",
+    "distributed.py": "e1f1b73409155c369dd5e55d64a5551d974eec1681b34e501077ef19f8eb7f0e",
+    "deepfm_train.py": "3eff07cb9ec2f848f3030ec73297fb729e8a9a52cfb73c3395aace09f564bff8",
+    "check_priority_models.py": "ec94d00720489e54ea0d910e157f3fb67c38fcebf72fda2e83e7c4146a47f6dd"
+  }
+}

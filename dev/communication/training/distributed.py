@@ -58,8 +58,8 @@ class ObservedBucketTrace:
 
 class TrainingGroup:
     def __init__(self, backend, rank, world_size, synchronize, timeout_seconds=60):
-        if backend not in ('hccl', 'gloo', 'flagcx'):
-            raise ValueError('Supported backends: hccl, gloo, flagcx')
+        if backend not in ('hccl', 'gloo', 'flagcx', 'nccl'):
+            raise ValueError('Supported backends: hccl, gloo, flagcx, nccl')
         if not 0 <= rank < world_size or timeout_seconds <= 0:
             raise ValueError('Invalid rank, world size or timeout')
         if dist.is_initialized():
