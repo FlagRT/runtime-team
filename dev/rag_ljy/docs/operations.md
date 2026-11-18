@@ -1,9 +1,34 @@
+## 当前数据库路由
+
+8088同时接入Milvus和Elasticsearch，每条请求通过`retrieval_backend`选择其一，两类请求可并发。
+当前默认Milvus；`RAG_WORKFLOW_BACKEND`只控制未指定字段时的默认值，不限制启用数据库集合。
+两库共享模型、阶段队列、双die显存保护；不自动切库，也不合并两库结果。
+测试分别使用`run_priority_generation_50.sh --backend milvus --run`或`--backend elasticsearch --run`，无需重启。
+
+# 当前双die vLLM工作流（2026-11-18）
+
+当前容器已应用完整自启动入口：die6 OneRec vLLM8090，die7 embedding8089及RAG精排8088。
+Elasticsearch保持原有数据。停止后`docker start rag-ljy-vllm-910c`即可恢复三项服务；
+`docker logs -f rag-ljy-vllm-910c`看到`WORKFLOW=ready`后可测试。
+两颗die独立85%/75%和5GiB准入；生成不做每请求预留，由vLLM管理KV容量。
+
+```bash
+cd /home/jliu171/runtime-team/dev/rag_ljy
+bash scripts/checks/run_priority_generation_50.sh --run
+```
+
+这是原50条Elasticsearch完整RAG，默认4并发、256输出token上限。结果在
+`experiment_outputs/benchmarks/priority_generation_50/elasticsearch/<UTC>/`。
+现有统一入口管理服务生命周期，不再使用旧的独立API重启脚本管理此部署。
+
+以下保留原运行说明；当前启动路径以本节及根部status.md为准。
+
 # 运行指南
 
-更新：2026-11-11。默认选择 vLLM embedding，启动顺序是数据库 → embedding
+更新：2026-11-18。默认选择 vLLM embedding，启动顺序是数据库 → embedding
 引擎 → 查询 API。以下命令均从指定目录执行。
 
-当前新增OneRec生成模式与物理卡0/die0部署，见[OneRec接入](generation.md)。
+OneRec生成模式及当前物理卡3/die7的特权容器部署，见[OneRec接入](generation.md)。
 下面基础启动示例保留检索模式；生成模式的完整配置及当前已验证范围以该文档和根目录[status.md](../status.md)为准。
 
 ## 宿主机：三个容器
@@ -17,7 +42,8 @@ docker exec -it rag-ljy-vllm-910c bash
 ```
 
 基础NPU Compose映射`/dev/davinci1`；2026-11-11实际主容器使用OneRec overlay，
-选择`/dev/davinci0`（物理卡0/chip0），容器内仍为`npu:0`。
+2026-11-11使用`/dev/davinci0`；2026-11-18已改选`/dev/davinci7`（物理卡3/chip1），
+当前RAG已按用户授权改为特权模式并以可见设备选择固定die7，服务已恢复，应用内为`npu:0`。
 上述`docker start`只启动已有容器，不会应用新的Compose映射。
 仓库挂载为 `/workspace`。启动容器不会自动启动两个 Python 服务。
 已有同端口服务时先查看 `/health`，避免重复启动。

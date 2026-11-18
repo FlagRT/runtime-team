@@ -26,7 +26,7 @@ def ready_health():
     return {'status':'ready','max_inflight':0,'inflight':0,'retrieval_backend':'elasticsearch',
         'generation':{'enabled':True,'execution_profile':{'max_input_tokens':4096,'max_new_tokens':1024}},
         'memory_estimation':{'enabled':True,'fault':None},
-        'device_memory':{'source':'device-context.runtime.memory_stats','status':'ok','stale':False,
+        'device_memory':{'backend':'ascend','device':'npu:0','source':'device-context.runtime.memory_stats','status':'ok','stale':False,
                          'stats':{'total_mb':62740,'used_mb':30000,'free_mb':32740}},
         'memory_admission':{'status':'ready','reason':'memory_available','reserved_mib':0,
             'config':{'enabled':True,'estimate_requests':True,'request_budget_mib':None,
@@ -34,7 +34,7 @@ def ready_health():
 
 
 @contextmanager
-def fake_service(*, reject_first=False, broken_generation=False, fault=False):
+def fake_service(*, reject_first=False, broken_generation=False, fault=False, priority_evidence=False):
     state={'posts':[],'health':ready_health()}
     if fault:
         state['health']['memory_estimation']['fault']='test-only fault'
@@ -64,7 +64,17 @@ def fake_service(*, reject_first=False, broken_generation=False, fault=False):
                         'retrieval_queue_ms','rerank_queue_ms','generation_queue_ms')}}
             if broken_generation:
                 result.pop('answer')
-            self.respond(200,result,{'X-Request-ID':str(len(state['posts'])),'X-Memory-Estimate-MiB':'18000'})
+            headers = {'X-Request-ID':str(len(state['posts'])),'X-Memory-Estimate-MiB':'18000'}
+            if 'retrieval_backend' in body:
+                headers['X-Retrieval-Backend'] = body['retrieval_backend']
+                result['retrieval_backend'] = body['retrieval_backend']
+            if priority_evidence:
+                headers['X-Request-Priority'] = body['priority']
+                result['scheduling'] = {'priority': body['priority'], 'stages': {
+                    stage: [{'priority': body['priority'], 'effective_priority': body['priority'],
+                             'overtook_lower_priority': 0}] for stage in
+                    ('embedding','retrieval','rerank','generation')}}
+            self.respond(200,result,headers)
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
     thread=threading.Thread(target=server.serve_forever,daemon=True)
     thread.start()
@@ -143,3 +153,66 @@ def test_preflight_preserves_required_runtime_configuration(checker,key,value):
     health=deepcopy(ready_health()); health[key]=value
     with pytest.raises(RuntimeError):
         checker.validate_service(health,'elasticsearch',256)
+
+
+def test_priority_mode_requires_updated_live_service(checker):
+    with pytest.raises(RuntimeError, match='Restart'):
+        checker.validate_priority_service(ready_health())
+    health = ready_health()
+    health['scheduling'] = {'policy': 'priority_with_aging', 'dispatch_evidence': True}
+    checker.validate_priority_service(health)
+
+
+def test_priority_mode_sends_fifty_original_queries_and_rejects_missing_evidence(checker,tmp_path):
+    with fake_service() as service:
+        options = args(service,parallel=4)
+        options.priority_cycle = True
+        service['health']['scheduling'] = {'policy': 'priority_with_aging', 'dispatch_evidence': True}
+        queries = checker.frozen_queries(checker.ROOT/'data/queries/nfcorpus-50.jsonl')
+        result = checker.replay(options,queries,service['health'],tmp_path)
+        assert len(service['posts']) == 50
+        assert {p['query'] for p in service['posts']} == {q.query for q in queries}
+        assert {p['priority'] for p in service['posts']} == {'high','normal','low'}
+        assert result['status'] == 'failed'  # Fake responses intentionally lack dispatch evidence.
+        assert result['priority_validation']['overtaking'] == 'not_observed'
+        assert (tmp_path/'generated_responses.txt').is_file()
+
+
+def test_fifty_generated_answers_without_contention_do_not_certify_overtaking(checker,tmp_path):
+    with fake_service(priority_evidence=True) as service:
+        options = args(service,parallel=4)
+        options.priority_cycle = True
+        service['health']['scheduling'] = {'policy': 'priority_with_aging', 'dispatch_evidence': True}
+        queries = checker.frozen_queries(checker.ROOT/'data/queries/nfcorpus-50.jsonl')
+        result = checker.replay(options,queries,service['health'],tmp_path)
+        assert result['status'] == 'passed'
+        assert result['successful_generation'] == 50
+        assert result['priority_validation']['dispatch_decisions'] == 200
+        assert result['priority_validation']['overtaking'] == 'not_observed'
+        assert result['priority_validation']['aging'] == 'not_observed'
+
+
+def test_vllm_workflow_preflight_requires_both_physical_dies(checker):
+    h=ready_health()
+    with pytest.raises(RuntimeError,match='complete RAG'):
+        checker.validate_vllm_workflow(h)
+    h['generation']['execution_profile']['backend']='vllm'
+    h['device_memory_by_stage']={stage:{'physical_die':die,'source':'device-context.runtime.memory_stats'}
+                                for stage,die in [('embedding_rerank',7),('generation',6)]}
+    checker.validate_vllm_workflow(h)
+    h['device_memory_by_stage']['generation']['physical_die']=7
+    with pytest.raises(RuntimeError,match='physical die 6'):
+        checker.validate_vllm_workflow(h)
+
+
+def test_fifty_requests_select_backend_explicitly_on_dual_service(checker,tmp_path):
+    with fake_service() as service:
+        service['health']['retrieval_backend']='milvus'
+        service['health']['retrieval_backends']=['milvus','elasticsearch']
+        options=args(service,parallel=4)
+        checker.validate_service(service['health'],'elasticsearch',256)
+        queries=checker.frozen_queries(checker.ROOT/'data/queries/nfcorpus-50.jsonl')
+        result=checker.replay(options,queries,service['health'],tmp_path)
+        assert result['status']=='passed'
+        assert len(service['posts'])==50
+        assert all(p['retrieval_backend']=='elasticsearch' for p in service['posts'])

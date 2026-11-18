@@ -1,12 +1,38 @@
-# Select one host die, exposed as logical npu:0. Default die 0 = physical card 0/chip 0.
-# RAG_NPU_DIE=15 selects physical card 7/chip 1.
+# Two-die workflow on physical NPU3: generation=die6, embedding/rerank=die7.
+# Each process pins its own die and uses logical npu:0.
+# Privileged mode exposes host devices; this is application selection, not isolation.
 # Append to compose.vllm.yml. Preserve the existing embedding/reranker mount.
 # RAG_RUNTIME_IMAGE must name an image containing the current working runtime.
 services:
   runtime-dev:
     image: ${RAG_RUNTIME_IMAGE:-rag-ljy-runtime:npu7-backup}
+    privileged: true
+    # Docker start loads the complete two-die vLLM RAG workflow. Keep the
+    # image entrypoint: it sources CANN/ATB before executing this command.
+    init: true
+    stop_grace_period: 300s
+    working_dir: /workspace/dev/rag_ljy
+    command:
+      - /workspace/dev/rag_ljy/.venv/bin/python
+      - -u
+      - scripts/runtime/start_vllm_workflow.py
+    healthcheck:
+      test:
+        - CMD
+        - /workspace/dev/rag_ljy/.venv/bin/python
+        - -c
+        - "import json, urllib.request; h=json.load(urllib.request.build_opener(urllib.request.ProxyHandler({})).open('http://127.0.0.1:8088/health', timeout=5)); assert h['status']=='ready'; assert all(h.get('device_memory_by_stage', {}).get(stage, {}).get('physical_die')==die and h['device_memory_by_stage'][stage].get('status')=='ok' for stage, die in [('embedding_rerank',7),('generation',6)])"
+      interval: 15s
+      timeout: 8s
+      start_period: 180s
+      retries: 3
+    environment:
+      - ASCEND_RT_VISIBLE_DEVICES=7
+      - RAG_ASCEND_PINNED_DIE=7
+      - RAG_WORKFLOW_BACKEND=${RAG_WORKFLOW_BACKEND:-elasticsearch}
     devices: !override
-      - /dev/davinci${RAG_NPU_DIE:-0}:/dev/davinci${RAG_NPU_DIE:-0}
+      - /dev/davinci6:/dev/davinci6
+      - /dev/davinci7:/dev/davinci7
       - /dev/davinci_manager:/dev/davinci_manager
       - /dev/devmm_svm:/dev/devmm_svm
       - /dev/hisi_hdc:/dev/hisi_hdc

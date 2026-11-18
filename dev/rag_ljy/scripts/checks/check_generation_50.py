@@ -58,7 +58,8 @@ def frozen_queries(path):
 
 
 def validate_service(health, backend, max_new_tokens):
-    require_backend(health, backend)
+    if backend not in health.get("retrieval_backends", []):
+        require_backend(health, backend)
     cfg = health.get('memory_admission',{}).get('config',{})
     if (health.get('status')!='ready' or not health.get('generation',{}).get('enabled')
             or not health.get('memory_estimation',{}).get('enabled')):
@@ -71,9 +72,24 @@ def validate_service(health, backend, max_new_tokens):
         raise RuntimeError('Unexpected device memory source')
     if max_new_tokens > health['generation']['execution_profile']['max_new_tokens']:
         raise ValueError('Requested output limit exceeds the running API limit')
+    if health['generation']['execution_profile'].get('backend') == 'vllm':
+        if set(health.get('device_memory_by_stage', {})) != {'embedding_rerank', 'generation'}:
+            raise RuntimeError('vLLM RAG must expose both device memory samples')
+        if set(health.get('memory_admission_by_stage', {})) != {'embedding_rerank', 'generation'}:
+            raise RuntimeError('vLLM RAG must protect both devices')
+        for state in health['memory_admission_by_stage'].values():
+            policy = state.get('config', {})
+            if (policy.get('high_watermark') != .85 or policy.get('low_watermark') != .75
+                    or policy.get('safety_margin_mib') != 5120):
+                raise RuntimeError('Both devices must retain 85/75 watermarks and 5GiB headroom')
 
 
 def telemetry_error(health):
+    for stage, reading in health.get('device_memory_by_stage', {}).items():
+        if reading.get('status') != 'ok' or reading.get('stale') or reading.get('age_seconds', 99) > 3:
+            return stage + ':invalid_or_stale_telemetry'
+        if reading.get('stats', {}).get('free_mb', -1) < 5120:
+            return stage + ':less_than_5GiB_measured_free'
     memory = health['device_memory']
     if health['memory_estimation'].get('fault'):
         return 'memory_estimator_fault'
@@ -114,7 +130,46 @@ def response_checks(row, max_new_tokens, max_input_tokens):
             and bool(headers.get('x-request-id')) and math.isfinite(budget) and budget>0)
 
 
+def validate_vllm_workflow(health):
+    if health.get('generation', {}).get('execution_profile', {}).get('backend') != 'vllm':
+        raise RuntimeError('This test requires the complete RAG-to-vLLM generation workflow')
+    readings = health.get('device_memory_by_stage', {})
+    for stage, die in (('embedding_rerank', 7), ('generation', 6)):
+        reading = readings.get(stage, {})
+        if reading.get('physical_die') != die or reading.get('source') != 'device-context.runtime.memory_stats':
+            raise RuntimeError(f'{stage} must have verified device-context telemetry for physical die {die}')
+
+
+def validate_priority_service(health):
+    memory = health.get('device_memory', {})
+    if memory.get('backend') != 'ascend' or not str(memory.get('device', '')).startswith('npu:'):
+        raise RuntimeError('This priority experiment requires real Ascend NPU telemetry')
+    scheduling = health.get('scheduling', {})
+    if scheduling.get('policy') != 'priority_with_aging' or scheduling.get('dispatch_evidence') is not True:
+        raise RuntimeError('Restart the drained API with the new priority code before this test')
+
+
+def priority_response_valid(row, priority):
+    body = row['response'].get('scheduling', {})
+    if row['headers'].get('x-request-priority') != priority or body.get('priority') != priority:
+        return False
+    stages = body.get('stages', {})
+    for name in ('embedding', 'retrieval', 'rerank', 'generation'):
+        records = stages.get(name, [])
+        if not isinstance(records, list) or len(records) != 1:
+            return False
+        decision = records[0]
+        if (decision.get('priority') != priority or decision.get('effective_priority') not in ('high','normal','low')
+                or not isinstance(decision.get('overtook_lower_priority'), int)
+                or decision['overtook_lower_priority'] < 0):
+            return False
+    return True
+
+
 def replay(args, queries, before, out):
+    priority_cycle = getattr(args, 'priority_cycle', False)
+    require_vllm = getattr(args, 'require_vllm_generation', False)
+    assigned = {q.query_id: ('low', 'normal', 'high')[i % 3] for i, q in enumerate(queries)}
     stop, unsafe = threading.Event(), threading.Event()
     health_errors, rows = [], []
     def health():
@@ -122,6 +177,10 @@ def replay(args, queries, before, out):
         if code!=200:
             raise RuntimeError('API health unavailable: HTTP '+str(code))
         validate_service(body,args.backend,args.max_new_tokens)
+        if require_vllm:
+            validate_vllm_workflow(body)
+        if priority_cycle:
+            validate_priority_service(body)
         return body
     def observe():
         with (out/'memory.jsonl').open('w') as log:
@@ -155,6 +214,10 @@ def replay(args, queries, before, out):
         row={'query_id':query.query_id,'query':query.query,'sent_at':datetime.now(timezone.utc).isoformat(),
              'sent_monotonic':time.monotonic(),'http_submitted':False,
              'request':{'query':query.query,'generate':True,'max_new_tokens':args.max_new_tokens}}
+        if before.get('retrieval_backends'):
+            row['request']['retrieval_backend'] = args.backend
+        if priority_cycle:
+            row['request']['priority'] = assigned[query.query_id]
         try:
             if unsafe.is_set():
                 raise RuntimeError('Stopped before HTTP submission')
@@ -167,6 +230,11 @@ def replay(args, queries, before, out):
         row['latency_ms']=(row['completed_monotonic']-row['sent_monotonic'])*1000
         row['complete_generation']=bool(response_checks(row,args.max_new_tokens,
             before['generation']['execution_profile']['max_input_tokens']))
+        if before.get('retrieval_backends') and row['complete_generation']:
+            row['complete_generation'] = (row['headers'].get('x-retrieval-backend') == args.backend
+                and row['response'].get('retrieval_backend') == args.backend)
+        if priority_cycle and row['complete_generation']:
+            row['complete_generation'] = priority_response_valid(row, assigned[query.query_id])
         body=row.get('response',{})
         detail=body.get('detail',{}) if isinstance(body,dict) else {}
         row['rejection_reason']=detail.get('reason') if isinstance(detail,dict) else None
@@ -185,7 +253,7 @@ def replay(args, queries, before, out):
                 'note':'Observations only; factual correctness and groundedness are not certified'}
         return row
     summary={'status':'incomplete','backend':args.backend,'expected_queries':50,
-             'parallel':args.parallel,'errors':[],
+             'parallel':args.parallel,'priority_cycle':priority_cycle,'errors':[],
              'scope':'50 frozen queries, complete generation coverage; not 85/75% acceptance or answer-quality certification',
              'automatic_retries':False,'watermark_acceptance':'not assessed'}
     watcher=threading.Thread(target=observe,daemon=True)
@@ -250,6 +318,25 @@ def replay(args, queries, before, out):
             (r.get('status')==200 and not r['complete_generation']) or
             (r.get('status')==503 and not r['expected_rejection']) for r in rows):
         summary['status']='failed'
+    if priority_cycle:
+        decisions = [decision for row in successful
+                     for stage in row['response']['scheduling']['stages'].values() for decision in stage]
+        overtakes = sum(d['overtook_lower_priority'] for d in decisions)
+        promotions = sum(d['priority'] != d['effective_priority'] for d in decisions)
+        summary['priority_validation'] = {
+            'assigned_counts': {p: sum(v == p for v in assigned.values()) for p in ('high','normal','low')},
+            'dispatch_decisions': len(decisions), 'overtook_lower_priority': overtakes,
+            'aging_promotions': promotions,
+            'overtaking': 'observed' if overtakes else 'not_observed',
+            'aging': 'observed' if promotions else 'not_observed',
+            'note': 'Generation coverage is separate from priority contention. No contention is not a priority acceptance pass.'}
+    with (out/'generated_responses.txt').open('w') as readable:
+        by_id = {r['query_id']: r for r in rows}
+        for query in queries:
+            row = by_id.get(query.query_id, {})
+            readable.write(f"{query.query_id} | {query.query}\nHTTP={row.get('status', 'not submitted')} "
+                           f"priority={row.get('request', {}).get('priority', 'normal')}\n")
+            readable.write(str(row.get('response', {}).get('answer', row.get('error', row.get('rejection_reason', '')))) + '\n\n')
     (out/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2))
     return summary
 
@@ -261,6 +348,9 @@ def main():
     parser.add_argument('--url',default='http://127.0.0.1:8088')
     parser.add_argument('--queries',type=Path,default=ROOT/'data/queries/nfcorpus-50.jsonl')
     parser.add_argument('--parallel',type=int,default=1)
+    parser.add_argument('--require-vllm-generation',action='store_true')
+    parser.add_argument('--priority-cycle',action='store_true',
+                        help='assign low/normal/high in frozen input order; require dispatch evidence')
     parser.add_argument('--max-new-tokens',type=int,default=256)
     parser.add_argument('--request-timeout',type=float,default=300)
     parser.add_argument('--ready-timeout',type=float,default=90)
@@ -273,6 +363,10 @@ def main():
     if code!=200:
         raise RuntimeError('API health unavailable')
     validate_service(before,args.backend,args.max_new_tokens)
+    if args.require_vllm_generation:
+        validate_vllm_workflow(before)
+    if args.priority_cycle:
+        validate_priority_service(before)
     print(json.dumps({'preflight':'passed','queries':50,'queries_sha256':QUERY_SHA256,
         'backend':args.backend,'parallel':args.parallel,'max_new_tokens':args.max_new_tokens,
         'run_requested':args.run}),flush=True)
@@ -280,7 +374,7 @@ def main():
         return 0
     with open('/tmp/rag-watermarks-modes.lock','w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX | fcntl.LOCK_NB)
-        out=ROOT/'experiment_outputs/benchmarks/generation_50'/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
+        out=ROOT/'experiment_outputs/benchmarks'/('priority_generation_50' if args.priority_cycle else 'generation_50')/args.backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
         out.mkdir(parents=True)
         print('OUTPUT='+str(out),flush=True)
         shutil.copyfile(args.queries,out/'queries.jsonl')
@@ -304,6 +398,10 @@ def main():
             'source_sha256':hashes,'compute_utilization':'not measured',
             'input_policy':'original query bytes; no query rewriting or automatic retry'},indent=2,default=str))
         summary=replay(args,queries,before,out)
+    if args.priority_cycle:
+        print('GENERATION_COVERAGE='+summary['status'],flush=True)
+        print('PRIORITY_OVERTAKING='+summary['priority_validation']['overtaking'],flush=True)
+        print('PRIORITY_AGING='+summary['priority_validation']['aging'],flush=True)
     print('RESULT='+summary['status'],flush=True)
     return {'passed':0,'failed':1,'incomplete':2}[summary['status']]
 

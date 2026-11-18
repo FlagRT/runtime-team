@@ -13,6 +13,8 @@ from urllib.request import urlopen
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--run',action='store_true')
+parser.add_argument('--preserve-runtime-config',action='store_true',
+                    help='reload code while retaining current command and runtime environment')
 parser.add_argument('--retrieval-backend',choices=['milvus','elasticsearch'])
 parser.add_argument('--cache-bridge',default='/workspace/dev/rag_ljy/experiment_outputs/runtime_extensions/82f0cce02d30e7b44704/libnpu_cache_bridge.so')
 options=parser.parse_args()
@@ -45,29 +47,31 @@ env=dict(v.split('=',1) for v in Path(f'/proc/{pid}/environ').read_bytes().decod
 old_env=dict(env)
 backend=options.retrieval_backend or h['retrieval_backend']
 env['RETRIEVAL_BACKEND']=backend
-env['RAG_PROFILE_FIRST_FORWARD']='1'
-env['RAG_MEMORY_PROBE_PROCESS']='1'
-env['RAG_RERANK_DOCUMENT_TOKENS']='640'
-env['RAG_NPU_CACHE_BRIDGE']=options.cache_bridge
-env['PYTORCH_NPU_ALLOC_CONF']='garbage_collection_threshold:0.70'
+if not options.preserve_runtime_config:
+    env['RAG_PROFILE_FIRST_FORWARD']='1'
+    env['RAG_MEMORY_PROBE_PROCESS']='1'
+    env['RAG_RERANK_DOCUMENT_TOKENS']='640'
+    env['RAG_NPU_CACHE_BRIDGE']=options.cache_bridge
+    env['PYTORCH_NPU_ALLOC_CONF']='garbage_collection_threshold:0.70'
 cwd=Path(f'/proc/{pid}/cwd').resolve()
 new=list(old)
-if '--memory-request-mib' in new:
-    i=new.index('--memory-request-mib'); del new[i:i+2]
-if '--memory-budget-mode' in new:
-    new[new.index('--memory-budget-mode')+1]='dynamic'
-else:
-    new += ['--memory-budget-mode','dynamic']
-if '--max-inflight' in new:
-    new[new.index('--max-inflight')+1]='0'
-else:
-    new+=['--max-inflight','0']
-for flag, value in [('--memory-safety-mib','5120'), ('--max-reranker-batch-size','32'), ('--memory-probe-interval','0.001'), ('--embedding-workers','8')]:
-    if flag in new: new[new.index(flag)+1]=value
-    else: new += [flag,value]
-# Preserve a bounded stage waiting queue; this does not reject new requests.
-if '--stage-queue-capacity' not in new:
-    new+=['--stage-queue-capacity','8']
+if not options.preserve_runtime_config:
+    if '--memory-request-mib' in new:
+        i=new.index('--memory-request-mib'); del new[i:i+2]
+    if '--memory-budget-mode' in new:
+        new[new.index('--memory-budget-mode')+1]='dynamic'
+    else:
+        new += ['--memory-budget-mode','dynamic']
+    if '--max-inflight' in new:
+        new[new.index('--max-inflight')+1]='0'
+    else:
+        new+=['--max-inflight','0']
+    for flag, value in [('--memory-safety-mib','5120'), ('--max-reranker-batch-size','32'), ('--memory-probe-interval','0.001'), ('--embedding-workers','8')]:
+        if flag in new: new[new.index(flag)+1]=value
+        else: new += [flag,value]
+    # Preserve a bounded stage waiting queue; this does not reject new requests.
+    if '--stage-queue-capacity' not in new:
+        new+=['--stage-queue-capacity','8']
 database_check=None
 if backend == 'elasticsearch':
     checked=subprocess.run([old[0],str(cwd/'scripts/runtime/check_elasticsearch_memory_inputs.py')],cwd=cwd,env=env,capture_output=True,text=True,timeout=120)
@@ -77,7 +81,7 @@ if backend == 'elasticsearch':
 if not options.run:
     print(json.dumps({'retrieval_backend':backend,'database_check':database_check,'proposed_command':new,'cache_bridge':options.cache_bridge,'note':'Read-only. --run restarts the drained API before an independent experiment.'},indent=2))
     raise SystemExit(0)
-if not Path(options.cache_bridge).is_file():raise RuntimeError('Build the native cache bridge first')
+if not options.preserve_runtime_config and not Path(options.cache_bridge).is_file():raise RuntimeError('Build the native cache bridge first')
 out=cwd/'experiment_outputs/checks/dynamic_memory_admission'/backend/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 out.mkdir(parents=True)
 (out/'config.json').write_text(json.dumps({'retrieval_backend':backend,'database_check':database_check,'old_command':old,'new_command':new,'health_before':h,'environment':{k:v for k,v in env.items() if k.startswith('RAG_') or k in ('DC_BACKEND','PYTHONPATH','PYTORCH_NPU_ALLOC_CONF','RETRIEVAL_BACKEND')}},indent=2))

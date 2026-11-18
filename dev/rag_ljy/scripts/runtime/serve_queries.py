@@ -25,6 +25,7 @@ def main() -> None:
     parser.add_argument("--execution-mode", choices=["sequential", "concurrent"], default="concurrent")
     parser.add_argument("--max-inflight", type=int, default=8,
                         help="maximum accepted requests; 0 disables count rejection (requires --memory-admission)")
+    parser.add_argument("--generation-workers", type=int, default=4)
     parser.add_argument("--retrieval-workers", type=int, default=4)
     parser.add_argument("--max-reranker-batch-size", type=int, default=4,
                         help="allowed per-request real reranker forward batch (1..50); larger values require measured memory calibration")
@@ -32,6 +33,8 @@ def main() -> None:
                         help="maximum outstanding vLLM embedding calls; local models stay single-threaded")
     parser.add_argument("--stage-queue-capacity", type=int,
                         help="waiting slots per stage; defaults to max-inflight, or 8 when count rejection is disabled")
+    parser.add_argument("--priority-aging-seconds", type=float, default=30.0,
+                        help="seconds waiting in each stage queue per priority promotion (default 30)")
     parser.add_argument("--memory-probe", action=argparse.BooleanOptionalAction, default=True,
                         help="sample accelerator memory through device-context (default enabled)")
     parser.add_argument("--memory-probe-interval", type=float, default=1.0,
@@ -56,9 +59,11 @@ def main() -> None:
     args = parser.parse_args()
     if not 1 <= args.max_reranker_batch_size <= 50:
         parser.error("max-reranker-batch-size must be in 1..50")
-    if args.max_inflight < 0 or min(args.retrieval_workers, args.embedding_workers) < 1 or (
+    if args.max_inflight < 0 or min(args.retrieval_workers, args.embedding_workers, args.generation_workers) < 1 or (
             args.stage_queue_capacity is not None and args.stage_queue_capacity < 1):
         parser.error("max-inflight must be nonnegative; worker counts and queue capacity must be positive")
+    if not math.isfinite(args.priority_aging_seconds) or args.priority_aging_seconds <= 0:
+        parser.error("priority-aging-seconds must be finite and positive")
     if not math.isfinite(args.memory_probe_interval) or args.memory_probe_interval <= 0:
         parser.error("memory-probe-interval must be finite and positive")
     from rag_engine.admission import MemoryAdmissionConfig
@@ -107,6 +112,8 @@ def main() -> None:
     uvicorn.run(create_app(args.device, pipeline_factory=factory, execution_mode=args.execution_mode,
                            max_inflight=args.max_inflight, retrieval_workers=args.retrieval_workers,
                            embedding_workers=args.embedding_workers, stage_queue_capacity=args.stage_queue_capacity,
+                           priority_aging_seconds=args.priority_aging_seconds,
+                           generation_workers=args.generation_workers,
                            memory_probe_enabled=args.memory_probe, memory_probe_interval_s=args.memory_probe_interval,
                            memory_admission=admission,
                            max_reranker_batch_size=args.max_reranker_batch_size), host=args.host, port=args.port, workers=1)

@@ -67,19 +67,24 @@ def test_small_context_keeps_all_sources_and_overlong_question_is_rejected():
         b.build('Q'*800, [])
 
 
-def test_request_plan_never_drops_generation_when_reducing_rerank_batch():
+@pytest.mark.parametrize('output_tokens', [16, 256, 1024])
+def test_request_plan_does_not_reserve_generation_envelope(output_tokens):
     e = estimator()
     request = req(100, batch=32)
     retrieval_only = e.estimate(request)['estimated_incremental_mib']
-    e.generation_estimator = generation_estimator()
-    request.generate, request.max_new_tokens = True, 512
+    retrieval_plan = e.plan(request, 1)
+    def forbidden_estimate(*args, **kwargs):
+        raise AssertionError('Admission must not estimate/reserve maximum generation context')
+    e.generation_estimator = SimpleNamespace(estimate=forbidden_estimate)
+    request.generate, request.max_new_tokens = True, output_tokens
     with_generation = e.estimate(request)
-    generation = with_generation['generation']['estimated_mib']
-    assert with_generation['estimated_incremental_mib'] == retrieval_only + generation
-    plan = e.plan(request, generation + 1)
+    assert with_generation['estimated_incremental_mib'] == retrieval_only
+    assert with_generation['generation']['reserved_mib'] == 0
+    assert 'estimated_mib' not in with_generation['generation']
+    plan = e.plan(request, 1)
     assert plan['planned_reranker_batch_size'] == 1
-    assert plan['generation']['estimated_mib'] == generation
-    assert plan['estimated_incremental_mib'] > generation + 1
+    assert plan['generation']['reserved_mib'] == 0
+    assert plan['estimated_incremental_mib'] == retrieval_plan['estimated_incremental_mib']
     request.generate = False
     assert e.estimate(request)['estimated_incremental_mib'] == retrieval_only
 
