@@ -35,7 +35,7 @@
 | Operation（平头哥 PPU） | Docker/local、原生/FlagGems 双路径已接通 | 各 299 项正确性通过、9 项失败；路由 290 passed / 9 partial；任务 299 partial / 9 failed | [PR #6](https://github.com/FlagRT/FlagPerf/pull/6) 已合并；失败未全部闭合，[实测报告](evidence/PPU-Operation实测结果-20261023.md) |
 | Inference v2（昆仑芯 P800） | Qwen/OneRec 运行、采集、分析与报告已测 | 整合软件及历史产物复核未见新增回归；klx2 代表性单卡通过；klx1 模型搬运异常、整合版新 TP2 待补 | [PR #12](https://github.com/FlagRT/FlagPerf/pull/12) 待评审；OneRec 单卡/TP2 分歧保留，[实测报告](evidence/P800-Inference-v2实测结果-20261105.md) |
 | Inference v2（平头哥 PPU） | Qwen 单卡/TP2、采集分析及归档恢复已测 | 两台同型主机核心链路可用；OneRec 未做设备端生成验证 | PR #12 待评审；性能未取得资格，[实测报告](evidence/PPU-Inference-v2实测结果-20261104.md) |
-| Training（FlagPerf 训练部分） | 训练执行协议、观察态采集与多卡画像链路已形成 | 三家芯片（Ascend / THead / Kunlunxin）实测；Top5 模型除多模态外覆盖；单卡 / 多卡 DDP / FSDP 实测；模型层 §5.5 四条全部实现并有实测 | 代码 `FlagPerf/zhiyu/perf-train`；交付报告与最佳实践见本目录 [FlagPerf训练适配完成报告.md](FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](FlagScale使用FlagPerf最佳实践.md) |
+| Training（FlagPerf 训练部分） | 训练执行协议、观察态采集与多卡画像链路已形成 | 三家芯片（Ascend / THead / Kunlunxin）实测；Top5 模型除多模态外覆盖；单卡 / 多卡 DDP / FSDP 实测；模型层 §5.5 四条全部实现并有实测 | 代码 `FlagPerf/zhiyu/perf-train`；交付报告与最佳实践见本目录 [FlagPerf训练适配完成报告.md](docs/training/FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](docs/training/FlagScale使用FlagPerf最佳实践.md) |
 | 两段 Demo 统一验收报告 | 未完成 | Operation/Base/Inference 是支撑能力；Inference 证据为 PyTorch/Transformers 路径与专用固定输入，不等于 vLLM 服务口径验收；训练吞吐与跨方向证据尚未统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
 当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
@@ -49,8 +49,8 @@ P800（昆仑芯）与 PPU（平头哥）2026-10 起的进展同样遵循上述�
 
 训练部分的开发、跨厂商适配与实机测试本周完成，交付两份文档：
 
-- [FlagPerf训练适配完成报告.md](FlagPerf训练适配完成报告.md)：模型层 §5.5 四条需求的逐条完成情况与证据索引、三平台验证矩阵、九个关注模型的支持情况、已知限制；
-- [FlagScale使用FlagPerf最佳实践.md](FlagScale使用FlagPerf最佳实践.md)：接入方式（含在 FlagScale `train_retrieval.py` 的真实集成与补丁）、典型集成实例、每个功能的输出位置与解读方法、九个模型的使用说明。
+- [FlagPerf训练适配完成报告.md](docs/training/FlagPerf训练适配完成报告.md)：模型层 §5.5 四条需求的逐条完成情况与证据索引、三平台验证矩阵、九个关注模型的支持情况、已知限制；
+- [FlagScale使用FlagPerf最佳实践.md](docs/training/FlagScale使用FlagPerf最佳实践.md)：接入方式（含在 FlagScale `train_retrieval.py` 的真实集成与补丁）、典型集成实例、每个功能的输出位置与解读方法、九个模型的使用说明。
 
 本周结果摘要：
 
