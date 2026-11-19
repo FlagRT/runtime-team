@@ -14,7 +14,7 @@
 - **运行环境**：[`demo/`](demo/)（`docker-compose.yml` + `env.baseline.yaml`）。
 - **已知限制**：镜像自身无缺陷类限制；使用面约束 5 条（档位由宿主驱动决定 / 宿主无 neuware /
   triton 导入顺序与 `PYTHONPATH` / 本镜像不含 vLLM / 硬件能力 `(5, 0)` 不支持 FP8 与 MX）见
-  [`lock.yaml`](lock.yaml) 的 `notes` 与 `gaps`。
+  image_list.md 归档表与本 README。
 - **分发方式**：公开 Harbor registry，按 digest 拉取，无需凭据。
 
 ## 复现（demo 起容器 + 容器内环境核对）

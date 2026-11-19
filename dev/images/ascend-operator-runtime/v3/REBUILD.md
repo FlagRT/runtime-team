@@ -153,7 +153,7 @@ FlagOS unified multi-chip backend"）。
 **精确 pin**：`git ls-remote https://github.com/flagos-ai/vllm-plugin-FL.git
 release/0.2` 实测取得 `8b059122e32b9ac47b9820a9c7b1bb95077481a4`
 （2026-09-22，round 2 本轮现场取得，未复用任何历史值）。已回填
-`Dockerfile.repro` 的 `VLLM_PLUGIN_FL_REF` 与 `lock.yaml`。
+`Dockerfile.repro` 的 `VLLM_PLUGIN_FL_REF`。
 
 **构建结果**：`docker build --network=host`，设计 tag，**全部 27 步成功**，
 `vllm-plugin-FL` 安装层输出 `Successfully installed vllm-plugin-fl-0.0.0+g8b059122e`，
@@ -285,7 +285,7 @@ FlagCX 训练腿（HCCL adaptor）本身的 STOP CONDITION（`dist.broadcast`/
 
 本轮构建（Step 1-4）已在真机上用 `docker build`（不需要 `--device`）完整跑通，
 但 Step 5（vLLM 推理烟雾测试 + 训练/推理共存检查）需要挂 `--device` 的带卡
-容器。按 `dev/stack.lock.910c.v2.yaml` 的"最高优先级"规则（机器级并发上限 3
+容器。按 `dev/archive/stack.lock.910c.v2.yaml` 的"最高优先级"规则（机器级并发上限 3
 个带卡容器），起容器前 `docker ps` 检查——**本轮会话观测期间，机器上其他
 工程师的带卡容器持续保持在 5 个**（`sgl-c256-*-prefill-{0,1,2,3}` 4 个
 + `flaggems-cann9.0.0` 1 个，16 张卡对应的 `/dev/davinci0-15` 全部已被多个
@@ -354,7 +354,7 @@ Ascend 上一个更广泛缺口的严重性，故未执行，留给项目负责�
 Step 5 的 coexistence 部分已证实通过，但"真实 `.encode()`/`generate()` 产出
 正确、非乱码输出"这一核心验收目标仍未达成——不是因为 Route A/FlagCX/vllm_fl
 本身有问题，而是卡在 FlagGems 一条特定 kernel 代码路径缺失的第三方依赖。
-`repro_status` 因此维持 🟡 partial-repro，不升级为 🟢，见 `lock.yaml`
+`repro_status` 因此维持 🟡 partial-repro，不升级为 🟢（成因见本文件与 README 已知限制）
 `known_issues.flag-gems-triton-ascend-missing-shmem-module`。
 
 **下一步（需拍板）**：a) 找到 `shmem` 模块的官方来源（可能是 CANN 工具链自带、

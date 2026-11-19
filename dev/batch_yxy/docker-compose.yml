@@ -9,7 +9,7 @@ name: flagos-batch-yxy
 services:
   runtime-dev:
     # vLLM 组批（batching）策略改造：切到华为昇腾官方 vllm-ascend 镜像（vLLM 0.20.2）。
-    # 覆盖公共 compose.base.yml 的 CANN 底座；血统/版本见 dev/images/ascend-infer-vllm/v1/lock.yaml。
+    # 覆盖公共 compose.base.yml 的 CANN 底座；血统/版本见 dev/images/ascend-infer-vllm/v1/image.baseline.yaml。
     image: quay.io/ascend/vllm-ascend:v0.20.2rc1-a3
     container_name: flagos-batch-yxy-dev-910c
     # harbor 镜像 entrypoint 是 exec "$@"，无命令会立即退出（exit 0）；用 sleep 保活（等价 hostnet 重建镜像的 CMD 行为）

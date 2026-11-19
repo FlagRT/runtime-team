@@ -7,23 +7,22 @@
 本层**只补上基座缺失的 flagtree**（提供 `triton` 编译器与运行时），不变更基座已有的任何资源。
 FlagGems 用基座自带的那份（`/env/FlagGems`，editable，源码在镜像内，按
 [`ENV-SPEC.md`](../../../ENV-SPEC.md) §2.1 即固化资产 `install: editable-in-image`），
-既不 COPY 进来也不重装——取舍见 [`lock.yaml`](lock.yaml)
+既不 COPY 进来也不重装——取舍见 [`REBUILD.md`](REBUILD.md)
 `known_issues: flaggems-version-fact-comes-from-base`。
 
 - 镜像 tag：`flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64`
 - image id：见 [`image.baseline.yaml`](image.baseline.yaml) 的 `image.id`（版本事实以该文件为准，
   由 `baseline.py` 生成；本 README 不重复）
 - 组件版本：同上文件的 `baked_repos` / `baked_packages` / `base_image.provides`
-- `repro_status`：见 [`lock.yaml`](lock.yaml)（本层走正规 `docker build`，配方已实机重建）
+- `repro_status`：见 [`image_list.md`](../../image_list.md) 归档表（🟢 functional-repro；本层走正规 `docker build`，配方已实机重建）
 
 **与 v1 的关系**：组件集合与 pin 完全相同，v2 只改配方形态，差别只剩两处——① FlagGems
 连装都不装（v1 是 `cd /env/FlagGems && pip install .`，从基座的源码目录重新安装一遍）；
 ② 静态自检改为无设备可跑。两处改动与理由见 [`REBUILD.md`](REBUILD.md)「方式」。v1 保留不改并标 `superseded_by: v2`——其归档镜像实为
-`docker commit` 产物、与自身配方不一致（见 [`../v1/lock.yaml`](../v1/lock.yaml)
-`known_issues: v1-image-is-docker-commit-not-build`）。
+`docker commit` 产物、与自身配方不一致（见 `docs/裁定备忘-20261014-总组.md`）。
 
-**已知限制**（四条，消费前必须知晓；每条的完整证据与根因见 [`../v1/lock.yaml`](../v1/lock.yaml)
-的 `known_issues`，v2 与 v1 是同一 pin 组合，这些限制原样继承）：
+**已知限制**（四条，消费前必须知晓；每条的规避与根治归属见 `docs/基座发版说明-20261014.md` 限制清单
+K-1~K-4，v2 与 v1 是同一 pin 组合，这些限制原样继承）：
 
 - **GEMM（`mm`/`bmm`/`addmm`）编译期即失败，无一个形状可用，无 workaround** — 这是本底座最大的
   能力边界，需要 GEMM 重的算子路径的消费方必须绕开 FlagGems 的 GEMM。
@@ -33,8 +32,8 @@ FlagGems 用基座自带的那份（`/env/FlagGems`，editable，源码在镜像
   照字面去调小 block size / `num_stages` 是死路。
   缺陷 case 包（单入口复现 + 修复验收判据）：
   [`dev/issues/kunlunxin-gemm-triton-compile/`](../../../issues/kunlunxin-gemm-triton-compile/README.md)；
-  镜像侧结论见 [`lock.yaml`](lock.yaml) `known_issues: gemm-same-defect-two-failure-stages`
-  与 [`../v1/lock.yaml`](../v1/lock.yaml) `gemm-compile-sigabrt`。
+  镜像侧结论见 [`../v1/REBUILD.md`](../v1/REBUILD.md)（gemm-compile-sigabrt）与本 README 上述描述
+  （gemm-same-defect-two-failure-stages）。
 - 推理默认 dispatch 下 `index_select` 触发 `CUDA error: invalid device function`，**必须**设
   `VLLM_FL_PREFER=vendor` — `flagos-index-select-invalid-device-function`（demo 已内置）。
 - `XPU_EVENT_KL3_ENABLE=1` 单卡单进程即**挂死**，厂商手册要求设、实测不能设 —
@@ -45,8 +44,8 @@ FlagGems 用基座自带的那份（`/env/FlagGems`，editable，源码在镜像
 
 ## 复现
 
-本目录不复现缺陷，只交付可用底座；上面四条已知限制的复现方式见 [`../v1/lock.yaml`](../v1/lock.yaml)
-对应 `known_issues` 条目与 [`../v1/REBUILD.md`](../v1/REBUILD.md)「验证」。
+本目录不复现缺陷，只交付可用底座；上面四条已知限制的复现方式见 [`../v1/REBUILD.md`](../v1/REBUILD.md)「验证」与
+`dev/issues/kunlunxin-gemm-triton-compile/`。
 
 从零重建本镜像（单入口）：
 
@@ -97,7 +96,7 @@ docker compose -f dev/images/kunlun-operator-runtime/v2/demo/docker-compose.yml 
   脚本探的是 64×64，落在 `ttxir` 阶段，故报出的是 `OutOfResources: uni_sram`；
   **2026-10-12 已复核定论：它与 v1 记录的 `make_llir` 原生 abort 是同一个缺陷的两个失败阶段**，
   形态由 shape × dtype 决定（FlagGems 自带 `test_accuracy_mm` 18 组全失败，4 组 abort /
-  14 组 `OutOfResources`），见 [`lock.yaml`](lock.yaml)
+  14 组 `OutOfResources`），见 [`REBUILD.md`](REBUILD.md)
   `known_issues: gemm-same-defect-two-failure-stages` 与
   [`assets/evidence/gemm-failure-signature-recheck-20261012.txt`](assets/evidence/gemm-failure-signature-recheck-20261012.txt)。
 - **`flag_gems` 一项的判据是"期望它是基座那份 editable"**，与通常相反：本层既不 `COPY`

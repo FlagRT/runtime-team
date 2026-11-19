@@ -6,7 +6,7 @@
 
 本标准同时适用于 [`../issues/`](../issues/README.md) 下的跨方向缺陷 case 包——缺陷不随镜像版本走、
 不归属任何子方向,单独立目录,**借用**兄弟镜像目录的镜像与 demo:镜像侧档案(`Dockerfile.repro` /
-`lock.yaml` / `image.baseline.yaml` / `demo/`)不在 issue 目录内重复,改为在 README 的前置条件表中
+`image.baseline.yaml` / `REBUILD.md` / `demo/`)不在 issue 目录内重复,改为在 README 的前置条件表中
 声明所用镜像 tag、image id 与核对方式(`up.sh --strict`);§3 的三段标题相应读作
 **问题与现状 / 复现 / 修复验收**,内容义务不变。
 
@@ -46,7 +46,7 @@
   README.md                  # case 入口,三段式(见 §3)
   Dockerfile.repro           # ┐
   build.sh                   # │ 重建档案,规范见 README.md §2
-  lock.yaml                  # │ (技术口径权威:lock.yaml / REBUILD.md)
+  REBUILD.md                 # │ (技术口径权威:构建过程与验证;版本事实=image.baseline.yaml)
   REBUILD.md                 # │
   ARCHIVE.md / BACKUP.local  # ┘
   image.baseline.yaml        # 镜像基线(版本事实),规范见 dev/ENV-SPEC.md §3.1
@@ -92,7 +92,7 @@
 
 ## 3. README 三段式
 
-README 是摘要与入口,技术细节以 `lock.yaml` / `REBUILD.md` 为准,README 只给结论与指针。
+README 是摘要与入口,技术细节以 `REBUILD.md` 为准(版本事实以 `image.baseline.yaml` 为准),README 只给结论与指针。
 
 ```markdown
 # <name> v<N>
@@ -100,7 +100,7 @@ README 是摘要与入口,技术细节以 `lock.yaml` / `REBUILD.md` 为准,READ
 ## 用途与现状
 - 镜像 tag、image id、能力范围(发布物需在首句说明)
 - repro_status 及升级条件
-- 已知限制:每项一行,指向 lock.yaml known_issues 条目与需求文档
+- 已知限制:每项一行,指向镜像目录 README 已知限制节与需求文档
 
 ## 复现
 - 前置条件表:镜像 / 卡数 / 代码仓 / 模型与数据,每项给获取方式

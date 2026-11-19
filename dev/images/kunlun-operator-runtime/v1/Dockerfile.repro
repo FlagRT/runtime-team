@@ -35,7 +35,7 @@ RUN source /root/miniconda/etc/profile.d/conda.sh && conda activate ${CONDA_ENV}
 #     commit 73c5aff1 的 pyproject.toml 没有 kunlunxin extras 组（仅 test/example），
 #     --no-deps 是必须的：不加会让 pip 解析 torch 的可选依赖，拉起 PyPI 通用
 #     triton==3.5.0 覆盖 flagtree 提供的 triton/ 命名空间，冲掉 xpu 编译后端
-#     （libtriton.so 缺 xpu 扩展，见 lock.yaml known_issues pip-triton-shadowing）。
+#     （libtriton.so 缺 xpu 扩展，见发版说明限制清单；pip-triton-shadowing）。
 RUN source /root/miniconda/etc/profile.d/conda.sh && conda activate ${CONDA_ENV} \
     && cd /env/FlagGems \
     && git rev-parse HEAD | grep -q "^${FLAG_GEMS_COMMIT}$" \

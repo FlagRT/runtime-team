@@ -4,7 +4,7 @@
 #       Docker 20.10.8 / arm64）。assets/docker-history.txt 为原始逐层记录。
 # 角色：本月训练腿锁定基座，release.stage=candidate。torch_fl 例外线（厂商官方主线是华为昇腾的 torch_npu）。
 # 边界：父镜像为 custom（见 ../../ascend-operator-runtime/v1）；本文件仅叠加 FlagCX 一层，全部 custom。
-# byte 级重建还需：父镜像、assets/、flagcx wheel、按 commit+patch 构建的 flagcx。缺口见 lock.yaml:gaps。
+# byte 级重建还需：父镜像、assets/、flagcx wheel、按 commit+patch 构建的 flagcx。历史缺口记录见 git 历史。
 
 ARG PARENT_IMAGE=flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64
 FROM ${PARENT_IMAGE}

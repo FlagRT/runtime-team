@@ -183,7 +183,7 @@ def main() -> int:
                 # v2's known issue: teardown-time SIGABRT ("free(): invalid
                 # pointer") after a successful torch_fl+FlagCX collective,
                 # isolated to torch_fl/FlagCX exit-time cleanup ordering (see
-                # ascend-train-comm/v2/lock.yaml:known_issues). Since v3's
+                # ascend-train-comm/v2/REBUILD.md:known issues). Since v3's
                 # default path does NOT import torch_fl at all, this issue
                 # may or may not reproduce here -- print results before
                 # teardown regardless, defensively, and this must be

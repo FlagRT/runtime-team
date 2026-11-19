@@ -435,12 +435,12 @@ x-flagrt:
         with mock.patch.object(baseline, "repo_info", return_value={"branch": "main"}):
             return baseline.export_env(self.env, **kw)
 
-    def test_export_records_mounted_and_copies_baked(self):
+    def test_export_records_mounted_and_no_baked_copy(self):
         self.assertEqual(self._export(), 0)
         data = baseline.load_yaml(self.env / "env.baseline.yaml")
         self.assertEqual(data["kind"], "container")
         self.assertEqual(data["image"]["id"], "sha256:" + "a" * 64)
-        self.assertEqual(data["baked_repos"]["vllm-plugin-FL"]["commit"], "9" * 40)
+        self.assertNotIn("baked_repos", data)  # ADR-0030-P1b：不再抄录镜像固化资产
         m = data["mounted_repos"]["vllm-plugin-FL"]
         self.assertEqual(m["commit"], self.commit)
         self.assertFalse(m["dirty"])
@@ -460,7 +460,7 @@ x-flagrt:
         self.assertEqual(self._export(), 0)
         text = (self.env / "env.baseline.yaml").read_text(encoding="utf-8")
         self.assertIn("环境挂载（env）", text)
-        self.assertLess(text.index("baked_repos:"), text.index("环境挂载（env）"))
+        self.assertNotIn("baked_repos:", text)  # ADR-0030-P1b：不再抄录
         self.assertLess(text.index("环境挂载（env）"), text.index("mounted_repos:"))
         data = baseline.load_yaml(self.env / "env.baseline.yaml")
         self.assertFalse(data["mounted_repos"]["vllm-plugin-FL"]["pushed"])
@@ -1311,7 +1311,7 @@ x-flagrt:
                 baseline.export_env(env)
         self.assertIn("不可下放", str(cm.exception))
 
-    def test_env_export_copies_baked_packages(self):
+    def test_env_export_no_baked_packages_copy(self):
         img = self.tmp / "image.baseline.yaml"
         img.write_text(json.dumps({
             "schema": baseline.SCHEMA, "kind": "image",
@@ -1330,8 +1330,7 @@ x-flagrt:
         with mock.patch.object(baseline, "compose_binds", return_value=[]):
             self.assertEqual(baseline.export_env(env), 0)
         data = baseline.load_yaml(env / "env.baseline.yaml")
-        self.assertEqual(data["baked_packages"][0]["version"], "0.6.1+xpu3.6")
-        self.assertEqual(data["mounted_repos"], {})
+        self.assertNotIn("baked_packages", data)  # ADR-0030-P1b：不再抄录
 
 
 class TestBaseImageFacts(TempCase):
@@ -1701,7 +1700,7 @@ def fake_curl(page, rc=0, stderr=""):
 
 class TestIndexWheelSha256(TempCase):
     """坑都是 2026-10-12 在真索引页上实测到的，逐条钉死，见
-    kunlun-operator-runtime/v2/lock.yaml known_issues: flagtree-wheel-sha256-in-check-chain。"""
+    kunlun-operator-runtime/v2 历史构建记录（flagtree-wheel-sha256-in-check-chain）。"""
 
     def _resolve(self, page=IDX_PAGE, **kw):
         # TempCase 默认把 resolve_index_wheel 封死了，这里要测的正是它本体，故直接调

@@ -24,7 +24,7 @@ BAAI·FlagTree 官方公开资源,不是 FlagRT 私有资产,构建期只读、�
 | FlagTree 源码(triton_v3.5.x) | `Dockerfile.repro` 构建期从 `https://github.com/flagos-ai/FlagTree.git`(上游)`git fetch --depth 1` 到 pinned commit,未入库 |
 | 基座镜像 | `harbor.baai.ac.cn/flagtree/flagtree-ascend3.5-910c-py311-cann9.0.0-ubuntu22.04-aarch64:202608-torch2.10.0-vllm0.20.2`(本机已存在;BAAI·FlagTree 官方公开 harbor + 官方离线包镜像) |
 
-## 与 v1 的区别(见 lock.yaml 逐层 diff)
+## 与 v1 的区别(逐层 diff 见两版 image.baseline.yaml 的 baked_repos 对照)
 
 1. **基座**:BAAI·FlagTree 官方预构建镜像,取代 BAAI 内部手工构建的
    `pytorch-plugin-fl:manual-20260807-ascend-dev`。这是本血统相对 v1 的核心
@@ -90,7 +90,7 @@ import torch_fl                    # 之后再 import torch_fl
   PrivateUse1(不崩溃、不损坏状态)。
 - 先 `torch_npu`(或 autoload 生效)后 `torch_fl`:`torch_fl` 立即抛出清晰的
   `RuntimeError`,fail-loud,不会静默损坏。
-- 这与 `dev/stack.lock.910c.v1.yaml` 的 `per_leg.train.note`("必须
+- 这与 `dev/archive/stack.lock.910c.v1.yaml` 的 `per_leg.train.note`("必须
   `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先 import torch_fl 再 import torch")完全
   一致并进一步给出了实测证据。
 

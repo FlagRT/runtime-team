@@ -17,7 +17,7 @@
 
 | 问题 | 归属 | 详情 |
 |---|---|---|
-| Triton tle 子模块无条件 `import shmem`,该模块不在镜像内;任何含 for 循环的 Triton kernel 编译失败(含 vLLM 核心 kernel) | 算子编译方向 | `lock.yaml` known_issues `flag-gems-triton-ascend-missing-shmem-module`;需求文本:[决策备忘录附录 B](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
+| Triton tle 子模块无条件 `import shmem`,该模块不在镜像内;任何含 for 循环的 Triton kernel 编译失败(含 vLLM 核心 kernel) | 算子编译方向 | 已知限制 `flag-gems-triton-ascend-missing-shmem-module`（本表）;需求文本:[决策备忘录附录 B](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
 
 ## 复现
 
@@ -75,8 +75,8 @@ docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
 
 | 脚本 | 类别 | 命令(容器内,`/workspace` 下) | 通过判据 | 最近一次结果 |
 |---|---|---|---|---|
-| `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py --static`(`build.sh` 构建后自动执行) | 退出码 0 | round 4 通过(`lock.yaml` `verify_runtime_static`) |
-| `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py`(需带卡) | 退出码 0,`route_a_default_check: passed` | round 1 通过,结论沿用至今(`lock.yaml` `verify_runtime_dynamic_route_a_default`) |
+| `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py --static`(`build.sh` 构建后自动执行) | 退出码 0 | round 4 通过(`REBUILD.md`) |
+| `assets/verify_runtime.py` | 验证 | `python3 /opt/flagrt/verify_runtime.py`(需带卡) | 退出码 0,`route_a_default_check: passed` | round 1 通过,结论沿用至今(`REBUILD.md`) |
 | `assets/v3_step5_validate.py` | 验证 | 见「带规避配置运行」 | 退出码 0;9 个 `[STEP]` 全部 OK;`embedding_dim=1024`、两段文本向量范数≈1.0、`identical=false`、无 NaN/全零、NPU 显存 > 0 | 2026-10-10 demo 环境 9/9 PASS(脚本原样执行,无运行时修补);撤除规避配置的对照组按预期失败于 `No module named 'shmem'`。证据:[`assets/evidence/infer-demo-20261010.txt`](assets/evidence/infer-demo-20261010.txt) |
 | `assets/provenance/pipfreeze-*.txt` | 收数 | `build.sh` 构建后生成 | — | round 4 npu1-11:`pipfreeze-operator-runtime-v3-round4-npu11.txt` |
 
@@ -84,5 +84,23 @@ docker exec -w /workspace -e ASCEND_RT_VISIBLE_DEVICES=0 flagrt-v3-demo-910c \
 `assets/FlagGems-DSA-__init__.py`、`assets/patches/vllm-plugin-FL/`(见其 README)、
 `assets/shmem_stub.py`(由 demo 运行时挂载,不进镜像)。
 
-技术细节与完整排查过程:`REBUILD.md`、`lock.yaml`;round 4 结论摘要:
+技术细节与完整排查过程:`REBUILD.md`;round 4 结论摘要:
 [`docs/v3-round4-真机验证结果与移交指导-20261009.md`](../../../../docs/v3-round4-真机验证结果与移交指导-20261009.md)。
+
+## torch_npu 默认发现行为
+
+> 2026-11-18 整理自本目录历史构建记录，内容未改。
+
+  v2 的实测结论（见 ascend-operator-runtime/v2/REBUILD.md「torch_npu 共存问题」）
+  已经确认：torch_fl 与 torch_npu 的冲突是"进程内 import 顺序"约束，不是"能否
+  共装"的约束。v3 只是把这一发现从"验证一个可选的安全 no-op 顺序"变成"以此为
+  依据，把 torch_npu 设为默认、torch_fl 降级为需要显式反向操作才能激活"：
+    - 默认（v3 镜像原样起一个 python 进程）：`import torch` 即可让 torch_npu
+      的 autoload 抢注 PrivateUse1="npu"，无需任何特殊 import 顺序或 ENV。
+    - opt-in（调用方显式要）：先 `export TORCH_DEVICE_BACKEND_AUTOLOAD=0`，
+      在 torch_npu 抢注之前手动 `import torch_fl`，可继续使用 flagos 路径
+      （例如仍想跑 FlagGems 的场景）——这与 v2 的默认路径完全一致，只是从
+      "本镜像的默认"变成"调用方的显式选择"。
+  assets/verify_runtime.py 的 --check-torch-fl-guard 验证反过来的失败路径
+  （torch_npu 已抢注后再 import torch_fl 必须 RuntimeError fail-loud），确保
+  它不会意外变成"静默可用"。

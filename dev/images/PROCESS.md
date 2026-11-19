@@ -4,7 +4,7 @@
 
 > 只记录"怎么走到今天这个状态"的过程性叙述（尝试了什么、为什么换路线、round 之间的
 > 因果关系、STOP CONDITION 的发现与处理）。**当前状态的事实性结论**见 `image_list.md`
-> （索引，含层级视图）与各 `<name>/vN/lock.yaml`（权威，逐层 pin + changelog）。
+> （索引，含层级视图）与各 `<name>/vN/REBUILD.md`（构建过程与验证记录；版本事实以 image.baseline.yaml 为准）。
 > 本文件按芯片 → 版本线 → round 组织，是跨系列（`ascend-operator-runtime` +
 > `ascend-train-comm` 等）的综合叙述，只做跨系列的因果串联——单个系列自己的完整技术细节
 > 仍以其自己的 `REBUILD.md` 为准。
@@ -32,7 +32,7 @@ pip 装上游 `triton==3.5.0` 官方 wheel + **华为昇腾官方** `triton-asce
 （取代 pip 装 wheel 组合）。实测 `triton.__version__ == 3.5.1`（手册版本线表格暗示
 3.5.0，按实测记录，未采信假设）。FlagCX 层改用 `FlagRT/FlagCX` 组织仓公开主干 tip
 commit `4e0e0cbcbf721169ca82348080f8353aebfe2c31`，**不再依赖任何 owner 私有
-commit/patch**，`lock.yaml` 不再有 `gaps` 段。
+commit/patch**。
 
 **关键实测结论（后续 v3 的设计依据）**：torch_fl 与 torch_npu 的冲突是**进程内
 import 顺序**约束，不是"能否共装"的约束——先 `torch_fl` 后 `torch_npu`：安全；反过来
@@ -45,7 +45,7 @@ async_all_reduce 40/40 通过（fp32+bf16）。已知遗留问题：集合通信
 退出阶段有 `free(): invalid pointer` SIGABRT（已隔离验证与 torch_npu 无关，疑似
 FlagCX/Torch-FL 退出期清理顺序冲突），不影响通信正确性本身。
 
-**候选状态**：未进入 `dev/stack.lock.910c.v1.yaml` 的 `lock:`（现网仍锁 v1），
+**候选状态**：未进入 `dev/archive/stack.lock.910c.v1.yaml` 的 `lock:`（现网仍锁 v1），
 是否切换由总组另行裁定。
 
 ### v3：Route A 默认 + 训练/推理统一血统（起草 2026-09-22，round 1-3 实机验证）
@@ -150,7 +150,7 @@ wheel / 关闭 FlagGems 让 `cos` 落回 torch_npu 原生实现 / 手写空 `shm
 `ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」与
 `ascend-train-comm/v3/REBUILD.md`「ROUND 3」。
 
-**候选状态**：未进入 `dev/stack.lock.910c.v2.yaml` 的 `lock:`/`candidates:`，
+**候选状态**：未进入 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock:`/`candidates:`，
 是否登记候选、是否切换由总组另行裁定——鉴于两项决策仍待拍板，**不建议在完成前
 登记为候选**。
 
@@ -162,7 +162,7 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
 
 - **决策①（吸收 FlagCX sync 修复）**：不切换 FlagRT 私有 fork，改为在上游 pin
   `8b059122e` 之上叠加**显式声明的覆盖层补丁**——`5d545c9` 的 format-patch
-  原样导出入档 `assets/patches/vllm-plugin-FL/`（sha256 记入 lock.yaml），
+  原样导出入档 `assets/patches/vllm-plugin-FL/`（sha256 记入 REBUILD.md），
   实测干净套用零冲突（上游 tip 领先 fork 基点 19 提交，但均未触碰补丁涉及的
   两个文件）；Dockerfile.repro 加 `git apply --check`（fail-closed）。补丁有
   保质期：上游合入后整层删除。upstream-first 并行启动（PR 草稿见决策备忘录
@@ -184,7 +184,7 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
   flagcx c10d 层（SYNC-FIX 不覆盖 c10d ProcessGroup）。两条血统
   `repro_status` **维持 🟡**：解堵依赖镜像外配置（推理）/ c10d 层未修
   （训练），不满足纯镜像复现标准；升 🟢 条件分别为算子编译组根治 shmem、
-  FlagCX c10d 层 sync 修复。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是
+  FlagCX c10d 层 sync 修复。未改 `dev/archive/stack.lock.910c.v2.yaml`（v3 仍是
   候选，非生效）。
 
 ---

@@ -28,7 +28,7 @@ OneRec-8B序列16→64，64/128 MiB各三轮×50步，6/6通过，399个参数�
 以下为旧FlagCX路线的历史看板，不代表最新Route A的验证范围。
 
 > **状态：🟡 双卡正确性基线已完成，训练腿联合收口中（2026-09-09）** ｜ 本文档 = 任务看板入口，供运行时组全员维护
-> 统一基座：`dev/stack.lock.910c.v1.yaml`；训练腿使用 FlagCX 0.13.0；代码主战场为独立 FlagCX 仓库。
+> 统一基座：`dev/archive/stack.lock.910c.v1.yaml`；训练腿使用 FlagCX 0.13.0；代码主战场为独立 FlagCX 仓库。
 
 ## 目标（一句话）
 
@@ -90,7 +90,7 @@ dev/communication/
 
 ## 统一基座启动方式
 
-结论性验证只使用 `dev/stack.lock.910c.v1.yaml` 中的锁定训练容器 `flagos-proto-train-910c`。启动前确认目标卡空闲，且带卡容器总数不超过 3：
+结论性验证只使用 `dev/archive/stack.lock.910c.v1.yaml` 中的锁定训练容器 `flagos-proto-train-910c`。启动前确认目标卡空闲，且带卡容器总数不超过 3：
 
 ```bash
 npu-smi info

@@ -27,10 +27,10 @@
 - **影响**：需要 GEMM 重的算子路径的消费方（阶段 3 推理链路）必须绕开 FlagGems 的 GEMM。
   同根因家族的第二类受影响算子是 `index_select`（vLLM rotary embedding 路径，
   `VLLM_FL_PREFER=vendor` 可绕），见
-  [`../../images/kunlun-operator-runtime/v1/lock.yaml`](../../images/kunlun-operator-runtime/v1/lock.yaml)
+  [`../../images/kunlun-operator-runtime/v1/REBUILD.md`](../../images/kunlun-operator-runtime/v1/REBUILD.md)
   `known_issues: flagos-index-select-invalid-device-function`。
   镜像侧结论与取舍见
-  [`../../images/kunlun-operator-runtime/v2/lock.yaml`](../../images/kunlun-operator-runtime/v2/lock.yaml)
+  [`../../images/kunlun-operator-runtime/v2/README.md`](../../images/kunlun-operator-runtime/v2/README.md)
   `known_issues: gemm-same-defect-two-failure-stages` 与 v1 的 `gemm-compile-sigabrt`。
 - **上游版本声明滞后的佐证**（非本组实测）：FlagGems 仓 `backends.yaml` 仍声明
   `triton==3.0.0+a48aedef`（xpu3.0 时代遗留，与 xpu3.6 线不符），说明 xpu3.6 线未对 GEMM
@@ -46,7 +46,7 @@
 |---|---|---|
 | `kunlun-operator-runtime v2` · 第 0 版（[`demo/`](../../images/kunlun-operator-runtime/v2/demo/docker-compose.yml)） | **在该版仍命中** | 2026-10-12 本机卡 7：`overall: FAIL`（退出码 1），12 组全失败——2 组原生 abort、10 组被误标 `OutOfResources: uni_sram`、编译并算对 0 组 |
 | `kunlun-operator-runtime v2` · env/v1（[`env/v1/`](../../images/kunlun-operator-runtime/v2/env/v1/README.md)） | **编译维度在该版已修**（显式启用后）；数值维度另案（见下） | 2026-10-28 本机卡 0（发布形态 = 验收形态）：显式启用 GEMM compat（`enable-gemm-compat.sh` / `import gemm_compat`）后 minirepro **12/12 编译通过**（abort 0 / OOR 0）+ FlagGems pytest `test_accuracy_mm` **18/18 passed** (16.57s) + 扩展 mm/bmm/addmm **99/99 passed** (60.67s) + 装置自证 4 项 PASS + `up.sh --strict` PASS（image id + 挂载 FlagGems commit `4a00b845`）。修复载体 = 挂载补丁版 FlagGems（`FlagRT/FlagGems` 分支 `xliu969/kunlun-gemm-compat`，基点 = 镜像固化 `73c5aff1`）+ 编译组 compat 包（`Xproject-CHKU-SZ/FlagTree` @`edca42a`，进程内加载）；启用方式与适用前提见 env/v1 README（ADR-0010）。**数值维度未收口**：12 组中 7 组编译通过但数值超本 case 容差（64³ fp32/fp16/bf16 + 大形状 fp16/bf16），与修复前定量一致——已拆独立 case [`../kunlunxin-gemm-numeric-64cube/`](../kunlunxin-gemm-numeric-64cube/README.md)（K-5），本 case 的「编译并算对」整体判据在数值 case 关闭前仍为未达成 |
-| `kunlun-operator-runtime v1` · 第 0 版 | **未在该版测过**（指本 case 的 12 组判据） | 该血统无运行环境目录，本目录脚本未在其上跑过。v1 [`lock.yaml`](../../images/kunlun-operator-runtime/v1/lock.yaml) `known_issues: gemm-compile-sigabrt` 记有同 pin 组合下 GEMM 崩溃的实测，但判据与读数口径与本 case 不同，不折算为本 case 的表态 |
+| `kunlun-operator-runtime v1` · 第 0 版 | **未在该版测过**（指本 case 的 12 组判据） | 该血统无运行环境目录，本目录脚本未在其上跑过。v1 [`REBUILD.md`](../../images/kunlun-operator-runtime/v1/REBUILD.md) 记有同 pin 组合下 GEMM 崩溃的实测（gemm-compile-sigabrt），但判据与读数口径与本 case 不同，不折算为本 case 的表态 |
 
 该血统首个运行环境修订版 env/v1 已发布（2026-10-28，ADR-0010），表态见上表；后续修订版发布时
 本 case 继续逐版表态，三态之一，未测过就写「未在该版测过」。
@@ -125,7 +125,7 @@ overall: FAIL
    都打不出来）。验收：编译失败以可捕获的 python 异常抛出，调用方可降级。
 
 修复到货后：本目录脚本判定转 `overall: PASS`；
-[`kunlun-operator-runtime/v2/lock.yaml`](../../images/kunlun-operator-runtime/v2/lock.yaml)
+[`kunlun-operator-runtime/v2/README.md`](../../images/kunlun-operator-runtime/v2/README.md)
 的 `known_issues: gemm-same-defect-two-failure-stages` 与 v1 的 `gemm-compile-sigabrt` 一并关闭；
 `v2/assets/verify_kunlun_runtime.py` 的 GEMM 探测由 `KNOWN` 行改为计入判定。
 
@@ -143,7 +143,7 @@ overall: FAIL
 2026-10-22 —— 依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》新增「版本集合」节
   （口径参照 Debian 的 Found/Fixed 为版本集合而非单值，坐标 = 血统 + 运行环境修订）：
   kunlun-operator-runtime v2 第 0 版仍命中（2026-10-12 读数）；v1 第 0 版写「未在该版测过」——
-  v1 lock.yaml 的 gemm-compile-sigabrt 虽有同 pin 组合的崩溃实测，但不是本 case 的 12 组判据，
+  v1 REBUILD.md 的 gemm-compile-sigabrt 虽有同 pin 组合的崩溃实测，但不是本 case 的 12 组判据，
   不折算为本 case 的表态；该血统尚无 env/vN，故无第 1 版可表态，并写明发版后须重新表态。
   本批未跑任何 P800 验证（无 docker），表中读数全部沿用既有证据，未新增任何状态声明。
   未改动：NOTES-step-by-step.md 与 assets/。

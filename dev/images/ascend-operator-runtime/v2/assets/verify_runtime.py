@@ -81,7 +81,7 @@ def main() -> int:
     # Actual measured triton version for the FlagTree triton_v3.5.x build
     # (commit 15ec1a6cbc8d51f597f46459a500e96f3812c58f) is 3.5.1 -- NOT the
     # 3.5.0 the FlagTree manual's version-line table implies. Recorded as
-    # measured fact, not assumed from the manual (see lock.yaml).
+    # measured fact, not assumed from the manual (see REBUILD.md).
     assert versions["triton"] == "3.5.1", versions
     assert versions["flagtree"].startswith("0.6.0+ascend.git15ec1a6c"), versions
 

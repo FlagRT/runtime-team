@@ -1,7 +1,7 @@
 # ascend-train-comm —— 路径 B（功能等价，可从代码仓 + 回收资产复现）
 # 参照 dev/images/ascend-train-comm/v1/Dockerfile（history 还原，byte 级目标）。
 # 路径 B 替代点：FlagCX 用从原镜像回收的「已装包 + dist-info」vendor 进来
-#   （原始 wheel 已 rm、commit 55eb2ff + 2 patch 为 owner 私有，见 lock.yaml:gaps）。
+#   （原始 wheel 已 rm、commit 55eb2ff + 2 patch 为 owner 私有，历史 gaps 记录见 git 历史）。
 ARG PARENT_IMAGE=flagrt/ascend-operator-runtime:0.2.0-reproB
 FROM ${PARENT_IMAGE}
 

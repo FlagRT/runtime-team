@@ -10,8 +10,8 @@
 
 | v1 的做法 | v2 的做法 | 为什么 |
 |---|---|---|
-| `cd /env/FlagGems && pip install .`——从**父镜像自带的源码目录重新安装一遍** | **连装都不装**：直接用父基座已装好的那份（`/env/FlagGems`，editable，源码在镜像内，按 [`../../../ENV-SPEC.md`](../../../ENV-SPEC.md) §2.1 即固化资产 `install: editable-in-image`） | 组内决策口径：不变更基座已有的资源，非必要不额外追加，保持镜像最简最完备。v1 那条 `pip install .` 既多出一层，又依赖 `/env/FlagGems` 这个**可变目录在构建期存在且未被动过**；基座本来就装好了同一个 commit，重装一遍不增加任何事实。改完后本层相对基座**只新增 flagtree 一个包**，重建也不再依赖宿主任何 checkout。代价（版本事实改由基座 pip 元数据承载、标签降格为「对基座内容的断言」）见 [`lock.yaml`](lock.yaml) `known_issues: flaggems-version-fact-comes-from-base` |
-| 静态自检 `import torch, flag_gems, triton` | 不 import `flag_gems`，改断言 dist 版本 + `from triton._C.libtriton import xpu` + `flag_gems` **是**基座那份 editable-in-image 安装（`url == file:///env/FlagGems`） | `import flag_gems` 在无设备容器里必抛 `RuntimeError: No device were detected on your machine !`，而 `docker build` 不能传 `--device`——v1 那个自检层在普通构建中**不可能通过**（这也是 v1 归档镜像实为 `docker commit` 产物的证据之一，见 [`../v1/lock.yaml`](../v1/lock.yaml) `known_issues: v1-image-is-docker-commit-not-build`）。`flag_gems` 这一项的期望值与通常相反——§2.1 禁止的是**本组构建层**做 editable 安装，父镜像继承来的 editable 安装源码在镜像内即为固化资产；这条断言确认的是「用的确实是基座那份，没有被覆盖」 |
+| `cd /env/FlagGems && pip install .`——从**父镜像自带的源码目录重新安装一遍** | **连装都不装**：直接用父基座已装好的那份（`/env/FlagGems`，editable，源码在镜像内，按 [`../../../ENV-SPEC.md`](../../../ENV-SPEC.md) §2.1 即固化资产 `install: editable-in-image`） | 组内决策口径：不变更基座已有的资源，非必要不额外追加，保持镜像最简最完备。v1 那条 `pip install .` 既多出一层，又依赖 `/env/FlagGems` 这个**可变目录在构建期存在且未被动过**；基座本来就装好了同一个 commit，重装一遍不增加任何事实。改完后本层相对基座**只新增 flagtree 一个包**，重建也不再依赖宿主任何 checkout。代价（版本事实改由基座 pip 元数据承载、标签降格为「对基座内容的断言」）（flaggems-version-fact-comes-from-base） |
+| 静态自检 `import torch, flag_gems, triton` | 不 import `flag_gems`，改断言 dist 版本 + `from triton._C.libtriton import xpu` + `flag_gems` **是**基座那份 editable-in-image 安装（`url == file:///env/FlagGems`） | `import flag_gems` 在无设备容器里必抛 `RuntimeError: No device were detected on your machine !`，而 `docker build` 不能传 `--device`——v1 那个自检层在普通构建中**不可能通过**（这也是 v1 归档镜像实为 `docker commit` 产物的证据之一，见 `docs/裁定备忘-20261014-总组.md`）。`flag_gems` 这一项的期望值与通常相反——§2.1 禁止的是**本组构建层**做 editable 安装，父镜像继承来的 editable 安装源码在镜像内即为固化资产；这条断言确认的是「用的确实是基座那份，没有被覆盖」 |
 
 > v1 还有一条 `git rev-parse HEAD | grep -q "^${FLAG_GEMS_COMMIT}$"` 的构建期手工断言，
 > v2 一并删除：它的前提（父镜像带着 `.git`）脆弱且不在本组控制下。同一件事现由
@@ -46,7 +46,7 @@
    可选依赖 `triton==3.5.0`（PyPI 通用 triton，与 flagtree 是两个 pip 发行名但共享 `triton/`
    顶层导入命名空间），**物理覆盖** flagtree 提供的 `triton/` 目录，`triton._C.libtriton.so`
    变成不含 xpu 扩展的版本，flagtree 整体不可用。详见
-   [`../v1/lock.yaml`](../v1/lock.yaml) `known_issues: flaggems-kunlunxin-extras-missing`
+   发版说明限制清单 K-4（flaggems-kunlunxin-extras-missing）
    （含「`pip install .[kunlunxin]` 在该 commit 上静默退化」这个坑）。
 3. **`ARG PYTHON_BIN` 必须是目标 conda env 解释器的绝对路径**，不能依赖 `PATH` 上的 `python3`：
    本基座 `PATH` 上的是 miniconda base 的 **3.13.11**，目标 env 的是 **3.10.18**。v2 用

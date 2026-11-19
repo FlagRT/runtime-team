@@ -25,8 +25,8 @@
 
 | 问题 | 归属 | 详情 |
 |---|---|---|
-| FlagCX c10d collective 两类缺陷:① `broadcast` / `all_reduce` / `all_gather_into_tensor` 返回时数据未写完,同步后正确;DDP 初始化的 C++ 校验(`_verify_params_across_processes` → `all_gather_into_tensor`)命中此类,原生 DDP 不可用;② 列表形式 `all_gather` 得到上一次调用的结果,同步无效 | FlagCX 通信方向 | `lock.yaml` known_issues `flagcx-broadcast-allgather-wrong-result`;`REBUILD.md`「ROUND 4 真机验证——训练腿」②;需求文本:[决策备忘录附录 B-2](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
-| 进程退出时 `free(): invalid pointer` SIGABRT(结果已在退出前输出,不影响判定) | FlagCX 通信方向(低优先级) | `lock.yaml` known_issues `teardown-sigabrt` |
+| FlagCX c10d collective 两类缺陷:① `broadcast` / `all_reduce` / `all_gather_into_tensor` 返回时数据未写完,同步后正确;DDP 初始化的 C++ 校验(`_verify_params_across_processes` → `all_gather_into_tensor`)命中此类,原生 DDP 不可用;② 列表形式 `all_gather` 得到上一次调用的结果,同步无效 | FlagCX 通信方向 | 已知限制 `flagcx-broadcast-allgather-wrong-result`(本表);`REBUILD.md`「ROUND 4 真机验证——训练腿」②;需求文本:[决策备忘录附录 B-2](../../../../docs/v3-决策备忘录与shmem跨组需求-20261008.md) |
+| 进程退出时 `free(): invalid pointer` SIGABRT(结果已在退出前输出,不影响判定) | FlagCX 通信方向(低优先级) | 已知限制 `teardown-sigabrt`(本表) |
 | 默认学习率 5e-5 在 bf16 + AdamW 下第 16 步出现 NaN,需使用 1e-5 | 本组(训练脚本参数) | `REBUILD.md`「ROUND 4 真机验证——训练腿」③ |
 
 ## 复现
@@ -95,4 +95,4 @@ overall: FAIL
 
 round 4 训练与 DDP 阻塞证据(npu1-11,用户 xliu969,`~/tmp-reproV3-r4/train-leg/outputs/`):
 `train_lr1e5.log`(手动 DDP loss 曲线)、`probe_agit.log`(`all_gather_into_tensor`
-未同步 FAIL / 同步后 PASS)。技术细节:`REBUILD.md`、`lock.yaml`。
+未同步 FAIL / 同步后 PASS)。技术细节:`REBUILD.md`。

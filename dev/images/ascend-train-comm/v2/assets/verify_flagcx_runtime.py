@@ -9,7 +9,7 @@ v2 lineage differences from v1 (dev/images/ascend-train-comm/v1):
     that v1 depends on. There are no private patches to apply and no wheel to
     vendor from a torn-down build -- `pip install . --no-build-isolation`
     with USE_ASCEND=1 builds it end to end from a clean checkout. See
-    lock.yaml for the "相比 v1 的改进" note.
+    REBUILD.md for the "相比 v1 的改进" note.
   - The build-time "torch_npu must not coexist with the Torch-FL runtime"
     assertion from v1 is replaced with the same import-order coexistence
     check used in ascend-operator-runtime/v2's verify_runtime.py (see that

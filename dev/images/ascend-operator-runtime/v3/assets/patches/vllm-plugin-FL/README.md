@@ -2,7 +2,7 @@
 
 本目录存放 v3 血统对上游 `flagos-ai/vllm-plugin-FL` 的**显式声明的覆盖层补丁**——
 不切换到 FlagRT 私有 fork，保持"公开基座 + 声明过的补丁"性质。每个补丁一个文件，
-带 sha256 记入 `lock.yaml`，上游合入后整层删除（补丁有保质期，见各补丁头部）。
+带 sha256 记入 `REBUILD.md`，上游合入后整层删除（补丁有保质期，见各补丁头部）。
 
 ## 0001-fix-ascend-int64-mask-promote-flagcx-sync.patch
 
