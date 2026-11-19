@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# 验收样例（S5 教学示范首件）· fm-smoke-ascend —— FlagMemory 池冒烟（昇腾 910C 真卡，3 用例）
+# 验收样例 · fm-smoke-ascend —— FlagMemory 池冒烟（昇腾 910C 真卡，3 用例）
 #
-# 【定位】本样例是 S5 模板推广的**教学示范**：严格按《验收样例上手指引》五步实现的
-#   最小完整样例，供各方向做首件样例时对照——四件套怎么组织、env 怎么引用、判据怎么
-#   定成机器可判。规范权威 = dev/images/CASE-TEMPLATE.md §0。
+# 规范：dev/images/CASE-TEMPLATE.md §0（验收样例四件套）。
 #
 # 【环境引用方式】不自建运行环境目录，直接引用现行环境目录
 #   dev/images/ascend-train-comm/v3/env/v2（镜像 + FlagCX/flagos-device-context/FlagMemory

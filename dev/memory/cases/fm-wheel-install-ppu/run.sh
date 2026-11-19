@@ -1,20 +1,9 @@
 #!/usr/bin/env bash
-# 验收样例（S5 教学示范第二件）· fm-wheel-install-ppu —— 继承现行环境 + pip 安装交付组件（FM wheel）
+# 验收样例 · fm-wheel-install-ppu —— 继承环境 + pip 安装交付组件（FM wheel）
 #
-# 【定位】与 fm-smoke-ascend（纯引用式）配对的教学示范：本件演示**在引用的环境之上，
-#   自己额外加装交付组件**——以 FM 发布 wheel（pip 安装）装进容器再验收。消费方视角：
-#   手里只有 wheel，没有 FM 源码仓。
-#
-# 【环境引用方式与选型教学点】不自建运行环境目录，直接引用 FM 在 PPU 的现行定档环境
-#   dev/memory/cases/tiering-async-ppu/env/（flagrelease vllm0.24 定档镜像 + FlagMemory
-#   源树 pip-editable 挂载，commit 守门 58e60a9）。为什么不用 thead-ppu env/v1：该镜像
-#   vllm 0.19，FM connector 需 ≥0.24（RUNBOOK 已登记边界）——**引用哪个环境要看组件的
-#   版本依赖**，这是做首件样例时必须核对的一步。详见 env/README.md。
-#
-# 【双形态对照（教学核心）】本环境默认以源树 pip-editable 提供 FM（开发者形态）；
-#   本样例在其上 pip 安装发布 wheel（消费方形态）——C2 判据一前一后各核一次
-#   __file__ 落点：装前=/workspace/FlagMemory（继承自环境），装后=site-packages（wheel
-#   生效）。容器销毁即恢复源树形态（pip-editable 起容器重装），幂等。
+# 消费方场景：手里只有 FM 发布 wheel，没有源码仓。环境引用与加装方式见 env/README.md；
+# 判据含双形态对照：装 wheel 前（环境源树 pip-editable）与装后（site-packages）各核一次
+# __file__ 落点，证明生效的确是 wheel 那份（未被源码挂载遮蔽）。容器销毁即恢复源树形态。
 #
 # 【单入口】幂等。流程 = 选卡核对（ppu-smi 零负载）→ wheel sha256 自证 → up.sh --strict
 #   （镜像 id + FM 挂载 commit）→ C2a 继承面（源树形态）→ docker cp + pip 装 wheel →

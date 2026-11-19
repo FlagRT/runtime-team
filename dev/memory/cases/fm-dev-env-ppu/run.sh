@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# 验收样例（S5 教学示范第三件）· fm-dev-env-ppu —— 自建派生环境 + FM 开发线真卡验证
+# 验收样例 · fm-dev-env-ppu —— 自建派生环境 + FM 开发线真卡验证
 #
-# 【定位】三部曲之三：①纯引用（fm-smoke-ascend）②引用+临时加装（fm-wheel-install-ppu）
-#   ③**自建派生环境**（本件）——对齐 FM 在 PPU 的现行定档环境（tiering-async-ppu/env），
-#   唯一差异 = FM 挂载锚切开发分支。演示「开发分支的 strict 验证」这一自建标准场景。
+# 自建派生运行环境（ENV-SPEC §3.2「各方向自建」）：对齐母本与差异清单见 env/README.md。
 #
 # 【顺便承载的真实特性开发】本样例的判据 = FM 分支 xliu969/fix-ppu-copyin-test 的
 #   验证：该修复更正了 test_ppu_backend_realcard.py 换行换入用例的数据行
@@ -32,7 +30,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 ENV_DIR="$HERE/env"
 CONTAINER=flagrt-fm-dev-ppu-ptg0
-FM_COMMIT_EXPECT="${FM_COMMIT_EXPECT:-08af9f318dc6e26cdb0796288d6fb0d1227c66ad}"   # xliu969/fix-ppu-copyin-test 线头
+FM_COMMIT_EXPECT="${FM_COMMIT_EXPECT:-3b7cdb1df0a59ea0dd935ab6fef0432ca7301dc6}"   # FM dev-1.0 头（含 fix-ppu-copyin-test）
 TS="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="/tmp/fm-dev-env-ppu-$TS"
 mkdir -p "$LOG_DIR"
@@ -96,7 +94,7 @@ done
 GOT_FM="$(docker exec "$CONTAINER" bash -c 'cd /workspace/FlagMemory && git rev-parse HEAD' 2>/dev/null | tail -1)"
 echo "[INFO] 容器内 FM 检出: $GOT_FM"
 if [ "$GOT_FM" = "$FM_COMMIT_EXPECT" ]; then
-  echo "[PASS] C2 锚核对: 容器内 FM = $FM_COMMIT_EXPECT（开发分支头）"
+  echo "[PASS] C2 锚核对: 容器内 FM = $FM_COMMIT_EXPECT（FM dev-1.0 头）"
 else
   echo "[FAIL] C2 锚核对"; FAILURES+=("fm-anchor")
 fi

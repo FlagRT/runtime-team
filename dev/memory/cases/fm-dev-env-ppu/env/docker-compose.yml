@@ -4,7 +4,7 @@
 #   dev/memory/cases/tiering-async-ppu/env/（FM 在 PPU 的现行定档环境）。
 #   镜像 / SDK 三件套 / 设备映射 / 容器骨架 **逐项与母本一致**（image.anchor.yaml 同镜像）；
 #   **唯一差异 = FlagMemory 挂载锚**：母本守门在 v0.3.0 发版 commit（58e60a9），本目录
-#   锁 FM 开发分支（xliu969/fix-ppu-copyin-test，见 env.baseline.yaml 的 mounted_repos）。
+#   锁 FM dev-1.0 线头（见 env.baseline.yaml 的 mounted_repos；当前 = 3b7cdb1，含 fix-ppu-copyin-test）。
 #   为什么不改母本：现行环境守发版 commit，不因个人开发线改动——**开发分支的 strict
 #   验证正是「自建派生环境」的标准场景**。
 #
@@ -77,5 +77,5 @@ services:
 
 # ---------------------------------------------------------------
 # changelog
-# 2026-11-19  新建（S5 教学示范第三件·自建派生环境）：母本 = tiering-async-ppu/env，
-#             唯一实质差异 = FM 锚切开发分支 fix-ppu-copyin-test（08af9f3）。
+# 2026-11-19  新建：自建派生环境，母本 = tiering-async-ppu/env，唯一差异 = FM 锚
+#             （开发分支 08af9f3 已合入 FM dev-1.0@3b7cdb1，本目录锚随 dev-1.0 头）。
