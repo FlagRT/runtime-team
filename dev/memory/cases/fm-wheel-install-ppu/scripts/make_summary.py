@@ -12,7 +12,7 @@ out, image_id, wheel_sha, c1 = sys.argv[1:5]
 fails = sys.argv[5:]
 cases = {
     "C1-env-strict": c1,
-    "C2-install-face": "fail" if "install-face" in fails or "pip-install" in fails or "wheel-cp" in fails else "pass",
+    "C2-install-face": "fail" if any(k in fails for k in ("install-face", "pip-install", "wheel-cp", "inherit-face")) else "pass",
     "C3-smoke-e2e": "fail" if "smoke" in fails else "pass",
 }
 n_pass = sum(v == "pass" for v in cases.values())
