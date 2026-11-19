@@ -1,6 +1,6 @@
 # performance — 性能评测与诊断
 
-> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-11-05（P800/PPU；核心历史阶段截至 10-28）
+> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-11-19（P800/PPU/训练；核心历史阶段截至 10-28）
 > 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
 > 职责：统一国产设备的算子、推理与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
 
@@ -35,6 +35,7 @@
 | Operation（平头哥 PPU） | Docker/local、原生/FlagGems 双路径已接通 | 各 299 项正确性通过、9 项失败；路由 290 passed / 9 partial；任务 299 partial / 9 failed | [PR #6](https://github.com/FlagRT/FlagPerf/pull/6) 已合并；失败未全部闭合，[实测报告](evidence/PPU-Operation实测结果-20261023.md) |
 | Inference v2（昆仑芯 P800） | Qwen/OneRec 运行、采集、分析与报告已测 | 整合软件及历史产物复核未见新增回归；klx2 代表性单卡通过；klx1 模型搬运异常、整合版新 TP2 待补 | [PR #12](https://github.com/FlagRT/FlagPerf/pull/12) 待评审；OneRec 单卡/TP2 分歧保留，[实测报告](evidence/P800-Inference-v2实测结果-20261105.md) |
 | Inference v2（平头哥 PPU） | Qwen 单卡/TP2、采集分析及归档恢复已测 | 两台同型主机核心链路可用；OneRec 未做设备端生成验证 | PR #12 待评审；性能未取得资格，[实测报告](evidence/PPU-Inference-v2实测结果-20261104.md) |
+| Training（FlagPerf 训练部分） | 训练执行协议、观察态采集与多卡画像链路已形成 | 三家芯片（Ascend / THead / Kunlunxin）实测；Top5 模型除多模态外覆盖；单卡 / 多卡 DDP / FSDP 实测；模型层 §5.5 四条全部实现并有实测 | 代码 `FlagPerf/zhiyu/perf-train`；交付报告与最佳实践见本目录 [FlagPerf训练适配完成报告.md](FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](FlagScale使用FlagPerf最佳实践.md) |
 | 两段 Demo 统一验收报告 | 未完成 | Operation/Base/Inference 是支撑能力；Inference 证据为 PyTorch/Transformers 路径与专用固定输入，不等于 vLLM 服务口径验收；训练吞吐与跨方向证据尚未统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
 当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
@@ -43,6 +44,22 @@ Inference 的性能数字在采集期间存在同板卡外部负载，属于功�
 上文 V1–V4 指旧 `FlagPerf_advance/inference/` 的功能版本；新增目录 `inference_v2/` 是另一条观测基座主线，
 不能与旧工具的“V2 A100 参考”混同。旧工具在替代条件满足前继续保留，研发快照与已公开迁移版本分别记录。
 P800（昆仑芯）与 PPU（平头哥）2026-10 起的进展同样遵循上述四种状态区分：P800 Base 冻结与 Toolkit 全量通过不外推为 Operation 完整验收（`validated:false`）；PPU Base 冻结不含 16-rank 与 FP8，Toolkit 12/12 通过也不使 candidate runtime 晋级。P800 各轮设备占用与外部干扰分别记录，不把分轮补测合并表述为一次连续独占全量运行；结论以各报告的运行身份和边界为准。
+
+### 1.1 Training 训练适配（2026-11）
+
+训练部分的开发、跨厂商适配与实机测试本周完成，交付两份文档：
+
+- [FlagPerf训练适配完成报告.md](FlagPerf训练适配完成报告.md)：模型层 §5.5 四条需求的逐条完成情况与证据索引、三平台验证矩阵、九个关注模型的支持情况、已知限制；
+- [FlagScale使用FlagPerf最佳实践.md](FlagScale使用FlagPerf最佳实践.md)：接入方式（含在 FlagScale `train_retrieval.py` 的真实集成与补丁）、典型集成实例、每个功能的输出位置与解读方法、九个模型的使用说明。
+
+本周结果摘要：
+
+- 完成 FlagPerf 训练部分的开发（五类训练任务、检查点与恢复、AMP、DDP、FSDP2，观察态采集与多卡画像链路）；
+- 训练适配扩展到三家芯片（Ascend、THead、Kunlunxin），覆盖 Top5 模型（暂未覆盖多模态模型），完成单卡、多卡 DDP、FSDP 等多种训练方式的实测；
+- 模型层 §5.5 四条需求全部实现并完成实测：通信与计算分列、按 rank 归集、等待与带宽区分、同并行度对比；
+- 提供上述两份文档供模型层参考使用；运行证据（算子画像、通信记录、零漂移对照）随交付材料归档。
+
+边界（详见完成报告）：Ascend 平台逐跑非确定，sha 级零漂移判据不适用；P800 设备内核事件受厂商 kineto 限制；DIEN 在 910C 因厂商算子仅支持 FP16 暂不可训；CLIP 多模态训练未覆盖。
 
 ## 2. Operation V2/V3 新进展
 

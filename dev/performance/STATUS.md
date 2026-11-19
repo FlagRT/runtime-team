@@ -1,7 +1,14 @@
 # performance · STATUS
 
 > 总组速览入口（[战略文档 §8.2](../../docs/运行时层原型验证-战略目标-910C.v1.md)格式）｜详细进展、边界与命令见 [README.md](README.md)
-> 最近更新：2026-11-05（P800/PPU；核心历史阶段截至 10-28）
+> 最近更新：2026-11-19（P800/PPU/训练；核心历史阶段截至 10-28）
+
+## 本周完成（2026-11-17 ~ 11-19）：FlagPerf 训练部分的开发与跨厂商适配、实机测试
+
+- 完成 FlagPerf 训练部分的开发；
+- 训练适配扩展到三家芯片（Ascend、THead、Kunlunxin），覆盖 Top5 模型（暂未覆盖多模态模型），完成多种训练方式的实测（单卡、多卡 DDP、FSDP 等）；
+- 模型层 §5.5 的四条需求全部实现并完成实测（通信与计算分列、按 rank 归集、等待与带宽区分、同并行度对比）；
+- 向模型层提供两份参考文档：[FlagPerf训练适配完成报告.md](FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](FlagScale使用FlagPerf最佳实践.md)。
 
 ## 当前阶段
 
@@ -23,6 +30,7 @@
 | Base / Toolkit | P800 PR #1、BF16 快路径 #3、PPU #4 已合并；P800 Toolkit 12 Case / 485 目标、PPU Toolkit 12 Case 测量与诊断通过 | P800 传输不稳定与健康限制、PPU 16-rank 资格保留；runtime candidate，不自动晋级 |
 | Operation | P800 #5、PPU #6 已合并；每厂商每入口各尝试 308 适用项 | P800 数值/编译/运行失败与计数器等缺口；PPU 9 项失败、9 个缓存路由缺口未关闭 |
 | Inference v2 | 整合 PR #12 待评审；P800 Qwen/OneRec、PPU Qwen 已测核心链路；P800 整合版 klx2 新单卡可用 | OneRec 单卡/TP2 分歧、性能资格、klx1 异常和整合新双卡待验；PPU OneRec 未实测 |
+| 训练 | FlagPerf 训练部分开发完成；Ascend/PPU/P800 三平台实测；Top5 模型除多模态外覆盖；单卡/DDP/FSDP；模型层 §5.5 四条实现并实测 | 多模态训练与引擎级流水并行（PP）未验证；[完成报告](FlagPerf训练适配完成报告.md)、[最佳实践](FlagScale使用FlagPerf最佳实践.md) |
 | 证据复核 | 11-05 复读结果、版本与失败记录；历史数据操作 321 成功 / 21 原有失败，未发现所测范围新增回归 | 不将离线操作数当成模型覆盖数；[实测报告与来源索引](evidence/README.md) |
 
 上述通过均限定于报告中的模型、镜像与测试批次，不等于所有设备、全部能力或完整性能资格通过。
