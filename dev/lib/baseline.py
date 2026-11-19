@@ -1693,20 +1693,14 @@ def export_env(env_dir, require_clean=False) -> int:
          "image:                       # 抄录自 image.baseline.yaml；check 只核对本地镜像 id",
          f"  ref: {y(img.get('ref'))}", f"  id: {y(img.get('id'))}",
          f"  baseline: {y(image_baseline_rel)}", ""]
-    for key, items, comment in (
-            ("baked_repos", baked, "                 # 原样抄录自镜像基线，只读；check 与 load 均不处理"),
-            ("mounted_repos", mounted, "               # check 与 load 的对象")):
-        if key == "mounted_repos":
-            L.append("# " + "─" * 30 + " 环境挂载（env） " + "─" * 30)
-        L.append(f"{key}:{' {}' if not items else ''}{comment}")
-        for name, item in items.items():
-            L.append(f"  {name}:")
-            L += [f"    {k}: {'unavailable' if v is None else y(v)}" for k, v in item.items()]
-        L.append("")
-        if key == "baked_repos" and baked_pkgs:
-            L.append("baked_packages:            # 原样抄录自镜像基线，只读；不可下放为挂载资产")
-            L += [f"  - {y(p)}" for p in baked_pkgs]
-            L.append("")
+    # 2026-11-18 ADR-0030-P1b：不再抄录 baked_repos / baked_packages（镜像事实唯一来源 =
+    # image.baseline.yaml，沿 image.baseline 指针读取；check 与 load 本就不处理该两段）。
+    L.append("# " + "─" * 30 + " 环境挂载（env） " + "─" * 30)
+    L.append(f"mounted_repos:{' {}' if not mounted else ''}               # check 与 load 的对象")
+    for name, item in mounted.items():
+        L.append(f"  {name}:")
+        L += [f"    {k}: {'unavailable' if v is None else y(v)}" for k, v in item.items()]
+    L.append("")
     if env_pkgs:
         L.append("# " + "─" * 26 + " 环境层包（env_packages） " + "─" * 26)
         L.append("env_packages:              # up.sh 起容器后幂等安装；check 核对容器内已装版本（ENV-SPEC §3.3）")

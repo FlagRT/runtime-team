@@ -285,7 +285,7 @@ FlagCX 训练腿（HCCL adaptor）本身的 STOP CONDITION（`dist.broadcast`/
 
 本轮构建（Step 1-4）已在真机上用 `docker build`（不需要 `--device`）完整跑通，
 但 Step 5（vLLM 推理烟雾测试 + 训练/推理共存检查）需要挂 `--device` 的带卡
-容器。按 `dev/stack.lock.910c.v2.yaml` 的"最高优先级"规则（机器级并发上限 3
+容器。按 `dev/archive/stack.lock.910c.v2.yaml` 的"最高优先级"规则（机器级并发上限 3
 个带卡容器），起容器前 `docker ps` 检查——**本轮会话观测期间，机器上其他
 工程师的带卡容器持续保持在 5 个**（`sgl-c256-*-prefill-{0,1,2,3}` 4 个
 + `flaggems-cann9.0.0` 1 个，16 张卡对应的 `/dev/davinci0-15` 全部已被多个

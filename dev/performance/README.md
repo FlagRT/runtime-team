@@ -327,8 +327,8 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 | 类型 | 锁定或验证身份 | 用途与边界 |
 | --- | --- | --- |
 | Operation 研发/验证 runtime | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`，本机 ID `sha256:d9484109...d397` | CANN 9、Python 3.11、PyTorch 2.10、Torch-FL、Triton Ascend、FlagGems；用于当前 Operation 证据，不是两段 Demo 的替代验收镜像 |
-| 生效训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 以 `dev/stack.lock.910c.v2.yaml` 的 `lock.train` 为准；候选 1.0.0 血统尚未生效 |
-| 生效推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 以 `dev/stack.lock.910c.v2.yaml` 的 `lock.infer` 为准 |
+| 生效训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 以 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock.train` 为准；候选 1.0.0 血统尚未生效 |
+| 生效推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 以 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock.infer` 为准 |
 | Inference 单卡 runtime | `flagperf/inference-ascend:20260922`，本机 ID `sha256:b4a5b2c8...f003` | 由生效推理腿基镜像派生：git archive 固定 FlagGems `f7ae8e6b` 源码＋ONNX 导出依赖；用于单卡精度/性能证据；被测引擎为 PyTorch/Transformers，vLLM 仅作底座，不等于锁定镜像本身 |
 | Inference TP runtime | `flagperf/inference-ascend:20260923-tp`，本机 ID `sha256:16c26e9b...dc6d` | 在 20260922 基础上仅追加 `accelerate==1.13.0`（wheel SHA256＋逐包比对）；用于单机 TP=2 HCCL 性能/通信/精度证据 |
 | Inference 三组件/TP runtime | `flagperf/inference-ascend:20260923-tp-flagtree-flagcx`，本机 ID `sha256:1147704d...7bf03` | 在 20260923-tp 基础上提取厂商编译器并集成 FlagTree/FlagCX 依赖；用于组件开关、层级性能、推荐模型、监控旁路与 10-08/10-09 续验证据 |
@@ -345,7 +345,7 @@ Inference 实机设备：单卡精度物理设备 0、单卡性能物理设备 1
 设备 2、4；TP 精度物理设备 4、6（设备 2 被其他容器占用，EBUSY）。V1.4 以后轮次：三组件与公开迁移验收单卡
 设备 4、TP 设备 4/6（Operation 另用设备 8）；层级性能与 preview 优化对照单卡设备 4、TP 设备 4、8；监控验收
 设备 2、4、开销对照设备 2；10-08 续验按任务分配，10-09 续验使用设备 4、5。
-本机 image ID 不是 registry digest。结论性 Demo 验证必须遵循当前生效的 `dev/stack.lock.910c.v2.yaml`，
+本机 image ID 不是 registry digest。结论性 Demo 验证必须遵循当前生效的 `dev/archive/stack.lock.910c.v2.yaml`，
 不能把 Operation 研发镜像或 Inference 派生镜像混入最终验收。
 
 ## 7. 使用入口

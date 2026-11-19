@@ -45,7 +45,7 @@ async_all_reduce 40/40 通过（fp32+bf16）。已知遗留问题：集合通信
 退出阶段有 `free(): invalid pointer` SIGABRT（已隔离验证与 torch_npu 无关，疑似
 FlagCX/Torch-FL 退出期清理顺序冲突），不影响通信正确性本身。
 
-**候选状态**：未进入 `dev/stack.lock.910c.v1.yaml` 的 `lock:`（现网仍锁 v1），
+**候选状态**：未进入 `dev/archive/stack.lock.910c.v1.yaml` 的 `lock:`（现网仍锁 v1），
 是否切换由总组另行裁定。
 
 ### v3：Route A 默认 + 训练/推理统一血统（起草 2026-09-22，round 1-3 实机验证）
@@ -150,7 +150,7 @@ wheel / 关闭 FlagGems 让 `cos` 落回 torch_npu 原生实现 / 手写空 `shm
 `ascend-operator-runtime/v3/REBUILD.md`「ROUND 2/3 真机验证结果」与
 `ascend-train-comm/v3/REBUILD.md`「ROUND 3」。
 
-**候选状态**：未进入 `dev/stack.lock.910c.v2.yaml` 的 `lock:`/`candidates:`，
+**候选状态**：未进入 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock:`/`candidates:`，
 是否登记候选、是否切换由总组另行裁定——鉴于两项决策仍待拍板，**不建议在完成前
 登记为候选**。
 
@@ -184,7 +184,7 @@ round 3 收尾留下的两项待拍板决策，按“声明式覆盖层 + upstre
   flagcx c10d 层（SYNC-FIX 不覆盖 c10d ProcessGroup）。两条血统
   `repro_status` **维持 🟡**：解堵依赖镜像外配置（推理）/ c10d 层未修
   （训练），不满足纯镜像复现标准；升 🟢 条件分别为算子编译组根治 shmem、
-  FlagCX c10d 层 sync 修复。未改 `dev/stack.lock.910c.v2.yaml`（v3 仍是
+  FlagCX c10d 层 sync 修复。未改 `dev/archive/stack.lock.910c.v2.yaml`（v3 仍是
   候选，非生效）。
 
 ---

@@ -173,7 +173,7 @@ round 1（容器 `v3-validate-train-910c`，2 卡 `--device=/dev/davinci0,1`，
 
 与 `ascend-operator-runtime/v3/REBUILD.md`「ROUND 2 真机验证结果」同一个阻塞
 原因：本轮会话观测期间机器上其他工程师的带卡容器持续保持在 5 个（超过
-`dev/stack.lock.910c.v2.yaml` 规定的并发上限 3，且并非本任务所起），未能降到
+`dev/archive/stack.lock.910c.v2.yaml` 规定的并发上限 3，且并非本任务所起），未能降到
 留出名额的水平，按任务书"respect the shared-machine rules"的要求本轮未强行
 起带卡容器。**共存检查本身未执行，明确记为 PENDING**，不是"跳过"或"假设会
 通过"。

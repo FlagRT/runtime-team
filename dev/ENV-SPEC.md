@@ -229,8 +229,8 @@ x-flagrt:
 | `FlagGems` | `FlagGems` | `vllm-plugin-FL` | `vllm-plugin-FL` |
 | `Torch-FL` | `PyTorch-Plugin-FL` | `FlagPerf` | `FlagPerf` |
 
-**`env.baseline.yaml`**：`kind: container`；`image`（`ref`、`id`、`baseline`）抄录自镜像基线；
-`baked_repos` 原样抄录、只读；分割线「环境挂载（env）」之后的 `mounted_repos.<名称>` 记录 `host_path`、
+**`env.baseline.yaml`**：`kind: container`；`image`（`ref`、`id`、`baseline` 指针；`id` 参与 check）；
+镜像固化资产**不抄录**（唯一来源 = 所指 `image.baseline.yaml`，2026-11-18 起停抄）；「环境挂载（env）」分割线之后的 `mounted_repos.<名称>` 记录 `host_path`、
 `remote`、`container_path`、`activation`、`commit`、`dirty`、`pushed`（commit 是否已在某个远端分支上），覆盖固化版本时另记 `overrides_baked`、`baked_commit`、
 `baked_patches`（§2.2）。实例见 [`images/ascend-train-comm/v3/demo/env.baseline.yaml`](images/ascend-train-comm/v3/demo/env.baseline.yaml)。
 
@@ -305,7 +305,7 @@ env_packages:
 
 | 动作 | 镜像场景（`--image <image-dir>`） | 运行环境场景（`<env-dir>`） |
 |---|---|---|
-| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--env-current <dir>` 写入 `image.env_current`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 抄录镜像基线的固化部分，读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
+| `export` | 解析 Dockerfile 判定固化资产，以镜像标签取 commit，交叉核对后生成 `image.baseline.yaml`；`--demo <dir>` 写入 `image.demo`，`--env-current <dir>` 写入 `image.env_current`，`--image-ref` 指定镜像 ref（缺省取 `build.sh` 的 `-t`） | 记录镜像引用（不抄录固化资产）；读取 `x-flagrt.mounted_repos` 对应宿主 repo 的 HEAD、工作区状态与提交元数据，生成 `env.baseline.yaml`；`--require-clean` 时工作区不干净或 commit 未推送即拒绝导出 |
 | `check` | 本地镜像 id，与基线中每项固化资产的版本锚：`baked_repos` 核对 commit 标签、`baked_packages` 核对 version 标签。基线记了锚而镜像缺对应标签即不一致（FAIL）；基线记 `commit: unavailable` 的条目报 INFO，由 image id 兜底。另核对 `image.env_current` 指向的目录仍存在且仍是运行环境目录 | 本地镜像 id；每个挂载 repo 的 HEAD 是否等于基线 commit、工作区是否干净、`origin` 远端是否仍是基线记的 `remote`；`env_packages` 在容器运行中时逐条核对容器内已装版本（§3.3 规则 3），容器未运行该节 INFO 跳过；结果写 `.last-check.json` |
 | `load` | 不适用（镜像只能重新构建） | 将每个挂载 repo 切换到基线 commit；不拉取、不构建镜像 |
 | `install` | 不适用 | 按基线 `env_packages` 在运行中的容器内幂等安装（§3.3；`up.sh` 起容器后调用，已装且版本一致则跳过）；基线无该节时为无操作 |

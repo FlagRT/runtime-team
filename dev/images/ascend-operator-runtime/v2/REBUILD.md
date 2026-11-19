@@ -90,7 +90,7 @@ import torch_fl                    # 之后再 import torch_fl
   PrivateUse1(不崩溃、不损坏状态)。
 - 先 `torch_npu`(或 autoload 生效)后 `torch_fl`:`torch_fl` 立即抛出清晰的
   `RuntimeError`,fail-loud,不会静默损坏。
-- 这与 `dev/stack.lock.910c.v1.yaml` 的 `per_leg.train.note`("必须
+- 这与 `dev/archive/stack.lock.910c.v1.yaml` 的 `per_leg.train.note`("必须
   `TORCH_DEVICE_BACKEND_AUTOLOAD=0` 且先 import torch_fl 再 import torch")完全
   一致并进一步给出了实测证据。
 

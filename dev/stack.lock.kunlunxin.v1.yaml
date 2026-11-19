@@ -2,7 +2,9 @@
 # 运行时层 · 昆仑芯 P800 原型统一基座 —— 锁定镜像与基座规范（首次建立）
 # 文件：dev/stack.lock.kunlunxin.v1.yaml
 # 效力：本文件是全组（昆仑芯线）结论性验证的唯一环境依据；任何变更需更新本文件并知会全组
-# 起草：runtime-team ｜ 总组定稿 ｜ 结构参照 dev/stack.lock.910c.v3.yaml，内容按 P800 实情如实分叉
+# 起草：runtime-team ｜ 总组定稿 ｜ 结构参照 dev/archive/stack.lock.910c.v3.yaml，内容按 P800 实情如实分叉
+# 版本事实：镜像 ref / image id / digest 一律以 lock 各条目 base_image_entry 所指目录的 image.baseline.yaml
+# 为准（ADR-0030，2026-11-18 起本文件不再重复登记）。
 # 记录：2026-10-14 ｜ 定稿：2026-10-14 ｜ 状态：生效（2026-11-09 起两腿分栈：训练腿 = operator-runtime v2，推理腿 = kunlun-infer-vllm v1）
 # 版本化规范见战略文档 §8（影响已锁定承诺的变更 → 新建版本号文件，旧文件开头加 LEGACY 说明）
 #
@@ -50,14 +52,13 @@ device_registration:
 # ---------------------------------------------------------------
 lock:
   runtime:                              # 训练腿（transformers + FlagCX + 设备上下文）；其内置 vLLM 0.13.0 缺 simple_cpu_offload_connector，KV connector 场景用 infer 腿
-    image: "flagrt/kunlun-operator-runtime:2.0.0-xpu3.6-py310-torch2.9-flagtree0.6.1-flaggems73c5aff1-x86_64"
+    # 版本事实（ref/id/digest）以 base_image_entry 所指目录 image.baseline.yaml 为准（ADR-0030）
     notes: "= 训练腿基座；带 5 条已知限制（K-1~K-5；K-1 按运行环境版本分述、K-5 为数值正确性），清单、规避方式与删除条件见 docs/基座发版说明-20261014.md。现行运行环境 = dev/images/kunlun-operator-runtime/v2/env/v1/（GEMM 编译修复接入，显式 opt-in，ADR-0010；demo/ 为冻结的第 0 版）。版本事实以 dev/images/kunlun-operator-runtime/v2/image.baseline.yaml 为准"
     container_name: "flagrt-kunlun-v2-env-v1-p800（现行运行环境容器：dev/images/kunlun-operator-runtime/v2/env/v1/；demo 容器 flagrt-kunlun-v2-demo-p800 对应冻结的第 0 版）"
     base_image_entry: "dev/images/kunlun-operator-runtime/v2"        # 血统 / 内置版本 / 重建配方 / 离线归档指针
-    registry_status: "组内镜像无 registry 要求。image id：sha256:cac5ddae5f62b356622858dd4f0ea0f82d489cf0cb71e7230f0f97797c25605a（P800 机 VM-0-2-ubuntu 本机 docker images）｜ repro_status 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 overall: PASS）。获取：首选 dev/images/kunlun-operator-runtime/v2/build.sh 从公开源头重建（约 15 分钟）；兜底离线包 kunlun-operator-runtime-2.0.0-rootfs.tar.gz（30.80 GiB，sha256 2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5，实体路径记该机同目录 BACKUP.local），还原方式是 docker import --change（该机 docker save 对巨型镜像失效），不是 docker load"
+    registry_status: "组内镜像无 registry 要求。image id 见 image.baseline.yaml｜ repro_status 🟢 functional-repro（实机 docker build 重建 + 带卡自判定 overall: PASS）。获取：首选 dev/images/kunlun-operator-runtime/v2/build.sh 从公开源头重建（约 15 分钟）；兜底离线包 kunlun-operator-runtime-2.0.0-rootfs.tar.gz（30.80 GiB，sha256 2083766411e2a048b9ce55d9f03cd44857f7f1191f03401fafd81cd46412d3d5，实体路径记该机同目录 BACKUP.local），还原方式是 docker import --change（该机 docker save 对巨型镜像失效），不是 docker load"
     superseded: |
-      v1（flagrt/kunlun-operator-runtime:1.0.0-…，image id
-      sha256:466ee5c617931f6718cd2b68ac1b631a7919694af9ea936e9048ab1d67fb9b8f）
+      v1（flagrt/kunlun-operator-runtime:1.0.0-…，版本事实见 v1 目录 image.baseline.yaml）
       已 superseded_by: v2：不得用于从零重建——其归档镜像经查实是 docker commit
       产物而非其 Dockerfile.repro 的构建产物（dev/images/kunlun-operator-runtime/
       docs/裁定备忘-20261014-总组.md）。镜像本身
@@ -65,11 +66,11 @@ lock:
       v1 组件集合与 pin 完全相同，仅改配方形态并走正规 docker build。
 
   infer:                               # 推理腿（vLLM 服务化 + KV connector 宿主栈），ADR-0026 定档（选项 A）
-    image: "harbor.baai.ac.cn/flagrelease-public/kunlunxin001-gems5.0.0-treenone-triton3.0.0-cx0.13.0-plugin0.2.0-vllm0.20.2-cp310-pt29-x64-v5.0.21.43:tele4"
+    # 版本事实（ref/id/digest）以 base_image_entry 所指目录 image.baseline.yaml 为准（ADR-0030）
     notes: "= 推理腿运行环境（上游 xVLLM 发布线镜像，登记式基线）：vllm 0.20.2+empty（自带 simple_cpu_offload_connector，FlagMemory xpu KV connector 宿主栈）/ vllm-plugin-FL 0.2.0+g38e7dbc / torch 2.9.0+cu129 / xmlir 1.0.0.1 / flag_gems 5.0.0 / flagcx 0.13.0 / triton 3.5.0（通用版，treenone）。与训练腿 v2 两腿并存（同 910C ADR-0007、寒武纪 T-041 两腿分栈口径）：训练/设备上下文仍用 runtime 腿。定档依据 ADR-0026——训练腿镜像内置 vllm 0.13.0 缺 simple_cpu_offload_connector（import 链断，环境性），本镜像 2026-11-09 P800-A 真卡三件验证通过。版本事实与验收记录见 dev/images/kunlun-infer-vllm/v1"
     container_name: "flagmem-train-p800a（本机在跑容器，取证与验证宿主；命名沿用历史，实际承担 FlagMemory connector 真卡验证）"
     base_image_entry: "dev/images/kunlun-infer-vllm/v1"        # 登记式基线（digest 锚、版本清单、验证记录）
-    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagrelease-public），匿名可按 digest 拉取。digest：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1（registry manifest API 回读与 P800-A 本机 RepoDigest 双向核对逐字一致，2026-11-09）｜ image id：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1｜ 约 15.6 GB｜ repro_status 🟢 上游发布镜像（不可重建是设计边界，官方产物）"
+    registry_status: "公开 Harbor registry（harbor.baai.ac.cn/flagrelease-public），匿名可按 digest 拉取。digest 与 image id 见 image.baseline.yaml（双向核对记录 2026-11-09）｜ 约 15.6 GB｜ repro_status 🟢 上游发布镜像（不可重建是设计边界，官方产物）"
 
 # ---------------------------------------------------------------
 # 候选血统（无；发布物即 v2，无在途候选）
