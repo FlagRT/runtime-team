@@ -1,0 +1,20 @@
+{
+  "schema": "flagrt.case-summary/v1",
+  "case": "fm-smoke-ascend",
+  "generated_at": "2026-11-19T10:06:33+08:00",
+  "result": "PASS",
+  "counts": {
+    "pass": 3,
+    "fail": 0,
+    "skip": 0
+  },
+  "cases": {
+    "test_actual_tensor_and_cross_stream_dependency": "pass",
+    "test_completed_reuse_rejects_old_lease": "pass",
+    "test_pending_borrower_protection_when_observed": "pass"
+  },
+  "image": {
+    "id": "sha256:e13a15d0d02b86e9cd7b1656df3c6b52838c258f270b6b894a91c2b074da5f15"
+  },
+  "flagmemory_commit": "58e60a94929e8920166fe634b1709290fef1bf4f"
+}
