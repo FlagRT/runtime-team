@@ -50,12 +50,14 @@ def main() -> int:
     checks.append(("D2H 事件确认", ok is True))
     checks.append(("D2H 数值逐字一致", bool(torch.equal(cpu[2], gpu[2].cpu()))))
 
-    # ③ H2D：改主机值 → 异步换入 → 设备侧取回核对
-    cpu[3] = 42
+    # ③ H2D：数据写在条目记录源行（cpu[2]，e1→行2）→ 异步换行换入 gpu[3] → 取回核对。
+    # （2026-11-19 修正：原写法把数据写进 cpu[3]，按契约实际拷的是源行 cpu[2]——
+    #   与 FM 仓 test_ppu_backend_realcard 同源错误，修复分支 08af9f3 同批定论）
+    cpu[2] = 42
     ticket = adapter.copy_in("e1", 3, block_bytes, stream_id=0)
     ok = wait(ticket)
     checks.append(("H2D 事件确认", ok is True))
-    checks.append(("H2D 数值一致", bool(torch.equal(gpu[3].cpu(), cpu[3]))))
+    checks.append(("H2D 数值一致", bool(torch.equal(gpu[3].cpu(), cpu[2]))))
 
     adapter.drop_entry("e1")
     adapter.shutdown()

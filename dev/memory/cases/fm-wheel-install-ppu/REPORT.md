@@ -34,9 +34,10 @@
 ### 过程中的真发现（如实记录）
 
 `scripts/smoke_e2e.py`（自写的最小搬运闭环参考脚本）的 **H2D 数值一致检查在源树与 wheel
-两形态同构失败（6/7）**；FM 原测试 `test_ppu_backend_realcard.py::test_真connector懒加载与全链路搬运闭环`
-在同环境复现 1 failed——属 **FM 产品侧待跟进问题（copy_in 方向数值不落），非 wheel 缺陷、非样例缺陷**。
-C3 判据因此采用已验证的 manager 三用例载体；smoke_e2e.py 保留在 scripts/ 供参考与后续复测。
+两形态同构失败（6/7）**；FM 原测试同用例同环境复现 1 failed。**当日定位定论（五层探针
+E1–E6）：产品代码正确，是用例把数据写进了目标行而非条目记录源行**——FM 分支
+`xliu969/fix-ppu-copyin-test`（08af9f3）修正该用例（1 failed → 2 passed），本样例
+smoke_e2e.py 同源错误已同批修正。完整定位过程与翻绿验证见样例③（fm-dev-env-ppu）。
 
 ## 教学对照（做首件样例时看这里）
 

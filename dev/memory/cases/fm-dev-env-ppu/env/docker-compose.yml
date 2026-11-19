@@ -1,0 +1,81 @@
+# fm-dev-env-ppu 的自建派生运行环境目录（ENV-SPEC §3.2「各方向自建」形态）。
+#
+# 【派生声明（本目录存在的理由）】对齐母本 =
+#   dev/memory/cases/tiering-async-ppu/env/（FM 在 PPU 的现行定档环境）。
+#   镜像 / SDK 三件套 / 设备映射 / 容器骨架 **逐项与母本一致**（image.anchor.yaml 同镜像）；
+#   **唯一差异 = FlagMemory 挂载锚**：母本守门在 v0.3.0 发版 commit（58e60a9），本目录
+#   锁 FM 开发分支（xliu969/fix-ppu-copyin-test，见 env.baseline.yaml 的 mounted_repos）。
+#   为什么不改母本：现行环境守发版 commit，不因个人开发线改动——**开发分支的 strict
+#   验证正是「自建派生环境」的标准场景**。
+#
+# 【与母本的具体差异清单】① name/container_name（fm-dev 区分）② evidence 标记文件名
+#   （fm-dev-build.*，避免与母本共享宿主文件骗过就绪等待）③ FM 锚（由宿主检出位置+
+#   baseline export 决定，compose 本身不变——挂载的仍是同一宿主检出）。
+#
+# 用法（仓根执行，机器 = PTG_0；宿主 FlagMemory 检出须停在开发分支目标 commit）：
+#   dev/lib/up.sh dev/memory/cases/fm-dev-env-ppu/env --strict
+# 收尾：
+#   WORKSPACE_ROOT=$PWD docker compose -f dev/memory/cases/fm-dev-env-ppu/env/docker-compose.yml down
+
+name: flagrt-fm-dev-ppu
+
+x-flagrt:
+  # 镜像登记桩：与母本同镜像（flagrelease vllm0.24 定档；权威登记处 = FM RUNBOOK §0）。
+  image_baseline: image.anchor.yaml
+  # FlagMemory 以可编辑方式挂载——锚 = 宿主检出 HEAD，由本目录 env.baseline.yaml 锁定
+  # （export 生成；换开发分支/推进线头后重导 baseline 即可跟线）。
+  mounted_repos:
+    FlagMemory: {activation: pip-editable}
+
+services:
+  runtime-ppu:
+    container_name: flagrt-fm-dev-ppu-ptg0
+    image: harbor.baai.ac.cn/flagrelease-public/flagrelease_ppu_vllm024_gems_540:1012
+    network_mode: host
+    ipc: host
+    shm_size: 32g
+    tty: true
+    stdin_open: true
+    devices:
+      # 映射全部 16 卡 ⇒ 容器内逻辑号 == 宿主物理号；实际用卡由 CUDA_VISIBLE_DEVICES 授予。
+      - /dev/alixpu:/dev/alixpu
+      - /dev/alixpu_ctl:/dev/alixpu_ctl
+      - /dev/alixpu_ppu0:/dev/alixpu_ppu0
+      - /dev/alixpu_ppu1:/dev/alixpu_ppu1
+      - /dev/alixpu_ppu2:/dev/alixpu_ppu2
+      - /dev/alixpu_ppu3:/dev/alixpu_ppu3
+      - /dev/alixpu_ppu4:/dev/alixpu_ppu4
+      - /dev/alixpu_ppu5:/dev/alixpu_ppu5
+      - /dev/alixpu_ppu6:/dev/alixpu_ppu6
+      - /dev/alixpu_ppu7:/dev/alixpu_ppu7
+      - /dev/alixpu_ppu8:/dev/alixpu_ppu8
+      - /dev/alixpu_ppu9:/dev/alixpu_ppu9
+      - /dev/alixpu_ppu10:/dev/alixpu_ppu10
+      - /dev/alixpu_ppu11:/dev/alixpu_ppu11
+      - /dev/alixpu_ppu12:/dev/alixpu_ppu12
+      - /dev/alixpu_ppu13:/dev/alixpu_ppu13
+      - /dev/alixpu_ppu14:/dev/alixpu_ppu14
+      - /dev/alixpu_ppu15:/dev/alixpu_ppu15
+    volumes:
+      # 仓根挂载提供 FlagMemory → /workspace/FlagMemory（pip-editable 挂载源，同母本）。
+      - ${WORKSPACE_ROOT}:/workspace
+    environment:
+      - DO_NOT_TRACK=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - GIT_OPTIONAL_LOCKS=0
+      # SDK 三件套之二/三（envsetup source 由 entrypoint 承担，同母本）
+      - UMD_PLATFORM_TYPE=1
+      - HGGC_DRIVER_CANDIDATE=UMD
+      - NCCL_SOCKET_IFNAME=bond0
+    extra_hosts:
+      - "ai-server:127.0.0.1"     # --network host 下主机名不解析 → torchrun 挂 300s
+    working_dir: /workspace
+    # 覆盖镜像 ENTRYPOINT（同母本）；就绪标记用 fm-dev-build.*（与母本区分，防共享宿主
+    # 文件骗过等待——见样例② REPORT 踩坑③）。
+    entrypoint: [bash, -c, 'source /usr/local/PPU_SDK/envsetup.sh && git config --global --add safe.directory /workspace/FlagMemory && mkdir -p /workspace/evidence && python3 -m pip install --no-deps --no-build-isolation -e /workspace/FlagMemory > /workspace/evidence/fm-dev-build.log 2>&1 && touch /workspace/evidence/fm-dev-build.done && exec sleep infinity']
+    restart: "no"
+
+# ---------------------------------------------------------------
+# changelog
+# 2026-11-19  新建（S5 教学示范第三件·自建派生环境）：母本 = tiering-async-ppu/env，
+#             唯一实质差异 = FM 锚切开发分支 fix-ppu-copyin-test（08af9f3）。
