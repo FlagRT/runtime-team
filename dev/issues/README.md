@@ -37,7 +37,7 @@
 | `shmem-missing` | 昇腾 910C | 算子编译方向 | `ascend-train-comm v3`：第 0 版（`demo/`）与第 1 版（`env/v1`）**仍命中**；第 2 版（`env/v2`，现行训练运行环境，见 [`RELEASE_INDEX.yaml`](../images/RELEASE_INDEX.yaml) / [`USAGE_MATRIX.md`](../images/USAGE_MATRIX.md)）**已修 —— 形态为运行环境层包 `cann-shmem` 补齐 `shmem` 模块**，最小复现编译与数值复验通过（分版证据见 case README）。跟进状态：挂起、不跟进（现行两腿标准路径均不触发），不作为现行发版限制条目 | [`shmem-missing/`](shmem-missing/README.md) |
 | `flagcx-c10d-collectives` | 昇腾 910C | FlagCX 通信方向 | `ascend-train-comm v3`：第 0 版（`demo/`）**仍命中**；第 1 版（`env/v1`）**已修 —— 形态为挂载覆盖**（宿主 FlagCX 须处于含修复的提交）。**镜像内固化形态未交付**，该形态未经验收 | [`flagcx-c10d-collectives/`](flagcx-c10d-collectives/README.md) |
 | `kunlunxin-gemm-triton-compile` | 昆仑芯 P800 | 算子编译方向 | `kunlun-operator-runtime v2`：第 0 版（`demo/`）**仍命中**；`env/v1`（显式启用 GEMM compat 后）**编译维度已修**（12/12 编译 + pytest 18/99，2026-10-28；形态 = 挂载补丁版 FlagGems + 编译组 compat 包进程内加载）。`v1`：**未在该版测过**（指本 case 的判据） | [`kunlunxin-gemm-triton-compile/`](kunlunxin-gemm-triton-compile/README.md) |
-| `kunlunxin-gemm-numeric-64cube` | 昆仑芯 P800 | 算子编译方向（口径裁定线归 performance） | 64×64×64 fp32 **非确定性乱值**（demo 与 `env/v1` 均命中——缺陷在 compiler/kernel 本体，与运行环境版本无关；同输入三次 rel 0.19~1.00、一次全零，vendor 原生 1.2e-5）+ 64³ bf16 超差 + 大形状 fp16/bf16 绝对容差口径之争（数据在案、转裁定）。未修复；已同步编译组、被动等进展（K-5 / B15） | [`kunlunxin-gemm-numeric-64cube/`](kunlunxin-gemm-numeric-64cube/README.md) |
+| `kunlunxin-gemm-numeric-64cube` | 昆仑芯 P800 | 算子编译方向（口径裁定线归 performance） | 64×64×64 fp32 **非确定性乱值**（demo 不适用（GEMM 编译即失败，走不到数值）；`env/v1` 显式启用兼容包后仍命中；同输入三次 rel 0.19~1.00、一次全零，vendor 原生 1.2e-5）+ 64³ bf16 超差 + 大形状 fp16/bf16 绝对容差口径之争（数据在案、转裁定）。未修复；已同步编译组、被动等进展（K-5 / B15） | [`kunlunxin-gemm-numeric-64cube/`](kunlunxin-gemm-numeric-64cube/README.md) |
 
 > 问题定义、现状细节、规避手段、验收判据与完整的版本集合以各目录 README 为准；本表只摘要，
 > 同一事实以各目录 README 的「版本集合」节为准。

@@ -3,13 +3,13 @@
 - **是什么**：kunlun-infer-vllm v1 镜像（ADR-0026 定档，tele4）的首个运行环境目录——
   单卡授予 + `/dev/xpuctrl` + FlagMemory 只读挂载（PYTHONPATH 生效，RUNBOOK §1 口径）+
   `network none`。定位 = **KV connector 判据与样例运行环境**（验收样例
-  [`dev/memory/cases/connector-kunlunxin/`](././././memory/cases/connector-kunlunxin/)），
+  [`dev/memory/cases/connector-kunlunxin/`](../../../../../memory/cases/connector-kunlunxin/)），
   不是服务化环境（`vllm serve` 服务化口径见 xpu RUNBOOK §1 与 serve_standard 线）。
 - **形态出处**：FM 仓 `flagmemory/tiering/offload/xpu/RUNBOOK.md` 与
   `tests/tiering/test_xpu_tier_manager_realcard.py` 文件头的 2026-11-09 已验证形态；
   两处派生差异（memlock ulimit、仓根整体挂载）的出处见 docker-compose.yml 头注。
 - **版本事实**：本目录 `env.baseline.yaml`（`dev/lib/baseline.py export` 生成）；
-  镜像事实承自 [`././image.baseline.yaml`](././image.baseline.yaml)（digest 主锚）。
+  镜像事实承自 [`../../image.baseline.yaml`](../../image.baseline.yaml)（digest 主锚）。
   挂载锚：`mounted_repos.FlagMemory.commit` = v0.3.0 发版提交（58e60a9）。
 - **用法**：`xpu-smi` 挑空闲卡（避开卡 1/卡 2 与有残留占用者）→
   `XPU_CARD=<n> dev/lib/up.sh dev/images/kunlun-infer-vllm/v1/env/v1 --strict` →

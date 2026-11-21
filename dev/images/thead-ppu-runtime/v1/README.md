@@ -5,7 +5,7 @@
 - 本目录登记 **BAAI·FlagTree 官方** PPU 基座镜像
   `flagtree-ppu-py312-torch2.10.0-sdk2.1.0-cu130-ubuntu24.04:202607-3.6-base`
   （image id `sha256:f5366712d6a0…`，Harbor digest `sha256:50a906e6ed9d…`，版本主锚），
-  **平头哥 PPU（真武 ZW810E）现行基座**，见 [`dev/stack.lock.thead-ppu.v1.yaml`](../../stack.lock.thead-ppu.v1.yaml)。
+  **平头哥 PPU（真武 ZW810E）现行基座**，见 [`dev/stack.lock.thead-ppu.v1.yaml`](../../../stack.lock.thead-ppu.v1.yaml)。
   非本组构建：整体为被动继承的 FlagTree 官方产物（ppu3.6 线：PPU SDK v2.1.0 / py3.12 /
   torch 2.10.0 / vLLM 0.19.0+cu130），上游配方在 BAAI·FlagTree 官方 PPU 镜像线。
 - **登记式基线（ADR-0007，同 ascend-infer-vllm/v1 先例）**：本目录 `image.baseline.yaml`
