@@ -73,12 +73,13 @@ dev/images/
       BACKUP.local           # 本机归档实体的绝对路径 + 最近校验日期 — 机器相关，不追踪
       assets/                # sha256 清单 / requirements / verify 脚本 / patch / docker-history / provenance
       demo/                  # 第 0 版运行环境：该版本验收配置的冻结记录（发布后不再改动）
-      env/v1/                # 现行推荐运行环境：缺陷修复与用法变更只新增下一版（ADR-0008）
+      env/v<M>/              # 运行环境修订：现行推荐以 §1 两锚点显式声明为准；缺陷修复与用法变更只新增下一版（ADR-0008）
 ```
 
 版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准；构建过程与验证记录见 `REBUILD.md`；
 机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。运行环境目录放在镜像血统的版本目录下：`demo/` 为该版本验收时的
-冻结记录，目录内最高版 `env/v<N>/` 为现行推荐（如 `ascend-train-comm/v3/`），由 `image.baseline.yaml` 的 `image.env_current` 指向。
+冻结记录，现行推荐运行环境以 [`RELEASE_INDEX.yaml`](RELEASE_INDEX.yaml)（机读）与
+[`USAGE_MATRIX.md`](USAGE_MATRIX.md)（人读）的显式声明为准。目录里存在更高修订号的 `env/v<M>/` 不代表该版已转为现行，不按目录号推断。
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `README.md` + `image.baseline.yaml`（登记式）+ `ARCHIVE.md`，无 Dockerfile。
 

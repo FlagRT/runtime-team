@@ -10,7 +10,7 @@
 - **登记式基线（ADR-0007）**：本目录 `image.baseline.yaml` 为手工登记，字段口径同 ENV-SPEC §3.1；
   与自建基线的差异 —— ① 全部条目 `from: base_image`（无本组配方层）；② commit 取自镜像内 `.git`
   （自证锚，2026-10-14 探针实测），check 走 INFO 分支由 image id + digest 兜底；③ 服务启动不在此目录，
-  统一经 [`serve_standard.sh`](../../device-context/prototype/scripts/serve_standard.sh)（组内启动标准，唯一入口）。
+  统一经 [`serve_standard.sh`](../../../device-context/prototype/scripts/serve_standard.sh)（组内启动标准，唯一入口）。
 - 现行运行环境 [`env/v2/`](env/v2/docker-compose.yml)（docker-compose.yml + env.baseline.yaml，ADR-0008）：
   只管容器生命周期，`up.sh --strict` 照常核对 image id；含宿主 /usr/local/Ascend/driver 挂载、单 die 映射
   与 flagos-device-context / FlagMemory 挂载（npu KV connector 场景）；[`env/v1/`](env/v1/docker-compose.yml) 为第 1 版。
