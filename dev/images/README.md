@@ -79,8 +79,7 @@ dev/images/
 版本事实（镜像 id、各 repo commit、资源 sha256）以 `image.baseline.yaml` 为准；构建过程与验证记录见 `REBUILD.md`；
 机制见 [`../ENV-SPEC.md`](../ENV-SPEC.md)。运行环境目录放在镜像血统的版本目录下：`demo/` 为该版本验收时的
 冻结记录，现行推荐运行环境以 [`RELEASE_INDEX.yaml`](RELEASE_INDEX.yaml)（机读）与
-[`USAGE_MATRIX.md`](USAGE_MATRIX.md)（人读）的显式声明为准，由 `image.baseline.yaml` 的
-`image.env_current` 记录。目录里存在更高修订号的 `env/v<M>/` 不代表该版已转为现行，不按目录号推断。
+[`USAGE_MATRIX.md`](USAGE_MATRIX.md)（人读）的显式声明为准。目录里存在更高修订号的 `env/v<M>/` 不代表该版已转为现行，不按目录号推断。
 
 上游发布的镜像（华为昇腾官方 / 社区，非本组自建）：`v<N>/` 可只有 `README.md` + `image.baseline.yaml`（登记式）+ `ARCHIVE.md`，无 Dockerfile。
 
