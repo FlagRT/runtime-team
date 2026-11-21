@@ -10,7 +10,7 @@ snapshotter 存储后端（`docker info` → `Storage Driver: overlayfs` /
 **manifest blob 一个**，产出 tar 仅 14336 字节，`docker load` 无法重建镜像。
 2026-10-11 与 2026-10-12 两轮实测均如此，且**与「镜像是不是 `docker commit` 产物」无关**
 （v2 是正规 `docker build` 产物、同样失败）。机制定位进展见
-[`../v1/lock.yaml`](../v1/lock.yaml) `known_issues: docker-save-broken-on-this-host`
+[`../v1/lock.yaml`](https://github.com/FlagRT/runtime-team/blob/7bad85394a81b9b68dfc9e62c9822e703770d239/dev/images/kunlun-operator-runtime/v1/lock.yaml) `known_issues: docker-save-broken-on-this-host`
 与 [`../TODO.md`](../../TODO.md) #21。
 
 因此本条目用 `docker export`（导出容器展平后的 rootfs 为单层 tar）+ `docker import --change`
@@ -107,7 +107,7 @@ docker run --rm flagrt/kunlun-operator-runtime:...-restored \
   checkout**：重建输入只有两样 —— 公开 harbor 的父基座 + 公开索引的 flagtree wheel。
   单入口 `build.sh <构建上下文目录>`，首轮（含 3.3GB wheel 下载）实测约 15 分钟。
   这与 v1 的处境不同：v1 的归档镜像是 `docker commit` 产物、其配方从未实机构建通过
-  （见 [`../v1/lock.yaml`](../v1/lock.yaml) `known_issues: v1-image-is-docker-commit-not-build`），
+  （见 [`../v1/lock.yaml`](https://github.com/FlagRT/runtime-team/blob/7bad85394a81b9b68dfc9e62c9822e703770d239/dev/images/kunlun-operator-runtime/v1/lock.yaml) `known_issues: v1-image-is-docker-commit-not-build`），
   所以 v1 的离线包是**唯一**的还原途径；v2 的配方本身就是还原途径。
 - 离线包因 `docker export` 的变通而**丢失 layer 历史**，重建产物在这点上更忠实于配方。
 
