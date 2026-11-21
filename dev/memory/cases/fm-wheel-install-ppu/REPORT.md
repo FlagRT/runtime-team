@@ -7,7 +7,7 @@
 - **验收对象**：FlagMemory v0.3.0 发布 wheel（GitHub Release 附件）在 PPU 现行环境内的
   安装面与功能面（分层管理组件的消费形态）。
 - **运行环境**：直接引用 FM 在 PPU 的现行定档环境
-  [`dev/memory/cases/tiering-async-ppu/env/`](../../tiering-async-ppu/env/)
+  [`dev/memory/cases/tiering-async-ppu/env/`](../tiering-async-ppu/env/)
   （flagrelease vllm0.24 定档镜像；不用 thead-ppu env/v1 的原因：该镜像 vllm 0.19，
   FM connector 需 ≥0.24，见 FM RUNBOOK 边界登记——引用环境须核对组件版本依赖）。
   引用与加装方式见 [`env/README.md`](env/README.md)。

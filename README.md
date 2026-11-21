@@ -97,16 +97,17 @@ cd runtime-team
 # 2. 一键对齐 dev/repos.yaml 登记的全部仓（缺失 → clone，已存在 → 更新到最新；协作线见 repos.yaml）
 bash ./dev/clone_all.sh
 
-# 3. 进入目标子方向，按该子方向 README 启动容器（如 memory → dev/memory/README.md「启动容器」）
-cd dev/<子方向>
+# 3. 从 dev/images/README.md 入口查现行环境，按环境目录说明设置设备与模型目录等参数
+#    在公共仓根启动所选运行环境（<env-dir> 为环境目录）
+dev/lib/up.sh <env-dir> --strict
 ```
 
 **通用验证**（任意子方向容器内）：`ls /workspace` 应看到 `dev/repos.yaml` 登记的各仓（无权限跳过的除外）+ 公共仓内容（容器名/进入方式见各子方向 README）。
 
 **要点**：
-- 起容器前：`npu-smi` 确认卡空闲；DrvMng 并发容器上限 ≈3，容器名冲突时先 `docker stop` 旧容器
+- 起带卡容器前：用 `npu-smi info` / `docker ps` 核对设备计算占用与其他带卡容器，按所选环境目录的设备约束选卡；有他人带卡容器时先协调使用窗口，不停止他人容器
 - 日常开发：`cd <子库> && git checkout <协作分支>`（各仓分支见 `VERSIONS.md` §1；FlagTree 用 `triton_v3.2.x`）→ 建个人分支 → push 组织仓 → 同仓 PR
-- 公共配置变更（镜像/设备/环境变量）：改 `dev/compose.base.yml`，各子方向自动生效，并同步 `VERSIONS.md`；子方向专属变更改各自目录
+- 环境配置：从 [`dev/images/README.md`](dev/images/README.md) 入口选择现行运行环境目录，按该目录说明设置设备与环境变量，以 `dev/lib/up.sh <env-dir> --strict` 启动；自建运行环境按 [`dev/ENV-SPEC.md`](dev/ENV-SPEC.md) 与 [`dev/_template/README.md`](dev/_template/README.md) 维护
 - 细节与踩坑：各子方向看板（如 `dev/memory/README.md`）＋ `VERSIONS.md`（物资清单/镜像/venv 组合）
 
 ## 协作纪律
@@ -118,7 +119,7 @@ cd dev/<子方向>
 ## 红线
 
 - 不改宿主机器配置/驱动；所有安装与实验都在容器内进行
-- 多卡测试前 `npu-smi` 确认 16 卡空闲；DrvMng 并发容器上限 ≈3，超了先停旧容器
+- 多卡测试前用 `npu-smi info` / `docker ps` 核对所需设备与带卡容器占用，遵守所选环境目录的设备约束；有他人带卡容器时先协调使用窗口
 - 昇腾跑 vLLM 推理（设备层通用坑）：首次 attention 算子初始化极慢（10+ 分钟），基准前先短请求预热；`docker exec` 被 kill 会残留 EngineCore 子进程占卡，重跑前 `pkill -f "VLLM::EngineCore"`
 - 公共仓内容逐项审查后才上传；个人调试记录默认收拢 `personal/` 不上传
 
