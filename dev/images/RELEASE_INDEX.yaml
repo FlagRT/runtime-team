@@ -2,7 +2,7 @@
 # 互锁校验：python3 dev/lib/check_release.py；导航入口：dev/images/README.md §1。
 schema: flagrt.release-index/v1
 generated_by: dev/lib/release_index.py export
-generated_at: '2026-11-15T19:44:15+08:00'
+generated_at: '2026-11-22T19:57:56+08:00'
 environments:
   ascend910c-train:
     image:
@@ -51,9 +51,9 @@ environments:
       baseline: dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml
       digest: sha256:e55b420ee98e0fdef6c18a27b633d67b988ecef81a52a0fef5a0c6636c91d5c2
     env_current:
-      dir: dev/images/cambricon-mlu-runtime/v1/demo
-      baseline: dev/images/cambricon-mlu-runtime/v1/demo/env.baseline.yaml
-    env_form: demo
+      dir: dev/images/cambricon-mlu-runtime/v1/env/v1
+      baseline: dev/images/cambricon-mlu-runtime/v1/env/v1/env.baseline.yaml
+    env_form: up-sh
     stack_lock: dev/stack.lock.cambricon.v1.yaml
   cambricon-infer:
     image:
@@ -62,9 +62,9 @@ environments:
       baseline: dev/images/cambricon-infer-vllm/v1/image.baseline.yaml
       digest: sha256:76a673a8b4aaa9d6b7752b678ec1fcbb5f6bcfc711414b809117a5b8077b9e94
     env_current:
-      dir: dev/images/cambricon-infer-vllm/v1/demo
-      baseline: dev/images/cambricon-infer-vllm/v1/demo/env.baseline.yaml
-    env_form: demo
+      dir: dev/images/cambricon-infer-vllm/v1/env/v1
+      baseline: dev/images/cambricon-infer-vllm/v1/env/v1/env.baseline.yaml
+    env_form: up-sh
     stack_lock: dev/stack.lock.cambricon.v1.yaml
   thead-ppu:
     image:

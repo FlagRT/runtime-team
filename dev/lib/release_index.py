@@ -59,14 +59,14 @@ ENVIRONMENTS = {
     },
     "cambricon-train": {
         "baseline": "dev/images/cambricon-mlu-runtime/v1/image.baseline.yaml",
-        "env_dir": "dev/images/cambricon-mlu-runtime/v1/demo",
-        "env_form": "demo",
+        "env_dir": "dev/images/cambricon-mlu-runtime/v1/env/v1",
+        "env_form": "up-sh",
         "stack_lock": "dev/stack.lock.cambricon.v1.yaml",
     },
     "cambricon-infer": {
         "baseline": "dev/images/cambricon-infer-vllm/v1/image.baseline.yaml",
-        "env_dir": "dev/images/cambricon-infer-vllm/v1/demo",
-        "env_form": "demo",
+        "env_dir": "dev/images/cambricon-infer-vllm/v1/env/v1",
+        "env_form": "up-sh",
         "stack_lock": "dev/stack.lock.cambricon.v1.yaml",
     },
     "thead-ppu": {
