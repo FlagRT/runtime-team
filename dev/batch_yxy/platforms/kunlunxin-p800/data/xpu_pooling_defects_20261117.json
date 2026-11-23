@@ -1,0 +1,49 @@
+{
+  "platform": "kunlunxin P800 OAM (xpu2)",
+  "stack": "vllm 0.11.0 + vllm-kunlun 0.11.0, torch 2.5.1+cu118, enforce_eager, fp16",
+  "model": "Qwen3-Embedding-0.6B",
+  "date": "2026-11-17",
+  "summary": "两个独立缺陷导致 pooling 输出错误；映射/顺序契约始终正确",
+  "mapping_verdict": {
+    "e1_4x4_cross_cosine": "对角短文本 +1.0000，无非对角置换特征 → 非结果错位",
+    "e2_order_swap": "损坏跟随文本不跟随槽位（300a 在任何位置同为 +0.5461）"
+  },
+  "bug1_prefix_cache_hit": {
+    "trigger": "enable_prefix_caching=True（vllm 0.11 默认开）且请求 KV 命中缓存（同/近似文本重复调用）",
+    "minimal_repro": "同一 300tok 文本连发两次: cos(v1,v2)=+0.5461",
+    "cpu_truth": "cos(CPU真值, 第一次冷缓存)=+1.0000（对）; cos(CPU真值, 第二次命中)=+0.5462（错）",
+    "scope": "长文本（多 KV 块）损坏；短文本（单块）实测不受影响",
+    "workaround": "enable_prefix_caching=False"
+  },
+  "bug2_multi_step_prefill": {
+    "trigger": "单次 embed 调用总 token 超过 max_num_batched_tokens(16384)，prefill 被切成多个调度步",
+    "boundary_matrix": {
+      "64x64tok_1step": "0/64 损坏",
+      "8x2048tok_1step": "0/8 损坏",
+      "16x2048tok_2steps": "8/16 损坏",
+      "32x2048tok_4steps": "24/32 损坏"
+    },
+    "independent_of": ["批内条数（单步内 64 条全对）", "长度混合（同长度跨步同样坏）"],
+    "smaller_budget_worse": "max_num_batched_tokens=4096 → 64条mixed 损坏 52/64（步数越多坏越多）",
+    "smoking_gun_20261117": {
+      "second_step_all_corrupted": "16×2048 两步：第0-7项(步1) 0/8坏；第8-15项(步2) 8/8全坏",
+      "cross_match_verdict": "损坏向量与批内全部参照交叉比对无任何非对角≈1.0（交叉cos仅0.01~0.12）→ 排除'读到其他序列KV'的置换/串扰假设",
+      "mechanism": "损坏向量与一切真实文本嵌入近乎正交 → 从无效/未初始化/已释放 KV 块计算所得（块表指向无效内存）",
+      "session_layout_dependence": "同形状调用在无批量调用历史的会话中可全部正确（0/16、0/32），触发取决于块分配器空闲布局"
+    },
+    "workaround": "单次调用总 token ≤ 16384（FlagScheduler 外层组批 max_total_tokens 预算可天然钳制）"
+  },
+  "generation_path_20261117": {
+    "setup": "同一权重改 task=generate（检查点键名重映射为标准 Qwen3ForCausalLM 布局，容器内 /root/qwen3-gen；embedding 结论均在原始检查点上取得，重映射非缺陷来源）",
+    "bug1_on_generation": "同一 400tok 提示贪心解码两次（缓存开，第二次全量命中）：token 序列从第 1 个实质 token 完全分叉 → 缓存命中缺陷影响生成路径",
+    "bug2_on_generation": "缓存关，16×2048 一次批量调用（2步 prefill + 多步 decode）vs 逐条单独调用：16/16 输出不一致，且全部从第 0~1 个 token 完全分叉（32tok 仅 0~1 个相同）→ 排除 fp16 批数值噪声，属垃圾上下文级别错误；解码阶段的跨步 KV 读取使第一批（步1）序列也全部损坏（embedding 场景步1 序列完好，因其无解码阶段）",
+    "implication": "两缺陷非 pooling 专属：vllm serve + 默认 prefix caching 的重复长提示、任何多步连续调度下的生成，输出均不可信"
+  },
+  "historical_reconciliation": {
+    "n64_n192_bench_FAIL": "Bug2：A/B/C 各路径单次调用均超 16384（192×mixed≈55k tok），各自确定性损坏，跨路径 cos 为负",
+    "a_self_consistent_across_rounds": "同构重复调用 → 同样的步划分 → 同样的错误输出 → 逐位一致",
+    "nov10_diag_short_corrupted": "Bug1：参照单条调用在混批之后执行、命中缓存，参照自身损坏（方向反转）",
+    "e5_nonmonotonic_250bad": "Bug1×Bug2 叠加，每次调用的缓存命中状态不同"
+  },
+  "safe_operating_envelope": "enable_prefix_caching=False 且单次调用总 token ≤ 16384 时，实测 64 条任意混批逐位正确（cos=1.0）"
+}

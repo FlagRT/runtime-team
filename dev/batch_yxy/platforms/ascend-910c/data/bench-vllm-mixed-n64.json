@@ -1,0 +1,176 @@
+{
+  "timestamp": "2026-11-10T10:32:46",
+  "executor": "vllm",
+  "model": "/models/Qwen3-Embedding-0.6B",
+  "engine": {
+    "max_model_len": 4096,
+    "enable_prefix_caching": false
+  },
+  "scenario": "mixed",
+  "num_requests": 64,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=2048": 29,
+    "<=256": 22,
+    "<=128": 11,
+    "<=512": 2
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 649.628837,
+      "requests_per_s": 98.51779409232107,
+      "e2e_ms": {
+        "p50": 649.557044,
+        "p95": 649.557044,
+        "p99": 649.557044,
+        "max": 649.557044
+      },
+      "queue_ms": {
+        "p50": 0.00405,
+        "p95": 0.00405,
+        "max": 0.00405
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 0
+    },
+    {
+      "mode": "B",
+      "wall_ms": 781.765347,
+      "requests_per_s": 81.86599757279853,
+      "e2e_ms": {
+        "p50": 781.637402,
+        "p95": 781.637402,
+        "p99": 781.637402,
+        "max": 781.637402
+      },
+      "queue_ms": {
+        "p50": 87.700922,
+        "p95": 87.700922,
+        "max": 87.700922
+      },
+      "batch_summary": {
+        "num_batches": 2,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 32,
+          "p50": 32.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "32": 2
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 2
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 87.700922,
+          "p95": 87.700922,
+          "max": 87.700922
+        },
+        "padding_ratio": {
+          "avg": 0.5291537113366325,
+          "p50": 0.4909691081215745,
+          "p95": 0.5673383145516904,
+          "max": 0.5673383145516904
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 327.894381,
+        "batch-000002": 365.724227
+      },
+      "executor_calls": 0
+    },
+    {
+      "mode": "C",
+      "wall_ms": 910.38896,
+      "requests_per_s": 70.29962226255468,
+      "e2e_ms": {
+        "p50": 241.475678,
+        "p95": 910.318687,
+        "p99": 910.318687,
+        "max": 910.318687
+      },
+      "queue_ms": {
+        "p50": 77.816644,
+        "p95": 77.816644,
+        "max": 77.816644
+      },
+      "batch_summary": {
+        "num_batches": 5,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 2,
+          "p50": 12.0,
+          "p95": 22.0,
+          "max": 22,
+          "distribution": {
+            "2": 1,
+            "11": 1,
+            "12": 1,
+            "17": 1,
+            "22": 1
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 5
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 77.816644,
+          "p95": 77.816644,
+          "max": 77.816644
+        },
+        "padding_ratio": {
+          "avg": 0.1325145170820065,
+          "p50": 0.057267198893276076,
+          "p95": 0.26122218030931726,
+          "max": 0.26122218030931726
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 78.582123,
+        "batch-000002": 84.676156,
+        "batch-000003": 73.674676,
+        "batch-000004": 347.068335,
+        "batch-000005": 248.059397
+      },
+      "executor_calls": 0
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0025105923414230347,
+      "min_cosine": 0.9997875902898914,
+      "matched": 64,
+      "verdict": "PASS"
+    },
+    "C": {
+      "max_abs_diff": 0.0034655705094337463,
+      "min_cosine": 0.9997381419985237,
+      "matched": 64,
+      "verdict": "PASS"
+    }
+  }
+}

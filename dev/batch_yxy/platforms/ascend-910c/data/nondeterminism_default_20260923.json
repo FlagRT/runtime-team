@@ -1,0 +1,14 @@
+{
+  "config": {
+    "model": "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",
+    "max_model_len": "4096",
+    "enforce_eager": "False",
+    "enable_prefix_caching": "False"
+  },
+  "num": 32,
+  "singles_repeat_bad": [],
+  "batch_repeat_min_cos": 1.0,
+  "batch_vs_singles_min_cos": 0.01485822345216414,
+  "batch_vs_singles_bad_lt_0.99": 1,
+  "order_contract_min_cos": 0.9998000860214233
+}

@@ -1,0 +1,30 @@
+{
+  "platform": "kunlunxin P800 OAM",
+  "stack": "vllm 0.11.0 + vllm-kunlun 0.11.0 (torch 2.5.1+cu118)",
+  "model": "Qwen3-Embedding-0.6B (fp16, enforce_eager, max_model_len=4096)",
+  "date": "2026-11-10",
+  "script": "examples/sched_engine_p800_vllm.py",
+  "engine_recipe": {
+    "env": [
+      "XPU_VISIBLE_DEVICES=0",
+      "CUDA_VISIBLE_DEVICES=0",
+      "VLLM_PLUGINS=kunlun",
+      "VLLM_ENABLE_V1_MULTIPROCESSING=0"
+    ],
+    "note": "进程内引擎规避 EngineCore 子进程平台绑定时序问题（vllm-kunlun 0.11.0 KunlunPlatform 未实现 set_device，子进程激活时序缺陷）"
+  },
+  "device_profile": "kunlun (verified 2026-11-10, 预算 32/32768/4096 与 910C 口径一致)",
+  "policy": "se-p800-v1: buckets(128,256,512), max_batch=8, max_total_tokens=4096, max_wait=50ms",
+  "mapping_acceptance": {
+    "inorder": {"batches": 6, "close_reasons": {"batch_limit": 3, "wait_limit": 3}, "results": 32, "vector_dim": 1024, "wall_ms": 134.8},
+    "reverse": {"batches": 6, "close_reasons": {"batch_limit": 3, "wait_limit": 3}, "results": 32, "vector_dim": 1024, "wall_ms": 124.4},
+    "interleaved": {"batches": 6, "close_reasons": {"batch_limit": 3, "wait_limit": 3}, "results": 32, "vector_dim": 1024, "wall_ms": 125.6},
+    "exactly_once_mapping": "PASS（32/32 恰好一次回填，断言零失败）"
+  },
+  "numeric_reference": {
+    "legacy_vs_scheduled_equal": "0/32",
+    "cosine_min": -0.0475,
+    "cosine_mean": 0.0529,
+    "note": "受平台长短混批 pooling 缺陷影响（见 xpu_batch_composition_20261110.json），仅作参考，不作为映射结论依据"
+  }
+}

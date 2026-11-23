@@ -1,0 +1,176 @@
+{
+  "timestamp": "2026-11-10T22:30:30",
+  "executor": "vllm",
+  "model": "/work/models/qwen3-embed-0.6b-xpu",
+  "engine": {
+    "max_model_len": 4096,
+    "enable_prefix_caching": false
+  },
+  "scenario": "mixed",
+  "num_requests": 64,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=2048": 29,
+    "<=256": 22,
+    "<=128": 11,
+    "<=512": 2
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 777.056433,
+      "requests_per_s": 82.36210046278583,
+      "e2e_ms": {
+        "p50": 777.004267,
+        "p95": 777.004267,
+        "p99": 777.004267,
+        "max": 777.004267
+      },
+      "queue_ms": {
+        "p50": 0.002649,
+        "p95": 0.002649,
+        "max": 0.002649
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 0
+    },
+    {
+      "mode": "B",
+      "wall_ms": 840.827127,
+      "requests_per_s": 76.11552713379571,
+      "e2e_ms": {
+        "p50": 840.733646,
+        "p95": 840.733646,
+        "p99": 840.733646,
+        "max": 840.733646
+      },
+      "queue_ms": {
+        "p50": 57.310001,
+        "p95": 57.310001,
+        "max": 57.310001
+      },
+      "batch_summary": {
+        "num_batches": 2,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 32,
+          "p50": 32.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "32": 2
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 2
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 57.310001,
+          "p95": 57.310001,
+          "max": 57.310001
+        },
+        "padding_ratio": {
+          "avg": 0.5291537113366325,
+          "p50": 0.4909691081215745,
+          "p95": 0.5673383145516904,
+          "max": 0.5673383145516904
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 360.382632,
+        "batch-000002": 422.816105
+      },
+      "executor_calls": 0
+    },
+    {
+      "mode": "C",
+      "wall_ms": 2556.583489,
+      "requests_per_s": 25.033408951973403,
+      "e2e_ms": {
+        "p50": 137.55294,
+        "p95": 2556.454391,
+        "p99": 2556.454391,
+        "max": 2556.454391
+      },
+      "queue_ms": {
+        "p50": 59.964363,
+        "p95": 59.964363,
+        "max": 59.964363
+      },
+      "batch_summary": {
+        "num_batches": 5,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 2,
+          "p50": 12.0,
+          "p95": 22.0,
+          "max": 22,
+          "distribution": {
+            "2": 1,
+            "11": 1,
+            "12": 1,
+            "17": 1,
+            "22": 1
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 5
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 59.964363,
+          "p95": 59.964363,
+          "max": 59.964363
+        },
+        "padding_ratio": {
+          "avg": 0.1325145170820065,
+          "p50": 0.057267198893276076,
+          "p95": 0.26122218030931726,
+          "max": 0.26122218030931726
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 23.017421,
+        "batch-000002": 54.210921,
+        "batch-000003": 1709.349022,
+        "batch-000004": 417.379532,
+        "batch-000005": 292.100764
+      },
+      "executor_calls": 0
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.49774080282077193,
+      "min_cosine": -0.052454507286494576,
+      "matched": 64,
+      "verdict": "FAIL"
+    },
+    "C": {
+      "max_abs_diff": 0.5325848367065191,
+      "min_cosine": -0.038424305833406135,
+      "matched": 64,
+      "verdict": "FAIL"
+    }
+  }
+}

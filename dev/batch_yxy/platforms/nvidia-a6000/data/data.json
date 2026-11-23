@@ -1,0 +1,61 @@
+{
+  "platform": {
+    "vendor": "nvidia",
+    "device": "RTX A6000",
+    "device_count": 4,
+    "test_device": "GPU3",
+    "driver": "595.71.05",
+    "vllm": "0.21.0",
+    "torch_env": "vllm_add (Python 3.12.10, torch 2.13.0+cu130)",
+    "model": "Qwen3-Embedding-0.6B"
+  },
+  "source": "docs/flagscheduler_验证记录.md (2026-10-21, 2026-10-25, 2026-11-04)",
+  "raw_artifacts_location": "GPU machine: artifacts/nvidia_gpu3_perf_20261025/, artifacts/nvidia_gpu3_20261104/, artifacts/torch_gpu3_20261104/",
+  "experiments": {
+    "embedding_abc_192": {
+      "date": "2026-10-25",
+      "backend": "vllm-embed",
+      "workload": {"requests": 192, "pattern": "mixed", "mode": "closed-loop replay"},
+      "paths": {
+        "A_direct": {"req_per_s": 467.6, "p50_ms": 410.5, "p99_ms": 410.5, "relative": "baseline"},
+        "B_batch8": {"req_per_s": 411.4, "p50_ms": 242, "p99_ms": 429, "relative": "-12%"},
+        "B_batch32": {"req_per_s": 561.3, "p50_ms": 206, "p99_ms": 315, "relative": "+20%"},
+        "C_custom_scheduler": {"req_per_s": 417.4, "p50_ms": 233, "p99_ms": 421, "relative": "~B, 1.5% noise"}
+      },
+      "decision_overhead": {"submit_us_per_request": [2.3, 2.6], "dispatch_us_per_request": [1.9, 3.5], "share": "<0.3%"},
+      "notes": [
+        "C is a custom scheduler plugin inheriting native behavior, not bucket scheduling",
+        "single run per configuration, <5% treated as noise"
+      ]
+    },
+    "embedding_36_native_vs_custom": {
+      "date": "2026-10-25",
+      "requests": 36,
+      "native": {"completed": 36, "dim": 1024},
+      "custom_scheduler": {"completed": 36, "dim": 1024},
+      "max_abs_diff": 2.83e-3,
+      "max_cosine_deviation": 1.28e-4,
+      "id_mapping": "exact for both runs",
+      "gpu_memory_after_exit_mib": 1
+    },
+    "torch_predict_cpu_gpu_300": {
+      "date": "2026-11-04",
+      "requests": 300,
+      "execution_p50_ms": {"deepfm": {"cpu": 4.01, "gpu": 2.17}, "din": {"cpu": 4.65, "gpu": 1.89}, "mmoe": {"cpu": 0.96, "gpu": 0.81}},
+      "note": "deepfm GPU e2e 266 ms caused by a ~258 ms execution spike amplified by single-batch serialization"
+    },
+    "torch_predict_batch_strategy_300": {
+      "date": "2026-11-04",
+      "backend": "torch-predict",
+      "requests": 300,
+      "strategies": [
+        {"batch": 1, "req_per_s": 76.5, "e2e_p50_ms": 110.6},
+        {"batch": 8, "req_per_s": 103.1},
+        {"batch": 32, "req_per_s": 109.1},
+        {"batch": "32+padding<=0.3", "req_per_s": 123.4, "e2e_p50_ms": 40.8, "relative_throughput": "+61%", "relative_p50": "-63%"}
+      ],
+      "batch_invariance": {"fp32_max_abs": 3.9e-6, "fp16_max_abs": 6e-2, "fp16_mean_abs": 2e-4},
+      "note": "different backend/workload from embedding A/B/C; directional reference only"
+    }
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "timestamp": "2026-09-23T11:29:16",
+  "executor": "vllm",
+  "model": "/mnt/raid/hliu553/models/Qwen3-Embedding-0.6B",
+  "engine": {
+    "max_model_len": 4096,
+    "enable_prefix_caching": false
+  },
+  "scenario": "mixed",
+  "num_requests": 64,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=2048": 29,
+    "<=256": 22,
+    "<=128": 11,
+    "<=512": 2
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 697.858086,
+      "requests_per_s": 91.7091902837105,
+      "e2e_ms": {
+        "p50": 697.792803,
+        "p95": 697.792803,
+        "p99": 697.792803,
+        "max": 697.792803
+      },
+      "queue_ms": {
+        "p50": 0.00386,
+        "p95": 0.00386,
+        "max": 0.00386
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 0
+    },
+    {
+      "mode": "B",
+      "wall_ms": 818.849116,
+      "requests_per_s": 78.1584772450313,
+      "e2e_ms": {
+        "p50": 818.750282,
+        "p95": 818.750282,
+        "p99": 818.750282,
+        "max": 818.750282
+      },
+      "queue_ms": {
+        "p50": 66.441276,
+        "p95": 66.441276,
+        "max": 66.441276
+      },
+      "batch_summary": {
+        "num_batches": 2,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 32,
+          "p50": 32.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "32": 2
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 2
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 66.441276,
+          "p95": 66.441276,
+          "max": 66.441276
+        },
+        "padding_ratio": {
+          "avg": 0.5291537113366325,
+          "p50": 0.4909691081215745,
+          "p95": 0.5673383145516904,
+          "max": 0.5673383145516904
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 355.604515,
+        "batch-000002": 396.455551
+      },
+      "executor_calls": 0
+    },
+    {
+      "mode": "C",
+      "wall_ms": 955.873247,
+      "requests_per_s": 66.95448397668149,
+      "e2e_ms": {
+        "p50": 827.739379,
+        "p95": 913.747736,
+        "p99": 955.820865,
+        "max": 955.820865
+      },
+      "queue_ms": {
+        "p50": 67.176408,
+        "p95": 67.176408,
+        "max": 67.176408
+      },
+      "batch_summary": {
+        "num_batches": 5,
+        "num_requests": 64,
+        "batch_size": {
+          "min": 2,
+          "p50": 12.0,
+          "p95": 22.0,
+          "max": 22,
+          "distribution": {
+            "2": 1,
+            "11": 1,
+            "12": 1,
+            "17": 1,
+            "22": 1
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 5
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 67.176408,
+          "p95": 67.176408,
+          "max": 67.176408
+        },
+        "padding_ratio": {
+          "avg": 0.1325145170820065,
+          "p50": 0.057267198893276076,
+          "p95": 0.26122218030931726,
+          "max": 0.26122218030931726
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 383.149649,
+        "batch-000002": 281.095872,
+        "batch-000003": 95.977685,
+        "batch-000004": 85.990136,
+        "batch-000005": 42.062588
+      },
+      "executor_calls": 0
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0838150791823864,
+      "min_cosine": 0.813382500154448,
+      "matched": 64,
+      "verdict": "FAIL"
+    },
+    "C": {
+      "max_abs_diff": 0.25422901287674904,
+      "min_cosine": 0.08732632597262216,
+      "matched": 64,
+      "verdict": "FAIL"
+    }
+  }
+}

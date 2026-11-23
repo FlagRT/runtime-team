@@ -1,0 +1,163 @@
+{
+  "timestamp": "2026-09-23T10:56:49",
+  "executor": "fake",
+  "model": "fake",
+  "scenario": "lowtraffic",
+  "num_requests": 200,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=256": 9,
+    "<=2048": 101,
+    "<=512": 24,
+    "<=1024": 55,
+    "<=128": 7,
+    "<=64": 4
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 8452.044744,
+      "requests_per_s": 23.66291306514645,
+      "e2e_ms": {
+        "p50": 12.346733,
+        "p95": 14.231925,
+        "p99": 14.286837,
+        "max": 15.865665
+      },
+      "queue_ms": {
+        "p50": 0.00108,
+        "p95": 0.00297,
+        "max": 0.00344
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 200
+    },
+    {
+      "mode": "B",
+      "wall_ms": 18473.058021,
+      "requests_per_s": 10.826577807130896,
+      "e2e_ms": {
+        "p50": 62.422656,
+        "p95": 64.316738,
+        "p99": 64.433542,
+        "max": 64.958325
+      },
+      "queue_ms": {
+        "p50": 50.060372,
+        "p95": 50.063042,
+        "max": 50.105364
+      },
+      "batch_summary": {
+        "num_batches": 200,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 1,
+          "p50": 1.0,
+          "p95": 1.0,
+          "max": 1,
+          "distribution": {
+            "1": 200
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 200
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 50.060372,
+          "p95": 50.063042,
+          "max": 50.105364
+        },
+        "padding_ratio": {
+          "avg": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 12.597054
+      },
+      "executor_calls": 400
+    },
+    {
+      "mode": "C",
+      "wall_ms": 18472.459596,
+      "requests_per_s": 10.826928539787291,
+      "e2e_ms": {
+        "p50": 62.439836,
+        "p95": 64.312438,
+        "p99": 64.404611,
+        "max": 64.490135
+      },
+      "queue_ms": {
+        "p50": 50.060431,
+        "p95": 50.066462,
+        "max": 50.084403
+      },
+      "batch_summary": {
+        "num_batches": 200,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 1,
+          "p50": 1.0,
+          "p95": 1.0,
+          "max": 1,
+          "distribution": {
+            "1": 200
+          }
+        },
+        "dispatch_reasons": {
+          "wait_limit": 200
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 50.060431,
+          "p95": 50.066462,
+          "max": 50.084403
+        },
+        "padding_ratio": {
+          "avg": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 12.600784
+      },
+      "executor_calls": 600
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    },
+    "C": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    }
+  }
+}

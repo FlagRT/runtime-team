@@ -1,0 +1,174 @@
+{
+  "timestamp": "2026-09-23T10:55:54",
+  "executor": "fake",
+  "model": "fake",
+  "scenario": "short",
+  "num_requests": 200,
+  "seed": 20260923,
+  "max_input_tokens": 2048,
+  "policy_C": {
+    "bucket_upper_bounds": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "max_batch_size": 32,
+    "max_total_tokens": 32768,
+    "max_wait_ms": 50.0,
+    "allow_adjacent_bucket_merge": false,
+    "max_padding_ratio": null
+  },
+  "length_distribution": {
+    "<=64": 200
+  },
+  "runs": [
+    {
+      "mode": "A",
+      "wall_ms": 46.621433,
+      "requests_per_s": 4289.872428417204,
+      "e2e_ms": {
+        "p50": 46.495938,
+        "p95": 46.495938,
+        "p99": 46.495938,
+        "max": 46.495938
+      },
+      "queue_ms": {
+        "p50": 0.00828,
+        "p95": 0.00828,
+        "max": 0.00828
+      },
+      "batch_summary": {
+        "num_batches": 0
+      },
+      "batch_exec_ms": {},
+      "executor_calls": 1
+    },
+    {
+      "mode": "B",
+      "wall_ms": 108.922533,
+      "requests_per_s": 1836.1673612566465,
+      "e2e_ms": {
+        "p50": 65.552341,
+        "p95": 97.210228,
+        "p99": 108.83515,
+        "max": 108.83515
+      },
+      "queue_ms": {
+        "p50": 1.540257,
+        "p95": 1.540257,
+        "max": 97.234429
+      },
+      "batch_summary": {
+        "num_batches": 7,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 8,
+          "p50": 32.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "8": 1,
+            "32": 6
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 6,
+          "wait_limit": 1
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 1.540257,
+          "p95": 97.234429,
+          "max": 97.234429
+        },
+        "padding_ratio": {
+          "avg": 0.3613011232718894,
+          "p50": 0.37353515625,
+          "p95": 0.42431640625,
+          "max": 0.42431640625
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 15.906297,
+        "batch-000002": 15.890376,
+        "batch-000003": 15.910967,
+        "batch-000004": 15.895026,
+        "batch-000005": 15.715729,
+        "batch-000006": 15.906357,
+        "batch-000007": 11.539338
+      },
+      "executor_calls": 8
+    },
+    {
+      "mode": "C",
+      "wall_ms": 108.991177,
+      "requests_per_s": 1835.0109201958614,
+      "e2e_ms": {
+        "p50": 65.603403,
+        "p95": 97.314332,
+        "p99": 108.930094,
+        "max": 108.930094
+      },
+      "queue_ms": {
+        "p50": 1.482604,
+        "p95": 1.482604,
+        "max": 97.338533
+      },
+      "batch_summary": {
+        "num_batches": 7,
+        "num_requests": 200,
+        "batch_size": {
+          "min": 8,
+          "p50": 32.0,
+          "p95": 32.0,
+          "max": 32,
+          "distribution": {
+            "8": 1,
+            "32": 6
+          }
+        },
+        "dispatch_reasons": {
+          "batch_limit": 6,
+          "wait_limit": 1
+        },
+        "cross_bucket_batches": 0,
+        "head_wait_ms": {
+          "p50": 1.482604,
+          "p95": 97.338533,
+          "max": 97.338533
+        },
+        "padding_ratio": {
+          "avg": 0.3613011232718894,
+          "p50": 0.37353515625,
+          "p95": 0.42431640625,
+          "max": 0.42431640625
+        }
+      },
+      "batch_exec_ms": {
+        "batch-000001": 16.015331,
+        "batch-000002": 15.950909,
+        "batch-000003": 15.914237,
+        "batch-000004": 15.895576,
+        "batch-000005": 15.789372,
+        "batch-000006": 15.880565,
+        "batch-000007": 11.537268
+      },
+      "executor_calls": 15
+    }
+  ],
+  "correctness": {
+    "B": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    },
+    "C": {
+      "max_abs_diff": 0.0,
+      "min_cosine": 0.9999999999999998,
+      "matched": 200
+    }
+  }
+}

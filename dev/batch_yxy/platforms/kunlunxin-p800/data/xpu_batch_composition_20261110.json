@@ -1,0 +1,19 @@
+{
+  "platform": "kunlunxin P800 OAM",
+  "stack": "vllm 0.11.0 + vllm-kunlun 0.11.0 (torch 2.5.1+cu118)",
+  "model": "/work/models/qwen3-embed-0.6b-xpu",
+  "date": "2026-11-10",
+  "checks": {
+    "repeat_call_cos": 1.0,
+    "repeat_call_equal": true,
+    "same_length_batch_cos": 1.0,
+    "semantic_related_cos": 0.6720300107010188,
+    "semantic_unrelated_cos": 0.2020255518840129,
+    "mixed_length_batch_cos": -0.004110201588202055
+  },
+  "verdict": {
+    "deterministic": true,
+    "same_length_batch_exact": true,
+    "mixed_length_corrupted": true
+  }
+}

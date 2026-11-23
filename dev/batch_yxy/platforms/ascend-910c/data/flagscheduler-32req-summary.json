@@ -1,0 +1,21 @@
+{
+  "source": "FlagScheduler vllm-embed run (fixed branch), 32 requests, 2 priority levels",
+  "requests": 32,
+  "status": {
+    "completed": 32
+  },
+  "dims": [
+    1024
+  ],
+  "unique_ids": 32,
+  "execution_ms": {
+    "p50": 82.326917,
+    "p95": 6855.485449,
+    "max": 6855.537981
+  },
+  "queue_ms": {
+    "p50": 7041.872692,
+    "p95": 7198.668874,
+    "max": 7253.705747
+  }
+}
