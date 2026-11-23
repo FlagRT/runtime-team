@@ -57,21 +57,28 @@ pipeline-parallel 中间张量转发。
 |---|---|---|
 | 镜像 | 现行昆仑芯推理腿发布物 `kunlun-infer-vllm/v1`，digest `sha256:e180a0dd...`（镜像内 `plugin0.2.0`） | image id 由 `up.sh --strict` 按现行 `kunlun-infer-vllm/v1` 的镜像基线核对（本目录不复制该血统的 `image.baseline.yaml`/`demo/`，按 CASE-TEMPLATE.md 开篇「本标准同时适用于 `../issues/`」一节借用兄弟镜像目录） |
 | 运行环境 | 容器 `--network none`（生产隔离）；需 shell `export GLOO_SOCKET_IFNAME=lo NCCL_SOCKET_IFNAME=lo VLLM_HOST_IP=127.0.0.1`（**必须用 shell export，脚本内 `os.environ.setdefault` 对 vllm spawn 的子进程不生效**——这是本 case 复现脚本的头号坑，漏掉会看到 `Unable to find address for: eth0` 而不是目标断言） | 随现行容器启动纪律 |
-| 卡 | 1 × 昆仑芯 P800 | 启动前 `xpu-smi` 挑 0% 利用率 / 0MiB 显存的卡 |
-| 模型与数据 | Qwen3-Embedding-0.6B（fp16），本地路径需剔除 `config_sentence_transformers.json` / `modules.json`（否则 vllm 配置加载会在另一处崩，与本缺陷无关） | 经 hf-mirror.com 下载，sha256 `0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd`；已有副本：P800-C `/data2/xliu969/scratch-bugverify/Qwen3-Embedding-0.6B/`（容器内挂载路径 `/home/models/Qwen3-Embedding-0.6B/`） |
+| 卡 | 1 × 昆仑芯 P800，经 `run.sh` 的 `XPU_CARD` 环境变量指定（必填，无缺省，每次执行前重新核对） | 启动前 `xpu-smi` 挑 0% 利用率 / 0MiB 显存的卡 |
+| 模型与数据 | Qwen3-Embedding-0.6B（fp16），本地路径需剔除 `config_sentence_transformers.json` / `modules.json`（否则 vllm 配置加载会在另一处崩，与本缺陷无关）；经 `run.sh` 的 `MODEL_DIR` 环境变量指定宿主侧路径（必填，无缺省），脚本内 `docker cp` 进容器（容器 down 后不持久，每次重跑都要重 cp，这是正常现象不是 bug） | 经 hf-mirror.com 下载，sha256 `0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd`；已有副本：P800-C `/data2/xliu969/scratch-bugverify/Qwen3-Embedding-0.6B/` |
 
-### 单入口命令
+### 单入口命令（宿主侧，推荐）
 
 ```bash
-# 容器内，已 export 上述三个网络变量
-python3 dev/issues/vllm-plugin-fl-pooling-dispatch/assets/minirepro_pooling_dispatch.py \
-  --model /home/models/Qwen3-Embedding-0.6B/
+XPU_CARD=<n> MODEL_DIR=/path/to/Qwen3-Embedding-0.6B bash \
+  dev/issues/vllm-plugin-fl-pooling-dispatch/run.sh
 ```
 
-脚本自动建立一个剔除两个 sentence-transformers 配置文件的临时软链接视图，不修改原模型目录；
-以子进程方式跑真正的 `llm.embed()` 调用，只认目标栈帧（`worker.py execute_model` 的那个
-`assert isinstance(output, IntermediateTensors)`）为复现确认，其他断言/异常判为 `ERROR`
-而非 `FAIL`，避免误判。
+[`run.sh`](run.sh) 做完整流程：选卡前置核对 → 镜像自证 → `up.sh --strict` 起环境 →
+`docker cp` 模型进容器 → 容器内跑 `assets/minirepro_pooling_dispatch.py` → 写
+`assets/evidence/summary.json`（机器可判，schema `flagrt.case-summary/v1`）→ `down` 清理＋
+显存回落核验，失败路径也会清理。详细步骤拆解见 [`NOTES-step-by-step.md`](NOTES-step-by-step.md)。
+
+脚本本身不打补丁——补丁是验证用的临时手段，不是环境的永久状态；`run.sh` 只检测
+"当前这份环境的 embed() 还崩不崩"，用于下方「版本集合」的分版表态。
+
+`minirepro_pooling_dispatch.py` 自动建立一个剔除两个 sentence-transformers 配置文件的
+临时软链接视图，不修改原模型目录；以子进程方式跑真正的 `llm.embed()` 调用，只认目标栈帧
+（`worker.py execute_model` 的那个 `assert isinstance(output, IntermediateTensors)`）
+为复现确认，其他断言/异常判为 `ERROR` 而非 `FAIL`，避免误判。
 
 ### 预期结果（问题存在时）
 
@@ -81,7 +88,8 @@ python3 dev/issues/vllm-plugin-fl-pooling-dispatch/assets/minirepro_pooling_disp
 overall: FAIL
 ```
 
-退出码 1。补丁后预期 `overall: PASS`、退出码 0、输出含 `EMBED_OK, dim= 1024`。
+`run.sh` 退出码 1。若要验证某个候选修复（手工打补丁后再跑），预期 `overall: PASS`、
+退出码 0、输出含 `EMBED_OK, dim= 1024`。
 
 ## 修复验收
 
@@ -90,7 +98,7 @@ overall: FAIL
 
 | 脚本 | 类别 | 命令 | 通过判据 | 最近一次结果与证据 |
 |---|---|---|---|---|
-| [`assets/minirepro_pooling_dispatch.py`](assets/minirepro_pooling_dispatch.py) | 复现 / 验证 | 见「单入口命令」 | 退出码 0 且 `overall: PASS`，输出含 `EMBED_OK, dim= 1024` | 2026-11-22 P800-C：补丁前 `overall: FAIL`（退出码 1，`repro: CONFIRMED`）；容器内 `docker exec sed -i` 手工打补丁、不重建镜像后，重跑 `overall: PASS`（退出码 0，`EMBED_OK, dim= 1024`）。证据：[`assets/evidence/pooling-dispatch-20261122.txt`](assets/evidence/pooling-dispatch-20261122.txt) |
+| [`run.sh`](run.sh)（宿主侧单入口，内部跑 [`assets/minirepro_pooling_dispatch.py`](assets/minirepro_pooling_dispatch.py)） | 复现 / 验证 | 见「单入口命令」 | 退出码 0 且 `overall: PASS`，输出含 `EMBED_OK, dim= 1024`；结果同步写 `assets/evidence/summary.json` | 2026-11-22 P800-C：补丁前 `overall: FAIL`（退出码 1，`repro: CONFIRMED`）；容器内 `docker exec sed -i` 手工打补丁、不重建镜像后，重跑 `overall: PASS`（退出码 0，`EMBED_OK, dim= 1024`）。证据：[`assets/evidence/pooling-dispatch-20261122.txt`](assets/evidence/pooling-dispatch-20261122.txt)（本轮验证在 `run.sh` 成型前手工走的，往后复验用 `run.sh`） |
 
 修复到货到现行发版镜像后（下次 `kunlun-infer-vllm` 版本升级，打包的 vllm-plugin-FL commit
 ≥ `039fb46`），上方「版本集合」需新增一行分版表态，并将该坐标标为「已修」。
@@ -109,6 +117,11 @@ overall: FAIL
    误报"本缺陷已复现"或"已修复"。
 
 <!-- changelog:
+2026-11-22（二）—— 补 `run.sh` 宿主侧单入口（选卡前置核对 → 镜像自证 → up.sh --strict →
+  模型cp进容器 → 跑复现脚本 → assets/evidence/summary.json → down清理），仿 dev/memory/cases/
+  connector-kunlunxin/run.sh 结构；不引入「验收样例四件套」的 REPORT.md（单一通过态设计
+  会削弱issues自己的分版表态机制，经调研真实四件套案例summary.json/REPORT.md字段核实）。
+  规则见 dev/images/CASE-TEMPLATE.md 本次同步更新的条目。
 2026-11-22 —— 首次登记：根因由 2026-11-22 排查定位（AsyncModelRunnerOutput 漏判，非最初怀疑的
   PoolerOutput 分支缺失），修复当日合入 FlagRT/vllm-plugin-FL dev-1.0@039fb46，P800-C 真机
   验证补丁前后对照（崩溃→EMBED_OK dim=1024）。源起 inbox/kunlun芯显存问题排查.md（袁先乙提交的

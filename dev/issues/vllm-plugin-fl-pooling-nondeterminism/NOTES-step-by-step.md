@@ -1,5 +1,8 @@
 # 从零到判定：逐步操作
 
+> 正常使用请直接跑 [`run.sh`](run.sh)（`XPU_CARD=<n> MODEL_DIR=/path bash run.sh`）。
+> 本文件是给要手动排查的人看的。
+
 前置步骤与 [`vllm-plugin-fl-pooling-dispatch/NOTES-step-by-step.md`](../vllm-plugin-fl-pooling-dispatch/NOTES-step-by-step.md)
 的 1-5 步完全一致（起容器、export 网络变量、确认模型目录、打 dispatch 补丁）。
 

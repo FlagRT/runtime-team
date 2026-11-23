@@ -33,20 +33,22 @@
 ### 前置条件
 
 与 [`vllm-plugin-fl-pooling-dispatch`](../vllm-plugin-fl-pooling-dispatch/README.md) 完全相同
-（同一镜像、同一容器、同一模型），**额外前提**：容器内已经打上该 case 的一行补丁（否则
-`llm.embed()` 会先崩在 dispatch 问题上，走不到这里）。
+（同一镜像、同一容器、同一模型），**额外前提**：容器内要先打上 dispatch 那个 case 的一行补丁
+（否则 `llm.embed()` 会先崩在 dispatch 问题上，走不到这里）——[`run.sh`](run.sh) 会自动做这一步，
+**这不代表本次顺带验证了 dispatch case**，两者分开记分，详见 run.sh 内的注释。
 
-### 单入口命令（现象记录，不是判定脚本）
+### 单入口命令（宿主侧，推荐；现象记录，不是判定脚本）
 
 ```bash
-# 容器内，已 export 三个网络变量（同上一个 case）
-python3 dev/issues/vllm-plugin-fl-pooling-nondeterminism/assets/record_pooling_cos.py \
-  --model /home/models/Qwen3-Embedding-0.6B/
-
-# 对照组：显式关闭 prefix caching
-python3 dev/issues/vllm-plugin-fl-pooling-nondeterminism/assets/record_pooling_cos.py \
-  --model /home/models/Qwen3-Embedding-0.6B/ --disable-prefix-caching
+XPU_CARD=<n> MODEL_DIR=/path/to/Qwen3-Embedding-0.6B bash \
+  dev/issues/vllm-plugin-fl-pooling-nondeterminism/run.sh
 ```
+
+[`run.sh`](run.sh) 流程同 dispatch case 的 run.sh，多一步「应用 dispatch 前提补丁」（必要
+前提，不是本 case 的判定对象），然后跑两组对照（默认 `enable_prefix_caching=True` /
+显式 `False`），把 cos 值写进 `assets/evidence/summary.json`（`result` 字段固定
+`NOT_APPLICABLE`——这是收数脚本，没有 PASS/FAIL）。详细步骤见
+[`NOTES-step-by-step.md`](NOTES-step-by-step.md)。
 
 ### 预期结果（现象，不是判定）
 
@@ -70,7 +72,7 @@ python3 dev/issues/vllm-plugin-fl-pooling-nondeterminism/assets/record_pooling_c
 
 | 脚本 | 类别 | 命令 | 通过判据 | 最近一次结果与证据 |
 |---|---|---|---|---|
-| [`assets/record_pooling_cos.py`](assets/record_pooling_cos.py) | 收数 | 见「单入口命令」 | 不做判定；产物供排查引用 | 2026-11-22 P800-C：三组读数见上表，证据 [`assets/evidence/pooling-cos-20261122.txt`](assets/evidence/pooling-cos-20261122.txt) |
+| [`run.sh`](run.sh)（内部跑 [`assets/record_pooling_cos.py`](assets/record_pooling_cos.py)） | 收数 | 见「单入口命令」 | 不做判定；产物供排查引用，同步写 `assets/evidence/summary.json` | 2026-11-22 P800-C：三组读数见上表，证据 [`assets/evidence/pooling-cos-20261122.txt`](assets/evidence/pooling-cos-20261122.txt)（本轮在 run.sh 成型前手工走的，往后复验用 run.sh） |
 
 ### 后续排查方向（未执行，供参考）
 
@@ -81,6 +83,9 @@ python3 dev/issues/vllm-plugin-fl-pooling-nondeterminism/assets/record_pooling_c
   数值问题的性质，但未核实是否同一根因）。
 
 <!-- changelog:
+2026-11-22（二）—— 补 `run.sh` 宿主侧单入口（含自动应用 dispatch case 的前提补丁、两组对照、
+  assets/evidence/summary.json，不输出 PASS/FAIL）；规则与 dispatch case 同批更新，见
+  dev/images/CASE-TEMPLATE.md。
 2026-11-22 —— 首次登记：[`vllm-plugin-fl-pooling-dispatch`](../vllm-plugin-fl-pooling-dispatch/README.md)
   修复验证过程中的附带发现。已排除与 prefix-caching 的相关性。根因未定位，暂不立项排查，
   留档供后续接手。

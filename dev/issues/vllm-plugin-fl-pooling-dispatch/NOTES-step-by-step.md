@@ -1,5 +1,8 @@
 # 从零到判定：逐步操作
 
+> 正常使用请直接跑 [`run.sh`](run.sh)（`XPU_CARD=<n> MODEL_DIR=/path bash run.sh`），
+> 它已经把下面这几步自动化了。本文件是给要手动排查、或者想看 run.sh 内部到底做了什么的人看的。
+
 1. 起容器（或复用现有常驻容器 `flagrt-kunlun-infer-v1-env-v1-p800a`）：按现行
    `kunlun-infer-vllm/v1` 的 `env.baseline.yaml` 核对镜像 id 后 `docker compose up -d`。
 2. 进容器前先在当前 shell 里 `export GLOO_SOCKET_IFNAME=lo NCCL_SOCKET_IFNAME=lo

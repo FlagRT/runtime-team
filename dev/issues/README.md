@@ -60,6 +60,12 @@ P800 的四条实测结论与证据见
 [`../images/kunlun-operator-runtime/v2/demo/docker-compose.yml`](../images/kunlun-operator-runtime/v2/demo/docker-compose.yml) 文件头。
 
 <!-- changelog:
+2026-11-22（二）—— issue 目录新增「宿主侧单入口」要求（规则本体见 ../images/CASE-TEMPLATE.md
+  开篇借用段的新增一节）：一条 run.sh（借用已有方向脚本时薄封装，没有则在 issue 自己的
+  assets/ 下新写）+ evidence/summary.json（按坐标存档，不覆盖写）；明确不要求 REPORT.md、
+  不新建 env/ 目录——REPORT.md 的单一通过态设计经核实真实四件套案例（connector-kunlunxin）
+  会压扁本文件「分版表态」要表达的多坐标并存状态，故不采用。下方两条新 case 已按新规则补齐
+  run.sh，老 4 个 case 不强制回填，下次谁动它顺手补。
 2026-11-22 —— 新增两条 case（源起 inbox/kunlun芯显存问题排查.md 排查过程中的附带发现，与该报告
   的厂商侧缺陷不是同一机制）：`vllm-plugin-fl-pooling-dispatch`（已修复并合入
   FlagRT/vllm-plugin-FL dev-1.0@039fb46，P800-C 真机验证补丁前后对照）、
