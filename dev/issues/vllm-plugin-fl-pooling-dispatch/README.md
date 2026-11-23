@@ -55,7 +55,7 @@ pipeline-parallel 中间张量转发。
 
 | 项 | 要求 | 获取方式 |
 |---|---|---|
-| 镜像 | 现行昆仑芯推理腿发布物 `kunlun-infer-vllm/v1`，digest `sha256:e180a0dd...`（镜像内 `plugin0.2.0`） | 按现行 `kunlun-infer-vllm/v1` 的 `env.baseline.yaml` 核对镜像 id（本目录不复制该血统的 `image.baseline.yaml`/`demo/`，按 CASE-TEMPLATE §0 借用兄弟镜像目录） |
+| 镜像 | 现行昆仑芯推理腿发布物 `kunlun-infer-vllm/v1`，digest `sha256:e180a0dd...`（镜像内 `plugin0.2.0`） | image id 由 `up.sh --strict` 按现行 `kunlun-infer-vllm/v1` 的镜像基线核对（本目录不复制该血统的 `image.baseline.yaml`/`demo/`，按 CASE-TEMPLATE.md 开篇「本标准同时适用于 `../issues/`」一节借用兄弟镜像目录） |
 | 运行环境 | 容器 `--network none`（生产隔离）；需 shell `export GLOO_SOCKET_IFNAME=lo NCCL_SOCKET_IFNAME=lo VLLM_HOST_IP=127.0.0.1`（**必须用 shell export，脚本内 `os.environ.setdefault` 对 vllm spawn 的子进程不生效**——这是本 case 复现脚本的头号坑，漏掉会看到 `Unable to find address for: eth0` 而不是目标断言） | 随现行容器启动纪律 |
 | 卡 | 1 × 昆仑芯 P800 | 启动前 `xpu-smi` 挑 0% 利用率 / 0MiB 显存的卡 |
 | 模型与数据 | Qwen3-Embedding-0.6B（fp16），本地路径需剔除 `config_sentence_transformers.json` / `modules.json`（否则 vllm 配置加载会在另一处崩，与本缺陷无关） | 经 hf-mirror.com 下载，sha256 `0437e45c94563b09e13cb7a64478fc406947a93cb34a7e05870fc8dcd48e23fd`；已有副本：P800-C `/data2/xliu969/scratch-bugverify/Qwen3-Embedding-0.6B/`（容器内挂载路径 `/home/models/Qwen3-Embedding-0.6B/`） |
