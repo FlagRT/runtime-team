@@ -1,0 +1,17 @@
+来源：P800-C 容器 flagrt-kunlun-infer-v1-env-v1-p800a，2026-11-22，本次会话记录。
+性质：从会话记录整理的截选，不是从磁盘某个日志文件摘取；未提供完整日志绝对路径。
+范围：补丁前目标断言栈帧、补丁后同一最小复现的输出。未补造其他栈帧、退出码或 VERDICT 行。
+环境：kunlun-infer-vllm/v1，conda env python310_torch29_cuda，1 张 P800 卡。
+镜像锚：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1。
+
+[补丁前：原文栈帧；上层异常为 vllm.v1.engine.exceptions.EngineDeadError]
+File "/workspace/vllm-plugin-FL/vllm_fl/worker/worker.py", line 852, in execute_model
+    assert isinstance(output, IntermediateTensors)
+AssertionError
+
+[补丁后：docker exec 内 sed -i 修改判断行，未重建镜像；同一代码正常返回、无报错]
+EMBED_OK, dim= 1024
+
+[修复来源说明，不是运行日志]
+FlagRT/vllm-plugin-FL dev-1.0 合并提交 039fb46；父提交含修复本体 0c833a4。
+判断增加 AsyncModelRunnerOutput，不需要新增 import。
