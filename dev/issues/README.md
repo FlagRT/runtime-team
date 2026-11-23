@@ -38,6 +38,8 @@
 | `flagcx-c10d-collectives` | 昇腾 910C | FlagCX 通信方向 | `ascend-train-comm v3`：第 0 版（`demo/`）**仍命中**；第 1 版（`env/v1`）**已修 —— 形态为挂载覆盖**（宿主 FlagCX 须处于含修复的提交）。**镜像内固化形态未交付**，该形态未经验收 | [`flagcx-c10d-collectives/`](flagcx-c10d-collectives/README.md) |
 | `kunlunxin-gemm-triton-compile` | 昆仑芯 P800 | 算子编译方向 | `kunlun-operator-runtime v2`：第 0 版（`demo/`）**仍命中**；`env/v1`（显式启用 GEMM compat 后）**编译维度已修**（12/12 编译 + pytest 18/99，2026-10-28；形态 = 挂载补丁版 FlagGems + 编译组 compat 包进程内加载）。`v1`：**未在该版测过**（指本 case 的判据） | [`kunlunxin-gemm-triton-compile/`](kunlunxin-gemm-triton-compile/README.md) |
 | `kunlunxin-gemm-numeric-64cube` | 昆仑芯 P800 | 算子编译方向（口径裁定线归 performance） | 64×64×64 fp32 **非确定性乱值**（demo 不适用（GEMM 编译即失败，走不到数值）；`env/v1` 显式启用兼容包后仍命中；同输入三次 rel 0.19~1.00、一次全零，vendor 原生 1.2e-5）+ 64³ bf16 超差 + 大形状 fp16/bf16 绝对容差口径之争（数据在案、转裁定）。未修复；已同步编译组、被动等进展（K-5 / B15） | [`kunlunxin-gemm-numeric-64cube/`](kunlunxin-gemm-numeric-64cube/README.md) |
+| `vllm-plugin-fl-pooling-dispatch` | 昆仑芯 P800 | FlagOS 基座组件 `vllm-plugin-FL`（非子方向；总组已自行修复合入） | `kunlun-infer-vllm v1`：**仍命中**（镜像内打包版本早于修复）；`vllm-plugin-FL` 依赖源码层面 `dev-1.0@039fb46` **已修**（形态=上游分支直接修复，非挂载覆盖）。下次镜像/插件版本升级需核实是否纳入 | [`vllm-plugin-fl-pooling-dispatch/`](vllm-plugin-fl-pooling-dispatch/README.md) |
+| `vllm-plugin-fl-pooling-nondeterminism` | 昆仑芯 P800 | 未定（根因未知） | `kunlun-infer-vllm v1`：**仍命中，根因未知**。同一文本重复 embed() cos 仅 ~0.92~0.94（预期 1.0），已排除与 prefix-caching 相关。无修复、无验收判据，现象记录 | [`vllm-plugin-fl-pooling-nondeterminism/`](vllm-plugin-fl-pooling-nondeterminism/README.md) |
 
 > 问题定义、现状细节、规避手段、验收判据与完整的版本集合以各目录 README 为准；本表只摘要，
 > 同一事实以各目录 README 的「版本集合」节为准。
@@ -58,6 +60,16 @@ P800 的四条实测结论与证据见
 [`../images/kunlun-operator-runtime/v2/demo/docker-compose.yml`](../images/kunlun-operator-runtime/v2/demo/docker-compose.yml) 文件头。
 
 <!-- changelog:
+2026-11-22（二）—— issue 目录新增「宿主侧单入口」要求（规则本体见 ../images/CASE-TEMPLATE.md
+  开篇借用段的新增一节）：一条 run.sh（借用已有方向脚本时薄封装，没有则在 issue 自己的
+  assets/ 下新写）+ evidence/summary.json（按坐标存档，不覆盖写）；明确不要求 REPORT.md、
+  不新建 env/ 目录——REPORT.md 的单一通过态设计经核实真实四件套案例（connector-kunlunxin）
+  会压扁本文件「分版表态」要表达的多坐标并存状态，故不采用。下方两条新 case 已按新规则补齐
+  run.sh，老 4 个 case 不强制回填，下次谁动它顺手补。
+2026-11-22 —— 新增两条 case（源起 inbox/kunlun芯显存问题排查.md 排查过程中的附带发现，与该报告
+  的厂商侧缺陷不是同一机制）：`vllm-plugin-fl-pooling-dispatch`（已修复并合入
+  FlagRT/vllm-plugin-FL dev-1.0@039fb46，P800-C 真机验证补丁前后对照）、
+  `vllm-plugin-fl-pooling-nondeterminism`（现象记录，根因未知，无验收判据）。
 2026-10-22 —— 依据指挥台 ADR-0008《运行环境目录版本化（env/vN）与 demo 冻结》：
   ① 「规则」段新增「分版表态」：缺陷不整条关闭，状态按坐标（血统 + 运行环境修订）陈述，
      每发一个运行环境新版，所有未关闭缺陷逐条重新表态，三态之一，且「未在该版测过」必须显式写出

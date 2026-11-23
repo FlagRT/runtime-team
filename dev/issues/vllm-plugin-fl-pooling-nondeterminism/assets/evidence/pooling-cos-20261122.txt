@@ -1,0 +1,18 @@
+来源：P800-C 容器 flagrt-kunlun-infer-v1-env-v1-p800a，2026-11-22，本次会话记录。
+性质：从会话记录整理的输出数值截选，不是从磁盘某个日志文件摘取；未提供完整日志绝对路径。
+范围：dispatch 补丁生效后，相同文本的三组读数；保留记录精度，不伪造六位小数原始输出。
+环境：kunlun-infer-vllm/v1，conda env python310_torch29_cuda，Qwen3-Embedding-0.6B，1 张 P800 卡。
+镜像锚：sha256:e180a0dd4267ebdfbce4ea5434710870a6ea7e96118457538cc02442907d54b1。
+
+[同批次内两条相同文本]
+cos=0.9361
+
+[两次完全独立的 embed() 调用，默认 enable_prefix_caching=True]
+cos=0.9416
+max_abs_diff=0.0509
+
+[两次独立调用，显式 enable_prefix_caching=False，其余不变]
+cos=0.9235
+max_abs_diff=0.0556
+
+结论边界：偏差仍存在，已排除 prefix caching 假说；根因未知，尚无修复与验收结论。

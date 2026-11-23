@@ -10,6 +10,19 @@
 声明所用镜像 tag、image id 与核对方式(`up.sh --strict`);§3 的三段标题相应读作
 **问题与现状 / 复现 / 修复验收**,内容义务不变。
 
+**issue 目录同样要有宿主侧单入口**(2026-11-22 定,实例见
+[`../issues/vllm-plugin-fl-pooling-dispatch/`](../issues/vllm-plugin-fl-pooling-dispatch/run.sh)):
+一条 `run.sh`(§0 硬规则同款:选卡/环境前置核对 → `up.sh --strict` → 容器内跑复现/验证脚本 →
+`evidence/summary.json` → `down` 清理,失败路径也清理)。已有同方向宿主侧脚本可用时(如
+`dev/device-context/*/probes/` 下已有的三态自判定脚本),`run.sh` 做**薄封装**指向它,不复制;
+没有时在 issue 自己的 `assets/` 下新写。**但不要求 `REPORT.md`、`env/` 目录也不新建**——
+`env/` 继续走上一段"借用"的原则;`REPORT.md` 是单一通过态设计(§0 "现状-only"只填一个结果),
+套到 issue 上会压扁 [`../issues/README.md`](../issues/README.md)「分版表态」本来要表达的
+多坐标并存状态(同一缺陷在 demo / env/v1 / env/v2 可能三态并存,这正是 issue 机制存在的
+理由),issue 的权威记录继续留在各 issue README 的「版本集合」表,`evidence/summary.json`
+只是"某一次、某一个坐标"的机器可判结果,按坐标存档(文件名或字段里带上 env 版本号/日期),
+不覆盖写、不取代版本集合表。
+
 ## 0. 验收样例四件套(子方向功能验收样例,§1 之外的第三种形态)
 
 子方向的**功能验收样例**(对某组件在某芯片真卡上的功能面给机器可判结论)不放 `dev/images/`
@@ -114,7 +127,7 @@ README 是摘要与入口,技术细节以 `REBUILD.md` 为准(版本事实以 `i
 ## 4. 交付前检查清单
 
 - [ ] README 三段齐全,首句说明镜像能力范围
-- [ ] 镜像目录:有 `image.baseline.yaml`,`baseline.py check --image` 通过;demo 运行环境目录(或 README 引用的兄弟目录 demo)`baseline.py check` 通过。issue 目录:在前置条件表中声明 image id 与核对方式
+- [ ] 镜像目录:有 `image.baseline.yaml`,`baseline.py check --image` 通过;demo 运行环境目录(或 README 引用的兄弟目录 demo)`baseline.py check` 通过。issue 目录:在前置条件表中声明 image id 与核对方式,且有宿主侧 `run.sh`(借用已有方向脚本时为薄封装)与 `evidence/summary.json`,不新建 `REPORT.md`
 - [ ] 模型、数据集、卡数等基线文件之外的依赖已在前置条件表列出并给出获取方式
 - [ ] 复现与验证均为单入口,命令可直接复制执行
 - [ ] 验证脚本自判定(退出码 + 判定行),README 写明判据
