@@ -1,7 +1,7 @@
 """DeepFM data-parallel training, with a controlled single-global-batch oracle.
 
-CPU/gloo results are explicitly host-only. Accelerators require the device team's
-prototype and uses its public API, never importing vendor extensions here.
+CPU/gloo results are explicitly host-only. Accelerators use the device team's
+prototype public API, never importing vendor extensions here.
 """
 import argparse
 from copy import deepcopy
@@ -19,10 +19,14 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from distributed import (TrainingGroup, observed_mean_hook, shard_bounds,
                          ManualDataParallel, manual_mean_gradients)
 
+ACCELERATOR_DEVICE_TYPES = {'ascend': 'npu', 'kunlun': 'cuda', 'ppu': 'cuda'}
+COLLECTIVES = {'cpu': ('hccl',), 'ascend': ('hccl', 'flagcx'),
+               'kunlun': ('flagcx',), 'ppu': ('nccl',)}
+
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun'], required=True)
+    p.add_argument('--backend', choices=COLLECTIVES, required=True)
     p.add_argument('--runtime-root', type=Path)
     p.add_argument('--prototype-revision', default='unrecorded')
     p.add_argument('--model-root', type=Path, required=True)
@@ -32,7 +36,7 @@ def parse_args():
     p.add_argument('--global-batch', type=int, default=64)
     p.add_argument('--seed', type=int, default=923)
     p.add_argument('--comm-mode', choices=['observed', 'native', 'manual', 'fused'], default='observed')
-    p.add_argument('--collective', choices=['hccl', 'flagcx'], default='hccl')
+    p.add_argument('--collective', choices=['hccl', 'flagcx', 'nccl'], default='hccl')
     p.add_argument('--timeout-seconds', type=int, default=60)
     p.add_argument('--save-final-parameters', action='store_true', help='Diagnostic host-side comparison independent of collective backend')
     return p.parse_args()
@@ -71,18 +75,24 @@ def wrap(model, group, device, mode):
 
 
 def bind_runtime_device(runtime, backend, local_rank):
-    """Kunlun uses the CUDA namespace; keep vendor and device type distinct."""
-    expected={'ascend':'npu','kunlun':'cuda'}
-    if backend not in expected:
+    """Both P800 and PPU use the CUDA namespace; never infer vendor from it."""
+    if backend not in ACCELERATOR_DEVICE_TYPES or local_rank < 0:
         raise ValueError('Unsupported accelerator backend')
     runtime.use(backend)
     if runtime.device_count() <= local_rank:
         raise RuntimeError('Insufficient visible accelerator devices')
     runtime.set_device(local_rank)
     current=runtime.current()
-    if current.name != backend or current.device_type != expected[backend]:
+    if current.name != backend or current.device_type != ACCELERATOR_DEVICE_TYPES[backend]:
         raise RuntimeError('Runtime vendor/device identity mismatch; no fallback')
     return torch.device(current.device_type, local_rank)
+
+
+def validate_route(backend, collective, world):
+    if collective not in COLLECTIVES.get(backend, ()):
+        raise ValueError(f'{backend} does not support the requested {collective} route')
+    if backend == 'ppu' and world != 2:
+        raise ValueError('PPU training qualification requires two local workers')
 
 
 def run(args):
@@ -91,14 +101,11 @@ def run(args):
     local_rank = int(os.environ.get('LOCAL_RANK', '0'))
     if args.steps < 1 or args.warmup < 0:
         raise ValueError('Require positive steps, nonnegative warmup and equal local batches >=2')
-    if args.backend == 'kunlun' and args.collective != 'flagcx':
-        raise ValueError('Kunlun training requires explicit FlagCX; HCCL is Ascend-only')
-    if args.collective == 'flagcx' and args.backend not in ('ascend','kunlun'):
-        raise ValueError('FlagCX requires an accelerator backend')
+    validate_route(args.backend, args.collective, world)
     shard_start, shard_stop = shard_bounds(args.global_batch, rank, world)
     torch.set_num_threads(1)
     runtime = None
-    if args.backend in ('ascend','kunlun'):
+    if args.backend in ACCELERATOR_DEVICE_TYPES:
         if args.runtime_root is None:
             raise ValueError('Accelerator training requires --runtime-root')
         if args.prototype_revision == 'unrecorded':
@@ -106,6 +113,8 @@ def run(args):
         sys.path.insert(0, str(args.runtime_root.resolve()))
         import runtime
         device = bind_runtime_device(runtime, args.backend, local_rank)
+        if args.backend == 'ppu' and (runtime.device_count() != 2 or rank != local_rank):
+            raise RuntimeError('PPU qualification requires exactly two local visible devices')
         sync = lambda: runtime.synchronize(local_rank, timeout_ms=30000)
         backend = args.collective
     else:
@@ -129,6 +138,7 @@ def run(args):
               'dtype': 'float32', 'dataset': 'deterministic synthetic; not recommendation accuracy',
               'seed': args.seed, 'warmup_steps': args.warmup, 'measured_steps': args.steps,
               'evidence_scope': {'ascend':'NPU integration','kunlun':'P800 integration',
+                                 'ppu':'PPU integration',
                                  'cpu':'CPU/gloo host-only'}[args.backend]}
     try:
         if runtime:

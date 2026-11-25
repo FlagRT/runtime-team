@@ -1,4 +1,4 @@
-"""Run DIN/DSSM DP on 2 ranks with an independent CPU global-batch oracle."""
+"""Run a priority model on two ranks with a CPU global-batch reference."""
 import argparse
 import copy
 import hashlib
@@ -10,12 +10,12 @@ import sys
 import torch
 import torch.distributed as dist
 from distributed import TrainingGroup, manual_mean_gradients, shard_bounds
-from priority_models import make_batch, make_case
+from priority_models import MODEL_NAMES, make_batch, make_case
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--model', choices=['din', 'dssm'], required=True)
+    p.add_argument('--model', choices=MODEL_NAMES, required=True)
     p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun', 'ppu'], required=True)
     p.add_argument('--runtime-root', type=Path)
     p.add_argument('--revision', required=True)

@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'training'))
-from deepfm_train import bind_runtime_device
+from deepfm_train import bind_runtime_device, validate_route
 
 
 class KunlunConsumerTests(unittest.TestCase):
@@ -40,6 +40,21 @@ class KunlunConsumerTests(unittest.TestCase):
         runtime=self.runtime(count=1)
         with self.assertRaises(RuntimeError):bind_runtime_device(runtime,'kunlun',1)
         runtime.set_device.assert_not_called()
+
+    def test_ppu_uses_cuda_but_is_not_kunlun(self):
+        runtime = self.runtime('ppu', 'cuda')
+        self.assertEqual(str(bind_runtime_device(runtime, 'ppu', 1)), 'cuda:1')
+        runtime.use.assert_called_once_with('ppu')
+        with self.assertRaises(RuntimeError):
+            bind_runtime_device(self.runtime('kunlun', 'cuda'), 'ppu', 0)
+
+    def test_ppu_requires_explicit_nccl_and_two_workers(self):
+        validate_route('ppu', 'nccl', 2)
+        for collective, world in [('flagcx', 2), ('hccl', 2), ('nccl', 1)]:
+            with self.subTest(collective=collective, world=world), self.assertRaises(ValueError):
+                validate_route('ppu', collective, world)
+        with self.assertRaises(ValueError):
+            validate_route('kunlun', 'nccl', 2)
 
 
 if __name__=='__main__':unittest.main()

@@ -64,6 +64,30 @@ class RepeatedEvidenceTests(unittest.TestCase):
         self.change('01-manual/rank0.json',lambda d:d.update(device='cpu'))
         with self.assertRaises(ValueError):summarize(self.root)
 
+    def ppu_fixture(self):
+        # Synthetic metadata solely to test the validator, not PPU execution evidence.
+        self.change('execution.json', lambda d:d.update(scope='PPU integration'))
+        for path in self.root.glob('*/rank*.json'):
+            self.change(path.relative_to(self.root), lambda d:d.update(
+                backend='nccl', evidence_scope='PPU integration',
+                device=f"cuda:{d['rank']}", runtime_info={'name':'ppu','device_type':'cuda'}))
+
+    def test_ppu_metadata_accepted(self):
+        self.ppu_fixture()
+        self.assertEqual(summarize(self.root)['scope'], 'PPU integration')
+
+    def test_ppu_wrong_local_binding_rejected(self):
+        self.ppu_fixture()
+        self.change('01-manual/rank1.json', lambda d:d.update(device='cuda:0'))
+        with self.assertRaisesRegex(ValueError, 'PPU vendor/device/backend'):
+            summarize(self.root)
+
+    def test_ppu_wrong_vendor_rejected(self):
+        self.ppu_fixture()
+        self.change('01-manual/rank0.json', lambda d:d['runtime_info'].update(name='kunlun'))
+        with self.assertRaisesRegex(ValueError, 'PPU vendor/device/backend'):
+            summarize(self.root)
+
     def native_fixture(self):
         # Validator-only mutation; these are not accelerator results.
         for repeat in range(1,4):

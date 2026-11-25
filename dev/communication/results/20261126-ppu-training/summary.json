@@ -1,0 +1,52 @@
+{
+  "scope": "Single-host, two-device FP32 correctness. Fixed synthetic training inputs; no model quality, throughput, or cross-node claim.",
+  "environment": {
+    "device": "PPU-ZW810E",
+    "devices": 2,
+    "torch": "2.10.0",
+    "pccl": "2.1.0-11-accl-p",
+    "torch_collective": "nccl",
+    "image_digest": "sha256:1ba7ead15378160ba9aa1dafcfb77686de6b16732590ffab062bab19c60c32b8",
+    "device_context_revision": "ac9a9494f257813216365e2dabf274df88a59643"
+  },
+  "collectives": {
+    "device_arithmetic_and_event_ranks_passed": 2,
+    "elements": [8, 2048],
+    "repeats_per_size": 5,
+    "all_reduce_checks_per_rank": 10,
+    "all_gather_checks_per_rank": 10,
+    "rank_checks_passed": 40,
+    "group_state": "CLOSED"
+  },
+  "deepfm": {
+    "runs_passed": 6,
+    "runs_per_mode": 3,
+    "warmup_steps_per_run": 5,
+    "measured_steps_per_run": 50,
+    "gradient_reference_checks_per_rank": 17,
+    "gradient_reference_max_abs": 7.450580596923828e-09,
+    "update_reference_max_abs": 3.725290298461914e-09,
+    "final_rank_parameter_max_abs": 0,
+    "manual_fused_loss_max_abs": 0,
+    "gradient_calls_per_rank_per_run": {"manual": 850, "fused": 50},
+    "group_state": "CLOSED"
+  },
+  "priority_models": [
+    {
+      "model": "DCN-Mix", "steps": 50, "ranks": 2,
+      "logit_reference_max_abs": 2.384185791015625e-07,
+      "gradient_reference_max_abs": 7.450580596923828e-08,
+      "parameter_reference_max_abs": 2.9802322387695312e-08,
+      "gradient_calls_per_rank": 50, "gradient_payload_bytes_per_rank": 386200,
+      "final_parameters_identical": true, "group_state": "CLOSED", "verdict": "PASS"
+    },
+    {
+      "model": "SASRec", "steps": 50, "ranks": 2,
+      "logit_reference_max_abs": 1.3113021850585938e-06,
+      "gradient_reference_max_abs": 1.4901161193847656e-07,
+      "parameter_reference_max_abs": 1.2177042663097382e-07,
+      "gradient_calls_per_rank": 50, "gradient_payload_bytes_per_rank": 833600,
+      "final_parameters_identical": true, "group_state": "CLOSED", "verdict": "PASS"
+    }
+  ]
+}

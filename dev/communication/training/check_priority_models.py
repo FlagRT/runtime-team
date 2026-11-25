@@ -1,4 +1,4 @@
-"""Aggregate the DIN/DSSM worker evidence; fail closed on incomplete runs."""
+"""Aggregate priority-model worker evidence; fail closed on incomplete runs."""
 import argparse
 import json
 import math
@@ -44,11 +44,13 @@ def main():
     p.add_argument('evidence', type=Path)
     p.add_argument('--backend', choices=('cpu', 'ascend', 'kunlun', 'ppu'), required=True)
     p.add_argument('--steps', type=int, default=50)
+    p.add_argument('--models', nargs='+', choices=('din', 'dssm', 'dcn-mix', 'sasrec'),
+                   default=('din', 'dssm'))
     a = p.parse_args()
-    if a.steps <= 0:
-        p.error('--steps must be positive')
+    if a.steps <= 0 or len(set(a.models)) != len(a.models):
+        p.error('steps must be positive and models must be unique')
     print(json.dumps([inspect(a.evidence/name, name, a.backend, a.steps)
-                      for name in ('din', 'dssm')], indent=2, allow_nan=False))
+                      for name in a.models], indent=2, allow_nan=False))
 
 
 if __name__ == '__main__':

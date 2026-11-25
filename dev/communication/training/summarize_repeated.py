@@ -41,6 +41,12 @@ def summarize(root, include_native=False, include_observed=False):
                         or not r.get('device','').startswith('cuda:')
                         or r.get('runtime_info',{}).get('name') != 'kunlun'):
                     raise ValueError('Kunlun vendor/device/backend mismatch')
+            elif manifest['scope'] == 'PPU integration':
+                info = r.get('runtime_info', {})
+                if (r['backend'] != 'nccl' or r['evidence_scope'] != 'PPU integration'
+                        or r.get('device') != f'cuda:{rank}'
+                        or info.get('name') != 'ppu' or info.get('device_type') != 'cuda'):
+                    raise ValueError('PPU vendor/device/backend mismatch')
             else: raise ValueError('Unknown scope')
             o, t = r['oracle'], r['training']
             if not (len(o['gradient_checks']) == 17 and all(c['pass'] for c in o['gradient_checks'])

@@ -16,8 +16,8 @@ import time
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun'], required=True)
-    p.add_argument('--collective', choices=['hccl', 'flagcx'], default='flagcx')
+    p.add_argument('--backend', choices=['cpu', 'ascend', 'kunlun', 'ppu'], required=True)
+    p.add_argument('--collective', choices=['hccl', 'flagcx', 'nccl'], default='flagcx')
     p.add_argument('--runtime-root', type=Path)
     p.add_argument('--prototype-revision', required=True)
     p.add_argument('--model-root', type=Path, required=True)
@@ -30,9 +30,11 @@ def main():
     p.add_argument('--include-observed', action='store_true',help='DDP with conservative synchronous hook, not native default')
     args = p.parse_args()
     if args.repeats < 3 or args.launch_timeout < 1: p.error('Require >=3 repeats and positive timeout')
+    if (args.backend == 'ppu') != (args.collective == 'nccl'):
+        p.error('The PPU repeated matrix requires explicit --collective nccl')
     args.output.mkdir(parents=True, exist_ok=False)
     manifest = {'scope': {'cpu':'CPU/Gloo host-only','ascend':'Ascend integration',
-                          'kunlun':'Kunlun integration'}[args.backend],
+                          'kunlun':'Kunlun integration','ppu':'PPU integration'}[args.backend],
                 'prototype_revision': args.prototype_revision, 'runs': []}
     try:
         for repeat in range(args.repeats):
@@ -50,7 +52,7 @@ def main():
                        '--steps', '50', '--warmup', '5', '--seed', '923',
                        '--prototype-revision', args.prototype_revision,
                        '--model-root', str(args.model_root.resolve()), '--output', str((args.output/name).resolve())]
-                if args.backend in ('ascend','kunlun'):
+                if args.backend in ('ascend','kunlun','ppu'):
                     if args.runtime_root is None: raise ValueError('Accelerator requires runtime root')
                     cmd += ['--runtime-root', str(args.runtime_root.resolve()), '--collective', args.collective]
                 if args.save_final_parameters:
