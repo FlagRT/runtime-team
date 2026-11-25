@@ -1,0 +1,461 @@
+{
+  "as_of": "2026-11-25",
+  "scope": "Hardware short training on fixed batches; not full-model convergence. Steps for distributed runs are optimizer updates per rank. unknown = missing matching model review. Historical cases below use synthetic input.",
+  "datasets": {"BGE-M3":"T2Ranking","Qwen3-Reranker-8B":"T2Ranking","CLIP ViT-L/14":"COCO Captions 2017","DIN":"AmazonElectronics_x1","DeepFM":"Criteo_x1","DCN-Mix":"Criteo_x1","DSSM":"MovieLens-1M","LightGCN":"Gowalla","SASRec":"MovieLens-1M"},
+  "counts_by_platform": {
+    "910C": {"native":8,"specified_three_routes":7,"any_tested_input_three_routes":7},
+    "P800": {"native":7,"specified_three_routes":4,"any_tested_input_three_routes":5},
+    "PPU": {"native":8,"specified_three_routes":8,"any_tested_input_three_routes":8}
+  },
+  "source_digests": {
+    "reranker-input": {"date":"20261121","receipt_sha256":"c3feff8e01e8359c35acb510891d2467c92962b3b538ffffa225756ab66bcc30"},
+    "ascend-models": {"date":"20261123","receipt_sha256":"5f3658f2f93eaf7d6388e7cd0efa852fa8ebe6288e6b963b8517af63d831d217","raw_archive_sha256":"a007ded1241460e131462246a798def2f972043a15c5607ae1a9c8cf6ee75588"},
+    "ascend-din-clip-reranker-sparse": {"date":"20261123","receipt_sha256":"076f1a8e9dcdad9e0ad673954f17e4f5564803c7a9e540fb77a03bf7d390af1e","raw_archive_sha256":"6e36129a6c4144e713ec841137dcfe1965252ab76f53df39fef1f7309770ece2"},
+    "kunlun-models": {"date":"20261124","receipt_sha256":"02ab538de78d2e85146f4d0b76799d170c3224eaf8cf77b7b6491eace0baa286","raw_archive_sha256":"75a6f9d52318e270d93711660c97c9e99dce287edbf5f06af4d203dde3f5886a"},
+    "ppu-six-models": {"date":"20261125","receipt_sha256":"ff402fea775fed9a7877837bc9130a95df4e22e12de229bc66c280ba24b90638","raw_archive_sha256":"84984d0c19cf326b769b4084195d4ed906564da87ee814a2242b336679ca686d"},
+    "ppu-bge": {"date":"20261121","receipt_sha256":"e48e24c79a087c6835022cff60bf7be4e9f71c5bd3bfd8a3112a660cba0b3a70"},
+    "ppu-clip": {"date":"20261121","receipt_sha256":"79c94a890ba453e9a93209bb0bcdc78ab06ffd45a4353215ab6c0f0e42dcaffe"},
+    "kunlun-earlier-dcn": {"date":"20261117","receipt_sha256":"df62b172ce134d4e49c1bbf3c6b68d544d53c196cb3220bfed58439ea9962780","raw_archive_sha256":"607ce5b1eab6933c9d369b72fad54295dd4b084bf62745f4741e1cf8f1f410e3"},
+    "ascend-reranker-off": {"date":"20261125","receipt_sha256":"8c6f70c93715bb09d4e5089ca5f6ac4218bee42289488164a92afa1259b07b56"},
+    "ascend-reranker-no-model-review": {"date":"20261124","receipt_sha256":"62a242061e302cf54215621399dd249cacea076cec036f2e226ad8180cae9382"},
+    "ascend-reranker-candidate": {"date":"20261125","receipt_sha256":"7a527dc3265e97a0134aa7a3250b51f9de1affb15357fc3c21c04a4f9df343d2"},
+    "ascend-reranker-gradient": {"date":"20261125","receipt_sha256":"1a0445813a1d3e110dc9978a9fbc78199d1d925004bfc0ab20d4c41d0da6262e","raw_archive_sha256":"603a6e8e5236d121b959337653eff927f355ce30a6833de8becf6b7e5a2d13e4"}
+  },
+  "specified": [
+    {
+      "platform": "910C",
+      "model": "BGE-M3",
+      "config": "type_embedding",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":15,"backward":15,"max_abs":0.0000029802322387695312},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "BGE-M3",
+      "source": ["kunlun-models"],
+      "state": "native_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      },
+      "reason": "embedding_backward_out_of_tolerance"
+    },
+    {
+      "platform": "PPU",
+      "model": "BGE-M3",
+      "config": "type_embedding",
+      "source": ["ppu-bge"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":15,"backward":15,"max_abs":0.0000035762786865234375},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "Qwen3-Reranker-8B",
+      "source": ["ascend-din-clip-reranker-sparse","ascend-reranker-off","ascend-reranker-no-model-review","ascend-reranker-candidate","ascend-reranker-gradient"],
+      "state": "native_pass",
+      "ranks": 4,
+      "observed": {
+        "native": {"steps":3},
+        "off": {"steps":3,"forward":0,"backward":0},
+        "unknown": {"steps":3,"forward":0,"backward":0},
+        "candidate": {"status":"NUMERIC_REJECT","steps":0,"forward":8,"backward":4}
+      },
+      "reason": "first_step_gradient_out_of_tolerance"
+    },
+    {"platform":"P800","model":"Qwen3-Reranker-8B","source":["reranker-input"],"state":"not_trained","reason":"no_full_model_training_receipt"},
+    {"platform":"PPU","model":"Qwen3-Reranker-8B","source":["reranker-input"],"state":"not_trained","reason":"requires_same_host_two_cards"},
+    {
+      "platform": "910C",
+      "model": "CLIP ViT-L/14",
+      "config": "visual_QuickGELU_sigmoid",
+      "source": ["ascend-din-clip-reranker-sparse"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":72,"backward":72,"max_abs":7.523340173065662e-8},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "CLIP ViT-L/14",
+      "config": "visual_position_embedding",
+      "source": ["kunlun-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "CLIP ViT-L/14",
+      "config": "visual_position_embedding",
+      "source": ["ppu-clip"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DIN",
+      "config": "prediction_sigmoid",
+      "source": ["ascend-din-clip-reranker-sparse"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DIN",
+      "source": ["kunlun-models"],
+      "state": "native_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0}
+      },
+      "reason": "dependency_profile_changed"
+    },
+    {
+      "platform": "PPU",
+      "model": "DIN",
+      "config": "prediction_sigmoid",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":7.450580596923828e-9},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DeepFM",
+      "config": "sigmoid",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0.0000021457672119140625},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DeepFM",
+      "config": "sigmoid",
+      "source": ["kunlun-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "DeepFM",
+      "config": "sigmoid",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":8.344650268554688e-7},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DCN-Mix",
+      "config": "sigmoid",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DCN-Mix",
+      "config": "sigmoid+tanh",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {
+          "steps": 3,
+          "forward": 51,
+          "backward": 51,
+          "max_abs": 1.862645149230957e-9,
+          "by_operator": {"GEMS SIGMOID BACKWARD":3,"GEMS SIGMOID FORWARD":3,"GEMS TANH BACKWARD":48,"GEMS TANH FORWARD":48}
+        },
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DCN-Mix",
+      "config": "tanh",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":48,"backward":48,"max_abs":1.862645149230957e-9},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DCN-Mix",
+      "source": ["kunlun-models"],
+      "state": "native_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0}
+      },
+      "reason": "dependency_profile_changed"
+    },
+    {
+      "platform": "PPU",
+      "model": "DCN-Mix",
+      "config": "sigmoid",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":1.4901161193847656e-8},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "DCN-Mix",
+      "config": "sigmoid+tanh",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {
+          "steps": 3,
+          "forward": 51,
+          "backward": 51,
+          "max_abs": 1.4901161193847656e-8,
+          "by_operator": {"GEMS SIGMOID BACKWARD":3,"GEMS SIGMOID FORWARD":3,"GEMS TANH BACKWARD":48,"GEMS TANH FORWARD":48}
+        },
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "DCN-Mix",
+      "config": "tanh",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":48,"backward":48,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "DSSM",
+      "config": "tanh",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":18,"backward":18,"max_abs":0.000003993511199951172},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DSSM",
+      "config": "tanh",
+      "source": ["kunlun-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":18,"backward":18,"max_abs":0.000012695789337158203},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "DSSM",
+      "config": "tanh",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":18,"backward":18,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "LightGCN",
+      "source": ["ascend-models","ascend-din-clip-reranker-sparse"],
+      "state": "native_failed",
+      "observed": {
+        "native": {"steps":0,"status":"FAIL"}
+      },
+      "reason": "native_sparse_mm_forward_COO_and_CSR"
+    },
+    {
+      "platform": "P800",
+      "model": "LightGCN",
+      "source": ["kunlun-models"],
+      "state": "native_failed",
+      "observed": {
+        "native": {"steps":0,"status":"FAIL"}
+      },
+      "reason": "native_sparse_mm_invalid_device_function"
+    },
+    {
+      "platform": "PPU",
+      "model": "LightGCN",
+      "config": "sigmoid",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "910C",
+      "model": "SASRec",
+      "config": "sigmoid",
+      "source": ["ascend-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "SASRec",
+      "config": "sigmoid",
+      "source": ["kunlun-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "PPU",
+      "model": "SASRec",
+      "config": "sigmoid",
+      "source": ["ppu-six-models"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    }
+  ],
+  "historical": [
+    {
+      "platform": "P800",
+      "model": "DCN-Mix",
+      "config": "sigmoid",
+      "source": ["kunlun-earlier-dcn"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":3,"backward":3,"max_abs":0},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DCN-Mix",
+      "config": "tanh",
+      "source": ["kunlun-earlier-dcn"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {"steps":3,"forward":48,"backward":48,"max_abs":3.725290298461914e-9},
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    },
+    {
+      "platform": "P800",
+      "model": "DCN-Mix",
+      "config": "sigmoid+tanh",
+      "source": ["kunlun-earlier-dcn"],
+      "state": "three_routes_pass",
+      "observed": {
+        "native": {"steps":3,"forward":0,"backward":0},
+        "off": {"steps":3,"forward":0,"backward":0,"max_abs":0},
+        "on": {
+          "steps": 3,
+          "forward": 51,
+          "backward": 51,
+          "max_abs": 3.725290298461914e-9,
+          "by_operator": {"GEMS SIGMOID BACKWARD":3,"GEMS SIGMOID FORWARD":3,"GEMS TANH BACKWARD":48,"GEMS TANH FORWARD":48}
+        },
+        "unknown": {"steps":3,"forward":0,"backward":0,"max_abs":0}
+      }
+    }
+  ],
+  "reranker_910c_first_step_gradient": {
+    "silu_x": {"n":16384,"different":0,"outside":0,"nonfinite":0,"max_abs":0},
+    "silu_y": {"n":16384,"different":0,"outside":0,"nonfinite":0,"max_abs":0},
+    "silu_dy": {"n":16384,"different":0,"outside":0,"nonfinite":0,"max_abs":0},
+    "silu_dx": {"n":16384,"different":0,"outside":0,"nonfinite":0,"max_abs":0},
+    "norm_dy": {"n":16384,"different":132,"outside":0,"nonfinite":0,"max_abs":0.000003814697265625},
+    "weight_grad_after_reduction_before_clip": {"n":4096,"different":372,"outside":363,"nonfinite":0,"max_abs":0.00048828125},
+    "weight_grad_after_clip": {"n":4096,"different":4094,"outside":69,"nonfinite":0,"max_abs":0.00003071967512369156}
+  }
+}
