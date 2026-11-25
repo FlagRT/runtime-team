@@ -4,7 +4,8 @@
 > 平台环境事实、实验/排查记录、进度与待办；**代码交付**在独立仓
 > [FlagRT/FlagScheduler](https://github.com/FlagRT/FlagScheduler)（main）。
 > 交付基座对齐 runtime-team dev-1.0 的
-> [`dev/images/USAGE_MATRIX.md`](../images/USAGE_MATRIX.md)。
+> [`dev/images/USAGE_MATRIX.md`](https://github.com/FlagRT/runtime-team/blob/dev-1.0/dev/images/USAGE_MATRIX.md)
+> （本分支不含该文件，链接指向 dev-1.0）。
 
 ## 目录导航（按平台分类——不同平台在不同机器上开发）
 
@@ -18,6 +19,7 @@
 - [`verify-records/`](verify-records/)：仓级验证记录（0.1.0：171 项测试、wheel 构建）
 - [`AGENTS-DEV.md`](AGENTS-DEV.md)：平台相关的开发纪律与环境约束
 - [`BOOTSTRAP.md`](BOOTSTRAP.md)：新机器迁移清单与两仓同步纪律
+- [`DEV-REQUIREMENTS.md`](DEV-REQUIREMENTS.md)：开发要求——各平台的机器与镜像对照、启动核对、设备纪律、结论与证据口径
 - [`status.md`](status.md)：拆分前的历史进度看板（**不再更新**，仅供追溯）
 
 ## 同步纪律
