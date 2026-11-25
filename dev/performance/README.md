@@ -1,14 +1,43 @@
 # performance — 性能评测与诊断
 
-> 分支：`dev-zkm`、`zhiyu/dev` ｜ PR 目标：`dev-1.0` ｜ 更新：2026-11-19（P800/PPU/训练；核心历史阶段截至 10-28）
-> 总组速览：[STATUS.md](STATUS.md) ｜ 本文档：详细进展、证据边界和使用入口
-> 职责：统一国产设备的算子、推理与基础规格评测入口，保留可归因的正确性、性能、路由、监控和运行环境证据。
+最近更新：2026-11-25。总组通过 [STATUS](STATUS.md) 查看验收进度和当前阻塞。本目录维护性能方向的使用入口、环境和实测记录，生产代码由独立仓库 [FlagRT/FlagPerf](https://github.com/FlagRT/FlagPerf) 维护。
 
-本目录是 runtime-team 的性能方向协作入口。正式代码在独立的
-[FlagRT/FlagPerf](https://github.com/FlagRT/FlagPerf) 仓库维护；本仓只同步阶段进展、环境约束、验证边界和后续任务，
-不复制 FlagPerf 源码或大体积原始实验产物。[evidence/](evidence/README.md) 收录精简实测摘要与来源索引，明确未随文提供的原始记录。
+## FlagPerf 生产进展
 
-## 1. 当前进展
+**团队可用版本为 FlagPerf `dev-1.0@46450a2d`，推理包 `flagperf-inference` 版本为 0.2.0。** 对一个 Python 推理任务，`record` 在目标进程采集主机事件，厂商 profiler 记录设备活动。两侧数据封存导入 Store 后，可按请求、设备、模型层或通信调用查阅。精度比较复用固定输入和张量边界，结合算子重放检查差异从哪一层开始。[生产源码](https://github.com/FlagRT/FlagPerf/tree/46450a2dbe3618815faa0ff63460cee5104d6903/inference) · [使用指南](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/usage.md)
+
+| 要解决的问题 | 公共分支已经交付 | 实测范围与入口 |
+| --- | --- | --- |
+| 芯片和算子的基础性能如何 | Base Benchmark、厂商 Toolkit、Operation 支持按设备和算子运行并保留正确性、路由和失败记录 | P800、PPU 的 Operation 各有 308 个适用组合。PPU 每种运行方式各有 299 项正确性通过、9 项失败。各镜像与 P800 分项结果见[实测索引](evidence/README.md)。 |
+| 推理时间花在哪里 | NVIDIA、昇腾、P800、PPU 适配器将设备活动导入统一报告。单机 TP2 报告关联两个 rank，可比较计算、通信和请求窗口 | 登记的 HCCL、FlagCX、NCCL 三组各对齐 2,336 次模型通信。厂商证据的时钟精度和事件归属限制随报告保留。[P2 验收 D55](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/DECISIONS.md#d55) |
+| 哪些推理负载已接入 | PR #14 合入模型适配，支持 embedding、rerank、CTR 固定输入和批量 A/A 复跑 | 两台同型 PPU 上主名册 22 行通过，另有 6 个扩展模型的分数指纹跨机逐位一致。P800 的 CTR 对照按架构记录差异。[模型清单与验证结果](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/thead-model-adaptation.md) |
+| 精度差异从哪里出现 | 单卡或 TP2 组均可运行 Oracle 比对，从模型输出下钻到指定层和算子，用相同输入重放。支持 FlagTree 单卡、FlagCX 双卡的组件对照 | 11-10 用归档数据复算 1,589 对张量，11 组报告的 331 份结构化文件与原记录一致。P800 OneRec 单卡与 TP2 的第 14 个 token 仍有分歧。[组件复验](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/validation-components-20261110.md) · [P800 实测](evidence/P800-Inference-v2实测结果-20261105.md) |
+| 任务停滞或显存异常时看什么 | PR #15 合入独立节点监控 `watch`、昇腾/NVIDIA 资源遥测、OOM、心跳、执行停滞与 TP2 同步通信超时诊断。可查看故障前后的任务阶段、资源曲线及原始事件 | 监控与在线诊断需显式启用。故障检测后可导出证据，自动任务重试、节点隔离与模型热加载仍待交付。[监控与诊断](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/monitoring.md) |
+| 如何交付可复查的结果 | 可在 CPU 上导出固定形状 Qwen3-Embedding 的 FX/ONNX 图，生成离线 HTML、Markdown、两路或三路 Oracle 报告，并从保存的结果重绘 | 计算图携带导出条件，性能比较保留输入、计时窗口及可比性。[图导出](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/graph-export.md) · [报告指南](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/user-result-reports.md) |
+| 如何比较多卡训练 | PR #16 于 11-25 合入三平台训练适配。DDP/FSDP2 按 rank 保留采集和报告，分列通信与计算，支持逐层精度对照与算子重放 | 双卡 rerank-0.6B 在 PPU、P800、910C 的三组跨平台配对各比较 87 行。11-24 回归为 PPU 392 通过、1 失败、1 跳过（TP2 镜像缺 libaio），P800 与 910C 各 391 通过、3 跳过。[三平台验证记录](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/docs/training/v2-validation.md) · [FlagScale 接入实例](docs/training/FlagScale使用FlagPerf最佳实践.md) |
+
+### 从公共版本开始
+
+在上述提交的 **FlagPerf 仓库根目录**执行以下命令即可查看采集参数，无需设备。运行实际任务时，在目标 Python 环境准备对应的厂商 SDK、模型和输入。0.2.0 默认完整采集使用 ext4，按该版本指南设置 Store、work 和 scratch。单卡从命令返回的 run 路径读取结果，双卡从 `group.json` 进入各 rank。[采集、校验与报告步骤](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/usage.md)
+
+```bash
+python3 -B -S inference/run.py record --help
+```
+
+### 生产仓本地开发进展
+
+| 代码状态（11-25） | 变化 | 已有验证 |
+| --- | --- | --- |
+| 本地 `dev-zkm@c6b2939b` 已提交，推理包 0.3.0；远端个人分支为 `40aac1e8` | 采集和导入用 `--store` 选盘，工具在所选盘管理检查点与索引。完整采集默认源数据上限调至 4 GiB。报告可从概览下钻到原始行，也可重绘历史数据 | 用 12 份既有结果重绘，入口 HTML 总量从 8,479,464 B 降至 5,420,206 B（−36.1%）。CPU 回归 370 项，369 通过、1 跳过。开发工作区验收记录位于 `FlagPerf/inference/results/PLAN/report_update_plan/acceptance/README.md`。 |
+| `c6b2939b` 上的未提交工作流 | `flagprof init` 生成配置，`flagprof run` 执行单任务、对照、图导出或批量运行，保存实际命令和报告 | 11-25 用 CPU DLRM 复跑和昇腾 Qwen3 单卡、TP2 做首用验证。单卡 BF16 两次相同输入的 31 个张量边界、239,616 个元素完全一致，换文本后 Oracle 标记不可比。实测使用宿主共享软件栈，记录位于 `FlagPerf/inference/results/blind-20261125-r1/report.md`。 |
+
+该轮昇腾实测也记录了交付前要处理的两个问题。共享目录权限会阻断厂商离线分析，保留的 capture 已在私有目录恢复出报告。一次性能采集中，2,010 个设备事件有 2,006 个能追到原生框架调用，关联到项目调用的为 0，具体模型层的耗时归因仍缺证据。
+
+<a id="1-当前进展"></a>
+
+## 1. 分项实测与历史交付
+
+下表记录各轮次的版本、实测与当时的交付状态。9–10 月的 Inference V1–V4 与研发目录 `inference_v2` 分别保留原有命令和数据。11 月公共版入口见[生产进展](#flagperf-生产进展)。各厂商的原始验证批次见[实测索引](evidence/README.md)。
 
 | 能力 | 当前状态 | 已验证范围 | 交付状态 |
 | --- | --- | --- | --- |
@@ -33,13 +62,13 @@
 | Base Benchmark（平头哥 PPU） | 第三厂商 provider 与冻结验证已完成 | 17 组五次资格＋容量；资格限已测范围，16-rank 独占资格与 rank 上限审计未完成 | [PR #4](https://github.com/FlagRT/FlagPerf/pull/4) 已合并；不含 FP8，[验收入口](evidence/README.md) |
 | Base Toolkit（平头哥 PPU） | 官方工具测量、监控、诊断与报告已接通 | 已登记 12/12 Case 通过；INT8 官方工具失败排除在外 | PR #4 已合并；candidate / `validated:false`，[实测报告](evidence/PPU-Toolkit实测结果-20261020.md) |
 | Operation（平头哥 PPU） | Docker/local、原生/FlagGems 双路径已接通 | 各 299 项正确性通过、9 项失败；路由 290 passed / 9 partial；任务 299 partial / 9 failed | [PR #6](https://github.com/FlagRT/FlagPerf/pull/6) 已合并；失败未全部闭合，[实测报告](evidence/PPU-Operation实测结果-20261023.md) |
-| Inference v2（昆仑芯 P800） | Qwen/OneRec 运行、采集、分析与报告已测 | 整合软件及历史产物复核未见新增回归；klx2 代表性单卡通过；klx1 模型搬运异常、整合版新 TP2 待补 | [PR #12](https://github.com/FlagRT/FlagPerf/pull/12) 待评审；OneRec 单卡/TP2 分歧保留，[实测报告](evidence/P800-Inference-v2实测结果-20261105.md) |
-| Inference v2（平头哥 PPU） | Qwen 单卡/TP2、采集分析及归档恢复已测 | 两台同型主机核心链路可用；OneRec 未做设备端生成验证 | PR #12 待评审；性能未取得资格，[实测报告](evidence/PPU-Inference-v2实测结果-20261104.md) |
-| Training（FlagPerf 训练部分） | 训练执行协议、观察态采集与多卡画像链路已形成 | 三家芯片（Ascend / THead / Kunlunxin）实测；Top5 模型除多模态外覆盖；单卡 / 多卡 DDP / FSDP 实测；模型层 §5.5 四条全部实现并有实测 | 代码 `FlagPerf/zhiyu/perf-train`；交付报告与最佳实践见本目录 [FlagPerf训练适配完成报告.md](docs/training/FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](docs/training/FlagScale使用FlagPerf最佳实践.md) |
+| Inference v2（昆仑芯 P800） | Qwen/OneRec 运行、采集、分析与报告已测 | 整合软件及历史产物复核未见新增回归；klx2 代表性单卡通过；klx1 模型搬运异常、整合版新 TP2 待补 | [PR #12](https://github.com/FlagRT/FlagPerf/pull/12) 已合并；OneRec 单卡/TP2 分歧保留，[实测报告](evidence/P800-Inference-v2实测结果-20261105.md) |
+| Inference v2（平头哥 PPU） | Qwen 单卡/TP2、采集分析及归档恢复已测 | 两台同型主机核心链路可用；OneRec 未做设备端生成验证 | PR #12 已合并；性能未取得资格，[实测报告](evidence/PPU-Inference-v2实测结果-20261104.md) |
+| Training（FlagPerf 训练部分） | 训练执行协议、观察态采集与多卡画像链路已形成 | 三家芯片（Ascend / THead / Kunlunxin）实测；Top5 模型除多模态外覆盖；单卡 / 多卡 DDP / FSDP 实测；模型层 §5.5 四条全部实现并有实测 | 11-17 报告基于 `zhiyu/perf-train@3d2f8adf`，后续训练交付已随 [PR #16](https://github.com/FlagRT/FlagPerf/pull/16) 合入；交付报告与最佳实践见本目录 [FlagPerf训练适配完成报告.md](docs/training/FlagPerf训练适配完成报告.md)、[FlagScale使用FlagPerf最佳实践.md](docs/training/FlagScale使用FlagPerf最佳实践.md) |
 | 两段 Demo 统一验收报告 | 未完成 | Operation/Base/Inference 是支撑能力；Inference 证据为 PyTorch/Transformers 路径与专用固定输入，不等于 vLLM 服务口径验收；训练吞吐与跨方向证据尚未统一收拢 | 对应战略文档 §3 第 5 条，仍为下一阶段交付 |
 
-当前最重要的边界是：**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
-Operation V3 与 Inference V1–V1.6 已于 2026-09-27/29 选择性公开迁移（`FlagPerf/dev-zkm@a5f26fe9`），但 Inference V2–V4（A100 参考、推荐模型、监控旁路、成本优化）仍仅在 `FlagPerf_advance/dev-zkm@76f1f733`；任何一者都不能仅凭提交存在被视为已发布能力，也不能替代两段 Demo 的最终验收。
+阅读历史结果时请区分**“研发目录已实现”“某组离线测试通过”“代表算子实机通过”“已发布到独立仓库”是四种不同状态。**
+Operation V3 与 Inference V1–V1.6 已于 2026-09-27/29 选择性公开迁移（`FlagPerf/dev-zkm@a5f26fe9`）；截至 10-09，旧 Inference V2–V4（A100 参考、推荐模型、监控旁路、成本优化）仍仅在 `FlagPerf_advance/dev-zkm@76f1f733`；任何一者都不能仅凭提交存在被视为已发布能力，也不能替代两段 Demo 的最终验收。
 Inference 的性能数字在采集期间存在同板卡外部负载，属于功能与测量链路验收，不是独占环境基线。
 上文 V1–V4 指旧 `FlagPerf_advance/inference/` 的功能版本；新增目录 `inference_v2/` 是另一条观测基座主线，
 不能与旧工具的“V2 A100 参考”混同。旧工具在替代条件满足前继续保留，研发快照与已公开迁移版本分别记录。
@@ -47,12 +76,12 @@ P800（昆仑芯）与 PPU（平头哥）2026-10 起的进展同样遵循上述�
 
 ### 1.1 Training 训练适配（2026-11）
 
-训练部分的开发、跨厂商适配与实机测试本周完成，交付两份文档：
+11-17 的三平台交付报告与配套接入文档如下。
 
 - [FlagPerf训练适配完成报告.md](docs/training/FlagPerf训练适配完成报告.md)：模型层 §5.5 四条需求的逐条完成情况与证据索引、三平台验证矩阵、九个关注模型的支持情况、已知限制；
 - [FlagScale使用FlagPerf最佳实践.md](docs/training/FlagScale使用FlagPerf最佳实践.md)：接入方式（含在 FlagScale `train_retrieval.py` 的真实集成与补丁）、典型集成实例、每个功能的输出位置与解读方法、九个模型的使用说明。
 
-本周结果摘要：
+该批次的训练实测记录如下。
 
 - 完成 FlagPerf 训练部分的开发（五类训练任务、检查点与恢复、AMP、DDP、FSDP2，观察态采集与多卡画像链路）；
 - 训练适配扩展到三家芯片（Ascend、THead、Kunlunxin），覆盖 Top5 模型（暂未覆盖多模态模型），完成单卡、多卡 DDP、FSDP 等多种训练方式的实测；
@@ -324,7 +353,7 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
   设备、不改写原执行状态；10-09 续验快照仍为 in_progress，待补设备矩阵未完成。
 - 推荐模型为合成资产功能验收，不代表真实 CTR/AUC、业务评分或稳定收益；OneRec 生成指标不等于推荐质量。
 
-### 5.5 尚不能宣称的能力
+### 5.5 截至 10-28 的验证边界
 
 以下核心进展与待办按 10-28 历史快照保留；11-05 厂商适配的实际范围以[实测索引](evidence/README.md)为准，不以历史“未实现”概括新增已测路径，也不据厂商测试代替核心 Gate。
 
@@ -344,8 +373,8 @@ DeepFM）、`7386948f`（V3.1 DLRM 与 OneRec）、`376bf09c`（V3.2 A100 收口
 | 类型 | 锁定或验证身份 | 用途与边界 |
 | --- | --- | --- |
 | Operation 研发/验证 runtime | `flagrt/ascend-operator-runtime:0.2.0-cann9.0-py311-torch2.10-arm64`，本机 ID `sha256:d9484109...d397` | CANN 9、Python 3.11、PyTorch 2.10、Torch-FL、Triton Ascend、FlagGems；用于当前 Operation 证据，不是两段 Demo 的替代验收镜像 |
-| 生效训练腿 | `flagrt/ascend-operator-runtime-comm:0.1.3-cann9.0-py311-torch2.10-flagcx0.13.0g55eb2ffp2-arm64` | 以 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock.train` 为准；候选 1.0.0 血统尚未生效 |
-| 生效推理腿 | `quay.io/ascend/vllm-ascend:v0.20.2rc1-a3` | 以 `dev/archive/stack.lock.910c.v2.yaml` 的 `lock.infer` 为准 |
+| 910C 验收训练环境 | [ascend-train-comm/v3 基线](../images/ascend-train-comm/v3/image.baseline.yaml) | 按现行 [910C 锁文件](../stack.lock.910c.v4.yaml) 的 `lock.train` 取镜像标识和运行环境 |
+| 910C 验收推理环境 | [ascend-infer-vllm/v1 基线](../images/ascend-infer-vllm/v1/image.baseline.yaml) | 同一锁文件的 `lock.infer`，用于单卡 vLLM 推理服务 |
 | Inference 单卡 runtime | `flagperf/inference-ascend:20260922`，本机 ID `sha256:b4a5b2c8...f003` | 由生效推理腿基镜像派生：git archive 固定 FlagGems `f7ae8e6b` 源码＋ONNX 导出依赖；用于单卡精度/性能证据；被测引擎为 PyTorch/Transformers，vLLM 仅作底座，不等于锁定镜像本身 |
 | Inference TP runtime | `flagperf/inference-ascend:20260923-tp`，本机 ID `sha256:16c26e9b...dc6d` | 在 20260922 基础上仅追加 `accelerate==1.13.0`（wheel SHA256＋逐包比对）；用于单机 TP=2 HCCL 性能/通信/精度证据 |
 | Inference 三组件/TP runtime | `flagperf/inference-ascend:20260923-tp-flagtree-flagcx`，本机 ID `sha256:1147704d...7bf03` | 在 20260923-tp 基础上提取厂商编译器并集成 FlagTree/FlagCX 依赖；用于组件开关、层级性能、推荐模型、监控旁路与 10-08/10-09 续验证据 |
@@ -362,15 +391,14 @@ Inference 实机设备：单卡精度物理设备 0、单卡性能物理设备 1
 设备 2、4；TP 精度物理设备 4、6（设备 2 被其他容器占用，EBUSY）。V1.4 以后轮次：三组件与公开迁移验收单卡
 设备 4、TP 设备 4/6（Operation 另用设备 8）；层级性能与 preview 优化对照单卡设备 4、TP 设备 4、8；监控验收
 设备 2、4、开销对照设备 2；10-08 续验按任务分配，10-09 续验使用设备 4、5。
-本机 image ID 不是 registry digest。结论性 Demo 验证必须遵循当前生效的 `dev/archive/stack.lock.910c.v2.yaml`，
-不能把 Operation 研发镜像或 Inference 派生镜像混入最终验收。
+两段 Demo 验收使用[现行 910C 锁文件](../stack.lock.910c.v4.yaml)指定的环境。表中各轮设备实测的镜像身份按采集时记录。
 
-## 7. 使用入口
+## 7. 历史版本使用入口
 
 ### 7.1 Operation V3
 
 Operation V3 功能已于 2026-09-27 选择性公开迁移到独立 FlagPerf（自 `dev-zkm@1eba1052` 起）；以下命令是研发仓
-`FlagPerf_advance` 的最新入口，公开仓入口见 FlagPerf 的 operation README：
+`FlagPerf_advance` 对应版本的入口，公开仓入口见 FlagPerf 的 operation README：
 
 ```bash
 # 终端友好地查看 Case 和支持类型；不访问 Docker/NPU
@@ -494,7 +522,7 @@ python run.py repack-reference --source /absolute/old-package \
 
 ### 7.4 inference_v2 / flagprof 入口
 
-公开核心已随 PR #7/#8/#9 进入 FlagPerf dev-1.0，见[现行使用说明](https://github.com/FlagRT/FlagPerf/blob/41ab2dce5a94906919905437ebc8dec97a3d36c5/inference/docs/usage.md)。P800/PPU 适配在 PR #12 固定提交中；见[实测索引](evidence/README.md)。以下研发仓命令保留其历史上下文，不替代公开入口。
+团队公共版已合入核心采集、P800/PPU 适配、组件对照、监控诊断与报告。现行命令见[公共版指南](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/usage.md)，各厂商历史验证见[实测索引](evidence/README.md)。以下命令对应 10 月研发快照。
 
 在含研发快照的 `FlagPerf_advance/inference_v2/` 中运行；采集使用对应厂商已验证环境，`inspect` 只读已有账本，
 不启动模型或补跑采集。以下为命令模板：
@@ -563,7 +591,9 @@ TP 样本数不乘卡数，策略 coverage 为 `partial` 时表示未重测候�
 V1.4 以后另区分：零范数余弦、零参考 RMS 等不可定义指标归入 `undefined_metrics`（不是异常）；性能报告的重复
 CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰；监控 `monitoring.status` 与性能执行/分析状态相互独立。
 
-## 9. 下一步
+## 9. 历史各批次的后续安排
+
+以下记录对应 10–11 月各批次结束时的安排。当前阻塞与总组验收工作见 [STATUS](STATUS.md)。
 
 1. 收拢待补设备矩阵：资源空闲后补 DeepFM FlagTree/FlagCX TP2 剩余项与 A100 12 项短测，收口 10-09 in_progress
    快照，并更新交付索引。
@@ -576,7 +606,7 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 5. 汇总 device-context、communication、memory、调度和监控证据，生成战略 §3 第 5 条要求的统一验收报告；基础
    验收稳定后，再逐步推进 Oracle—Device 误差传播与敏感算子归因闭环、完整跨层 Profiling、故障恢复和长稳/热加载
    能力。
-6. P800：Base/Toolkit 与 Operation 已合并；继续复核传输不稳定、六组计数器、路由与统计记录缺口。Inference v2 跟进 PR #12，补 klx1 健康设备实测和整合版 TP2，保留 OneRec 分歧。
+6. P800：Base/Toolkit 与 Operation 已合并；继续复核传输不稳定、六组计数器、路由与统计记录缺口。Inference v2 适配已随 PR #12 合入，设备侧需补 klx1 健康设备实测和整合版 TP2，保留 OneRec 分歧。
 7. PPU：Base/Toolkit 与 Operation 已合并；补 16-rank 独占资格、16-target 监控和 rank 上限审计，继续联合复核九项算子失败及缓存路由缺口；Inference v2 的 OneRec 设备验证待补。官方全设备 P2P 共享实测已完成，但不是独占资格。
 8. inference_v2：P0/P1 已退出、P4 首批已完成并交付复审。先裁决 D51（P4 首批复审＋T11.3/T12.1 下发）：T11.3
    修补报告口径（掩码哨兵假性放大、ULP 可读性、oracle HTML 表格化）并重出六份报告，T12.1 对三份封存采集
@@ -609,9 +639,9 @@ CV/尖峰筛查标记“需复查”时不改变执行状态、不剔除尖峰�
 
 ## 11. inference_v2 / flagprof：与模型解耦的观测基座（2026-10-09 → 10-28）
 
-**当前主线：P0 已退出（2026-10-27 D45，L-字段升至 `1.0`），P1 已退出（10-28 D49，附 P1.1 报告口径修补），
+**10-28 研发快照：P0 已退出（2026-10-27 D45，L-字段升至 `1.0`），P1 已退出（10-28 D49，附 P1.1 报告口径修补），
 P4 首批三任务当天完成（10-28 D50 批准下发；设计者复审提议 D51、含 T11.3/T12.1，待用户批准）。下一阶段建议
-转 P2a 导入速度。**
+转 P2a 导入速度。** 随后的决策已记入公共仓。至 11-02，P0、P1、P2 和 P4 均已在各自登记范围退出。[后续决策 D55](https://github.com/FlagRT/FlagPerf/blob/46450a2dbe3618815faa0ff63460cee5104d6903/inference/docs/DECISIONS.md#d55)
 
 本节 §11.1–§11.4 依据 2026-10-21 快照 `FlagPerf_advance/dev-zkm@a66356b57edc4757fbb160c07c646298a42f9c31`；
 §11.5 依据 2026-10-28 快照 `dev-zkm@35f94819` 与设计者复审材料（后者在工作区、尚未提交，随 D51 待批准）。
@@ -770,4 +800,4 @@ D33 自动步进与导入规模成本另按各自任务推进，不因容量原�
 **边界**：P4 首批为 Qwen3-Embedding-0.6B、固定 12 输入、单卡、A100 参考比较，不含业务容差裁决；跨设备下钻
 各 8 行布局/stride 配置不同、只标 partial 不判 introduced；replay 未实施（P4 第二批）；百万级来源记录导入
 耗时（2,401,518 条曾于 900 秒上限退出）未重新验收。D51 与 T11.3/T12.1 任务单尚未经用户批准，不因材料存在
-视为已下发；FlagPerf_advance 的 `dev-zkm` 与其远端已分叉，本轮推送去向由用户另行决定。
+视为已下发；FlagPerf_advance 的 `dev-zkm` 与其远端已分叉，此处记录 10-28 的研发快照。
